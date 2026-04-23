@@ -1,4 +1,6 @@
-1. Take this project idea: "A personal journal app where I can write daily entries, tag them with moods, and look back at past entries." Break it down into layers using the approach described above. What's the core? What are the layers? What's the build order?
+## Question 1
+
+> Take this project idea: "A personal journal app where I can write daily entries, tag them with moods, and look back at past entries." Break it down into layers using the approach described above. What's the core? What are the layers? What's the build order?
 
 **Core:** Write a journal entry and read it back. A text input, a save button, and a list of past entries with their dates. No moods, no tags, no search — just write something and see it later.
 
@@ -13,7 +15,11 @@
 
 **Build order rationale:** Viewing a single entry (layer 2) comes before tagging (layer 3) because tags are useless if you can't open the entry they're attached to. Filtering by mood (layer 4) depends on tags existing, so it can't come before layer 3. Edit/delete (layer 5) is intentionally late — you want a stable data structure before adding mutation operations. Search (layer 6) is last among features because it's a convenience on top of already-working browsing.
 
-2. Take this project idea: "A tool for planning road trips. Enter your start and end points, add stops along the way, and see the total driving time." Write out the user stories. Each story should be one thing a user does.
+---
+
+## Question 2
+
+> Take this project idea: "A tool for planning road trips. Enter your start and end points, add stops along the way, and see the total driving time." Write out the user stories. Each story should be one thing a user does.
 
 1. "As a traveler, I want to enter a start point and destination, so that I can see a route and total driving time."
 2. "As a traveler, I want to add a stop along my route, so that I can plan where to break up the drive."
@@ -23,7 +29,11 @@
 6. "As a traveler, I want to save a trip by name, so that I can come back to it without re-entering everything."
 7. "As a traveler, I want to see a list of my saved trips, so that I can pick up a plan where I left off."
 
-3. Open a conversation with an agent and describe a project idea you're interested in. Ask the agent to help you decompose it. Review the agent's breakdown critically. Is anything too big? Too small? In the wrong order? Revise it.
+---
+
+## Question 3
+
+> Open a conversation with an agent and describe a project idea you're interested in. Ask the agent to help you decompose it. Review the agent's breakdown critically. Is anything too big? Too small? In the wrong order? Revise it.
 
 ### Project context summary
 
@@ -44,8 +54,6 @@ I use Obsidian.md for note-taking and VS Code for development. My Obsidian vault
 **Open question at this stage:** what is the integration surface? An MCP server, a VS Code extension, or an Obsidian plugin — each has different tradeoffs and the decomposition can't be finalized without deciding.
 
 ### Refinement
-
-**Initial decomposition** used the layer approach with a question about the integration surface — MCP server vs. VS Code extension vs. Obsidian plugin.
 
 **Refinement 1 — platform:** Decided the integration should be a VS Code or Obsidian extension so it can be packaged and published to their respective marketplaces. Tradeoffs: Obsidian has native vault API access and is better for following wikilinks and tags; VS Code has a larger audience and is more natural for referencing notes while coding.
 
@@ -86,4 +94,10 @@ I use Obsidian.md for note-taking and VS Code for development. My Obsidian vault
 
 **Hard gates:** layer 13 (publish core) is blocked until layers 2, 4, 6, 8, 10, and 12 all pass. Layer 18 (publish extensions) is blocked until layers 15 and 17 pass. Layers 15 and 17 are independent of each other — build whichever platform first.
 
-4. Share your decomposition in the guild [Discord](https://discord.gg/kfM6Q4UBbM) **#apprentice-level** channel and ask for feedback. Can other members spot dependencies you missed? Steps that could be broken down further? This is lightweight adversarial review, exactly the kind of thinking the guild develops.
+---
+
+## Question 4
+
+> Share your decomposition in the guild [Discord](https://discord.gg/kfM6Q4UBbM) **#apprentice-level** channel and ask for feedback. Can other members spot dependencies you missed? Steps that could be broken down further? This is lightweight adversarial review, exactly the kind of thinking the guild develops.
+
+Shared to the guild Discord **#apprentice-level** channel on 2026-04-23.
