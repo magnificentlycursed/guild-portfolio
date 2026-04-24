@@ -40,6 +40,9 @@ export function validateTitle(title: string): string | null {
 }
 
 export function validateUrl(url: string): string | null {
+  if (url.trim() === '') {
+    return 'URL cannot be empty';
+  }
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {

@@ -61,6 +61,17 @@ Single user, no accounts or authentication needed. Runs in a web browser, data s
 
 All findings are logged in `ADVERSARIAL.md` with their resolution or dismissal rationale.
 
+**UX review** is run at the end of each layer using the prompt in `UX-REVIEW.md`. The review evaluates:
+- Empty states: what does the user see when content is absent?
+- Error messages: are they clear, correctly placed, and do they clear at the right time?
+- Focus and keyboard behavior: do interactive elements receive focus at the right moment?
+- Visual consistency: are equivalent UI surfaces (e.g., add form vs. edit form) treated the same?
+- Interactive affordances: do users know what they can interact with?
+- Feedback patterns: success, error, empty — are they present and appropriate?
+- Accessibility: WCAG AA compliance for color contrast, labels, and focus management
+
+All findings are logged in `UX-REVIEW.md` with their resolution or dismissal rationale.
+
 ## Out of Scope
 - User accounts, login, or sharing
 - Browser extension for quick saving

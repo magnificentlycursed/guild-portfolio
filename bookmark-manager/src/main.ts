@@ -43,7 +43,7 @@ function renderTagFilters(bookmarks: Bookmark[]): void {
     btn.textContent = tag;
     btn.dataset.tag = tag;
     btn.addEventListener('click', () => {
-      activeTag = tag;
+      activeTag = activeTag === tag ? null : tag;
       renderBookmarks();
     });
     container.appendChild(btn);
@@ -59,6 +59,13 @@ function renderBookmarks(): void {
 
   const visible = activeTag !== null ? filterByTag(bookmarks, activeTag) : bookmarks;
   const sorted = sortBookmarks(visible);
+
+  if (sorted.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'list-empty';
+    li.textContent = 'No bookmarks yet. Add one above.';
+    list.appendChild(li);
+  }
 
   for (const bookmark of sorted) {
     const li = document.createElement('li');
@@ -126,11 +133,11 @@ function handleEditClick(id: string): void {
   form.className = 'edit-form';
   form.dataset.id = id;
 
-  const fields: { label: string; name: string; type: string; value: string }[] = [
+  const fields: { label: string; hint?: string; name: string; type: string; value: string }[] = [
     { label: 'Title', name: 'title', type: 'text', value: bookmark.title },
     { label: 'URL', name: 'url', type: 'text', value: bookmark.url },
-    { label: 'Note', name: 'note', type: 'textarea', value: bookmark.note },
-    { label: 'Tags', name: 'tags', type: 'text', value: bookmark.tags.join(', ') },
+    { label: 'Note', hint: '(optional)', name: 'note', type: 'textarea', value: bookmark.note },
+    { label: 'Tags', hint: '(optional, comma-separated)', name: 'tags', type: 'text', value: bookmark.tags.join(', ') },
   ];
 
   for (const field of fields) {
@@ -138,6 +145,12 @@ function handleEditClick(id: string): void {
     group.className = 'form-group';
     const label = document.createElement('label');
     label.textContent = field.label;
+    if (field.hint) {
+      const hint = document.createElement('span');
+      hint.className = 'optional';
+      hint.textContent = ' ' + field.hint;
+      label.appendChild(hint);
+    }
     group.appendChild(label);
     if (field.type === 'textarea') {
       const textarea = document.createElement('textarea');
@@ -174,9 +187,13 @@ function handleEditClick(id: string): void {
   form.appendChild(cancelBtn);
 
   form.addEventListener('submit', handleEditSave);
+  form.addEventListener('input', () => { errorEl.textContent = ''; });
 
   li.innerHTML = '';
   li.appendChild(form);
+
+  const firstField = form.querySelector('input, textarea') as HTMLElement | null;
+  firstField?.focus();
 }
 
 function handleEditSave(event: Event): void {
@@ -263,6 +280,8 @@ function handleSubmit(event: Event): void {
 
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('add-form') as HTMLFormElement;
+  const errorEl = document.getElementById('form-error') as HTMLParagraphElement;
   form.addEventListener('submit', handleSubmit);
+  form.addEventListener('input', () => { errorEl.textContent = ''; });
   renderBookmarks();
 });

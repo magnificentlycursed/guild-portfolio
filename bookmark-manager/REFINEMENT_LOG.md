@@ -1,5 +1,33 @@
 # Bookmark Manager — Refinement Log
 
+### 2026-04-24 20:30Z — QA review 5: UX change test gaps closed
+
+Four test weaknesses found against the UX changes from Review 2. Every UX change (empty state, error clearing, edit form focus, optional hints) had no corresponding browser test — the implementation was correct but unverifiable. Added 4 browser tests covering all four changes, plus a fifth test verifying that error clearing works for any field on the form, not just the one that triggered the error. The Layer 4 manual checklist was also found to be missing all UX-related behaviors; 8 new checklist items added.
+
+### 2026-04-24 20:24Z — UX review established as a formal layer gate; UX review 2 findings resolved
+
+UX review is now a required part of the layer completion gate alongside adversarial QA review and manual testing. The prompt, evaluation criteria, and findings log live in `UX-REVIEW.md`. `DESIGN.md` and `TODO.md` updated to reflect this.
+
+Four findings from Review 2 were implemented:
+
+**Empty state:** The bookmark list had no message when empty — first-time users and users who deleted all bookmarks saw a blank area with no context. Added a `<li class="list-empty">` with a prompt to add a bookmark. Note: with the Layer 4 `activeTag` auto-reset fix, a filter-active-but-empty state is structurally impossible — the empty state message always means no bookmarks in storage.
+
+**Error clearing on input:** The add form and inline edit form errors persisted visually while the user was typing to fix them. Added `input` event listeners on both forms to clear the error immediately when any field receives input.
+
+**Edit form focus:** Opening the inline edit form left keyboard focus on the now-replaced Edit button. Added `firstField?.focus()` immediately after the form is injected into the DOM.
+
+**Edit form "(optional)" hints:** The add form marks Note and Tags as optional; the edit form didn't. Added a `hint` field to the edit form field descriptor array so the same `<span class="optional">` pattern is used in both places.
+
+Two findings deferred to Layer 6: `window.confirm` replacement (inline confirmation UI) and tag badge click-to-filter. Both added to Layer 6 task list in `TODO.md`.
+
+### 2026-04-24 20:17Z — Tag filter toggle deselect and empty URL validation message
+
+**Tag filter toggle:** Manual testing revealed that clicking an active tag button had no effect — the only way to deselect a filter was to click "All." UX review confirmed toggle deselect is a universal expectation across iOS, Android, e-commerce, and content apps. Fixed with a one-character change: `activeTag = tag` → `activeTag = activeTag === tag ? null : tag`.
+
+**Empty URL message:** Manual testing revealed that submitting the form with no URL showed "URL must start with http:// or https://" — a message about format, not presence. Added an explicit empty check to `validateUrl` (mirroring `validateTitle`), returning "URL cannot be empty" before the URL constructor is invoked. This gives users the right signal about what's wrong.
+
+**UX review on multi-select:** Review 1 in `UX-REVIEW.md` evaluates AND vs OR for multi-tag selection. OR is the correct model for this UI pattern and use case. Multi-select deferred — single-select is clean and unambiguous at this stage.
+
 ### 2026-04-24 19:41Z — Adversarial QA review 4 (Layer 4)
 
 One bug and one test weakness found and resolved. No new dependencies. Coverage for `bookmarks.ts` remains 100%.

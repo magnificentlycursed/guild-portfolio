@@ -2,6 +2,68 @@
 
 ---
 
+## Review 5 — 2026-04-24 20:30Z (UX changes)
+
+### Prompt
+
+> Review the four UX changes introduced in UX Review 2: empty state, add form error clearing on input, edit form focus on open, and edit form "(optional)" hints. For each change:
+> 1. Is the behavior covered by a falsifiable browser test?
+> 2. Are there edge cases or parallel surfaces not covered (e.g. the same change applied to the add form but not the edit form)?
+> 3. Is the manual testing checklist updated to include these behaviors?
+
+---
+
+### Bugs Found and Resolved
+
+None.
+
+---
+
+### Test Weaknesses Found and Resolved
+
+#### Weakness 1 — Error clearing test only typed in the title field
+
+**File:** `tests/browser/bookmark-manager.spec.ts` — "clears the add form error message when the user starts typing"
+**Critique:** The `input` event listener is on the form element, so typing in any field should clear the error. The test only verified typing in `input[name="title"]`. An implementation that only listened on the title field would pass.
+**Assessment:** Valid.
+**Resolution:** Added `'clears the add form error when typing in any field, not just the erroring one'` — triggers a title error, then types in `input[name="url"]` and asserts the error clears.
+
+#### Weakness 2 — Edit form error clearing had no test
+
+**File:** `tests/browser/bookmark-manager.spec.ts`
+**Critique:** The `input` event listener was added to the inline edit form too, but no browser test verified it. An implementation that added the listener only to the add form would pass all existing tests.
+**Assessment:** Valid.
+**Resolution:** Added `'clears the edit form error message when the user starts typing'`.
+
+#### Weakness 3 — Edit form focus had no test
+
+**File:** `tests/browser/bookmark-manager.spec.ts`
+**Critique:** `firstField?.focus()` was added with no corresponding test. An implementation that omitted the focus call entirely would pass all existing tests.
+**Assessment:** Valid.
+**Resolution:** Added `'edit form focuses the title field when opened'` using Playwright's `.toBeFocused()` assertion.
+
+#### Weakness 4 — Edit form "(optional)" hints had no test
+
+**File:** `tests/browser/bookmark-manager.spec.ts`
+**Critique:** The `hint` field addition to the edit form descriptor was untested. An implementation that omitted the hints would pass all existing tests.
+**Assessment:** Valid.
+**Resolution:** Added `'edit form labels Note and Tags as optional'` using `.filter({ hasText: ... }).toContainText(...)`.
+
+#### Weakness 5 — Layer 4 manual checklist missing UX behaviors
+
+**File:** `TODO.md`
+**Critique:** The Layer 4 manual checklist had no entries for: empty state message, tag toggle deselect, error clearing on input, edit form focus, or edit form optional hints. All were introduced or discovered during Layer 4 work.
+**Assessment:** Valid.
+**Resolution:** Added 8 new manual checklist items covering all of the above.
+
+---
+
+### Dismissed Findings
+
+None.
+
+---
+
 ## Review 4 — 2026-04-24 19:41Z
 
 ### Prompt

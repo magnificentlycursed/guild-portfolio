@@ -65,7 +65,7 @@ describe('validateUrl', () => {
   });
 
   it('returns an error message for an empty string', () => {
-    expect(validateUrl('')).toBe('URL must start with http:// or https://');
+    expect(validateUrl('')).toBe('URL cannot be empty');
   });
 
   it('returns an error message for a protocol-only URL with no domain', () => {

@@ -160,6 +160,15 @@ button[type="submit"]:hover {
   color: #333;
 }
 
+/* Empty state */
+
+.list-empty {
+  list-style: none;
+  padding: 1.5rem 0;
+  color: #888;
+  font-size: 0.9rem;
+}
+
 /* Bookmark actions (edit/delete buttons) */
 
 .bookmark-actions {

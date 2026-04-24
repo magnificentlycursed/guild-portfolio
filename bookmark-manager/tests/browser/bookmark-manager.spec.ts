@@ -118,6 +118,14 @@ test('form data is preserved when title validation fails', async ({ page }) => {
   await expect(page.locator('textarea[name="note"]')).toHaveValue('Some note');
 });
 
+test('shows error and does not add bookmark when URL is empty', async ({ page }) => {
+  await page.fill('input[name="title"]', 'No URL');
+  await page.click('button[type="submit"]');
+
+  await expect(page.locator('#form-error')).toHaveText('URL cannot be empty');
+  await expect(page.locator('.bookmark-item')).toHaveCount(0);
+});
+
 test('shows error and does not add bookmark when URL is invalid', async ({ page }) => {
   await page.fill('input[name="title"]', 'Bad URL');
   await page.fill('input[name="url"]', 'not-a-url');
@@ -152,6 +160,78 @@ test('rejects a URL that is only a protocol with no domain', async ({ page }) =>
 
   await expect(page.locator('#form-error')).not.toHaveText('');
   await expect(page.locator('.bookmark-item')).toHaveCount(0);
+});
+
+// ---------------------------------------------------------------------------
+// UX: Empty state and error clearing
+// ---------------------------------------------------------------------------
+
+test('shows an empty state message when no bookmarks exist', async ({ page }) => {
+  await expect(page.locator('.list-empty')).toBeVisible();
+  await expect(page.locator('.list-empty')).toHaveText('No bookmarks yet. Add one above.');
+});
+
+test('shows an empty state message after all bookmarks are deleted', async ({ page }) => {
+  await page.fill('input[name="title"]', 'Example');
+  await page.fill('input[name="url"]', 'https://example.com');
+  await page.click('button[type="submit"]');
+
+  page.on('dialog', dialog => dialog.accept());
+  await page.locator('.delete-btn').click();
+
+  await expect(page.locator('.list-empty')).toBeVisible();
+  await expect(page.locator('.list-empty')).toHaveText('No bookmarks yet. Add one above.');
+});
+
+test('clears the add form error message when the user starts typing', async ({ page }) => {
+  await page.click('button[type="submit"]');
+  await expect(page.locator('#form-error')).not.toHaveText('');
+
+  await page.fill('input[name="title"]', 'A');
+  await expect(page.locator('#form-error')).toHaveText('');
+});
+
+test('clears the add form error when typing in any field, not just the erroring one', async ({ page }) => {
+  await page.click('button[type="submit"]');
+  await expect(page.locator('#form-error')).not.toHaveText('');
+
+  await page.fill('input[name="url"]', 'https://example.com');
+  await expect(page.locator('#form-error')).toHaveText('');
+});
+
+test('edit form focuses the title field when opened', async ({ page }) => {
+  await page.fill('input[name="title"]', 'Example');
+  await page.fill('input[name="url"]', 'https://example.com');
+  await page.click('button[type="submit"]');
+
+  await page.locator('.edit-btn').click();
+
+  await expect(page.locator('.edit-form input[name="title"]')).toBeFocused();
+});
+
+test('edit form labels Note and Tags as optional', async ({ page }) => {
+  await page.fill('input[name="title"]', 'Example');
+  await page.fill('input[name="url"]', 'https://example.com');
+  await page.click('button[type="submit"]');
+
+  await page.locator('.edit-btn').click();
+
+  await expect(page.locator('.edit-form label').filter({ hasText: 'Note' })).toContainText('(optional)');
+  await expect(page.locator('.edit-form label').filter({ hasText: 'Tags' })).toContainText('(optional, comma-separated)');
+});
+
+test('clears the edit form error message when the user starts typing', async ({ page }) => {
+  await page.fill('input[name="title"]', 'Example');
+  await page.fill('input[name="url"]', 'https://example.com');
+  await page.click('button[type="submit"]');
+
+  await page.locator('.edit-btn').click();
+  await page.fill('.edit-form input[name="title"]', '');
+  await page.click('.edit-form button[type="submit"]');
+  await expect(page.locator('.edit-error')).not.toHaveText('');
+
+  await page.fill('.edit-form input[name="title"]', 'A');
+  await expect(page.locator('.edit-error')).toHaveText('');
 });
 
 // ---------------------------------------------------------------------------
@@ -286,6 +366,25 @@ test('switching tag filters updates the active highlight and the list', async ({
   await expect(page.locator('.filter-btn--active')).toHaveText('reading');
   await expect(page.locator('.bookmark-item')).toHaveCount(1);
   await expect(page.locator('.bookmark-title')).toHaveText('Reading');
+});
+
+test('clicking an active tag filter deselects it and shows all bookmarks', async ({ page }) => {
+  await page.fill('input[name="title"]', 'Work');
+  await page.fill('input[name="url"]', 'https://work.com');
+  await page.fill('input[name="tags"]', 'work');
+  await page.click('button[type="submit"]');
+  await page.fill('input[name="title"]', 'Reading');
+  await page.fill('input[name="url"]', 'https://reading.com');
+  await page.fill('input[name="tags"]', 'reading');
+  await page.click('button[type="submit"]');
+
+  await page.locator('.filter-btn', { hasText: 'work' }).click();
+  await expect(page.locator('.bookmark-item')).toHaveCount(1);
+
+  await page.locator('.filter-btn', { hasText: 'work' }).click();
+
+  await expect(page.locator('.bookmark-item')).toHaveCount(2);
+  await expect(page.locator('.filter-btn--active')).toHaveText('All');
 });
 
 test('deleting all bookmarks with a tag removes that tag filter button', async ({ page }) => {
