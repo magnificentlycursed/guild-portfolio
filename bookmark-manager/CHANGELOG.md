@@ -1,10 +1,16 @@
 # Bookmark Manager — Changelog
 
+## 2026-04-24 — Move CI workflow to repo root
+
+### Changed
+- Workflow moved from `bookmark-manager/.github/workflows/ci.yml` to `<repo-root>/.github/workflows/bookmark-manager.yml` — GitHub Actions only reads workflows from `.github/workflows/` at the repository root; the previous location would never have been picked up
+
+---
+
 ## 2026-04-23 — GitHub Actions CI pipeline
 
 ### Added
-- `.github/workflows/ci.yml` — CI pipeline triggered on every push to any branch and on pull requests to main; steps in order: checkout → Node 20 setup (with npm cache) → `npm ci` → typecheck → unit tests → Playwright browser cache → Playwright browser install → browser tests → build; all steps must pass for the job to succeed
-- Playwright browser binaries cached by `package-lock.json` hash to avoid re-downloading on repeated runs; system deps installed separately when cache is hit
+- `<repo-root>/.github/workflows/bookmark-manager.yml` — CI pipeline triggered on push or PR to main when files under `bookmark-manager/` change; steps in order: checkout → Node 20 setup (npm cache keyed to `bookmark-manager/package-lock.json`) → `npm ci` → typecheck → unit tests → Playwright browser cache → Playwright browser install → browser tests → build; `defaults.run.working-directory` set to `bookmark-manager` so all run steps execute in the project folder without repeating it per step
 
 ### Changed
 - `DESIGN.md` — added GitHub Actions to the Technology section

@@ -18,6 +18,10 @@ Created DESIGN.md covering purpose, features, technology, interface, constraints
 ### 2026-04-23 — TDD acceptance criteria
 **TODO.md:** Added testable acceptance criteria to every task following TDD best practices. Tasks may not be marked complete until all acceptance criteria for that task pass. Criteria are specific and verifiable: they describe exact inputs, expected outputs, and observable behavior rather than implementation details.
 
+### 2026-04-24 — CI workflow relocated to repo root
+
+GitHub Actions only scans `<repo-root>/.github/workflows/` for workflow files — subdirectory `.github/` folders are silently ignored. The workflow was moved from `bookmark-manager/.github/workflows/ci.yml` to `<repo-root>/.github/workflows/bookmark-manager.yml`. In a monorepo, each project gets its own named workflow file at the root, scoped to its directory via `paths` filters. This is the standard GitHub Actions monorepo pattern.
+
 ### 2026-04-23 — GitHub Actions CI pipeline
 
 **`.github/workflows/ci.yml`:** Added CI pipeline that runs on every push to any branch and on pull requests targeting main. Steps: typecheck → unit tests → browser tests (Chromium) → build. Playwright browser binaries are cached by `package-lock.json` hash; system dependencies are installed separately when the browser cache is hit to avoid a full re-download on every run.
