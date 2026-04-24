@@ -1,0 +1,224 @@
+# Bookmark Manager — Changelog
+
+## 2026-04-24 19:17Z — GitHub PR template
+
+### Added
+- `.github/PULL_REQUEST_TEMPLATE.md` — PR template with layer gate checklist: acceptance criteria, unit tests, browser tests, 100% coverage, manual testing checklist, adversarial QA review, ADVERSARIAL.md log, CHANGELOG, REFINEMENT_LOG; includes test results table and notes section
+
+---
+
+## 2026-04-24 19:12Z — MVP complete: Layers 1–3 manual testing passed, ready to merge
+
+### Changed
+- `TODO.md` — manual testing checklists for Layers 1, 2, and 3 marked complete (all tests passed by human verification against the running app on 2026-04-24)
+
+### Status
+- Layer 1 (Core): automated tests ✅, manual tests ✅, QA review ✅
+- Layer 2 (Notes and Tags): automated tests ✅, manual tests ✅, QA review ✅
+- Layer 3 (Edit and Delete): automated tests ✅, manual tests ✅, QA review ✅
+
+---
+
+## 2026-04-24 18:59Z — Adversarial QA review 3: Layer 3 test weaknesses resolved
+
+### Fixed (tests)
+- `tests/browser/bookmark-manager.spec.ts` — "saving an edit updates displayed values" test expanded to fill in note and tags before editing, fill in new values for all four fields, and assert `.bookmark-note` text, `.tag-badge` count, and badge text after saving; previously only checked title and href
+- `tests/browser/bookmark-manager.spec.ts` — added `'editing a bookmark to remove its note hides the note element'` and `'editing a bookmark to remove its tags hides the tag badges'`
+
+### Test results
+- Unit tests: **42 passed**
+- Browser tests: **38 passed**
+
+---
+
+## 2026-04-24 18:52Z — Layer 3: Edit and Delete
+
+### Added
+- `src/bookmarks.ts` — `updateBookmark(bookmarks, id, updates)` returns a new array with the matched bookmark's fields replaced; `deleteBookmark(bookmarks, id)` returns a new array with the matched bookmark removed; both are pure and do not mutate their input
+- `src/main.ts` — edit button and delete button rendered on each bookmark item; `handleEditClick` replaces the bookmark's `li` content with an inline edit form pre-populated with current values; `handleEditSave` validates, updates storage, and re-renders; `handleDeleteClick` uses `window.confirm` before deleting
+- `styles.css` — styles for `.bookmark-actions`, `.edit-btn`, `.delete-btn`, `.cancel-edit`, `.edit-form`, `.edit-error`
+
+### Changed
+- `src/main.ts` — `data-id` attribute added to each `li` in `renderBookmarks()` so edit handler can locate the correct element; imports updated to include `updateBookmark` and `deleteBookmark`
+- `TODO.md` — Layer 3 tasks marked complete
+
+### Test results
+- Unit tests: **42 passed** (11 new: `updateBookmark` ×6, `deleteBookmark` ×5)
+- Browser tests: **36 passed** (14 new: edit button presence, inline form pre-population, save, cancel, validation errors, localStorage verification, persistence, delete with confirm/dismiss, localStorage verification, persistence)
+
+---
+
+## 2026-04-24 — Fix typecheck errors surfaced by CI
+
+### Changed
+- `vite.config.ts` — changed `defineConfig` import from `vite` to `vitest/config`; the `vite` version does not include the `test` property in its type signature, causing `tsc` to error with TS2769
+- `tsconfig.json` — bumped `target` and `lib` from `ES2020` to `ES2021`; `happy-dom` (transitive dependency of Vitest) references `WeakRef` in its type declarations, which is not available in the ES2020 lib
+
+---
+
+## 2026-04-24 — Move CI workflow to repo root
+
+### Changed
+- Workflow moved from `bookmark-manager/.github/workflows/ci.yml` to `<repo-root>/.github/workflows/bookmark-manager.yml` — GitHub Actions only reads workflows from `.github/workflows/` at the repository root; the previous location would never have been picked up
+
+---
+
+## 2026-04-23 — GitHub Actions CI pipeline
+
+### Added
+- `<repo-root>/.github/workflows/bookmark-manager.yml` — CI pipeline triggered on push or PR to main when files under `bookmark-manager/` change; steps in order: checkout → Node 20 setup (npm cache keyed to `bookmark-manager/package-lock.json`) → `npm ci` → typecheck → unit tests → Playwright browser cache → Playwright browser install → browser tests → build; `defaults.run.working-directory` set to `bookmark-manager` so all run steps execute in the project folder without repeating it per step
+
+### Changed
+- `DESIGN.md` — added GitHub Actions to the Technology section
+
+> **Note:** To enforce the CI check as a merge gate, enable branch protection on `main` in GitHub → Settings → Branches → Add rule → require the `ci` status check to pass before merging.
+
+---
+
+## 2026-04-23 — Manual testing checklists and layer gate process
+
+### Changed
+- `DESIGN.md` — added Manual Testing paragraph to Testing Methodology; added manual testing to the layer completion gate alongside automated tests and adversarial review
+- `TODO.md` — added manual testing requirement to the layer-transition gate in the header; added human-readable testing checklists for all six layers covering happy path, edge cases, validation errors, persistence, and UI state; added QA review status lines between layers (completed reviews link to ADVERSARIAL.md; upcoming layers marked Pending)
+
+---
+
+## 2026-04-23 — Expanded QA checks: coverage, dead code, dependencies
+
+### Changed
+- `DESIGN.md` — expanded Testing Methodology into structured subsections; added coverage requirement (`bookmarks.ts` must maintain 100%); documented `main.ts` 0% exclusion as intentional; expanded adversarial review checklist to 8 dimensions (added: dead code, unused dependencies, dependency versions, coverage gaps)
+- `TODO.md` — added layer-transition gate checklist requiring coverage check, dead code check, unused dependency check, and all findings logged before advancing; added QA review status lines between all layers
+
+---
+
+## 2026-04-23 — Adversarial QA review 2: coverage tooling and test hardened
+
+### Added
+- `@vitest/coverage-v8` — coverage provider for Vitest
+- `vite.config.ts` — coverage configuration: `provider: 'v8'`, `include: ['src/**/*.ts']`, reporters `text` and `json-summary`
+- `package.json` — added `test:coverage` script (`vitest run --coverage`)
+
+### Fixed (tests)
+- `tests/browser/bookmark-manager.spec.ts:85` — localStorage test now fills in note and tags before submitting; explicitly asserts `stored[0].note`, `stored[0].tags`, `stored[0].id` (truthy), and `stored[0].createdAt` (> 0); previously only checked title, url, and property existence
+
+### Coverage report (bookmarks.ts)
+- Statements: 100% | Branches: 100% | Functions: 100%
+- `main.ts` reports 0% (expected — DOM code covered by browser tests only)
+
+### Test results
+- Unit tests: **31 passed**
+- Browser tests: **22 passed**
+
+---
+
+## 2026-04-23 — README and post-QA documentation
+
+### Added
+- `README.md` — project overview, feature summary, stack, getting-started instructions, script reference, source structure, and documentation index
+
+### Changed
+- `DESIGN.md` — expanded URL validation constraint to cover case-insensitivity and protocol-only rejection; added form-state-on-failure constraint; added Testing Methodology section codifying that automated tests must exist and pass before a task is complete
+- `TODO.md` — header updated to state automated tests are required, not just compilation; completed Layer 1 criteria updated to reflect what was missing (href verification, all-fields clear, form data preservation, localStorage field inspection, URL edge case matrix); Layer 3 criteria hardened (pre-population, cancel path, validation during edit, count invariants, direct localStorage inspection); Layers 4–6 criteria hardened with count assertions, edge cases, unit test coverage matrices, and explicit empty-state behavior
+
+---
+
+## 2026-04-23 — Adversarial QA review: bugs fixed and tests hardened
+
+### Fixed
+- `src/bookmarks.ts:validateUrl` — replaced `.startsWith('http://')` string comparison with `new URL(url)` constructor; normalizes uppercase protocols automatically and rejects protocol-only URLs like `https://` with no host
+- `src/bookmarks.ts` — extracted inline sort from `src/main.ts` into `sortBookmarks()`; added secondary sort key `|| a.id.localeCompare(b.id)` to produce deterministic ordering for bookmarks with identical timestamps
+- `src/main.ts` — replaced inline sort with `sortBookmarks()`
+
+### Added (tests)
+- `tests/unit/bookmarks.test.ts` — 8 new tests: uppercase HTTP/HTTPS URL acceptance, protocol-only URL rejection, `generateId` hyphen format check, `sortBookmarks` suite (correct order, non-mutation, stable identical-timestamp order, empty array)
+- `tests/browser/bookmark-manager.spec.ts` — 5 new tests: `href` attribute verification on added bookmark, both-bookmark ordering with count assertion, all-fields clear after submission, localStorage JSON content inspection, form data preservation on title and URL validation failure, uppercase protocol acceptance, protocol-only URL rejection
+
+### Test results
+- Unit tests: **31 passed**
+- Browser tests: **22 passed**
+
+---
+
+## 2026-04-23 — Dependency injection for storage
+
+### Changed
+- `src/bookmarks.ts` — added `BookmarkStorage` interface (`getItem`, `setItem`); `loadBookmarks` and `saveBookmarks` now accept a `BookmarkStorage` parameter instead of calling `localStorage` directly
+- `src/main.ts` — passes `localStorage` to `loadBookmarks` and `saveBookmarks` at call sites
+- `tests/unit/bookmarks.test.ts` — replaced `localStorage` with `createMockStorage()`, a plain `Map`-backed mock; no DOM simulation required
+- `vite.config.ts` — Vitest environment changed from `happy-dom` to `node`
+
+### Test results
+- Unit tests: **23 passed** (pure Node.js, no browser APIs)
+- Browser tests: **17 passed**
+
+---
+
+## 2026-04-23 — Testing infrastructure
+
+### Added
+- `src/bookmarks.ts` — pure logic extracted from `main.ts` with named exports (`Bookmark`, `STORAGE_KEY`, `loadBookmarks`, `saveBookmarks`, `generateId`, `validateTitle`, `validateUrl`, `parseTags`)
+- `src/main.ts` — DOM code, imports from `src/bookmarks.ts`
+- `vite.config.ts` — Vite dev server config; Vitest configured with `happy-dom` environment
+- `playwright.config.ts` — Playwright configured to run Chromium, start Vite dev server automatically
+- `tests/unit/bookmarks.test.ts` — 23 unit tests covering all pure functions in `src/bookmarks.ts`
+- `tests/browser/bookmark-manager.spec.ts` — 17 browser tests covering Layer 1 and Layer 2 acceptance criteria
+
+### Changed
+- `index.html` — script tag updated to `<script type="module" src="/src/main.ts">` for Vite
+- `tsconfig.json` — updated to `"module": "ESNext"`, `"moduleResolution": "bundler"`, `"noEmit": true`; `include` updated to cover `src/` and `tests/`
+- `package.json` — added `"type": "module"` and scripts: `dev`, `build`, `typecheck`, `test:unit`, `test:browser`, `test`
+
+### Removed
+- Root `main.ts` and `main.js` — replaced by `src/main.ts`
+
+### Test results
+- Unit tests: **23 passed**
+- Browser tests: **17 passed**
+
+---
+
+## 2026-04-23 — Layer 2: Notes and Tags
+
+### Changed
+- `Bookmark` interface — added `note: string` and `tags: string[]` fields
+- `handleSubmit` — reads note textarea and tags input; parses tags via `parseTags`
+- `renderBookmarks` — renders note as `<p class="bookmark-note">` when present; renders tags as `<span class="tag-badge">` elements inside a `.bookmark-tags` container when present
+
+### Added
+- `parseTags` — splits comma-separated tag input, trims whitespace, filters empty entries
+- `index.html` — note textarea and tags input added to add form, both marked optional
+- `styles.css` — styles for `textarea`, `.optional` label hint, `.bookmark-note`, `.bookmark-tags`, and `.tag-badge`
+
+### Layer 2 tasks completed
+- [x] Add optional note field to the add form
+- [x] Add optional tags field to the add form (comma-separated input)
+- [x] Display note under each bookmark's title
+- [x] Display tags as badges on each bookmark
+
+---
+
+## 2026-04-23 — Layer 1: Core
+
+### Added
+- `tsconfig.json` — TypeScript compiler config targeting ES2020 with strict mode and DOM lib
+- `package.json` — TypeScript installed as a dev dependency via npm
+- `index.html` — single-page app shell with add form (title + URL fields), error message area, and bookmark list container
+- `styles.css` — base layout and typography; form, input, button, and bookmark list styles
+- `main.ts` / `main.js` — compiled TypeScript implementing:
+  - `Bookmark` interface (`id`, `url`, `title`, `createdAt`)
+  - `loadBookmarks` / `saveBookmarks` — localStorage read/write
+  - `generateId` — unique ID per bookmark using timestamp + random string
+  - `validateTitle` — rejects empty titles
+  - `validateUrl` — rejects URLs not starting with `http://` or `https://`
+  - `renderBookmarks` — renders bookmark list sorted newest first
+  - `handleSubmit` — form submission handler; validates, saves, re-renders, and resets the form
+
+### Layer 1 tasks completed
+- [x] Set up project structure
+- [x] Define bookmark data type in TypeScript
+- [x] Add a bookmark with URL and title
+- [x] Display bookmarks in a list, newest first
+- [x] Click a bookmark to open it in a new tab
+- [x] Persist bookmarks in localStorage
+- [x] Validate: reject empty titles
+- [x] Validate: reject invalid URLs
