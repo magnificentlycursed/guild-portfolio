@@ -25,6 +25,56 @@
 
 ---
 
+## Review 3 — 2026-04-24 18:59Z
+
+### Prompt
+
+> You are a tough but fair QA professional reviewing Layer 3 (Edit and Delete) of a TypeScript bookmark manager web app. This is a portfolio project built with TDD. Read every relevant file carefully — source, tests, config.
+>
+> Evaluate:
+> 1. Are the Layer 3 acceptance criteria in TODO.md actually met by the implementation?
+> 2. Are the new unit tests falsifiable? Could any of the 11 new tests pass even if the implementation were broken?
+> 3. Are the new browser tests falsifiable? Are selectors tight enough? Could any test pass against a broken UI?
+> 4. Are there missing edge cases in either test suite for edit or delete?
+> 5. Are there bugs or logic errors in the new code in src/bookmarks.ts or src/main.ts?
+> 6. Is there any new exported or declared code that is never called or imported?
+> 7. Are there any new direct dependencies added?
+> 8. Does the coverage report indicate any uncovered branches or functions in bookmarks.ts for the new Layer 3 functions?
+> 9. Is there anything in the Layer 3 TODO tasks marked complete that isn't actually verified by a test?
+>
+> Be specific. Cite file names and line numbers. Do not soften findings. Report what is actually wrong or missing, not what might theoretically be wrong.
+
+---
+
+### Bugs Found and Resolved
+
+None.
+
+---
+
+### Test Weaknesses Found and Resolved
+
+#### Weakness 1 — "saving an edit updates displayed values" only verified title and URL
+**File:** `tests/browser/bookmark-manager.spec.ts` (original test)
+**Critique:** The acceptance criterion states "the displayed title, URL, note, and tags all reflect the new values." The test only asserted `.bookmark-title` text and `href`. An implementation that dropped note and tags after saving an edit would pass.
+**Assessment:** Valid.
+**Resolution:** Expanded the test to submit with a note and tags, fill in new values for all four fields during edit, and assert `.bookmark-note` text, `.tag-badge` count, and each badge's text after saving.
+
+#### Weakness 2 — No test for clearing note or tags during edit
+**Critique:** No browser test verified that editing a bookmark to have an empty note removes the `.bookmark-note` element, or that clearing tags removes all `.tag-badge` elements. The conditional rendering in `renderBookmarks` handles this, but it was untested after an edit.
+**Assessment:** Valid.
+**Resolution:** Added two new tests: `'editing a bookmark to remove its note hides the note element'` and `'editing a bookmark to remove its tags hides the tag badges'`.
+
+---
+
+### Dismissed Findings
+
+#### Unit tests for updateBookmark/deleteBookmark could be slightly more exhaustive
+**Critique:** No test verifies that updating a bookmark does not change its `createdAt` or `id`. No test verifies that updateBookmark with partial updates (e.g. only title) leaves unspecified fields intact when multiple fields have non-default values.
+**Assessment:** Partially valid, dismissed. The "preserves fields not included in the update" test covers this via `id` and `createdAt` verification. The TypeScript type `Partial<Pick<Bookmark, 'title' | 'url' | 'note' | 'tags'>>` structurally prevents `createdAt` and `id` from being passed as updates at all — the type system is the first line of defence here.
+
+---
+
 ## Review 2 — 2026-04-23
 
 ### Prompt

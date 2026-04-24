@@ -60,6 +60,32 @@ GitHub Actions only scans `<repo-root>/.github/workflows/` for workflow files �
 
 **Rationale:** The first adversarial review was scoped to correctness and test quality. Expanding the prompt to cover code hygiene and dependency state ensures the project doesn't accumulate technical debt silently as layers are added. Coverage reporting makes the gate concrete — it's either 100% or it isn't.
 
+### 2026-04-24 19:12Z — MVP complete: Layers 1–3 gate closed
+
+All three MVP layers passed human manual testing against the running app on 2026-04-24. Each layer has passed all three gate requirements: automated tests (unit + browser), adversarial QA review, and manual testing checklist. The branch is ready to merge into main.
+
+Development will continue on the branch for Layers 4–6 (tag filtering, search, polish).
+
+### 2026-04-24 18:59Z — Adversarial QA review 3 (Layer 3)
+
+Two test weaknesses found and resolved. No bugs. Coverage 100% for `bookmarks.ts`.
+
+The "saving an edit updates displayed values" test only verified title and URL after saving — the acceptance criterion explicitly requires all four fields (title, URL, note, tags) to reflect new values. Test expanded to edit all four fields and assert all four in the rendered output.
+
+No test covered the case of clearing a note or tags during an edit (removing content rather than changing it). The conditional rendering in `renderBookmarks` (`if (bookmark.note)`, `if (bookmark.tags.length > 0)`) handles this but the behaviour after an edit was untested. Two new tests added to cover this path.
+
+One dismissed finding: the `Partial<Pick<Bookmark, 'title' | 'url' | 'note' | 'tags'>>` type signature on `updateBookmark` structurally prevents `id` and `createdAt` from being passed as updates, so the TypeScript compiler is the primary guard. The existing "preserves fields not included in the update" test verifies this at runtime for those fields.
+
+### 2026-04-24 18:52Z — Layer 3: Edit and Delete
+
+Two new pure functions added to `src/bookmarks.ts`: `updateBookmark` (maps over the array, replacing the matched bookmark with spread + updates) and `deleteBookmark` (filters out the matched id). Both return new arrays and do not mutate their input, consistent with the existing immutable pattern in the module.
+
+Inline editing replaces a bookmark `li`'s contents with a dynamically constructed form rather than toggling visibility of hidden fields. This avoids duplicating the form structure in HTML and keeps the DOM minimal. `data-id` added to each rendered `li` so `handleEditClick` can locate the right element by id. The edit form re-uses `validateTitle` and `validateUrl` from `bookmarks.ts`, maintaining a single source of truth for validation logic.
+
+Delete uses `window.confirm` for confirmation — no custom modal needed at this layer. Playwright handles `window.confirm` via `page.on('dialog', ...)`, allowing both accept and dismiss paths to be tested end-to-end.
+
+TDD followed throughout: 11 failing unit tests written first, then `updateBookmark` and `deleteBookmark` implemented to pass them; 14 failing browser tests written next, then UI implemented to pass them. All 42 unit tests and 36 browser tests pass.
+
 ### 2026-04-23 — Second adversarial QA review and coverage tooling
 
 Added `@vitest/coverage-v8` and configured coverage reporting in `vite.config.ts` (`provider: 'v8'`, scoped to `src/**/*.ts`, text + json-summary reporters). Added `test:coverage` script to `package.json`. Coverage confirms `bookmarks.ts` is at 100% statements/branches/functions. `main.ts` reports 0% from unit tests by design — it is DOM wiring code covered exclusively by Playwright browser tests.

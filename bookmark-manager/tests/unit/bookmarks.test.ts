@@ -10,6 +10,8 @@ import {
   saveBookmarks,
   generateId,
   sortBookmarks,
+  updateBookmark,
+  deleteBookmark,
 } from '../../src/bookmarks';
 
 // ---------------------------------------------------------------------------
@@ -223,5 +225,89 @@ describe('sortBookmarks', () => {
 
   it('returns an empty array for empty input', () => {
     expect(sortBookmarks([])).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// updateBookmark
+// ---------------------------------------------------------------------------
+
+describe('updateBookmark', () => {
+  const bookmarks: Bookmark[] = [
+    { id: 'a', url: 'https://a.com', title: 'A', note: '', tags: [], createdAt: 100 },
+    { id: 'b', url: 'https://b.com', title: 'B', note: 'note', tags: ['x'], createdAt: 200 },
+  ];
+
+  it('updates the matching bookmark with the provided fields', () => {
+    const result = updateBookmark(bookmarks, 'a', { title: 'Updated', url: 'https://updated.com' });
+    expect(result[0].title).toBe('Updated');
+    expect(result[0].url).toBe('https://updated.com');
+  });
+
+  it('does not mutate the original array', () => {
+    updateBookmark(bookmarks, 'a', { title: 'Updated' });
+    expect(bookmarks[0].title).toBe('A');
+  });
+
+  it('does not change the array length', () => {
+    const result = updateBookmark(bookmarks, 'a', { title: 'Updated' });
+    expect(result).toHaveLength(2);
+  });
+
+  it('does not modify other bookmarks', () => {
+    const result = updateBookmark(bookmarks, 'a', { title: 'Updated' });
+    expect(result[1].title).toBe('B');
+    expect(result[1].note).toBe('note');
+    expect(result[1].tags).toEqual(['x']);
+  });
+
+  it('preserves fields not included in the update', () => {
+    const result = updateBookmark(bookmarks, 'a', { title: 'Updated' });
+    expect(result[0].id).toBe('a');
+    expect(result[0].createdAt).toBe(100);
+  });
+
+  it('returns the array unchanged when the id is not found', () => {
+    const result = updateBookmark(bookmarks, 'z', { title: 'Updated' });
+    expect(result[0].title).toBe('A');
+    expect(result[1].title).toBe('B');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// deleteBookmark
+// ---------------------------------------------------------------------------
+
+describe('deleteBookmark', () => {
+  const bookmarks: Bookmark[] = [
+    { id: 'a', url: 'https://a.com', title: 'A', note: '', tags: [], createdAt: 100 },
+    { id: 'b', url: 'https://b.com', title: 'B', note: '', tags: [], createdAt: 200 },
+    { id: 'c', url: 'https://c.com', title: 'C', note: '', tags: [], createdAt: 300 },
+  ];
+
+  it('removes the bookmark with the matching id', () => {
+    const result = deleteBookmark(bookmarks, 'b');
+    expect(result.find(b => b.id === 'b')).toBeUndefined();
+  });
+
+  it('does not mutate the original array', () => {
+    deleteBookmark(bookmarks, 'a');
+    expect(bookmarks).toHaveLength(3);
+  });
+
+  it('reduces the array length by one', () => {
+    const result = deleteBookmark(bookmarks, 'a');
+    expect(result).toHaveLength(2);
+  });
+
+  it('does not remove other bookmarks', () => {
+    const result = deleteBookmark(bookmarks, 'b');
+    expect(result.find(b => b.id === 'a')).toBeDefined();
+    expect(result.find(b => b.id === 'c')).toBeDefined();
+  });
+
+  it('returns the array unchanged when the id is not found', () => {
+    const result = deleteBookmark(bookmarks, 'z');
+    expect(result).toHaveLength(3);
   });
 });

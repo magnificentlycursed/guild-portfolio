@@ -1,5 +1,46 @@
 # Bookmark Manager — Changelog
 
+## 2026-04-24 19:12Z — MVP complete: Layers 1–3 manual testing passed, ready to merge
+
+### Changed
+- `TODO.md` — manual testing checklists for Layers 1, 2, and 3 marked complete (all tests passed by human verification against the running app on 2026-04-24)
+
+### Status
+- Layer 1 (Core): automated tests ✅, manual tests ✅, QA review ✅
+- Layer 2 (Notes and Tags): automated tests ✅, manual tests ✅, QA review ✅
+- Layer 3 (Edit and Delete): automated tests ✅, manual tests ✅, QA review ✅
+
+---
+
+## 2026-04-24 18:59Z — Adversarial QA review 3: Layer 3 test weaknesses resolved
+
+### Fixed (tests)
+- `tests/browser/bookmark-manager.spec.ts` — "saving an edit updates displayed values" test expanded to fill in note and tags before editing, fill in new values for all four fields, and assert `.bookmark-note` text, `.tag-badge` count, and badge text after saving; previously only checked title and href
+- `tests/browser/bookmark-manager.spec.ts` — added `'editing a bookmark to remove its note hides the note element'` and `'editing a bookmark to remove its tags hides the tag badges'`
+
+### Test results
+- Unit tests: **42 passed**
+- Browser tests: **38 passed**
+
+---
+
+## 2026-04-24 18:52Z — Layer 3: Edit and Delete
+
+### Added
+- `src/bookmarks.ts` — `updateBookmark(bookmarks, id, updates)` returns a new array with the matched bookmark's fields replaced; `deleteBookmark(bookmarks, id)` returns a new array with the matched bookmark removed; both are pure and do not mutate their input
+- `src/main.ts` — edit button and delete button rendered on each bookmark item; `handleEditClick` replaces the bookmark's `li` content with an inline edit form pre-populated with current values; `handleEditSave` validates, updates storage, and re-renders; `handleDeleteClick` uses `window.confirm` before deleting
+- `styles.css` — styles for `.bookmark-actions`, `.edit-btn`, `.delete-btn`, `.cancel-edit`, `.edit-form`, `.edit-error`
+
+### Changed
+- `src/main.ts` — `data-id` attribute added to each `li` in `renderBookmarks()` so edit handler can locate the correct element; imports updated to include `updateBookmark` and `deleteBookmark`
+- `TODO.md` — Layer 3 tasks marked complete
+
+### Test results
+- Unit tests: **42 passed** (11 new: `updateBookmark` ×6, `deleteBookmark` ×5)
+- Browser tests: **36 passed** (14 new: edit button presence, inline form pre-population, save, cancel, validation errors, localStorage verification, persistence, delete with confirm/dismiss, localStorage verification, persistence)
+
+---
+
 ## 2026-04-24 — Fix typecheck errors surfaced by CI
 
 ### Changed

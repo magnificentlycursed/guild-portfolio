@@ -14,7 +14,7 @@ Built as a guild portfolio project following a design-first, test-driven methodo
 - Search by title or note content in real time
 - Data persists across page refreshes
 
-Layers 1 and 2 (core, notes, and tags) are complete. Layers 3–6 (edit/delete, filtering, search, and polish) are in progress.
+Layers 1–3 (core, notes and tags, edit and delete) are complete. Layers 4–6 (tag filtering, search, and polish) are in progress.
 
 ## Stack
 

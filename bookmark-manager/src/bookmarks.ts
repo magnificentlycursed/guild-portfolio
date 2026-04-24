@@ -63,3 +63,15 @@ export function sortBookmarks(bookmarks: Bookmark[]): Bookmark[] {
     b.createdAt - a.createdAt || a.id.localeCompare(b.id)
   );
 }
+
+export function updateBookmark(
+  bookmarks: Bookmark[],
+  id: string,
+  updates: Partial<Pick<Bookmark, 'title' | 'url' | 'note' | 'tags'>>
+): Bookmark[] {
+  return bookmarks.map(b => b.id === id ? { ...b, ...updates } : b);
+}
+
+export function deleteBookmark(bookmarks: Bookmark[], id: string): Bookmark[] {
+  return bookmarks.filter(b => b.id !== id);
+}

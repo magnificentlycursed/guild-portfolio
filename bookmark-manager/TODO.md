@@ -57,18 +57,18 @@ Before moving to the next layer, complete the manual testing checklist for that 
   - A protocol-only URL with no domain (e.g. `https://`) is rejected
   - Unit tests cover all of: no protocol, `ftp://`, empty string, protocol-only, `http://`, `https://`, `HTTP://`, `HTTPS://`
 
-**Layer 1 manual testing checklist:**
-- [ ] Open the app — page loads with no visible errors and the add form is present
-- [ ] Submit the form with a valid title and URL — bookmark appears at the top of the list
-- [ ] Verify the bookmark title is a clickable link — clicking it opens the correct URL in a new tab without navigating away
-- [ ] Add a second bookmark — both are visible, newest is at the top, count is exactly 2
-- [ ] Refresh the page — both bookmarks are still present with correct titles and URLs
-- [ ] Submit the form with the title field empty — error message appears, no bookmark is added, the URL you typed is still in the field
-- [ ] Submit the form with a URL that has no protocol (e.g. `example.com`) — error message appears, no bookmark is added, the title you typed is still in the field
-- [ ] Submit the form with an uppercase protocol (e.g. `HTTPS://example.com`) — bookmark is accepted and added successfully
-- [ ] Submit the form with `https://` as the URL (no domain) — error message appears, no bookmark is added
-- [ ] After a successful submission, verify all form fields are empty (title, URL, note, tags)
-- [ ] After a failed submission, verify the error message disappears after a subsequent successful submission
+**Layer 1 manual testing checklist:** Completed 2026-04-24.
+- [x] Open the app — page loads with no visible errors and the add form is present
+- [x] Submit the form with a valid title and URL — bookmark appears at the top of the list
+- [x] Verify the bookmark title is a clickable link — clicking it opens the correct URL in a new tab without navigating away
+- [x] Add a second bookmark — both are visible, newest is at the top, count is exactly 2
+- [x] Refresh the page — both bookmarks are still present with correct titles and URLs
+- [x] Submit the form with the title field empty — error message appears, no bookmark is added, the URL you typed is still in the field
+- [x] Submit the form with a URL that has no protocol (e.g. `example.com`) — error message appears, no bookmark is added, the title you typed is still in the field
+- [x] Submit the form with an uppercase protocol (e.g. `HTTPS://example.com`) — bookmark is accepted and added successfully
+- [x] Submit the form with `https://` as the URL (no domain) — error message appears, no bookmark is added
+- [x] After a successful submission, verify all form fields are empty (title, URL, note, tags)
+- [x] After a failed submission, verify the error message disappears after a subsequent successful submission
 
 **Layer 1 QA review:** Completed 2026-04-23. See ADVERSARIAL.md Review 1.
 
@@ -93,14 +93,14 @@ Before moving to the next layer, complete the manual testing checklist for that 
   - A bookmark with tags shows each tag as a distinct badge
   - A bookmark without tags shows no badges
 
-**Layer 2 manual testing checklist:**
-- [ ] Add a bookmark with a note — note text appears below the title in the list
-- [ ] Add a bookmark without a note — no note area is visible for that bookmark
-- [ ] Add a bookmark with tags (e.g. `work, reading, tools`) — three separate tag badges appear on the bookmark
-- [ ] Add a bookmark without tags — no tag badges are visible for that bookmark
-- [ ] Add a bookmark with extra whitespace in tags (e.g. `  work  ,  reading  `) — tags are trimmed and displayed correctly
-- [ ] Verify that a bookmark with a note and tags and one without are both displayed correctly in the same list
-- [ ] Refresh the page — note and tags are still present on the correct bookmarks
+**Layer 2 manual testing checklist:** Completed 2026-04-24.
+- [x] Add a bookmark with a note — note text appears below the title in the list
+- [x] Add a bookmark without a note — no note area is visible for that bookmark
+- [x] Add a bookmark with tags (e.g. `work, reading, tools`) — three separate tag badges appear on the bookmark
+- [x] Add a bookmark without tags — no tag badges are visible for that bookmark
+- [x] Add a bookmark with extra whitespace in tags (e.g. `  work  ,  reading  `) — tags are trimmed and displayed correctly
+- [x] Verify that a bookmark with a note and tags and one without are both displayed correctly in the same list
+- [x] Refresh the page — note and tags are still present on the correct bookmarks
 
 **Layer 2 QA review:** Completed 2026-04-23. See ADVERSARIAL.md Reviews 1 and 2.
 
@@ -108,11 +108,11 @@ Before moving to the next layer, complete the manual testing checklist for that 
 
 ## Layer 3: Edit and Delete
 
-- [ ] Add edit button to each bookmark
+- [x] Add edit button to each bookmark
   - Each bookmark has a visible edit button
   - The edit button is present for every bookmark in the list, not just the first
 
-- [ ] Inline editing of title, URL, note, and tags
+- [x] Inline editing of title, URL, note, and tags
   - Clicking edit makes title, URL, note, and tags fields editable in place, pre-populated with current values
   - Saving the edit updates the bookmark in the list immediately; the displayed title, URL, note, and tags all reflect the new values
   - Canceling the edit leaves the bookmark unchanged; the original values are still displayed
@@ -120,42 +120,42 @@ Before moving to the next layer, complete the manual testing checklist for that 
   - Saving an edit with an invalid URL shows an error and does not save
   - The bookmark count does not change after a successful edit
 
-- [ ] Persist edits to localStorage
+- [x] Persist edits to localStorage
   - Editing a bookmark and refreshing the page shows the updated title, URL, note, and tags
   - A browser test reads `localStorage.getItem('bookmarks')` directly after an edit and verifies the stored values match the edited values
   - The total number of bookmarks in localStorage does not change after an edit
 
-- [ ] Add delete button to each bookmark
+- [x] Add delete button to each bookmark
   - Each bookmark has a visible delete button
   - The delete button is present for every bookmark in the list, not just the first
 
-- [ ] Confirm before deleting
+- [x] Confirm before deleting
   - Clicking delete shows a confirmation prompt before removing the bookmark
   - Confirming removes exactly the targeted bookmark from the list; all other bookmarks remain
   - Canceling leaves the bookmark list unchanged
 
-- [ ] Persist deletions to localStorage
+- [x] Persist deletions to localStorage
   - Deleting a bookmark and refreshing the page shows it is gone
   - A browser test reads `localStorage.getItem('bookmarks')` directly after deletion and verifies the deleted bookmark's `id` is no longer present
   - Remaining bookmarks are still present in localStorage after deletion
 
-**Layer 3 manual testing checklist:**
-- [ ] Each bookmark has a visible edit button
-- [ ] Clicking edit on a bookmark reveals editable fields pre-populated with the current title, URL, note, and tags
-- [ ] Edit the title and save — the updated title appears in the list immediately
-- [ ] Edit the URL, note, and tags and save — all updated values appear correctly
-- [ ] Refresh after saving an edit — the updated values persist
-- [ ] Click edit, change a value, then cancel — the original values are unchanged
-- [ ] While editing, clear the title and try to save — an error appears and the edit is not saved
-- [ ] While editing, enter an invalid URL and try to save — an error appears and the edit is not saved
-- [ ] Verify the total number of bookmarks does not change after a successful edit
-- [ ] Each bookmark has a visible delete button
-- [ ] Click delete on a bookmark — a confirmation prompt appears before anything is removed
-- [ ] Confirm the deletion — only the targeted bookmark is removed; others remain
-- [ ] Cancel the deletion — the bookmark is still present
-- [ ] Refresh after deleting — the deleted bookmark is gone; remaining bookmarks are still present
+**Layer 3 manual testing checklist:** Completed 2026-04-24.
+- [x] Each bookmark has a visible edit button
+- [x] Clicking edit on a bookmark reveals editable fields pre-populated with the current title, URL, note, and tags
+- [x] Edit the title and save — the updated title appears in the list immediately
+- [x] Edit the URL, note, and tags and save — all updated values appear correctly
+- [x] Refresh after saving an edit — the updated values persist
+- [x] Click edit, change a value, then cancel — the original values are unchanged
+- [x] While editing, clear the title and try to save — an error appears and the edit is not saved
+- [x] While editing, enter an invalid URL and try to save — an error appears and the edit is not saved
+- [x] Verify the total number of bookmarks does not change after a successful edit
+- [x] Each bookmark has a visible delete button
+- [x] Click delete on a bookmark — a confirmation prompt appears before anything is removed
+- [x] Confirm the deletion — only the targeted bookmark is removed; others remain
+- [x] Cancel the deletion — the bookmark is still present
+- [x] Refresh after deleting — the deleted bookmark is gone; remaining bookmarks are still present
 
-**Layer 3 QA review:** Pending.
+**Layer 3 QA review:** Completed 2026-04-24. See ADVERSARIAL.md Review 3.
 
 ---
 
