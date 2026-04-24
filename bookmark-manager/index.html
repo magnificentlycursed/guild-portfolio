@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bookmark Manager</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main>
+    <h1>Bookmark Manager</h1>
+
+    <form id="add-form">
+      <div class="form-group">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" placeholder="My Bookmark" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label for="url">URL</label>
+        <input type="text" id="url" name="url" placeholder="https://example.com" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label for="note">Note <span class="optional">(optional)</span></label>
+        <textarea id="note" name="note" placeholder="Why are you saving this?" rows="2"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="tags">Tags <span class="optional">(optional, comma-separated)</span></label>
+        <input type="text" id="tags" name="tags" placeholder="work, reading, tools" autocomplete="off">
+      </div>
+      <p id="form-error" class="error" role="alert"></p>
+      <button type="submit">Add Bookmark</button>
+    </form>
+
+    <ul id="bookmark-list"></ul>
+  </main>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
