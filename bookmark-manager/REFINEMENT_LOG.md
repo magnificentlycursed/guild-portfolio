@@ -1,5 +1,59 @@
 # Bookmark Manager — Refinement Log
 
+### 2026-04-24 20:38Z — Layer 4 merged into main; PR template updated
+
+Layer 4 (Tag Filtering) merged into main after all gate requirements passed: automated tests (52 unit, 59 browser), manual testing checklist, adversarial QA review (Reviews 4 and 5), and UX review (Reviews 1 and 2).
+
+PR template updated to include UX review as a required checklist item alongside adversarial QA review. All future layers must complete a UX review and log findings in `UX-REVIEW.md` before merging.
+
+### 2026-04-24 20:30Z — QA review 5: UX change test gaps closed
+
+Four test weaknesses found against the UX changes from Review 2. Every UX change (empty state, error clearing, edit form focus, optional hints) had no corresponding browser test — the implementation was correct but unverifiable. Added 4 browser tests covering all four changes, plus a fifth test verifying that error clearing works for any field on the form, not just the one that triggered the error. The Layer 4 manual checklist was also found to be missing all UX-related behaviors; 8 new checklist items added.
+
+### 2026-04-24 20:24Z — UX review established as a formal layer gate; UX review 2 findings resolved
+
+UX review is now a required part of the layer completion gate alongside adversarial QA review and manual testing. The prompt, evaluation criteria, and findings log live in `UX-REVIEW.md`. `DESIGN.md` and `TODO.md` updated to reflect this.
+
+Four findings from Review 2 were implemented:
+
+**Empty state:** The bookmark list had no message when empty — first-time users and users who deleted all bookmarks saw a blank area with no context. Added a `<li class="list-empty">` with a prompt to add a bookmark. Note: with the Layer 4 `activeTag` auto-reset fix, a filter-active-but-empty state is structurally impossible — the empty state message always means no bookmarks in storage.
+
+**Error clearing on input:** The add form and inline edit form errors persisted visually while the user was typing to fix them. Added `input` event listeners on both forms to clear the error immediately when any field receives input.
+
+**Edit form focus:** Opening the inline edit form left keyboard focus on the now-replaced Edit button. Added `firstField?.focus()` immediately after the form is injected into the DOM.
+
+**Edit form "(optional)" hints:** The add form marks Note and Tags as optional; the edit form didn't. Added a `hint` field to the edit form field descriptor array so the same `<span class="optional">` pattern is used in both places.
+
+Two findings deferred to Layer 6: `window.confirm` replacement (inline confirmation UI) and tag badge click-to-filter. Both added to Layer 6 task list in `TODO.md`.
+
+### 2026-04-24 20:17Z — Tag filter toggle deselect and empty URL validation message
+
+**Tag filter toggle:** Manual testing revealed that clicking an active tag button had no effect — the only way to deselect a filter was to click "All." UX review confirmed toggle deselect is a universal expectation across iOS, Android, e-commerce, and content apps. Fixed with a one-character change: `activeTag = tag` → `activeTag = activeTag === tag ? null : tag`.
+
+**Empty URL message:** Manual testing revealed that submitting the form with no URL showed "URL must start with http:// or https://" — a message about format, not presence. Added an explicit empty check to `validateUrl` (mirroring `validateTitle`), returning "URL cannot be empty" before the URL constructor is invoked. This gives users the right signal about what's wrong.
+
+**UX review on multi-select:** Review 1 in `UX-REVIEW.md` evaluates AND vs OR for multi-tag selection. OR is the correct model for this UI pattern and use case. Multi-select deferred — single-select is clean and unambiguous at this stage.
+
+### 2026-04-24 19:41Z — Adversarial QA review 4 (Layer 4)
+
+One bug and one test weakness found and resolved. No new dependencies. Coverage for `bookmarks.ts` remains 100%.
+
+**Bug:** `activeTag` state was not reset when the active tag's last bookmark was deleted. `renderTagFilters` was building the filter bar without checking whether `activeTag` still corresponded to an existing tag. Result: no button highlighted, user stranded in empty filtered state with no visual cue. Fixed by checking `!uniqueTags.includes(activeTag)` at the top of `renderTagFilters` and resetting to `null` if true. The same path covers the edit scenario (editing the last bookmark with the active tag to remove it), since both delete and edit call `renderBookmarks()`.
+
+**Test weakness:** The "when a tag filter is active and no bookmarks match" browser test only checked `bookmark-item` count. Expanded to also assert `filter-btn` count is 1 and `filter-btn--active` text is "All".
+
+One finding dismissed: no separate test for the edit-removes-active-tag path, since the fix covers both paths and adding a dedicated test for the edit case is deferred.
+
+### 2026-04-24 19:36Z — Layer 4: Tag Filtering
+
+Two pure functions added to `src/bookmarks.ts`: `getUniqueTags` (Set-based deduplication, alphabetically sorted) and `filterByTag` (array filter by tag inclusion). Both follow the established immutable pattern — no input mutation.
+
+Tag filter state is held as `let activeTag: string | null = null` at module level in `main.ts`. `renderBookmarks()` calls `renderTagFilters()` on each render, which rebuilds the filter bar from scratch (simpler than patching it in place and avoids stale button state after add/delete). The "All" button always appears first; tag buttons are ordered alphabetically via `getUniqueTags`. Active state is applied by comparing `activeTag` against each button's tag at render time rather than by toggling classes imperatively — consistent with how the rest of the render functions work.
+
+Adding a bookmark while a filter is active is handled for free: `renderBookmarks()` already reads from storage and re-applies `filterByTag`, so the new bookmark appears immediately if its tags match and stays hidden if they don't.
+
+TDD followed throughout: 10 failing unit tests written first, then `getUniqueTags` and `filterByTag` implemented to pass them; 12 failing browser tests written next, then UI implemented to pass them. All 52 unit tests and 50 browser tests pass. Coverage for `bookmarks.ts` remains at 100%.
+
 ### 2026-04-23 — Initial design document
 Created DESIGN.md covering purpose, features, technology, interface, constraints, out of scope, and success criteria.
 

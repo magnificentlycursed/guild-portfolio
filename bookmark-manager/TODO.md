@@ -4,12 +4,21 @@ Tasks are marked complete only after all acceptance criteria pass automated test
 Unit tests cover pure logic in isolation. Browser tests verify end-to-end behavior: form interaction, rendered output, localStorage state, and link attributes.
 Code inspection and successful compilation are not sufficient — the tests must exist and pass.
 
-Before moving to the next layer, complete the manual testing checklist for that layer and run an adversarial QA review using the prompt in ADVERSARIAL.md. The review must confirm:
+Before moving to the next layer, complete the manual testing checklist for that layer and run both reviews using the prompts in ADVERSARIAL.md and UX-REVIEW.md.
+
+Adversarial QA review must confirm:
 - All acceptance criteria for the completed layer are verified by tests
 - `src/bookmarks.ts` maintains 100% statement, branch, and function coverage (`npm run test:coverage`)
 - No dead exports or unreachable code introduced in this layer
 - No unused dependencies added
 - All findings logged in ADVERSARIAL.md with resolution or dismissal rationale
+
+UX review must confirm:
+- No missing empty states for the features introduced in this layer
+- Error messages are clear, correctly placed, and clear at the right time
+- Focus behavior is correct for any new interactive elements
+- Visual consistency is maintained across equivalent UI surfaces
+- All findings logged in UX-REVIEW.md with resolution or dismissal rationale
 
 ---
 
@@ -161,40 +170,50 @@ Before moving to the next layer, complete the manual testing checklist for that 
 
 ## Layer 4: Tag Filtering
 
-- [ ] Display all unique tags as clickable filter buttons above the list
+- [x] Display all unique tags as clickable filter buttons above the list
   - All tags from all bookmarks appear as individual filter buttons — one button per unique tag, no duplicates
   - Tags that appear across multiple bookmarks produce only one filter button
   - Adding a bookmark with a new tag causes that tag's button to appear immediately
   - When all bookmarks are deleted, the tag filter area is empty (no stale buttons remain)
   - Unit tests cover the tag deduplication and extraction logic in isolation
 
-- [ ] Filter bookmark list when a tag is clicked
+- [x] Filter bookmark list when a tag is clicked
   - Clicking a tag button shows only bookmarks that include that tag
   - The exact count of matching bookmarks is shown — no extras, no omissions
   - Bookmarks that do not have that tag are not shown
   - If no bookmarks match the active tag, the list is empty (not showing all bookmarks)
 
-- [ ] Add "All" button to clear the active tag filter
+- [x] Add "All" button to clear the active tag filter
   - An "All" button is always present, including when no bookmarks exist
   - Clicking "All" removes the active filter and shows all bookmarks
   - The total count of bookmarks shown after clicking "All" equals the total count of bookmarks
 
-- [ ] Visually highlight the active tag filter
+- [x] Visually highlight the active tag filter
   - The currently active filter button has a distinct CSS class or attribute compared to inactive buttons
   - "All" has the active style when no tag filter is active
   - The previously active button loses the active style when a different filter is clicked
 
-**Layer 4 manual testing checklist:**
-- [ ] Add bookmarks with different tags — a filter button appears for each unique tag above the list
-- [ ] Add two bookmarks with the same tag — only one filter button appears for that tag (no duplicates)
-- [ ] An "All" button is always present and highlighted when no filter is active
-- [ ] Click a tag filter — only bookmarks with that tag are shown; the filter button is visually highlighted
-- [ ] Click "All" — all bookmarks are shown again and "All" is highlighted
-- [ ] Click one tag filter then another — the list updates correctly and only the newly clicked filter is highlighted
-- [ ] Delete all bookmarks with a given tag — that tag's filter button disappears
-- [ ] Add a new bookmark while a tag filter is active — the list behaves correctly (new bookmark shown if it matches the filter, hidden if not)
+**Layer 4 manual testing checklist:** Completed 2026-04-24.
+- [x] On fresh load with no bookmarks, the list area shows "No bookmarks yet. Add one above."
+- [x] Add a bookmark — the empty state message disappears and the bookmark appears
+- [x] Delete all bookmarks — the empty state message reappears
+- [x] Submit the add form with an empty title — an error appears; start typing in any field — the error disappears immediately without resubmitting
+- [x] Add bookmarks with different tags — a filter button appears for each unique tag above the list
+- [x] Add two bookmarks with the same tag — only one filter button appears for that tag (no duplicates)
+- [x] An "All" button is always present and highlighted when no filter is active
+- [x] Click a tag filter — only bookmarks with that tag are shown; the filter button is visually highlighted
+- [x] Click the active tag filter again — it deselects; all bookmarks reappear and "All" is highlighted
+- [x] Click "All" — all bookmarks are shown again and "All" is highlighted
+- [x] Click one tag filter then another — the list updates correctly and only the newly clicked filter is highlighted
+- [x] Delete all bookmarks with a given tag — that tag's filter button disappears
+- [x] Add a new bookmark while a tag filter is active — the list behaves correctly (new bookmark shown if it matches the filter, hidden if not)
+- [x] Click Edit on a bookmark — the edit form opens with the cursor in the title field
+- [x] The edit form labels Note and Tags as "(optional)" and "(optional, comma-separated)" respectively
+- [x] In the edit form, clear the title and try to save — an error appears; start typing — the error disappears immediately
 
-**Layer 4 QA review:** Pending.
+**Layer 4 QA review:** Completed 2026-04-24. See ADVERSARIAL.md Review 4.
+
+**Layer 4 UX review:** Completed 2026-04-24. See UX-REVIEW.md Review 2.
 
 ---
 
@@ -279,4 +298,16 @@ Before moving to the next layer, complete the manual testing checklist for that 
 - [ ] Resize the browser to 360px wide — all UI elements (form, list, search bar, tag filters) are visible and usable with no horizontal scrollbar
 - [ ] Filter or search with bookmarks present — the list change is animated rather than instant
 
+- [ ] Replace `window.confirm` delete dialog with inline confirmation
+  - Clicking Delete shows an inline "Are you sure? Confirm / Cancel" prompt within the bookmark item rather than a browser native dialog
+  - Confirming deletes the bookmark; canceling leaves it unchanged
+  - The inline confirmation is visually distinct from normal bookmark content
+
+- [ ] Tag badges on bookmark items activate the tag filter when clicked
+  - Clicking a tag badge on a bookmark activates the filter for that tag (same behavior as clicking the filter button in the tag bar)
+  - The corresponding filter button becomes highlighted
+  - Bookmarks not matching the tag are hidden immediately
+
 **Layer 6 QA review:** Pending.
+
+**Layer 6 UX review:** Pending.

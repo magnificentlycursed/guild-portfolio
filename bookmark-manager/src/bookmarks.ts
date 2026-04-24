@@ -40,6 +40,9 @@ export function validateTitle(title: string): string | null {
 }
 
 export function validateUrl(url: string): string | null {
+  if (url.trim() === '') {
+    return 'URL cannot be empty';
+  }
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
@@ -74,4 +77,18 @@ export function updateBookmark(
 
 export function deleteBookmark(bookmarks: Bookmark[], id: string): Bookmark[] {
   return bookmarks.filter(b => b.id !== id);
+}
+
+export function getUniqueTags(bookmarks: Bookmark[]): string[] {
+  const tags = new Set<string>();
+  for (const bookmark of bookmarks) {
+    for (const tag of bookmark.tags) {
+      tags.add(tag);
+    }
+  }
+  return [...tags].sort();
+}
+
+export function filterByTag(bookmarks: Bookmark[], tag: string): Bookmark[] {
+  return bookmarks.filter(b => b.tags.includes(tag));
 }

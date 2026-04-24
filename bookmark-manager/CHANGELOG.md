@@ -1,5 +1,113 @@
 # Bookmark Manager — Changelog
 
+## 2026-04-24 20:38Z — Layer 4 merged into main
+
+### Status
+- Layer 1 (Core): automated tests ✅, manual tests ✅, QA review ✅, UX review ✅
+- Layer 2 (Notes and Tags): automated tests ✅, manual tests ✅, QA review ✅, UX review ✅
+- Layer 3 (Edit and Delete): automated tests ✅, manual tests ✅, QA review ✅, UX review ✅
+- Layer 4 (Tag Filtering): automated tests ✅, manual tests ✅, QA review ✅, UX review ✅
+
+### Changed
+- `.github/PULL_REQUEST_TEMPLATE.md` — added UX review checklist items (run review, log in `UX-REVIEW.md`) to the layer gate; UX review is now a formal merge requirement alongside adversarial QA review
+
+---
+
+## 2026-04-24 20:35Z — Layer 4 manual testing passed
+
+### Changed
+- `TODO.md` — Layer 4 manual testing checklist marked complete (all 16 items passed by human verification against the running app on 2026-04-24)
+
+### Status
+- Layer 4 (Tag Filtering): automated tests ✅, manual tests ✅, QA review ✅, UX review ✅
+
+---
+
+## 2026-04-24 20:30Z — QA review 5: UX change test gaps closed
+
+### Fixed (tests)
+- `tests/browser/bookmark-manager.spec.ts` — added `'clears the add form error when typing in any field, not just the erroring one'`; `'edit form focuses the title field when opened'`; `'edit form labels Note and Tags as optional'`; `'clears the edit form error message when the user starts typing'`
+- `TODO.md` — Layer 4 manual checklist expanded with 8 new items covering empty state, toggle deselect, error clearing, edit form focus, and edit form optional hints
+
+### Test results
+- Unit tests: **52 passed**
+- Browser tests: **59 passed** (+4 new)
+
+---
+
+## 2026-04-24 20:24Z — UX review 2: empty states, error clearing, focus, edit form consistency
+
+### Added
+- `UX-REVIEW.md` — Review 2 added; full UX audit of Layers 1–4 with findings, resolutions, and dismissals
+- `styles.css` — `.list-empty` style: muted color, generous padding for the empty state message
+
+### Changed
+- `src/main.ts` — empty state: appends `<li class="list-empty">No bookmarks yet. Add one above.</li>` to the bookmark list when no bookmarks exist
+- `src/main.ts` — add form: `input` event listener on the form clears the error message as soon as the user starts typing
+- `src/main.ts` — edit form: focuses the first input/textarea field immediately after the inline form is injected; also adds `input` event listener to clear the edit error on typing
+- `src/main.ts` — edit form: Note and Tags fields now include `(optional)` and `(optional, comma-separated)` hints via `<span class="optional">`, matching the add form
+- `DESIGN.md` — UX review added to Testing Methodology section with evaluation criteria and log reference
+- `TODO.md` — layer gate header updated to include UX review alongside QA review; Layer 4 UX review marked complete; deferred UX items added to Layer 6 (inline delete confirmation, tag badge click-to-filter)
+
+### Fixed (tests)
+- `tests/browser/bookmark-manager.spec.ts` — added `'shows an empty state message when no bookmarks exist'`; `'shows an empty state message after all bookmarks are deleted'`; `'clears the add form error message when the user starts typing'`
+
+### Test results
+- Unit tests: **52 passed**
+- Browser tests: **55 passed** (+3 new)
+
+---
+
+## 2026-04-24 20:17Z — Tag filter toggle deselect and empty URL validation
+
+### Added
+- `UX-REVIEW.md` — UX review log; Review 1 covers tag filter toggle deselect and AND vs OR multi-select analysis
+
+### Changed
+- `src/main.ts` — tag filter buttons now toggle: clicking an active tag deselects it (sets `activeTag = null`) instead of keeping it active; single-line change in the click handler (`activeTag = activeTag === tag ? null : tag`)
+- `src/bookmarks.ts` — `validateUrl` now returns `'URL cannot be empty'` for empty or whitespace-only input before attempting URL parsing; previously fell through to the generic `'URL must start with http:// or https://'` message
+
+### Fixed (tests)
+- `tests/unit/bookmarks.test.ts` — updated `validateUrl` empty string test to assert `'URL cannot be empty'`
+- `tests/browser/bookmark-manager.spec.ts` — added `'shows error and does not add bookmark when URL is empty'` test; added `'clicking an active tag filter deselects it and shows all bookmarks'` test
+
+### Test results
+- Unit tests: **52 passed**
+- Browser tests: **52 passed** (+2 new)
+
+---
+
+## 2026-04-24 19:41Z — Adversarial QA review 4: bug fixed and test hardened
+
+### Fixed
+- `src/main.ts` — `renderTagFilters` now resets `activeTag = null` when the active tag no longer exists in any bookmark; previously, deleting the last bookmark with a given tag while that filter was active left `activeTag` pointing at a ghost tag, causing no filter button to be highlighted. Also deduplicates the `getUniqueTags` call: `uniqueTags` is computed once and used for both the reset check and the button loop.
+
+### Fixed (tests)
+- `tests/browser/bookmark-manager.spec.ts:226` — "when a tag filter is active and no bookmarks match the list is empty" test expanded to assert that after deletion the "All" button is highlighted and is the only filter button; previously only asserted `bookmark-item` count of 0
+
+### Test results
+- Unit tests: **52 passed**
+- Browser tests: **50 passed**
+
+---
+
+## 2026-04-24 19:36Z — Layer 4: Tag Filtering
+
+### Added
+- `src/bookmarks.ts` — `getUniqueTags(bookmarks)` returns a sorted, deduplicated array of all tags across all bookmarks; `filterByTag(bookmarks, tag)` returns only bookmarks containing the given tag; both are pure and do not mutate their input
+- `src/main.ts` — module-level `activeTag: string | null = null` state; `renderTagFilters(bookmarks)` builds the filter bar (All + one button per unique tag), re-renders on click; `renderBookmarks()` now calls `renderTagFilters` and applies `filterByTag` when `activeTag` is set
+- `index.html` — `<div id="tag-filters" class="tag-filters">` inserted between the form and the bookmark list
+- `styles.css` — `.tag-filters`, `.filter-btn`, `.filter-btn--active`, hover and focus styles for the filter bar
+
+### Changed
+- `TODO.md` — Layer 4 tasks marked complete
+
+### Test results
+- Unit tests: **52 passed** (10 new: `getUniqueTags` ×5, `filterByTag` ×5)
+- Browser tests: **50 passed** (12 new: All button present, All highlighted on load, filter per tag, no duplicate buttons, click shows matching only, non-matching hidden, empty list when no match, All restores full list, active highlight, switching filters, deleting removes button, add while filter active)
+
+---
+
 ## 2026-04-24 19:17Z — GitHub PR template
 
 ### Added

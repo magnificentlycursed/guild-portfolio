@@ -9,16 +9,63 @@ import {
   sortBookmarks,
   updateBookmark,
   deleteBookmark,
+  getUniqueTags,
+  filterByTag,
 } from './bookmarks';
 
 const storage = localStorage;
+
+let activeTag: string | null = null;
+
+function renderTagFilters(bookmarks: Bookmark[]): void {
+  const uniqueTags = getUniqueTags(bookmarks);
+  if (activeTag !== null && !uniqueTags.includes(activeTag)) {
+    activeTag = null;
+  }
+
+  const container = document.getElementById('tag-filters') as HTMLDivElement;
+  container.innerHTML = '';
+
+  const allBtn = document.createElement('button');
+  allBtn.type = 'button';
+  allBtn.className = 'filter-btn' + (activeTag === null ? ' filter-btn--active' : '');
+  allBtn.textContent = 'All';
+  allBtn.addEventListener('click', () => {
+    activeTag = null;
+    renderBookmarks();
+  });
+  container.appendChild(allBtn);
+
+  for (const tag of uniqueTags) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'filter-btn' + (activeTag === tag ? ' filter-btn--active' : '');
+    btn.textContent = tag;
+    btn.dataset.tag = tag;
+    btn.addEventListener('click', () => {
+      activeTag = activeTag === tag ? null : tag;
+      renderBookmarks();
+    });
+    container.appendChild(btn);
+  }
+}
 
 function renderBookmarks(): void {
   const bookmarks = loadBookmarks(storage);
   const list = document.getElementById('bookmark-list') as HTMLUListElement;
   list.innerHTML = '';
 
-  const sorted = sortBookmarks(bookmarks);
+  renderTagFilters(bookmarks);
+
+  const visible = activeTag !== null ? filterByTag(bookmarks, activeTag) : bookmarks;
+  const sorted = sortBookmarks(visible);
+
+  if (sorted.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'list-empty';
+    li.textContent = 'No bookmarks yet. Add one above.';
+    list.appendChild(li);
+  }
 
   for (const bookmark of sorted) {
     const li = document.createElement('li');
@@ -86,11 +133,11 @@ function handleEditClick(id: string): void {
   form.className = 'edit-form';
   form.dataset.id = id;
 
-  const fields: { label: string; name: string; type: string; value: string }[] = [
+  const fields: { label: string; hint?: string; name: string; type: string; value: string }[] = [
     { label: 'Title', name: 'title', type: 'text', value: bookmark.title },
     { label: 'URL', name: 'url', type: 'text', value: bookmark.url },
-    { label: 'Note', name: 'note', type: 'textarea', value: bookmark.note },
-    { label: 'Tags', name: 'tags', type: 'text', value: bookmark.tags.join(', ') },
+    { label: 'Note', hint: '(optional)', name: 'note', type: 'textarea', value: bookmark.note },
+    { label: 'Tags', hint: '(optional, comma-separated)', name: 'tags', type: 'text', value: bookmark.tags.join(', ') },
   ];
 
   for (const field of fields) {
@@ -98,6 +145,12 @@ function handleEditClick(id: string): void {
     group.className = 'form-group';
     const label = document.createElement('label');
     label.textContent = field.label;
+    if (field.hint) {
+      const hint = document.createElement('span');
+      hint.className = 'optional';
+      hint.textContent = ' ' + field.hint;
+      label.appendChild(hint);
+    }
     group.appendChild(label);
     if (field.type === 'textarea') {
       const textarea = document.createElement('textarea');
@@ -134,9 +187,13 @@ function handleEditClick(id: string): void {
   form.appendChild(cancelBtn);
 
   form.addEventListener('submit', handleEditSave);
+  form.addEventListener('input', () => { errorEl.textContent = ''; });
 
   li.innerHTML = '';
   li.appendChild(form);
+
+  const firstField = form.querySelector('input, textarea') as HTMLElement | null;
+  firstField?.focus();
 }
 
 function handleEditSave(event: Event): void {
@@ -223,6 +280,8 @@ function handleSubmit(event: Event): void {
 
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('add-form') as HTMLFormElement;
+  const errorEl = document.getElementById('form-error') as HTMLParagraphElement;
   form.addEventListener('submit', handleSubmit);
+  form.addEventListener('input', () => { errorEl.textContent = ''; });
   renderBookmarks();
 });
