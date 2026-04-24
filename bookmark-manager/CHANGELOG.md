@@ -1,5 +1,207 @@
 # Bookmark Manager — Changelog
 
+## 2026-04-25 01:30Z — Documentation renames for clarity; add ESLint
+
+### Renamed
+- `air/` → `adversarial-iterative-refinement/` — expands the AIR acronym
+- `adversarial-iterative-refinement/AIR.md` → `adversarial-iterative-refinement/README.md` — conventional entry point for a folder
+- `REFINEMENT_LOG.md` → `DECISIONS.md` — describes the content more precisely (design decisions and architectural rationale)
+- `adversarial-iterative-refinement/PE-REVIEW.md` → `adversarial-iterative-refinement/PLATFORM-ENGINEERING-REVIEW.md` — expands the PE abbreviation, consistent with `SECURITY-REVIEW.md`
+- `adversarial-iterative-refinement/SA-REVIEW.md` → `adversarial-iterative-refinement/SOLUTION-ARCHITECT-REVIEW.md` — expands the SA abbreviation
+
+### Changed
+- All live path references updated across `TODO.md`, `DESIGN.md`, `README.md`, `CHANGELOG.md`, `DECISIONS.md`, `.github/PULL_REQUEST_TEMPLATE.md`, and all files in `adversarial-iterative-refinement/`
+
+---
+
+## 2026-04-25 01:15Z — Add ESLint + typescript-eslint
+
+### Added
+- `eslint.config.js` — ESLint flat config; `tseslint.config(eslint.configs.recommended, tseslint.configs.recommended)`
+- `package.json` — `lint` script (`eslint src/`)
+- `.github/workflows/bookmark-manager.yml` — `Lint` step after `Type check`
+- `package.json` devDependencies — `eslint`, `@eslint/js`, `typescript-eslint`
+
+---
+
+## 2026-04-25 01:00Z — Add axe scan for search-active state
+
+### Added
+- `tests/browser/bookmark-manager.spec.ts` — axe scan with search input active and results filtered (4th automated accessibility scan; covers search input, `aria-live` status region, and filtered list state)
+
+### Changed
+- `README.md` — browser test count updated to 78; axe scan count updated to 4
+
+---
+
+## 2026-04-25 00:30Z — AIR suite run (all 5 domains); no findings
+
+### Changed
+- `adversarial-iterative-refinement/QA-REVIEW.md` — Review 8 logged; 74 unit | 77 browser | coverage 100% | 0 CVEs; no findings
+- `adversarial-iterative-refinement/UX-REVIEW.md` — Review 5 logged; no UX surface changes; axe scans passing; no findings
+- `adversarial-iterative-refinement/SECURITY-REVIEW.md` — Review 2 logged; `npm audit` now CI-gated; all controls intact; no findings
+- `adversarial-iterative-refinement/PLATFORM-ENGINEERING-REVIEW.md` — Review 2 logged; all Review 1 gates verified intact; no findings
+- `adversarial-iterative-refinement/SOLUTION-ARCHITECT-REVIEW.md` — Review 2 logged; push→spread fix verified; boundary intact; no findings
+
+---
+
+## 2026-04-25 00:20Z — AIR suite moved to air/ subfolder
+
+### Changed
+- `air/` — new subdirectory containing all AIR suite files: `AIR.md`, `QA-REVIEW.md`, `UX-REVIEW.md`, `SECURITY-REVIEW.md`, `PE-REVIEW.md`, `SA-REVIEW.md`
+- Internal links in `air/AIR.md`, `air/PE-REVIEW.md`, `air/SA-REVIEW.md` updated to use `../` for references to files outside the folder
+- `DESIGN.md`, `TODO.md`, `README.md`, `.github/PULL_REQUEST_TEMPLATE.md` — all references updated from `FOO-REVIEW.md` to `air/FOO-REVIEW.md`
+
+---
+
+## 2026-04-25 00:10Z — Solution Architect domain added to AIR suite; SA Review 1
+
+### Added
+- `SA-REVIEW.md` — Solution Architect AIR domain; standard dimensions and Review 1 (full project Layers 1–5); covers separation of concerns, coupling and cohesion, data model integrity, interface contracts, state management, immutability, extensibility, technology fitness, complexity budget, decision documentation
+
+### Fixed
+- `src/main.ts:293` — `handleSubmit` called `bookmarks.push(newBookmark)` before saving; the only mutation in a codebase where every other data operation (`updateBookmark`, `deleteBookmark`, `sortBookmarks`) returns a new array. No observable bug, but inconsistent pattern. Changed to `saveBookmarks(storage, [...bookmarks, newBookmark])`.
+
+### Changed
+- `AIR.md` — Solution Architect added to domain table with link; SA-first sequencing guidance added for structural changes
+- `QA-REVIEW.md`, `UX-REVIEW.md`, `SECURITY-REVIEW.md`, `PE-REVIEW.md` — coordination lines updated to include `SA-REVIEW.md`
+- `DESIGN.md` — Solution Architect added to AIR domain list
+- `TODO.md` — SA AIR gate items added to layer gate header
+- `README.md` — `SA-REVIEW.md` added to documentation table
+- `.github/PULL_REQUEST_TEMPLATE.md` — SA checklist item added
+
+---
+
+## 2026-04-24 23:55Z — Platform Engineering domain added to AIR suite; PE Review 1
+
+### Added
+- `PE-REVIEW.md` — Platform Engineering AIR domain; standard dimensions and Review 1 (full project Layers 1–5); covers pipeline completeness, gate enforcement, dependency installation, environment pinning, cache correctness, coverage thresholds in CI, security scanning in CI, artifact hygiene, left-shift opportunities
+
+### Fixed
+- `.github/workflows/bookmark-manager.yml` — Playwright cache key: changed `hashFiles('package-lock.json')` to `hashFiles('bookmark-manager/package-lock.json')`; the lock file is not at the repo root, so the previous key always produced the same empty hash and the cache never invalidated
+- `.github/workflows/bookmark-manager.yml` — added `npm run test:coverage` step after unit tests; coverage was a PR checklist requirement but was not enforced in CI
+- `.github/workflows/bookmark-manager.yml` — added `npm audit --audit-level=high` step; security audit was in the Security review manual checklist but not automated
+- `vite.config.ts` — changed coverage `include` from `src/**/*.ts` to `src/bookmarks.ts`; `main.ts` is excluded from unit coverage by design and its inclusion would have caused any threshold to fail
+- `vite.config.ts` — added coverage `thresholds`: 100% statements, branches, functions, lines; previously there was no threshold and CI could not enforce the 100% requirement
+
+### Changed
+- `AIR.md` — Platform Engineering added to domain table with link; PE-first sequencing guidance added
+- `QA-REVIEW.md`, `UX-REVIEW.md`, `SECURITY-REVIEW.md` — coordination lines updated to include `PE-REVIEW.md`
+- `DESIGN.md` — Platform Engineering added to AIR domain list
+- `TODO.md` — PE AIR gate items added to layer gate header
+- `README.md` — `PE-REVIEW.md` added to documentation table
+- `.github/PULL_REQUEST_TEMPLATE.md` — PE checklist item added
+
+---
+
+## 2026-04-24 23:45Z — Adversarial Iterative Refinement (AIR) suite formalized
+
+### Added
+- `AIR.md` — suite description: domain table with links, full and scoped run instructions, sequencing guidance, domain suggestion protocol, merge gate requirements
+
+### Changed
+- `QA-REVIEW.md` — current prompt updated: AIR suite link, scope parameter, coordination/cross-domain flag instruction
+- `UX-REVIEW.md` — current prompt updated: AIR suite link, scope parameter, coordination/cross-domain flag instruction
+- `SECURITY-REVIEW.md` — current prompt updated: AIR suite link, scope parameter, coordination/cross-domain flag instruction
+- `DESIGN.md` — Testing Methodology: three separate review descriptions consolidated into a single AIR section with domain summary table
+- `TODO.md` — layer gate: updated to reference AIR suite; per-domain gate items labelled as AIR gate
+- `README.md` — description updated to name AIR; `AIR.md` added to documentation table
+- `.github/PULL_REQUEST_TEMPLATE.md` — nine individual review checklist items consolidated into four AIR-focused items
+- `guild-portfolio/README.md` — methodology note updated to name AIR
+
+---
+
+## 2026-04-24 23:30Z — Renamed ADVERSARIAL.md to QA-REVIEW.md; restructured QA, UX, and Security review files
+
+### Added
+- `QA-REVIEW.md` — replaces `ADVERSARIAL.md`; restructured with results-focused current-prompt section at top (standard dimensions as a floor, not a ceiling; explicit regression check), followed by review entries newest-first; each entry has a brief `**Scope:**` line instead of a verbose persona prompt
+
+### Removed
+- `ADVERSARIAL.md` — renamed and restructured as `QA-REVIEW.md`
+
+### Changed
+- `UX-REVIEW.md` — restructured with results-focused current-prompt section at top (same format as QA-REVIEW.md); old `### Prompt` sections removed from each review entry; replaced with brief `**Scope:**` lines; findings reorganized into `### Resolved` and `### Dismissed`
+- `SECURITY-REVIEW.md` — restructured with results-focused current-prompt section at top; old `### Prompt` removed from Review 1; findings reorganized into `### Resolved`, `### Accepted Risk`, and `### Dismissed`
+- `DESIGN.md` — updated `ADVERSARIAL.md` reference to `QA-REVIEW.md`
+- `TODO.md` — updated all `ADVERSARIAL.md` references to `QA-REVIEW.md`
+- `README.md` — updated documentation table entry from `ADVERSARIAL.md` to `QA-REVIEW.md`
+- `.github/PULL_REQUEST_TEMPLATE.md` — updated `ADVERSARIAL.md` reference to `QA-REVIEW.md`
+- `REFINEMENT_LOG.md` — updated `ADVERSARIAL.md` reference to `QA-REVIEW.md`
+
+---
+
+## 2026-04-24 23:00Z — QA review 7, UX review 4, Security review 1: process expansion and full-project audit
+
+### Added
+- `SECURITY-REVIEW.md` — security review log; standard dimensions and Review 1 (full project Layers 1–5); covers rendering safety, URL injection, storage validation, dependency audit, CSP, information exposure
+- `@axe-core/playwright` — automated accessibility scanning integrated into browser test suite
+
+### Fixed
+- `src/bookmarks.ts` — `loadBookmarks` now validates parsed storage data at runtime via `normalizeBookmark`: rejects non-arrays; filters entries missing required `id`/`url`/`title`; coerces missing optional fields to safe defaults; filters non-string values from `tags`
+- `src/main.ts` — `handleDeleteClick` now loads the bookmark before showing the confirm dialog and displays `Delete "${title}"?` instead of generic "Delete this bookmark?"
+- `src/main.ts` — inline edit form: `label.htmlFor` and `input.id`/`textarea.id` now set with matching values (`edit-${id}-${fieldName}`); fixes critical axe label violation
+- `styles.css` — `.list-empty` color changed from `#888` (3.54:1, fails AA) to `#666` (5.74:1, passes AA); fixes axe color-contrast violation
+- `styles.css` — `overflow-wrap: break-word` added to `.bookmark-title`, `.bookmark-note`, `.tag-badge`; prevents horizontal overflow on long unbroken strings
+- `index.html` — `#tag-filters` div: added `role="group" aria-label="Filter by tag"`; `#bookmark-list`: added `aria-label="Bookmarks"`
+
+### Changed
+- `QA-REVIEW.md` — standard dimensions expanded: added security surface (dimension 13) and regression coverage (dimension 14); axe requirement added to accessibility dimension
+- `UX-REVIEW.md` — standard dimensions expanded: added long content (10), reduced motion (11), native dialog quality (12), cross-layer regression (13)
+- `DESIGN.md` — security review added to Testing Methodology section
+- `TODO.md` — layer gate updated to require security review; Layer 6 tasks added: `prefers-reduced-motion` media query, 200% zoom checklist item, reduced-motion manual test
+- `.github/PULL_REQUEST_TEMPLATE.md` — security review checklist items added
+- `README.md` — test counts updated; security review and methodology note updated; `SECURITY-REVIEW.md` added to documentation table
+
+### Fixed (tests)
+- `tests/unit/bookmarks.test.ts` — 2 new URL injection tests (`javascript:`, `data:`); 6 new `loadBookmarks` normalization tests
+- `tests/browser/bookmark-manager.spec.ts` — 3 axe scans (empty state, with bookmarks, with edit form open)
+
+### Test results
+- Unit tests: **74 passed** (+8 new)
+- Browser tests: **77 passed** (+3 new)
+
+---
+
+## 2026-04-24 22:30Z — QA review 6 and UX review 3: accessibility and cross-browser fixes
+
+### Fixed
+- `styles.css` — removed dead `#search-input` rule (exact duplicate of `input {}`)
+- `styles.css` — added `input[type="search"] { -webkit-appearance: none; appearance: none }` to normalize Safari's pill-shaped appearance on search fields
+- `styles.css` — added `.sr-only` utility class (visually hidden, screen-reader readable)
+- `index.html` — added `role="search"` to `.search-bar` div; added `<p id="search-status" class="sr-only" aria-live="polite" aria-atomic="true">` for screen reader result announcements
+- `src/main.ts` — `renderBookmarks()` now updates `#search-status` text: "N bookmark(s) shown." while filtering with results, "No bookmarks match your search." when filtering to zero, empty otherwise
+
+### Fixed (tests)
+- `tests/browser/bookmark-manager.spec.ts` — added `'search bar has a search landmark role'`; `'search status region has aria-live and aria-atomic attributes'`; `'search status announces the result count while filtering'`; `'adding a bookmark while search is active shows it if it matches and hides it if it does not'`
+
+### Deferred to Layer 6
+- `TODO.md` — added "Increase touch target sizes for small buttons" task: `.filter-btn`, `.edit-btn`, `.delete-btn`, `.cancel-edit` are ~21px tall, below the 44×44px minimum
+
+### Test results
+- Unit tests: **66 passed**
+- Browser tests: **74 passed** (+4 new)
+
+---
+
+## 2026-04-24 21:55Z — Layer 5: Search
+
+### Added
+- `src/bookmarks.ts` — `searchBookmarks(bookmarks, query)` returns bookmarks whose title or note contains the query (case-insensitive substring match); returns all bookmarks unchanged when query is empty or whitespace-only; pure, no mutation
+- `src/bookmarks.ts` — `applyFilters(bookmarks, tag, query)` composes `filterByTag` and `searchBookmarks`; applies tag filter first, then search; both conditions must be satisfied
+- `index.html` — `<div class="search-bar">` with `<input type="search" id="search-input">` inserted above `#tag-filters`
+- `styles.css` — `.search-bar`, `.search-label`, `#search-input` styles; consistent with existing form input styles
+
+### Changed
+- `src/main.ts` — added `let searchQuery = ''` module-level state; `DOMContentLoaded` wires `input` event on `#search-input` to update `searchQuery` and call `renderBookmarks()`; `renderBookmarks` now calls `applyFilters(bookmarks, activeTag, searchQuery)` instead of `filterByTag` directly; empty state distinguishes "no bookmarks" (add one above) from "no match" (no bookmarks match your search)
+- `src/main.ts` — `filterByTag` import replaced by `applyFilters`
+- `TODO.md` — Layer 5 tasks marked complete
+
+### Test results
+- Unit tests: **66 passed** (+14 new: `searchBookmarks` ×8, `applyFilters` ×6)
+- Browser tests: **70 passed** (+11 new: search bar visibility ×2, title filter, note filter, no-match empty state, case-insensitive, clear restores list, combined tag+search, clear search with tag active, click All with search active, search empty state message)
+
+---
+
 ## 2026-04-24 20:38Z — Layer 4 merged into main
 
 ### Status
@@ -111,7 +313,7 @@
 ## 2026-04-24 19:17Z — GitHub PR template
 
 ### Added
-- `.github/PULL_REQUEST_TEMPLATE.md` — PR template with layer gate checklist: acceptance criteria, unit tests, browser tests, 100% coverage, manual testing checklist, adversarial QA review, ADVERSARIAL.md log, CHANGELOG, REFINEMENT_LOG; includes test results table and notes section
+- `.github/PULL_REQUEST_TEMPLATE.md` — PR template with layer gate checklist: acceptance criteria, unit tests, browser tests, 100% coverage, manual testing checklist, adversarial QA review, QA-REVIEW.md log, CHANGELOG, REFINEMENT_LOG; includes test results table and notes section
 
 ---
 
@@ -187,7 +389,7 @@
 
 ### Changed
 - `DESIGN.md` — added Manual Testing paragraph to Testing Methodology; added manual testing to the layer completion gate alongside automated tests and adversarial review
-- `TODO.md` — added manual testing requirement to the layer-transition gate in the header; added human-readable testing checklists for all six layers covering happy path, edge cases, validation errors, persistence, and UI state; added QA review status lines between layers (completed reviews link to ADVERSARIAL.md; upcoming layers marked Pending)
+- `TODO.md` — added manual testing requirement to the layer-transition gate in the header; added human-readable testing checklists for all six layers covering happy path, edge cases, validation errors, persistence, and UI state; added QA review status lines between layers (completed reviews link to QA-REVIEW.md; upcoming layers marked Pending)
 
 ---
 

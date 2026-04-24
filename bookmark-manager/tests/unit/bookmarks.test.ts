@@ -14,6 +14,8 @@ import {
   deleteBookmark,
   getUniqueTags,
   filterByTag,
+  searchBookmarks,
+  applyFilters,
 } from '../../src/bookmarks';
 
 // ---------------------------------------------------------------------------
@@ -62,6 +64,14 @@ describe('validateUrl', () => {
 
   it('returns an error message for an ftp:// URL', () => {
     expect(validateUrl('ftp://example.com')).toBe('URL must start with http:// or https://');
+  });
+
+  it('returns an error message for a javascript: URL', () => {
+    expect(validateUrl('javascript:alert(1)')).toBe('URL must start with http:// or https://');
+  });
+
+  it('returns an error message for a data: URL', () => {
+    expect(validateUrl('data:text/html,<h1>hi</h1>')).toBe('URL must start with http:// or https://');
   });
 
   it('returns an error message for an empty string', () => {
@@ -147,6 +157,60 @@ describe('loadBookmarks', () => {
     const { storage } = createMockStorage();
     storage.setItem(STORAGE_KEY, 'not valid json {{');
     expect(loadBookmarks(storage)).toEqual([]);
+  });
+
+  it('returns an empty array when storage contains a non-array JSON value', () => {
+    const { storage } = createMockStorage();
+    storage.setItem(STORAGE_KEY, '{"id":"1","title":"Example"}');
+    expect(loadBookmarks(storage)).toEqual([]);
+  });
+
+  it('filters out entries missing required fields', () => {
+    const { storage } = createMockStorage();
+    const data = JSON.stringify([
+      { url: 'https://a.com', title: 'No ID', note: '', tags: [], createdAt: 1 },
+      { id: '2', title: 'No URL', note: '', tags: [], createdAt: 2 },
+      { id: '3', url: 'https://c.com', note: '', tags: [], createdAt: 3 },
+    ]);
+    storage.setItem(STORAGE_KEY, data);
+    expect(loadBookmarks(storage)).toEqual([]);
+  });
+
+  it('normalizes missing optional fields to safe defaults', () => {
+    const { storage } = createMockStorage();
+    const data = JSON.stringify([{ id: '1', url: 'https://a.com', title: 'A' }]);
+    storage.setItem(STORAGE_KEY, data);
+    const result = loadBookmarks(storage);
+    expect(result).toHaveLength(1);
+    expect(result[0].note).toBe('');
+    expect(result[0].tags).toEqual([]);
+    expect(result[0].createdAt).toBe(0);
+  });
+
+  it('normalizes a tags field that is null to an empty array', () => {
+    const { storage } = createMockStorage();
+    const data = JSON.stringify([{ id: '1', url: 'https://a.com', title: 'A', note: '', tags: null, createdAt: 1 }]);
+    storage.setItem(STORAGE_KEY, data);
+    const result = loadBookmarks(storage);
+    expect(result[0].tags).toEqual([]);
+  });
+
+  it('filters non-string values out of a tags array', () => {
+    const { storage } = createMockStorage();
+    const data = JSON.stringify([{ id: '1', url: 'https://a.com', title: 'A', note: '', tags: ['valid', 42, null, 'also-valid'], createdAt: 1 }]);
+    storage.setItem(STORAGE_KEY, data);
+    const result = loadBookmarks(storage);
+    expect(result[0].tags).toEqual(['valid', 'also-valid']);
+  });
+
+  it('filters out null and non-object entries from the array', () => {
+    const { storage } = createMockStorage();
+    const valid = { id: '1', url: 'https://a.com', title: 'A', note: '', tags: [], createdAt: 1 };
+    const data = JSON.stringify([null, 'string', 42, valid]);
+    storage.setItem(STORAGE_KEY, data);
+    const result = loadBookmarks(storage);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('1');
   });
 });
 
@@ -388,5 +452,94 @@ describe('filterByTag', () => {
   it('does not mutate the original array', () => {
     filterByTag(bookmarks, 'work');
     expect(bookmarks).toHaveLength(4);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// searchBookmarks
+// ---------------------------------------------------------------------------
+
+describe('searchBookmarks', () => {
+  const bookmarks: Bookmark[] = [
+    { id: 'a', url: 'https://a.com', title: 'TypeScript Guide', note: 'great reference', tags: [], createdAt: 1 },
+    { id: 'b', url: 'https://b.com', title: 'CSS Tricks', note: 'visual layout tips', tags: [], createdAt: 2 },
+    { id: 'c', url: 'https://c.com', title: 'Plain Link', note: '', tags: [], createdAt: 3 },
+  ];
+
+  it('returns all bookmarks for an empty query', () => {
+    expect(searchBookmarks(bookmarks, '')).toHaveLength(3);
+  });
+
+  it('returns all bookmarks for a whitespace-only query', () => {
+    expect(searchBookmarks(bookmarks, '   ')).toHaveLength(3);
+  });
+
+  it('returns bookmarks whose title matches the query', () => {
+    const result = searchBookmarks(bookmarks, 'typescript');
+    expect(result.map(b => b.id)).toEqual(['a']);
+  });
+
+  it('returns bookmarks whose note matches the query', () => {
+    const result = searchBookmarks(bookmarks, 'layout');
+    expect(result.map(b => b.id)).toEqual(['b']);
+  });
+
+  it('returns an empty array when no bookmarks match', () => {
+    expect(searchBookmarks(bookmarks, 'python')).toHaveLength(0);
+  });
+
+  it('match is case-insensitive', () => {
+    expect(searchBookmarks(bookmarks, 'TYPESCRIPT')).toHaveLength(1);
+    expect(searchBookmarks(bookmarks, 'GREAT')).toHaveLength(1);
+  });
+
+  it('matches a partial word (substring)', () => {
+    expect(searchBookmarks(bookmarks, 'type')).toHaveLength(1);
+  });
+
+  it('does not mutate the original array', () => {
+    searchBookmarks(bookmarks, 'typescript');
+    expect(bookmarks).toHaveLength(3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// applyFilters
+// ---------------------------------------------------------------------------
+
+describe('applyFilters', () => {
+  const bookmarks: Bookmark[] = [
+    { id: 'a', url: 'https://a.com', title: 'TypeScript Guide', note: 'reference', tags: ['work'], createdAt: 1 },
+    { id: 'b', url: 'https://b.com', title: 'CSS Tricks', note: 'layout tips', tags: ['work'], createdAt: 2 },
+    { id: 'c', url: 'https://c.com', title: 'Recipe Blog', note: 'cooking notes', tags: ['personal'], createdAt: 3 },
+  ];
+
+  it('returns all bookmarks when tag is null and query is empty', () => {
+    expect(applyFilters(bookmarks, null, '')).toHaveLength(3);
+  });
+
+  it('filters by tag only when query is empty', () => {
+    const result = applyFilters(bookmarks, 'work', '');
+    expect(result.map(b => b.id)).toEqual(['a', 'b']);
+  });
+
+  it('filters by search only when tag is null', () => {
+    const result = applyFilters(bookmarks, null, 'typescript');
+    expect(result.map(b => b.id)).toEqual(['a']);
+  });
+
+  it('applies both tag and search when both are active', () => {
+    const result = applyFilters(bookmarks, 'work', 'css');
+    expect(result.map(b => b.id)).toEqual(['b']);
+  });
+
+  it('returns an empty array when both filters are active and no bookmarks satisfy both', () => {
+    const result = applyFilters(bookmarks, 'personal', 'typescript');
+    expect(result).toHaveLength(0);
+  });
+
+  it('does not mutate the original array', () => {
+    applyFilters(bookmarks, 'work', 'typescript');
+    expect(bookmarks).toHaveLength(3);
   });
 });

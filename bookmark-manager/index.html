@@ -31,9 +31,15 @@
       <button type="submit">Add Bookmark</button>
     </form>
 
-    <div id="tag-filters" class="tag-filters"></div>
+    <div class="search-bar" role="search">
+      <label for="search-input" class="search-label">Search</label>
+      <input type="search" id="search-input" placeholder="Filter by title or note…" autocomplete="off">
+      <p id="search-status" class="sr-only" aria-live="polite" aria-atomic="true"></p>
+    </div>
 
-    <ul id="bookmark-list"></ul>
+    <div id="tag-filters" class="tag-filters" role="group" aria-label="Filter by tag"></div>
+
+    <ul id="bookmark-list" aria-label="Bookmarks"></ul>
   </main>
 
   <script type="module" src="/src/main.ts"></script>

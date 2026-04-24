@@ -1,5 +1,107 @@
 # Bookmark Manager — Refinement Log
 
+### 2026-04-25 01:15Z — ESLint added
+
+ESLint with `typescript-eslint` added following the typescript-eslint getting-started documentation — the approach the TypeScript team recommends. Config: `tseslint.config(eslint.configs.recommended, tseslint.configs.recommended)`. Exits clean against `src/` with no suppressions needed.
+
+Added as `npm run lint` locally and as a `Lint` CI step after `Type check`. Resolves the left-shift gap noted in PE Review 2.
+
+### 2026-04-25 00:30Z — Full AIR suite run; clean pass
+
+All 5 domains ran against the full project after: push→spread immutability fix in `main.ts`, PE Review 1 additions (coverage step, audit step, cache key fix), and AIR suite reorganized into `air/`.
+
+Zero findings across all domains. The reviews confirmed:
+
+- **SA**: Architecture sound. push→spread fix completes the immutability pattern across all write paths. `bookmarks.ts`/`main.ts` boundary intact.
+- **PE**: All Review 1 gates (coverage threshold, `npm audit`, corrected cache key) verified present and gating correctly. The double unit-test run (discrete step + `npm test`) is deliberate and acceptable.
+- **QA**: 14 dimensions checked. No dead code, no validation gaps, no brittle selectors. 74 unit / 77 browser / 100% coverage / 0 CVEs.
+- **UX**: No UX surface changes this session. Prior UX fixes intact (toggle-deselect, color contrast). Three axe scans passing.
+- **Security**: All rendering safety controls intact (`.textContent` throughout). `normalizeBookmark` storage validation intact. `npm audit` now a CI gate.
+
+A clean AIR run is a meaningful signal: the changes introduced this session have no detectable defects, regressions, or architectural drift across any domain.
+
+### 2026-04-25 00:10Z — Solution Architect domain added to AIR; SA Review 1
+
+The SA domain evaluates architecture: structural decisions, boundary integrity, data model soundness, and whether the complexity of the implementation is proportional to the problem. It is distinct from QA (which evaluates correctness) and from Security/UX (which evaluate specific concerns) — SA evaluates whether the overall shape of the solution is right.
+
+**One real finding fixed:**
+
+`handleSubmit` in `src/main.ts` called `bookmarks.push(newBookmark)` — a direct mutation of a local array. Every other data operation in the codebase uses immutable patterns: `updateBookmark`, `deleteBookmark`, and `sortBookmarks` all return new arrays via spread or `.filter`/`.map`. The mutation caused no observable bug (the mutated array was immediately saved and discarded), but it was an inconsistency that could mislead future readers or be copied into a context where mutation does cause a bug. Fixed to `saveBookmarks(storage, [...bookmarks, newBookmark])`.
+
+**Architecture assessed as sound:**
+
+The `bookmarks.ts` / `main.ts` separation is clean and consistent across all five layers — no DOM references have leaked into the logic module, and no business logic has accumulated in the DOM wiring module. The `BookmarkStorage` interface is a minimal, well-placed abstraction. The `Bookmark` data model is complete and appropriate for the use case. Module-level `let` state in `main.ts` is the correct pattern for a no-framework SPA at this scale. All significant decisions are documented in this log.
+
+### 2026-04-24 23:55Z — Platform Engineering domain added to AIR; PE Review 1
+
+**Rationale:** The Security, QA, and UX reviews identify defects; PE's job is to make sure those checks — and as many others as possible — are enforced automatically in CI rather than depending on a human running them before each merge. The review takes a left-shift lens: any check that lives only in a manual checklist is a gap.
+
+**Three bugs found and fixed in Review 1:**
+
+1. **Playwright cache key was broken:** `hashFiles('package-lock.json')` resolves from the repo root. The lock file is in `bookmark-manager/`. The hash was always empty, meaning the Playwright browser cache never invalidated on dependency changes. Fixed to `hashFiles('bookmark-manager/package-lock.json')`.
+
+2. **Coverage not enforced in CI:** `npm run test:coverage` was a PR checklist item but not in the pipeline. Coverage could regress to 0% and a PR would still merge. Also, `coverage.include` was `src/**/*.ts` — including `main.ts`, which has 0% unit coverage by design. Any threshold would have always failed because of `main.ts`. Fixed: scoped `include` to `src/bookmarks.ts`; added thresholds (100% across all metrics); added the step to CI. Confirmed: 100% on all dimensions.
+
+3. **`npm audit` not automated:** Manual checklist item in Security review. Added `npm audit --audit-level=high` to CI so a high-severity CVE blocks the pipeline rather than relying on a reviewer remembering to run it.
+
+**Left-shift pattern established:** The axe accessibility scans (added in QA Review 7) are already in the browser test suite which CI runs — they're a good example of the left-shift model. Coverage and audit now follow the same pattern.
+
+### 2026-04-24 23:45Z — AIR suite formalized
+
+The three review domains (QA, UX, Security) have been formalized as the Adversarial Iterative Refinement (AIR) suite with a dedicated coordination document (`adversarial-iterative-refinement/README.md`).
+
+**Rationale:** The reviews were already functioning as a suite — they ran together, shared the goal of adversarial pressure, and collectively formed the merge gate. Naming them as a suite makes the relationship explicit and adds two capabilities that were previously implicit:
+
+1. **Scoped runs** — any domain can be focused on specific changed files or a feature while still running regression checks across the whole app. This prevents the gate from becoming heavyweight for small changes while keeping the regression safety net intact.
+
+2. **Domain suggestion** — any review can propose a new AIR domain as a classified finding. This gives the process a defined path for growth (e.g., Performance, Privacy) without requiring a process redesign.
+
+**Sequencing model:** Domains default to parallel. Sequencing is used when one domain's findings are likely to affect another's analysis (e.g., a Security finding that changes the implementation should precede a QA re-check of that implementation). The orchestrator (person or agent running AIR) decides based on context.
+
+### 2026-04-24 23:00Z — Process expansion: security review added; full-project QA, UX, and security audit
+
+**Process changes:** Security review is now a formal layer gate requirement alongside QA and UX review. `SECURITY-REVIEW.md` follows the same log format and prompt structure. Standard QA dimensions expanded to 14 (added: security surface, regression coverage with explicit axe requirement). Standard UX dimensions expanded to 13 (added: long content overflow, reduced motion, native dialog text quality, cross-layer regression). PR template updated to require security review sign-off.
+
+**`@axe-core/playwright` integrated:** Three axe browser tests run in the test suite (empty state, with bookmarks, with edit form open). This makes accessibility a first-class test assertion that fails the test run rather than depending on reviewer recall. Two violations were found and fixed that had been missed by manual review:
+
+1. **`.list-empty` color contrast** (#888 / 3.54:1): The UX Review 3 dismissal incorrectly applied the large-text exception — 0.9rem / 14.4px normal weight does not qualify. Fixed to `#666` (5.74:1). This is the concrete value of automated scanning: the manual review gave the wrong answer; axe gave the right one.
+
+2. **Edit form unlabeled inputs**: The inline edit form constructed `<label>` and `<input>` as DOM siblings with no `for`/`id` association. Visually correct; programmatically disconnected. Fixed by generating stable IDs and linking labels.
+
+**`loadBookmarks` normalization:** `JSON.parse(data) as Bookmark[]` is a TypeScript assertion with no runtime effect. If localStorage contains data from a previous app version (before a schema change) or a user's manual edit, accessing undefined fields would throw. Added `normalizeBookmark` to validate required fields and coerce optional fields to safe defaults. Discards rather than crashes on invalid entries.
+
+**Long content overflow:** `overflow-wrap: break-word` added to `.bookmark-title`, `.bookmark-note`, `.tag-badge`. A title with no spaces (common for long URLs used as titles) would otherwise extend beyond its container and cause horizontal overflow.
+
+**Confirm dialog specificity:** `window.confirm('Delete this bookmark?')` was generic. Changed to `Delete "${title}"?` — the user sees which bookmark they're about to delete before confirming.
+
+**`prefers-reduced-motion` proactively flagged for Layer 6:** Layer 6 plans CSS transitions. Before implementing, all transitions must be wrapped in `@media (prefers-reduced-motion: no-preference)`. Added to Layer 6 task list and manual testing checklist now, before the work starts.
+
+### 2026-04-24 22:30Z — QA review 6 and UX review 3 (Layer 5)
+
+Four findings resolved across both reviews.
+
+**Dead CSS:** `#search-input` in `styles.css` was an exact duplicate of the `input` rule — all five declarations were already inherited. Removed.
+
+**Safari `type="search"` appearance:** Safari applies `-webkit-appearance: searchfield` to search inputs, overriding our `border`, `border-radius`, and `padding` with a native pill shape. Fixed with `appearance: none` reset. The Chrome native `×` clear button is unaffected — it is rendered outside the appearance model and fires the `input` event, so our search query state updates correctly when clicked.
+
+**Screen reader announcements:** Putting `aria-live` on `#bookmark-list` directly would cause the reader to announce every list item on every keystroke — unusable. The correct pattern is a separate status region: a visually hidden `<p aria-live="polite" aria-atomic="true">` that announces only the result count. Implemented as `#search-status`, populated by `renderBookmarks()` whenever a filter is active. Screen readers announce count changes; sighted users are unaffected.
+
+**Search landmark:** `role="search"` added to the `.search-bar` wrapper. Keyboard users navigating by landmarks can jump directly to the search field without tabbing through the add form and other controls.
+
+One pre-existing issue identified: small button touch targets (~21px for `.filter-btn`, `.edit-btn`, `.delete-btn`, `.cancel-edit`) are below the 44×44px mobile minimum. Pre-dates Layer 5; added to Layer 6 task list.
+
+### 2026-04-24 21:55Z — Layer 5: Search
+
+Two pure functions added to `src/bookmarks.ts`: `searchBookmarks` (case-insensitive substring match on title and note; empty/whitespace query returns input unchanged) and `applyFilters` (composes `filterByTag` then `searchBookmarks`; both conditions must be satisfied).
+
+Tag and search state interact cleanly: each filter click still calls `renderBookmarks()`, which now calls `applyFilters(bookmarks, activeTag, searchQuery)` instead of `filterByTag` directly. No changes to the tag filter logic — search composes on top of it for free.
+
+Empty state message now distinguishes two cases: `bookmarks.length === 0` → "No bookmarks yet. Add one above."; `bookmarks.length > 0 && sorted.length === 0` → "No bookmarks match your search." The same path covers both tag-filter and search producing empty results, since `applyFilters` unifies them.
+
+The search input uses `type="search"` to give users a native clear button on supported browsers with no extra code.
+
+TDD followed throughout: 14 failing unit tests written first, then `searchBookmarks` and `applyFilters` implemented to pass them; 11 failing browser tests written next, then UI implemented to pass them. All 66 unit tests and 70 browser tests pass.
+
 ### 2026-04-24 20:38Z — Layer 4 merged into main; PR template updated
 
 Layer 4 (Tag Filtering) merged into main after all gate requirements passed: automated tests (52 unit, 59 browser), manual testing checklist, adversarial QA review (Reviews 4 and 5), and UX review (Reviews 1 and 2).
@@ -176,7 +278,7 @@ No bugs, no dead code, no unused dependencies found.
 
 ### 2026-04-23 — Adversarial QA review
 
-Conducted a structured adversarial review using a QA prompt asking an independent agent to evaluate whether acceptance criteria were met, whether tests were falsifiable, and whether there were bugs or missing edge cases. Full prompt, findings, and dispositions recorded in `ADVERSARIAL.md`.
+Conducted a structured adversarial review using a QA prompt asking an independent agent to evaluate whether acceptance criteria were met, whether tests were falsifiable, and whether there were bugs or missing edge cases. Full prompt, findings, and dispositions recorded in `QA-REVIEW.md`.
 
 **Bugs fixed:**
 

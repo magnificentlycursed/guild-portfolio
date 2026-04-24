@@ -2,7 +2,7 @@
 
 A personal tool for saving and organizing web links with titles, notes, and tags. No accounts, no backend, no frameworks — data lives in the browser's localStorage.
 
-Built as a guild portfolio project following a design-first, test-driven methodology.
+Built as a guild portfolio project following a design-first, test-driven methodology with Adversarial Iterative Refinement (AIR) — a required merge gate comprising QA, UX, and Security review domains — at each layer.
 
 ## Features
 
@@ -14,7 +14,7 @@ Built as a guild portfolio project following a design-first, test-driven methodo
 - Search by title or note content in real time
 - Data persists across page refreshes
 
-Layers 1–4 (core, notes and tags, edit and delete, tag filtering) are complete. Layers 5–6 (search and polish) are in progress.
+Layers 1–5 (core, notes and tags, edit and delete, tag filtering, search) are complete. Layer 6 (polish) is planned.
 
 ## Stack
 
@@ -38,6 +38,7 @@ Open `http://localhost:5173` in a browser.
 |---|---|
 | `npm run dev` | Start the Vite dev server |
 | `npm run build` | Compile and bundle to `dist/` |
+| `npm run lint` | Run ESLint on `src/` |
 | `npm run typecheck` | Run `tsc` without emitting files |
 | `npm run test:unit` | Run Vitest unit tests |
 | `npm run test:browser` | Run Playwright browser tests |
@@ -68,7 +69,7 @@ npm run test:browser
 npm test
 ```
 
-Current coverage: 52 unit tests, 50 browser tests.
+Current coverage: 74 unit tests, 78 browser tests (including 4 automated axe accessibility scans).
 
 ## Project structure
 
@@ -89,6 +90,11 @@ styles.css       Styles
 |---|---|
 | `DESIGN.md` | Purpose, features, technology choices, constraints, and testing methodology |
 | `TODO.md` | Build layers with testable acceptance criteria; tracks completion |
-| `REFINEMENT_LOG.md` | Chronological record of design and process decisions |
+| `DECISIONS.md` | Chronological record of design and process decisions |
 | `CHANGELOG.md` | What changed in each work session |
-| `ADVERSARIAL.md` | QA review log: bugs found, test weaknesses, and dismissed findings |
+| `adversarial-iterative-refinement/README.md` | Adversarial Iterative Refinement suite: domains, sequencing, scoped runs, merge gate |
+| `adversarial-iterative-refinement/QA-REVIEW.md` | QA review log: bugs found, test weaknesses, and dismissed findings |
+| `adversarial-iterative-refinement/UX-REVIEW.md` | UX review log: empty states, error handling, focus behavior, and accessibility |
+| `adversarial-iterative-refinement/SECURITY-REVIEW.md` | Security review log: rendering safety, URL injection, storage validation |
+| `adversarial-iterative-refinement/PLATFORM-ENGINEERING-REVIEW.md` | Platform Engineering review log: CI pipeline, coverage enforcement, left-shift opportunities |
+| `adversarial-iterative-refinement/SOLUTION-ARCHITECT-REVIEW.md` | Solution Architect review log: structure, boundaries, data model, state management, tradeoffs |

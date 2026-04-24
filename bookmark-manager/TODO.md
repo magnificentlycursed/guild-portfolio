@@ -4,21 +4,49 @@ Tasks are marked complete only after all acceptance criteria pass automated test
 Unit tests cover pure logic in isolation. Browser tests verify end-to-end behavior: form interaction, rendered output, localStorage state, and link attributes.
 Code inspection and successful compilation are not sufficient — the tests must exist and pass.
 
-Before moving to the next layer, complete the manual testing checklist for that layer and run both reviews using the prompts in ADVERSARIAL.md and UX-REVIEW.md.
+Before moving to the next layer, complete the manual testing checklist for that layer and run the full AIR suite (see adversarial-iterative-refinement/README.md). All domains must complete with every finding resolved, dismissed with rationale, or accepted risk documented.
 
-Adversarial QA review must confirm:
+AIR gate — QA (adversarial-iterative-refinement/QA-REVIEW.md) must confirm:
 - All acceptance criteria for the completed layer are verified by tests
 - `src/bookmarks.ts` maintains 100% statement, branch, and function coverage (`npm run test:coverage`)
 - No dead exports or unreachable code introduced in this layer
 - No unused dependencies added
-- All findings logged in ADVERSARIAL.md with resolution or dismissal rationale
+- Accessibility: semantic HTML correct, all interactive elements have accessible labels, keyboard navigation complete, focus states visible
+- Browser compatibility: no CSS, JS, or HTML features that break in current Firefox or Safari
+- Responsive design: layout holds at 360px, touch targets are at least 44×44px
+- All findings logged in adversarial-iterative-refinement/QA-REVIEW.md with resolution or dismissal rationale
 
-UX review must confirm:
+AIR gate — UX (adversarial-iterative-refinement/UX-REVIEW.md) must confirm:
 - No missing empty states for the features introduced in this layer
 - Error messages are clear, correctly placed, and clear at the right time
 - Focus behavior is correct for any new interactive elements
 - Visual consistency is maintained across equivalent UI surfaces
-- All findings logged in UX-REVIEW.md with resolution or dismissal rationale
+- Accessibility: WCAG AA contrast maintained, new elements are keyboard-reachable with visible focus indicators
+- Responsive design: new UI elements are usable and properly laid out on mobile (360px) and desktop
+- Browser compatibility: no visual or interaction regressions in Chrome, Firefox, or Safari
+- Long content: very long unbroken strings do not overflow their containers
+- Native dialog text: any `window.confirm` or `window.alert` identifies the specific item being acted on
+- All findings logged in adversarial-iterative-refinement/UX-REVIEW.md with resolution or dismissal rationale
+
+AIR gate — Security (adversarial-iterative-refinement/SECURITY-REVIEW.md) must confirm:
+- All new user-supplied content is rendered via `.textContent`, not `innerHTML`
+- Any new URL or input fields are validated before storage or use
+- Any new data structures loaded from storage are runtime-validated
+- No new dependencies with known CVEs (`npm audit`)
+- All findings logged in adversarial-iterative-refinement/SECURITY-REVIEW.md with resolution or accepted-risk rationale
+
+AIR gate — Solution Architect (adversarial-iterative-refinement/SOLUTION-ARCHITECT-REVIEW.md) must confirm:
+- Layer boundaries between `bookmarks.ts` (pure logic) and `main.ts` (DOM wiring) remain intact
+- No new state mutations inconsistent with the established immutable data patterns
+- Any new architectural decisions are documented in DECISIONS.md with rationale
+- All findings logged in adversarial-iterative-refinement/SOLUTION-ARCHITECT-REVIEW.md with resolution or dismissal rationale
+
+AIR gate — Platform Engineering (adversarial-iterative-refinement/PLATFORM-ENGINEERING-REVIEW.md) must confirm:
+- CI pipeline runs all required checks for this layer
+- No coverage regressions — `src/bookmarks.ts` still enforced at 100% in CI
+- Any new dependencies are compatible with `npm audit --audit-level=high`
+- Any new build or pipeline config changes are correct and do not break CI
+- All findings logged in adversarial-iterative-refinement/PLATFORM-ENGINEERING-REVIEW.md with resolution or dismissal rationale
 
 ---
 
@@ -79,7 +107,7 @@ UX review must confirm:
 - [x] After a successful submission, verify all form fields are empty (title, URL, note, tags)
 - [x] After a failed submission, verify the error message disappears after a subsequent successful submission
 
-**Layer 1 QA review:** Completed 2026-04-23. See ADVERSARIAL.md Review 1.
+**Layer 1 QA review:** Completed 2026-04-23. See adversarial-iterative-refinement/QA-REVIEW.md Review 1.
 
 ---
 
@@ -111,7 +139,7 @@ UX review must confirm:
 - [x] Verify that a bookmark with a note and tags and one without are both displayed correctly in the same list
 - [x] Refresh the page — note and tags are still present on the correct bookmarks
 
-**Layer 2 QA review:** Completed 2026-04-23. See ADVERSARIAL.md Reviews 1 and 2.
+**Layer 2 QA review:** Completed 2026-04-23. See adversarial-iterative-refinement/QA-REVIEW.md Reviews 1 and 2.
 
 ---
 
@@ -164,7 +192,7 @@ UX review must confirm:
 - [x] Cancel the deletion — the bookmark is still present
 - [x] Refresh after deleting — the deleted bookmark is gone; remaining bookmarks are still present
 
-**Layer 3 QA review:** Completed 2026-04-24. See ADVERSARIAL.md Review 3.
+**Layer 3 QA review:** Completed 2026-04-24. See adversarial-iterative-refinement/QA-REVIEW.md Review 3.
 
 ---
 
@@ -211,23 +239,23 @@ UX review must confirm:
 - [x] The edit form labels Note and Tags as "(optional)" and "(optional, comma-separated)" respectively
 - [x] In the edit form, clear the title and try to save — an error appears; start typing — the error disappears immediately
 
-**Layer 4 QA review:** Completed 2026-04-24. See ADVERSARIAL.md Review 4.
+**Layer 4 QA review:** Completed 2026-04-24. See adversarial-iterative-refinement/QA-REVIEW.md Review 4.
 
-**Layer 4 UX review:** Completed 2026-04-24. See UX-REVIEW.md Review 2.
+**Layer 4 UX review:** Completed 2026-04-24. See adversarial-iterative-refinement/UX-REVIEW.md Review 2.
 
 ---
 
 ## Layer 5: Search
 
-- [ ] Add search bar above the bookmark list
+- [x] Add search bar above the bookmark list
   - A search input is visible above the bookmark list at all times, including when the bookmark list is empty
 
-- [ ] Filter bookmarks in real time as the user types
+- [x] Filter bookmarks in real time as the user types
   - The bookmark list updates on each keystroke without requiring a submit action
   - Clearing the search input restores the full unfiltered list (or tag-filtered list if one is active)
   - Unit tests cover the search/filter logic in isolation against known bookmark fixtures
 
-- [ ] Match against title and note content
+- [x] Match against title and note content
   - Searching for a word present in a bookmark's title shows that bookmark
   - Searching for a word present in a bookmark's note shows that bookmark
   - A bookmark matches if the term appears in the title OR the note — both are checked
@@ -235,25 +263,27 @@ UX review must confirm:
   - Search is case-insensitive: searching `example` matches a bookmark titled `Example`
   - Unit tests cover: title match, note match, no match, case-insensitive match, empty query returning all results
 
-- [ ] Search and tag filter work together
+- [x] Search and tag filter work together
   - With a tag filter active, search results are limited to bookmarks that match both the tag and the search term
   - A bookmark must satisfy both conditions to be shown — matching one is not sufficient
   - Clearing the search input while a tag filter is active returns to the tag-filtered view
   - Clearing the tag filter while a search is active returns to the search-filtered view
   - Unit tests cover the combined filter logic: tag only, search only, both active, neither active
 
-**Layer 5 manual testing checklist:**
-- [ ] The search bar is visible above the bookmark list at all times, including when the list is empty
-- [ ] Type a word that appears in a bookmark's title — that bookmark is shown; non-matching bookmarks are hidden
-- [ ] Type a word that appears in a bookmark's note — that bookmark is shown
-- [ ] Type a word that appears in neither title nor note of any bookmark — the list is empty (not showing all bookmarks)
-- [ ] Search is case-insensitive — searching `example` matches a bookmark titled `Example`
-- [ ] Clear the search input — all bookmarks are shown again
-- [ ] With a tag filter active, type a search term — only bookmarks matching both the tag and the search term are shown
-- [ ] With a tag filter and search active, clear the search — bookmarks matching the tag filter are shown
-- [ ] With a tag filter and search active, click "All" — bookmarks matching the search term are shown
+**Layer 5 manual testing checklist:** Completed 2026-04-25.
+- [x] The search bar is visible above the bookmark list at all times, including when the list is empty
+- [x] Type a word that appears in a bookmark's title — that bookmark is shown; non-matching bookmarks are hidden
+- [x] Type a word that appears in a bookmark's note — that bookmark is shown
+- [x] Type a word that appears in neither title nor note of any bookmark — the list is empty (not showing all bookmarks)
+- [x] Search is case-insensitive — searching `example` matches a bookmark titled `Example`
+- [x] Clear the search input — all bookmarks are shown again
+- [x] With a tag filter active, type a search term — only bookmarks matching both the tag and the search term are shown
+- [x] With a tag filter and search active, clear the search — bookmarks matching the tag filter are shown
+- [x] With a tag filter and search active, click "All" — bookmarks matching the search term are shown
 
-**Layer 5 QA review:** Pending.
+**Layer 5 QA review:** Completed 2026-04-24. See adversarial-iterative-refinement/QA-REVIEW.md Review 6.
+
+**Layer 5 UX review:** Completed 2026-04-24. See adversarial-iterative-refinement/UX-REVIEW.md Review 3.
 
 ---
 
@@ -286,6 +316,14 @@ UX review must confirm:
   - No horizontal scrolling is required at 360px
   - The add form, bookmark list, tag filters, and search bar are all usable at 360px
 
+- [ ] Increase touch target sizes for small buttons
+  - Filter buttons (`.filter-btn`), edit/delete/cancel buttons (`.edit-btn`, `.delete-btn`, `.cancel-edit`) must have a minimum 44×44px touch target
+  - Can be achieved via `min-height`, `padding`, or CSS `min-height`/`padding` increase
+
+- [ ] Wrap transitions in `prefers-reduced-motion` media query
+  - Any CSS transitions or animations added in Layer 6 must be wrapped in `@media (prefers-reduced-motion: no-preference)`
+  - Users with `prefers-reduced-motion: reduce` see instant state changes, not animated ones
+
 **Layer 6 manual testing checklist:**
 - [ ] The color scheme is dark — background is dark, text is clearly readable against it
 - [ ] The page loads showing a "+" button, not the full add form
@@ -296,7 +334,9 @@ UX review must confirm:
 - [ ] Verify the domain label is correct for a URL with a path (e.g. `https://example.com/some/path` shows `example.com`)
 - [ ] Verify the domain label is correct for a subdomain URL (e.g. `https://sub.example.com` shows `sub.example.com`)
 - [ ] Resize the browser to 360px wide — all UI elements (form, list, search bar, tag filters) are visible and usable with no horizontal scrollbar
+- [ ] Set browser zoom to 200% — all content remains readable and usable; no horizontal scrollbar appears
 - [ ] Filter or search with bookmarks present — the list change is animated rather than instant
+- [ ] Verify transitions are not shown when the OS has reduced motion enabled (`System Preferences → Accessibility → Reduce Motion`)
 
 - [ ] Replace `window.confirm` delete dialog with inline confirmation
   - Clicking Delete shows an inline "Are you sure? Confirm / Cancel" prompt within the bookmark item rather than a browser native dialog
