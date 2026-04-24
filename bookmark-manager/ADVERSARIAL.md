@@ -2,6 +2,67 @@
 
 ---
 
+## Review 4 — 2026-04-24 19:41Z
+
+### Prompt
+
+> You are a tough but fair QA professional reviewing Layer 4 (Tag Filtering) of a TypeScript bookmark manager web app. This is a portfolio project built with TDD. Read every relevant file carefully — source, tests, config.
+>
+> Evaluate:
+> 1. Are the Layer 4 acceptance criteria in TODO.md actually met by the implementation?
+> 2. Are the new unit tests falsifiable? Could any of the 10 new tests pass even if the implementation were broken?
+> 3. Are the new browser tests falsifiable? Are selectors tight enough? Could any test pass against a broken UI?
+> 4. Are there missing edge cases in either test suite for tag filtering?
+> 5. Are there bugs or logic errors in the new code in src/bookmarks.ts or src/main.ts?
+> 6. Is there any new exported or declared code that is never called or imported?
+> 7. Are there any new direct dependencies added?
+> 8. Does the coverage report indicate any uncovered branches or functions in bookmarks.ts for the new Layer 4 functions?
+> 9. Is there anything in the Layer 4 TODO tasks marked complete that isn't actually verified by a test?
+>
+> Be specific. Cite file names and line numbers. Do not soften findings. Report what is actually wrong or missing, not what might theoretically be wrong.
+
+---
+
+### Bugs Found and Resolved
+
+#### Bug 1 — `activeTag` not reset when the active tag is deleted from all bookmarks
+
+**File:** `src/main.ts` — `renderTagFilters`
+**Critique:** When the last bookmark with a given tag is deleted while that tag's filter is active, `activeTag` remains set to the deleted tag. `renderTagFilters` creates no button for that tag (correctly), but because `activeTag !== null`, the "All" button also gets no active class. The filter bar shows no button highlighted. The list is empty. The user has no visual indication that a filter is technically still active or how to escape the empty state.
+
+The same issue would occur when editing the last bookmark with the active tag to remove that tag — `handleEditSave` calls `renderBookmarks()` which calls `renderTagFilters()`, leaving `activeTag` pointing at a tag that no longer exists.
+
+**Assessment:** Valid.
+**Resolution:** Added `activeTag` reset at the top of `renderTagFilters`: if `activeTag !== null && !uniqueTags.includes(activeTag)`, reset `activeTag = null` before building the filter bar. Also deduplicated the `getUniqueTags` call by computing `uniqueTags` once and reusing it for both the reset check and the button loop.
+
+---
+
+### Test Weaknesses Found and Resolved
+
+#### Weakness 1 — "when a tag filter is active and no bookmarks match" did not verify filter bar state after deletion
+
+**File:** `tests/browser/bookmark-manager.spec.ts:226`
+**Critique:** The test verified `bookmark-item` count is 0 after deleting the last matching bookmark, but did not assert the state of the filter bar. Without the bug fix, no button would be highlighted — a clear UI regression that this test would miss entirely. The test should assert that "All" is highlighted and is the only filter button remaining.
+**Assessment:** Valid.
+**Resolution:** Added two assertions after the deletion: `expect(page.locator('.filter-btn')).toHaveCount(1)` and `expect(page.locator('.filter-btn--active')).toHaveText('All')`.
+
+---
+
+### Dismissed Findings
+
+#### TODO criterion wording inconsistency — "tag filter area is empty" vs "All button always present"
+
+**Critique:** The Layer 4 criteria contain a wording tension: "When all bookmarks are deleted, the tag filter area is empty (no stale buttons remain)" reads as the entire filter area being empty, but a separate criterion says "An 'All' button is always present, including when no bookmarks exist." The implementation follows the latter (always show "All"), which is the better UX and matches the tests.
+
+**Assessment:** Wording ambiguity, not a behavioral bug. The parenthetical "(no stale buttons remain)" clarifies that intent is about stale tag buttons, not the "All" button. Implementation and tests are correct. No change required.
+
+#### No test for editing a bookmark to remove the active tag
+
+**Critique:** If you edit the last bookmark with the active tag to remove that tag, the same `activeTag` reset logic is now needed. There is no browser test for this path (only for delete).
+**Assessment:** Valid concern, dismissed for scope. The fix in `renderTagFilters` handles both delete and edit paths because both call `renderBookmarks()` which calls `renderTagFilters()`. The delete path is fully tested. The edit path exercises the same code. Adding a dedicated browser test for this edit edge case would be Layer 4 polish; it is deferred to a future review pass.
+
+---
+
 ## Review 1 — 2026-04-23
 
 ### Prompt

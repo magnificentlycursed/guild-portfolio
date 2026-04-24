@@ -1,5 +1,36 @@
 # Bookmark Manager — Changelog
 
+## 2026-04-24 19:41Z — Adversarial QA review 4: bug fixed and test hardened
+
+### Fixed
+- `src/main.ts` — `renderTagFilters` now resets `activeTag = null` when the active tag no longer exists in any bookmark; previously, deleting the last bookmark with a given tag while that filter was active left `activeTag` pointing at a ghost tag, causing no filter button to be highlighted. Also deduplicates the `getUniqueTags` call: `uniqueTags` is computed once and used for both the reset check and the button loop.
+
+### Fixed (tests)
+- `tests/browser/bookmark-manager.spec.ts:226` — "when a tag filter is active and no bookmarks match the list is empty" test expanded to assert that after deletion the "All" button is highlighted and is the only filter button; previously only asserted `bookmark-item` count of 0
+
+### Test results
+- Unit tests: **52 passed**
+- Browser tests: **50 passed**
+
+---
+
+## 2026-04-24 19:36Z — Layer 4: Tag Filtering
+
+### Added
+- `src/bookmarks.ts` — `getUniqueTags(bookmarks)` returns a sorted, deduplicated array of all tags across all bookmarks; `filterByTag(bookmarks, tag)` returns only bookmarks containing the given tag; both are pure and do not mutate their input
+- `src/main.ts` — module-level `activeTag: string | null = null` state; `renderTagFilters(bookmarks)` builds the filter bar (All + one button per unique tag), re-renders on click; `renderBookmarks()` now calls `renderTagFilters` and applies `filterByTag` when `activeTag` is set
+- `index.html` — `<div id="tag-filters" class="tag-filters">` inserted between the form and the bookmark list
+- `styles.css` — `.tag-filters`, `.filter-btn`, `.filter-btn--active`, hover and focus styles for the filter bar
+
+### Changed
+- `TODO.md` — Layer 4 tasks marked complete
+
+### Test results
+- Unit tests: **52 passed** (10 new: `getUniqueTags` ×5, `filterByTag` ×5)
+- Browser tests: **50 passed** (12 new: All button present, All highlighted on load, filter per tag, no duplicate buttons, click shows matching only, non-matching hidden, empty list when no match, All restores full list, active highlight, switching filters, deleting removes button, add while filter active)
+
+---
+
 ## 2026-04-24 19:17Z — GitHub PR template
 
 ### Added

@@ -161,25 +161,25 @@ Before moving to the next layer, complete the manual testing checklist for that 
 
 ## Layer 4: Tag Filtering
 
-- [ ] Display all unique tags as clickable filter buttons above the list
+- [x] Display all unique tags as clickable filter buttons above the list
   - All tags from all bookmarks appear as individual filter buttons — one button per unique tag, no duplicates
   - Tags that appear across multiple bookmarks produce only one filter button
   - Adding a bookmark with a new tag causes that tag's button to appear immediately
   - When all bookmarks are deleted, the tag filter area is empty (no stale buttons remain)
   - Unit tests cover the tag deduplication and extraction logic in isolation
 
-- [ ] Filter bookmark list when a tag is clicked
+- [x] Filter bookmark list when a tag is clicked
   - Clicking a tag button shows only bookmarks that include that tag
   - The exact count of matching bookmarks is shown — no extras, no omissions
   - Bookmarks that do not have that tag are not shown
   - If no bookmarks match the active tag, the list is empty (not showing all bookmarks)
 
-- [ ] Add "All" button to clear the active tag filter
+- [x] Add "All" button to clear the active tag filter
   - An "All" button is always present, including when no bookmarks exist
   - Clicking "All" removes the active filter and shows all bookmarks
   - The total count of bookmarks shown after clicking "All" equals the total count of bookmarks
 
-- [ ] Visually highlight the active tag filter
+- [x] Visually highlight the active tag filter
   - The currently active filter button has a distinct CSS class or attribute compared to inactive buttons
   - "All" has the active style when no tag filter is active
   - The previously active button loses the active style when a different filter is clicked

@@ -9,16 +9,56 @@ import {
   sortBookmarks,
   updateBookmark,
   deleteBookmark,
+  getUniqueTags,
+  filterByTag,
 } from './bookmarks';
 
 const storage = localStorage;
+
+let activeTag: string | null = null;
+
+function renderTagFilters(bookmarks: Bookmark[]): void {
+  const uniqueTags = getUniqueTags(bookmarks);
+  if (activeTag !== null && !uniqueTags.includes(activeTag)) {
+    activeTag = null;
+  }
+
+  const container = document.getElementById('tag-filters') as HTMLDivElement;
+  container.innerHTML = '';
+
+  const allBtn = document.createElement('button');
+  allBtn.type = 'button';
+  allBtn.className = 'filter-btn' + (activeTag === null ? ' filter-btn--active' : '');
+  allBtn.textContent = 'All';
+  allBtn.addEventListener('click', () => {
+    activeTag = null;
+    renderBookmarks();
+  });
+  container.appendChild(allBtn);
+
+  for (const tag of uniqueTags) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'filter-btn' + (activeTag === tag ? ' filter-btn--active' : '');
+    btn.textContent = tag;
+    btn.dataset.tag = tag;
+    btn.addEventListener('click', () => {
+      activeTag = tag;
+      renderBookmarks();
+    });
+    container.appendChild(btn);
+  }
+}
 
 function renderBookmarks(): void {
   const bookmarks = loadBookmarks(storage);
   const list = document.getElementById('bookmark-list') as HTMLUListElement;
   list.innerHTML = '';
 
-  const sorted = sortBookmarks(bookmarks);
+  renderTagFilters(bookmarks);
+
+  const visible = activeTag !== null ? filterByTag(bookmarks, activeTag) : bookmarks;
+  const sorted = sortBookmarks(visible);
 
   for (const bookmark of sorted) {
     const li = document.createElement('li');

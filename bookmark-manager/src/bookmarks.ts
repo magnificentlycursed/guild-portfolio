@@ -75,3 +75,17 @@ export function updateBookmark(
 export function deleteBookmark(bookmarks: Bookmark[], id: string): Bookmark[] {
   return bookmarks.filter(b => b.id !== id);
 }
+
+export function getUniqueTags(bookmarks: Bookmark[]): string[] {
+  const tags = new Set<string>();
+  for (const bookmark of bookmarks) {
+    for (const tag of bookmark.tags) {
+      tags.add(tag);
+    }
+  }
+  return [...tags].sort();
+}
+
+export function filterByTag(bookmarks: Bookmark[], tag: string): Bookmark[] {
+  return bookmarks.filter(b => b.tags.includes(tag));
+}

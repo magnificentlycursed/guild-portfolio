@@ -1,5 +1,25 @@
 # Bookmark Manager — Refinement Log
 
+### 2026-04-24 19:41Z — Adversarial QA review 4 (Layer 4)
+
+One bug and one test weakness found and resolved. No new dependencies. Coverage for `bookmarks.ts` remains 100%.
+
+**Bug:** `activeTag` state was not reset when the active tag's last bookmark was deleted. `renderTagFilters` was building the filter bar without checking whether `activeTag` still corresponded to an existing tag. Result: no button highlighted, user stranded in empty filtered state with no visual cue. Fixed by checking `!uniqueTags.includes(activeTag)` at the top of `renderTagFilters` and resetting to `null` if true. The same path covers the edit scenario (editing the last bookmark with the active tag to remove it), since both delete and edit call `renderBookmarks()`.
+
+**Test weakness:** The "when a tag filter is active and no bookmarks match" browser test only checked `bookmark-item` count. Expanded to also assert `filter-btn` count is 1 and `filter-btn--active` text is "All".
+
+One finding dismissed: no separate test for the edit-removes-active-tag path, since the fix covers both paths and adding a dedicated test for the edit case is deferred.
+
+### 2026-04-24 19:36Z — Layer 4: Tag Filtering
+
+Two pure functions added to `src/bookmarks.ts`: `getUniqueTags` (Set-based deduplication, alphabetically sorted) and `filterByTag` (array filter by tag inclusion). Both follow the established immutable pattern — no input mutation.
+
+Tag filter state is held as `let activeTag: string | null = null` at module level in `main.ts`. `renderBookmarks()` calls `renderTagFilters()` on each render, which rebuilds the filter bar from scratch (simpler than patching it in place and avoids stale button state after add/delete). The "All" button always appears first; tag buttons are ordered alphabetically via `getUniqueTags`. Active state is applied by comparing `activeTag` against each button's tag at render time rather than by toggling classes imperatively — consistent with how the rest of the render functions work.
+
+Adding a bookmark while a filter is active is handled for free: `renderBookmarks()` already reads from storage and re-applies `filterByTag`, so the new bookmark appears immediately if its tags match and stays hidden if they don't.
+
+TDD followed throughout: 10 failing unit tests written first, then `getUniqueTags` and `filterByTag` implemented to pass them; 12 failing browser tests written next, then UI implemented to pass them. All 52 unit tests and 50 browser tests pass. Coverage for `bookmarks.ts` remains at 100%.
+
 ### 2026-04-23 — Initial design document
 Created DESIGN.md covering purpose, features, technology, interface, constraints, out of scope, and success criteria.
 

@@ -85,6 +85,38 @@ button[type="submit"]:hover {
   background: #e8e8e8;
 }
 
+/* Tag filter bar */
+
+.tag-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.filter-btn {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  border-radius: 999px;
+  background: #f5f5f5;
+}
+
+.filter-btn:hover {
+  background: #e8e8e8;
+}
+
+.filter-btn--active {
+  background: #0066cc;
+  color: #fff;
+  border-color: #0066cc;
+}
+
+.filter-btn--active:hover {
+  background: #0055aa;
+}
+
 /* Bookmark list */
 
 #bookmark-list {

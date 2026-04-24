@@ -14,7 +14,7 @@ Built as a guild portfolio project following a design-first, test-driven methodo
 - Search by title or note content in real time
 - Data persists across page refreshes
 
-Layers 1–3 (core, notes and tags, edit and delete) are complete. Layers 4–6 (tag filtering, search, and polish) are in progress.
+Layers 1–4 (core, notes and tags, edit and delete, tag filtering) are complete. Layers 5–6 (search and polish) are in progress.
 
 ## Stack
 
@@ -47,7 +47,7 @@ Open `http://localhost:5173` in a browser.
 
 The project has two test suites.
 
-**Unit tests** (`tests/unit/`) run in Node.js via Vitest with no browser or DOM required. They cover all pure logic in `src/bookmarks.ts`: title and URL validation, tag parsing, localStorage read/write, ID generation, and sort stability.
+**Unit tests** (`tests/unit/`) run in Node.js via Vitest with no browser or DOM required. They cover all pure logic in `src/bookmarks.ts`: title and URL validation, tag parsing, localStorage read/write, ID generation, sort stability, bookmark update and delete, tag extraction, and tag filtering.
 
 ```sh
 npm run test:unit
@@ -68,7 +68,7 @@ npm run test:browser
 npm test
 ```
 
-Current coverage: 31 unit tests, 22 browser tests.
+Current coverage: 52 unit tests, 50 browser tests.
 
 ## Project structure
 

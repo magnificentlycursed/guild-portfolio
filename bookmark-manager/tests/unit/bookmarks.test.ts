@@ -12,6 +12,8 @@ import {
   sortBookmarks,
   updateBookmark,
   deleteBookmark,
+  getUniqueTags,
+  filterByTag,
 } from '../../src/bookmarks';
 
 // ---------------------------------------------------------------------------
@@ -309,5 +311,82 @@ describe('deleteBookmark', () => {
   it('returns the array unchanged when the id is not found', () => {
     const result = deleteBookmark(bookmarks, 'z');
     expect(result).toHaveLength(3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getUniqueTags
+// ---------------------------------------------------------------------------
+
+describe('getUniqueTags', () => {
+  it('returns an empty array for an empty bookmark list', () => {
+    expect(getUniqueTags([])).toEqual([]);
+  });
+
+  it('returns an empty array when no bookmarks have tags', () => {
+    const bookmarks: Bookmark[] = [
+      { id: 'a', url: 'https://a.com', title: 'A', note: '', tags: [], createdAt: 1 },
+    ];
+    expect(getUniqueTags(bookmarks)).toEqual([]);
+  });
+
+  it('returns each unique tag once even if it appears on multiple bookmarks', () => {
+    const bookmarks: Bookmark[] = [
+      { id: 'a', url: 'https://a.com', title: 'A', note: '', tags: ['work', 'reading'], createdAt: 1 },
+      { id: 'b', url: 'https://b.com', title: 'B', note: '', tags: ['work', 'tools'], createdAt: 2 },
+    ];
+    expect(getUniqueTags(bookmarks)).toEqual(['reading', 'tools', 'work']);
+  });
+
+  it('returns tags sorted alphabetically', () => {
+    const bookmarks: Bookmark[] = [
+      { id: 'a', url: 'https://a.com', title: 'A', note: '', tags: ['zebra', 'apple', 'mango'], createdAt: 1 },
+    ];
+    expect(getUniqueTags(bookmarks)).toEqual(['apple', 'mango', 'zebra']);
+  });
+
+  it('does not mutate the input array', () => {
+    const bookmarks: Bookmark[] = [
+      { id: 'a', url: 'https://a.com', title: 'A', note: '', tags: ['work'], createdAt: 1 },
+    ];
+    getUniqueTags(bookmarks);
+    expect(bookmarks[0].tags).toEqual(['work']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// filterByTag
+// ---------------------------------------------------------------------------
+
+describe('filterByTag', () => {
+  const bookmarks: Bookmark[] = [
+    { id: 'a', url: 'https://a.com', title: 'A', note: '', tags: ['work', 'reading'], createdAt: 1 },
+    { id: 'b', url: 'https://b.com', title: 'B', note: '', tags: ['work'], createdAt: 2 },
+    { id: 'c', url: 'https://c.com', title: 'C', note: '', tags: ['reading'], createdAt: 3 },
+    { id: 'd', url: 'https://d.com', title: 'D', note: '', tags: [], createdAt: 4 },
+  ];
+
+  it('returns only bookmarks that include the given tag', () => {
+    const result = filterByTag(bookmarks, 'work');
+    expect(result.map(b => b.id)).toEqual(['a', 'b']);
+  });
+
+  it('does not return bookmarks that do not have the tag', () => {
+    const result = filterByTag(bookmarks, 'work');
+    expect(result.find(b => b.id === 'c')).toBeUndefined();
+    expect(result.find(b => b.id === 'd')).toBeUndefined();
+  });
+
+  it('returns an empty array when no bookmarks match', () => {
+    expect(filterByTag(bookmarks, 'nonexistent')).toHaveLength(0);
+  });
+
+  it('returns the correct count of matching bookmarks', () => {
+    expect(filterByTag(bookmarks, 'reading')).toHaveLength(2);
+  });
+
+  it('does not mutate the original array', () => {
+    filterByTag(bookmarks, 'work');
+    expect(bookmarks).toHaveLength(4);
   });
 });
