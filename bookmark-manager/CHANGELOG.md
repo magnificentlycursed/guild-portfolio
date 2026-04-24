@@ -1,5 +1,12 @@
 # Bookmark Manager — Changelog
 
+## 2026-04-24 19:17Z — GitHub PR template
+
+### Added
+- `.github/PULL_REQUEST_TEMPLATE.md` — PR template with layer gate checklist: acceptance criteria, unit tests, browser tests, 100% coverage, manual testing checklist, adversarial QA review, ADVERSARIAL.md log, CHANGELOG, REFINEMENT_LOG; includes test results table and notes section
+
+---
+
 ## 2026-04-24 19:12Z — MVP complete: Layers 1–3 manual testing passed, ready to merge
 
 ### Changed

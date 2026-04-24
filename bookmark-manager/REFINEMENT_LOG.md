@@ -60,6 +60,10 @@ GitHub Actions only scans `<repo-root>/.github/workflows/` for workflow files �
 
 **Rationale:** The first adversarial review was scoped to correctness and test quality. Expanding the prompt to cover code hygiene and dependency state ensures the project doesn't accumulate technical debt silently as layers are added. Coverage reporting makes the gate concrete — it's either 100% or it isn't.
 
+### 2026-04-24 19:17Z — GitHub PR template
+
+Added `.github/PULL_REQUEST_TEMPLATE.md` at the repo root. The template encodes the full layer gate process as a PR checklist so it is enforced at merge time rather than relying on memory. Mirrors the layer-transition gate in TODO.md: automated tests, coverage, manual testing, QA review, and all three log files must be checked before merging.
+
 ### 2026-04-24 19:12Z — MVP complete: Layers 1–3 gate closed
 
 All three MVP layers passed human manual testing against the running app on 2026-04-24. Each layer has passed all three gate requirements: automated tests (unit + browser), adversarial QA review, and manual testing checklist. The branch is ready to merge into main.
