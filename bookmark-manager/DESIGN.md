@@ -43,34 +43,21 @@ Single user, no accounts or authentication needed. Runs in a web browser, data s
 
 **Unit tests** cover pure logic in isolation using mock storage. No DOM or browser APIs. Run with `npm run test:unit`.
 
-**Browser tests** cover end-to-end behavior against the running app: form interaction, rendered output, localStorage state, and link attributes. Run with `npm run test:browser`.
+**Browser tests** cover end-to-end behavior against the running app: form interaction, rendered output, localStorage state, and link attributes. Run with `npm run test:browser`. Three axe scans (`@axe-core/playwright`) run as part of the browser suite to catch accessibility violations automatically.
 
 **Coverage** is measured with `npm run test:coverage`. `src/bookmarks.ts` (pure logic) must maintain 100% statement, branch, and function coverage. `src/main.ts` (DOM wiring) is excluded from unit coverage by design — it is covered by browser tests.
 
 **Manual testing** is performed by a human against the running app at the end of each layer. Each layer has a checklist in `TODO.md` covering the full user-visible flow: happy path, edge cases, validation errors, persistence after refresh, and UI state. Automated tests verify correctness; manual tests verify that the experience is coherent and nothing obviously wrong slips through.
 
-**Adversarial QA review** is run at the end of each layer using the prompt in `ADVERSARIAL.md`. The review checks:
-- Whether acceptance criteria are actually met by the implementation
-- Whether tests are falsifiable (would they catch a broken implementation?)
-- Whether browser test selectors are tight enough to catch a broken UI
-- Whether validations have gaps or missing edge cases
-- Whether any exported or declared code has no call sites (dead code)
-- Whether any direct dependencies in `package.json` are unused
-- Whether dependency versions are appropriate and up to date
-- Whether coverage gaps correspond to untested acceptance criteria
+**Adversarial Iterative Refinement (AIR)** is run at the end of each layer and is a required gate before merging. AIR applies adversarial pressure across five review domains in parallel or sequence (see `adversarial-iterative-refinement/README.md` for orchestration):
 
-All findings are logged in `ADVERSARIAL.md` with their resolution or dismissal rationale.
+- **QA** (`adversarial-iterative-refinement/QA-REVIEW.md`) — correctness, test falsifiability, selector strength, validation gaps, logic errors, dead code, unused dependencies, coverage gaps, accessibility, browser compatibility, responsive design, security surface, regression coverage
+- **UX** (`adversarial-iterative-refinement/UX-REVIEW.md`) — empty states, error messages, focus and keyboard behavior, visual consistency, affordances, feedback patterns, accessibility, responsive design, browser compatibility, long content, reduced motion, native dialog quality
+- **Security** (`adversarial-iterative-refinement/SECURITY-REVIEW.md`) — rendering safety, URL injection, storage validation, dependency CVEs, CSP, information exposure, input handling
+- **Platform Engineering** (`adversarial-iterative-refinement/PLATFORM-ENGINEERING-REVIEW.md`) — pipeline completeness, gate enforcement, dependency installation, environment pinning, cache correctness, coverage thresholds in CI, security scanning in CI, artifact hygiene, left-shift opportunities
+- **Solution Architect** (`adversarial-iterative-refinement/SOLUTION-ARCHITECT-REVIEW.md`) — separation of concerns, coupling and cohesion, data model integrity, interface contracts, state management, immutability, extensibility, technology fitness, complexity budget, decision documentation
 
-**UX review** is run at the end of each layer using the prompt in `UX-REVIEW.md`. The review evaluates:
-- Empty states: what does the user see when content is absent?
-- Error messages: are they clear, correctly placed, and do they clear at the right time?
-- Focus and keyboard behavior: do interactive elements receive focus at the right moment?
-- Visual consistency: are equivalent UI surfaces (e.g., add form vs. edit form) treated the same?
-- Interactive affordances: do users know what they can interact with?
-- Feedback patterns: success, error, empty — are they present and appropriate?
-- Accessibility: WCAG AA compliance for color contrast, labels, and focus management
-
-All findings are logged in `UX-REVIEW.md` with their resolution or dismissal rationale.
+Any domain may propose a new AIR domain. All findings are logged in the respective domain file with resolution, accepted-risk, or dismissal rationale.
 
 ## Out of Scope
 - User accounts, login, or sharing

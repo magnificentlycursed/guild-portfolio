@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -15,6 +16,43 @@ test('page loads without console errors', async ({ page }) => {
   page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
   await page.goto('/');
   expect(errors).toHaveLength(0);
+});
+
+test('has no automatically detectable accessibility violations on empty state', async ({ page }) => {
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test('has no automatically detectable accessibility violations with bookmarks', async ({ page }) => {
+  await page.fill('input[name="title"]', 'TypeScript Guide');
+  await page.fill('input[name="url"]', 'https://ts.com');
+  await page.fill('textarea[name="note"]', 'great reference');
+  await page.fill('input[name="tags"]', 'work, reading');
+  await page.click('button[type="submit"]');
+
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test('has no automatically detectable accessibility violations with edit form open', async ({ page }) => {
+  await page.fill('input[name="title"]', 'TypeScript Guide');
+  await page.fill('input[name="url"]', 'https://ts.com');
+  await page.click('button[type="submit"]');
+  await page.click('.edit-btn');
+
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test('has no automatically detectable accessibility violations with search active', async ({ page }) => {
+  await page.fill('input[name="title"]', 'TypeScript Guide');
+  await page.fill('input[name="url"]', 'https://ts.com');
+  await page.fill('textarea[name="note"]', 'great reference');
+  await page.click('button[type="submit"]');
+  await page.fill('#search-input', 'typescript');
+
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
 });
 
 test('add form is visible with title and URL fields', async ({ page }) => {
@@ -232,6 +270,204 @@ test('clears the edit form error message when the user starts typing', async ({ 
 
   await page.fill('.edit-form input[name="title"]', 'A');
   await expect(page.locator('.edit-error')).toHaveText('');
+});
+
+// ---------------------------------------------------------------------------
+// Layer 5: Search
+// ---------------------------------------------------------------------------
+
+test('search bar is visible when no bookmarks exist', async ({ page }) => {
+  await expect(page.locator('#search-input')).toBeVisible();
+});
+
+test('search bar is visible when bookmarks exist', async ({ page }) => {
+  await page.fill('input[name="title"]', 'Example');
+  await page.fill('input[name="url"]', 'https://example.com');
+  await page.click('button[type="submit"]');
+
+  await expect(page.locator('#search-input')).toBeVisible();
+});
+
+test('typing in the search bar filters bookmarks by title', async ({ page }) => {
+  await page.fill('input[name="title"]', 'TypeScript Guide');
+  await page.fill('input[name="url"]', 'https://ts.com');
+  await page.click('button[type="submit"]');
+  await page.fill('input[name="title"]', 'CSS Tricks');
+  await page.fill('input[name="url"]', 'https://css.com');
+  await page.click('button[type="submit"]');
+
+  await page.fill('#search-input', 'typescript');
+
+  await expect(page.locator('.bookmark-item')).toHaveCount(1);
+  await expect(page.locator('.bookmark-title')).toHaveText('TypeScript Guide');
+});
+
+test('typing in the search bar filters bookmarks by note', async ({ page }) => {
+  await page.fill('input[name="title"]', 'Example');
+  await page.fill('input[name="url"]', 'https://example.com');
+  await page.fill('textarea[name="note"]', 'great reference for beginners');
+  await page.click('button[type="submit"]');
+  await page.fill('input[name="title"]', 'Other');
+  await page.fill('input[name="url"]', 'https://other.com');
+  await page.click('button[type="submit"]');
+
+  await page.fill('#search-input', 'beginners');
+
+  await expect(page.locator('.bookmark-item')).toHaveCount(1);
+  await expect(page.locator('.bookmark-title')).toHaveText('Example');
+});
+
+test('search with no match shows empty state, not all bookmarks', async ({ page }) => {
+  await page.fill('input[name="title"]', 'Example');
+  await page.fill('input[name="url"]', 'https://example.com');
+  await page.click('button[type="submit"]');
+
+  await page.fill('#search-input', 'xyznotfound');
+
+  await expect(page.locator('.bookmark-item')).toHaveCount(0);
+  await expect(page.locator('.list-empty')).toBeVisible();
+});
+
+test('search is case-insensitive', async ({ page }) => {
+  await page.fill('input[name="title"]', 'TypeScript Guide');
+  await page.fill('input[name="url"]', 'https://ts.com');
+  await page.click('button[type="submit"]');
+
+  await page.fill('#search-input', 'TYPESCRIPT');
+
+  await expect(page.locator('.bookmark-item')).toHaveCount(1);
+});
+
+test('clearing the search input restores all bookmarks', async ({ page }) => {
+  await page.fill('input[name="title"]', 'TypeScript Guide');
+  await page.fill('input[name="url"]', 'https://ts.com');
+  await page.click('button[type="submit"]');
+  await page.fill('input[name="title"]', 'CSS Tricks');
+  await page.fill('input[name="url"]', 'https://css.com');
+  await page.click('button[type="submit"]');
+
+  await page.fill('#search-input', 'typescript');
+  await expect(page.locator('.bookmark-item')).toHaveCount(1);
+
+  await page.fill('#search-input', '');
+  await expect(page.locator('.bookmark-item')).toHaveCount(2);
+});
+
+test('search and tag filter work together — only bookmarks matching both are shown', async ({ page }) => {
+  await page.fill('input[name="title"]', 'TypeScript Guide');
+  await page.fill('input[name="url"]', 'https://ts.com');
+  await page.fill('input[name="tags"]', 'work');
+  await page.click('button[type="submit"]');
+  await page.fill('input[name="title"]', 'CSS Tricks');
+  await page.fill('input[name="url"]', 'https://css.com');
+  await page.fill('input[name="tags"]', 'work');
+  await page.click('button[type="submit"]');
+  await page.fill('input[name="title"]', 'Recipe Blog');
+  await page.fill('input[name="url"]', 'https://recipes.com');
+  await page.fill('input[name="tags"]', 'personal');
+  await page.click('button[type="submit"]');
+
+  await page.locator('.filter-btn', { hasText: 'work' }).click();
+  await page.fill('#search-input', 'css');
+
+  await expect(page.locator('.bookmark-item')).toHaveCount(1);
+  await expect(page.locator('.bookmark-title')).toHaveText('CSS Tricks');
+});
+
+test('clearing search while tag filter is active returns tag-filtered view', async ({ page }) => {
+  await page.fill('input[name="title"]', 'TypeScript Guide');
+  await page.fill('input[name="url"]', 'https://ts.com');
+  await page.fill('input[name="tags"]', 'work');
+  await page.click('button[type="submit"]');
+  await page.fill('input[name="title"]', 'CSS Tricks');
+  await page.fill('input[name="url"]', 'https://css.com');
+  await page.fill('input[name="tags"]', 'work');
+  await page.click('button[type="submit"]');
+  await page.fill('input[name="title"]', 'Recipe Blog');
+  await page.fill('input[name="url"]', 'https://recipes.com');
+  await page.fill('input[name="tags"]', 'personal');
+  await page.click('button[type="submit"]');
+
+  await page.locator('.filter-btn', { hasText: 'work' }).click();
+  await page.fill('#search-input', 'typescript');
+  await expect(page.locator('.bookmark-item')).toHaveCount(1);
+
+  await page.fill('#search-input', '');
+  await expect(page.locator('.bookmark-item')).toHaveCount(2);
+});
+
+test('clicking All while search is active returns search-filtered view', async ({ page }) => {
+  await page.fill('input[name="title"]', 'TypeScript Guide');
+  await page.fill('input[name="url"]', 'https://ts.com');
+  await page.fill('input[name="tags"]', 'work');
+  await page.click('button[type="submit"]');
+  await page.fill('input[name="title"]', 'Recipe Blog');
+  await page.fill('input[name="url"]', 'https://recipes.com');
+  await page.fill('input[name="tags"]', 'personal');
+  await page.click('button[type="submit"]');
+
+  await page.locator('.filter-btn', { hasText: 'work' }).click();
+  await page.fill('#search-input', 'typescript');
+  await expect(page.locator('.bookmark-item')).toHaveCount(1);
+
+  await page.locator('.filter-btn', { hasText: 'All' }).click();
+  await expect(page.locator('.bookmark-item')).toHaveCount(1);
+  await expect(page.locator('.bookmark-title')).toHaveText('TypeScript Guide');
+});
+
+test('search shows a different empty state message when bookmarks exist but none match', async ({ page }) => {
+  await page.fill('input[name="title"]', 'Example');
+  await page.fill('input[name="url"]', 'https://example.com');
+  await page.click('button[type="submit"]');
+
+  await page.fill('#search-input', 'xyznotfound');
+
+  await expect(page.locator('.list-empty')).toHaveText('No bookmarks match your search.');
+});
+
+test('search bar has a search landmark role', async ({ page }) => {
+  await expect(page.locator('[role="search"]')).toBeVisible();
+});
+
+test('search status region has aria-live and aria-atomic attributes', async ({ page }) => {
+  await expect(page.locator('#search-status')).toHaveAttribute('aria-live', 'polite');
+  await expect(page.locator('#search-status')).toHaveAttribute('aria-atomic', 'true');
+});
+
+test('search status announces the result count while filtering', async ({ page }) => {
+  await page.fill('input[name="title"]', 'TypeScript Guide');
+  await page.fill('input[name="url"]', 'https://ts.com');
+  await page.click('button[type="submit"]');
+  await page.fill('input[name="title"]', 'CSS Tricks');
+  await page.fill('input[name="url"]', 'https://css.com');
+  await page.click('button[type="submit"]');
+
+  await page.fill('#search-input', 'typescript');
+  await expect(page.locator('#search-status')).toHaveText('1 bookmark shown.');
+
+  await page.fill('#search-input', '');
+  await expect(page.locator('#search-status')).toHaveText('');
+});
+
+test('adding a bookmark while search is active shows it if it matches and hides it if it does not', async ({ page }) => {
+  await page.fill('input[name="title"]', 'TypeScript Guide');
+  await page.fill('input[name="url"]', 'https://ts.com');
+  await page.click('button[type="submit"]');
+
+  await page.fill('#search-input', 'typescript');
+  await expect(page.locator('.bookmark-item')).toHaveCount(1);
+
+  // Add a bookmark that matches the active search — it should appear
+  await page.fill('input[name="title"]', 'TypeScript Handbook');
+  await page.fill('input[name="url"]', 'https://ts-handbook.com');
+  await page.click('button[type="submit"]');
+  await expect(page.locator('.bookmark-item')).toHaveCount(2);
+
+  // Add a bookmark that does not match — it should stay hidden
+  await page.fill('input[name="title"]', 'CSS Tricks');
+  await page.fill('input[name="url"]', 'https://css.com');
+  await page.click('button[type="submit"]');
+  await expect(page.locator('.bookmark-item')).toHaveCount(2);
 });
 
 // ---------------------------------------------------------------------------

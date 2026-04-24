@@ -18,10 +18,30 @@ export function loadBookmarks(storage: BookmarkStorage): Bookmark[] {
   const data = storage.getItem(STORAGE_KEY);
   if (!data) return [];
   try {
-    return JSON.parse(data) as Bookmark[];
+    const parsed: unknown = JSON.parse(data);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map(normalizeBookmark).filter((b): b is Bookmark => b !== null);
   } catch {
     return [];
   }
+}
+
+function normalizeBookmark(value: unknown): Bookmark | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const b = value as Record<string, unknown>;
+  if (typeof b.id !== 'string' || typeof b.url !== 'string' || typeof b.title !== 'string') {
+    return null;
+  }
+  return {
+    id: b.id,
+    url: b.url,
+    title: b.title,
+    note: typeof b.note === 'string' ? b.note : '',
+    tags: Array.isArray(b.tags)
+      ? (b.tags as unknown[]).filter((t): t is string => typeof t === 'string')
+      : [],
+    createdAt: typeof b.createdAt === 'number' ? b.createdAt : 0,
+  };
 }
 
 export function saveBookmarks(storage: BookmarkStorage, bookmarks: Bookmark[]): void {
@@ -91,4 +111,17 @@ export function getUniqueTags(bookmarks: Bookmark[]): string[] {
 
 export function filterByTag(bookmarks: Bookmark[], tag: string): Bookmark[] {
   return bookmarks.filter(b => b.tags.includes(tag));
+}
+
+export function searchBookmarks(bookmarks: Bookmark[], query: string): Bookmark[] {
+  if (query.trim() === '') return bookmarks;
+  const q = query.toLowerCase();
+  return bookmarks.filter(b =>
+    b.title.toLowerCase().includes(q) || b.note.toLowerCase().includes(q)
+  );
+}
+
+export function applyFilters(bookmarks: Bookmark[], tag: string | null, query: string): Bookmark[] {
+  const tagged = tag !== null ? filterByTag(bookmarks, tag) : bookmarks;
+  return searchBookmarks(tagged, query);
 }

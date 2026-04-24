@@ -10,12 +10,13 @@ import {
   updateBookmark,
   deleteBookmark,
   getUniqueTags,
-  filterByTag,
+  applyFilters,
 } from './bookmarks';
 
 const storage = localStorage;
 
 let activeTag: string | null = null;
+let searchQuery = '';
 
 function renderTagFilters(bookmarks: Bookmark[]): void {
   const uniqueTags = getUniqueTags(bookmarks);
@@ -57,13 +58,25 @@ function renderBookmarks(): void {
 
   renderTagFilters(bookmarks);
 
-  const visible = activeTag !== null ? filterByTag(bookmarks, activeTag) : bookmarks;
+  const visible = applyFilters(bookmarks, activeTag, searchQuery);
   const sorted = sortBookmarks(visible);
+
+  const statusEl = document.getElementById('search-status') as HTMLParagraphElement;
+  const isFiltering = searchQuery.trim() !== '' || activeTag !== null;
+  if (!isFiltering || bookmarks.length === 0) {
+    statusEl.textContent = '';
+  } else if (sorted.length === 0) {
+    statusEl.textContent = 'No bookmarks match your search.';
+  } else {
+    statusEl.textContent = `${sorted.length} bookmark${sorted.length === 1 ? '' : 's'} shown.`;
+  }
 
   if (sorted.length === 0) {
     const li = document.createElement('li');
     li.className = 'list-empty';
-    li.textContent = 'No bookmarks yet. Add one above.';
+    li.textContent = bookmarks.length === 0
+      ? 'No bookmarks yet. Add one above.'
+      : 'No bookmarks match your search.';
     list.appendChild(li);
   }
 
@@ -141,9 +154,11 @@ function handleEditClick(id: string): void {
   ];
 
   for (const field of fields) {
+    const fieldId = `edit-${id}-${field.name}`;
     const group = document.createElement('div');
     group.className = 'form-group';
     const label = document.createElement('label');
+    label.htmlFor = fieldId;
     label.textContent = field.label;
     if (field.hint) {
       const hint = document.createElement('span');
@@ -154,12 +169,14 @@ function handleEditClick(id: string): void {
     group.appendChild(label);
     if (field.type === 'textarea') {
       const textarea = document.createElement('textarea');
+      textarea.id = fieldId;
       textarea.name = field.name;
       textarea.value = field.value;
       textarea.rows = 2;
       group.appendChild(textarea);
     } else {
       const input = document.createElement('input');
+      input.id = fieldId;
       input.type = 'text';
       input.name = field.name;
       input.value = field.value;
@@ -226,8 +243,10 @@ function handleEditSave(event: Event): void {
 }
 
 function handleDeleteClick(id: string): void {
-  if (!window.confirm('Delete this bookmark?')) return;
   const bookmarks = loadBookmarks(storage);
+  const bookmark = bookmarks.find(b => b.id === id);
+  if (!bookmark) return;
+  if (!window.confirm(`Delete "${bookmark.title}"?`)) return;
   const updated = deleteBookmark(bookmarks, id);
   saveBookmarks(storage, updated);
   renderBookmarks();
@@ -271,8 +290,7 @@ function handleSubmit(event: Event): void {
     tags,
     createdAt: Date.now(),
   };
-  bookmarks.push(newBookmark);
-  saveBookmarks(storage, bookmarks);
+  saveBookmarks(storage, [...bookmarks, newBookmark]);
 
   form.reset();
   renderBookmarks();
@@ -283,5 +301,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const errorEl = document.getElementById('form-error') as HTMLParagraphElement;
   form.addEventListener('submit', handleSubmit);
   form.addEventListener('input', () => { errorEl.textContent = ''; });
+
+  const searchInput = document.getElementById('search-input') as HTMLInputElement;
+  searchInput.addEventListener('input', () => {
+    searchQuery = searchInput.value;
+    renderBookmarks();
+  });
+
   renderBookmarks();
 });
