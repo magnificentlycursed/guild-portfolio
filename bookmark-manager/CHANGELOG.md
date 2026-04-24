@@ -1,5 +1,13 @@
 # Bookmark Manager — Changelog
 
+## 2026-04-24 — Fix typecheck errors surfaced by CI
+
+### Changed
+- `vite.config.ts` — changed `defineConfig` import from `vite` to `vitest/config`; the `vite` version does not include the `test` property in its type signature, causing `tsc` to error with TS2769
+- `tsconfig.json` — bumped `target` and `lib` from `ES2020` to `ES2021`; `happy-dom` (transitive dependency of Vitest) references `WeakRef` in its type declarations, which is not available in the ES2020 lib
+
+---
+
 ## 2026-04-24 — Move CI workflow to repo root
 
 ### Changed

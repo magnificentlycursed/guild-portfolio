@@ -18,6 +18,16 @@ Created DESIGN.md covering purpose, features, technology, interface, constraints
 ### 2026-04-23 — TDD acceptance criteria
 **TODO.md:** Added testable acceptance criteria to every task following TDD best practices. Tasks may not be marked complete until all acceptance criteria for that task pass. Criteria are specific and verifiable: they describe exact inputs, expected outputs, and observable behavior rather than implementation details.
 
+### 2026-04-24 — Typecheck fixes for CI
+
+Two errors surfaced when `tsc --noEmit` ran in CI that had not been caught locally.
+
+**`vite.config.ts`:** `defineConfig` was imported from `vite`. The `vite` package's type for `defineConfig` does not include a `test` property — that extension is provided by `vitest/config`. Switching the import to `vitest/config` resolves the TS2769 overload error without any behavioral change.
+
+**`tsconfig.json`:** `target` and `lib` were set to `ES2020`. `happy-dom` (pulled in as a transitive dependency by Vitest) references `WeakRef` in its type declarations. `WeakRef` was introduced in ES2021 and is absent from the ES2020 lib, causing `Cannot find name 'WeakRef'` errors. Bumped both `target` and `lib` to `ES2021` to resolve this. ES2021 is safe for this project — it targets modern browsers via Vite and Chromium via Playwright.
+
+The errors did not appear locally because local `tsc` invocations were passing previously. CI exposed them by running `tsc` in a clean environment where the errors could not be masked.
+
 ### 2026-04-24 — CI workflow relocated to repo root
 
 GitHub Actions only scans `<repo-root>/.github/workflows/` for workflow files — subdirectory `.github/` folders are silently ignored. The workflow was moved from `bookmark-manager/.github/workflows/ci.yml` to `<repo-root>/.github/workflows/bookmark-manager.yml`. In a monorepo, each project gets its own named workflow file at the root, scoped to its directory via `paths` filters. This is the standard GitHub Actions monorepo pattern.
