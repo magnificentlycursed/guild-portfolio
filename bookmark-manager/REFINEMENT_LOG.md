@@ -1,5 +1,11 @@
 # Bookmark Manager — Refinement Log
 
+### 2026-04-24 20:38Z — Layer 4 merged into main; PR template updated
+
+Layer 4 (Tag Filtering) merged into main after all gate requirements passed: automated tests (52 unit, 59 browser), manual testing checklist, adversarial QA review (Reviews 4 and 5), and UX review (Reviews 1 and 2).
+
+PR template updated to include UX review as a required checklist item alongside adversarial QA review. All future layers must complete a UX review and log findings in `UX-REVIEW.md` before merging.
+
 ### 2026-04-24 20:30Z — QA review 5: UX change test gaps closed
 
 Four test weaknesses found against the UX changes from Review 2. Every UX change (empty state, error clearing, edit form focus, optional hints) had no corresponding browser test — the implementation was correct but unverifiable. Added 4 browser tests covering all four changes, plus a fifth test verifying that error clearing works for any field on the form, not just the one that triggered the error. The Layer 4 manual checklist was also found to be missing all UX-related behaviors; 8 new checklist items added.

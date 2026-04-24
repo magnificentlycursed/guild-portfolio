@@ -11,6 +11,8 @@
 - [ ] Manual testing checklist in TODO.md completed against the running app
 - [ ] Adversarial QA review run; all findings resolved or dismissed with rationale
 - [ ] Review logged in `ADVERSARIAL.md`
+- [ ] UX review run; all findings resolved or dismissed with rationale
+- [ ] Review logged in `UX-REVIEW.md`
 - [ ] `CHANGELOG.md` updated
 - [ ] `REFINEMENT_LOG.md` updated
 

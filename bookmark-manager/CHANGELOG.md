@@ -1,5 +1,18 @@
 # Bookmark Manager — Changelog
 
+## 2026-04-24 20:38Z — Layer 4 merged into main
+
+### Status
+- Layer 1 (Core): automated tests ✅, manual tests ✅, QA review ✅, UX review ✅
+- Layer 2 (Notes and Tags): automated tests ✅, manual tests ✅, QA review ✅, UX review ✅
+- Layer 3 (Edit and Delete): automated tests ✅, manual tests ✅, QA review ✅, UX review ✅
+- Layer 4 (Tag Filtering): automated tests ✅, manual tests ✅, QA review ✅, UX review ✅
+
+### Changed
+- `.github/PULL_REQUEST_TEMPLATE.md` — added UX review checklist items (run review, log in `UX-REVIEW.md`) to the layer gate; UX review is now a formal merge requirement alongside adversarial QA review
+
+---
+
 ## 2026-04-24 20:35Z — Layer 4 manual testing passed
 
 ### Changed
