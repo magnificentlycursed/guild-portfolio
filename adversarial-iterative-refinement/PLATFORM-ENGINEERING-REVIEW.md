@@ -36,28 +36,29 @@ Regression check: verify that all pipeline gates and infrastructure controls ins
 
 ### DevSecOps
 
-10. **Security scanning** — Is a dependency audit (`npm audit`, `dependabot`, `trivy`, or equivalent) run in CI and configured to fail on findings above the accepted risk threshold?
-11. **Secret management** — Are secrets injected via environment variables or a secrets manager, never hardcoded or committed? Is the secrets surface minimal?
-12. **Supply chain integrity** — Are third-party actions, base images, and dependencies pinned to verified versions? Is there a process for reviewing and updating them?
-13. **Least privilege** — Do CI jobs, service accounts, and deployed services operate with the minimum permissions required? Are IAM roles and policies scoped correctly?
-14. **Compliance gates** — Are security and compliance checks (SAST, DAST, license scanning, image scanning) integrated into the pipeline at the appropriate stages?
+10. **Pre-commit hooks** — Are pre-commit hooks installed and enforced to catch sensitive content before it enters version control? Hooks should cover: secret and credential detection (API keys, tokens, passwords, private keys, connection strings); PII detection (email addresses, phone numbers, government IDs, and other personal data); committer identity and local machine leakage (absolute paths containing usernames such as `/Users/yourname/`, hostnames, local environment details embedded in configs or build output); and large or binary files that should not be committed. Evaluate whether hooks can be bypassed with `--no-verify` and whether bypass is logged or blocked. Coordinate with [SECURITY-REVIEW.md](SECURITY-REVIEW.md) to ensure the detection patterns cover the project's full sensitive data surface.
+11. **Security scanning** — Is a dependency audit (`npm audit`, `dependabot`, `trivy`, or equivalent) run in CI and configured to fail on findings above the accepted risk threshold?
+12. **Secret management** — Are secrets injected via environment variables or a secrets manager, never hardcoded or committed? Is the secrets surface minimal?
+13. **Supply chain integrity** — Are third-party actions, base images, and dependencies pinned to verified versions? Is there a process for reviewing and updating them?
+14. **Least privilege** — Do CI jobs, service accounts, and deployed services operate with the minimum permissions required? Are IAM roles and policies scoped correctly?
+15. **Compliance gates** — Are security and compliance checks (SAST, DAST, license scanning, image scanning) integrated into the pipeline at the appropriate stages?
 
 ### Infrastructure
 
-15. **Infrastructure as Code** — Is all infrastructure defined in code (Terraform, Pulumi, CDK, etc.) rather than configured manually? Is IaC version-controlled and reviewed like application code?
-16. **Cloud/on-premise resource hygiene** — Are resources tagged, named consistently, and scoped to the correct environment? Are unused or orphaned resources identified?
-17. **Containerization** — If containers are used: are base images pinned to a specific digest, not a mutable tag? Are images scanned for vulnerabilities? Is the image build reproducible?
-18. **Container security** — Do containers run as non-root? Are capabilities dropped? Are read-only filesystems used where possible? Are resource limits set?
-19. **Environment parity** — Do development, staging, and production environments match closely enough that bugs caught in one are representative of the others?
-20. **Disaster recovery** — Is there a documented and tested plan for recovering from infrastructure failure? Are backups automated and verified?
+16. **Infrastructure as Code** — Is all infrastructure defined in code (Terraform, Pulumi, CDK, etc.) rather than configured manually? Is IaC version-controlled and reviewed like application code?
+17. **Cloud/on-premise resource hygiene** — Are resources tagged, named consistently, and scoped to the correct environment? Are unused or orphaned resources identified?
+18. **Containerization** — If containers are used: are base images pinned to a specific digest, not a mutable tag? Are images scanned for vulnerabilities? Is the image build reproducible?
+19. **Container security** — Do containers run as non-root? Are capabilities dropped? Are read-only filesystems used where possible? Are resource limits set?
+20. **Environment parity** — Do development, staging, and production environments match closely enough that bugs caught in one are representative of the others?
+21. **Disaster recovery** — Is there a documented and tested plan for recovering from infrastructure failure? Are backups automated and verified?
 
 ### Observability
 
-21. **Logging** — Are application and infrastructure logs structured, queryable, and routed to a central system? Are log levels appropriate (not too noisy, not too quiet)?
-22. **Metrics** — Are key application and infrastructure metrics instrumented and visible? Are business-relevant signals (not just system health) captured?
-23. **Alerting** — Are alerts configured for conditions that require human attention? Are they actionable and free of false positives? Is on-call coverage defined?
-24. **Tracing** — For distributed systems: is distributed tracing in place? Can a request be followed across service boundaries?
-25. **Dashboards** — Is there a canonical operational dashboard? Does it show the state of the system at a glance?
+22. **Logging** — Are application and infrastructure logs structured, queryable, and routed to a central system? Are log levels appropriate (not too noisy, not too quiet)?
+23. **Metrics** — Are key application and infrastructure metrics instrumented and visible? Are business-relevant signals (not just system health) captured?
+24. **Alerting** — Are alerts configured for conditions that require human attention? Are they actionable and free of false positives? Is on-call coverage defined?
+25. **Tracing** — For distributed systems: is distributed tracing in place? Can a request be followed across service boundaries?
+26. **Dashboards** — Is there a canonical operational dashboard? Does it show the state of the system at a glance?
 
 ---
 
