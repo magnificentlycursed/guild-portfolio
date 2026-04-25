@@ -1,0 +1,82 @@
+  What the assignment asks for
+
+  The https://github.com/Navigators-Guild/apprentice-onboarding/blob/main/01-talking-to-agents/05-first-build.md
+  assignment is a guided first project for apprentices. It's very explicit about constraints:
+
+  - Technology: "Plain HTML, CSS, and JavaScript in a single file called index.html." No frameworks.
+  - Build process: Layer-by-layer (6 layers: core, notes+tags, edit+delete, tag filtering, search, polish)
+  - Documentation: DESIGN.md and PROCESS.md
+  - Review: Adversarial review with triage in PROCESS.md
+  - Scope: Simple enough to build in a few hours
+
+  Where the project meets the assignment
+
+  ┌───────────────────────────────────────────────────────────────────┬─────────────────────┐
+  │                            Requirement                            │       Status        │
+  ├───────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │ DESIGN.md exists                                                  │ Met                 │
+  ├───────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │ PROCESS.md exists                                                 │ Met                 │
+  ├───────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │ All 7 features (add, list, edit, delete, filter, search, persist) │ Met                 │
+  ├───────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │ 6-layer build approach                                            │ Met                 │
+  ├───────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │ localStorage persistence                                          │ Met                 │
+  ├───────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │ Adversarial review with triage                                    │ Met (and then some) │
+  ├───────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │ Dark mode / clean minimal design                                  │ Met                 │
+  ├───────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │ No accounts/login                                                 │ Met                 │
+  ├───────────────────────────────────────────────────────────────────┼─────────────────────┤
+  │ Input validation (empty title, URL format)                        │ Met                 │
+  └───────────────────────────────────────────────────────────────────┴─────────────────────┘
+
+  Where the project deviates from the assignment
+
+  These are significant because the assignment is deliberately prescriptive for pedagogical reasons:
+
+  1. Not a single index.html file. The assignment says explicitly: "Plain HTML, CSS, and JavaScript in a single file
+  called index.html." The project splits into index.html, styles.css, src/bookmarks.ts, and src/main.ts. This isn't
+  wrong in general, but it's not what was asked.
+  2. TypeScript instead of JavaScript. The assignment says "plain JavaScript" three times and warns against frameworks.
+  TypeScript requires a build step and adds toolchain complexity — exactly what the assignment is trying to avoid for a
+  first project.
+  3. Vite build toolchain. The assignment wants the student to right-click index.html and open it in a browser. This
+  project requires npm install and npm run dev. That's a meaningful difference for a beginner.
+  4. Heavy testing infrastructure. 80 unit tests (Vitest), 95 browser tests (Playwright), 4 axe accessibility scans,
+  100% coverage enforcement. The assignment doesn't mention testing at all — it's about learning the build-verify-review
+   workflow, not test infrastructure.
+  5. CI pipeline (GitHub Actions). Not mentioned in the assignment.
+  6. ESLint, tsconfig, package.json, etc. Professional tooling that adds complexity beyond what the assignment intends.
+
+  Where the project exceeds the assignment
+
+  The flip side of the deviations — these represent genuine engineering quality:
+
+  - Adversarial Iterative Refinement (AIR): 5 formal review domains (QA, UX, Security, Platform Engineering, Solution
+  Architect) with 25+ review cycles. The assignment asks for one or two adversarial passes.
+  - Extra documentation: DECISIONS.md (48 entries), CHANGELOG.md, TODO.md with acceptance criteria per layer
+  - Accessibility: Semantic HTML, ARIA attributes, WCAG AA contrast verification, prefers-reduced-motion, 44px touch
+  targets, screen reader announcements — far beyond what the assignment asks
+  - Architecture: Clean separation of pure logic (bookmarks.ts) from DOM wiring (main.ts), immutable data operations,
+  dependency-injected storage for testability
+  - 175 total automated tests with 100% logic coverage
+
+  Bottom line
+
+  The project is substantially over-engineered relative to the assignment. It's a well-built bookmark manager — clean
+  architecture, thorough testing, excellent accessibility, professional documentation. But the assignment is explicitly
+  designed as a first project where the goal is learning the workflow (design doc → layered build → verify → review),
+  not demonstrating engineering maturity.
+
+  The key tensions:
+
+  - The assignment says single file, plain JS, open in browser → the project requires npm, a build tool, and TypeScript
+  - The assignment says a few hours → this has 30+ changelog sessions and 25+ review cycles
+  - The assignment says one or two adversarial passes → this has a formalized 5-domain review framework
+
+  It is going to flag that the technology choices don't
+  follow the assignment's explicit instructions, even though the end result is higher quality. The assignment's
+  simplicity constraints exist to keep focus on the methodology, not the tooling.
