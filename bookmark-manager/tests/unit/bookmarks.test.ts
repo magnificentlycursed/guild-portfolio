@@ -16,6 +16,7 @@ import {
   filterByTag,
   searchBookmarks,
   applyFilters,
+  extractDomain,
 } from '../../src/bookmarks';
 
 // ---------------------------------------------------------------------------
@@ -541,5 +542,35 @@ describe('applyFilters', () => {
   it('does not mutate the original array', () => {
     applyFilters(bookmarks, 'work', 'typescript');
     expect(bookmarks).toHaveLength(3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// extractDomain
+// ---------------------------------------------------------------------------
+
+describe('extractDomain', () => {
+  it('returns the hostname for a standard URL', () => {
+    expect(extractDomain('https://example.com')).toBe('example.com');
+  });
+
+  it('strips the path from the URL', () => {
+    expect(extractDomain('https://example.com/some/path')).toBe('example.com');
+  });
+
+  it('returns the full subdomain', () => {
+    expect(extractDomain('http://sub.domain.co.uk/path')).toBe('sub.domain.co.uk');
+  });
+
+  it('strips query strings', () => {
+    expect(extractDomain('https://example.com?q=1&page=2')).toBe('example.com');
+  });
+
+  it('strips the port number', () => {
+    expect(extractDomain('https://example.com:8080/path')).toBe('example.com');
+  });
+
+  it('returns an empty string for a malformed URL', () => {
+    expect(extractDomain('not-a-url')).toBe('');
   });
 });

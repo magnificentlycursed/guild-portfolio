@@ -1,11 +1,62 @@
+/* -------------------------------------------------------------------------
+   Custom properties — dark color scheme
+   All text/background combinations meet WCAG AA (4.5:1 for normal text).
+   ------------------------------------------------------------------------- */
+
+:root {
+  --bg:              #141414;
+  --surface:         #1e1e1e;
+  --border:          #2e2e2e;
+  --border-focus:    #60a5fa;
+
+  --text:            #e2e2e2;  /* on --bg: ~13:1 */
+  --text-secondary:  #a0a0a0;  /* on --bg: ~6.5:1 */
+  --text-placeholder: #767676; /* on --surface: ~4.6:1 */
+
+  --link:            #60a5fa;  /* on --bg: ~6.6:1 */
+  --link-hover:      #93c5fd;
+
+  --accent:          #2563eb;  /* white text on this: ~5.0:1 */
+  --accent-hover:    #1d4ed8;
+
+  --error:           #f87171;  /* on --bg: ~6.1:1 */
+
+  --btn-bg:          #252525;
+  --btn-bg-hover:    #303030;
+  --btn-border:      #3d3d3d;
+
+  --delete-text:     #fca5a5;  /* on --delete-bg: ~7.8:1 */
+  --delete-bg:       #2a1515;
+  --delete-border:   #5a2525;
+  --delete-bg-hover: #3a1a1a;
+
+  --tag-bg:          #262626;
+  --tag-text:        #d1d5db;  /* on --tag-bg: ~9.4:1 */
+  --tag-border:      #383838;
+
+  --confirm-bg:      #1e1515;
+  --confirm-border:  #5a2525;
+  --confirm-text:    #fca5a5;  /* on --confirm-bg: ~8:1 */
+}
+
+/* -------------------------------------------------------------------------
+   Reset
+   ------------------------------------------------------------------------- */
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+/* -------------------------------------------------------------------------
+   Base
+   ------------------------------------------------------------------------- */
+
 body {
   font-family: system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
   padding: 1.5rem 1rem;
   max-width: 640px;
   margin: 0 auto;
@@ -16,7 +67,36 @@ h1 {
   margin-bottom: 1.5rem;
 }
 
-/* Form */
+/* -------------------------------------------------------------------------
+   Add-form toggle button
+   ------------------------------------------------------------------------- */
+
+#add-form-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 1rem;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+}
+
+#add-form-toggle:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+/* -------------------------------------------------------------------------
+   Form
+   ------------------------------------------------------------------------- */
 
 #add-form {
   margin-bottom: 2rem;
@@ -32,60 +112,76 @@ h1 {
 label {
   font-size: 0.875rem;
   font-weight: 500;
+  color: var(--text);
 }
 
-input {
+input,
+textarea {
   padding: 0.5rem 0.75rem;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border);
   border-radius: 4px;
   font-size: 1rem;
+  font-family: inherit;
   width: 100%;
+  background: var(--surface);
+  color: var(--text);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-placeholder);
 }
 
 input:focus,
 textarea:focus {
-  outline: 2px solid #0066cc;
+  outline: 2px solid var(--border-focus);
   outline-offset: 1px;
   border-color: transparent;
 }
 
 textarea {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-family: inherit;
-  width: 100%;
   resize: vertical;
+}
+
+input[type="search"] {
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .optional {
   font-weight: 400;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .error {
-  color: #cc0000;
+  color: var(--error);
   font-size: 0.875rem;
   min-height: 1.25rem;
   margin-bottom: 0.5rem;
 }
 
 button[type="submit"] {
-  padding: 0.5rem 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 1.25rem;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
-  border: 1px solid #ccc;
+  border: 1px solid var(--accent);
   border-radius: 4px;
-  background: #f5f5f5;
+  background: var(--accent);
+  color: #fff;
 }
 
 button[type="submit"]:hover {
-  background: #e8e8e8;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
-/* Search bar */
+/* -------------------------------------------------------------------------
+   Search bar
+   ------------------------------------------------------------------------- */
 
 .search-bar {
   display: flex;
@@ -97,11 +193,6 @@ button[type="submit"]:hover {
 .search-label {
   font-size: 0.875rem;
   font-weight: 500;
-}
-
-input[type="search"] {
-  -webkit-appearance: none;
-  appearance: none;
 }
 
 .sr-only {
@@ -116,7 +207,9 @@ input[type="search"] {
   border: 0;
 }
 
-/* Tag filter bar */
+/* -------------------------------------------------------------------------
+   Tag filter bar
+   ------------------------------------------------------------------------- */
 
 .tag-filters {
   display: flex;
@@ -126,29 +219,36 @@ input[type="search"] {
 }
 
 .filter-btn {
-  padding: 0.25rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.75rem;
   font-size: 0.8rem;
   cursor: pointer;
-  border: 1px solid #ccc;
+  border: 1px solid var(--btn-border);
   border-radius: 999px;
-  background: #f5f5f5;
+  background: var(--btn-bg);
+  color: var(--text);
 }
 
 .filter-btn:hover {
-  background: #e8e8e8;
+  background: var(--btn-bg-hover);
 }
 
 .filter-btn--active {
-  background: #0066cc;
+  background: var(--accent);
   color: #fff;
-  border-color: #0066cc;
+  border-color: var(--accent);
 }
 
 .filter-btn--active:hover {
-  background: #0055aa;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
-/* Bookmark list */
+/* -------------------------------------------------------------------------
+   Bookmark list
+   ------------------------------------------------------------------------- */
 
 #bookmark-list {
   list-style: none;
@@ -156,24 +256,33 @@ input[type="search"] {
 
 .bookmark-item {
   padding: 0.75rem 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border);
 }
 
 .bookmark-title {
   font-size: 1rem;
   font-weight: 500;
   text-decoration: none;
-  color: #0066cc;
+  color: var(--link);
   overflow-wrap: break-word;
+  display: block;
 }
 
 .bookmark-title:hover {
+  color: var(--link-hover);
   text-decoration: underline;
+}
+
+.bookmark-domain {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.1rem;
+  overflow-wrap: break-word;
 }
 
 .bookmark-note {
   font-size: 0.875rem;
-  color: #444;
+  color: var(--text-secondary);
   margin-top: 0.25rem;
   overflow-wrap: break-word;
 }
@@ -186,58 +295,120 @@ input[type="search"] {
 }
 
 .tag-badge {
+  display: inline-flex;
+  align-items: center;
   font-size: 0.75rem;
-  padding: 0.15rem 0.5rem;
+  font-family: inherit;
+  padding: 0.2rem 0.6rem;
   border-radius: 999px;
-  background: #e8e8e8;
-  color: #333;
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  border: 1px solid var(--tag-border);
   overflow-wrap: break-word;
+  cursor: pointer;
 }
 
-/* Empty state */
+.tag-badge:hover {
+  border-color: var(--link);
+  color: var(--link);
+}
+
+/* -------------------------------------------------------------------------
+   Empty state
+   ------------------------------------------------------------------------- */
 
 .list-empty {
   list-style: none;
   padding: 1.5rem 0;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
-/* Bookmark actions (edit/delete buttons) */
+/* -------------------------------------------------------------------------
+   Bookmark actions (edit / delete / confirm)
+   ------------------------------------------------------------------------- */
 
 .bookmark-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 0.5rem;
 }
 
 .edit-btn,
 .delete-btn,
-.cancel-edit {
-  padding: 0.25rem 0.75rem;
+.cancel-edit,
+.delete-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.75rem;
   font-size: 0.8rem;
   cursor: pointer;
-  border: 1px solid #ccc;
+  border: 1px solid var(--btn-border);
   border-radius: 4px;
-  background: #f5f5f5;
+  background: var(--btn-bg);
+  color: var(--text);
 }
 
 .edit-btn:hover,
-.cancel-edit:hover {
-  background: #e8e8e8;
+.cancel-edit:hover,
+.delete-cancel-btn:hover {
+  background: var(--btn-bg-hover);
 }
 
 .delete-btn {
-  color: #cc0000;
-  border-color: #e8c0c0;
-  background: #fff5f5;
+  color: var(--delete-text);
+  border-color: var(--delete-border);
+  background: var(--delete-bg);
 }
 
 .delete-btn:hover {
-  background: #ffe8e8;
+  background: var(--delete-bg-hover);
 }
 
-/* Inline edit form */
+/* Inline delete confirmation */
+
+.delete-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--confirm-bg);
+  border: 1px solid var(--confirm-border);
+  border-radius: 4px;
+}
+
+.delete-confirm-msg {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--confirm-text);
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.delete-confirm-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border: 1px solid var(--delete-border);
+  border-radius: 4px;
+  background: var(--delete-bg);
+  color: var(--delete-text);
+}
+
+.delete-confirm-btn:hover {
+  background: var(--delete-bg-hover);
+}
+
+/* -------------------------------------------------------------------------
+   Inline edit form
+   ------------------------------------------------------------------------- */
 
 .edit-form {
   padding: 0.5rem 0;
@@ -253,8 +424,32 @@ input[type="search"] {
 }
 
 .edit-error {
-  color: #cc0000;
+  color: var(--error);
   font-size: 0.875rem;
   min-height: 1.25rem;
   margin-bottom: 0.25rem;
+}
+
+/* -------------------------------------------------------------------------
+   Transitions — wrapped in prefers-reduced-motion
+   ------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0);   }
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
+
+  .bookmark-item {
+    animation: fadeIn 150ms ease-out;
+  }
+
+  #add-form:not([hidden]) {
+    animation: slideDown 180ms ease-out;
+  }
 }

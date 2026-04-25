@@ -31,6 +31,46 @@ Regression check: verify that architectural decisions from prior layers are stil
 
 ---
 
+## Review 3 — 2026-04-24 16:30Z
+**Scope:** Layer 6 (Polish) — all 10 standard dimensions. Changes: `extractDomain` in `bookmarks.ts`, `setFormOpen` helper and inline delete in `main.ts`, `styles.css` rewrite. Regression check covers Layers 1–5 architectural decisions.
+
+### Resolved
+
+#### Bug — Cancel handlers called `renderBookmarks` without restoring focus (flagged from UX/QA)
+**File:** `src/main.ts:232` (edit cancel), `src/main.ts:307` (inline delete cancel)
+Both cancel paths passed `renderBookmarks` as a bare callback reference. When called, the DOM was rebuilt and focus was lost — an observable side effect of a state mutation (DOM rebuild) that left a secondary invariant (keyboard focus) in an undefined state. The pattern is inconsistent: `setFormOpen(false)` explicitly manages focus as part of the form-close contract; cancel handlers did not follow the same principle.
+**Resolution:** Both handlers now call `renderBookmarks()` then explicitly focus the appropriate button via `document.querySelector`. The architectural rule established: any action that destroys and recreates DOM containing the focus target is responsible for restoring focus.
+
+### Dismissed
+
+#### `extractDomain` in `bookmarks.ts` — correct boundary placement
+`new URL(url).hostname` is pure logic — no DOM, no side effects, deterministic on input. Placing it in `bookmarks.ts` alongside `validateUrl` (which uses the same `URL` constructor) is correct. The `if (domain)` conditional rendering in `main.ts` is appropriately handled at the DOM wiring layer. Dismissed.
+
+#### `setFormOpen` — correct centralization
+`setFormOpen` coordinates three things that must stay in sync: `form.hidden`, `toggle.setAttribute('aria-expanded')`, and focus. Centralizing in a single helper prevents drift between call sites (`handleSubmit`, `DOMContentLoaded` toggle listener). This is a small but correct abstraction for a state that has three observable components. Dismissed.
+
+#### Inline delete — `actions.replaceWith(confirm)` pattern
+The confirm div replaces the actions div in-place rather than triggering a full `renderBookmarks()`. This is architecturally preferable: only the targeted item's DOM changes; no other items re-animate; no storage read needed until the user confirms. The cancel path calls `renderBookmarks()` because restoring the original `.bookmark-actions` HTML by hand would be fragile (duplicating rendering logic). The full re-render on cancel is a minor inefficiency but the correct choice for simplicity and correctness. Dismissed.
+
+#### Tag badges as `<button>` — correct element choice
+Changed from `<span>` to `<button type="button">`. Native button elements have keyboard accessibility without extra ARIA. No behavioral difference from the architecture's perspective — the click handler toggles `activeTag` and calls `renderBookmarks()`, identical to the filter bar. The element change is a UX improvement, not an architectural concern. Dismissed.
+
+#### `formOpen` module-level state — appropriate
+Mirrors `activeTag` and `searchQuery` — module-level `let`, mutated only in `setFormOpen` (and the toggle listener), used by `setFormOpen`. Localized to `main.ts`, not shared across modules. Dismissed.
+
+#### `styles.css` rewrite — no architectural implication
+CSS custom properties (`:root` variables) replace hard-coded colors. Pure presentation layer, no behavioral change. Not an architectural concern. Dismissed.
+
+#### Separation of concerns — intact
+`bookmarks.ts` contains `extractDomain` (pure) and all prior pure logic. `main.ts` contains all DOM wiring including `setFormOpen` and the inline delete construction. No DOM references in `bookmarks.ts`. No business logic in `main.ts`. Dismissed.
+
+#### Regression check — all prior architectural decisions hold
+Storage re-read pattern, module-level state, `form.dataset.id!` assertion, `normalizeBookmark` invariant, `renderTagFilters` side-effect, immutability across all write paths: all unchanged. 95 browser tests pass. Dismissed.
+
+**Tests:** 80 unit | 95 browser | coverage 100% on `src/bookmarks.ts`
+
+---
+
 ## Review 1 — 2026-04-24 23:55Z
 **Scope:** Full project, Layers 1–5 — all 10 standard dimensions. Initial SA domain review.
 

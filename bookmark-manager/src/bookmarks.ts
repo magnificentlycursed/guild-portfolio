@@ -125,3 +125,11 @@ export function applyFilters(bookmarks: Bookmark[], tag: string | null, query: s
   const tagged = tag !== null ? filterByTag(bookmarks, tag) : bookmarks;
   return searchBookmarks(tagged, query);
 }
+
+export function extractDomain(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return '';
+  }
+}

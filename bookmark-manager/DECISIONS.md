@@ -1,5 +1,27 @@
 # Bookmark Manager — Refinement Log
 
+### 2026-04-24 17:00Z — AIR suite Layer 6: cancel handler focus contract
+
+Any action that destroys and recreates DOM containing the current focus target is responsible for restoring focus to the equivalent element in the new DOM. This was already the rule for `setFormOpen(false)` (focus returns to toggle) and for the edit form open (focus moves to first field), but the cancel handlers for both the edit form and the inline delete confirmation were inconsistent — they called `renderBookmarks()` as a bare reference with no follow-up focus call, leaving keyboard focus on `document.body`.
+
+The fix for both: an inline arrow function calls `renderBookmarks()`, then immediately queries for the relevant button by `[data-id="${id}"]` selector and calls `.focus()`. The selector is reliable because `renderBookmarks()` is synchronous DOM manipulation — the new element exists before the next line runs.
+
+The principle: `renderBookmarks()` is a full list rebuild. Any caller that knows where focus should land after the rebuild is responsible for placing it there. Callers that don't need focus management (e.g., form submit, where `setFormOpen(false)` already handles it) are fine. Callers that cancel an in-progress action need to return focus to the action's entry point.
+
+### 2026-04-24 16:30Z — Layer 6: Polish
+
+**Dark color scheme via CSS custom properties.** All colors defined as `:root` variables — a single location to audit, adjust, and verify contrast. Each color pair was numerically verified against the WCAG AA formula (relative luminance + 4.5:1 ratio) before committing. Semantic variable names (`--text`, `--surface`, `--accent`, `--error`, `--delete-*`, `--confirm-*`) make the intent of each color clear without needing comments.
+
+**Collapsible form: `hidden` attribute + `setFormOpen` helper.** The HTML `hidden` attribute is the right primitive — CSS can animate the visible state but cannot be bypassed by JavaScript manipulation of `display`. `setFormOpen` is a single choke point that manages `form.hidden`, `aria-expanded`, and focus together so they can never drift out of sync. On open: focus moves to the first input (user doesn't need to tab to it). On close: focus returns to the toggle button (no focus trap, keyboard flow continues naturally). The form starts hidden on load so the page opens clean; the toggle opens it explicitly.
+
+**`extractDomain` as a pure function in `bookmarks.ts`.** Domain extraction is pure logic — no DOM, no side effects — so it belongs in `bookmarks.ts` alongside the other pure functions. `new URL(url).hostname` is the correct primitive: it normalizes the URL, strips path, query, and port, and handles subdomains without custom parsing. The try/catch returns `''` on invalid input, allowing the caller to conditionally render the domain element rather than ever showing an empty or broken string.
+
+**Inline delete confirmation: `actions.replaceWith(confirm)`.** The previous `window.confirm` approach blocked the browser's main thread, had inconsistent UI across browsers, and couldn't be tested without Playwright's dialog interception (which required registering the handler before the click, a fragile ordering constraint). Replacing the `.bookmark-actions` div in-place avoids a full `renderBookmarks()` call — the rest of the list is untouched, no items re-animate, and no other UI state is disturbed. Cancel is wired to `renderBookmarks` (rather than restoring the original DOM) so the item is always in a consistent rendered state after cancel.
+
+**Tag badges as `<button type="button">`.** Native button elements have keyboard accessibility (focusable, activatable with Enter/Space, visible focus ring) without needing `role="button"`, `tabindex`, or a `keydown` handler. CSS resets the button defaults (no border, no background, no padding from the user-agent stylesheet) so visual appearance is fully controlled by `.tag-badge` styles. Clicking a tag badge toggles the filter identically to clicking the filter bar button — both set `activeTag` and call `renderBookmarks()`.
+
+**Animations in `@media (prefers-reduced-motion: no-preference)`.** `fadeIn` on `.bookmark-item` provides the visual feedback that the list changed when filtering. `slideDown` on `#add-form:not([hidden])` confirms the toggle action. Both are short (150ms / 180ms) and use `opacity` + `translateY` — GPU-composited, no layout thrash. Wrapping in the media query means users who have opted into reduced motion see instant state changes, which is the correct behavior and the WCAG 2.1 success criterion 2.3.3 recommendation.
+
 ### 2026-04-25 01:15Z — ESLint added
 
 ESLint with `typescript-eslint` added following the typescript-eslint getting-started documentation — the approach the TypeScript team recommends. Config: `tseslint.config(eslint.configs.recommended, tseslint.configs.recommended)`. Exits clean against `src/` with no suppressions needed.

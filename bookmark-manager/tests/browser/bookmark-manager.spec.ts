@@ -5,6 +5,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await page.evaluate(() => localStorage.clear());
   await page.reload();
+  await page.click('#add-form-toggle');
 });
 
 // ---------------------------------------------------------------------------
@@ -89,6 +90,7 @@ test('new bookmark appears at the top and older bookmark remains below', async (
   await page.fill('input[name="url"]', 'https://first.com');
   await page.click('button[type="submit"]');
 
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'Second');
   await page.fill('input[name="url"]', 'https://second.com');
   await page.click('button[type="submit"]');
@@ -214,8 +216,8 @@ test('shows an empty state message after all bookmarks are deleted', async ({ pa
   await page.fill('input[name="url"]', 'https://example.com');
   await page.click('button[type="submit"]');
 
-  page.on('dialog', dialog => dialog.accept());
   await page.locator('.delete-btn').click();
+  await page.locator('.delete-confirm-btn').click();
 
   await expect(page.locator('.list-empty')).toBeVisible();
   await expect(page.locator('.list-empty')).toHaveText('No bookmarks yet. Add one above.');
@@ -292,6 +294,7 @@ test('typing in the search bar filters bookmarks by title', async ({ page }) => 
   await page.fill('input[name="title"]', 'TypeScript Guide');
   await page.fill('input[name="url"]', 'https://ts.com');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'CSS Tricks');
   await page.fill('input[name="url"]', 'https://css.com');
   await page.click('button[type="submit"]');
@@ -307,6 +310,7 @@ test('typing in the search bar filters bookmarks by note', async ({ page }) => {
   await page.fill('input[name="url"]', 'https://example.com');
   await page.fill('textarea[name="note"]', 'great reference for beginners');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'Other');
   await page.fill('input[name="url"]', 'https://other.com');
   await page.click('button[type="submit"]');
@@ -342,6 +346,7 @@ test('clearing the search input restores all bookmarks', async ({ page }) => {
   await page.fill('input[name="title"]', 'TypeScript Guide');
   await page.fill('input[name="url"]', 'https://ts.com');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'CSS Tricks');
   await page.fill('input[name="url"]', 'https://css.com');
   await page.click('button[type="submit"]');
@@ -358,10 +363,12 @@ test('search and tag filter work together — only bookmarks matching both are s
   await page.fill('input[name="url"]', 'https://ts.com');
   await page.fill('input[name="tags"]', 'work');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'CSS Tricks');
   await page.fill('input[name="url"]', 'https://css.com');
   await page.fill('input[name="tags"]', 'work');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'Recipe Blog');
   await page.fill('input[name="url"]', 'https://recipes.com');
   await page.fill('input[name="tags"]', 'personal');
@@ -379,10 +386,12 @@ test('clearing search while tag filter is active returns tag-filtered view', asy
   await page.fill('input[name="url"]', 'https://ts.com');
   await page.fill('input[name="tags"]', 'work');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'CSS Tricks');
   await page.fill('input[name="url"]', 'https://css.com');
   await page.fill('input[name="tags"]', 'work');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'Recipe Blog');
   await page.fill('input[name="url"]', 'https://recipes.com');
   await page.fill('input[name="tags"]', 'personal');
@@ -401,6 +410,7 @@ test('clicking All while search is active returns search-filtered view', async (
   await page.fill('input[name="url"]', 'https://ts.com');
   await page.fill('input[name="tags"]', 'work');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'Recipe Blog');
   await page.fill('input[name="url"]', 'https://recipes.com');
   await page.fill('input[name="tags"]', 'personal');
@@ -438,6 +448,7 @@ test('search status announces the result count while filtering', async ({ page }
   await page.fill('input[name="title"]', 'TypeScript Guide');
   await page.fill('input[name="url"]', 'https://ts.com');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'CSS Tricks');
   await page.fill('input[name="url"]', 'https://css.com');
   await page.click('button[type="submit"]');
@@ -458,12 +469,14 @@ test('adding a bookmark while search is active shows it if it matches and hides 
   await expect(page.locator('.bookmark-item')).toHaveCount(1);
 
   // Add a bookmark that matches the active search — it should appear
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'TypeScript Handbook');
   await page.fill('input[name="url"]', 'https://ts-handbook.com');
   await page.click('button[type="submit"]');
   await expect(page.locator('.bookmark-item')).toHaveCount(2);
 
   // Add a bookmark that does not match — it should stay hidden
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'CSS Tricks');
   await page.fill('input[name="url"]', 'https://css.com');
   await page.click('button[type="submit"]');
@@ -500,6 +513,7 @@ test('the same tag on multiple bookmarks produces only one filter button', async
   await page.fill('input[name="url"]', 'https://first.com');
   await page.fill('input[name="tags"]', 'work');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'Second');
   await page.fill('input[name="url"]', 'https://second.com');
   await page.fill('input[name="tags"]', 'work');
@@ -513,6 +527,7 @@ test('clicking a tag filter shows only matching bookmarks', async ({ page }) => 
   await page.fill('input[name="url"]', 'https://work.com');
   await page.fill('input[name="tags"]', 'work');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'Reading Bookmark');
   await page.fill('input[name="url"]', 'https://reading.com');
   await page.fill('input[name="tags"]', 'reading');
@@ -529,6 +544,7 @@ test('bookmarks without the active tag are not shown', async ({ page }) => {
   await page.fill('input[name="url"]', 'https://work.com');
   await page.fill('input[name="tags"]', 'work');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'No Tags');
   await page.fill('input[name="url"]', 'https://notags.com');
   await page.click('button[type="submit"]');
@@ -549,8 +565,8 @@ test('when a tag filter is active and no bookmarks match the list is empty', asy
   await expect(page.locator('.bookmark-item')).toHaveCount(1);
 
   // Delete the only matching bookmark while the filter is active
-  page.on('dialog', dialog => dialog.accept());
   await page.locator('.delete-btn').click();
+  await page.locator('.delete-confirm-btn').click();
 
   await expect(page.locator('.bookmark-item')).toHaveCount(0);
   // Active tag should be reset — "All" button is highlighted and is the only filter button
@@ -563,6 +579,7 @@ test('clicking "All" after a tag filter shows all bookmarks', async ({ page }) =
   await page.fill('input[name="url"]', 'https://work.com');
   await page.fill('input[name="tags"]', 'work');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'No Tags');
   await page.fill('input[name="url"]', 'https://notags.com');
   await page.click('button[type="submit"]');
@@ -591,6 +608,7 @@ test('switching tag filters updates the active highlight and the list', async ({
   await page.fill('input[name="url"]', 'https://work.com');
   await page.fill('input[name="tags"]', 'work');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'Reading');
   await page.fill('input[name="url"]', 'https://reading.com');
   await page.fill('input[name="tags"]', 'reading');
@@ -609,6 +627,7 @@ test('clicking an active tag filter deselects it and shows all bookmarks', async
   await page.fill('input[name="url"]', 'https://work.com');
   await page.fill('input[name="tags"]', 'work');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'Reading');
   await page.fill('input[name="url"]', 'https://reading.com');
   await page.fill('input[name="tags"]', 'reading');
@@ -631,8 +650,8 @@ test('deleting all bookmarks with a tag removes that tag filter button', async (
 
   await expect(page.locator('.filter-btn')).toHaveCount(2);
 
-  page.on('dialog', dialog => dialog.accept());
   await page.locator('.delete-btn').click();
+  await page.locator('.delete-confirm-btn').click();
 
   await expect(page.locator('.filter-btn')).toHaveCount(1);
   await expect(page.locator('.filter-btn')).toHaveText('All');
@@ -647,6 +666,7 @@ test('adding a bookmark while a tag filter is active shows it only if it matches
   await page.locator('.filter-btn', { hasText: 'work' }).click();
 
   // Add a bookmark that matches the active filter
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'Also Work');
   await page.fill('input[name="url"]', 'https://alsowork.com');
   await page.fill('input[name="tags"]', 'work');
@@ -654,6 +674,7 @@ test('adding a bookmark while a tag filter is active shows it only if it matches
   await expect(page.locator('.bookmark-item')).toHaveCount(2);
 
   // Add a bookmark that does not match
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'Reading');
   await page.fill('input[name="url"]', 'https://reading.com');
   await page.fill('input[name="tags"]', 'reading');
@@ -669,6 +690,7 @@ test('each bookmark has a visible edit button', async ({ page }) => {
   await page.fill('input[name="title"]', 'First');
   await page.fill('input[name="url"]', 'https://first.com');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'Second');
   await page.fill('input[name="url"]', 'https://second.com');
   await page.click('button[type="submit"]');
@@ -680,6 +702,7 @@ test('each bookmark has a visible delete button', async ({ page }) => {
   await page.fill('input[name="title"]', 'First');
   await page.fill('input[name="url"]', 'https://first.com');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'Second');
   await page.fill('input[name="url"]', 'https://second.com');
   await page.click('button[type="submit"]');
@@ -755,6 +778,7 @@ test('saving an edit does not change the bookmark count', async ({ page }) => {
   await page.fill('input[name="title"]', 'First');
   await page.fill('input[name="url"]', 'https://first.com');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'Second');
   await page.fill('input[name="url"]', 'https://second.com');
   await page.click('button[type="submit"]');
@@ -777,6 +801,17 @@ test('canceling an edit leaves the bookmark unchanged', async ({ page }) => {
 
   await expect(page.locator('.bookmark-title')).toHaveText('Original');
   await expect(page.locator('.bookmark-title')).toHaveAttribute('href', 'https://original.com');
+});
+
+test('canceling an edit returns focus to the edit button', async ({ page }) => {
+  await page.fill('input[name="title"]', 'Original');
+  await page.fill('input[name="url"]', 'https://original.com');
+  await page.click('button[type="submit"]');
+
+  await page.click('.edit-btn');
+  await page.click('.cancel-edit');
+
+  await expect(page.locator('.edit-btn')).toBeFocused();
 });
 
 test('saving an edit with an empty title shows an error and does not save', async ({ page }) => {
@@ -846,12 +881,13 @@ test('confirming delete removes exactly the targeted bookmark', async ({ page })
   await page.fill('input[name="title"]', 'Keep');
   await page.fill('input[name="url"]', 'https://keep.com');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'Delete Me');
   await page.fill('input[name="url"]', 'https://deleteme.com');
   await page.click('button[type="submit"]');
 
-  page.on('dialog', dialog => dialog.accept());
   await page.locator('.delete-btn').nth(0).click();
+  await page.locator('.delete-confirm-btn').click();
 
   await expect(page.locator('.bookmark-item')).toHaveCount(1);
   await expect(page.locator('.bookmark-title')).toHaveText('Keep');
@@ -862,16 +898,28 @@ test('dismissing the delete confirmation leaves the list unchanged', async ({ pa
   await page.fill('input[name="url"]', 'https://example.com');
   await page.click('button[type="submit"]');
 
-  page.on('dialog', dialog => dialog.dismiss());
   await page.click('.delete-btn');
+  await page.click('.delete-cancel-btn');
 
   await expect(page.locator('.bookmark-item')).toHaveCount(1);
+});
+
+test('canceling the delete confirmation returns focus to the delete button', async ({ page }) => {
+  await page.fill('input[name="title"]', 'My Bookmark');
+  await page.fill('input[name="url"]', 'https://example.com');
+  await page.click('button[type="submit"]');
+
+  await page.click('.delete-btn');
+  await page.click('.delete-cancel-btn');
+
+  await expect(page.locator('.delete-btn')).toBeFocused();
 });
 
 test('localStorage no longer contains the deleted bookmark after deletion', async ({ page }) => {
   await page.fill('input[name="title"]', 'Keep');
   await page.fill('input[name="url"]', 'https://keep.com');
   await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
   await page.fill('input[name="title"]', 'Delete Me');
   await page.fill('input[name="url"]', 'https://deleteme.com');
   await page.click('button[type="submit"]');
@@ -879,8 +927,8 @@ test('localStorage no longer contains the deleted bookmark after deletion', asyn
   const rawBefore = await page.evaluate(() => localStorage.getItem('bookmarks'));
   const idToDelete = JSON.parse(rawBefore!).find((b: { title: string; id: string }) => b.title === 'Delete Me').id;
 
-  page.on('dialog', dialog => dialog.accept());
   await page.locator('.delete-btn').nth(0).click();
+  await page.locator('.delete-confirm-btn').click();
 
   const rawAfter = await page.evaluate(() => localStorage.getItem('bookmarks'));
   const stored = JSON.parse(rawAfter!);
@@ -894,8 +942,8 @@ test('deleted bookmark is gone after page refresh', async ({ page }) => {
   await page.fill('input[name="url"]', 'https://example.com');
   await page.click('button[type="submit"]');
 
-  page.on('dialog', dialog => dialog.accept());
   await page.click('.delete-btn');
+  await page.click('.delete-confirm-btn');
 
   await page.reload();
 
@@ -968,4 +1016,150 @@ test('does not display tag badges when no tags are provided', async ({ page }) =
   await page.click('button[type="submit"]');
 
   await expect(page.locator('.tag-badge')).toHaveCount(0);
+});
+
+// ---------------------------------------------------------------------------
+// Layer 6: Polish
+// ---------------------------------------------------------------------------
+
+test('add form is hidden on page load', async ({ page }) => {
+  await page.reload();
+  await expect(page.locator('#add-form')).toBeHidden();
+});
+
+test('clicking the add form toggle shows the add form', async ({ page }) => {
+  await page.reload();
+  await page.click('#add-form-toggle');
+  await expect(page.locator('#add-form')).toBeVisible();
+});
+
+test('clicking the toggle a second time hides the add form', async ({ page }) => {
+  await page.reload();
+  await page.click('#add-form-toggle');
+  await page.click('#add-form-toggle');
+  await expect(page.locator('#add-form')).toBeHidden();
+});
+
+test('toggle button has aria-expanded false when form is hidden', async ({ page }) => {
+  await page.reload();
+  await expect(page.locator('#add-form-toggle')).toHaveAttribute('aria-expanded', 'false');
+});
+
+test('toggle button has aria-expanded true when form is visible', async ({ page }) => {
+  await expect(page.locator('#add-form-toggle')).toHaveAttribute('aria-expanded', 'true');
+});
+
+test('add form collapses after a successful submission', async ({ page }) => {
+  await page.fill('input[name="title"]', 'Example');
+  await page.fill('input[name="url"]', 'https://example.com');
+  await page.click('button[type="submit"]');
+
+  await expect(page.locator('#add-form')).toBeHidden();
+  await expect(page.locator('#add-form-toggle')).toHaveAttribute('aria-expanded', 'false');
+});
+
+test('add form stays open when submission fails validation', async ({ page }) => {
+  await page.click('button[type="submit"]');
+
+  await expect(page.locator('#add-form')).toBeVisible();
+  await expect(page.locator('#form-error')).not.toHaveText('');
+});
+
+test('displays the domain name below the bookmark title', async ({ page }) => {
+  await page.fill('input[name="title"]', 'Example');
+  await page.fill('input[name="url"]', 'https://example.com/some/path');
+  await page.click('button[type="submit"]');
+
+  await expect(page.locator('.bookmark-domain')).toHaveText('example.com');
+});
+
+test('domain label shows only the hostname without path or query string', async ({ page }) => {
+  await page.fill('input[name="title"]', 'Test');
+  await page.fill('input[name="url"]', 'https://example.com/some/path?q=1&page=2');
+  await page.click('button[type="submit"]');
+
+  await expect(page.locator('.bookmark-domain')).toHaveText('example.com');
+});
+
+test('clicking delete shows an inline confirmation with the bookmark title', async ({ page }) => {
+  await page.fill('input[name="title"]', 'My Bookmark');
+  await page.fill('input[name="url"]', 'https://example.com');
+  await page.click('button[type="submit"]');
+
+  await page.click('.delete-btn');
+
+  await expect(page.locator('.delete-confirm')).toBeVisible();
+  await expect(page.locator('.delete-confirm-msg')).toHaveText('Delete "My Bookmark"?');
+});
+
+test('inline delete hides the edit/delete buttons while confirmation is shown', async ({ page }) => {
+  await page.fill('input[name="title"]', 'Example');
+  await page.fill('input[name="url"]', 'https://example.com');
+  await page.click('button[type="submit"]');
+
+  await page.click('.delete-btn');
+
+  await expect(page.locator('.bookmark-actions')).toHaveCount(0);
+  await expect(page.locator('.delete-confirm-btn')).toBeVisible();
+  await expect(page.locator('.delete-cancel-btn')).toBeVisible();
+});
+
+test('clicking a tag badge activates that tag filter', async ({ page }) => {
+  await page.fill('input[name="title"]', 'Work Bookmark');
+  await page.fill('input[name="url"]', 'https://work.com');
+  await page.fill('input[name="tags"]', 'work');
+  await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
+  await page.fill('input[name="title"]', 'Reading Bookmark');
+  await page.fill('input[name="url"]', 'https://reading.com');
+  await page.fill('input[name="tags"]', 'reading');
+  await page.click('button[type="submit"]');
+
+  await expect(page.locator('.bookmark-item')).toHaveCount(2);
+
+  await page.locator('.bookmark-item').filter({ hasText: 'Work Bookmark' }).locator('.tag-badge').click();
+
+  await expect(page.locator('.bookmark-item')).toHaveCount(1);
+  await expect(page.locator('.bookmark-title')).toHaveText('Work Bookmark');
+  await expect(page.locator('.filter-btn--active')).toHaveText('work');
+});
+
+test('clicking an already-active tag badge deactivates the filter', async ({ page }) => {
+  await page.fill('input[name="title"]', 'Work Bookmark');
+  await page.fill('input[name="url"]', 'https://work.com');
+  await page.fill('input[name="tags"]', 'work');
+  await page.click('button[type="submit"]');
+  await page.click('#add-form-toggle');
+  await page.fill('input[name="title"]', 'Other');
+  await page.fill('input[name="url"]', 'https://other.com');
+  await page.click('button[type="submit"]');
+
+  // Activate the filter via tag badge
+  await page.locator('.bookmark-item').filter({ hasText: 'Work Bookmark' }).locator('.tag-badge').click();
+  await expect(page.locator('.bookmark-item')).toHaveCount(1);
+
+  // Click the same badge again to deactivate
+  await page.locator('.tag-badge').click();
+  await expect(page.locator('.bookmark-item')).toHaveCount(2);
+  await expect(page.locator('.filter-btn--active')).toHaveText('All');
+});
+
+test('has no accessibility violations when delete confirmation is shown', async ({ page }) => {
+  await page.fill('input[name="title"]', 'Example');
+  await page.fill('input[name="url"]', 'https://example.com');
+  await page.click('button[type="submit"]');
+
+  await page.click('.delete-btn');
+  await expect(page.locator('.delete-confirm')).toBeVisible();
+
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test('layout is usable at 360px viewport width', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+
+  await expect(page.locator('main')).toBeVisible();
+  await expect(page.locator('#add-form-toggle')).toBeVisible();
+  await expect(page.locator('#search-input')).toBeVisible();
 });

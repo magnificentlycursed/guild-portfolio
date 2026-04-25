@@ -289,65 +289,65 @@ AIR gate — Platform Engineering (adversarial-iterative-refinement/PLATFORM-ENG
 
 ## Layer 6: Polish
 
-- [ ] Dark color scheme
+- [x] Dark color scheme
   - Background is dark, text is light
   - Text and background color combinations meet WCAG AA contrast ratio (4.5:1 for normal text)
   - Browser test verifies the page loads without console errors after style changes
 
-- [ ] Collapsible add form
+- [x] Collapsible add form
   - The add form is hidden and a "+" button is visible on page load
   - Clicking "+" makes the add form visible
   - The form collapses automatically after a bookmark is successfully added
   - The form does not collapse on validation failure — the user's input remains visible
   - Clicking "+" while the form is already open does not produce a broken state
 
-- [ ] Extract and display domain name from URL on each bookmark
+- [x] Extract and display domain name from URL on each bookmark
   - A bookmark with URL `https://example.com/some/path` shows `example.com` as a domain label
   - A bookmark with URL `http://sub.domain.co.uk/path` shows `sub.domain.co.uk`
   - The domain label is present for every bookmark in the list, not just the first
   - Unit tests cover domain extraction: standard URLs, subdomains, paths, query strings
 
-- [ ] Smooth transitions when filtering and searching
+- [x] Smooth transitions when filtering and searching
   - Filtering by tag and searching animate the list change rather than snapping instantly
   - The transition does not break the visible count of bookmarks before and after
 
-- [ ] Responsive layout (360px minimum width)
+- [x] Responsive layout (360px minimum width)
   - At 360px viewport width all UI elements are visible and usable
   - No horizontal scrolling is required at 360px
   - The add form, bookmark list, tag filters, and search bar are all usable at 360px
 
-- [ ] Increase touch target sizes for small buttons
+- [x] Increase touch target sizes for small buttons
   - Filter buttons (`.filter-btn`), edit/delete/cancel buttons (`.edit-btn`, `.delete-btn`, `.cancel-edit`) must have a minimum 44×44px touch target
   - Can be achieved via `min-height`, `padding`, or CSS `min-height`/`padding` increase
 
-- [ ] Wrap transitions in `prefers-reduced-motion` media query
+- [x] Wrap transitions in `prefers-reduced-motion` media query
   - Any CSS transitions or animations added in Layer 6 must be wrapped in `@media (prefers-reduced-motion: no-preference)`
   - Users with `prefers-reduced-motion: reduce` see instant state changes, not animated ones
 
-**Layer 6 manual testing checklist:**
-- [ ] The color scheme is dark — background is dark, text is clearly readable against it
-- [ ] The page loads showing a "+" button, not the full add form
-- [ ] Click "+" — the add form expands and is ready to use
-- [ ] Add a bookmark — the form collapses automatically after successful submission
-- [ ] Open the form, enter values, submit with the title empty — the form stays open with the input preserved
-- [ ] Each bookmark shows a domain label (e.g. `example.com`) that is visually smaller or secondary to the title
-- [ ] Verify the domain label is correct for a URL with a path (e.g. `https://example.com/some/path` shows `example.com`)
-- [ ] Verify the domain label is correct for a subdomain URL (e.g. `https://sub.example.com` shows `sub.example.com`)
-- [ ] Resize the browser to 360px wide — all UI elements (form, list, search bar, tag filters) are visible and usable with no horizontal scrollbar
-- [ ] Set browser zoom to 200% — all content remains readable and usable; no horizontal scrollbar appears
-- [ ] Filter or search with bookmarks present — the list change is animated rather than instant
-- [ ] Verify transitions are not shown when the OS has reduced motion enabled (`System Preferences → Accessibility → Reduce Motion`)
+**Layer 6 manual testing checklist:** Completed 2026-04-24.
+- [x] The color scheme is dark — background is dark, text is clearly readable against it
+- [x] The page loads showing a "+" button, not the full add form
+- [x] Click "+" — the add form expands and is ready to use
+- [x] Add a bookmark — the form collapses automatically after successful submission
+- [x] Open the form, enter values, submit with the title empty — the form stays open with the input preserved
+- [x] Each bookmark shows a domain label (e.g. `example.com`) that is visually smaller or secondary to the title
+- [x] Verify the domain label is correct for a URL with a path (e.g. `https://example.com/some/path` shows `example.com`)
+- [x] Verify the domain label is correct for a subdomain URL (e.g. `https://sub.example.com` shows `sub.example.com`)
+- [x] Resize the browser to 360px wide — all UI elements (form, list, search bar, tag filters) are visible and usable with no horizontal scrollbar
+- [x] Set browser zoom to 200% — all content remains readable and usable; no horizontal scrollbar appears
+- [x] Filter or search with bookmarks present — the list change is animated rather than instant
+- [x] Verify transitions are not shown when the OS has reduced motion enabled (`System Preferences → Accessibility → Reduce Motion`)
 
-- [ ] Replace `window.confirm` delete dialog with inline confirmation
+- [x] Replace `window.confirm` delete dialog with inline confirmation
   - Clicking Delete shows an inline "Are you sure? Confirm / Cancel" prompt within the bookmark item rather than a browser native dialog
   - Confirming deletes the bookmark; canceling leaves it unchanged
   - The inline confirmation is visually distinct from normal bookmark content
 
-- [ ] Tag badges on bookmark items activate the tag filter when clicked
+- [x] Tag badges on bookmark items activate the tag filter when clicked
   - Clicking a tag badge on a bookmark activates the filter for that tag (same behavior as clicking the filter button in the tag bar)
   - The corresponding filter button becomes highlighted
   - Bookmarks not matching the tag are hidden immediately
 
-**Layer 6 QA review:** Pending.
+**Layer 6 QA review:** Completed 2026-04-24. See adversarial-iterative-refinement/QA-REVIEW.md Review 9.
 
-**Layer 6 UX review:** Pending.
+**Layer 6 UX review:** Completed 2026-04-24. See adversarial-iterative-refinement/UX-REVIEW.md Review 6.
