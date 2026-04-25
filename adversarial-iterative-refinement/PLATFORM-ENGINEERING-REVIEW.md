@@ -1,6 +1,6 @@
 # Platform Engineering Review
 
-This review is part of the [Adversarial Iterative Refinement (AIR)](README.md) suite. It is a required gate for merging. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
+This review is part of the [Adversarial Iterative Refinement (AIR)](README.md) suite. It may be run independently or alongside other domains. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
 
 The purpose of this review is to shift quality checks left — into the CI/CD pipeline — so that defects are caught automatically before merging or deploying, rather than relying on manual review steps. Every review evaluates the whole pipeline, not only steps that changed.
 
@@ -8,7 +8,7 @@ The purpose of this review is to shift quality checks left — into the CI/CD pi
 
 **Scope:** Whole pipeline and build configuration by default. If a scope is provided (e.g., a specific workflow file or build config change), focus primary analysis there — but regression checks always cover the entire pipeline.
 
-Read all workflow files, build config, package manifests, lock files, and `.gitignore`. Apply every standard dimension below as a floor — add others as appropriate to the current state of the pipeline. There is no restriction on what can be flagged.
+Read DESIGN.md first for context on the project's intended scope, constraints, and technology choices. Then read all workflow files, build config, package manifests, lock files, and `.gitignore`. Apply every standard dimension below as a floor — add others as appropriate to the current state of the pipeline. There is no restriction on what can be flagged.
 
 For each finding, cite file and line number. Classify as **resolved** (fix applied this review), **deferred** (scheduled for a specific layer, reason given), or **dismissed** (no action taken, rationale required).
 
@@ -16,7 +16,7 @@ Regression check: verify that all pipeline gates installed in prior reviews are 
 
 **Left-shift lens:** For every manual check in the project's AIR gate checklists, evaluate whether it can be automated and moved into CI. Automating a check is always preferable to a human remembering to run it.
 
-**Coordination:** Flag any findings that should be surfaced to [QA-REVIEW.md](QA-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), or [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). If this review suggests the need for a new AIR domain, log it as a finding.
+**Coordination:** Flag any findings that should be surfaced to [QUALITY-ENGINEERING-REVIEW.md](QUALITY-ENGINEERING-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), or [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). If this review suggests the need for a new AIR domain, log it as a finding.
 
 ## Standard Evaluation Dimensions
 
