@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Timer</title>
+  <style>
+    body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 4rem; }
+    #display { font-size: 4rem; font-variant-numeric: tabular-nums; margin-bottom: 2rem; }
+    button { font-size: 1rem; padding: 0.5rem 1.5rem; margin: 0 0.25rem; }
+  </style>
+</head>
+<body>
+  <div id="display">05:00</div>
+  <div>
+    <button id="start">Start</button>
+    <button id="pause" disabled>Pause</button>
+    <button id="reset">Reset</button>
+  </div>
+  <script>
+    const DURATION = 5 * 60;
+    let remaining = DURATION;
+    let interval = null;
+
+    const display = document.getElementById('display');
+    const startBtn = document.getElementById('start');
+    const pauseBtn = document.getElementById('pause');
+    const resetBtn = document.getElementById('reset');
+
+    function format(seconds) {
+      const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+      const s = String(seconds % 60).padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function tick() {
+      remaining--;
+      display.textContent = format(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+        interval = null;
+        startBtn.disabled = false;
+        pauseBtn.disabled = true;
+        display.textContent = 'Done';
+      }
+    }
+
+    startBtn.addEventListener('click', () => {
+      if (remaining <= 0) return;
+      interval = setInterval(tick, 1000);
+      startBtn.disabled = true;
+      pauseBtn.disabled = false;
+    });
+
+    pauseBtn.addEventListener('click', () => {
+      clearInterval(interval);
+      interval = null;
+      startBtn.disabled = false;
+      pauseBtn.disabled = true;
+    });
+
+    resetBtn.addEventListener('click', () => {
+      clearInterval(interval);
+      interval = null;
+      remaining = DURATION;
+      display.textContent = format(remaining);
+      startBtn.disabled = false;
+      pauseBtn.disabled = true;
+    });
+  </script>
+</body>
+</html>

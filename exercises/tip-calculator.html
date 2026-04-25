@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tip Calculator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 4rem 1rem;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 { font-size: 1.25rem; margin: 0 0 1.5rem; }
+    label { display: block; font-size: 0.875rem; margin-bottom: 0.25rem; color: #555; }
+    input {
+      display: block;
+      width: 100%;
+      font-size: 1rem;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+    input:focus { outline: 2px solid #0066cc; border-color: transparent; }
+    .tip-buttons { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    .tip-btn {
+      flex: 1;
+      padding: 0.5rem;
+      font-size: 0.875rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+    }
+    .tip-btn.active { background: #0066cc; color: white; border-color: #0066cc; }
+    .results { border-top: 1px solid #eee; padding-top: 1rem; margin-top: 0.5rem; }
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.375rem 0;
+      font-size: 0.9375rem;
+    }
+    .result-row.total { font-weight: bold; font-size: 1rem; border-top: 1px solid #eee; margin-top: 0.25rem; padding-top: 0.5rem; }
+    .divider { border: none; border-top: 2px solid #eee; margin: 2rem 0; }
+    .mpg-result { margin-top: 1rem; font-size: 0.9375rem; }
+    .mpg-result span { font-weight: bold; }
+    .result-value { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Tip Calculator</h1>
+
+    <label for="bill">Bill amount ($)</label>
+    <input type="number" id="bill" min="0" step="0.01" placeholder="0.00" />
+
+    <label>Tip percentage</label>
+    <div class="tip-buttons">
+      <button class="tip-btn" data-tip="15">15%</button>
+      <button class="tip-btn active" data-tip="18">18%</button>
+      <button class="tip-btn" data-tip="20">20%</button>
+      <button class="tip-btn" data-tip="25">25%</button>
+    </div>
+
+    <label for="tip-custom">Custom tip (%)</label>
+    <input type="number" id="tip-custom" min="0" step="1" placeholder="e.g. 22" />
+
+    <label for="people">Split between</label>
+    <input type="number" id="people" min="1" step="1" value="1" />
+
+    <hr class="divider" />
+
+    <h1>MPG Calculator</h1>
+
+    <label for="miles">Miles driven</label>
+    <input type="number" id="miles" min="0" step="1" placeholder="e.g. 300" />
+
+    <label for="gallons">Gallons used</label>
+    <input type="number" id="gallons" min="0" step="0.1" placeholder="e.g. 11.5" />
+
+    <div class="mpg-result">
+      Fuel economy: <span id="out-mpg">—</span>
+    </div>
+
+    <hr class="divider" />
+
+    <div class="results">
+      <div class="result-row">
+        <span>Tip</span>
+        <span class="result-value" id="out-tip">$0.00</span>
+      </div>
+      <div class="result-row">
+        <span>Total</span>
+        <span class="result-value" id="out-total">$0.00</span>
+      </div>
+      <div class="result-row total">
+        <span>Per person</span>
+        <span class="result-value" id="out-per-person">$0.00</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let activeTipPct = 18;
+
+    const billInput = document.getElementById('bill');
+    const tipCustomInput = document.getElementById('tip-custom');
+    const peopleInput = document.getElementById('people');
+    const tipButtons = document.querySelectorAll('.tip-btn');
+
+    const outTip = document.getElementById('out-tip');
+    const outTotal = document.getElementById('out-total');
+    const outPerPerson = document.getElementById('out-per-person');
+
+    function fmt(n) {
+      return '$' + n.toFixed(2);
+    }
+
+    function calculate() {
+      const bill = parseFloat(billInput.value) || 0;
+      const people = Math.max(1, parseInt(peopleInput.value) || 1);
+      const tip = bill * (activeTipPct / 100);
+      const total = bill + tip;
+      outTip.textContent = fmt(tip);
+      outTotal.textContent = fmt(total);
+      outPerPerson.textContent = fmt(total / people);
+    }
+
+    tipButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeTipPct = parseInt(btn.dataset.tip);
+        tipCustomInput.value = '';
+        tipButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        calculate();
+      });
+    });
+
+    tipCustomInput.addEventListener('input', () => {
+      const val = parseFloat(tipCustomInput.value);
+      if (!isNaN(val) && val >= 0) {
+        activeTipPct = val;
+        tipButtons.forEach(b => b.classList.remove('active'));
+      }
+      calculate();
+    });
+
+    billInput.addEventListener('input', calculate);
+    peopleInput.addEventListener('input', calculate);
+
+    const milesInput = document.getElementById('miles');
+    const gallonsInput = document.getElementById('gallons');
+    const outMpg = document.getElementById('out-mpg');
+
+    function calculateMpg() {
+      const miles = parseFloat(milesInput.value);
+      const gallons = parseFloat(gallonsInput.value);
+      if (miles > 0 && gallons > 0) {
+        outMpg.textContent = (miles / gallons).toFixed(1) + ' mpg';
+      } else {
+        outMpg.textContent = '—';
+      }
+    }
+
+    milesInput.addEventListener('input', calculateMpg);
+    gallonsInput.addEventListener('input', calculateMpg);
+  </script>
+</body>
+</html>
