@@ -33,6 +33,33 @@ Regression check: verify that all pipeline gates installed in prior reviews are 
 
 ---
 
+## Review 4 — 2026-04-24 16:30Z
+**Scope:** Layer 6 (Polish) — all 10 standard dimensions. Changes: `extractDomain` in `bookmarks.ts` (+6 unit tests), inline delete and tag badge refactor in `main.ts`, `styles.css` rewrite, 16 new browser tests. No changes to CI workflow, build config, or dependencies.
+
+### Resolved
+
+*(none)*
+
+### Dismissed
+
+#### All prior pipeline gates verified intact
+`npm run lint` (ESLint, added Review 3): clean. `tsc --noEmit`: clean. `npm run test:unit`: 80 passed. `npm run test:coverage`: 100% on all dimensions (57/57 statements, 38/38 branches, 24/24 functions, 49/49 lines — `extractDomain` added 3 statements, 1 branch, 1 function, covered by new unit tests). `npm audit --audit-level=high`: 0 vulnerabilities. `playwright test`: 95 passed. `npm run build`: no regressions. Dismissed.
+
+#### Coverage — `extractDomain` fully covered
+`extractDomain` adds the `try/catch` branch for malformed URLs. The 6 new unit tests exercise both the success path (5 tests) and the failure path (1 test for malformed URL). Coverage remains 100%. Dismissed.
+
+#### Left-shift — touch target and reduced-motion tests not automatable
+Touch target minimum size (44px) could be checked by querying `getComputedStyle(el).minHeight` in a test, but computed style is unreliable in headless environments and does not reflect visual render accurately. The CSS is authoritative and verified by inspection. Not worth the fragility. Dismissed.
+
+`prefers-reduced-motion` could be tested via `page.emulateMedia({ reducedMotion: 'reduce' })` to verify no animation plays. However, animations are not an accessibility violation detectable by axe — they are a preference. The wrapping media query is trivially verifiable by reading the CSS. Dismissed.
+
+#### No new dependencies, actions, or workflow changes
+Layer 6 is a pure source/test change with no new devDependencies. The pipeline does not need updating. Dismissed.
+
+**Tests:** 80 unit | 95 browser | coverage 100% on `src/bookmarks.ts` | 0 CVEs | lint clean
+
+---
+
 ## Review 1 — 2026-04-24 23:45Z
 **Scope:** Full project, Layers 1–5 — all 10 standard dimensions. Initial PE domain review.
 

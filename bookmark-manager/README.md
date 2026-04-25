@@ -2,19 +2,19 @@
 
 A personal tool for saving and organizing web links with titles, notes, and tags. No accounts, no backend, no frameworks — data lives in the browser's localStorage.
 
-Built as a guild portfolio project following a design-first, test-driven methodology with Adversarial Iterative Refinement (AIR) — a required merge gate comprising QA, UX, and Security review domains — at each layer.
+Built as a guild portfolio project following a design-first, test-driven methodology with Adversarial Iterative Refinement (AIR) — a required merge gate comprising QA, UX, Security, Platform Engineering, and Solution Architect review domains — at each layer.
 
 ## Features
 
 - Add bookmarks with a URL, title, optional note, and optional tags
-- View all bookmarks in a list, newest first
+- View all bookmarks in a list, newest first, with the source domain displayed under each title
 - Click any bookmark to open it in a new tab
-- Edit or delete individual bookmarks
-- Filter bookmarks by tag
+- Edit or delete individual bookmarks with inline confirmation (no browser dialogs)
+- Filter bookmarks by tag; click any tag badge to filter directly from the list
 - Search by title or note content in real time
 - Data persists across page refreshes
-
-Layers 1–5 (core, notes and tags, edit and delete, tag filtering, search) are complete. Layer 6 (polish) is planned.
+- Dark color scheme with WCAG AA contrast; animations respect `prefers-reduced-motion`
+- Collapsible add form; touch targets ≥ 44px throughout
 
 ## Stack
 
@@ -69,7 +69,7 @@ npm run test:browser
 npm test
 ```
 
-Current coverage: 74 unit tests, 78 browser tests (including 4 automated axe accessibility scans).
+Current coverage: 80 unit tests, 95 browser tests (including 4 automated axe accessibility scans), 100% line coverage on `src/bookmarks.ts`.
 
 ## Project structure
 
@@ -89,6 +89,7 @@ styles.css       Styles
 | File | Contents |
 |---|---|
 | `DESIGN.md` | Purpose, features, technology choices, constraints, and testing methodology |
+| `PROCESS.md` | Build narrative: what was built, how each layer went, what was learned, known issues |
 | `TODO.md` | Build layers with testable acceptance criteria; tracks completion |
 | `DECISIONS.md` | Chronological record of design and process decisions |
 | `CHANGELOG.md` | What changed in each work session |

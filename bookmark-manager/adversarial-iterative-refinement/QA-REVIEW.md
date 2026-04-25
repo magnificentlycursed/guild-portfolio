@@ -35,6 +35,46 @@ Regression check: verify that all previously-working features still work. Prior 
 
 ---
 
+## Review 9 — 2026-04-24 16:30Z
+**Scope:** Layer 6 (Polish) — all 14 standard dimensions. Changes: dark color scheme (`styles.css` rewrite), collapsible add form (`index.html`, `src/main.ts`), `extractDomain` (`src/bookmarks.ts`), inline delete confirmation (`src/main.ts`), tag badge filter activation (`src/main.ts`), `@keyframes` transitions, 44px touch targets. Regression check covers all prior layers.
+
+### Resolved
+
+#### Bug — Focus lost after canceling inline delete confirmation
+**File:** `src/main.ts:307`
+`cancelBtn.addEventListener('click', renderBookmarks)` called `renderBookmarks()` which destroyed and recreated the list DOM. The cancel button no longer existed; focus landed on `document.body`. A keyboard user who accidentally triggered the delete confirmation had no path back to their position in the list.
+**Resolution:** Changed to an inline arrow that calls `renderBookmarks()` then focuses the newly rendered `.delete-btn` for the same bookmark via `document.querySelector(\`[data-id="${id}"] .delete-btn\`)`.
+
+#### Bug — Focus lost after canceling inline edit (pre-existing from Layer 3)
+**File:** `src/main.ts:232`
+Same root cause: `cancelBtn.addEventListener('click', renderBookmarks)` lost focus when the edit form DOM was destroyed. Pre-existing since Layer 3; not previously flagged.
+**Resolution:** Same pattern as above — arrow function, `renderBookmarks()`, then `.focus()` on `[data-id="${id}"] .edit-btn`.
+
+#### Weakness — No test for focus behavior after cancel
+Both cancel paths were exercised by tests checking list content but not keyboard focus state. An implementation without the focus restoration would pass.
+**Resolution:** Added `'canceling the delete confirmation returns focus to the delete button'` and `'canceling an edit returns focus to the edit button'` using `.toBeFocused()`.
+
+### Dismissed
+
+#### Acceptance criteria — all met
+Dark color scheme: CSS custom properties verified WCAG AA numerically; axe scans pass. Collapsible form: hidden on load, toggle shows/hides, `aria-expanded` synced, collapses on success, stays open on validation failure; 7 browser tests cover all paths. Domain extraction: `extractDomain` in `bookmarks.ts`, 6 unit tests (+1 subdomain, +1 query strip, +1 port, +1 malformed), 2 browser tests. Transitions: `fadeIn`/`slideDown` wrapped in `prefers-reduced-motion: no-preference`. Responsive 360px: browser test passes. Touch targets ≥44px: all interactive buttons have `min-height: 44px` via CSS; no automated pixel measurement needed, CSS is authoritative. Inline delete: 3 confirmation-path tests + axe scan. Tag badge filter: 2 toggle tests. Dismissed.
+
+#### Dead code — `filterByTag` exported but only used internally
+`filterByTag` is exported from `bookmarks.ts` but not imported in `main.ts`. It is called within `bookmarks.ts` by `applyFilters`. Pre-existing since Layer 4. No external consumer. Not a runtime issue. Dismissed — the export makes the function available to future callers (e.g., tests) and removing it is a distinct task.
+
+#### Browser compatibility
+`CSS custom properties`: universal support since Chrome 49 / Firefox 31 / Safari 9.1. `element.hidden`: universal. `element.replaceWith()`: universal modern browsers. `@keyframes` inside `@media`: valid CSS, works in all browsers. Dismissed.
+
+#### Regression check — all prior tests pass
+95 browser tests pass. 80 unit tests pass. Coverage 100%. All prior acceptance criteria still met. No regressions found. Dismissed.
+
+#### Security surface — no new risks
+All user-supplied content rendered via `.textContent`. `extractDomain` returns `.hostname` — a safe string, no protocol. Even a `javascript:` URL (rejected by `validateUrl`) would produce `hostname = ''`, rendering no domain element. Dismissed.
+
+**Tests:** 80 unit | 95 browser | coverage 100% on `src/bookmarks.ts` | 0 CVEs | lint clean
+
+---
+
 ## Review 7 — 2026-04-24 23:00Z
 **Scope:** Full project, Layers 1–5 — all 14 standard dimensions including security surface, regression coverage, and automated axe accessibility scans.
 

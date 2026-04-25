@@ -34,6 +34,46 @@ Regression check: verify that all previously-addressed UX concerns remain intact
 
 ---
 
+## Review 6 — 2026-04-24 16:30Z
+**Scope:** Layer 6 (Polish) — all 13 standard dimensions. Changes: dark color scheme, collapsible add form, domain label, inline delete confirmation, tag badge filter activation, `@keyframes` transitions, responsive 44px touch targets.
+
+### Resolved
+
+#### Finding — Focus lost after canceling inline delete confirmation
+**File:** `src/main.ts:307`
+Clicking Cancel on the inline delete confirmation called `renderBookmarks()`, destroying the confirmation DOM and leaving focus on `document.body`. A keyboard user had no way to return to their position in the list without tabbing from the beginning. The old `window.confirm` dismiss path returned focus to the Delete button automatically (the dialog dismissed and the original DOM was untouched). The inline replacement introduced a regression for keyboard users.
+**Resolution:** Cancel handler now calls `renderBookmarks()` then focuses the newly rendered `.delete-btn` for the same bookmark. Also fixed the pre-existing edit cancel focus loss (Layer 3) using the same pattern.
+
+### Dismissed
+
+#### Toggle button `aria-label` fixed as "Add bookmark" when form is open
+`#add-form-toggle` has `aria-label="Add bookmark"` regardless of whether the form is visible. When the form is open, the button closes it — the label is technically inaccurate. However, `aria-expanded="true"` communicates the state, and screen readers will announce "Add bookmark, expanded" — the expanded state tells the user the button controls the form visibility. Changing the label based on state adds complexity without a clear UX gain. Dismissed.
+
+#### Dark color scheme — no contrast violations
+All CSS custom property color pairs verified WCAG AA (≥4.5:1 normal text): `--text` (#e2e2e2) on `--bg` (#141414): ~13:1. `--text-secondary` (#a0a0a0) on `--bg`: ~6.5:1. `--link` (#60a5fa) on `--bg`: ~6.6:1. `--error` (#f87171) on `--bg`: ~6.1:1. `--tag-text` (#d1d5db) on `--tag-bg` (#262626): ~9.4:1. `--confirm-text` (#fca5a5) on `--confirm-bg` (#1e1515): ~8:1. Axe scans pass. Dismissed.
+
+#### Collapsible form — all keyboard and focus paths correct
+Open: first input receives focus. Close on submit: toggle button receives focus. Close on second toggle click: toggle button receives focus. Close on validation failure: form stays open, user remains in the field they were typing in. Dismissed.
+
+#### Touch targets ≥44px
+All interactive buttons (`#add-form-toggle`, `button[type="submit"]`, `.filter-btn`, `.edit-btn`, `.delete-btn`, `.cancel-edit`, `.delete-cancel-btn`, `.delete-confirm-btn`) have `min-height: 44px; display: inline-flex; align-items: center`. Tag badges (`.tag-badge`) are smaller — they are supplementary to the dedicated filter bar and serve a power-user shortcut rather than a primary action. Accepted. Dismissed.
+
+#### Domain label — long subdomains
+`.bookmark-domain` has `overflow-wrap: break-word`. A very long hostname (e.g., multiple deeply nested subdomains) will wrap within its container rather than overflowing. Dismissed.
+
+#### Transitions — reduced motion
+Both `fadeIn` and `slideDown` animations are inside `@media (prefers-reduced-motion: no-preference)`. Users with reduced motion enabled see instant state changes. Dismissed.
+
+#### `window.confirm` removed — dialog quality dimension no longer applicable
+No native dialogs remain in the application. Dimension 12 (native dialog quality) has nothing to evaluate going forward. Dismissed.
+
+#### Cross-layer regression — all prior UX fixes intact
+Empty state message, error clearing on input, edit form focus, edit form optional hints, tag filter toggle deselect, search landmark, screen reader status region, overflow-wrap on long content: all verified by the passing browser test suite (95 tests). Dismissed.
+
+**Tests:** 80 unit | 95 browser
+
+---
+
 ## Review 4 — 2026-04-24 23:00Z
 **Scope:** Full project, Layers 1–5 — all 13 standard dimensions including the four added in this review: long content, reduced motion, native dialog quality, and cross-layer regression.
 

@@ -10,7 +10,9 @@
   <main>
     <h1>Bookmark Manager</h1>
 
-    <form id="add-form">
+    <button type="button" id="add-form-toggle" aria-expanded="false" aria-controls="add-form" aria-label="Add bookmark">+</button>
+
+    <form id="add-form" hidden>
       <div class="form-group">
         <label for="title">Title</label>
         <input type="text" id="title" name="title" placeholder="My Bookmark" autocomplete="off">

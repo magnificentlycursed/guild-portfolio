@@ -11,12 +11,28 @@ import {
   deleteBookmark,
   getUniqueTags,
   applyFilters,
+  extractDomain,
 } from './bookmarks';
 
 const storage = localStorage;
 
 let activeTag: string | null = null;
 let searchQuery = '';
+let formOpen = false;
+
+function setFormOpen(open: boolean): void {
+  const form = document.getElementById('add-form') as HTMLFormElement;
+  const toggle = document.getElementById('add-form-toggle') as HTMLButtonElement;
+  formOpen = open;
+  form.hidden = !open;
+  toggle.setAttribute('aria-expanded', String(open));
+  if (open) {
+    const firstInput = form.querySelector('input') as HTMLInputElement | null;
+    firstInput?.focus();
+  } else {
+    toggle.focus();
+  }
+}
 
 function renderTagFilters(bookmarks: Bookmark[]): void {
   const uniqueTags = getUniqueTags(bookmarks);
@@ -93,6 +109,14 @@ function renderBookmarks(): void {
     link.className = 'bookmark-title';
     li.appendChild(link);
 
+    const domain = extractDomain(bookmark.url);
+    if (domain) {
+      const domainEl = document.createElement('p');
+      domainEl.textContent = domain;
+      domainEl.className = 'bookmark-domain';
+      li.appendChild(domainEl);
+    }
+
     if (bookmark.note) {
       const note = document.createElement('p');
       note.textContent = bookmark.note;
@@ -104,9 +128,14 @@ function renderBookmarks(): void {
       const tagList = document.createElement('div');
       tagList.className = 'bookmark-tags';
       for (const tag of bookmark.tags) {
-        const badge = document.createElement('span');
+        const badge = document.createElement('button');
+        badge.type = 'button';
         badge.textContent = tag;
         badge.className = 'tag-badge';
+        badge.addEventListener('click', () => {
+          activeTag = activeTag === tag ? null : tag;
+          renderBookmarks();
+        });
         tagList.appendChild(badge);
       }
       li.appendChild(tagList);
@@ -200,7 +229,10 @@ function handleEditClick(id: string): void {
   cancelBtn.type = 'button';
   cancelBtn.className = 'cancel-edit';
   cancelBtn.textContent = 'Cancel';
-  cancelBtn.addEventListener('click', renderBookmarks);
+  cancelBtn.addEventListener('click', () => {
+    renderBookmarks();
+    (document.querySelector(`[data-id="${id}"] .edit-btn`) as HTMLElement | null)?.focus();
+  });
   form.appendChild(cancelBtn);
 
   form.addEventListener('submit', handleEditSave);
@@ -246,10 +278,44 @@ function handleDeleteClick(id: string): void {
   const bookmarks = loadBookmarks(storage);
   const bookmark = bookmarks.find(b => b.id === id);
   if (!bookmark) return;
-  if (!window.confirm(`Delete "${bookmark.title}"?`)) return;
-  const updated = deleteBookmark(bookmarks, id);
-  saveBookmarks(storage, updated);
-  renderBookmarks();
+
+  const li = document.querySelector(`[data-id="${id}"]`) as HTMLElement | null;
+  if (!li) return;
+
+  const actions = li.querySelector('.bookmark-actions') as HTMLElement | null;
+  if (!actions) return;
+
+  const confirm = document.createElement('div');
+  confirm.className = 'delete-confirm';
+
+  const msg = document.createElement('span');
+  msg.className = 'delete-confirm-msg';
+  msg.textContent = `Delete "${bookmark.title}"?`;
+  confirm.appendChild(msg);
+
+  const confirmBtn = document.createElement('button');
+  confirmBtn.type = 'button';
+  confirmBtn.className = 'delete-confirm-btn';
+  confirmBtn.textContent = 'Delete';
+  confirmBtn.addEventListener('click', () => {
+    const updated = deleteBookmark(loadBookmarks(storage), id);
+    saveBookmarks(storage, updated);
+    renderBookmarks();
+  });
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.className = 'delete-cancel-btn';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', () => {
+    renderBookmarks();
+    (document.querySelector(`[data-id="${id}"] .delete-btn`) as HTMLElement | null)?.focus();
+  });
+
+  confirm.appendChild(confirmBtn);
+  confirm.appendChild(cancelBtn);
+  actions.replaceWith(confirm);
+  confirmBtn.focus();
 }
 
 function handleSubmit(event: Event): void {
@@ -293,10 +359,14 @@ function handleSubmit(event: Event): void {
   saveBookmarks(storage, [...bookmarks, newBookmark]);
 
   form.reset();
+  setFormOpen(false);
   renderBookmarks();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  const toggle = document.getElementById('add-form-toggle') as HTMLButtonElement;
+  toggle.addEventListener('click', () => setFormOpen(!formOpen));
+
   const form = document.getElementById('add-form') as HTMLFormElement;
   const errorEl = document.getElementById('form-error') as HTMLParagraphElement;
   form.addEventListener('submit', handleSubmit);

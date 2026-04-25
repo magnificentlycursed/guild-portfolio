@@ -28,6 +28,45 @@ Regression check: verify that all previously-addressed security controls remain 
 
 ---
 
+## Review 3 — 2026-04-24 16:30Z
+**Scope:** Layer 6 (Polish) — all 7 standard dimensions. Changes: `extractDomain`, inline delete DOM construction, tag badge button elements, CSS custom properties, `setFormOpen` helper.
+
+### Resolved
+
+*(none)*
+
+### Accepted Risk
+
+*(carry-forward from Reviews 1–2 — no change)*
+
+#### No Content Security Policy
+Personal single-user tool, static local file, no external network requests. Negligible attack surface. Dismissed.
+
+#### Floating dependency versions
+0 CVEs. Caret semver with `package-lock.json`. Accepted.
+
+### Dismissed
+
+#### Rendering safety — no new `innerHTML` usage
+All new DOM construction in Layer 6 uses `.textContent` and element creation:
+- Domain label: `domainEl.textContent = domain`
+- Inline delete message: `msg.textContent = \`Delete "${bookmark.title}"?\``
+- Tag badge button: `badge.textContent = tag`
+No `innerHTML` with user-controlled data anywhere in the codebase. Dismissed.
+
+#### `extractDomain` — defense in depth on protocol injection
+`extractDomain` returns `new URL(url).hostname`. For a `javascript:alert(1)` URL (which `validateUrl` rejects), `hostname` returns `''` — no domain element is rendered. The outer `try/catch` returns `''` for any URL that fails to parse. Even in a hypothetical scenario where validation were bypassed, `hostname` cannot be made to return executable code. Dismissed.
+
+#### `setFormOpen` — no new input handling
+`setFormOpen(open: boolean)` takes a boolean, not user input. No validation surface. Dismissed.
+
+#### `npm audit` — 0 vulnerabilities
+No new dependencies in Layer 6. Audit exits clean. Dismissed.
+
+**Tests:** 80 unit | 95 browser | 0 CVEs
+
+---
+
 ## Review 1 — 2026-04-24 23:00Z
 **Scope:** Full project, Layers 1–5 — all 7 standard dimensions.
 

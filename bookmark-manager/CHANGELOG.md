@@ -1,5 +1,46 @@
 # Bookmark Manager — Changelog
 
+## 2026-04-24 17:00Z — AIR suite run (all 5 domains); Layer 6 focus bug fixed
+
+### Fixed
+- `src/main.ts:307` — inline delete Cancel button: replaced bare `renderBookmarks` callback with arrow function that calls `renderBookmarks()` then focuses the newly rendered `.delete-btn` for the same bookmark; clicking Cancel no longer strands keyboard focus on `document.body`
+- `src/main.ts:232` — edit form Cancel button: same fix; focus restored to `.edit-btn` for the same bookmark after cancel (pre-existing since Layer 3, caught by Layer 6 AIR run)
+
+### Changed
+- `adversarial-iterative-refinement/QA-REVIEW.md` — Review 9 logged; 80 unit | 95 browser | coverage 100% | 0 CVEs | lint clean; 2 bugs resolved, 1 test weakness resolved
+- `adversarial-iterative-refinement/UX-REVIEW.md` — Review 6 logged; inline delete cancel focus regression resolved; all other Layer 6 UX surfaces reviewed and dismissed
+- `adversarial-iterative-refinement/SECURITY-REVIEW.md` — Review 3 logged; no findings; all controls verified intact
+- `adversarial-iterative-refinement/PLATFORM-ENGINEERING-REVIEW.md` — Review 4 logged; all prior gates intact; coverage 100% with new `extractDomain` function
+- `adversarial-iterative-refinement/SOLUTION-ARCHITECT-REVIEW.md` — Review 3 logged; cancel-focus fix resolved; boundary and immutability patterns intact
+
+### Fixed (tests)
+- `tests/browser/bookmark-manager.spec.ts` — added `'canceling the delete confirmation returns focus to the delete button'` and `'canceling an edit returns focus to the edit button'`
+
+### Test results
+- Unit tests: **80 passed**
+- Browser tests: **95 passed** (+2 new)
+
+---
+
+## 2026-04-24 16:30Z — Layer 6: Polish
+
+### Added
+- `src/bookmarks.ts` — `extractDomain(url)`: returns `new URL(url).hostname`; returns `''` on invalid input; pure function, no mutation
+- `index.html` — `#add-form-toggle` button (`aria-expanded`, `aria-controls`, `aria-label="Add bookmark"`) added before the add form; `hidden` attribute added to `#add-form`
+- `styles.css` — complete rewrite; CSS custom properties at `:root` for dark color scheme; all text/background combinations verified WCAG AA (≥4.5:1); new classes: `.bookmark-domain`, `.delete-confirm`, `.delete-confirm-msg`, `.delete-confirm-btn`, `.delete-cancel-btn`; `min-height: 44px; display: inline-flex` on all interactive buttons for touch target compliance; `@keyframes fadeIn` (bookmark items) and `@keyframes slideDown` (add form) wrapped in `@media (prefers-reduced-motion: no-preference)`
+- `src/main.ts` — `setFormOpen(open)` helper: sets `form.hidden`, `aria-expanded`, and focus; `extractDomain` import and domain label rendering per bookmark; `handleDeleteClick` rewritten as inline confirmation (replaces `.bookmark-actions` in-place with `.delete-confirm` div); tag badges changed from `<span>` to `<button type="button">` with click handler activating tag filter; `handleSubmit` calls `setFormOpen(false)` after success; `DOMContentLoaded` wires toggle button
+- `tests/unit/bookmarks.test.ts` — 6 new `extractDomain` tests: standard URL, path strip, subdomain, query string, port, malformed URL
+- `tests/browser/bookmark-manager.spec.ts` — `beforeEach` clicks `#add-form-toggle`; all `page.on('dialog', ...)` patterns replaced with `.delete-confirm-btn` / `.delete-cancel-btn` clicks; toggle clicks inserted after each submit where the test re-fills the form; 15 new Layer 6 tests: form hidden on load, toggle shows/hides form, `aria-expanded` state, form collapses on success, form stays open on validation failure, domain label display, hostname-only domain, inline delete confirmation UI, confirm deletes, cancel leaves unchanged, inline delete hides action buttons, tag badge activates filter, tag badge deactivates active filter, axe scan with delete confirmation visible, 360px layout
+
+### Changed
+- `TODO.md` — all Layer 6 acceptance criteria marked complete
+
+### Test results
+- Unit tests: **80 passed** (+6 new)
+- Browser tests: **93 passed** (+16 new)
+
+---
+
 ## 2026-04-25 01:30Z — Documentation renames for clarity; add ESLint
 
 ### Renamed
