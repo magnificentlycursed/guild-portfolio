@@ -1,6 +1,6 @@
 # Platform Engineering Review Log
 
-This review is part of the [Adversarial Iterative Refinement (AIR)](README.md) suite. It is a required gate for merging. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
+This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. It is a required gate for merging. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
 
 The purpose of this review is to shift quality checks left — into the CI/CD pipeline — so that defects are caught automatically before merging or deploying, rather than relying on manual review steps. Every review evaluates the whole pipeline, not only steps that changed.
 
@@ -14,9 +14,9 @@ For each finding, cite file and line number. Classify as **resolved** (fix appli
 
 Regression check: verify that all pipeline gates installed in prior reviews are still present and still gate on failure. A refactor to one part of the pipeline can silently remove a gate.
 
-**Left-shift lens:** For every manual check in the AIR gate checklists ([TODO.md](../TODO.md), [QA-REVIEW.md](QA-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md)), evaluate whether it can be automated and moved into CI. Automating a check is always preferable to a human remembering to run it.
+**Left-shift lens:** For every manual check in the IAR gate checklists ([TODO.md](../TODO.md), [QA-REVIEW.md](QA-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md)), evaluate whether it can be automated and moved into CI. Automating a check is always preferable to a human remembering to run it.
 
-**Coordination:** Flag any findings that should be surfaced to [QA-REVIEW.md](QA-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), or [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). If this review suggests the need for a new AIR domain, log it as a finding.
+**Coordination:** Flag any findings that should be surfaced to [QA-REVIEW.md](QA-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), or [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). If this review suggests the need for a new IAR domain, log it as a finding.
 
 ## Standard Evaluation Dimensions
 
@@ -96,7 +96,7 @@ No ESLint or equivalent is configured. TypeScript type checking (`tsc --noEmit`)
 ---
 
 ## Review 2 — 2026-04-25 00:30Z
-**Scope:** Full pipeline. Reviewing stability of gates added in Review 1 (coverage step, audit step, cache key fix); AIR suite reorganized into `air/` subfolder (no pipeline changes from reorganization). All 10 standard dimensions evaluated.
+**Scope:** Full pipeline. Reviewing stability of gates added in Review 1 (coverage step, audit step, cache key fix); IAR suite reorganized into `air/` subfolder (no pipeline changes from reorganization). All 10 standard dimensions evaluated.
 
 ### Resolved
 

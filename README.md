@@ -8,7 +8,7 @@ Apprentice portfolio for the Navigators Guild. Contains projects built to demons
 
 A personal tool for saving and organizing web links with titles, notes, and tags. Built with TypeScript, HTML, and CSS — no frameworks. Data lives in the browser's localStorage.
 
-**Methodology:** design-first, TDD, Adversarial Iterative Refinement (AIR — QA, UX, Security, Platform Engineering, and Solution Architect review domains), and manual testing at each layer before advancing.
+**Methodology:** design-first, TDD, Iterative Adversarial Refinement (IAR — QA, UX, Security, Platform Engineering, and Solution Architect review domains), and manual testing at each layer before advancing.
 
 | Layer | Feature | Status |
 |---|---|---|

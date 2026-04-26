@@ -1,6 +1,6 @@
 # Solution Owner Review
 
-This review is part of the [Adversarial Iterative Refinement (AIR)](README.md) suite. It may be run independently or alongside other domains. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
+This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. It may be run independently or alongside other domains. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
 
 The purpose of this review is to guard the project against scope creep and over-engineering. DESIGN.md is a Scope of Work — a contract. The SO review holds the implementation to that contract: 100% of what was agreed, nothing that was not. Bugs and defects are always in scope to fix. Features, behaviors, technologies, and abstractions that are not in DESIGN.md are not.
 
@@ -14,13 +14,17 @@ Read DESIGN.md in full before reviewing any code. Treat it as the authoritative 
 
 **Start with a compliance table.** List every requirement from DESIGN.md and mark each as Met, Partial, or Missing. This is the baseline — everything else is a deviation analysis on top of it.
 
-For each finding, cite file and line number where applicable. Classify as **resolved** (fix applied this review), **backlogged** (out-of-scope item preserved for future consideration — document it with rationale), or **dismissed** (confirmed in scope — rationale required; "it's better this way" is not sufficient).
+For each finding, cite file and line number where applicable. Classify as **resolved** (fix applied this review), **backlogged** (out-of-scope item preserved for future consideration — document it with rationale), **dismissed** (confirmed in scope — rationale required; "it's better this way" is not sufficient), or **hallucinated** (the adversary invented a scope deviation or compliance failure that does not exist — push back is warranted. Consistent hallucinated findings signal the spec is genuinely met and the project has reached maximum viable refinement).
 
 Deviations from DESIGN.md that have been explicitly approved by the stakeholder prior to implementation may be classified as **approved deviation** — document the approval and the rationale.
 
 This review does not block bug fixes or defect resolution. It blocks additions.
 
-**Coordination:** Flag any out-of-scope items that other domains have recommended or resolved. The SO has veto power over additions regardless of which domain introduced them. If this review suggests the need for a new AIR domain, log it as a finding.
+**Coordination:** Flag any out-of-scope items that other domains have recommended or resolved. The SO has veto power over additions regardless of which domain introduced them. If this review suggests the need for a new IAR domain, log it as a finding.
+
+**Sycophancy check:** If the agent agreed with every decision reviewed in this domain without challenge, treat that as a finding. An AI agent that validates every choice it helped produce is not providing adversarial review — it is confirming its own work. Flag any area where a significant decision went unquestioned but warranted scrutiny.
+
+**Language and interface supplement:** Consult `lang/` for the supplement matching the project's primary language and interface type. The SO review is primarily spec-driven and language-agnostic — use the language supplement to verify that technology choices (libraries, tools, frameworks) are appropriate to the language and not beyond what the spec requires.
 
 ## Standard Evaluation Dimensions
 
@@ -31,8 +35,9 @@ This review does not block bug fixes or defect resolution. It blocks additions.
 5. **Under-delivery** — Are any required items missing, stubbed, or incomplete in a way that does not satisfy the spec? Partial implementations count as missing.
 6. **Backlog candidates** — For every out-of-scope item flagged, evaluate whether it has merit for a future iteration. If so, document it as a named backlog candidate with a brief rationale. Do not implement it now.
 7. **Design fidelity** — Does the implementation match the interface, data model, and behavioral descriptions in DESIGN.md? Flag divergences even if the alternative is arguably better. The spec describes what was agreed — not what is theoretically optimal.
-8. **Prior-review additions** — Did findings from other AIR domains introduce behavior, structure, or technology not covered by DESIGN.md? Each such addition requires explicit SO approval. Other domains optimize within the spec; they do not expand it.
+8. **Prior-review additions** — Did findings from other IAR domains introduce behavior, structure, or technology not covered by DESIGN.md? Each such addition requires explicit SO approval. Other domains optimize within the spec; they do not expand it.
+9. **Assignment compliance** — Does DESIGN.md accurately reflect the upstream assignment brief, or did scope creep enter at the design stage? Read the assignment instructions alongside DESIGN.md. Flag technology choices, constraints, tooling, or scope additions in DESIGN.md that deviate from the assignment. A student who scope-creeps their own design doc before writing a line of code will pass every other SO dimension and still fail an external review. DESIGN.md is only authoritative as a contract if it faithfully represents what was asked for.
 
 ---
 
-Review entries are logged in `adversarial-iterative-refinement/SOLUTION-OWNER-REVIEW.md` inside the project being reviewed.
+Review entries are logged in `iterative-adversarial-refinement/SOLUTION-OWNER-REVIEW.md` inside the project being reviewed.

@@ -1,6 +1,6 @@
 # UX Review
 
-This review is part of the [Adversarial Iterative Refinement (AIR)](README.md) suite. It is a required gate for merging. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
+This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. It may be run independently or alongside other domains. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
 
 The purpose of this review is to apply iterative adversarial pressure to find, document, and resolve UX defects, inconsistencies, accessibility gaps, and regressions. Every review targets the whole application — not only the most recently changed feature.
 
@@ -8,13 +8,17 @@ The purpose of this review is to apply iterative adversarial pressure to find, d
 
 **Scope:** Whole application by default. If a scope is provided (e.g., a specific feature or set of changed files), focus primary analysis there — but regression checks always cover the entire application.
 
-Read all source files, styles, HTML, and tests. Apply every standard dimension below as a floor — add others as appropriate for the current state of the app. There is no restriction on what can be flagged.
+Read DESIGN.md first for context on the project's intended scope, constraints, and feature set. Then read all source files, styles, HTML, and tests. Apply every standard dimension below as a floor — add others as appropriate for the current state of the app. There is no restriction on what can be flagged.
 
-For each finding, cite the element, file, and line number. Classify as **resolved** (fix applied this review), **deferred** (scheduled for a specific layer, reason given), or **dismissed** (no action taken, rationale required).
+For each finding, cite the element, file, and line number. Classify as **resolved** (fix applied this review), **deferred** (scheduled for a specific layer, reason given), **dismissed** (no action taken, rationale required), or **hallucinated** (the adversary invented a problem that does not exist — push back is warranted. Consistent hallucinated findings are the maximum viable refinement signal: real issues have been exhausted).
 
 Regression check: verify that all previously-addressed UX concerns remain intact. Prior layers' UX changes are always in scope. A visual or interaction change to one part of the app can silently break another.
 
-**Coordination:** Flag any findings that should be surfaced to [QA-REVIEW.md](QA-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), [PLATFORM-ENGINEERING-REVIEW.md](PLATFORM-ENGINEERING-REVIEW.md), or [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). If this review suggests the need for a new AIR domain, log it as a finding.
+**Coordination:** Flag any findings that should be surfaced to [QUALITY-ENGINEERING-REVIEW.md](QUALITY-ENGINEERING-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), [PLATFORM-ENGINEERING-REVIEW.md](PLATFORM-ENGINEERING-REVIEW.md), or [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). If this review suggests the need for a new IAR domain, log it as a finding.
+
+**Sycophancy check:** If the agent agreed with every decision reviewed in this domain without challenge, treat that as a finding. An AI agent that validates every choice it helped produce is not providing adversarial review — it is confirming its own work. Flag any area where a significant decision went unquestioned but warranted scrutiny.
+
+**Interface type:** The standard dimensions below assume a browser-rendered interface. For CLI projects, consult `lang/cli.md` — the CLI UX dimensions replace most of the standard dimensions below. For browser apps, also consult `lang/browser-app.md` for browser-specific accessibility, responsive design, and security UX concerns.
 
 ## Standard Evaluation Dimensions
 
@@ -34,4 +38,4 @@ Regression check: verify that all previously-addressed UX concerns remain intact
 
 ---
 
-Review entries are logged in `adversarial-iterative-refinement/UX-REVIEW.md` inside the project being reviewed.
+Review entries are logged in `iterative-adversarial-refinement/UX-REVIEW.md` inside the project being reviewed.

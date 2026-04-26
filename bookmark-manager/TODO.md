@@ -4,9 +4,9 @@ Tasks are marked complete only after all acceptance criteria pass automated test
 Unit tests cover pure logic in isolation. Browser tests verify end-to-end behavior: form interaction, rendered output, localStorage state, and link attributes.
 Code inspection and successful compilation are not sufficient — the tests must exist and pass.
 
-Before moving to the next layer, complete the manual testing checklist for that layer and run the full AIR suite (see adversarial-iterative-refinement/README.md). All domains must complete with every finding resolved, dismissed with rationale, or accepted risk documented.
+Before moving to the next layer, complete the manual testing checklist for that layer and run the full IAR suite (see iterative-adversarial-refinement/README.md). All domains must complete with every finding resolved, dismissed with rationale, or accepted risk documented.
 
-AIR gate — QA (adversarial-iterative-refinement/QA-REVIEW.md) must confirm:
+IAR gate — QA (iterative-adversarial-refinement/QA-REVIEW.md) must confirm:
 - All acceptance criteria for the completed layer are verified by tests
 - `src/bookmarks.ts` maintains 100% statement, branch, and function coverage (`npm run test:coverage`)
 - No dead exports or unreachable code introduced in this layer
@@ -14,9 +14,9 @@ AIR gate — QA (adversarial-iterative-refinement/QA-REVIEW.md) must confirm:
 - Accessibility: semantic HTML correct, all interactive elements have accessible labels, keyboard navigation complete, focus states visible
 - Browser compatibility: no CSS, JS, or HTML features that break in current Firefox or Safari
 - Responsive design: layout holds at 360px, touch targets are at least 44×44px
-- All findings logged in adversarial-iterative-refinement/QA-REVIEW.md with resolution or dismissal rationale
+- All findings logged in iterative-adversarial-refinement/QA-REVIEW.md with resolution or dismissal rationale
 
-AIR gate — UX (adversarial-iterative-refinement/UX-REVIEW.md) must confirm:
+IAR gate — UX (iterative-adversarial-refinement/UX-REVIEW.md) must confirm:
 - No missing empty states for the features introduced in this layer
 - Error messages are clear, correctly placed, and clear at the right time
 - Focus behavior is correct for any new interactive elements
@@ -26,27 +26,27 @@ AIR gate — UX (adversarial-iterative-refinement/UX-REVIEW.md) must confirm:
 - Browser compatibility: no visual or interaction regressions in Chrome, Firefox, or Safari
 - Long content: very long unbroken strings do not overflow their containers
 - Native dialog text: any `window.confirm` or `window.alert` identifies the specific item being acted on
-- All findings logged in adversarial-iterative-refinement/UX-REVIEW.md with resolution or dismissal rationale
+- All findings logged in iterative-adversarial-refinement/UX-REVIEW.md with resolution or dismissal rationale
 
-AIR gate — Security (adversarial-iterative-refinement/SECURITY-REVIEW.md) must confirm:
+IAR gate — Security (iterative-adversarial-refinement/SECURITY-REVIEW.md) must confirm:
 - All new user-supplied content is rendered via `.textContent`, not `innerHTML`
 - Any new URL or input fields are validated before storage or use
 - Any new data structures loaded from storage are runtime-validated
 - No new dependencies with known CVEs (`npm audit`)
-- All findings logged in adversarial-iterative-refinement/SECURITY-REVIEW.md with resolution or accepted-risk rationale
+- All findings logged in iterative-adversarial-refinement/SECURITY-REVIEW.md with resolution or accepted-risk rationale
 
-AIR gate — Solution Architect (adversarial-iterative-refinement/SOLUTION-ARCHITECT-REVIEW.md) must confirm:
+IAR gate — Solution Architect (iterative-adversarial-refinement/SOLUTION-ARCHITECT-REVIEW.md) must confirm:
 - Layer boundaries between `bookmarks.ts` (pure logic) and `main.ts` (DOM wiring) remain intact
 - No new state mutations inconsistent with the established immutable data patterns
 - Any new architectural decisions are documented in DECISIONS.md with rationale
-- All findings logged in adversarial-iterative-refinement/SOLUTION-ARCHITECT-REVIEW.md with resolution or dismissal rationale
+- All findings logged in iterative-adversarial-refinement/SOLUTION-ARCHITECT-REVIEW.md with resolution or dismissal rationale
 
-AIR gate — Platform Engineering (adversarial-iterative-refinement/PLATFORM-ENGINEERING-REVIEW.md) must confirm:
+IAR gate — Platform Engineering (iterative-adversarial-refinement/PLATFORM-ENGINEERING-REVIEW.md) must confirm:
 - CI pipeline runs all required checks for this layer
 - No coverage regressions — `src/bookmarks.ts` still enforced at 100% in CI
 - Any new dependencies are compatible with `npm audit --audit-level=high`
 - Any new build or pipeline config changes are correct and do not break CI
-- All findings logged in adversarial-iterative-refinement/PLATFORM-ENGINEERING-REVIEW.md with resolution or dismissal rationale
+- All findings logged in iterative-adversarial-refinement/PLATFORM-ENGINEERING-REVIEW.md with resolution or dismissal rationale
 
 ---
 
@@ -107,7 +107,7 @@ AIR gate — Platform Engineering (adversarial-iterative-refinement/PLATFORM-ENG
 - [x] After a successful submission, verify all form fields are empty (title, URL, note, tags)
 - [x] After a failed submission, verify the error message disappears after a subsequent successful submission
 
-**Layer 1 QA review:** Completed 2026-04-23. See adversarial-iterative-refinement/QA-REVIEW.md Review 1.
+**Layer 1 QA review:** Completed 2026-04-23. See iterative-adversarial-refinement/QA-REVIEW.md Review 1.
 
 ---
 
@@ -139,7 +139,7 @@ AIR gate — Platform Engineering (adversarial-iterative-refinement/PLATFORM-ENG
 - [x] Verify that a bookmark with a note and tags and one without are both displayed correctly in the same list
 - [x] Refresh the page — note and tags are still present on the correct bookmarks
 
-**Layer 2 QA review:** Completed 2026-04-23. See adversarial-iterative-refinement/QA-REVIEW.md Reviews 1 and 2.
+**Layer 2 QA review:** Completed 2026-04-23. See iterative-adversarial-refinement/QA-REVIEW.md Reviews 1 and 2.
 
 ---
 
@@ -192,7 +192,7 @@ AIR gate — Platform Engineering (adversarial-iterative-refinement/PLATFORM-ENG
 - [x] Cancel the deletion — the bookmark is still present
 - [x] Refresh after deleting — the deleted bookmark is gone; remaining bookmarks are still present
 
-**Layer 3 QA review:** Completed 2026-04-24. See adversarial-iterative-refinement/QA-REVIEW.md Review 3.
+**Layer 3 QA review:** Completed 2026-04-24. See iterative-adversarial-refinement/QA-REVIEW.md Review 3.
 
 ---
 
@@ -239,9 +239,9 @@ AIR gate — Platform Engineering (adversarial-iterative-refinement/PLATFORM-ENG
 - [x] The edit form labels Note and Tags as "(optional)" and "(optional, comma-separated)" respectively
 - [x] In the edit form, clear the title and try to save — an error appears; start typing — the error disappears immediately
 
-**Layer 4 QA review:** Completed 2026-04-24. See adversarial-iterative-refinement/QA-REVIEW.md Review 4.
+**Layer 4 QA review:** Completed 2026-04-24. See iterative-adversarial-refinement/QA-REVIEW.md Review 4.
 
-**Layer 4 UX review:** Completed 2026-04-24. See adversarial-iterative-refinement/UX-REVIEW.md Review 2.
+**Layer 4 UX review:** Completed 2026-04-24. See iterative-adversarial-refinement/UX-REVIEW.md Review 2.
 
 ---
 
@@ -281,9 +281,9 @@ AIR gate — Platform Engineering (adversarial-iterative-refinement/PLATFORM-ENG
 - [x] With a tag filter and search active, clear the search — bookmarks matching the tag filter are shown
 - [x] With a tag filter and search active, click "All" — bookmarks matching the search term are shown
 
-**Layer 5 QA review:** Completed 2026-04-24. See adversarial-iterative-refinement/QA-REVIEW.md Review 6.
+**Layer 5 QA review:** Completed 2026-04-24. See iterative-adversarial-refinement/QA-REVIEW.md Review 6.
 
-**Layer 5 UX review:** Completed 2026-04-24. See adversarial-iterative-refinement/UX-REVIEW.md Review 3.
+**Layer 5 UX review:** Completed 2026-04-24. See iterative-adversarial-refinement/UX-REVIEW.md Review 3.
 
 ---
 
@@ -348,6 +348,6 @@ AIR gate — Platform Engineering (adversarial-iterative-refinement/PLATFORM-ENG
   - The corresponding filter button becomes highlighted
   - Bookmarks not matching the tag are hidden immediately
 
-**Layer 6 QA review:** Completed 2026-04-24. See adversarial-iterative-refinement/QA-REVIEW.md Review 9.
+**Layer 6 QA review:** Completed 2026-04-24. See iterative-adversarial-refinement/QA-REVIEW.md Review 9.
 
-**Layer 6 UX review:** Completed 2026-04-24. See adversarial-iterative-refinement/UX-REVIEW.md Review 6.
+**Layer 6 UX review:** Completed 2026-04-24. See iterative-adversarial-refinement/UX-REVIEW.md Review 6.

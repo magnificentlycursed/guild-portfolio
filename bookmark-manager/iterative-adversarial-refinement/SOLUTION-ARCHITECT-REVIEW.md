@@ -1,6 +1,6 @@
 # Solution Architect Review Log
 
-This review is part of the [Adversarial Iterative Refinement (AIR)](README.md) suite. It is a required gate for merging. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
+This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. It is a required gate for merging. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
 
 The purpose of this review is to evaluate whether the architecture — its structure, boundaries, decisions, and tradeoffs — is sound, coherent, and appropriate for the project's stated purpose and constraints. Every review targets the whole application, not only the most recently changed code.
 
@@ -14,7 +14,7 @@ For each finding, cite file and line number. Classify as **resolved** (fix appli
 
 Regression check: verify that architectural decisions from prior layers are still intact and that new code does not silently violate established boundaries or contracts.
 
-**Coordination:** Flag any findings that should be surfaced to [QA-REVIEW.md](QA-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), or [PLATFORM-ENGINEERING-REVIEW.md](PLATFORM-ENGINEERING-REVIEW.md). If this review suggests the need for a new AIR domain, log it as a finding.
+**Coordination:** Flag any findings that should be surfaced to [QA-REVIEW.md](QA-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), or [PLATFORM-ENGINEERING-REVIEW.md](PLATFORM-ENGINEERING-REVIEW.md). If this review suggests the need for a new IAR domain, log it as a finding.
 
 ## Standard Evaluation Dimensions
 
@@ -119,7 +119,7 @@ HTML, CSS, TypeScript, Vite, Vitest, Playwright: each choice matches the stated 
 ---
 
 ## Review 2 — 2026-04-25 00:30Z
-**Scope:** Full application. Triggered by: push→spread immutability fix in `main.ts`; AIR suite reorganized into `air/` subfolder. All 10 standard dimensions evaluated.
+**Scope:** Full application. Triggered by: push→spread immutability fix in `main.ts`; IAR suite reorganized into `air/` subfolder. All 10 standard dimensions evaluated.
 
 ### Resolved
 

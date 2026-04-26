@@ -2,7 +2,7 @@
 
 A personal tool for saving and organizing web links with titles, notes, and tags. No accounts, no backend, no frameworks — data lives in the browser's localStorage.
 
-Built as a guild portfolio project following a design-first, test-driven methodology with Adversarial Iterative Refinement (AIR) — a required merge gate comprising QA, UX, Security, Platform Engineering, and Solution Architect review domains — at each layer.
+Built as a guild portfolio project following a design-first, test-driven methodology with Iterative Adversarial Refinement (IAR) — a required merge gate comprising QA, UX, Security, Platform Engineering, and Solution Architect review domains — at each layer.
 
 ## Features
 
@@ -93,9 +93,9 @@ styles.css       Styles
 | `TODO.md` | Build layers with testable acceptance criteria; tracks completion |
 | `DECISIONS.md` | Chronological record of design and process decisions |
 | `CHANGELOG.md` | What changed in each work session |
-| `adversarial-iterative-refinement/README.md` | Adversarial Iterative Refinement suite: domains, sequencing, scoped runs, merge gate |
-| `adversarial-iterative-refinement/QA-REVIEW.md` | QA review log: bugs found, test weaknesses, and dismissed findings |
-| `adversarial-iterative-refinement/UX-REVIEW.md` | UX review log: empty states, error handling, focus behavior, and accessibility |
-| `adversarial-iterative-refinement/SECURITY-REVIEW.md` | Security review log: rendering safety, URL injection, storage validation |
-| `adversarial-iterative-refinement/PLATFORM-ENGINEERING-REVIEW.md` | Platform Engineering review log: CI pipeline, coverage enforcement, left-shift opportunities |
-| `adversarial-iterative-refinement/SOLUTION-ARCHITECT-REVIEW.md` | Solution Architect review log: structure, boundaries, data model, state management, tradeoffs |
+| `iterative-adversarial-refinement/README.md` | Iterative Adversarial Refinement suite: domains, sequencing, scoped runs, merge gate |
+| `iterative-adversarial-refinement/QA-REVIEW.md` | QA review log: bugs found, test weaknesses, and dismissed findings |
+| `iterative-adversarial-refinement/UX-REVIEW.md` | UX review log: empty states, error handling, focus behavior, and accessibility |
+| `iterative-adversarial-refinement/SECURITY-REVIEW.md` | Security review log: rendering safety, URL injection, storage validation |
+| `iterative-adversarial-refinement/PLATFORM-ENGINEERING-REVIEW.md` | Platform Engineering review log: CI pipeline, coverage enforcement, left-shift opportunities |
+| `iterative-adversarial-refinement/SOLUTION-ARCHITECT-REVIEW.md` | Solution Architect review log: structure, boundaries, data model, state management, tradeoffs |

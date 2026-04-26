@@ -49,15 +49,15 @@ Single user, no accounts or authentication needed. Runs in a web browser, data s
 
 **Manual testing** is performed by a human against the running app at the end of each layer. Each layer has a checklist in `TODO.md` covering the full user-visible flow: happy path, edge cases, validation errors, persistence after refresh, and UI state. Automated tests verify correctness; manual tests verify that the experience is coherent and nothing obviously wrong slips through.
 
-**Adversarial Iterative Refinement (AIR)** is run at the end of each layer and is a required gate before merging. AIR applies adversarial pressure across five review domains in parallel or sequence (see `adversarial-iterative-refinement/README.md` for orchestration):
+**Iterative Adversarial Refinement (IAR)** is run at the end of each layer and is a required gate before merging. IAR applies adversarial pressure across five review domains in parallel or sequence (see `iterative-adversarial-refinement/README.md` for orchestration):
 
-- **QA** (`adversarial-iterative-refinement/QA-REVIEW.md`) — correctness, test falsifiability, selector strength, validation gaps, logic errors, dead code, unused dependencies, coverage gaps, accessibility, browser compatibility, responsive design, security surface, regression coverage
-- **UX** (`adversarial-iterative-refinement/UX-REVIEW.md`) — empty states, error messages, focus and keyboard behavior, visual consistency, affordances, feedback patterns, accessibility, responsive design, browser compatibility, long content, reduced motion, native dialog quality
-- **Security** (`adversarial-iterative-refinement/SECURITY-REVIEW.md`) — rendering safety, URL injection, storage validation, dependency CVEs, CSP, information exposure, input handling
-- **Platform Engineering** (`adversarial-iterative-refinement/PLATFORM-ENGINEERING-REVIEW.md`) — pipeline completeness, gate enforcement, dependency installation, environment pinning, cache correctness, coverage thresholds in CI, security scanning in CI, artifact hygiene, left-shift opportunities
-- **Solution Architect** (`adversarial-iterative-refinement/SOLUTION-ARCHITECT-REVIEW.md`) — separation of concerns, coupling and cohesion, data model integrity, interface contracts, state management, immutability, extensibility, technology fitness, complexity budget, decision documentation
+- **QA** (`iterative-adversarial-refinement/QA-REVIEW.md`) — correctness, test falsifiability, selector strength, validation gaps, logic errors, dead code, unused dependencies, coverage gaps, accessibility, browser compatibility, responsive design, security surface, regression coverage
+- **UX** (`iterative-adversarial-refinement/UX-REVIEW.md`) — empty states, error messages, focus and keyboard behavior, visual consistency, affordances, feedback patterns, accessibility, responsive design, browser compatibility, long content, reduced motion, native dialog quality
+- **Security** (`iterative-adversarial-refinement/SECURITY-REVIEW.md`) — rendering safety, URL injection, storage validation, dependency CVEs, CSP, information exposure, input handling
+- **Platform Engineering** (`iterative-adversarial-refinement/PLATFORM-ENGINEERING-REVIEW.md`) — pipeline completeness, gate enforcement, dependency installation, environment pinning, cache correctness, coverage thresholds in CI, security scanning in CI, artifact hygiene, left-shift opportunities
+- **Solution Architect** (`iterative-adversarial-refinement/SOLUTION-ARCHITECT-REVIEW.md`) — separation of concerns, coupling and cohesion, data model integrity, interface contracts, state management, immutability, extensibility, technology fitness, complexity budget, decision documentation
 
-Any domain may propose a new AIR domain. All findings are logged in the respective domain file with resolution, accepted-risk, or dismissal rationale.
+Any domain may propose a new IAR domain. All findings are logged in the respective domain file with resolution, accepted-risk, or dismissal rationale.
 
 ## Out of Scope
 - User accounts, login, or sharing
