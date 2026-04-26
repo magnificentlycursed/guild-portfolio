@@ -1,6 +1,6 @@
 # Security Review Log
 
-This review is part of the [Adversarial Iterative Refinement (AIR)](README.md) suite. It is a required gate for merging. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
+This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. It is a required gate for merging. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
 
 The purpose of this review is to apply iterative adversarial pressure to find, document, and resolve security vulnerabilities, unsafe patterns, validation gaps, and regressions. Every review targets the whole application — not only the most recently changed code.
 
@@ -14,7 +14,7 @@ For each finding, cite file and line number. Classify as **resolved** (fix appli
 
 Regression check: verify that all previously-addressed security controls remain intact. Prior layers' security findings are always in scope. A change to validation, rendering, or storage handling can silently remove a control.
 
-**Coordination:** Flag any findings that should be surfaced to [QA-REVIEW.md](QA-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [PLATFORM-ENGINEERING-REVIEW.md](PLATFORM-ENGINEERING-REVIEW.md), or [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). If this review suggests the need for a new AIR domain, log it as a finding.
+**Coordination:** Flag any findings that should be surfaced to [QA-REVIEW.md](QA-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [PLATFORM-ENGINEERING-REVIEW.md](PLATFORM-ENGINEERING-REVIEW.md), or [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). If this review suggests the need for a new IAR domain, log it as a finding.
 
 ## Standard Evaluation Dimensions
 
@@ -25,6 +25,53 @@ Regression check: verify that all previously-addressed security controls remain 
 5. **Content Security Policy** — Is a CSP present (meta tag or response header)? Evaluate risk surface without one.
 6. **Information exposure** — Do error messages, comments, or headers reveal internal structure, stack traces, or sensitive paths?
 7. **Input handling** — Are all user inputs treated as untrusted before being stored or rendered?
+
+---
+
+## Review 4 — 2026-04-25
+
+**Scope:** Portfolio retrospective. New generic dimensions from updated suite: secret handling, authentication/authorization. All seven prior dimensions carry forward from Review 3 — this review evaluates only what the updated template adds. Supplement: `lang/browser-app.md` and `lang/javascript-typescript.md` Security sections.
+
+### Resolved
+
+*(none)*
+
+### Accepted Risk
+
+*(carry-forward from Reviews 1–3 — no change)*
+
+#### No Content Security Policy
+Personal single-user tool, static local file, no external network requests. Negligible attack surface. Accepted.
+
+### Dismissed
+
+#### Secret handling — no secrets present
+No API keys, tokens, credentials, or environment variables anywhere in the codebase, config files, or CI workflow. The app requires no external services. `.github/workflows/bookmark-manager.yml` uses no repository secrets. `package.json` contains no embedded credentials. No `.env` file exists.
+
+Dismissed.
+
+#### Authentication/Authorization — out of scope by design
+DESIGN.md explicitly excludes user accounts and authentication. The app is a single-user personal tool with no authentication surface. There is no auth bypass to find because there is no auth. No finding.
+
+Dismissed.
+
+#### `lang/javascript-typescript.md` Security supplement
+- Rendering safety: all user content via `.textContent`. ✓
+- Runtime schema validation on `JSON.parse`: `normalizeBookmark` validates all fields. ✓
+- URL injection: `validateUrl` rejects all non-http(s) protocols. ✓
+
+All supplement dimensions: dismissed.
+
+#### `lang/browser-app.md` Security supplement
+- Rendering safety: confirmed above. ✓
+- URL injection: confirmed above. ✓
+- Storage validation: `normalizeBookmark` confirmed above. ✓
+- CSP: accepted risk documented above. ✓
+- SRI: no external scripts or stylesheets loaded. ✓
+
+All supplement dimensions: dismissed.
+
+**Tests:** 80 unit | 95 browser | 0 CVEs
 
 ---
 
@@ -112,7 +159,7 @@ The app is a static local file. There are no other scripts on the same origin. D
 ---
 
 ## Review 2 — 2026-04-25 00:30Z
-**Scope:** Full application. Triggered by: push→spread immutability fix in `main.ts`; `npm audit` step added to CI; AIR suite reorganized into `air/` subfolder. All 7 standard dimensions evaluated.
+**Scope:** Full application. Triggered by: push→spread immutability fix in `main.ts`; `npm audit` step added to CI; IAR suite reorganized into `air/` subfolder. All 7 standard dimensions evaluated.
 
 ### Resolved
 

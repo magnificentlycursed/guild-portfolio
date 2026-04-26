@@ -1,6 +1,6 @@
 # Software Engineering Review
 
-This review is part of the [Adversarial Iterative Refinement (AIR)](README.md) suite. It may be run independently or alongside other domains. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
+This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. It may be run independently or alongside other domains. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
 
 The purpose of this review is to evaluate the quality of the implementation at the code level: correctness, clarity, error handling, naming, duplication, and complexity. Where the Solution Architect review evaluates structure and boundaries, the Software Engineering review evaluates the code within those boundaries. Both matter. A well-structured module can still contain poorly written code.
 
@@ -10,11 +10,17 @@ The purpose of this review is to evaluate the quality of the implementation at t
 
 Read DESIGN.md first for context on the project's intended scope, constraints, and feature set. Then read all source files. Apply every standard dimension below as a floor — add others as appropriate to the current state of the code. There is no restriction on what can be flagged.
 
-For each finding, cite file and line number. Classify as **resolved** (fix applied this review), **deferred** (scheduled for a specific layer, reason given), or **dismissed** (no action taken, rationale required).
+For each finding, cite file and line number. Classify as **resolved** (fix applied this review), **deferred** (scheduled for a specific layer, reason given), **dismissed** (no action taken, rationale required), or **hallucinated** (the adversary invented a problem that does not exist — push back is warranted. Consistent hallucinated findings are the maximum viable refinement signal: real issues have been exhausted).
 
 Regression check: verify that previously correct behavior has not been silently broken by implementation changes. A refactor that changes behavior without changing tests is a regression.
 
-**Coordination:** Flag any findings that should be surfaced to [QUALITY-ENGINEERING-REVIEW.md](QUALITY-ENGINEERING-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), [PLATFORM-ENGINEERING-REVIEW.md](PLATFORM-ENGINEERING-REVIEW.md), or [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). If this review suggests the need for a new AIR domain, log it as a finding.
+**Coordination:** Flag any findings that should be surfaced to [QUALITY-ENGINEERING-REVIEW.md](QUALITY-ENGINEERING-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), [PLATFORM-ENGINEERING-REVIEW.md](PLATFORM-ENGINEERING-REVIEW.md), or [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). If this review suggests the need for a new IAR domain, log it as a finding.
+
+**Sycophancy check:** If the agent agreed with every decision reviewed in this domain without challenge, treat that as a finding. An AI agent that validates every choice it helped produce is not providing adversarial review — it is confirming its own work. Flag any area where a significant decision went unquestioned but warranted scrutiny.
+
+**Language and interface supplement:** Consult `lang/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`) and interface type (e.g., `cli.md`). Apply the **Software Engineering** section from the relevant supplement files in addition to the standard dimensions below.
+
+**Domain boundary:** SE owns the implementation — correctness, naming, error handling, and complexity within module boundaries. QE owns the test system. When SE finds a bug, flag it here. If there is also no test covering that path, that is a separate QE finding — do not bundle them. Do not evaluate test architecture here; that belongs to QE.
 
 ## Standard Evaluation Dimensions
 
@@ -28,7 +34,8 @@ Regression check: verify that previously correct behavior has not been silently 
 8. **Defensive coding** — Are assumptions made about inputs, state, or external data that could be violated? Are internal invariants documented or enforced at the right level?
 9. **Comments and self-documentation** — Is non-obvious logic explained? Are there misleading, stale, or redundant comments? Code that cannot be understood without a comment is a candidate for renaming or restructuring.
 10. **Consistency** — Are patterns, naming conventions, and idioms applied consistently across the codebase? Inconsistency is a maintenance cost and a source of bugs.
+11. **Future-self maintainability** — Will you be able to understand and modify this code in six months without access to the original AI session? Are the key decisions derivable from the code and its comments, or do they require conversation history to reconstruct? Flag logic that is correct but would be opaque to future-you — it is a candidate for renaming, restructuring, or a targeted comment.
 
 ---
 
-Review entries are logged in `adversarial-iterative-refinement/SOFTWARE-ENGINEERING-REVIEW.md` inside the project being reviewed.
+Review entries are logged in `iterative-adversarial-refinement/SOFTWARE-ENGINEERING-REVIEW.md` inside the project being reviewed.

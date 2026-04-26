@@ -1,6 +1,6 @@
 # UX Review Log
 
-This review is part of the [Adversarial Iterative Refinement (AIR)](README.md) suite. It is a required gate for merging. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
+This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. It is a required gate for merging. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
 
 The purpose of this review is to apply iterative adversarial pressure to find, document, and resolve UX defects, inconsistencies, accessibility gaps, and regressions. Every review targets the whole application — not only the most recently changed feature.
 
@@ -14,7 +14,7 @@ For each finding, cite the element, file, and line number. Classify as **resolve
 
 Regression check: verify that all previously-addressed UX concerns remain intact. Prior layers' UX changes are always in scope. A visual or interaction change to one part of the app can silently break another.
 
-**Coordination:** Flag any findings that should be surfaced to [QA-REVIEW.md](QA-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), [PLATFORM-ENGINEERING-REVIEW.md](PLATFORM-ENGINEERING-REVIEW.md), or [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). If this review suggests the need for a new AIR domain, log it as a finding.
+**Coordination:** Flag any findings that should be surfaced to [QA-REVIEW.md](QA-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), [PLATFORM-ENGINEERING-REVIEW.md](PLATFORM-ENGINEERING-REVIEW.md), or [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). If this review suggests the need for a new IAR domain, log it as a finding.
 
 ## Standard Evaluation Dimensions
 
@@ -235,7 +235,7 @@ OR is the right model for a bookmark manager with pill-button UI (returns more r
 ---
 
 ## Review 5 — 2026-04-25 00:30Z
-**Scope:** Full application. Triggered by: push→spread immutability fix in `main.ts`; AIR suite reorganized into `air/` subfolder. No UX surface changes. All 13 standard dimensions evaluated.
+**Scope:** Full application. Triggered by: push→spread immutability fix in `main.ts`; IAR suite reorganized into `air/` subfolder. No UX surface changes. All 13 standard dimensions evaluated.
 
 ### Resolved
 
@@ -244,7 +244,7 @@ OR is the right model for a bookmark manager with pill-button UI (returns more r
 ### Dismissed
 
 #### No UX surface changes this session
-The push→spread fix (`saveBookmarks(storage, [...bookmarks, newBookmark])`) and AIR file reorganization are internal-only changes. No form behavior, rendering, focus management, error messages, or visual state changed. No regression possible from these changes for UX concerns. Dismissed.
+The push→spread fix (`saveBookmarks(storage, [...bookmarks, newBookmark])`) and IAR file reorganization are internal-only changes. No form behavior, rendering, focus management, error messages, or visual state changed. No regression possible from these changes for UX concerns. Dismissed.
 
 #### Regression check — prior UX fixes intact
 Toggle-deselect behavior (Review 1): active tag deselects on re-click — confirmed via browser tests. Color contrast (Review 4 axe fix): `#888` → `#767676` for placeholder text — `styles.css` unchanged, fix still in place. Empty state messaging, error message text, focus-on-submit, and edit-form focus behavior: all unchanged. Dismissed.

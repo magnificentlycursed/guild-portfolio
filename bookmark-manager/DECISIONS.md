@@ -1,6 +1,20 @@
 # Bookmark Manager — Refinement Log
 
-### 2026-04-24 17:00Z — AIR suite Layer 6: cancel handler focus contract
+### 2026-04-25 — IAR suite expanded to 8 domains; SE, SO, VDD-IAR Alignment reviews
+
+The IAR suite for this project has been retrospectively expanded with three domains from the updated portfolio suite template:
+
+**Software Engineering (SE)** — evaluates the implementation at the code level: correctness, naming, type safety, error handling, duplication, complexity. SE Review 1 found no defects. The codebase is clean, internally consistent, and the `bookmarks.ts`/`main.ts` separation is well-maintained at the implementation level (complementing the SA view of the boundary at the architectural level).
+
+**Solution Owner (SO)** — guards the project against scope creep by holding the implementation to DESIGN.md as a contract. SO Review 1 built a 27-row compliance table. All spec requirements are met. Two tooling additions outside the literal text of DESIGN.md (ESLint, `@vitest/ui`) were evaluated and dismissed as non-behavioral — they do not change the product or expand its feature set.
+
+**VDD-IAR Alignment** — evaluates whether the project was built using the VDD-IAR methodology. Review 1 found strong alignment across all 10 process dimensions. The only structural gap is that Layers 1 and 2 arrived in a single initial commit, preventing independent git verification of design-before-code sequencing. This is a commit workflow artifact — contextual evidence (DESIGN.md content, PROCESS.md's explicit statement, layer checklist detail) supports design-before-code intent. All subsequent layers have separate commits with clean boundaries.
+
+**Rationale for retrospective review:** The three new domains were defined at the portfolio suite level after the bookmark-manager was built. Running them retrospectively closes the coverage gap and provides a reference baseline for how SE, SO, and VDD-IAR Alignment findings present in a completed project. The clean pass across all three is itself a meaningful result: it confirms that the existing five-domain suite (QA, UX, Security, PE, SA) did not produce a project with hidden implementation defects, spec deviations, or process failures that only the new domains would catch.
+
+---
+
+### 2026-04-24 17:00Z — IAR suite Layer 6: cancel handler focus contract
 
 Any action that destroys and recreates DOM containing the current focus target is responsible for restoring focus to the equivalent element in the new DOM. This was already the rule for `setFormOpen(false)` (focus returns to toggle) and for the edit form open (focus moves to first field), but the cancel handlers for both the edit form and the inline delete confirmation were inconsistent — they called `renderBookmarks()` as a bare reference with no follow-up focus call, leaving keyboard focus on `document.body`.
 
@@ -28,9 +42,9 @@ ESLint with `typescript-eslint` added following the typescript-eslint getting-st
 
 Added as `npm run lint` locally and as a `Lint` CI step after `Type check`. Resolves the left-shift gap noted in PE Review 2.
 
-### 2026-04-25 00:30Z — Full AIR suite run; clean pass
+### 2026-04-25 00:30Z — Full IAR suite run; clean pass
 
-All 5 domains ran against the full project after: push→spread immutability fix in `main.ts`, PE Review 1 additions (coverage step, audit step, cache key fix), and AIR suite reorganized into `air/`.
+All 5 domains ran against the full project after: push→spread immutability fix in `main.ts`, PE Review 1 additions (coverage step, audit step, cache key fix), and IAR suite reorganized into `air/`.
 
 Zero findings across all domains. The reviews confirmed:
 
@@ -40,9 +54,9 @@ Zero findings across all domains. The reviews confirmed:
 - **UX**: No UX surface changes this session. Prior UX fixes intact (toggle-deselect, color contrast). Three axe scans passing.
 - **Security**: All rendering safety controls intact (`.textContent` throughout). `normalizeBookmark` storage validation intact. `npm audit` now a CI gate.
 
-A clean AIR run is a meaningful signal: the changes introduced this session have no detectable defects, regressions, or architectural drift across any domain.
+A clean IAR run is a meaningful signal: the changes introduced this session have no detectable defects, regressions, or architectural drift across any domain.
 
-### 2026-04-25 00:10Z — Solution Architect domain added to AIR; SA Review 1
+### 2026-04-25 00:10Z — Solution Architect domain added to IAR; SA Review 1
 
 The SA domain evaluates architecture: structural decisions, boundary integrity, data model soundness, and whether the complexity of the implementation is proportional to the problem. It is distinct from QA (which evaluates correctness) and from Security/UX (which evaluate specific concerns) — SA evaluates whether the overall shape of the solution is right.
 
@@ -54,7 +68,7 @@ The SA domain evaluates architecture: structural decisions, boundary integrity, 
 
 The `bookmarks.ts` / `main.ts` separation is clean and consistent across all five layers — no DOM references have leaked into the logic module, and no business logic has accumulated in the DOM wiring module. The `BookmarkStorage` interface is a minimal, well-placed abstraction. The `Bookmark` data model is complete and appropriate for the use case. Module-level `let` state in `main.ts` is the correct pattern for a no-framework SPA at this scale. All significant decisions are documented in this log.
 
-### 2026-04-24 23:55Z — Platform Engineering domain added to AIR; PE Review 1
+### 2026-04-24 23:55Z — Platform Engineering domain added to IAR; PE Review 1
 
 **Rationale:** The Security, QA, and UX reviews identify defects; PE's job is to make sure those checks — and as many others as possible — are enforced automatically in CI rather than depending on a human running them before each merge. The review takes a left-shift lens: any check that lives only in a manual checklist is a gap.
 
@@ -68,17 +82,17 @@ The `bookmarks.ts` / `main.ts` separation is clean and consistent across all fiv
 
 **Left-shift pattern established:** The axe accessibility scans (added in QA Review 7) are already in the browser test suite which CI runs — they're a good example of the left-shift model. Coverage and audit now follow the same pattern.
 
-### 2026-04-24 23:45Z — AIR suite formalized
+### 2026-04-24 23:45Z — IAR suite formalized
 
-The three review domains (QA, UX, Security) have been formalized as the Adversarial Iterative Refinement (AIR) suite with a dedicated coordination document (`adversarial-iterative-refinement/README.md`).
+The three review domains (QA, UX, Security) have been formalized as the Iterative Adversarial Refinement (IAR) suite with a dedicated coordination document (`iterative-adversarial-refinement/README.md`).
 
 **Rationale:** The reviews were already functioning as a suite — they ran together, shared the goal of adversarial pressure, and collectively formed the merge gate. Naming them as a suite makes the relationship explicit and adds two capabilities that were previously implicit:
 
 1. **Scoped runs** — any domain can be focused on specific changed files or a feature while still running regression checks across the whole app. This prevents the gate from becoming heavyweight for small changes while keeping the regression safety net intact.
 
-2. **Domain suggestion** — any review can propose a new AIR domain as a classified finding. This gives the process a defined path for growth (e.g., Performance, Privacy) without requiring a process redesign.
+2. **Domain suggestion** — any review can propose a new IAR domain as a classified finding. This gives the process a defined path for growth (e.g., Performance, Privacy) without requiring a process redesign.
 
-**Sequencing model:** Domains default to parallel. Sequencing is used when one domain's findings are likely to affect another's analysis (e.g., a Security finding that changes the implementation should precede a QA re-check of that implementation). The orchestrator (person or agent running AIR) decides based on context.
+**Sequencing model:** Domains default to parallel. Sequencing is used when one domain's findings are likely to affect another's analysis (e.g., a Security finding that changes the implementation should precede a QA re-check of that implementation). The orchestrator (person or agent running IAR) decides based on context.
 
 ### 2026-04-24 23:00Z — Process expansion: security review added; full-project QA, UX, and security audit
 

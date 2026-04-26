@@ -1,5 +1,25 @@
 # Bookmark Manager — Changelog
 
+## 2026-04-25 — IAR suite expanded; renamed adversarial-iterative-refinement → iterative-adversarial-refinement
+
+### Added
+- `iterative-adversarial-refinement/SOFTWARE-ENGINEERING-REVIEW.md` — SE domain (Review 1, portfolio retrospective); all 11 standard dimensions + JS/TS supplement; no defects found
+- `iterative-adversarial-refinement/SOLUTION-OWNER-REVIEW.md` — SO domain (Review 1, portfolio retrospective); 27-requirement compliance table; all spec requirements met; ESLint and `@vitest/ui` evaluated and dismissed as non-behavioral tooling
+- `iterative-adversarial-refinement/VDD-IAR-ALIGNMENT-REVIEW.md` — VDD-IAR Alignment domain (Review 1, portfolio retrospective); all 10 process dimensions evaluated; strong alignment throughout; initial bundled commit noted and dismissed as workflow artifact
+- `iterative-adversarial-refinement/SECURITY-REVIEW.md` — Review 4 appended; new generic dimensions (secret handling, authentication/authorization) from updated suite template; browser-app.md and JS/TS supplements applied; clean pass
+
+### Changed
+- `iterative-adversarial-refinement/README.md` — rewritten around VDD-IAR loop framing (8 domains, refinement loop protocol, session isolation); updated domain table to include SE, SO, VDD-IAR Alignment; merge gate updated with MVR requirement
+- `PROCESS.md` — review history updated to reflect 8 domains and accurate review counts
+
+### Renamed
+- `adversarial-iterative-refinement/` → `iterative-adversarial-refinement/` — correct name is Iterative Adversarial Refinement (IAR), not AIR
+
+### Changed (IAR/AIR terminology)
+- All live documentation across `README.md`, `DESIGN.md`, `TODO.md`, `PROCESS.md`, `DECISIONS.md`, and all `iterative-adversarial-refinement/*.md` files updated from AIR to IAR
+
+---
+
 ## 2026-04-24 17:00Z — AIR suite run (all 5 domains); Layer 6 focus bug fixed
 
 ### Fixed
@@ -7,11 +27,11 @@
 - `src/main.ts:232` — edit form Cancel button: same fix; focus restored to `.edit-btn` for the same bookmark after cancel (pre-existing since Layer 3, caught by Layer 6 AIR run)
 
 ### Changed
-- `adversarial-iterative-refinement/QA-REVIEW.md` — Review 9 logged; 80 unit | 95 browser | coverage 100% | 0 CVEs | lint clean; 2 bugs resolved, 1 test weakness resolved
-- `adversarial-iterative-refinement/UX-REVIEW.md` — Review 6 logged; inline delete cancel focus regression resolved; all other Layer 6 UX surfaces reviewed and dismissed
-- `adversarial-iterative-refinement/SECURITY-REVIEW.md` — Review 3 logged; no findings; all controls verified intact
-- `adversarial-iterative-refinement/PLATFORM-ENGINEERING-REVIEW.md` — Review 4 logged; all prior gates intact; coverage 100% with new `extractDomain` function
-- `adversarial-iterative-refinement/SOLUTION-ARCHITECT-REVIEW.md` — Review 3 logged; cancel-focus fix resolved; boundary and immutability patterns intact
+- `iterative-adversarial-refinement/QA-REVIEW.md` — Review 9 logged; 80 unit | 95 browser | coverage 100% | 0 CVEs | lint clean; 2 bugs resolved, 1 test weakness resolved
+- `iterative-adversarial-refinement/UX-REVIEW.md` — Review 6 logged; inline delete cancel focus regression resolved; all other Layer 6 UX surfaces reviewed and dismissed
+- `iterative-adversarial-refinement/SECURITY-REVIEW.md` — Review 3 logged; no findings; all controls verified intact
+- `iterative-adversarial-refinement/PLATFORM-ENGINEERING-REVIEW.md` — Review 4 logged; all prior gates intact; coverage 100% with new `extractDomain` function
+- `iterative-adversarial-refinement/SOLUTION-ARCHITECT-REVIEW.md` — Review 3 logged; cancel-focus fix resolved; boundary and immutability patterns intact
 
 ### Fixed (tests)
 - `tests/browser/bookmark-manager.spec.ts` — added `'canceling the delete confirmation returns focus to the delete button'` and `'canceling an edit returns focus to the edit button'`
@@ -44,14 +64,14 @@
 ## 2026-04-25 01:30Z — Documentation renames for clarity; add ESLint
 
 ### Renamed
-- `air/` → `adversarial-iterative-refinement/` — expands the AIR acronym
-- `adversarial-iterative-refinement/AIR.md` → `adversarial-iterative-refinement/README.md` — conventional entry point for a folder
+- `air/` → `iterative-adversarial-refinement/` — expands the AIR acronym
+- `iterative-adversarial-refinement/AIR.md` → `iterative-adversarial-refinement/README.md` — conventional entry point for a folder
 - `REFINEMENT_LOG.md` → `DECISIONS.md` — describes the content more precisely (design decisions and architectural rationale)
-- `adversarial-iterative-refinement/PE-REVIEW.md` → `adversarial-iterative-refinement/PLATFORM-ENGINEERING-REVIEW.md` — expands the PE abbreviation, consistent with `SECURITY-REVIEW.md`
-- `adversarial-iterative-refinement/SA-REVIEW.md` → `adversarial-iterative-refinement/SOLUTION-ARCHITECT-REVIEW.md` — expands the SA abbreviation
+- `iterative-adversarial-refinement/PE-REVIEW.md` → `iterative-adversarial-refinement/PLATFORM-ENGINEERING-REVIEW.md` — expands the PE abbreviation, consistent with `SECURITY-REVIEW.md`
+- `iterative-adversarial-refinement/SA-REVIEW.md` → `iterative-adversarial-refinement/SOLUTION-ARCHITECT-REVIEW.md` — expands the SA abbreviation
 
 ### Changed
-- All live path references updated across `TODO.md`, `DESIGN.md`, `README.md`, `CHANGELOG.md`, `DECISIONS.md`, `.github/PULL_REQUEST_TEMPLATE.md`, and all files in `adversarial-iterative-refinement/`
+- All live path references updated across `TODO.md`, `DESIGN.md`, `README.md`, `CHANGELOG.md`, `DECISIONS.md`, `.github/PULL_REQUEST_TEMPLATE.md`, and all files in `iterative-adversarial-refinement/`
 
 ---
 
@@ -78,11 +98,11 @@
 ## 2026-04-25 00:30Z — AIR suite run (all 5 domains); no findings
 
 ### Changed
-- `adversarial-iterative-refinement/QA-REVIEW.md` — Review 8 logged; 74 unit | 77 browser | coverage 100% | 0 CVEs; no findings
-- `adversarial-iterative-refinement/UX-REVIEW.md` — Review 5 logged; no UX surface changes; axe scans passing; no findings
-- `adversarial-iterative-refinement/SECURITY-REVIEW.md` — Review 2 logged; `npm audit` now CI-gated; all controls intact; no findings
-- `adversarial-iterative-refinement/PLATFORM-ENGINEERING-REVIEW.md` — Review 2 logged; all Review 1 gates verified intact; no findings
-- `adversarial-iterative-refinement/SOLUTION-ARCHITECT-REVIEW.md` — Review 2 logged; push→spread fix verified; boundary intact; no findings
+- `iterative-adversarial-refinement/QA-REVIEW.md` — Review 8 logged; 74 unit | 77 browser | coverage 100% | 0 CVEs; no findings
+- `iterative-adversarial-refinement/UX-REVIEW.md` — Review 5 logged; no UX surface changes; axe scans passing; no findings
+- `iterative-adversarial-refinement/SECURITY-REVIEW.md` — Review 2 logged; `npm audit` now CI-gated; all controls intact; no findings
+- `iterative-adversarial-refinement/PLATFORM-ENGINEERING-REVIEW.md` — Review 2 logged; all Review 1 gates verified intact; no findings
+- `iterative-adversarial-refinement/SOLUTION-ARCHITECT-REVIEW.md` — Review 2 logged; push→spread fix verified; boundary intact; no findings
 
 ---
 
@@ -135,7 +155,7 @@
 
 ---
 
-## 2026-04-24 23:45Z — Adversarial Iterative Refinement (AIR) suite formalized
+## 2026-04-24 23:45Z — Iterative Adversarial Refinement (AIR) suite formalized
 
 ### Added
 - `AIR.md` — suite description: domain table with links, full and scoped run instructions, sequencing guidance, domain suggestion protocol, merge gate requirements
