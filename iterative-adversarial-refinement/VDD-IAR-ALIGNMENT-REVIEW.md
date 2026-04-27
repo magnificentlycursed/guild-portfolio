@@ -26,6 +26,8 @@ For each finding, cite the specific artifact and location (commit hash, log entr
 
 **Coordination:** Process failures frequently explain defects found by other domains. If QE found that tests were added after implementation, flag it here as a test discipline finding. If SA found that architecture grew organically rather than being designed, flag it here as a decomposition finding. Coordinate with [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) on assignment compliance — SO owns whether DESIGN.md matches the assignment brief; this domain owns whether design-before-code discipline was followed. If this review suggests the need for a new IAR domain, log it as a finding.
 
+**Language and interface supplement:** Not applicable. Process compliance is language-agnostic. The `lang/` supplements add language-specific dimensions to implementation-focused domains; the VDD-IAR Alignment domain evaluates methodology compliance, which is independent of the implementation language or interface type.
+
 **Sycophancy check:** Process failures are easy to rationalize. The agent reviewing this domain is likely the same agent that participated in building the project — it has every incentive to find the process acceptable. The absence of a layer gate record is not ambiguous. Batched test commits are not ambiguous. A single IAR pass that merged immediately after real findings is not ambiguous. Push back on any dimension where the agent reaches for benefit-of-the-doubt rather than evidence.
 
 ## Standard Evaluation Dimensions

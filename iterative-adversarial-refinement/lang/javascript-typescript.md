@@ -42,3 +42,10 @@ These dimensions supplement the standard IAR domain reviews for JavaScript and T
 - **`JSON.parse` error handling** — Is `JSON.parse` wrapped in `try/catch`? Malformed stored data is a realistic failure mode.
 - **Normalization functions** — When stored data is read, is there a normalization function that applies safe defaults for missing or unexpected fields, rather than trusting the raw object shape?
 - **Date handling** — Are dates stored as ISO 8601 strings or Unix timestamps, not `Date` objects? `Date` objects do not survive `JSON.stringify`/`JSON.parse` as dates.
+
+## Solution Architect
+
+- **VSDD purity boundary** — Are validation and transformation functions pure (no side effects, no storage reads, no DOM access, no `Date.now()`, no `Math.random()`)? Is effectful code (localStorage, fetch, DOM manipulation, event handling) isolated in a thin shell that calls pure functions for logic? In a browser app without a build framework, this means validating inputs and computing derived data in plain functions that receive their arguments, and separating the code that reads from and writes to the DOM. A function that both validates a bookmark and writes it to storage conflates two concerns that should be independently testable.
+- **Module organization** — For larger apps, is code organized by concern (e.g., storage, validation, rendering, state) rather than by file type? Are module boundaries enforced by convention or tooling?
+- **State flow** — Is the direction of state flow consistent and predictable? In a browser app, the pattern is: user action → update model → re-render from model. A codebase that reads DOM state as its source of truth during updates is fragile. Flag any pattern where the DOM is used as mutable storage.
+- **Event handling coupling** — Are event handlers thin (call a function, handle the result) or thick (contain business logic inline)? Thick handlers are not unit-testable and entangle behavior with DOM concerns.

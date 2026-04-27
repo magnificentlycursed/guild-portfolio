@@ -1,26 +1,61 @@
 # Iterative Adversarial Refinement (IAR)
 
-IAR is the adversarial review mechanism of Verification-Driven Development (VDD). VDD builds software through a loop: design → build → verify → adversarial refinement → fix → repeat until maximum viable refinement. IAR provides the adversarial pressure in that loop — structured review across specialized domains, each applying a different adversarial lens to the same work.
+IAR fills the role of the adversary in the Verified Spec-Driven Development (VSDD) pipeline. VSDD structures software development as a six-phase cycle; IAR is Phase 4 — Adversarial Refinement. The adversary applies structured pressure across specialized domains, each with a different lens. It operates with fresh context, iterates until maximum viable refinement (MVR), and certifies that the exit condition was reached honestly.
 
-IAR is not a pre-merge checkpoint. It is an active part of the build cycle. Rounds run during layer development, not just at the end. A layer does not merge when it passes one IAR run — it merges when an IAR run produces only **hallucinated** findings across all active domains. That is the maximum viable refinement signal.
+IAR is not a pre-merge checkpoint. It is an active part of the build cycle. Rounds run during layer development, not just at the end. A layer does not merge when it passes one IAR run — it merges when an IAR run produces only **hallucinated** findings across all active domains. That is the maximum viable refinement signal: the adversary has run out of real complaints.
 
-Not all domains are applicable to every project. Select the domains relevant to the project's scope and technology when setting up IAR. Document which domains are active in the project's own design or task file.
+## VSDD pipeline context
+
+VSDD defines six phases. IAR owns Phase 4. Understanding the full pipeline matters because IAR evaluates *whether the prior phases were executed correctly*, not just whether the code is good.
+
+| Phase | Name | What happens | IAR's role |
+|---|---|---|---|
+| 1 | Spec Crystallization | Design doc written with behavioral contracts, edge case catalog, interface definitions, verification architecture | VDD-IAR Alignment dim 1 evaluates spec completeness |
+| 1b | Decomposition | Project broken into layered TODO.md; Red Gate test plans written per layer; crosslink issue hierarchy created | VDD-IAR Alignment dims 2–3 evaluate layer structure and gate compliance |
+| 2 | Red Gate | All tests written and failing before implementation begins | VDD-IAR Alignment dim 4 + QE dim 2 evaluate Red Gate compliance |
+| 3 | Implementation | Tests made to pass; no new tests added during this phase | SE, QE, UX, Security domains evaluate implementation quality |
+| **4** | **Adversarial Refinement** | **IAR runs until MVR** | **This is IAR** |
+| 5 | Formal Hardening | Proof harnesses, fuzzing, mutation testing (not yet owned by this suite — see GAP-ANALYSIS-LOG G-55) | — |
+| 6 | Four-Dimensional Convergence | Spec, tests, implementation, and formal verification all independently at MVR | Partially owned — implementation MVR only (see G-54) |
+
+**Session primers** for Phases 1 and 1b are in `prompts/`. These prime the session before writing begins — they are not review prompts.
+
+## Governing references
+
+- **VSDD whitepaper** (primary): https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00
+- **Original VDD whitepaper**: https://gist.github.com/dollspace-gay/45c95ebfb5a3a3bae84d8bebd662cc25
+- **Apprentice-onboarding** (program methodology, tool schedule, assignment briefs): https://github.com/Navigators-Guild/apprentice-onboarding
+- **CLAUDE.md** (may be superseded — verify against current apprentice-onboarding): https://gist.github.com/dollspace-gay/ef132e60a27abe6d5f87297c1c040dca
+- **Crosslink** (issue tracker, Phase 2+): https://github.com/forecast-bio/crosslink
 
 ## Domains
 
 | Domain | Prompt file | Focus |
 |---|---|---|
-| Quality Engineering | [QUALITY-ENGINEERING-REVIEW.md](QUALITY-ENGINEERING-REVIEW.md) | Test system: acceptance criteria, falsifiability, coverage meaningfulness, logic errors, dead code, dependencies, security surface, regression coverage, quality gates |
+| Quality Engineering | [QUALITY-ENGINEERING-REVIEW.md](QUALITY-ENGINEERING-REVIEW.md) | Test system: acceptance criteria, falsifiability, Red Gate compliance, coverage meaningfulness, logic errors, dead code, dependencies, security surface, regression coverage, quality gates, TDD proxy indicators |
 | UX | [UX-REVIEW.md](UX-REVIEW.md) | User experience: empty states, error messages, focus and keyboard behavior, visual consistency, affordances, feedback patterns, long content, native dialog quality. Standard dimensions assume browser interface — see `lang/cli.md` for CLI projects. |
 | Security | [SECURITY-REVIEW.md](SECURITY-REVIEW.md) | Input handling, persistence data validation, dependency CVEs, secret handling, information exposure, authentication and authorization |
 | Platform Engineering | [PLATFORM-ENGINEERING-REVIEW.md](PLATFORM-ENGINEERING-REVIEW.md) | CI/CD pipeline, gate enforcement, DevSecOps (pre-commit hooks, security scanning, secret management, supply chain integrity, least privilege), infrastructure as code, containerization, environment parity, observability |
-| Solution Architect | [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) | Architecture: separation of concerns, coupling, data model integrity, interface contracts, state management, immutability, extensibility, technology fitness, complexity budget, decision documentation, session continuity |
-| Solution Owner | [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) | Spec contract: spec coverage, scope creep, technology compliance, over-engineering, under-delivery, design fidelity, backlog candidates, prior-review additions, assignment compliance. Opens with a compliance table. DESIGN.md is the contract. |
+| Solution Architect | [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) | Architecture: separation of concerns, coupling, data model integrity, interface contracts, state management, immutability, extensibility, technology fitness, complexity budget, decision documentation, session continuity, VSDD purity boundary map |
+| Solution Owner | [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) | Spec contract: spec coverage, scope creep, technology compliance, over-engineering, under-delivery, design fidelity, backlog candidates, prior-review additions, assignment compliance (phase-appropriate). Opens with a compliance table. DESIGN.md is the contract. |
 | Software Engineering | [SOFTWARE-ENGINEERING-REVIEW.md](SOFTWARE-ENGINEERING-REVIEW.md) | Implementation: correctness, error handling, naming, function design, duplication, complexity, type safety, defensive coding, comments, consistency, future-self maintainability |
 | Data Engineering | [DATA-ENGINEERING-REVIEW.md](DATA-ENGINEERING-REVIEW.md) | Data layer: data model correctness, validation and normalization, schema evolution, data integrity, storage fitness, access patterns, serialization, consistency, sensitive data handling. Optional for projects without a meaningful data layer. |
-| VDD-IAR Alignment | [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md) | Process: design-before-code, layered decomposition, layer gate compliance, test discipline, human verification, IAR fresh context, IAR iteration, role integrity, manual testing checklists, retrospective quality |
+| VDD-IAR Alignment | [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md) | Process and governing doc compliance: design-before-code, spec completeness (VSDD Phase 1), layered decomposition, layer gate compliance, test discipline (Red Gate), human verification, IAR fresh context, IAR iteration, role integrity, manual testing checklists, retrospective quality, issue tracking compliance |
 
-Each domain file contains the current prompt and standard dimensions for that domain. Review entries are logged separately under `iterative-adversarial-refinement/` inside the project being reviewed.
+Each domain file contains the current prompt and standard dimensions. Review entries are logged separately under `iterative-adversarial-refinement/` inside the project being reviewed.
+
+The suite's own adversarial review history is logged in [`SUITE-REVIEW.md`](SUITE-REVIEW.md).
+
+## Session primers
+
+Session primers prime a session for building, not reviewing. They are used at the start of a phase before any artifacts exist.
+
+| Primer | File | When to use |
+|---|---|---|
+| Spec Crystallization | [`prompts/spec-crystallization.md`](prompts/spec-crystallization.md) | Starting a new project. Use this before writing DESIGN.md. Drives behavioral contracts, edge cases, interface definitions, verification architecture. |
+| Decomposition | [`prompts/decomposition.md`](prompts/decomposition.md) | After DESIGN.md is complete and argued with. Use this to produce TODO.md with layered acceptance criteria, Red Gate test plans, manual testing checklists, and (Phase 2+) crosslink issue hierarchy. |
+
+The spec crystallization primer establishes the adversarial posture for spec *writing* — the adversary applies pressure during Phase 1, not only during Phase 4. A spec that was never argued with before implementation began will produce IAR findings that trace back to spec incompleteness, not implementation error.
 
 ## Language and interface supplements
 
@@ -85,7 +120,7 @@ After all specialist domains pass, optionally run an unstructured general pass w
 
 Any domain review may propose adding a new review domain to IAR. Log it as a finding — include a proposed name, purpose statement, and an initial set of standard dimensions. If adopted, create the prompt file here, add it to the table above, and update the project's design document, task list, and PR template.
 
-Candidate domains to consider as a project grows: Performance, Internationalisation, SEO, Privacy.
+Candidate domains to consider as a project grows: Performance, Internationalisation, SEO, Privacy, Formal Verification (for VSDD Phase 5+).
 
 The `GAP-ANALYSIS-LOG.md` tracks gap analysis runs against the suite itself. Re-run it when the suite changes, a new project type is being evaluated, or a post-mortem reveals a class of defect the suite did not catch.
 
@@ -117,7 +152,7 @@ Review entries are stored outside the prompt files to keep the prompts stable an
     VDD-IAR-ALIGNMENT-REVIEW.md
 ```
 
-The `lang/` folder and `GAP-ANALYSIS-LOG.md` live in the suite template, not in individual projects.
+The `lang/` folder, `GAP-ANALYSIS-LOG.md`, `SUITE-REVIEW.md`, and `prompts/` live in the suite template, not in individual projects.
 
 Only include log files for the domains active on the project. Each log file follows the same structure: scope line, round number, then findings classified as **resolved**, **dismissed**, **hallucinated** (and **accepted risk** for Security, **backlogged** for Solution Owner).
 

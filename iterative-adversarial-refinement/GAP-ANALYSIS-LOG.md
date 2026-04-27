@@ -80,6 +80,8 @@ Living table of all identified gaps. Update statuses here as gaps are addressed 
 | G-53 | Spec crystallization quality unowned: VSDD Phase 1 behavioral contracts, edge case catalog, verification architecture not evaluated by any domain | Dimension gap | High | High | Addressed | 2026-04-27 | 2026-04-27 |
 | G-54 | Four-dimensional convergence one-dimensional: exit signal tracks implementation MVR only; spec MVR, test MVR, and verification MVR are untracked | Structural gap | High | Medium | Open | 2026-04-27 | 2026-04-27 |
 | G-55 | Formal hardening completely unowned: VSDD Phase 5 (proof harnesses, fuzzing, mutation testing, purity boundary audit) has no domain; not even listed as a gap for applicable projects | Missing domain | High | Low | Open | 2026-04-27 | 2026-04-27 |
+| G-56 | VSDD purity boundary map unowned: no domain enforced pure-core/effectful-shell separation required by VSDD verification architecture | Dimension gap | High | Medium | Addressed | 2026-04-27 | 2026-04-27 |
+| G-57 | No effectiveness test for domain prompts: suite correctness verified only through application on real projects; no benchmark project with known defects to validate prompts catch what they claim | AI-workflow gap | Medium | Medium | Open | 2026-04-27 | 2026-04-27 |
 
 **Status values:** Open · Addressed · Deferred · Dismissed · Context-Dependent
 
@@ -684,3 +686,54 @@ The claude.md governing reference (may be superseded) specified cargo-deny, carg
 **lang/rust.md updated** — cargo-deny, cargo-vet, clippy lint config, coverage thresholds added across QE, Security, SE, PE sections.
 
 **Remaining open:** G-34, G-36, G-54, G-55. G-54 and G-55 are context-dependent; low severity for current portfolio work.
+
+---
+
+## Run 8 — 2026-04-27
+
+**Context:** Meta-adversarial review — IAR suite applied to itself. Prompted by a request to apply the adversary to the suite using governing docs as context, update the README to reflect suite evolution, and add session priming prompts for methodology execution.
+
+**Suite state at time of run:** Nine domains. VDD-IAR Alignment with 11 dimensions + program phase context. Red Gate enforced in dims 4 and QE dim 2. TDD proxy indicators in QE dim 14. Governing references in VDD-IAR Alignment. 55 gaps registered before this run.
+
+**Governing references consulted:** VSDD whitepaper, VDD whitepaper, apprentice-onboarding, crosslink, chainlink (as full-text content).
+
+**Key framing:** IAR suite fills VSDD Phase 4 (Adversarial Refinement). VDD-IAR Alignment evaluates whether the adversary ran with integrity. This run applied that same evaluation to the suite itself.
+
+### Findings
+
+**G-56 — VSDD purity boundary map unowned (High)**
+
+VSDD requires a verification architecture that identifies the pure/deterministic core and the effectful shell. This separation enables unit testing without mocking, formal verification of pure functions, and clear testability boundaries. SA dim 1 (separation of concerns) touched on layering but did not enforce the purity concept. No language supplement named it.
+
+*Decision:* Add SA dim 12 (VSDD purity boundary map). Add SA section to JS/TS supplement (the only supplement missing one) with purity boundary, module organization, state flow, and event handler coupling dimensions.
+
+**G-56 addressed** — SA dim 12 added. `lang/javascript-typescript.md` SA section added.
+
+**G-57 — No effectiveness test for domain prompts (Medium)**
+
+The suite's correctness is verified only through application. There is no benchmark project with known defect types to validate that prompts catch what they claim. This is a real limitation but premature to address — the suite needs more project history before a benchmark is meaningful.
+
+*Decision:* Log as open. Reassess after 3+ projects with documented post-mortems.
+
+**Session priming absent (resolved)**
+
+See SUITE-REVIEW.md. Two session primers created: `prompts/spec-crystallization.md` (VSDD Phase 1) and `prompts/decomposition.md` (VSDD Phase 1b). README updated with session primers section.
+
+**VSDD not in README (resolved)**
+
+README rewritten to position IAR as VSDD Phase 4, describe the full pipeline, surface governing references at top level, and link to session primers. Previous README referenced only "VDD" — now references VSDD throughout with a pipeline context table.
+
+**VDD-IAR Alignment: language supplement note absent (resolved)**
+
+Every other domain has a language supplement instruction. VDD-IAR Alignment was the only domain without a note explaining why — a reviewer might assume it was accidentally omitted. Added explicit note that language supplements do not apply (process compliance is language-agnostic).
+
+### Suite changes made as a result of this run
+
+**G-56 addressed** — SA dim 12 added; JS/TS supplement SA section added.
+**G-57 registered** — Open. Medium severity.
+**SUITE-REVIEW.md created** — Meta-review log for adversarial runs against the suite itself.
+**prompts/ directory created** — Session priming prompts for Phase 1 (spec crystallization) and Phase 1b (decomposition).
+**README.md rewritten** — VSDD pipeline context, governing references, session primers, phase pipeline table, updated domain table with current dimensions.
+**VDD-IAR Alignment** — Language supplement N/A note added.
+
+**Remaining open:** G-34, G-36, G-54, G-55, G-57.

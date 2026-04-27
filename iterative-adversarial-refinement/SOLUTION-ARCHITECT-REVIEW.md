@@ -34,6 +34,16 @@ Regression check: verify that architectural decisions from prior layers are stil
 10. **Decision documentation** — Are significant architectural decisions recorded with rationale?
 11. **Session continuity** — Are the architectural decisions, constraints, and rationale from this project documented in a form that a new AI session can act on without rediscovering them? Decisions that live only in conversation history are invisible to future sessions and to future-you. Flag significant decisions that have no durable record outside the code itself.
 
+12. **VSDD purity boundary map** — Is there an explicit boundary between the pure/deterministic core and the effectful shell? Pure functions (no I/O, no side effects, deterministic output for identical input) are verifiable — they can be unit tested without mocking, property-tested, and in Phase 5+ formally proven. Effectful code (I/O, storage, network, DOM, randomness, time) cannot be formally verified and should form a thin shell around the pure core.
+
+   Evaluate:
+   - Are validation, transformation, and business logic functions pure — do they take input and return output with no side effects?
+   - Are storage reads/writes, DOM manipulation, fetch calls, and other effects isolated to dedicated effectful functions that call pure functions for logic?
+   - Is the boundary respected consistently, or do pure functions occasionally reach out for I/O (reading from storage mid-computation, logging, calling APIs)?
+   - Is the boundary documented in DESIGN.md as a verification architecture decision, or only implicit in the code structure?
+
+   This boundary matters immediately (pure functions are trivially unit-testable) and long-term (pure functions are candidates for formal verification in VSDD Phase 5). A codebase where pure logic and effects are entangled throughout is harder to test, harder to maintain, and harder to verify.
+
 ---
 
 Review entries are logged in `iterative-adversarial-refinement/SOLUTION-ARCHITECT-REVIEW.md` inside the project being reviewed.
