@@ -37,6 +37,14 @@ Regression check: verify that all previously-working features still work. Prior 
 11. **Security surface** — Is user content rendered safely? Are user-supplied inputs validated before storage or output? Is data loaded from storage runtime-validated? Any new CVEs in dependencies? (See language and interface supplement for language-specific tooling.)
 12. **Regression coverage** — Does every bug logged in the review log have an identifiable regression test? Flag any whose regression path is untested.
 13. **Quality gates** — Are coverage thresholds, linting, and test runs enforced automatically? Are any quality checks manual-only that a passing CI run could miss?
+14. **TDD proxy indicators** — Does the test suite exhibit the structural characteristics of test-first development? IAR cannot directly observe when tests were written, but TDD leaves a fingerprint in the artifact. Evaluate:
+   - *Interface focus:* Do tests call the implementation at its public interface, or do they reach into internal details? Test-first forces interface-first design — the caller (the test) must exist before the implementation, so the interface must be defined first.
+   - *Failure specificity:* Would each test have failed against an empty or trivially wrong implementation? A test that could pass before the function existed was not written first. A test suite where every test would pass against `return null` is a quality failure regardless of when it was written.
+   - *Behavioral naming:* Are tests named for expected behavior ("returns null for empty input") rather than code structure ("tests the validation function")? Test-first produces behavior-named tests because the test describes intent before the code expresses it.
+   - *Branch distribution:* Does branch coverage look earned — tests for each case implying the case was considered before it was handled — or does it look bolted on, with one long happy-path test covering most lines and separate small tests added to hit missed branches?
+   - *Absence of implementation coupling:* Do refactors that preserve behavior break tests? If they do, tests are bound to implementation, not behavior — a sign they were written after the fact to match existing code rather than to specify required behavior.
+
+   Findings here are corroborating evidence for VDD-IAR Alignment dim 4. A clean pass here alongside test-after commit patterns is a signal that tests were written quickly after implementation rather than long after; it does not clear the process finding.
 
 ---
 

@@ -26,7 +26,11 @@ For each finding, cite the specific artifact and location (commit hash, log entr
 
 3. **Layer gate compliance** — Was each layer fully verified and gated before the next began? Is there evidence that: acceptance criteria were checked, tests passed, IAR ran, and the layer was explicitly closed before the next opened? A commit that introduces features from a new layer before the previous layer's IAR log is complete is a finding.
 
-4. **Test discipline** — Were tests written alongside or before implementation? Look at the commit pattern: does a feature commit have corresponding tests in the same or immediately prior commit, or do tests arrive in a batch at the end of a layer? Test-after patterns are a yellow flag; a single commit adding all tests for an already-completed layer is a finding. Exceptions require explicit documented rationale.
+4. **Test discipline** — Were tests written before or alongside implementation, not after? This is a finding, not a yellow flag. Look at the commit pattern: does each feature commit include corresponding tests, or do tests arrive in a batch after the implementation is complete? A commit that adds all tests for an already-completed layer is a finding. A layer where implementation commits consistently precede any test commits is a finding. Exceptions require explicit documented rationale — "I wrote the test first but committed them together" is acceptable if other evidence supports it; "the tests came later because I wanted to get the code working first" is not.
+
+   Positive evidence of test-first: tests committed in the same commit as or before the implementation they cover; CI history or commit messages showing tests failing before a fix was applied; test names that describe intended behavior before the implementation existed ("should reject empty titles" written before `validateTitle`).
+
+   When evidence is ambiguous, assess the QE dimension 14 (TDD proxy indicators) for corroborating artifact evidence. Process and artifact evidence together are more reliable than either alone.
 
 5. **Human verification** — Is there documented evidence that the human director verified each layer against intent — a completed manual testing checklist, an explicit sign-off, or a layer gate record? AI-only verification is not sufficient. Code that the builder wrote and the adversary reviewed but the human never ran is not verified. The absence of any human verification artifact is a finding.
 

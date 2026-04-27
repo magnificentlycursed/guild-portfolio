@@ -1,5 +1,13 @@
 # Bookmark Manager — Changelog
 
+## 2026-04-27 — QE dim 14 review; VDD-IAR Alignment dim 4 re-evaluated under hardened standard
+
+### Changed
+- `iterative-adversarial-refinement/QA-REVIEW.md` — Review 10 logged; dim 14 (TDD proxy indicators) applied retroactively; all five indicators positive; dismissed
+- `iterative-adversarial-refinement/VDD-IAR-ALIGNMENT-REVIEW.md` — Dim 4 re-evaluated under hardened standard (test-after is a finding, not a yellow flag); co-commit pattern plus positive QE dim 14 evidence supports dismissal; QE dim 14 review pending noted
+
+---
+
 ## 2026-04-25 — IAR suite expanded; renamed adversarial-iterative-refinement → iterative-adversarial-refinement
 
 ### Added

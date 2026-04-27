@@ -76,6 +76,7 @@ Living table of all identified gaps. Update statuses here as gaps are addressed 
 | G-49 | PE posture misrepresented as adversarial review; sycophancy check too generic | Structural gap | Low | Low | Addressed | 2026-04-26 | 2026-04-26 |
 | G-50 | No generalist adversary pass (unstructured review complementing specialists) | Missing capability | Low | Medium | Addressed | 2026-04-26 | 2026-04-26 |
 | G-51 | No VDD-IAR Alignment domain: process compliance unowned | Missing domain | High | High | Addressed | 2026-04-26 | 2026-04-26 |
+| G-52 | Test discipline: VDD-IAR Alignment dim 4 treated test-after as yellow flag, not finding; no TDD proxy indicators in QE | Dimension gap | High | High | Addressed | 2026-04-27 | 2026-04-27 |
 
 **Status values:** Open · Addressed · Deferred · Dismissed · Context-Dependent
 
@@ -571,5 +572,29 @@ Process compliance had no owner. Test discipline, layer gate compliance, IAR fre
 **G-50 addressed** — Generalist adversary pass documented as optional README note.
 
 **G-51 addressed** — VDD-IAR-ALIGNMENT-REVIEW.md created. Added to domain table, sequencing, and merging gate.
+
+---
+
+## Run 6 — 2026-04-27
+
+**Context:** Targeted review of TDD enforcement. Prompted by direct question: does the IAR suite enforce TDD best practices?
+
+**Suite state at time of run:** Nine domains including VDD-IAR Alignment. Prompted evaluation of whether test-first discipline is enforced anywhere in the suite.
+
+### Finding
+
+**G-52 — Test discipline enforcement too weak; TDD proxy indicators absent from QE**
+
+VDD-IAR Alignment dim 4 treated test-after patterns as "a yellow flag" rather than a finding. No domain evaluated whether tests exhibit structural characteristics of test-first development.
+
+The gap has two layers:
+
+1. **Process enforcement (VDD-IAR Alignment):** Dim 4 needed to be hardened — test-after is a finding, not a flag. Positive evidence of test-first should be defined (co-committed tests, failing-test CI evidence, behavior-named tests predating implementation). The "same commit" exception is acceptable with documented rationale; "I wanted to get the code working first" is not.
+
+2. **Artifact enforcement (QE):** No dimension asked whether tests exhibit TDD fingerprints — interface focus, failure specificity against naive implementations, behavioral naming, earned branch distribution, absence of implementation coupling. These are observable from the test artifact without requiring knowledge of when tests were written.
+
+Note: VDD's methodology document (01-how-we-build.md) sequences code-before-tests explicitly. The TDD enforcement here is a deliberate addition beyond VDD's baseline, not a correction to VDD alignment.
+
+**G-52 addressed** — VDD-IAR Alignment dim 4 hardened: test-after is a finding; positive evidence criteria defined; cross-reference to QE dim 14 added. QE dim 14 (TDD proxy indicators) added: interface focus, failure specificity, behavioral naming, branch distribution, implementation coupling.
 
 **Remaining open:** G-34, G-36. No new gaps identified in this run.
