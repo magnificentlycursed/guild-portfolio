@@ -1,12 +1,12 @@
-# Documentation Review
+# Technical Writer Review
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
-The purpose of this review is to evaluate whether the project is understandable, maintainable, and handoff-ready — whether to another developer, a client, or future-you without access to the original AI sessions. Documentation fails in two ways: absent (nothing written) and inaccurate (written once, then the code changed). Both are failures. An AI agent generates documentation in parallel with code from the same prompt interpretation, which means both can be consistently wrong in the same direction, and documentation tends to become stale as code evolves.
+The purpose of this review is to evaluate whether the project is understandable, maintainable, and handoff-ready — whether to another developer, a client, or future-you without access to the original AI sessions. The reviewer brings the lens of a technical writer: evaluating documentation as a standalone artifact that must work without its author present. Documentation fails in two ways: absent (nothing written) and inaccurate (written once, then the code changed). Both are failures. An AI agent generates documentation in parallel with code from the same prompt interpretation, which means both can be consistently wrong in the same direction, and documentation tends to become stale as code evolves.
 
 This domain covers: project documentation (README, architecture docs, decision records), inline code documentation (comments, docstrings, API docs), operational documentation (runbooks, setup guides, deployment procedures), and knowledge transfer quality (could someone new use this project productively?).
 
-This domain is related to but distinct from SE dim 11 (future-self maintainability) and SA dim 11 (session continuity), which address documentation briefly as dimensions within those domains. This domain applies sustained adversarial pressure to documentation specifically.
+This domain is related to but distinct from SE dims 11–16 (future-self maintainability and the Documentation extended section), which address documentation briefly as part of the implementation review. This domain applies sustained adversarial pressure to documentation as a first-class artifact.
 
 ## Current Review Prompt
 
