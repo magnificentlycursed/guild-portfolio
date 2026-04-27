@@ -1,5 +1,12 @@
 # Bookmark Manager — Changelog
 
+## 2026-04-27 — IAR suite updated; VSDD governing references added; dim 11 N/A annotated
+
+### Changed
+- `iterative-adversarial-refinement/VDD-IAR-ALIGNMENT-REVIEW.md` — Dim 11 (issue tracking compliance) annotated as Not Applicable: Phase 1 project, crosslink not yet introduced; summary updated accordingly
+
+---
+
 ## 2026-04-27 — QE dim 14 review; VDD-IAR Alignment dim 4 re-evaluated under hardened standard
 
 ### Changed

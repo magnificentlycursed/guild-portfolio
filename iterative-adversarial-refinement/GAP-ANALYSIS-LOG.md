@@ -77,6 +77,9 @@ Living table of all identified gaps. Update statuses here as gaps are addressed 
 | G-50 | No generalist adversary pass (unstructured review complementing specialists) | Missing capability | Low | Medium | Addressed | 2026-04-26 | 2026-04-26 |
 | G-51 | No VDD-IAR Alignment domain: process compliance unowned | Missing domain | High | High | Addressed | 2026-04-26 | 2026-04-26 |
 | G-52 | Test discipline: VDD-IAR Alignment dim 4 treated test-after as yellow flag, not finding; no TDD proxy indicators in QE | Dimension gap | High | High | Addressed | 2026-04-27 | 2026-04-27 |
+| G-53 | Spec crystallization quality unowned: VSDD Phase 1 behavioral contracts, edge case catalog, verification architecture not evaluated by any domain | Dimension gap | High | High | Addressed | 2026-04-27 | 2026-04-27 |
+| G-54 | Four-dimensional convergence one-dimensional: exit signal tracks implementation MVR only; spec MVR, test MVR, and verification MVR are untracked | Structural gap | High | Medium | Open | 2026-04-27 | 2026-04-27 |
+| G-55 | Formal hardening completely unowned: VSDD Phase 5 (proof harnesses, fuzzing, mutation testing, purity boundary audit) has no domain; not even listed as a gap for applicable projects | Missing domain | High | Low | Open | 2026-04-27 | 2026-04-27 |
 
 **Status values:** Open · Addressed · Deferred · Dismissed · Context-Dependent
 
@@ -598,3 +601,86 @@ Note: VDD's methodology document (01-how-we-build.md) sequences code-before-test
 **G-52 addressed** — VDD-IAR Alignment dim 4 hardened: test-after is a finding; positive evidence criteria defined; cross-reference to QE dim 14 added. QE dim 14 (TDD proxy indicators) added: interface focus, failure specificity, behavioral naming, branch distribution, implementation coupling.
 
 **Remaining open:** G-34, G-36. No new gaps identified in this run.
+
+---
+
+## Run 7 — 2026-04-27
+
+**Context:** Suite evaluated against VSDD whitepapers, full apprentice-onboarding repo, and authoritative tool documentation (crosslink, chainlink). Prompted by the question: does the IAR suite accurately reflect VSDD's current methodology, and are tool/phase requirements correctly represented?
+
+**Suite state at time of run:** Nine domains. VDD-IAR Alignment with 10 dimensions. TDD enforcement active (dim 4 hardened, QE dim 14 added). 52 gaps registered before this run.
+
+**Governing references consulted:**
+- VSDD whitepaper: https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00
+- Original VDD whitepaper: https://gist.github.com/dollspace-gay/45c95ebfb5a3a3bae84d8bebd662cc25
+- Apprentice-onboarding: https://github.com/Navigators-Guild/apprentice-onboarding
+- CLAUDE.md (may be superseded): https://gist.github.com/dollspace-gay/ef132e60a27abe6d5f87297c1c040dca
+- Crosslink: https://github.com/forecast-bio/crosslink
+- Chainlink: https://github.com/dollspace-gay/chainlink
+
+**Key clarification:** The IAR suite fills the role of the **adversary** in the VSDD pipeline — specifically VSDD Phase 4 (Adversarial Refinement). The suite is not just inspired by adversarial review; it IS the adversary mechanism. VDD-IAR Alignment evaluates whether the adversary ran with integrity. This framing is now captured in the VDD-IAR Alignment domain intro.
+
+### Findings
+
+**G-53 — Spec crystallization quality unowned (High)**
+
+VSDD Phase 1 defines a spec completeness standard beyond "does a design doc exist": behavioral contracts (preconditions, postconditions, invariants), exhaustive edge case catalog, interface definitions, and verification architecture. No domain evaluated this. The SO domain checked whether the implementation matches the spec; the VDD-IAR Alignment domain checked whether the spec predated implementation. Neither checked whether the spec was complete enough to support valid verification.
+
+A spec that enumerates only happy-path features is effectively unverifiable — the edge cases and failure modes are underdefined, so tests written against it cover only what was anticipated, not what could go wrong.
+
+*Decision:* Add spec completeness criteria to VDD-IAR Alignment dim 1 expansion. This is the appropriate home: VDD-IAR Alignment owns the Phase 1 design gate, and completeness is a Phase 1 attribute.
+
+**G-53 addressed** — VDD-IAR Alignment dim 1 expanded with VSDD Phase 1 spec completeness criteria: behavioral contracts, edge case catalog, interface definitions, verification architecture.
+
+**G-54 — Four-dimensional convergence one-dimensional (High)**
+
+VSDD Phase 6 defines a four-dimensional convergence exit: spec, tests, implementation, AND formal verification must all independently reach MVR. The IAR suite currently tracks only implementation MVR — the point where the adversary produces only hallucinated findings about the code. Spec MVR (the spec has no underdefined behaviors), test MVR (the test suite has no structural weaknesses), and verification MVR (formal proofs or proof harnesses pass) have no tracking mechanism.
+
+In practice, a project where the implementation is refined to MVR but the spec still has gaps or the tests still have structural weaknesses from G-52 has not fully converged. The exit signal would fire prematurely.
+
+*Decision:* Log as open. This is a structural gap that may require adding dimensions to multiple domains or a new convergence-tracking mechanism. Defer to a future run when the suite is being applied to VSDD Phase 5+ work.
+
+**G-55 — Formal hardening completely unowned (High)**
+
+VSDD Phase 5 defines a formal hardening stage: proof harnesses (Kani for Rust, Dafny), fuzzing (AFL++, cargo-fuzz), mutation testing (mutmut, Stryker), and purity boundary audit. No IAR domain owns this. It is not even listed as a gap — meaning a Phase 5 project evaluated with this suite would get no adversarial pressure on its most sophisticated quality guarantees.
+
+For personal portfolio projects (Phase 1–3), this gap is low severity — formal hardening is not required. For Phase 4 capstone or any VSDD Phase 5 work, it is a critical missing domain.
+
+*Decision:* Log as open. This warrants a dedicated domain (Formal Verification Review) when the suite is first applied to Phase 5 work. For now, note as a context-dependent gap: irrelevant for Phase 1–3, critical for Phase 4+ and any mission-critical deployment.
+
+**Issue tracking compliance — not a gap, a phase sequencing clarification**
+
+The suite had no mechanism for evaluating crosslink compliance (or its absence) in a phase-appropriate way. Phase 1 projects are exempt; Phase 2+ projects are required to use crosslink. An evaluator running VDD-IAR Alignment on a Phase 1 project and finding no crosslink usage would have no guidance on whether this is a finding or correct phase alignment.
+
+*Decision:* Add VDD-IAR Alignment dim 11 (issue tracking compliance) with explicit phase exemptions. Add program phase context section. Update SO dim 9 (assignment compliance) to clarify that absent Phase 2+ tools in Phase 1 projects are not scope deviations.
+
+**Dim 11 and program phase note addressed** — VDD-IAR Alignment dim 11 added. Program phase context section added. SO dim 9 updated.
+
+**Red Gate not explicit in QE dim 2**
+
+VDD-IAR Alignment dim 4 states the Red Gate principle (tests must fail before implementation). QE dim 2 (falsifiability) asked whether tests catch broken implementations but did not explicitly ask whether tests would have passed against a pre-implementation stub — which is the Red Gate criterion. These are related but distinct: a test can catch a broken implementation without having been written first.
+
+*Decision:* Add Red Gate language to QE dim 2, cross-referencing VDD-IAR Alignment dim 4.
+
+**QE dim 2 Red Gate addressed** — Red Gate language added to QE dim 2.
+
+**lang/rust.md gaps from claude.md**
+
+The claude.md governing reference (may be superseded) specified cargo-deny, cargo-vet, stricter clippy lint configuration (`#![deny(clippy::all, clippy::pedantic, clippy::nursery, clippy::unwrap_used, clippy::expect_used, clippy::panic, ...)]`), and coverage thresholds (80% minimum / 100% public API). None of these were in lang/rust.md.
+
+*Decision:* Add to lang/rust.md with sourcing note (claude.md, may be superseded). Applied in Security (cargo-deny, cargo-vet), Platform Engineering (cargo-deny, cargo-vet, coverage enforcement), Quality Engineering (coverage thresholds), and Software Engineering (clippy lint configuration).
+
+**lang/rust.md addressed** — All four sections updated.
+
+### Suite changes made as a result of this run
+
+**G-53 addressed** — VDD-IAR Alignment dim 1 expanded with VSDD Phase 1 spec completeness criteria.
+**G-54 registered** — Four-dimensional convergence gap logged as Open. Context-dependent: low for Phase 1–3, high for Phase 4+.
+**G-55 registered** — Formal hardening gap logged as Open. Context-dependent: low for Phase 1–3, critical for Phase 4+ and mission-critical.
+**Dim 11 added** — VDD-IAR Alignment dim 11 (issue tracking compliance) and program phase context section added.
+**SO dim 9 updated** — Phase-appropriate tool introduction language added.
+**QE dim 2 updated** — Red Gate language added.
+**VDD-IAR Alignment intro updated** — IAR-as-adversary framing and governing references section added.
+**lang/rust.md updated** — cargo-deny, cargo-vet, clippy lint config, coverage thresholds added across QE, Security, SE, PE sections.
+
+**Remaining open:** G-34, G-36, G-54, G-55. G-54 and G-55 are context-dependent; low severity for current portfolio work.

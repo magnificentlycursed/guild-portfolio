@@ -26,6 +26,8 @@ Regression check: verify that all previously-working features still work. Prior 
 
 1. **Acceptance criteria** — Are all criteria from DESIGN.md actually met by the implementation, not just implied? Trace each feature to its test coverage.
 2. **Test falsifiability** — Would each test catch a broken implementation? Could any test pass against wrong code? A test that cannot fail on a defective implementation has no value.
+
+   **Red Gate:** A test that passes against an empty function body or a trivially wrong stub implementation was not written first. Evaluate whether each test would have failed before its corresponding implementation existed. A test suite where every test passes against `return null` or `return undefined` is a quality failure regardless of when the tests were written. This is corroborating evidence for VDD-IAR Alignment dim 4 — if tests could not have been written before the implementation (because they would have passed immediately), the Red Gate was not enforced.
 3. **Test selector and assertion strength** — Are selectors, matchers, and assertions tight enough to fail on a broken implementation? Vague assertions (e.g., checking presence but not content) are a quality gap.
 4. **Coverage meaningfulness** — Does coverage reflect genuine confidence, or are covered lines trivially exercised? Are branches, edge cases, and error paths tested, not just happy paths?
 5. **Test architecture** — Is the test suite structured for maintainability? Are tests independent? Do they share state in ways that could cause order-dependent failures?

@@ -38,6 +38,8 @@ This review does not block bug fixes or defect resolution. It blocks additions.
 8. **Prior-review additions** — Did findings from other IAR domains introduce behavior, structure, or technology not covered by DESIGN.md? Each such addition requires explicit SO approval. Other domains optimize within the spec; they do not expand it.
 9. **Assignment compliance** — Does DESIGN.md accurately reflect the upstream assignment brief, or did scope creep enter at the design stage? Read the assignment instructions alongside DESIGN.md. Flag technology choices, constraints, tooling, or scope additions in DESIGN.md that deviate from the assignment. A student who scope-creeps their own design doc before writing a line of code will pass every other SO dimension and still fail an external review. DESIGN.md is only authoritative as a contract if it faithfully represents what was asked for.
 
+   **Program phase tool introduction:** The assignment brief does not prescribe every tool — the apprentice-onboarding program introduces tools progressively by phase. Absence of a Phase 2+ tool in a Phase 1 project is not a scope deviation; it is correct phase alignment. Do not flag crosslink, formal verification harnesses, or other Phase 2+ requirements as missing from Phase 1 projects. Consult `apprentice-onboarding/` for the authoritative tool introduction schedule before flagging tool-related compliance gaps. When in doubt, the question is: was this tool required by the assignment as issued, or was it introduced later in the program?
+
 ---
 
 Review entries are logged in `iterative-adversarial-refinement/SOLUTION-OWNER-REVIEW.md` inside the project being reviewed.
