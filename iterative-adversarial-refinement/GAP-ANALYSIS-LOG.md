@@ -104,6 +104,14 @@ Living table of all identified gaps. Update statuses here as gaps are addressed 
 | G-77 | Sycophancy check boilerplate: identical text across all 9 domains reduces salience; domain-specific failure modes not named | Structural gap | Medium | Medium | Addressed (QE/Security/SA/SE) | 2026-04-27 | 2026-04-27 |
 | G-78 | prompts/spec-crystallization.md: driving questions UI-centric; no project type framing for library/CLI/infra/research | Prompt gap | Medium | High | Addressed | 2026-04-27 | 2026-04-27 |
 | G-79 | prompts/decomposition.md: crosslink conflated with all projects; principle/tool separation absent; crosslink replaces TODO.md not stated | Prompt gap | Medium | Medium | Addressed | 2026-04-27 | 2026-04-27 |
+| G-02 | Performance and Scalability domain missing | Missing domain | Critical | Defer | Addressed | 2026-04-25 | 2026-04-27 |
+| G-03 | Privacy domain missing (listed as candidate) | Missing domain | Critical | Medium | Addressed | 2026-04-25 | 2026-04-27 |
+| G-34 | No learning/craft development assessment (portfolio: do you understand what was built?) | Personal-use gap | N/A | High | Addressed | 2026-04-25 | 2026-04-27 |
+| G-80 | Accessibility evaluated only as UX dimensions; no full domain for WCAG depth, screen reader testing, cognitive accessibility, dynamic announcements | Missing domain | High | High | Addressed | 2026-04-27 | 2026-04-27 |
+| G-81 | No Observability domain for application-layer diagnostics (error classification, structured logging, diagnostic completeness, health surfaces) | Missing domain | High | Medium | Addressed | 2026-04-27 | 2026-04-27 |
+| G-12 | Quality Engineering: no integration/contract testing mandate | Dimension gap | High | Low | Addressed (API-CONTRACT-REVIEW.md) | 2026-04-25 | 2026-04-27 |
+| G-82 | No Documentation domain: documentation accuracy, knowledge transfer, AI session independence evaluated only as brief SE/SA dimensions | Missing domain | High | High | Addressed | 2026-04-27 | 2026-04-27 |
+| G-83 | No Localization domain: i18n readiness entirely unowned; locale assumptions baked in by AI agent without surfacing | Missing domain | Medium | High | Addressed | 2026-04-27 | 2026-04-27 |
 
 **Status values:** Open · Addressed · Deferred · Dismissed · Context-Dependent
 
@@ -791,3 +799,35 @@ Every other domain has a language supplement instruction. VDD-IAR Alignment was 
 **VDD-IAR Alignment dim 2:** Added note that TODO.md (Phase 1) is replaced by crosslink (Phase 2+) — not maintained in parallel.
 
 **Remaining open:** G-34, G-36, G-54, G-55, G-57. G-20/21/23 partially resolved; full resolution requires a dedicated cross-cutting mechanism not yet designed.
+
+---
+
+## Run 10 — 2026-04-27
+
+**Context:** Drafting missing and overlooked technical domains. Prompted by question: what technical domains are overlooked or missing? User confirmed: draft all of them, plus Documentation/Knowledge Transfer/Maintainability and Localization/i18n.
+
+**Suite state at time of run:** Nine core domains. Eight new domains drafted this run. README extended domain table added. Gap registry updated.
+
+### New domains drafted
+
+**Performance (G-02 addressed):** 10 dimensions — time-to-interactive, main thread saturation, asset optimization, data scaling, N+1 patterns, caching/memoization, memory growth, performance budget, testing methodology, regression risk. Calibrated for browser apps and data-intensive tools; light application for simple local tools.
+
+**Accessibility (G-80 addressed):** 13 dimensions — axe scan baseline (floor, not ceiling), keyboard navigation completeness, focus management, focus trap compliance (WCAG 2.1 Level A), ARIA correctness, color contrast, form accessibility, semantic HTML, dynamic content announcements (aria-live), cognitive accessibility, reduced motion, zoom/reflow, regression. Separated from UX domain because accessibility has sufficient depth to warrant dedicated adversarial pressure.
+
+**Privacy (G-03 addressed):** 10 dimensions — data inventory, necessity/data minimization, legal basis, retention policy, user rights (access/erasure/portability), third-party sharing, consent quality, PII in secondary storage, sensitive data categories, privacy by design. Distinct from Security: Security asks whether data can be exfiltrated; Privacy asks whether it should have been collected.
+
+**Observability (G-81 addressed):** 10 dimensions — error surfacing, error classification (user/application/dependency), structured log emission, diagnostic completeness, health surfaces, correlation/request tracing, sensitive data exclusion, local/prod parity, silent success confirmation, runbook coverage. Distinct from PE observability: PE owns infrastructure; this domain owns application-layer instrumentation.
+
+**API Contract (G-12 addressed):** 10 dimensions — contract documentation, breaking change definition, versioning strategy, backward compatibility, contract testing, error contract, input validation at boundary, deprecation process, API ergonomics, CLI contract stability. Applies to REST APIs, libraries, CLI tools, event schemas.
+
+**Documentation (G-82 addressed):** 10 dimensions — README completeness, documentation accuracy, architecture documentation, decision rationale, inline comment quality, API/interface docs, operational docs, CHANGELOG quality, knowledge transfer test, AI session independence. Distinct from SE dim 11 and SA dim 11 — those are brief; this domain applies sustained pressure.
+
+**Portfolio Assessment (G-34 addressed):** 8 dimensions — decision ownership, implementation understanding, directed development evidence, growth evidence, failure and recovery honesty, spec ownership, extensibility confidence, appropriate scope judgment. Uses "demonstrated/partial/absent/hallucinated" classification rather than standard. Requires developer participation. Portfolio and apprentice program submissions only.
+
+**Localization (G-83 addressed):** 10 dimensions — string externalization, date/time/number formatting, text expansion tolerance, RTL support, plural rules, locale-sensitive validation, character encoding, cultural neutrality, locale testing strategy. Evaluates i18n readiness; L10n content out of scope.
+
+### Suite changes
+
+README domain table split into core domains and extended domains (active when project scope warrants). All eight new domain files added to `iterative-adversarial-refinement/`. G-02, G-03, G-12, G-34, G-80 through G-83 addressed.
+
+**Remaining open:** G-36, G-54, G-55, G-57. G-20/21/23 partially resolved.

@@ -42,6 +42,21 @@ VSDD defines six phases. IAR owns Phase 4. Understanding the full pipeline matte
 | Data Engineering | [DATA-ENGINEERING-REVIEW.md](DATA-ENGINEERING-REVIEW.md) | Data layer: data model correctness, validation and normalization, schema evolution, data integrity, storage fitness, access patterns, serialization, consistency, sensitive data handling. Optional for projects without a meaningful data layer. |
 | VDD-IAR Alignment | [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md) | Process and governing doc compliance: design-before-code, spec completeness (VSDD Phase 1), layered decomposition, layer gate compliance, test discipline (Red Gate), human verification, IAR fresh context, IAR iteration, role integrity, manual testing checklists, retrospective quality, issue tracking compliance |
 
+**Extended domains** — active when a project's scope warrants them:
+
+| Domain | Prompt file | Focus |
+|---|---|---|
+| Performance | [PERFORMANCE-REVIEW.md](PERFORMANCE-REVIEW.md) | Runtime performance: time-to-interactive, main thread saturation, asset optimization, data scaling, N+1 patterns, memory growth, performance budget |
+| Accessibility | [ACCESSIBILITY-REVIEW.md](ACCESSIBILITY-REVIEW.md) | WCAG 2.1 AA compliance at depth: automated scan baseline, keyboard navigation, focus management, focus traps, ARIA correctness, contrast, form accessibility, dynamic content announcements, cognitive accessibility, zoom/reflow |
+| Privacy | [PRIVACY-REVIEW.md](PRIVACY-REVIEW.md) | Data minimization, legal basis, retention policy, user rights (access/erasure/portability), third-party sharing, consent quality, PII in secondary storage, privacy by design |
+| Observability | [OBSERVABILITY-REVIEW.md](OBSERVABILITY-REVIEW.md) | Application-layer diagnostics: error surfacing and classification, structured log emission, diagnostic completeness, health surfaces, correlation, sensitive data exclusion, local/prod parity |
+| API Contract | [API-CONTRACT-REVIEW.md](API-CONTRACT-REVIEW.md) | External interface stability: contract documentation, breaking change definition, versioning strategy, backward compatibility, contract testing, error contract, deprecation process. Applies to REST APIs, libraries, CLI tools, event schemas. |
+| Documentation | [DOCUMENTATION-REVIEW.md](DOCUMENTATION-REVIEW.md) | README completeness, documentation accuracy, architecture documentation, decision rationale, inline comment quality, API/interface docs, operational docs, CHANGELOG quality, AI session independence |
+| Portfolio Assessment | [PORTFOLIO-ASSESSMENT-REVIEW.md](PORTFOLIO-ASSESSMENT-REVIEW.md) | Developer ownership: decision ownership, implementation understanding, directed development evidence, growth evidence, failure honesty, spec ownership, extensibility confidence. Portfolio and apprentice program submissions only. |
+| Localization | [LOCALIZATION-REVIEW.md](LOCALIZATION-REVIEW.md) | i18n readiness: string externalization, date/time/number formatting, RTL support, text expansion tolerance, plural rules, locale-sensitive validation, character encoding, cultural neutrality |
+
+Not all extended domains apply to every project. Select relevant domains based on the project's scope and deployment context. Document which domains are active in the project's design or task file.
+
 Each domain file contains the current prompt and standard dimensions. Review entries are logged separately under `iterative-adversarial-refinement/` inside the project being reviewed.
 
 The suite's own adversarial review history is logged in [`SUITE-REVIEW.md`](SUITE-REVIEW.md).
