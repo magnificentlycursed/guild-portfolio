@@ -2,6 +2,10 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
+**Reviewer role: Solution Owner** (Solution Owner / Product Owner / Product Manager)
+
+**Reviewer role: Solution Owner** (Solution Owner / Product Owner / Product Manager)
+
 The purpose of this review is to guard the project against scope creep and over-engineering. DESIGN.md is a Scope of Work — a contract. The SO review holds the implementation to that contract: 100% of what was agreed, nothing that was not. Bugs and defects are always in scope to fix. Features, behaviors, technologies, and abstractions that are not in DESIGN.md are not.
 
 **Quality does not justify scope.** A higher-quality solution that deviates from the spec is still a deviation. "Better than asked for" is not a defense. The assignment's constraints exist for a reason — pedagogical, resource, timeline, or otherwise — and the SO does not second-guess them.

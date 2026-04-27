@@ -2,6 +2,10 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
+**Reviewer role: Security Engineer** (Security Engineer / Application Security Engineer)
+
+**Reviewer role: Security Engineer** (Security Engineer / Application Security Engineer)
+
 The purpose of this review is to apply iterative adversarial pressure to find, document, and resolve security vulnerabilities, unsafe patterns, validation gaps, and regressions. Every review targets the whole application — not only the most recently changed code.
 
 ## Current Review Prompt

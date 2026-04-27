@@ -2,6 +2,10 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
+**Reviewer role: Accessibility Engineer** (Accessibility Engineer / A11y Specialist)
+
+**Reviewer role: Accessibility Engineer** (Accessibility Engineer / A11y Specialist)
+
 The purpose of this review is to evaluate whether the application is usable by people with disabilities — including motor, visual, auditory, and cognitive disabilities. Accessibility is not a polish concern. An interface that cannot be operated by keyboard, or that is invisible to a screen reader, excludes users and in many jurisdictions creates legal exposure. WCAG 2.1 Level AA is the standard floor.
 
 This domain applies to all browser-rendered applications and native UI applications. CLI tools and headless services are exempt. The UX domain covers accessibility in passing; this domain applies adversarial pressure to accessibility specifically and at depth.

@@ -2,6 +2,10 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
+**Reviewer role: Data Engineer**
+
+**Reviewer role: Data Engineer**
+
 The purpose of this review is to evaluate the data layer: how data is modeled, validated, stored, accessed, transformed, and evolved. Data bugs are often silent — a schema mismatch or missing validation does not throw an error until much later, often in production. This review applies adversarial pressure to the data model and the code that touches it.
 
 This domain is most relevant to projects with a meaningful data layer: persistent storage, data pipelines, API contracts, schema migrations, or non-trivial data transformation. It may be omitted for projects where data concerns are minimal and fully covered by other domains.

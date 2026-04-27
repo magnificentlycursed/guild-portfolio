@@ -2,6 +2,10 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
+**Reviewer role: Solution Architect** (Solution Architect / Software Architect / Technical Lead)
+
+**Reviewer role: Solution Architect** (Solution Architect / Software Architect / Technical Lead)
+
 The purpose of this review is to evaluate whether the architecture — its structure, boundaries, decisions, and tradeoffs — is sound, coherent, and appropriate for the project's stated purpose and constraints. Every review targets the whole application, not only the most recently changed code.
 
 ## Current Review Prompt

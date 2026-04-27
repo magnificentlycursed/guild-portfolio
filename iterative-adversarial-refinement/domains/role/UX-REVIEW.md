@@ -2,6 +2,10 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
+**Reviewer role: UX Designer** (UX Designer / UX Researcher / Product Designer)
+
+**Reviewer role: UX Designer** (UX Designer / UX Researcher / Product Designer)
+
 The purpose of this review is to apply iterative adversarial pressure to find, document, and resolve UX defects, inconsistencies, accessibility gaps, and regressions. Every review targets the whole application — not only the most recently changed feature.
 
 ## Current Review Prompt

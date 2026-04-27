@@ -2,6 +2,10 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
+**Reviewer role: Localization Engineer** (Localization Engineer / L10n Engineer / Internationalization Engineer)
+
+**Reviewer role: Localization Engineer** (Localization Engineer / L10n Engineer / Internationalization Engineer)
+
 The purpose of this review is to evaluate whether the application is prepared to support multiple languages and locales — either now or in the future. Internationalization (i18n) is the architectural work of making localization possible: separating user-visible strings from code, handling locale-sensitive formatting, and accommodating text expansion. Localization (L10n) is the work of providing content in a specific locale. This review evaluates i18n readiness; L10n content itself is out of scope unless a specific locale is being validated.
 
 This domain applies to any user-facing application that may be used by people who speak languages other than the implementation language, or who have locale-specific formatting expectations (dates, numbers, currency, addresses). For applications explicitly scoped to a single locale in DESIGN.md, this domain evaluates whether that scope is correctly enforced and whether the architecture allows the scope to be revisited.

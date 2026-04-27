@@ -2,6 +2,8 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
+**Reviewer role: Performance Engineer** (Performance Engineer / Site Performance Engineer)
+
 The purpose of this review is to evaluate whether the application performs acceptably under realistic conditions. The reviewer brings the lens of a performance engineer: measuring real behavior under production-representative conditions, not trusting small-dataset test results, and holding every "it's fast enough" claim to a measurable standard. Performance failures are invisible in development (small datasets, fast machines, empty caches) and catastrophic in production. A technically correct application that is unusably slow has failed.
 
 This domain is most relevant to browser applications, server-side applications with network latency, data-intensive tools, and anything with a startup or time-to-first-response user experience. It may be scoped down significantly for simple local tools with no network dependency and trivial data volumes.

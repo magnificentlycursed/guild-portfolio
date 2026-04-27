@@ -2,6 +2,10 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
+**Reviewer role: Quality Engineer** (Quality Engineer / QA Engineer / Test Engineer)
+
+**Reviewer role: Quality Engineer** (Quality Engineer / QA Engineer / Test Engineer)
+
 The purpose of this review is to evaluate the quality system as a whole: not just whether bugs exist, but whether the testing strategy, coverage, tooling, and gates are structured to catch defects reliably and repeatedly. Quality Engineering owns the test architecture and the confidence it produces. A passing test suite that would not catch a broken implementation is a quality failure.
 
 ## Current Review Prompt

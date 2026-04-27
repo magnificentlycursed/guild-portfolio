@@ -2,6 +2,8 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
+**Reviewer role: Privacy Officer** (Privacy Officer / Privacy Engineer / Data Protection Officer)
+
 The purpose of this review is to evaluate privacy as a distinct concern from security. Security asks whether data can be exfiltrated. Privacy asks whether the data should have been collected in the first place, how long it is retained, who can access it, whether the basis for processing is lawful, and whether users can exercise their rights. A system with no security vulnerabilities can still be a privacy failure.
 
 This domain is most relevant to applications that collect, process, or store information about identifiable individuals. For single-user local tools that store only the user's own data and do not transmit it, this domain may apply lightly — evaluate using the "solo personal tool" notes in each dimension. For any application with users other than the developer, full evaluation is required.

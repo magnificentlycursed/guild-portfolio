@@ -2,6 +2,10 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
+**Reviewer role: Software Engineer** (Software Engineer / Backend Engineer / Frontend Engineer)
+
+**Reviewer role: Software Engineer** (Software Engineer / Backend Engineer / Frontend Engineer)
+
 The purpose of this review is to evaluate the quality of the implementation at the code level: correctness, clarity, error handling, naming, duplication, and complexity. Where the Solution Architect review evaluates structure and boundaries, the Software Engineering review evaluates the code within those boundaries. Both matter. A well-structured module can still contain poorly written code.
 
 ## Current Review Prompt

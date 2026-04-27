@@ -2,6 +2,10 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
+**Reviewer role: Platform Engineer** (Platform Engineer / DevOps Engineer / Infrastructure Engineer)
+
+**Reviewer role: Platform Engineer** (Platform Engineer / DevOps Engineer / Infrastructure Engineer)
+
 Platform Engineering owns the full delivery platform: CI/CD pipelines, DevSecOps practices, infrastructure (cloud and on-premise), containerization, and observability. The purpose of this review is to evaluate whether the platform is correctly configured, hardened, automated, and observable — and to shift quality and security checks left so that defects are caught automatically before they reach production.
 
 Not all dimensions apply to every project. A static single-user tool has no cloud infrastructure to evaluate. Apply the dimensions relevant to the project's deployment context and skip with rationale those that do not apply.
