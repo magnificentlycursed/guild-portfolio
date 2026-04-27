@@ -53,6 +53,15 @@ Domains are organized into three types. All domain prompt files live under `doma
 | Privacy | [PRIVACY-REVIEW.md](domains/role/PRIVACY-REVIEW.md) | Data minimization, legal basis, retention policy, user rights (access/erasure/portability), third-party sharing, consent quality, PII in secondary storage, privacy by design |
 | Localization | [LOCALIZATION-REVIEW.md](domains/role/LOCALIZATION-REVIEW.md) | i18n readiness: string externalization, date/time/number formatting, RTL support, text expansion tolerance, plural rules, locale-sensitive validation, character encoding, cultural neutrality |
 
+**Concern domains** — targeted audits on a specific quality attribute. No job role associated. Run when that attribute is at risk or the project's scope warrants a dedicated pass. Role domain files include brief extended sections for these concerns; concern domain files go deeper:
+
+| Domain | Prompt file | Focus |
+|---|---|---|
+| Performance | [PERFORMANCE-REVIEW.md](domains/concerns/PERFORMANCE-REVIEW.md) | Runtime performance: time-to-interactive, main thread saturation, asset optimization, data scaling, N+1 patterns, caching, memory growth, performance budget, regression risk |
+| Observability | [OBSERVABILITY-REVIEW.md](domains/concerns/OBSERVABILITY-REVIEW.md) | Application-layer diagnostics: error surfacing and classification, structured log emission, diagnostic completeness, health surfaces, correlation, sensitive data exclusion, local/prod parity |
+| API Contract | [API-CONTRACT-REVIEW.md](domains/concerns/API-CONTRACT-REVIEW.md) | External interface stability: contract documentation, breaking change definition, versioning strategy, backward compatibility, contract testing, error contract, deprecation process |
+| Documentation | [DOCUMENTATION-REVIEW.md](domains/concerns/DOCUMENTATION-REVIEW.md) | README completeness, documentation accuracy, architecture documentation, decision rationale, inline comment quality, API/interface docs, operational docs, CHANGELOG quality, AI session independence |
+
 **Meta domains** — evaluate process and portfolio artifacts rather than the software itself. Not role-based reviewers; no professional persona applied:
 
 | Domain | Prompt file | Scope |
