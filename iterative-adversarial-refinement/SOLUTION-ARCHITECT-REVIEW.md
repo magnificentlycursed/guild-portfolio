@@ -16,7 +16,7 @@ Regression check: verify that architectural decisions from prior layers are stil
 
 **Coordination:** Flag any findings that should be surfaced to [QUALITY-ENGINEERING-REVIEW.md](QUALITY-ENGINEERING-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), or [PLATFORM-ENGINEERING-REVIEW.md](PLATFORM-ENGINEERING-REVIEW.md). If this review suggests the need for a new IAR domain, log it as a finding.
 
-**Sycophancy check:** If the agent agreed with every decision reviewed in this domain without challenge, treat that as a finding. An AI agent that validates every choice it helped produce is not providing adversarial review — it is confirming its own work. Flag any area where a significant decision went unquestioned but warranted scrutiny.
+**Sycophancy check:** An agent that designed the architecture will find it sound because it reflects its own training distribution and defaults, not because it is right for this project's constraints. Push hardest on dim 9 (complexity budget) and dim 8 (technology fitness): these are the dimensions where agent defaults most consistently diverge from what a single maintainer or small project actually needs. For each technology choice and architectural pattern, ask: "would this choice have been made by a human engineer working alone on a project of this scope, or is it a team-scale default?"
 
 **Language and interface supplement:** Consult `lang/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`). Apply the **Solution Architect** section from the relevant supplement file in addition to the standard dimensions below.
 
@@ -26,7 +26,7 @@ Regression check: verify that architectural decisions from prior layers are stil
 2. **Coupling and cohesion** — Are modules loosely coupled? Is each module's responsibility focused and internally cohesive?
 3. **Data model integrity** — Is the data model well-defined and minimal for the use case? Are invariants enforced at the right boundaries? Are types as precise as needed?
 4. **Interface contracts** — Are the APIs between components explicit and correctly typed? Are internal conventions documented or enforced rather than implicit?
-5. **State management** — Is application state localized? Are mutations and side effects predictable and contained?
+5. **State management** — Is application state localized? Are mutations and side effects predictable and contained? For browser applications: **event listener and timer lifecycle** — are event listeners removed when the associated DOM is removed or the component is destroyed? Are timers (`setInterval`, `setTimeout`) cleared when no longer needed? Accumulating unreleased listeners and timers is the most common cause of memory leaks in long-running browser sessions. A codebase that adds listeners in a `mount` or `render` function without a corresponding `unmount` or `cleanup` is a finding. This becomes a production failure — not a test failure — because tests typically exercise short sessions that don't accumulate enough leaks to manifest.
 6. **Immutability** — Are data operations consistent in their mutation patterns? Does the code avoid unexpected shared-state side effects?
 7. **Extensibility** — Can planned future features be added without restructuring? Does the architecture accommodate the project's stated growth path?
 8. **Technology fitness** — Are the chosen technologies appropriate for the stated constraints? Are tradeoffs documented?

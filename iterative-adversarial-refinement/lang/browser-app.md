@@ -21,7 +21,7 @@ These dimensions supplement the standard IAR domain reviews for browser-rendered
 
 ## UX
 
-- **Accessibility** — Does every interactive element have an accessible label (via `aria-label`, `aria-labelledby`, or visible text)? Is color contrast WCAG AA compliant (4.5:1 for normal text, 3:1 for large text and UI components)? Is semantic HTML used (landmarks, headings, lists)? Are focus indicators visible?
+- **Accessibility** — Does every interactive element have an accessible label (via `aria-label`, `aria-labelledby`, or visible text)? Is color contrast WCAG AA compliant (4.5:1 for normal text, 3:1 for large text and UI components)? Is semantic HTML used (landmarks, headings, lists)? Are focus indicators visible? **Focus trap:** Custom modal and dialog implementations must contain focus while open (Tab should not exit the modal) and restore focus to the trigger element on close. This is WCAG 2.1 Level A (2.1.2). Axe does not reliably catch custom implementations — test manually by opening the modal and verifying Tab cycles within it and Escape returns focus to the trigger.
 - **Responsive design** — Does the layout hold and remain usable at 360px? Are touch targets at least 44×44px? Does content reflow cleanly without horizontal scroll between mobile and desktop widths?
 - **Browser compatibility** — Are there visual or interaction differences across Chrome, Firefox, and Safari? Are any CSS or HTML features used that render inconsistently?
 - **Reduced motion** — If any transitions or animations are present, are they disabled for `prefers-reduced-motion: reduce`?

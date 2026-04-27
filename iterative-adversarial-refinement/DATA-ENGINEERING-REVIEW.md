@@ -26,7 +26,12 @@ Regression check: verify that data written by prior versions of the application 
 
 1. **Data model correctness** — Does the data model accurately represent the domain described in DESIGN.md? Are types precise? Are optional vs. required fields correctly distinguished? Are there missing fields or fields with the wrong type?
 2. **Validation and normalization** — Is data validated at every boundary where it enters the system (user input, storage reads, API responses)? Are type assertions (`as`, casting) backed by runtime validation? Are coercions to safe defaults applied consistently?
-3. **Schema evolution** — If the data model changes, can data written under the old schema still be read? Is there a migration strategy or normalization layer that handles missing or mismatched fields without data loss?
+3. **Schema evolution** — If the data model changes, can data written under the old schema still be read? A migration strategy requires more than a normalization function:
+   - Is the migration explicitly documented and triggered intentionally, not silently applied at read time?
+   - Has the migration been tested against samples of real stored data (or a representative synthetic dataset), not only against newly-created test fixtures?
+   - Is there a rollback path? If the migration corrupts data or the new schema causes errors, can the application revert to the prior schema?
+   - For deployed applications: is there a forward-compatibility window — a period where old clients writing under the old schema coexist with new clients reading under the new schema? Does the migration handle data written by old clients after the schema change?
+   - A normalization function that silently fills in missing fields is not a migration strategy — it is a recovery mechanism. Migration and recovery serve different purposes and should be documented separately.
 4. **Data integrity invariants** — Are invariants enforced at the data layer (e.g., required fields never null, IDs unique, timestamps always set)? Are these enforced at write time, read time, or both?
 5. **Storage fitness** — Is the storage mechanism appropriate for the data's shape, size, and access patterns? Are there known limitations of the chosen storage (e.g., size quotas, no cross-device sync, no transactions) that affect the design?
 6. **Access patterns** — Are data reads and writes scoped correctly? Is data read from storage more often than necessary? Are writes atomic where they need to be?
@@ -34,6 +39,7 @@ Regression check: verify that data written by prior versions of the application 
 8. **Data consistency** — Can the application end up in a state where stored data is inconsistent with displayed data? Are there race conditions or ordering dependencies in data operations?
 9. **Sensitive data handling** — Is any personally identifiable or sensitive data stored? If so, is it stored only what is necessary, and is it handled appropriately for the deployment context?
 10. **Test coverage of data paths** — Are the normalization, validation, and migration paths covered by tests? Do tests verify the shape of stored data, not just UI behavior?
+11. **Data volume limits** — Has the application been tested with an order-of-magnitude more data than the expected typical case? Named failure modes: `localStorage` silently stops accepting writes at ~5–10MB (behavior varies by browser); a list rendered without pagination or virtual scrolling becomes unusable at 1000+ items; a synchronous sort or filter over a large dataset blocks the main thread. Storage limits should be enforced explicitly with a user-visible error rather than failing silently. If the application has no explicit data volume limit in DESIGN.md, flag the assumption that the data set will remain small as a risk that needs a limit or a scale test.
 
 ---
 

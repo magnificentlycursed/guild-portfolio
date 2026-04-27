@@ -24,7 +24,7 @@ Regression check: verify that all previously-addressed UX concerns remain intact
 
 1. **Empty states** — What does the user see when content is absent? Is there a clear prompt or explanation?
 2. **Error messages** — Are they specific, correctly placed, and do they clear at the right time?
-3. **Focus and keyboard behavior** — Can every action be completed with a keyboard alone? Does focus land in the right place when forms open or content changes?
+3. **Focus and keyboard behavior** — Can every action be completed with a keyboard alone? Does focus land in the right place when forms open or content changes? Specifically: can focus become trapped inside a modal, dialog, or dropdown where the user cannot exit without a mouse? A keyboard trap is a WCAG 2.1 Level A failure (2.1.2). Custom modal implementations must handle focus containment while the modal is open and focus restoration to the trigger element on close. Axe may not catch custom implementations — test manually.
 4. **Visual consistency** — Are equivalent UI surfaces treated the same?
 5. **Interactive affordances** — Do users know what they can interact with? Do interactive elements look interactive?
 6. **Feedback patterns** — Are success, error, loading, and empty states present and appropriate?
@@ -33,8 +33,10 @@ Regression check: verify that all previously-addressed UX concerns remain intact
 9. **Browser compatibility** — Are there visual or interaction differences across Chrome, Firefox, and Safari? Are any CSS or HTML features used that render inconsistently?
 10. **Long content** — What renders when a text field contains a very long unbroken string? Does text overflow its container horizontally?
 11. **Reduced motion** — If any transitions or animations are present, are they disabled for `prefers-reduced-motion: reduce`?
-12. **Native dialog quality** — Does any `window.confirm` or `window.alert` dialog use specific, actionable text? Does it name the item being acted on?
-13. **Cross-layer regression** — Do new changes visually or interactively break features from earlier layers?
+12. **Destructive action confirmation gates** — Do all destructive or irreversible actions (delete, overwrite, bulk operations, permanent changes) have an explicit confirmation step before executing? This is a separate question from the quality of the confirmation text. An app that deletes a record with no confirmation at all has no dialog to evaluate — the gate is missing entirely. Flag absences, not only quality failures.
+13. **Native dialog quality** — Where confirmation gates exist, do they use specific, actionable text? Does the dialog name the item being acted on ("Delete 'My Bookmark'?" not "Delete item?")? Does it make the consequence clear ("This cannot be undone")?
+14. **Async state and error recovery** — What does the user see during an async operation (fetch, storage write, file read)? A UI that is frozen or blank during async work fails this dimension. If an async operation fails mid-execution, does the UI recover to a consistent state? Is the failure communicated specifically ("Failed to save — changes not stored") or silently dropped? For optimistic updates: if the underlying operation fails, is the rollback visible and graceful, or does the UI show state that was never actually persisted?
+15. **Cross-layer regression** — Do new changes visually or interactively break features from earlier layers?
 
 ---
 

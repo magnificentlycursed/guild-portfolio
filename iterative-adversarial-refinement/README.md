@@ -109,7 +109,8 @@ Default: run all active domains in parallel. Sequence when one domain's output i
 - Run Security before QE when there are significant changes to storage, rendering, or input handling — QE tests may need to cover the security-relevant paths
 - Run QE before UX when QE finds bugs that change the implementation — the UX reviewer should see the fixed version
 - Run DE before SA when there are significant data model changes — DE findings can change what SA needs to evaluate
-- Run VDD-IAR Alignment last — it reviews the process artifacts produced by all other domain runs
+- Run VDD-IAR Alignment last in the final merge gate — it reviews the process artifacts produced by all other domain runs
+- Run VDD-IAR Alignment also at each layer gate close (dims 2–3: layered decomposition and gate compliance) — layer gate failures are more actionable when caught while the layer is still open, not retrospectively at merge time
 - Run all domains, then re-run any that received a cross-domain flag
 
 ### Generalist adversary pass (optional)

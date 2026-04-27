@@ -82,6 +82,28 @@ Living table of all identified gaps. Update statuses here as gaps are addressed 
 | G-55 | Formal hardening completely unowned: VSDD Phase 5 (proof harnesses, fuzzing, mutation testing, purity boundary audit) has no domain; not even listed as a gap for applicable projects | Missing domain | High | Low | Open | 2026-04-27 | 2026-04-27 |
 | G-56 | VSDD purity boundary map unowned: no domain enforced pure-core/effectful-shell separation required by VSDD verification architecture | Dimension gap | High | Medium | Addressed | 2026-04-27 | 2026-04-27 |
 | G-57 | No effectiveness test for domain prompts: suite correctness verified only through application on real projects; no benchmark project with known defects to validate prompts catch what they claim | AI-workflow gap | Medium | Medium | Open | 2026-04-27 | 2026-04-27 |
+| G-58 | QE: no coverage threshold in base domain — language supplements had thresholds but base domain had none; a JS/TS project with 10% coverage passed QE review | Dimension gap | High | High | Addressed | 2026-04-27 | 2026-04-27 |
+| G-59 | QE: no mutation testing guidance — 100% line coverage with wrong assertions passes all QE dims | Dimension gap | High | High | Addressed | 2026-04-27 | 2026-04-27 |
+| G-60 | QE: no flaky test detection — flaky tests named as failure class but not specific failure modes | Dimension gap | Medium | Medium | Addressed | 2026-04-27 | 2026-04-27 |
+| G-61 | Security: secrets-in-logs not covered — dim 4 only asked about source control; logs/error messages/crash reports unaddressed | Dimension gap | High | High | Addressed | 2026-04-27 | 2026-04-27 |
+| G-62 | Security: dim 6 (auth/authz) was a single-line placeholder; inadequate for any project with access control | Dimension gap | Critical | Low | Addressed | 2026-04-27 | 2026-04-27 |
+| G-63 | Security (JS/TS): prototype pollution not covered | Dimension gap | High | Medium | Addressed | 2026-04-27 | 2026-04-27 |
+| G-64 | Security (JS/TS + PE): dependency confusion attack not named as a supply-chain failure mode | Dimension gap | Medium | Low | Addressed | 2026-04-27 | 2026-04-27 |
+| G-65 | UX: loading states and async failure recovery entirely absent | Dimension gap | High | High | Addressed | 2026-04-27 | 2026-04-27 |
+| G-66 | UX: keyboard focus trap not named; dim 3 did not call out this WCAG 2.1 Level A failure | Dimension gap | Medium | Medium | Addressed | 2026-04-27 | 2026-04-27 |
+| G-67 | UX: destructive action confirmation dim only evaluated quality of existing gates, not absence of required gates | Dimension gap | Medium | Medium | Addressed | 2026-04-27 | 2026-04-27 |
+| G-68 | SE: flag argument (boolean trap) anti-pattern not named | Dimension gap | High | Medium | Addressed | 2026-04-27 | 2026-04-27 |
+| G-69 | SE: primitive obsession not named as a type safety failure mode | Dimension gap | Medium | Medium | Addressed | 2026-04-27 | 2026-04-27 |
+| G-70 | SA: memory leaks and event listener lifecycle absent; production failure not caught by tests | Dimension gap | High | High | Addressed | 2026-04-27 | 2026-04-27 |
+| G-71 | SA (JS/TS): circular dependency detection absent | Dimension gap | Medium | Medium | Addressed | 2026-04-27 | 2026-04-27 |
+| G-72 | DE: dim 3 (schema evolution) too thin — one question, no migration testing, no rollback, no forward-compat | Dimension gap | High | Medium | Addressed | 2026-04-27 | 2026-04-27 |
+| G-73 | DE: data volume limits entirely absent — localStorage quotas, rendering performance, main thread blocking | Dimension gap | Medium | High | Addressed | 2026-04-27 | 2026-04-27 |
+| G-74 | PE: dim 21 (DR) accepted "documented" as equivalent to "tested"; rollback and backup restoration require test records | Dimension gap | High | Low | Addressed | 2026-04-27 | 2026-04-27 |
+| G-75 | VDD-IAR Alignment sequencing: run last only; should also gate each layer close, not only final merge | Structural gap | Medium | Medium | Addressed | 2026-04-27 | 2026-04-27 |
+| G-76 | G-20/21/23 (assumption surfacing, hallucination detection, dependency validation) unaddressed since Run 2; critical for AI-accelerated workflow | AI-workflow gap | High | High | Addressed (partial) | 2026-04-27 | 2026-04-27 |
+| G-77 | Sycophancy check boilerplate: identical text across all 9 domains reduces salience; domain-specific failure modes not named | Structural gap | Medium | Medium | Addressed (QE/Security/SA/SE) | 2026-04-27 | 2026-04-27 |
+| G-78 | prompts/spec-crystallization.md: driving questions UI-centric; no project type framing for library/CLI/infra/research | Prompt gap | Medium | High | Addressed | 2026-04-27 | 2026-04-27 |
+| G-79 | prompts/decomposition.md: crosslink conflated with all projects; principle/tool separation absent; crosslink replaces TODO.md not stated | Prompt gap | Medium | Medium | Addressed | 2026-04-27 | 2026-04-27 |
 
 **Status values:** Open · Addressed · Deferred · Dismissed · Context-Dependent
 
@@ -737,3 +759,35 @@ Every other domain has a language supplement instruction. VDD-IAR Alignment was 
 **VDD-IAR Alignment** — Language supplement N/A note added.
 
 **Remaining open:** G-34, G-36, G-54, G-55, G-57.
+
+---
+
+## Run 9 — 2026-04-27
+
+**Context:** Full adversarial roast of the suite — all domain templates reviewed for production slop that would pass undetected, plus suite alignment against governing docs and prompt review. Session primed with `prompts/spec-crystallization.md` and `prompts/decomposition.md`. User instruction: "I expect perfection. Any findings in gap-analysis-log are fair game to raise and resolve."
+
+**Suite state at time of run:** Nine domains. SUITE-REVIEW.md established. Session primers created. 57 gaps registered before this run.
+
+### Findings and resolutions
+
+**QE (G-58–60):** Coverage threshold absent from base domain (any non-Rust project with 10% coverage passed). Mutation testing absent (100% coverage with wrong assertions passes all dims). Flaky test failure modes not named. All three addressed in QE dims 2, 5, 13.
+
+**Security (G-61–64):** Secrets-in-logs not covered (dim 4 only checked source control). Auth/authz dim 6 was a single-line placeholder for the most critical attack surface in multi-user apps — strengthened with six sub-questions. Prototype pollution absent from JS/TS supplement. Dependency confusion attack not named in Security or PE.
+
+**UX (G-65–67):** Loading states and async failure recovery entirely absent from a domain that reviews user-facing feedback patterns. Keyboard focus trap not named despite being WCAG 2.1 Level A. Destructive action gate absence not distinguished from gate quality — dim split into 12 (gate existence) and 13 (gate quality).
+
+**SE (G-68–69):** Flag argument (boolean trap) not named as a function design failure. Primitive obsession not named as a type safety failure.
+
+**SA (G-70–71):** Memory leaks and event listener lifecycle absent from a domain evaluating state management — production failure that tests don't catch. Circular dependency detection absent from JS/TS supplement.
+
+**DE (G-72–73):** Schema evolution dim too thin — one question for a complex migration discipline. Data volume limits entirely absent.
+
+**PE (G-74):** DR dim accepted "documented" as "tested" — distinguished and required test records with dates.
+
+**Suite structural (G-75–77):** VDD-IAR Alignment sequencing added to each layer gate close, not only final merge. G-20/21/23 (assumption surfacing, hallucination detection, dependency validation) partially addressed as explicit instructions in QE, SE, SA review prompts. Sycophancy check rewritten for QE, Security, SA, SE with domain-specific failure modes.
+
+**Prompt gaps (G-78–79):** spec-crystallization.md added project type framing (user-facing app / CLI / library / infrastructure / research). decomposition.md corrected: crosslink replaces TODO.md in Phase 2+ (not supplemented by it); accountability principle separated from tool reference.
+
+**VDD-IAR Alignment dim 2:** Added note that TODO.md (Phase 1) is replaced by crosslink (Phase 2+) — not maintained in parallel.
+
+**Remaining open:** G-34, G-36, G-54, G-55, G-57. G-20/21/23 partially resolved; full resolution requires a dedicated cross-cutting mechanism not yet designed.

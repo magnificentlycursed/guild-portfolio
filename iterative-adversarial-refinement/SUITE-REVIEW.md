@@ -12,6 +12,292 @@ Governing references:
 
 ---
 
+## Review 2 — 2026-04-27
+
+**Scope:** Full adversarial pass across all domain templates and lang/ supplements. Session primed with `prompts/spec-crystallization.md` (adversarial posture: assume the spec is incomplete; find what is missing) and `prompts/decomposition.md` (push back on dimensions that are too large, too vague, or that mix concerns). Governing docs used as the DESIGN.
+
+**Lens:** What slop would this suite fail to catch? Every domain reviewed for production-critical gaps — not process compliance, but defect classes that would reach users undetected. Suite alignment against VSDD reviewed separately. Open gaps from GAP-ANALYSIS-LOG raised and resolved where appropriate.
+
+---
+
+### Quality Engineering
+
+**QE: No coverage threshold in the base domain — CRITICAL**
+
+The base QE domain has no coverage threshold requirement. Dim 13 (quality gates) asks whether thresholds are enforced; it does not state what the thresholds should be. A project with 15% coverage and a passing CI run clears QE review. Coverage thresholds exist only in `lang/rust.md` (80% minimum / 100% public API). JS/TS, Python, Go, and any other language project has no threshold.
+
+A coverage threshold in one language supplement and absent from the domain means the domain is calibrated differently depending on which language is used. That is not a language-specific concern — it is a universal quality floor.
+
+**Resolution:** Add explicit coverage guidance to QE dim 13 (quality gates) in the base domain: minimum meaningful threshold (80% line coverage as a floor), 100% for public API / exported functions. Note that thresholds below 80% require documented rationale. Language supplements may tighten this floor but not remove it.
+
+---
+
+**QE: No mutation testing — slop ships with 100% coverage**
+
+A test suite with 100% line and branch coverage that asserts on the wrong thing passes all QE dimensions. An agent that writes both the implementation and the tests will naturally produce a consistent set — both will reflect the agent's interpretation of the requirement, not the spec. A mutation testing pass (mutmut for Python, Stryker for JS/TS, cargo-mutants for Rust) would kill the mutants that the tests miss.
+
+Dim 2 (falsifiability) and dim 14 (TDD proxy indicators) address this partially through structural analysis. But structural analysis cannot catch a test that says `expect(result.length).toBe(3)` when the spec requires `expect(result.length).toBe(2)` — both are structurally indistinguishable; only running a mutation catches it.
+
+**Resolution:** Add mutation testing as a named dimension or a named supplement item in dim 2 (falsifiability). Not mandatory for every project — mutation testing is slow — but should be recommended for pure functions, validation logic, and any code path where an off-by-one or wrong-comparison would ship silently.
+
+---
+
+**QE: Flaky test detection absent — flaky tests are worse than no tests**
+
+A test that passes 90% of the time creates false confidence. Flaky tests train developers to ignore red CI runs. Nothing in the base QE domain asks whether tests are deterministic. Dim 5 (test architecture) asks about state sharing but does not name flakiness as a failure class.
+
+**Resolution:** Add flaky test detection to dim 5 (test architecture). Named failure modes: timing dependencies (`setTimeout` in assertions), network calls in unit tests, random seed not fixed, `Date.now()` without injection, global state not reset between tests.
+
+---
+
+**QE: Coverage thresholds and mutation testing resolved; other findings resolved in domain file.**
+
+---
+
+### Security
+
+**Security dim 6 (auth/authz) is a placeholder — CRITICAL**
+
+Dim 6 reads: "If the application controls access to actions or data: are authentication and authorization checks present at the right boundaries?" That is one question covering the single most dangerous attack surface in any multi-user application. G-07 (no auth/authz review) has been open since Run 1 and the dim 6 addition is inadequate as a resolution. A real auth/authz review asks:
+
+- Are authentication checks enforced at the API layer, or does the UI do them with no server-side enforcement?
+- Can a user escalate privileges by modifying a request parameter, JWT claim, or URL?
+- Are access control lists enforced on reads, not just writes?
+- Are session tokens bound to user identity (IP, user agent, or other factor) to resist token theft?
+- Is the logout path complete — are sessions invalidated server-side, not just client-side?
+- Can a logged-out user access protected resources by holding a prior valid token until expiry?
+
+For a portfolio/personal tool with no users, dim 6 as written is acceptable. For any project with auth, it is a finding that something dangerous will ship unchecked.
+
+**Resolution:** Strengthen dim 6. Add specific sub-questions that scale with auth complexity. Note that for projects with authentication, G-07 is applicable and requires a more extensive review than dim 6 covers.
+
+---
+
+**Security: Secrets in logs not covered — HIGH**
+
+Dim 4 (secret handling) asks: "Are credentials, API keys, tokens, and private keys excluded from source code and version control?" It does not ask whether they are excluded from logs, error messages, or crash reports. A secret injected via environment variable that gets included in a debug log, a stack trace printed to console, or a caught error that includes `error.message` with the full connection string is a real production vulnerability. The dim 4 wording implies "not in version control" is sufficient — it is not.
+
+**Resolution:** Expand dim 4 to explicitly include logs, error messages, and monitoring/crash reporting output as surfaces where secrets must not appear.
+
+---
+
+**Security: Prototype pollution not covered (JS/TS) — HIGH**
+
+The JS/TS supplement's Security section covers rendering safety, URL injection, JSON.parse runtime validation, CSP, and npm audit. It does not mention prototype pollution. A `JSON.parse` call on user-supplied or attacker-controlled JSON containing `{"__proto__": {"isAdmin": true}}` or `{"constructor": {"prototype": {"isAdmin": true}}}` can silently modify `Object.prototype` in older or unpatched environments. Libraries that use `Object.assign` or object spread with unsanitized data are particularly vulnerable. This is distinct from the runtime validation dimension — the data may be structurally valid and still pollute the prototype chain.
+
+**Resolution:** Add prototype pollution to the JS/TS Security supplement. Mitigation pattern: `JSON.parse` followed by `Object.freeze` on parsed structures, or using `Object.create(null)` for dictionaries, or explicit prototype pollution detection.
+
+---
+
+**Security: Dependency confusion attack not named — MEDIUM**
+
+The Security domain covers CVE auditing. It does not name dependency confusion attacks: an attacker publishes a public package with the same name as a private internal package, at a higher version number, causing the package manager to prefer the malicious public package. This is supply-chain-adjacent but distinct from CVE auditing — the malicious package has no CVE; it is simply a new package that wins the version resolution race.
+
+**Resolution:** Add to Security dim 3 (dependency security) or PE dim 13 (supply chain integrity) as a named failure mode. Mitigation: private registry scoping, npm `--prefer-offline` flag, `publishConfig.access` enforcement.
+
+---
+
+### UX
+
+**UX: Loading states and async failure entirely absent — HIGH**
+
+The UX domain covers empty states, error messages, feedback patterns, and accessibility. It does not cover:
+
+- **Loading states**: what does the user see while an async operation (fetch, file read, storage write) is in progress? A blank screen or frozen UI is a UX failure that no current dimension catches.
+- **Async operation failure recovery**: if a save, load, or update fails mid-operation, does the UI recover cleanly? Does the user know what happened? Is there a retry path? An async failure that silently leaves the UI in a partial state would pass all 13 current UX dimensions.
+- **Optimistic updates that fail**: if the UI updates optimistically and the underlying operation fails, is the rollback visible and graceful?
+
+These are production-critical for any app with network or storage operations.
+
+**Resolution:** Add dim 14 (async state and error recovery) to UX: loading states, operation failure recovery, optimistic update rollback, and partial-state avoidance.
+
+---
+
+**UX: Keyboard focus trap not named — MEDIUM**
+
+Dim 3 (focus and keyboard behavior) asks whether every action can be completed with a keyboard and whether focus lands in the right place. It does not explicitly name focus traps — the accessibility failure where focus becomes trapped inside a component (modal, dialog, dropdown) and cannot escape without using the mouse. A focus trap is a WCAG 2.1 Level A failure (2.1.2). Axe will catch it if the component has role="dialog", but custom implementations may not be detected.
+
+**Resolution:** Add focus trap detection explicitly to dim 3 and to the browser-app UX supplement. Include the expectation that custom modal implementations handle focus restoration on close.
+
+---
+
+**UX: Destructive action confirmation is incomplete — MEDIUM**
+
+Dim 12 covers native dialog quality (`window.confirm` text specificity). It does not cover the broader pattern: are destructive actions (delete, overwrite, bulk operations) confirmation-gated at all? An app that deletes a record without any confirmation would have no native dialog at all — dim 12 would not trigger on it because there is nothing to evaluate. The dim only evaluates the quality of confirmations that exist; it does not check for the absence of confirmations that should exist.
+
+**Resolution:** Split dim 12 into two concerns: (a) whether destructive actions have appropriate confirmation gates, and (b) whether those gates use specific, actionable language.
+
+---
+
+### Software Engineering
+
+**SE: Flag arguments (boolean traps) not flagged — HIGH**
+
+A function that takes a boolean parameter that fundamentally bifurcates its behavior (`renderBookmark(bookmark, isEditing)`) is a maintenance hazard and a testing hazard. The boolean is typically not self-documenting at the call site; callers must read the function signature to understand what `true` and `false` mean. More critically, it usually signals that the function has two separate responsibilities that should be two separate functions. Tests for boolean-parametrized functions require double the cases and typically test implementation structure rather than behavior.
+
+Nothing in the SE domain flags this pattern. Dim 4 (function design) asks about "single responsibility" but does not name the boolean-parameter form.
+
+**Resolution:** Add flag argument anti-pattern to SE dim 4 (function design). Name the specific failure mode: a function that takes a boolean controlling fundamentally different behavior paths should be two functions.
+
+---
+
+**SE: Primitive obsession not covered — MEDIUM**
+
+Using raw primitives (strings, numbers, booleans) where a domain type would catch errors at the type system level is a well-known SE failure mode. In TypeScript: using `string` for a URL, `number` for a timestamp, `string` for an ID. In Rust: using `String` where `Url`, `Id`, or a newtype would provide safety. Type-level validation catches entire classes of bugs — passing a URL where an ID is expected — before tests are needed.
+
+Dim 3 (naming) touches on this indirectly but does not name primitive obsession as a category.
+
+**Resolution:** Add primitive obsession to SE dim 3 or create a dim for type safety patterns. Focus on: domain values represented as raw primitives when a newtype or branded type would enforce invariants.
+
+---
+
+### Solution Architect
+
+**SA: Memory leaks and event listener cleanup absent — HIGH (browser apps)**
+
+SA covers separation of concerns, coupling, state management, and the new purity boundary (dim 12). It does not cover the production failure mode most common in long-lived browser applications: memory leaks from event listeners, timers, and closures holding references to DOM nodes or large objects.
+
+A browser app that adds event listeners in response to user actions without removing them when the associated DOM is removed will accumulate listeners indefinitely. This causes performance degradation and eventually crashes in long-running sessions. In a single-page app, this is a production failure that no current dimension catches — the code can be architecturally sound, pass all tests, and still leak.
+
+**Resolution:** Add event listener and timer lifecycle to SA dim 5 (state management) or create a new SA dimension. Add to browser-app.md SA-equivalent notes.
+
+---
+
+**SA: Circular dependency detection absent — MEDIUM (JS/TS)**
+
+A circular import between JS/TS modules can cause one module to receive `undefined` for values that haven't been initialized yet — a silent initialization order bug that is notoriously difficult to diagnose. The SA domain does not ask about circular dependencies, and neither does the JS/TS supplement.
+
+**Resolution:** Add to JS/TS supplement SA section. Tool reference: `madge --circular` for detection.
+
+---
+
+### Data Engineering
+
+**DE dim 3 (schema evolution) is too thin for apps with users — HIGH**
+
+Dim 3 asks: "If the data model changes, can data written under the old schema still be read?" One question. For a deployed app with user data, schema evolution covers: explicit migration scripts, forward/backward compatibility windows, atomic migration rollout, data validation post-migration, and rollback strategy if the migration corrupts data. A project that answers "yes" to the single question with "we have a normalization function" passes dim 3 but may have no tested migration path.
+
+**Resolution:** Expand dim 3 to require: (a) explicit migration strategy documented, (b) migration tested against real data samples, (c) rollback path defined, (d) forward compatibility if old clients may write data after new schema is deployed.
+
+---
+
+**DE: Data volume limits not tested — MEDIUM**
+
+The DE domain does not ask whether the application has been tested with realistic data volumes. A `localStorage`-backed app silently stops accepting writes at ~5-10MB. A list rendered without virtual scrolling becomes unusable at 1000+ items. A synchronous sort of 10,000 items blocks the main thread. None of these are caught by any current dimension.
+
+**Resolution:** Add dim 11 (data volume limits) to DE: has the application been tested with an order-of-magnitude more data than expected? Are storage limits known and enforced explicitly (with a user-visible error) rather than failing silently?
+
+---
+
+### Platform Engineering
+
+**PE: Rollback plan documented ≠ rollback plan tested — HIGH**
+
+PE dim 21 (disaster recovery) asks whether a documented and tested plan exists for recovering from infrastructure failure and whether backups are automated and verified. "Documented and tested" is in the dimension, which is good. But in practice, a reviewer will accept a documented plan with a dismissal of "tested implies documented; the plan exists." The dimension does not separate these two criteria explicitly.
+
+For a deployment that has never been rolled back, the rollback plan is untested speculation, not a plan. The same applies to backup restoration — a backup that has never been restored may be unrestorable.
+
+**Resolution:** Strengthen PE dim 21 to explicitly require that rollback and backup restoration have been tested in a non-production environment, with a record of when they were last tested.
+
+---
+
+### Suite Alignment Against Governing Docs
+
+**VDD-IAR Alignment must gate Layer 1 close, not only final merge**
+
+The README sequencing says "Run VDD-IAR Alignment last." VDD-IAR Alignment is correctly the last domain in the final merge gate. But it should also be run at each layer gate close — specifically to verify that the layer gate was executed correctly: acceptance criteria checked, tests passing, IAR complete. Running it only at the end means layer gate failures are discovered retrospectively, not at the time they occurred.
+
+The VDD-IAR Alignment domain itself (dim 3: layer gate compliance) evaluates historical compliance. It cannot retroactively fix a layer that was opened before the previous one's gate closed. The earlier the check, the more actionable the finding.
+
+**Resolution:** Add a note to the README sequencing section: VDD-IAR Alignment is run last in the final merge gate but should also be run at each layer gate close to verify dims 2–3 (layered decomposition and gate compliance) while the layer is still open and correctable.
+
+---
+
+**G-20 and G-21 (assumption surfacing + hallucination detection) still open — CRITICAL for AI workflow**
+
+These two gaps have been registered as High priority since Run 2 (2026-04-25). They remain completely unaddressed. For a suite designed specifically for AI-accelerated development, these are the highest-impact gaps.
+
+G-20: An AI agent working from a spec will make assumptions about requirements, library behavior, and what the client "probably" wants. None are explicit. A human reviewer catches surprising choices in code review. An AI agent produces confident, fluent code with no signal of uncertainty.
+
+G-21: An AI agent will confidently cite APIs that do not exist, invent package names, and misremember library interfaces. The test suite catches some hallucinated implementations at runtime; it does not catch a hallucinated API with plausible-looking tests written against the hallucinated behavior.
+
+These are not gaps that belong in a separate domain — they belong as cross-cutting prompts in the review header of each domain, instructing the reviewer to actively verify assumptions and check external references.
+
+**Resolution:** Add explicit assumption surfacing and hallucination detection instructions to the base review prompt (Current Review Prompt section) of QE, SE, and SA domains. These are the three domains most likely to encounter AI-generated incorrect external references and unvalidated assumptions about library behavior. Address G-20 and G-21 as partially resolved.
+
+---
+
+**G-23 (dependency/API existence validation) still open — HIGH for AI workflow**
+
+Related to G-21 but distinct: G-23 is checkable. Does the package actually exist in the registry? Does the API endpoint actually respond? Does the third-party service actually support this operation? This should be an explicit checklist item in QE and SA, not an incidental catch during testing.
+
+**Resolution:** Add to QE dim 7 (logic errors) or as a new QE dimension: verify that all referenced external dependencies, APIs, and third-party services actually exist and behave as used. An AI-generated import of a plausible but nonexistent package name will compile if the package exists with that name for a different purpose.
+
+---
+
+**Sycophancy check is identical boilerplate — MEDIUM (structural)**
+
+Nine domains, nine identical sycophancy check paragraphs. A reviewer processing multiple domains in sequence will read the first, recognize the pattern, and skim the rest. More critically, the generic text ("if the agent agreed with every decision reviewed in this domain") does not name the specific failure mode for each domain. Domain-specific text would name the specific risk:
+
+- QE: "An agent that wrote both the implementation and the tests will write tests that validate its own interpretation of the requirement, not tests that would catch if its interpretation was wrong."
+- Security: "An agent reviewing its own security implementation will dismiss risks it did not consider during generation as 'out of scope' or 'not applicable to this project.'"
+- SA: "An agent that designed the architecture will find the architecture sound because it reflects the agent's own defaults, not because it is the right choice for this project's constraints."
+
+The suite should not prescribe all nine rewrites in this run. But at least QE, Security, and SA — the three domains where AI self-review is most dangerous — should have domain-specific sycophancy checks.
+
+**Resolution:** Rewrite sycophancy checks for QE, Security, and SA. Other domains deferred.
+
+---
+
+### Prompt Review
+
+**spec-crystallization.md: UI-centric driving questions**
+
+The "Features and behaviors" driving questions assume a user-facing application with operations, forms, and displayed data. They do not adapt for: libraries (exported functions with callers, not users), infrastructure tools (no UI, no "empty state"), research/speculative projects (no defined success behavior), or CLI tools (stdin/stdout instead of forms). A practitioner starting a library project with this primer would either skip the questions that don't apply or force-fit them.
+
+**Resolution:** Add a project type framing section at the top of spec-crystallization.md. Before the driving questions, prompt the practitioner to characterize the project type: user-facing app / library / CLI tool / infrastructure / research. Provide brief alternative framings for driving questions where needed.
+
+---
+
+**decomposition.md: Crosslink conflated with all projects**
+
+The decomposition prompt includes the crosslink issue hierarchy section as a standard step. Phase 1 projects do not use crosslink. A Phase 1 practitioner reading this primer will either be confused by the crosslink commands or skip the section — and might also skip the bead-string accountability principle it introduces, which *is* applicable to Phase 1 (just without the tooling).
+
+**Resolution:** Separate the principle (every piece of work is explicitly planned and accountable) from the tool (crosslink commands). State the accountability principle for all projects; gate the crosslink commands behind a "Phase 2+ only" note.
+
+---
+
+### Resolved in this review
+
+1. QE: Coverage threshold in base domain (dim 13)
+2. QE: Mutation testing in dim 2 (falsifiability)
+3. QE: Flaky test detection in dim 5 (test architecture)
+4. Security: dim 4 expanded (secrets in logs)
+5. Security: dim 6 expanded (auth/authz sub-questions)
+6. Security: prototype pollution in JS/TS supplement
+7. UX: dim 14 added (async state and error recovery)
+8. UX: dim 3 expanded (focus trap named)
+9. UX: dim 12 split (confirmation gate existence vs. quality)
+10. SE: flag argument anti-pattern in dim 4
+11. SE: primitive obsession in dim 3
+12. SA: event listener / timer lifecycle in dim 5
+13. SA JS/TS: circular dependency detection
+14. DE: dim 3 expanded (migration strategy)
+15. DE: dim 11 added (data volume limits)
+16. PE: dim 21 strengthened (rollback and backup tested, not just documented)
+17. Suite: VDD-IAR Alignment sequencing note (also at layer gate close)
+18. QE/SE/SA: assumption surfacing + hallucination detection in review prompts (G-20/21 partial)
+19. QE: dependency/API existence validation (G-23 partial)
+20. Sycophancy check: domain-specific rewrite for QE, Security, SA
+21. spec-crystallization.md: project type framing
+22. decomposition.md: principle/tool separation
+
+### Hallucinated
+
+*(none)*
+
+---
+
 ## Review 1 — 2026-04-27
 
 **Scope:** All domain template files, lang/ supplements, README.md, GAP-ANALYSIS-LOG.md.

@@ -56,7 +56,7 @@ Regression check: verify that all pipeline gates and infrastructure controls ins
 18. **Containerization** — If containers are used: are base images pinned to a specific digest, not a mutable tag? Are images scanned for vulnerabilities? Is the image build reproducible?
 19. **Container security** — Do containers run as non-root? Are capabilities dropped? Are read-only filesystems used where possible? Are resource limits set?
 20. **Environment parity** — Do development, staging, and production environments match closely enough that bugs caught in one are representative of the others?
-21. **Disaster recovery** — Is there a documented and tested plan for recovering from infrastructure failure? Are backups automated and verified?
+21. **Disaster recovery** — Is there a documented plan for recovering from infrastructure failure? Are backups automated? Beyond documentation: has the rollback procedure been executed in a non-production environment, with a record of the last test date? Has backup restoration been verified — not just that backups run, but that a restored backup produces a functional system? A rollback plan that has never been executed is untested speculation. A backup that has never been restored may be unrestorable. "Documented and available" is not "tested and reliable." Flag any DR plan that cannot answer: when was this last tested, and what happened?
 
 ### Observability
 

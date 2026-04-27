@@ -78,9 +78,18 @@ For each layer, enumerate:
 
 ---
 
+## Work accountability
+
+The accountability principle is the same at every phase: every piece of work is explicitly planned before it begins, and no undocumented work exists. The tool that holds the plan changes by phase:
+
+- **Phase 1:** `TODO.md` is the source of truth. Layers, acceptance criteria, and manual testing checklists live there. Work that is not in a layer is not approved work.
+- **Phase 2+:** Crosslink replaces `TODO.md` as the source of truth. The issue hierarchy (epics → issues → subissues) is the plan. `TODO.md` is not maintained separately once crosslink is introduced.
+
+---
+
 ## Crosslink issue hierarchy (Phase 2+ projects)
 
-If this is a Phase 2+ project, map the layer plan to a crosslink issue hierarchy before writing any code.
+If this is a Phase 2+ project, the crosslink issue hierarchy is the plan — build it before writing any code. TODO.md is not used.
 
 ```
 # Create an epic for the project
