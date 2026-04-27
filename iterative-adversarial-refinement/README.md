@@ -49,6 +49,7 @@ Domains are organized into three types. All domain prompt files live under `doma
 
 | Role | Job title | Prompt file | Focus |
 |---|---|---|---|
+| Red Team Hacker | Penetration Tester / Offensive Security Engineer | [RED-TEAM-REVIEW.md](domains/role/RED-TEAM-REVIEW.md) | Offensive security: threat modeling, attack surface enumeration, authentication bypass, authorization flaws, business logic abuse, injection chains, client-side attacks, information leakage, chained vulnerabilities, insider threat, automated attack resilience, supply chain exploitation |
 | Performance Engineer | Performance Engineer / Site Performance Engineer | [PERFORMANCE-ENGINEER-REVIEW.md](domains/role/PERFORMANCE-ENGINEER-REVIEW.md) | Runtime performance: time-to-interactive, main thread saturation, asset optimization, data scaling, N+1 patterns, caching, memory growth, performance budget, regression risk |
 | Technical Writer | Technical Writer / Developer Experience Engineer | [TECHNICAL-WRITER-REVIEW.md](domains/role/TECHNICAL-WRITER-REVIEW.md) | README completeness, documentation accuracy, architecture documentation, decision rationale, inline comment quality, API/interface docs, operational docs, CHANGELOG quality, AI session independence |
 | Accessibility Engineer | Accessibility Engineer / A11y Specialist | [ACCESSIBILITY-REVIEW.md](domains/role/ACCESSIBILITY-REVIEW.md) | WCAG 2.1 AA compliance at depth: automated scan baseline, keyboard navigation, focus management, focus traps, ARIA correctness, contrast, form accessibility, dynamic content announcements, cognitive accessibility, zoom/reflow |
@@ -127,6 +128,7 @@ Default: run all active domains in parallel. Sequence when one domain's output i
 - Run SA first when there are significant structural or architectural changes — SA findings can change what QE, UX, and Security need to evaluate
 - Run PE first when there are significant pipeline or build config changes — other domains depend on the pipeline running correctly
 - Run Security before QE when there are significant changes to storage, rendering, or input handling — QE tests may need to cover the security-relevant paths
+- Run Security before Red Team — Security Engineer ensures controls exist; Red Team verifies they hold under attack. A Red Team finding that traces to an absent control is a Security finding too
 - Run QE before UX when QE finds bugs that change the implementation — the UX reviewer should see the fixed version
 - Run DE before SA when there are significant data model changes — DE findings can change what SA needs to evaluate
 - Run VDD-IAR Alignment last in the final merge gate — it reviews the process artifacts produced by all other domain runs
