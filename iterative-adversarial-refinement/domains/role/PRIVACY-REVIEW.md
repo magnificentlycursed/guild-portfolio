@@ -1,6 +1,6 @@
 # Privacy Review
 
-This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. It may be run independently or alongside other domains. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
+This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
 The purpose of this review is to evaluate privacy as a distinct concern from security. Security asks whether data can be exfiltrated. Privacy asks whether the data should have been collected in the first place, how long it is retained, who can access it, whether the basis for processing is lawful, and whether users can exercise their rights. A system with no security vulnerabilities can still be a privacy failure.
 

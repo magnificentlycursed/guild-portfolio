@@ -1,6 +1,6 @@
 # VDD-IAR Alignment Review
 
-This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. It may be run independently or alongside other domains. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
+This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
 The purpose of this review is to evaluate whether the project was built using the Verification-Driven Development (VDD) and Iterative Adversarial Refinement (IAR) methodology. The other IAR domains evaluate *what* was built. This domain evaluates *how* it was built — whether the process that is supposed to produce quality actually ran.
 
@@ -24,7 +24,7 @@ Read the governing methodology document in full before reviewing any artifacts. 
 
 For each finding, cite the specific artifact and location (commit hash, log entry, file and line). Classify as **resolved** (fix applied this review), **dismissed** (no action taken, rationale required), or **hallucinated** (the adversary invented a process failure that does not exist — push back is warranted. Consistent hallucinated findings are the maximum viable refinement signal: real issues have been exhausted).
 
-**Coordination:** Process failures frequently explain defects found by other domains. If QE found that tests were added after implementation, flag it here as a test discipline finding. If SA found that architecture grew organically rather than being designed, flag it here as a decomposition finding. Coordinate with [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) on assignment compliance — SO owns whether DESIGN.md matches the assignment brief; this domain owns whether design-before-code discipline was followed. If this review suggests the need for a new IAR domain, log it as a finding.
+**Coordination:** Process failures frequently explain defects found by other domains. If QE found that tests were added after implementation, flag it here as a test discipline finding. If SA found that architecture grew organically rather than being designed, flag it here as a decomposition finding. Coordinate with [SOLUTION-OWNER-REVIEW.md](../role/SOLUTION-OWNER-REVIEW.md) on assignment compliance — SO owns whether DESIGN.md matches the assignment brief; this domain owns whether design-before-code discipline was followed. If this review suggests the need for a new IAR domain, log it as a finding.
 
 **Language and interface supplement:** Not applicable. Process compliance is language-agnostic. The `lang/` supplements add language-specific dimensions to implementation-focused domains; the VDD-IAR Alignment domain evaluates methodology compliance, which is independent of the implementation language or interface type.
 

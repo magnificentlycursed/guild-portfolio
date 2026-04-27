@@ -1,6 +1,6 @@
 # Accessibility Review
 
-This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. It may be run independently or alongside other domains. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
+This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
 The purpose of this review is to evaluate whether the application is usable by people with disabilities — including motor, visual, auditory, and cognitive disabilities. Accessibility is not a polish concern. An interface that cannot be operated by keyboard, or that is invisible to a screen reader, excludes users and in many jurisdictions creates legal exposure. WCAG 2.1 Level AA is the standard floor.
 
@@ -18,7 +18,7 @@ For each finding, cite the element, file, and line number. Classify as **resolve
 
 **Sycophancy check:** Accessibility failures are the most commonly rationalized class of bug. "Users with disabilities aren't our target audience" is not a rationale — it is a scope decision that requires explicit justification and acceptance from the project owner. An agent reviewing its own accessibility implementation will frequently dismiss failures with "the semantic meaning is clear from context" or "screen reader users would understand this" without having tested with a screen reader. Every dismissed finding requires a specific, verifiable reason.
 
-**Language and interface supplement:** See `lang/browser-app.md` for browser-specific accessibility dimensions. This domain goes deeper than those dimensions.
+**Language and interface supplement:** See `../../lang/browser-app.md` for browser-specific accessibility dimensions. This domain goes deeper than those dimensions.
 
 ## Standard Evaluation Dimensions
 

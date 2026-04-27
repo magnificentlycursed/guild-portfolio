@@ -1,6 +1,6 @@
 # Portfolio Assessment Review
 
-This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. It may be run independently or alongside other domains. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
+This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
 The purpose of this review is to evaluate the work as a portfolio artifact — not whether it functions correctly, but whether it demonstrates genuine skill, learning, and independent judgment by the developer who built it. An AI-accelerated project that passes every technical domain may still fail as a portfolio piece if the developer cannot explain the decisions, did not direct the work, or does not understand the implementation well enough to own it.
 
@@ -16,7 +16,7 @@ For each dimension, classify as **demonstrated** (evidence is clear and specific
 
 **Sycophancy check:** This is the domain where sycophancy does the most harm. An agent reviewing portfolio work has every incentive to find it impressive — it helped build it. The adversary must push on the hardest question in this domain: could this developer reproduce the key decisions without the AI? That question cannot be answered by reading the code. It requires direct interrogation.
 
-**Coordination:** Process evidence connects to VDD-IAR Alignment (was the methodology followed?). Decision ownership connects to SA and SE (are the architectural and implementation decisions the developer's?). Documentation connects to Documentation Review (is the knowledge transferred?).
+**Coordination:** Process evidence connects to VDD-IAR Alignment (was the methodology followed?). Decision ownership connects to SA and SE (are the architectural and implementation decisions the developer's?). Documentation connects to SE (is the knowledge transferred? See the Documentation section of SE).
 
 ## Standard Evaluation Dimensions
 

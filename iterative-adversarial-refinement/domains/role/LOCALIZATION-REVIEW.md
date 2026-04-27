@@ -1,6 +1,6 @@
 # Localization Review (i18n / L10n)
 
-This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. It may be run independently or alongside other domains. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
+This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
 The purpose of this review is to evaluate whether the application is prepared to support multiple languages and locales — either now or in the future. Internationalization (i18n) is the architectural work of making localization possible: separating user-visible strings from code, handling locale-sensitive formatting, and accommodating text expansion. Localization (L10n) is the work of providing content in a specific locale. This review evaluates i18n readiness; L10n content itself is out of scope unless a specific locale is being validated.
 
@@ -18,7 +18,7 @@ For each finding, cite file and line number. Classify as **resolved** (fix appli
 
 **Sycophancy check:** An agent generates strings, validation rules, and format assumptions based on its training distribution, which is heavily weighted toward English and US locale conventions. It will not flag its own locale assumptions because they are invisible to it — they are the default. The adversary must surface every place where a locale assumption is baked in and evaluate whether it is intentional and documented or accidental and fragile.
 
-**Language and interface supplement:** Consult `lang/` for language-specific i18n library recommendations and conventions.
+**Language and interface supplement:** Consult `../../lang/` for language-specific i18n library recommendations and conventions.
 
 ## Standard Evaluation Dimensions
 

@@ -1,6 +1,6 @@
 # Data Engineering Review
 
-This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. It may be run independently or alongside other domains. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
+This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
 The purpose of this review is to evaluate the data layer: how data is modeled, validated, stored, accessed, transformed, and evolved. Data bugs are often silent — a schema mismatch or missing validation does not throw an error until much later, often in production. This review applies adversarial pressure to the data model and the code that touches it.
 
@@ -20,7 +20,7 @@ Regression check: verify that data written by prior versions of the application 
 
 **Sycophancy check:** If the agent agreed with every decision reviewed in this domain without challenge, treat that as a finding. An AI agent that validates every choice it helped produce is not providing adversarial review — it is confirming its own work. Flag any area where a significant decision went unquestioned but warranted scrutiny.
 
-**Language and interface supplement:** Consult `lang/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`). Apply the **Data Engineering** section from the relevant supplement file in addition to the standard dimensions below — language supplements cover serialization libraries, schema evolution patterns, and validation idioms specific to the ecosystem.
+**Language and interface supplement:** Consult `../../lang/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`). Apply the **Data Engineering** section from the relevant supplement file in addition to the standard dimensions below — language supplements cover serialization libraries, schema evolution patterns, and validation idioms specific to the ecosystem.
 
 ## Standard Evaluation Dimensions
 

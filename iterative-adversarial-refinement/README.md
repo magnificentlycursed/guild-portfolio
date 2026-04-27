@@ -30,32 +30,35 @@ VSDD defines six phases. IAR owns Phase 4. Understanding the full pipeline matte
 
 ## Domains
 
-| Domain | Prompt file | Focus |
-|---|---|---|
-| Quality Engineering | [QUALITY-ENGINEERING-REVIEW.md](QUALITY-ENGINEERING-REVIEW.md) | Test system: acceptance criteria, falsifiability, Red Gate compliance, coverage meaningfulness, logic errors, dead code, dependencies, security surface, regression coverage, quality gates, TDD proxy indicators |
-| UX | [UX-REVIEW.md](UX-REVIEW.md) | User experience: empty states, error messages, focus and keyboard behavior, visual consistency, affordances, feedback patterns, long content, native dialog quality. Standard dimensions assume browser interface — see `lang/cli.md` for CLI projects. |
-| Security | [SECURITY-REVIEW.md](SECURITY-REVIEW.md) | Input handling, persistence data validation, dependency CVEs, secret handling, information exposure, authentication and authorization |
-| Platform Engineering | [PLATFORM-ENGINEERING-REVIEW.md](PLATFORM-ENGINEERING-REVIEW.md) | CI/CD pipeline, gate enforcement, DevSecOps (pre-commit hooks, security scanning, secret management, supply chain integrity, least privilege), infrastructure as code, containerization, environment parity, observability |
-| Solution Architect | [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) | Architecture: separation of concerns, coupling, data model integrity, interface contracts, state management, immutability, extensibility, technology fitness, complexity budget, decision documentation, session continuity, VSDD purity boundary map |
-| Solution Owner | [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) | Spec contract: spec coverage, scope creep, technology compliance, over-engineering, under-delivery, design fidelity, backlog candidates, prior-review additions, assignment compliance (phase-appropriate). Opens with a compliance table. DESIGN.md is the contract. |
-| Software Engineering | [SOFTWARE-ENGINEERING-REVIEW.md](SOFTWARE-ENGINEERING-REVIEW.md) | Implementation: correctness, error handling, naming, function design, duplication, complexity, type safety, defensive coding, comments, consistency, future-self maintainability |
-| Data Engineering | [DATA-ENGINEERING-REVIEW.md](DATA-ENGINEERING-REVIEW.md) | Data layer: data model correctness, validation and normalization, schema evolution, data integrity, storage fitness, access patterns, serialization, consistency, sensitive data handling. Optional for projects without a meaningful data layer. |
-| VDD-IAR Alignment | [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md) | Process and governing doc compliance: design-before-code, spec completeness (VSDD Phase 1), layered decomposition, layer gate compliance, test discipline (Red Gate), human verification, IAR fresh context, IAR iteration, role integrity, manual testing checklists, retrospective quality, issue tracking compliance |
+Domains are organized into three types. All domain prompt files live under `domains/`.
 
-**Extended domains** — active when a project's scope warrants them:
+**Core role domains** — run on every project. The reviewer plays a professional role and brings their full domain lens to the review:
 
 | Domain | Prompt file | Focus |
 |---|---|---|
-| Performance | [PERFORMANCE-REVIEW.md](PERFORMANCE-REVIEW.md) | Runtime performance: time-to-interactive, main thread saturation, asset optimization, data scaling, N+1 patterns, memory growth, performance budget |
-| Accessibility | [ACCESSIBILITY-REVIEW.md](ACCESSIBILITY-REVIEW.md) | WCAG 2.1 AA compliance at depth: automated scan baseline, keyboard navigation, focus management, focus traps, ARIA correctness, contrast, form accessibility, dynamic content announcements, cognitive accessibility, zoom/reflow |
-| Privacy | [PRIVACY-REVIEW.md](PRIVACY-REVIEW.md) | Data minimization, legal basis, retention policy, user rights (access/erasure/portability), third-party sharing, consent quality, PII in secondary storage, privacy by design |
-| Observability | [OBSERVABILITY-REVIEW.md](OBSERVABILITY-REVIEW.md) | Application-layer diagnostics: error surfacing and classification, structured log emission, diagnostic completeness, health surfaces, correlation, sensitive data exclusion, local/prod parity |
-| API Contract | [API-CONTRACT-REVIEW.md](API-CONTRACT-REVIEW.md) | External interface stability: contract documentation, breaking change definition, versioning strategy, backward compatibility, contract testing, error contract, deprecation process. Applies to REST APIs, libraries, CLI tools, event schemas. |
-| Documentation | [DOCUMENTATION-REVIEW.md](DOCUMENTATION-REVIEW.md) | README completeness, documentation accuracy, architecture documentation, decision rationale, inline comment quality, API/interface docs, operational docs, CHANGELOG quality, AI session independence |
-| Portfolio Assessment | [PORTFOLIO-ASSESSMENT-REVIEW.md](PORTFOLIO-ASSESSMENT-REVIEW.md) | Developer ownership: decision ownership, implementation understanding, directed development evidence, growth evidence, failure honesty, spec ownership, extensibility confidence. Portfolio and apprentice program submissions only. |
-| Localization | [LOCALIZATION-REVIEW.md](LOCALIZATION-REVIEW.md) | i18n readiness: string externalization, date/time/number formatting, RTL support, text expansion tolerance, plural rules, locale-sensitive validation, character encoding, cultural neutrality |
+| Quality Engineering | [QUALITY-ENGINEERING-REVIEW.md](domains/role/QUALITY-ENGINEERING-REVIEW.md) | Test system: acceptance criteria, falsifiability, Red Gate compliance, coverage meaningfulness, logic errors, dead code, dependencies, security surface, regression coverage, quality gates, TDD proxy indicators |
+| UX | [UX-REVIEW.md](domains/role/UX-REVIEW.md) | User experience: empty states, error messages, focus and keyboard behavior, visual consistency, affordances, feedback patterns, long content, native dialog quality. Standard dimensions assume browser interface — see `lang/cli.md` for CLI projects. |
+| Security | [SECURITY-REVIEW.md](domains/role/SECURITY-REVIEW.md) | Input handling, persistence data validation, dependency CVEs, secret handling, information exposure, authentication and authorization |
+| Platform Engineering | [PLATFORM-ENGINEERING-REVIEW.md](domains/role/PLATFORM-ENGINEERING-REVIEW.md) | CI/CD pipeline, gate enforcement, DevSecOps (pre-commit hooks, security scanning, secret management, supply chain integrity, least privilege), infrastructure as code, containerization, environment parity, observability, performance |
+| Solution Architect | [SOLUTION-ARCHITECT-REVIEW.md](domains/role/SOLUTION-ARCHITECT-REVIEW.md) | Architecture: separation of concerns, coupling, data model integrity, interface contracts, state management, immutability, extensibility, technology fitness, complexity budget, decision documentation, session continuity, VSDD purity boundary map, external interface contracts |
+| Solution Owner | [SOLUTION-OWNER-REVIEW.md](domains/role/SOLUTION-OWNER-REVIEW.md) | Spec contract: spec coverage, scope creep, technology compliance, over-engineering, under-delivery, design fidelity, backlog candidates, prior-review additions, assignment compliance (phase-appropriate). Opens with a compliance table. DESIGN.md is the contract. |
+| Software Engineering | [SOFTWARE-ENGINEERING-REVIEW.md](domains/role/SOFTWARE-ENGINEERING-REVIEW.md) | Implementation: correctness, error handling, naming, function design, duplication, complexity, type safety, defensive coding, comments, consistency, future-self maintainability, documentation, performance |
+| Data Engineering | [DATA-ENGINEERING-REVIEW.md](domains/role/DATA-ENGINEERING-REVIEW.md) | Data layer: data model correctness, validation and normalization, schema evolution, data integrity, storage fitness, access patterns, serialization, consistency, sensitive data handling. Optional for projects without a meaningful data layer. |
 
-Not all extended domains apply to every project. Select relevant domains based on the project's scope and deployment context. Document which domains are active in the project's design or task file.
+**Extended role domains** — active when a project's scope warrants them. Select based on deployment context and audience; document which are active in the project's design or task file:
+
+| Domain | Prompt file | Focus |
+|---|---|---|
+| Accessibility | [ACCESSIBILITY-REVIEW.md](domains/role/ACCESSIBILITY-REVIEW.md) | WCAG 2.1 AA compliance at depth: automated scan baseline, keyboard navigation, focus management, focus traps, ARIA correctness, contrast, form accessibility, dynamic content announcements, cognitive accessibility, zoom/reflow |
+| Privacy | [PRIVACY-REVIEW.md](domains/role/PRIVACY-REVIEW.md) | Data minimization, legal basis, retention policy, user rights (access/erasure/portability), third-party sharing, consent quality, PII in secondary storage, privacy by design |
+| Localization | [LOCALIZATION-REVIEW.md](domains/role/LOCALIZATION-REVIEW.md) | i18n readiness: string externalization, date/time/number formatting, RTL support, text expansion tolerance, plural rules, locale-sensitive validation, character encoding, cultural neutrality |
+
+**Meta domains** — evaluate process and portfolio artifacts rather than the software itself. Not role-based reviewers; no professional persona applied:
+
+| Domain | Prompt file | Scope |
+|---|---|---|
+| VDD-IAR Alignment | [VDD-IAR-ALIGNMENT-REVIEW.md](domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md) | Every project — process compliance: design-before-code, spec completeness, layered decomposition, layer gates, test discipline (Red Gate), human verification, IAR integrity, issue tracking |
+| Portfolio Assessment | [PORTFOLIO-ASSESSMENT-REVIEW.md](domains/meta/PORTFOLIO-ASSESSMENT-REVIEW.md) | Portfolio and apprentice submissions only — developer ownership: decision ownership, implementation understanding, directed development evidence, growth evidence, failure honesty, spec ownership |
 
 Each domain file contains the current prompt and standard dimensions. Review entries are logged separately under `iterative-adversarial-refinement/` inside the project being reviewed.
 

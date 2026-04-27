@@ -1,6 +1,6 @@
 # Solution Owner Review
 
-This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. It may be run independently or alongside other domains. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
+This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
 The purpose of this review is to guard the project against scope creep and over-engineering. DESIGN.md is a Scope of Work — a contract. The SO review holds the implementation to that contract: 100% of what was agreed, nothing that was not. Bugs and defects are always in scope to fix. Features, behaviors, technologies, and abstractions that are not in DESIGN.md are not.
 
@@ -24,7 +24,7 @@ This review does not block bug fixes or defect resolution. It blocks additions.
 
 **Sycophancy check:** If the agent agreed with every decision reviewed in this domain without challenge, treat that as a finding. An AI agent that validates every choice it helped produce is not providing adversarial review — it is confirming its own work. Flag any area where a significant decision went unquestioned but warranted scrutiny.
 
-**Language and interface supplement:** Consult `lang/` for the supplement matching the project's primary language and interface type. The SO review is primarily spec-driven and language-agnostic — use the language supplement to verify that technology choices (libraries, tools, frameworks) are appropriate to the language and not beyond what the spec requires.
+**Language and interface supplement:** Consult `../../lang/` for the supplement matching the project's primary language and interface type. The SO review is primarily spec-driven and language-agnostic — use the language supplement to verify that technology choices (libraries, tools, frameworks) are appropriate to the language and not beyond what the spec requires.
 
 ## Standard Evaluation Dimensions
 

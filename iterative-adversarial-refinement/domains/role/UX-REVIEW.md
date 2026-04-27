@@ -1,6 +1,6 @@
 # UX Review
 
-This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. It may be run independently or alongside other domains. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
+This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
 The purpose of this review is to apply iterative adversarial pressure to find, document, and resolve UX defects, inconsistencies, accessibility gaps, and regressions. Every review targets the whole application — not only the most recently changed feature.
 
@@ -18,7 +18,7 @@ Regression check: verify that all previously-addressed UX concerns remain intact
 
 **Sycophancy check:** If the agent agreed with every decision reviewed in this domain without challenge, treat that as a finding. An AI agent that validates every choice it helped produce is not providing adversarial review — it is confirming its own work. Flag any area where a significant decision went unquestioned but warranted scrutiny.
 
-**Interface type:** The standard dimensions below assume a browser-rendered interface. For CLI projects, consult `lang/cli.md` — the CLI UX dimensions replace most of the standard dimensions below. For browser apps, also consult `lang/browser-app.md` for browser-specific accessibility, responsive design, and security UX concerns.
+**Interface type:** The standard dimensions below assume a browser-rendered interface. For CLI projects, consult `../../lang/cli.md` — the CLI UX dimensions replace most of the standard dimensions below. For browser apps, also consult `../../lang/browser-app.md` for browser-specific accessibility, responsive design, and security UX concerns.
 
 ## Standard Evaluation Dimensions
 

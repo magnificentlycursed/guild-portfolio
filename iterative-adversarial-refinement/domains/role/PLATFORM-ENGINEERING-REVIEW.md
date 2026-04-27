@@ -1,6 +1,6 @@
 # Platform Engineering Review
 
-This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. It may be run independently or alongside other domains. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
+This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
 Platform Engineering owns the full delivery platform: CI/CD pipelines, DevSecOps practices, infrastructure (cloud and on-premise), containerization, and observability. The purpose of this review is to evaluate whether the platform is correctly configured, hardened, automated, and observable — and to shift quality and security checks left so that defects are caught automatically before they reach production.
 
@@ -24,7 +24,7 @@ Regression check: verify that all pipeline gates and infrastructure controls ins
 
 **Sycophancy check:** The primary sycophancy risk in this domain is around applicability decisions and threshold acceptance, not binary existence checks. Flag any case where an inapplicable determination was made without examining whether it genuinely does not apply, and any case where an accepted risk was accepted without specific evidence of the risk level.
 
-**Language and interface supplement:** Consult `lang/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`). Apply the **Platform Engineering** section from the relevant supplement file in addition to the standard dimensions below — language supplements specify the correct tooling for dependency installation, auditing, linting, and format checking.
+**Language and interface supplement:** Consult `../../lang/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`). Apply the **Platform Engineering** section from the relevant supplement file in addition to the standard dimensions below — language supplements specify the correct tooling for dependency installation, auditing, linting, and format checking.
 
 ## Standard Evaluation Dimensions
 
@@ -65,6 +65,20 @@ Regression check: verify that all pipeline gates and infrastructure controls ins
 24. **Alerting** — Are alerts configured for conditions that require human attention? Are they actionable and free of false positives? Is on-call coverage defined?
 25. **Tracing** — For distributed systems: is distributed tracing in place? Can a request be followed across service boundaries?
 26. **Dashboards** — Is there a canonical operational dashboard? Does it show the state of the system at a glance?
+27. **Error surfacing** — Are errors caught at appropriate levels and surfaced with enough context to diagnose the root cause? Named failure modes: empty catch blocks that swallow errors silently; catch blocks that log a label without the error object; errors caught and rethrown without adding context. Every catch block that does not re-throw should emit a diagnostic event identifying what failed and why.
+28. **Error classification** — Are errors distinguished by type? Named categories: user errors (invalid input — expected, not alarming), application errors (bugs — unexpected, should alert), and dependency errors (external service failure — expected under failure conditions, different response required). An application that treats all errors identically alarms on user errors and misses application errors.
+29. **Diagnostic completeness** — Pick a plausible production failure (a save fails, a search returns wrong results). Could you diagnose the root cause from the application's log output alone, without source code or a debugger? If not, identify what is missing.
+30. **Health surfaces** — For deployed services: does the health check verify the application's ability to serve requests, not just that the process is alive? A health check that returns 200 OK while the database connection is broken masks failures from load balancers and orchestration platforms.
+31. **Sensitive data exclusion** — Do log entries, error messages, and diagnostic output avoid PII, credentials, and authentication tokens? (Coordinate with Security dim 4.) A well-structured log is a high-value target if it contains sensitive data — the same observability that helps diagnose failures creates exposure if it captures user data.
+32. **Silent success confirmation** — For operations that modify state (saves, deletes, updates): is there a positive signal that the operation completed — not just that it did not fail? You cannot alert on the absence of a success event unless the success event exists.
+33. **Runbook coverage** — Can the application's observable signals support the operational runbook? If the runbook says "check the logs for error code X," does the application actually emit that signal? Runbooks and observability must be designed together.
+
+### Performance
+
+34. **Time-to-interactive** — For browser apps: is there render-blocking JavaScript or CSS? Is the initial payload appropriate for the application's complexity? Measure with Lighthouse or equivalent under simulated network conditions — not just on a local dev server.
+35. **Asset optimization** — Are JavaScript bundles, images, and other assets optimized for delivery? Named checks: minification and tree-shaking in the build output; images compressed and served at appropriate resolution; large dependencies that could be replaced by smaller alternatives or deferred.
+36. **Performance budget** — Is there an explicit performance budget enforced in CI? Named metrics: maximum bundle size, maximum time-to-interactive under a defined network condition. A project with no performance budget in CI has no enforced performance requirement — measuring without gating is the same failure pattern as coverage without thresholds.
+37. **Performance regression risk** — Are there recent changes that could silently degrade performance? Named patterns: adding a dependency without auditing its size impact; adding a synchronous operation in a hot code path; widening a data access pattern to fetch more than previously needed.
 
 ---
 

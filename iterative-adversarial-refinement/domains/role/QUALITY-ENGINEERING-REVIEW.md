@@ -1,6 +1,6 @@
 # Quality Engineering Review
 
-This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. It may be run independently or alongside other domains. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
+This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
 The purpose of this review is to evaluate the quality system as a whole: not just whether bugs exist, but whether the testing strategy, coverage, tooling, and gates are structured to catch defects reliably and repeatedly. Quality Engineering owns the test architecture and the confidence it produces. A passing test suite that would not catch a broken implementation is a quality failure.
 
@@ -22,7 +22,7 @@ Regression check: verify that all previously-working features still work. Prior 
 
 **Hallucination and dependency validation (G-21, G-23):** For each imported package, external API call, and framework feature referenced in the implementation, verify it actually exists with the expected interface and version. An AI agent produces fluent, confident code against plausible-but-nonexistent APIs. The test suite will pass if the same agent wrote both the implementation and the tests against the hallucinated interface. Treat any unfamiliar import or API call as requiring verification.
 
-**Language and interface supplement:** Consult `lang/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`) and interface type (e.g., `cli.md`, `browser-app.md`). Apply the **Quality Engineering** section from the relevant supplement files in addition to the standard dimensions below.
+**Language and interface supplement:** Consult `../../lang/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`) and interface type (e.g., `cli.md`, `browser-app.md`). Apply the **Quality Engineering** section from the relevant supplement files in addition to the standard dimensions below.
 
 **Domain boundary:** QE owns the test system — whether tests exist, whether they are structured to catch defects, and whether coverage reflects genuine confidence. SE owns the code — whether the implementation is correct, well-named, and well-structured. When QE finds a logic error in code that has no test for it, flag the missing test here. SE flags the bug. Both findings are valid and non-duplicative: the missing test is a quality failure independent of whether the bug gets fixed.
 
