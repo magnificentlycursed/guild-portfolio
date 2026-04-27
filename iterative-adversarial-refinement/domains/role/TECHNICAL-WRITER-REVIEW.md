@@ -48,4 +48,4 @@ For each finding, cite the specific file and section. Classify as **resolved** (
 
 ---
 
-Review entries are logged in `iterative-adversarial-refinement/DOCUMENTATION-REVIEW.md` inside the project being reviewed.
+Review entries are logged in `iterative-adversarial-refinement/TECHNICAL-WRITER-REVIEW.md` inside the project being reviewed.

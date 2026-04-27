@@ -46,4 +46,4 @@ For each finding, cite file and line number. Classify as **resolved** (fix appli
 
 ---
 
-Review entries are logged in `iterative-adversarial-refinement/PERFORMANCE-REVIEW.md` inside the project being reviewed.
+Review entries are logged in `iterative-adversarial-refinement/PERFORMANCE-ENGINEER-REVIEW.md` inside the project being reviewed.
