@@ -10,13 +10,19 @@ This domain addresses G-34: the learning and craft development gap identified in
 
 **Scope:** The whole project, including process documentation, commit history, DESIGN.md, DECISIONS.md, PROCESS.md, and the developer's stated learning objectives.
 
+Read DESIGN.md and the assignment brief for each project before evaluating dimensions that require spec knowledge — decision ownership (dim 1), spec ownership (dim 6), and appropriate scope judgment (dim 8) all require knowing what was actually designed and what was asked for.
+
 This review requires the developer's active participation. Some dimensions require direct questions to the developer rather than artifact analysis. The developer should answer as if explaining the project to a technical interviewer who has read the code.
 
 For each dimension, classify as **demonstrated** (evidence is clear and specific), **partial** (evidence exists but is thin or indirect), **absent** (no evidence found), or **hallucinated** (the adversary invented a concern that does not apply — push back warranted).
 
+**Regression check:** If this developer has had a prior portfolio assessment, read that assessment log (`iterative-adversarial-refinement/PORTFOLIO-ASSESSMENT-REVIEW.md` in the preceding project) before evaluating the current work. Verify that competencies demonstrated in that assessment remain demonstrated here. A developer who showed spec ownership in the previous assessment should not regress to passive rubber-stamping. Note any dimension that previously scored **demonstrated** and now scores **partial** or **absent** — regression is as significant as absence. If no prior assessment exists, this check is vacuously met; note it in the log.
+
+**Coordination:** Process evidence connects to [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md) (was the methodology followed?). Decision ownership connects to [SOLUTION-ARCHITECT-REVIEW.md](../role/SOLUTION-ARCHITECT-REVIEW.md) and [SOFTWARE-ENGINEER-REVIEW.md](../role/SOFTWARE-ENGINEER-REVIEW.md) (are the architectural and implementation decisions the developer's?). Documentation connects to [SOFTWARE-ENGINEER-REVIEW.md](../role/SOFTWARE-ENGINEER-REVIEW.md) (is the knowledge transferred? See the Extended: Documentation section).
+
 **Sycophancy check:** This is the domain where sycophancy does the most harm. An agent reviewing portfolio work has every incentive to find it impressive — it helped build it. The adversary must push on the hardest question in this domain: could this developer reproduce the key decisions without the AI? That question cannot be answered by reading the code. It requires direct interrogation.
 
-**Coordination:** Process evidence connects to VDD-IAR Alignment (was the methodology followed?). Decision ownership connects to SA and SE (are the architectural and implementation decisions the developer's?). Documentation connects to SE (is the knowledge transferred? See the Documentation section of SE).
+**Language and interface supplement:** Not applicable. Portfolio assessment evaluates developer ownership, growth evidence, and decision rationale — concerns that are independent of implementation language or interface type.
 
 ## Standard Evaluation Dimensions
 
@@ -34,7 +40,7 @@ For each dimension, classify as **demonstrated** (evidence is clear and specific
 
 7. **Extensibility confidence** — Could the developer implement a modest in-scope extension without AI assistance? This is not a test of speed or correctness under pressure — it is a test of familiarity. If the developer would need to re-read the codebase from scratch to understand where to add a new feature, the code is not owned.
 
-8. **Appropriate scope judgment** — Does the scope of the project reflect the developer's own judgment, or the agent's defaults? Named concerns: the project implements features that were not asked for because the agent added them; the project's technical stack is more complex than the assignment required; the project's documentation is professional-quality but the developer cannot explain what it says. Appropriate scope for a portfolio project means: the developer could have built this without AI assistance, even if it would have taken longer.
+8. **Appropriate scope judgment** — Does the scope of the project reflect the developer's own judgment, or the agent's defaults? Named concerns: the project implements features that were not asked for because the agent added them; the project's technical stack is more complex than the assignment required; the project's documentation is professional-quality but the developer cannot explain what it says. Appropriate scope for a portfolio project means: the developer understands and can account for everything that was built. The test is ownership of the complexity, not whether AI was the construction vehicle — the methodology assumes AI does the building. A developer who directed an ambitious implementation and can explain every decision passes this dimension. A developer who accepted the agent's scope expansions without directing them, and cannot account for the resulting complexity, fails it.
 
 ---
 

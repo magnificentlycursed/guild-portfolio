@@ -4,8 +4,6 @@ This review is part of the [Iterative Adversarial Refinement (IAR)](../../README
 
 **Reviewer role: UX Designer** (UX Designer / UX Researcher / Product Designer)
 
-**Reviewer role: UX Designer** (UX Designer / UX Researcher / Product Designer)
-
 The purpose of this review is to apply iterative adversarial pressure to find, document, and resolve UX defects, inconsistencies, accessibility gaps, and regressions. Every review targets the whole application — not only the most recently changed feature.
 
 ## Current Review Prompt
@@ -18,9 +16,9 @@ For each finding, cite the element, file, and line number. Classify as **resolve
 
 Regression check: verify that all previously-addressed UX concerns remain intact. Prior layers' UX changes are always in scope. A visual or interaction change to one part of the app can silently break another.
 
-**Coordination:** Flag any findings that should be surfaced to [QUALITY-ENGINEERING-REVIEW.md](QUALITY-ENGINEERING-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), [PLATFORM-ENGINEERING-REVIEW.md](PLATFORM-ENGINEERING-REVIEW.md), or [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). If this review suggests the need for a new IAR domain, log it as a finding.
+**Coordination:** Flag any findings that should be surfaced to [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md), or [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). If this review suggests the need for a new IAR domain, log it as a finding.
 
-**Sycophancy check:** If the agent agreed with every decision reviewed in this domain without challenge, treat that as a finding. An AI agent that validates every choice it helped produce is not providing adversarial review — it is confirming its own work. Flag any area where a significant decision went unquestioned but warranted scrutiny.
+**Sycophancy check:** An AI agent cannot experience a user interface — it cannot perceive latency, notice visual imbalance, or discover that a flow is confusing by trying to use it. An agent reviewing its own UI implementation will validate the decisions it made at generation time rather than evaluate the lived experience those decisions create. The adversary must flag any dimension where the review relies on reading code rather than observing the interface. If the project cannot be tested directly in a browser, state that explicitly — do not simulate user experience from source code and report it as a UX evaluation.
 
 **Interface type:** The standard dimensions below assume a browser-rendered interface. For CLI projects, consult `../../lang/cli.md` — the CLI UX dimensions replace most of the standard dimensions below. For browser apps, also consult `../../lang/browser-app.md` for browser-specific accessibility, responsive design, and security UX concerns.
 
@@ -32,7 +30,7 @@ Regression check: verify that all previously-addressed UX concerns remain intact
 4. **Visual consistency** — Are equivalent UI surfaces treated the same?
 5. **Interactive affordances** — Do users know what they can interact with? Do interactive elements look interactive?
 6. **Feedback patterns** — Are success, error, loading, and empty states present and appropriate?
-7. **Accessibility** — Does every interactive element have an accessible label? Is color contrast WCAG AA compliant (4.5:1 for normal text, 3:1 for large text and UI components)? Is semantic HTML used (landmarks, headings, lists)? Are focus indicators visible? Run axe and confirm zero violations.
+7. **Accessibility** — Does every interactive element have an accessible label? Is color contrast WCAG AA compliant (4.5:1 for normal text, 3:1 for large text and UI components)? Is semantic HTML used (landmarks, headings, lists)? Are focus indicators visible? Run axe and confirm zero violations. For deeper coverage — screen reader testing, cognitive accessibility, dynamic content announcements, ARIA correctness, zoom and reflow — activate the Accessibility domain. This dimension is the floor, not the ceiling.
 8. **Responsive design** — Does the layout hold and remain usable at 360px? Are touch targets at least 44×44px? Does content reflow cleanly without horizontal scroll between mobile and desktop widths?
 9. **Browser compatibility** — Are there visual or interaction differences across Chrome, Firefox, and Safari? Are any CSS or HTML features used that render inconsistently?
 10. **Long content** — What renders when a text field contains a very long unbroken string? Does text overflow its container horizontally?

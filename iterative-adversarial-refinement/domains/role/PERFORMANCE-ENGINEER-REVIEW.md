@@ -16,11 +16,13 @@ Read DESIGN.md first for stated performance requirements, constraints, and expec
 
 For each finding, cite file and line number. Classify as **resolved** (fix applied this review), **deferred** (scheduled for a specific layer, reason given), **dismissed** (no action taken, rationale required), **accepted limitation** (deliberate performance trade-off, explicitly documented with the trade-off rationale), or **hallucinated** (the adversary invented a problem that does not exist — push back is warranted. Consistent hallucinated findings are the maximum viable refinement signal).
 
-**Coordination:** Performance findings frequently overlap with SA (architectural decisions that create performance constraints), DE (data access patterns, query efficiency), PE (build tooling, asset pipelines, CI performance budgets), and UX (loading states, feedback during slow operations). Flag cross-domain findings.
+Regression check: verify that performance characteristics established in prior layers have not degraded. A change that adds a synchronous operation to a hot path, widens a data fetch, or increases bundle size is a performance regression — measure, do not assume.
+
+**Coordination:** Performance findings frequently overlap with [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) (architectural decisions that create performance constraints), [DATA-ENGINEER-REVIEW.md](DATA-ENGINEER-REVIEW.md) (data access patterns, query efficiency), [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md) (build tooling, asset pipelines, CI performance budgets), and [UX-REVIEW.md](UX-REVIEW.md) (loading states, feedback during slow operations). Flag cross-domain findings.
 
 **Sycophancy check:** An agent that generated the implementation will not have considered performance — it will have generated correct code without considering the cost of correctness at scale. The most common failure is not a slow algorithm — it is an algorithm that is fast at small scale and catastrophically slow at realistic scale, never tested with production-representative data. Flag any dimension where "works in tests" is the only evidence of performance adequacy.
 
-**Language and interface supplement:** Consult `../../lang/` for language-specific performance tooling and patterns.
+**Language and interface supplement:** Consult `../../lang/` for the supplement matching the project's primary language. Apply the **Performance Engineer** section from the relevant supplement file in addition to the standard dimensions below — supplements specify language-specific tooling for profiling, benchmarking, and performance measurement.
 
 ## Standard Evaluation Dimensions
 

@@ -4,8 +4,6 @@ This review is part of the [Iterative Adversarial Refinement (IAR)](../../README
 
 **Reviewer role: Accessibility Engineer** (Accessibility Engineer / A11y Specialist)
 
-**Reviewer role: Accessibility Engineer** (Accessibility Engineer / A11y Specialist)
-
 The purpose of this review is to evaluate whether the application is usable by people with disabilities — including motor, visual, auditory, and cognitive disabilities. Accessibility is not a polish concern. An interface that cannot be operated by keyboard, or that is invisible to a screen reader, excludes users and in many jurisdictions creates legal exposure. WCAG 2.1 Level AA is the standard floor.
 
 This domain applies to all browser-rendered applications and native UI applications. CLI tools and headless services are exempt. The UX domain covers accessibility in passing; this domain applies adversarial pressure to accessibility specifically and at depth.
@@ -18,11 +16,13 @@ Read DESIGN.md for stated accessibility requirements or constraints. Then test t
 
 For each finding, cite the element, file, and line number. Classify as **resolved** (fix applied this review), **deferred** (scheduled for a specific layer, reason given), **dismissed** (no action taken, rationale required), **accepted deviation** (WCAG exception documented with rationale — rare; most WCAG failures are not acceptable deviations), or **hallucinated** (the adversary invented a problem that does not exist — push back is warranted. Consistent hallucinated findings are the maximum viable refinement signal).
 
-**Coordination:** Flag findings that overlap with UX (cognitive accessibility, error messaging, affordances), Security (ARIA attributes that leak implementation details), and PE (CI integration of automated accessibility scanning).
+Regression check: verify that all previously-addressed accessibility improvements remain intact. Automated scanning and manual focus testing must be repeated after every layer that touches the DOM — a refactor that does not change visible content can silently break ARIA attributes, focus order, or contrast ratios.
+
+**Coordination:** Flag findings that overlap with [UX-REVIEW.md](UX-REVIEW.md) (cognitive accessibility, error messaging, affordances), [SECURITY-REVIEW.md](SECURITY-REVIEW.md) (ARIA attributes that leak implementation details), and [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md) (CI integration of automated accessibility scanning).
 
 **Sycophancy check:** Accessibility failures are the most commonly rationalized class of bug. "Users with disabilities aren't our target audience" is not a rationale — it is a scope decision that requires explicit justification and acceptance from the project owner. An agent reviewing its own accessibility implementation will frequently dismiss failures with "the semantic meaning is clear from context" or "screen reader users would understand this" without having tested with a screen reader. Every dismissed finding requires a specific, verifiable reason.
 
-**Language and interface supplement:** See `../../lang/browser-app.md` for browser-specific accessibility dimensions. This domain goes deeper than those dimensions.
+**Language and interface supplement:** See the **UX** section of `../../lang/browser-app.md` for browser-specific accessibility dimensions (focus trap testing, contrast requirements, semantic HTML, reduced motion). Browser-app.md has no separate Accessibility section — the browser-specific accessibility content lives in its UX section. This domain goes deeper than those dimensions.
 
 ## Standard Evaluation Dimensions
 
@@ -49,8 +49,6 @@ For each finding, cite the element, file, and line number. Classify as **resolve
 11. **Motion and reduced motion** — Are animations and transitions disabled or reduced for `prefers-reduced-motion: reduce`? An interface that ignores this preference can trigger vestibular disorders in affected users. Verify with OS reduced-motion setting enabled or browser `prefers-reduced-motion` emulation.
 
 12. **Zoom and text resize** — Does the application remain fully functional at 200% browser zoom and 200% text size? Content should not overflow, truncate, or become inaccessible. Horizontal scrolling at 200% zoom is a WCAG 1.4.10 failure.
-
-13. **Regression** — Do new changes break previously passing accessibility checks? Automated scanning and focus testing should be repeated after every layer that touches the DOM.
 
 ---
 

@@ -1,10 +1,8 @@
-# Data Engineering Review
+# Data Engineer Review
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
-**Reviewer role: Data Engineer**
-
-**Reviewer role: Data Engineer**
+**Reviewer role: Data Engineer** (Data Engineer / Database Engineer / Data Platform Engineer)
 
 The purpose of this review is to evaluate the data layer: how data is modeled, validated, stored, accessed, transformed, and evolved. Data bugs are often silent — a schema mismatch or missing validation does not throw an error until much later, often in production. This review applies adversarial pressure to the data model and the code that touches it.
 
@@ -20,9 +18,9 @@ For each finding, cite file and line number. Classify as **resolved** (fix appli
 
 Regression check: verify that data written by prior versions of the application can still be read correctly. A schema change that silently discards or corrupts existing data is a regression even if all tests pass.
 
-**Coordination:** Flag any findings that should be surfaced to [QUALITY-ENGINEERING-REVIEW.md](QUALITY-ENGINEERING-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md), or [SOFTWARE-ENGINEERING-REVIEW.md](SOFTWARE-ENGINEERING-REVIEW.md). If this review suggests the need for a new IAR domain, log it as a finding.
+**Coordination:** Flag any findings that should be surfaced to [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md), [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md), or [PRIVACY-REVIEW.md](PRIVACY-REVIEW.md) for any personally identifiable or sensitive data concerns (dim 9 — when Privacy is active, escalate PII findings there rather than resolving them here). If this review suggests the need for a new IAR domain, log it as a finding.
 
-**Sycophancy check:** If the agent agreed with every decision reviewed in this domain without challenge, treat that as a finding. An AI agent that validates every choice it helped produce is not providing adversarial review — it is confirming its own work. Flag any area where a significant decision went unquestioned but warranted scrutiny.
+**Sycophancy check:** An agent that designed the data model will not question schema decisions — it evaluates whether the implementation matches the schema it chose, not whether the schema was the right choice. The adversary must ask whether each structural decision (field types, normalization approach, storage mechanism, validation boundaries) serves the domain correctly. The most dangerous data bug is not a validation gap — it is a schema that encodes the wrong model of the domain and silently corrupts every downstream operation.
 
 **Language and interface supplement:** Consult `../../lang/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`). Apply the **Data Engineering** section from the relevant supplement file in addition to the standard dimensions below — language supplements cover serialization libraries, schema evolution patterns, and validation idioms specific to the ecosystem.
 
@@ -47,4 +45,4 @@ Regression check: verify that data written by prior versions of the application 
 
 ---
 
-Review entries are logged in `iterative-adversarial-refinement/DATA-ENGINEERING-REVIEW.md` inside the project being reviewed.
+Review entries are logged in `iterative-adversarial-refinement/DATA-ENGINEER-REVIEW.md` inside the project being reviewed.

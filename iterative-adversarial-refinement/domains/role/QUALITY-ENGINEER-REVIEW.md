@@ -1,8 +1,6 @@
-# Quality Engineering Review
+# Quality Engineer Review
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
-
-**Reviewer role: Quality Engineer** (Quality Engineer / QA Engineer / Test Engineer)
 
 **Reviewer role: Quality Engineer** (Quality Engineer / QA Engineer / Test Engineer)
 
@@ -18,7 +16,7 @@ For each finding, cite file and line number. Classify as **resolved** (fix appli
 
 Regression check: verify that all previously-working features still work. Prior layers' acceptance criteria are always in scope. A change to one part of the app can silently break another. A bug that was always present is still a bug.
 
-**Coordination:** Flag any findings that should be surfaced to [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), [PLATFORM-ENGINEERING-REVIEW.md](PLATFORM-ENGINEERING-REVIEW.md), [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md), or [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md). If this review suggests the need for a new IAR domain, log it as a finding.
+**Coordination:** Flag any findings that should be surfaced to [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) (logic bugs where a missing test is also a QE finding), [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md), [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md), or [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md). If this review suggests the need for a new IAR domain, log it as a finding.
 
 **Sycophancy check:** An agent that wrote both the tests and the implementation will find the tests adequate because they reflect its own interpretation of the spec, not the spec itself. The most dangerous failure mode in QE is not a missing test — it is a complete, passing test suite for the wrong behavior. Flag any case where the tests and implementation are internally consistent but could both be wrong. Flag any dimension where the answer is "tests exist and pass" without verifying that a broken implementation would actually fail them.
 
@@ -64,4 +62,4 @@ Regression check: verify that all previously-working features still work. Prior 
 
 ---
 
-Review entries are logged in `iterative-adversarial-refinement/QUALITY-ENGINEERING-REVIEW.md` inside the project being reviewed.
+Review entries are logged in `iterative-adversarial-refinement/QUALITY-ENGINEER-REVIEW.md` inside the project being reviewed.

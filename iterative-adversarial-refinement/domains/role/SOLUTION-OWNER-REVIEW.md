@@ -4,8 +4,6 @@ This review is part of the [Iterative Adversarial Refinement (IAR)](../../README
 
 **Reviewer role: Solution Owner** (Solution Owner / Product Owner / Product Manager)
 
-**Reviewer role: Solution Owner** (Solution Owner / Product Owner / Product Manager)
-
 The purpose of this review is to guard the project against scope creep and over-engineering. DESIGN.md is a Scope of Work — a contract. The SO review holds the implementation to that contract: 100% of what was agreed, nothing that was not. Bugs and defects are always in scope to fix. Features, behaviors, technologies, and abstractions that are not in DESIGN.md are not.
 
 **Quality does not justify scope.** A higher-quality solution that deviates from the spec is still a deviation. "Better than asked for" is not a defense. The assignment's constraints exist for a reason — pedagogical, resource, timeline, or otherwise — and the SO does not second-guess them.
@@ -24,11 +22,13 @@ Deviations from DESIGN.md that have been explicitly approved by the stakeholder 
 
 This review does not block bug fixes or defect resolution. It blocks additions.
 
+Regression check: verify that previously-confirmed spec compliance is still present after new code was added. A new layer can inadvertently narrow, remove, or silently reinterpret a feature that prior layers accepted as correctly implemented. Verify the compliance table still holds, not just the delta.
+
 **Coordination:** Flag any out-of-scope items that other domains have recommended or resolved. The SO has veto power over additions regardless of which domain introduced them. If this review suggests the need for a new IAR domain, log it as a finding.
 
-**Sycophancy check:** If the agent agreed with every decision reviewed in this domain without challenge, treat that as a finding. An AI agent that validates every choice it helped produce is not providing adversarial review — it is confirming its own work. Flag any area where a significant decision went unquestioned but warranted scrutiny.
+**Sycophancy check:** An agent that participated in scoping and speccing the project will not flag scope creep it introduced. If the AI helped write or refine DESIGN.md, it treats every element of DESIGN.md as intentional — because it intended it. The adversary must evaluate DESIGN.md against the upstream assignment brief (dim 9) without treating DESIGN.md as authoritative. A spec that was scope-crept during Phase 1 will produce a project that passes every other SO dimension and still fails an external review.
 
-**Language and interface supplement:** Consult `../../lang/` for the supplement matching the project's primary language and interface type. The SO review is primarily spec-driven and language-agnostic — use the language supplement to verify that technology choices (libraries, tools, frameworks) are appropriate to the language and not beyond what the spec requires.
+**Language and interface supplement:** Not applicable. The SO review evaluates spec compliance, which is language-agnostic. No supplement section exists for SO. For evaluating whether technology choices are appropriate to the language (dim 3 — Technology compliance), consult the **Solution Architect** section of the relevant lang supplement (`../../lang/rust.md` or `../../lang/javascript-typescript.md`) — SA evaluates technology fitness from an architectural lens that informs SO's technology compliance check.
 
 ## Standard Evaluation Dimensions
 

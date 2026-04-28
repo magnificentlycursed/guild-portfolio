@@ -14,7 +14,9 @@ This domain is most relevant to applications that collect, process, or store inf
 
 For each finding, cite the specific data element, file, and line number. Classify as **resolved** (fix applied this review), **deferred** (scheduled for a specific layer, reason given), **dismissed** (no action taken, rationale required — note: "we don't have users yet" is not rationale; privacy debts compound), **accepted risk** (deliberate decision with explicit documented rationale and owner), or **hallucinated** (the adversary invented a problem that does not exist — push back is warranted. Consistent hallucinated findings are the maximum viable refinement signal).
 
-**Coordination:** Flag findings that overlap with Security (PII in logs or error output), DE (retention enforcement at the data layer), PE (pre-commit hooks for PII detection), and SA (architectural decisions that create unnecessary data collection).
+Regression check: verify that data handling controls established in prior layers remain intact. A refactor to storage, logging, or network transmission code can silently reintroduce a previously-addressed data exposure.
+
+**Coordination:** Flag findings that overlap with [SECURITY-REVIEW.md](SECURITY-REVIEW.md) (PII in logs or error output), [DATA-ENGINEER-REVIEW.md](DATA-ENGINEER-REVIEW.md) (retention enforcement at the data layer), [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md) (pre-commit hooks for PII detection), and [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) (architectural decisions that create unnecessary data collection).
 
 **Sycophancy check:** Privacy is the dimension most often dismissed as "not applicable yet" or "we'll handle this when we have users." An agent will not proactively flag privacy concerns — it will implement what was asked without considering whether what was asked is appropriate to collect. The adversary must apply privacy pressure before data collection exists in the codebase, not after. A privacy debt incurred at implementation is far more expensive to resolve after data exists than before.
 

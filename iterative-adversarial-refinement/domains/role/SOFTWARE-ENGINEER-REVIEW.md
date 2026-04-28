@@ -1,8 +1,6 @@
-# Software Engineering Review
+# Software Engineer Review
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
-
-**Reviewer role: Software Engineer** (Software Engineer / Backend Engineer / Frontend Engineer)
 
 **Reviewer role: Software Engineer** (Software Engineer / Backend Engineer / Frontend Engineer)
 
@@ -18,7 +16,7 @@ For each finding, cite file and line number. Classify as **resolved** (fix appli
 
 Regression check: verify that previously correct behavior has not been silently broken by implementation changes. A refactor that changes behavior without changing tests is a regression.
 
-**Coordination:** Flag any findings that should be surfaced to [QUALITY-ENGINEERING-REVIEW.md](QUALITY-ENGINEERING-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), [PLATFORM-ENGINEERING-REVIEW.md](PLATFORM-ENGINEERING-REVIEW.md), or [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). If this review suggests the need for a new IAR domain, log it as a finding.
+**Coordination:** Flag any findings that should be surfaced to [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md), or [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). If this review suggests the need for a new IAR domain, log it as a finding.
 
 **Sycophancy check:** An agent that designed and implemented the code will find the implementation correct because it reflects its own intent. Push hardest on dim 1 (correctness) and dim 8 (defensive coding): these are the dimensions where implementation intent and spec requirement diverge most often. For every function, ask: "is this doing what was specified, or is it doing what was generated?" They are not the same thing. Flag any function where the implementation could be correct internally but wrong with respect to the spec without any test catching it.
 
@@ -46,7 +44,7 @@ Regression check: verify that previously correct behavior has not been silently 
 
 ### Extended: Documentation
 
-These dimensions apply when the project has user-facing documentation or is evaluated as a portfolio or handoff artifact. For library projects, dim 15 (API and interface documentation) is always required.
+These dimensions apply when the project has user-facing documentation or is evaluated as a portfolio or handoff artifact. For library projects, dim 15 (API and interface documentation) is always required. **When the Technical Writer extended domain is active, defer documentation finding ownership to [TECHNICAL-WRITER-REVIEW.md](TECHNICAL-WRITER-REVIEW.md)** — apply these dimensions only when TW is not activated, as a floor. Log cross-domain findings in the TW log when both are active.
 
 12. **README completeness** — Can someone new to the project understand what it does, how to install dependencies, how to run it, and how to run the tests from the README alone? Named checks: project purpose stated; prerequisites listed explicitly (runtime version, system dependencies); setup instructions that work from a clean checkout; test run command; known limitations or gotchas. The test: clone the repo into a fresh environment and follow the README. Any step that fails is a README failure.
 
@@ -62,7 +60,7 @@ These dimensions apply when the project has user-facing documentation or is eval
 
 ### Extended: Performance
 
-These dimensions apply when data volumes, runtime environment, or user expectations make performance a meaningful quality concern. For simple local tools with no network dependency and trivial data volumes, scope down significantly or skip.
+These dimensions apply when data volumes, runtime environment, or user expectations make performance a meaningful quality concern. For simple local tools with no network dependency and trivial data volumes, scope down significantly or skip. **When the Performance Engineer extended domain is active, defer performance finding ownership to [PERFORMANCE-ENGINEER-REVIEW.md](PERFORMANCE-ENGINEER-REVIEW.md)** — apply these dimensions only when PE is not activated. When both are active, log performance findings in the PE log to avoid duplicate finding ownership across logs.
 
 17. **Main thread and event loop** — For browser apps and Node.js: are there synchronous operations that block user interaction for more than ~50ms? Named failure modes: synchronous sort or filter of large arrays; blocking JSON.parse on large payloads; synchronous localStorage reads on every keystroke; missing debounce or throttle on input handlers.
 
@@ -76,4 +74,4 @@ These dimensions apply when data volumes, runtime environment, or user expectati
 
 ---
 
-Review entries are logged in `iterative-adversarial-refinement/SOFTWARE-ENGINEERING-REVIEW.md` inside the project being reviewed.
+Review entries are logged in `iterative-adversarial-refinement/SOFTWARE-ENGINEER-REVIEW.md` inside the project being reviewed.

@@ -4,8 +4,6 @@ This review is part of the [Iterative Adversarial Refinement (IAR)](../../README
 
 **Reviewer role: Solution Architect** (Solution Architect / Software Architect / Technical Lead)
 
-**Reviewer role: Solution Architect** (Solution Architect / Software Architect / Technical Lead)
-
 The purpose of this review is to evaluate whether the architecture — its structure, boundaries, decisions, and tradeoffs — is sound, coherent, and appropriate for the project's stated purpose and constraints. Every review targets the whole application, not only the most recently changed code.
 
 ## Current Review Prompt
@@ -18,7 +16,7 @@ For each finding, cite file and line number. Classify as **resolved** (fix appli
 
 Regression check: verify that architectural decisions from prior layers are still intact and that new code does not silently violate established boundaries or contracts.
 
-**Coordination:** Flag any findings that should be surfaced to [QUALITY-ENGINEERING-REVIEW.md](QUALITY-ENGINEERING-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), or [PLATFORM-ENGINEERING-REVIEW.md](PLATFORM-ENGINEERING-REVIEW.md). If this review suggests the need for a new IAR domain, log it as a finding.
+**Coordination:** Flag any findings that should be surfaced to [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md), [DATA-ENGINEER-REVIEW.md](DATA-ENGINEER-REVIEW.md) (data model integrity findings from dim 3 — when SA identifies a data model concern at the architectural level, DE applies the deeper data-layer evaluation), or [PRIVACY-REVIEW.md](PRIVACY-REVIEW.md) (dim 27 — data transmitted to external services; cross-reference with Privacy dim 6 when Privacy is active). If this review suggests the need for a new IAR domain, log it as a finding.
 
 **Sycophancy check:** An agent that designed the architecture will find it sound because it reflects its own training distribution and defaults, not because it is right for this project's constraints. Push hardest on dim 9 (complexity budget) and dim 8 (technology fitness): these are the dimensions where agent defaults most consistently diverge from what a single maintainer or small project actually needs. For each technology choice and architectural pattern, ask: "would this choice have been made by a human engineer working alone on a project of this scope, or is it a team-scale default?"
 
@@ -52,7 +50,7 @@ Regression check: verify that architectural decisions from prior layers are stil
 
 ### Extended: External Interface Contracts
 
-These dimensions apply when the project has external-facing interfaces: published libraries, REST/GraphQL/gRPC APIs, CLI tools used in scripts or pipelines, event-producing or event-consuming services. They may be omitted for purely internal interfaces where producer and consumer are always deployed together by the same team.
+These dimensions apply when the project has external-facing interfaces: published libraries, REST/GraphQL/gRPC APIs, CLI tools used in scripts or pipelines, event-producing or event-consuming services. They may be omitted for purely internal interfaces where producer and consumer are always deployed together by the same team. **Also activate when adding features to an existing system** — dims 16 (backward compatibility) and 17 (contract testing) apply to any change that existing callers, users, or stored data must survive.
 
 13. **Contract documentation** — Is the external interface documented in a machine-readable or testable form? Named formats: OpenAPI/Swagger for REST; `rustdoc` for Rust libraries; TypeDoc/JSDoc for JS/TS packages; a CLI's `--help` output and man page. Documentation that exists only as prose cannot be validated against the implementation automatically. An undocumented API is an unknown contract.
 
@@ -73,6 +71,22 @@ These dimensions apply when the project has external-facing interfaces: publishe
 21. **API design ergonomics** — From the caller's perspective: is the API predictable and consistent? Named concerns: inconsistent naming conventions across endpoints; operations requiring multiple calls that could be one; required parameters with sensible defaults that are missing; response shapes that force callers to navigate nested structures for basic data.
 
 22. **CLI contract stability** — For CLI tools intended to be scripted or composed with other tools: is the stdout/stderr/exit code contract explicit and stable? Named checks: documented exit codes for each failure mode; structured output (`--json` flag) for machine-readable use; `--help` text that accurately describes the contract; behavior on stdin in a pipeline.
+
+---
+
+### Extended: External Service Integration
+
+These dimensions apply when the project consumes external services at runtime: third-party REST/GraphQL/gRPC APIs, authentication providers, payment processors, email/SMS services, analytics platforms, AI/ML APIs, CDNs, or any service the application calls over the network. They may be omitted for fully self-contained projects with no runtime external dependencies.
+
+23. **External dependency inventory** — What external services does the application call at runtime? Name each: service, purpose, data sent, and whether the call is in the critical path (failure blocks core functionality) or non-critical (failure degrades a secondary feature). An undocumented external dependency is an unreviewed failure mode and an unreviewed data-sharing arrangement. If DESIGN.md does not enumerate external dependencies, that is a spec gap.
+
+24. **Failure and timeout handling** — What happens when an external service is unavailable, slow, or returns an unexpected error? Named failure modes: no timeout configured (the call blocks the event loop or request thread indefinitely); no retry logic for transient failures; raw error from external service surfaced to the user with internal detail; application enters a broken state rather than degrading gracefully. Every external call must have an explicit timeout, an explicit error-handling path, and defined degraded behavior when the service is unreachable.
+
+25. **API contract drift** — What happens if the external API changes its response shape, removes a field, or changes a field's type between releases? Named failure modes: no runtime validation of external API responses (a TypeScript `as` cast or Rust `serde` deserialization silently ignores unexpected shapes); no monitoring or alerting on unexpected response structures; no process for detecting upstream API changes. Tests pass against a snapshot of the external API but production breaks silently when the provider deploys a change.
+
+26. **Credentials to external services** — Are API keys, client secrets, OAuth tokens, and webhook signing secrets for external services handled as first-class secrets? Named checks: excluded from version control; injected via environment variables or a secrets manager; rotatable without a code change or redeployment; scoped to the minimum permissions required; separate credentials for development and production. A key committed to a repository — even a private one — is the most common single source of credential compromise.
+
+27. **Data transmitted to external services** — What data does the application send to external services, and is that transmission justified and known? Named concerns: user inputs forwarded to an AI API without sanitization or consent; behavioral data sent to analytics platforms; error payloads containing stack traces, user identifiers, or PII sent to crash reporting services; third-party scripts that run in the browser and independently collect data outside the application's control. Cross-reference with [PRIVACY-REVIEW.md](PRIVACY-REVIEW.md) dim 6 (third-party data sharing) when Privacy is active.
 
 ---
 

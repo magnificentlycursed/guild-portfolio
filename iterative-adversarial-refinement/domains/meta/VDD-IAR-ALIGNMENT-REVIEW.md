@@ -4,17 +4,7 @@ This review is part of the [Iterative Adversarial Refinement (IAR)](../../README
 
 The purpose of this review is to evaluate whether the project was built using the Verification-Driven Development (VDD) and Iterative Adversarial Refinement (IAR) methodology. The other IAR domains evaluate *what* was built. This domain evaluates *how* it was built — whether the process that is supposed to produce quality actually ran.
 
-This domain is part of the IAR suite — which serves as the **adversary** in the VSDD pipeline. IAR fills VSDD Phase 4 (Adversarial Refinement): it operates with fresh context, applies structured pressure across multiple lenses, iterates until MVR, and certifies that the exit condition was reached honestly. VDD-IAR Alignment evaluates whether that adversary itself ran with integrity.
-
-## Governing References
-
-- **VSDD whitepaper** (primary): https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00
-- **Original VDD whitepaper**: https://gist.github.com/dollspace-gay/45c95ebfb5a3a3bae84d8bebd662cc25
-- **Apprentice-onboarding repo** (program methodology, tool introduction schedule, assignment briefs): https://github.com/Navigators-Guild/apprentice-onboarding
-- **CLAUDE.md** (may be superseded — verify against current apprentice-onboarding content): https://gist.github.com/dollspace-gay/ef132e60a27abe6d5f87297c1c040dca
-- **Crosslink** (issue tracker used from Phase 2 onward): https://github.com/forecast-bio/crosslink
-
-The reference for the process methodology itself is: `apprentice-onboarding/02-the-methodology/01-how-we-build.md`. Treat it as this domain's DESIGN.md equivalent: the adversary holds the project's process against the methodology, not against the code.
+This domain is part of the IAR suite — which serves as the **adversary** in the VSDD pipeline. IAR fills VSDD Phase 3 (Adversarial Refinement): it operates with fresh context, applies structured pressure across multiple lenses, iterates until MVR, and certifies that the exit condition was reached honestly. VDD-IAR Alignment evaluates whether that adversary itself ran with integrity.
 
 ## Current Review Prompt
 
@@ -24,11 +14,25 @@ Read the governing methodology document in full before reviewing any artifacts. 
 
 For each finding, cite the specific artifact and location (commit hash, log entry, file and line). Classify as **resolved** (fix applied this review), **dismissed** (no action taken, rationale required), or **hallucinated** (the adversary invented a process failure that does not exist — push back is warranted. Consistent hallucinated findings are the maximum viable refinement signal: real issues have been exhausted).
 
+**Regression check:** Process compliance confirmed in prior VDD-IAR runs for earlier layers does not remain clean automatically — subsequent implementation changes can reopen process failures. Verify that layer gate records, test discipline, and IAR iteration patterns confirmed in prior runs have not degraded in the work under current review. Re-raise any prior finding if new evidence suggests it recurred.
+
 **Coordination:** Process failures frequently explain defects found by other domains. If QE found that tests were added after implementation, flag it here as a test discipline finding. If SA found that architecture grew organically rather than being designed, flag it here as a decomposition finding. Coordinate with [SOLUTION-OWNER-REVIEW.md](../role/SOLUTION-OWNER-REVIEW.md) on assignment compliance — SO owns whether DESIGN.md matches the assignment brief; this domain owns whether design-before-code discipline was followed. If this review suggests the need for a new IAR domain, log it as a finding.
+
+**Sycophancy check:** Process failures are easy to rationalize. The agent reviewing this domain is likely the same agent that participated in building the project — it has every incentive to find the process acceptable. The absence of a layer gate record is not ambiguous. Batched test commits are not ambiguous. A single IAR pass that merged immediately after real findings is not ambiguous. Push back on any dimension where the agent reaches for benefit-of-the-doubt rather than evidence.
 
 **Language and interface supplement:** Not applicable. Process compliance is language-agnostic. The `lang/` supplements add language-specific dimensions to implementation-focused domains; the VDD-IAR Alignment domain evaluates methodology compliance, which is independent of the implementation language or interface type.
 
-**Sycophancy check:** Process failures are easy to rationalize. The agent reviewing this domain is likely the same agent that participated in building the project — it has every incentive to find the process acceptable. The absence of a layer gate record is not ambiguous. Batched test commits are not ambiguous. A single IAR pass that merged immediately after real findings is not ambiguous. Push back on any dimension where the agent reaches for benefit-of-the-doubt rather than evidence.
+## Governing References
+
+Before applying the standard dimensions, locate and read the governing methodology document for this project. Record in the review log as a preamble entry (not a classified finding): the document URL, and the project's program phase (Phase 1, 2, 3, or 4 — see the Program Phase Context section below). A reviewer who cannot identify the governing document has not completed this review.
+
+- **VSDD whitepaper** (primary): https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00
+- **Original VDD whitepaper**: https://gist.github.com/dollspace-gay/45c95ebfb5a3a3bae84d8bebd662cc25
+- **Apprentice-onboarding repo** (program methodology, tool introduction schedule, assignment briefs): https://github.com/Navigators-Guild/apprentice-onboarding
+- **CLAUDE.md** (may be superseded — verify against current apprentice-onboarding content): https://gist.github.com/dollspace-gay/ef132e60a27abe6d5f87297c1c040dca
+- **Crosslink** (issue tracker used from Phase 2 onward): https://github.com/forecast-bio/crosslink
+
+The reference for the process methodology itself is: `apprentice-onboarding/02-the-methodology/01-how-we-build.md`. Treat it as this domain's DESIGN.md equivalent: the adversary holds the project's process against the methodology, not against the code.
 
 ## Standard Evaluation Dimensions
 
@@ -60,7 +64,11 @@ For each finding, cite the specific artifact and location (commit hash, log entr
 
 6. **IAR fresh context** — Were adversarial review rounds conducted with fresh AI context, or batched into the same session where the code was written? A log entry covering a review that occurred in the same session as the implementation is weaker. A single log entry spanning multiple layers without a context reset is a finding. Assess from log structure, session framing, and timing evidence.
 
-7. **IAR iteration** — Were rounds iterated when findings were substantial? A single adversarial pass followed immediately by a merge is a finding if that pass produced real findings. The expected pattern: findings → fix → second pass with fresh context → repeat until MVR → merge. Check the review log for round numbers and finding progression.
+7. **IAR iteration and feedback routing** — Were rounds iterated when findings were substantial? A single adversarial pass followed immediately by a merge is a finding if that pass produced real findings. The expected pattern: findings → fix → second pass with fresh context → repeat until MVR → merge. Check the review log for round numbers and finding progression.
+
+   Also evaluate **feedback routing fidelity** (VSDD Phase 4): findings should route back to the appropriate earlier phase for correction, not be patched in place regardless of their nature. Spec findings should result in DESIGN.md updates. Test-coverage findings should result in new or revised tests. Implementation findings should result in code changes. A spec gap fixed only in implementation without updating DESIGN.md propagates the error to future readers of the spec and to the next IAR reviewer. Flag any round where the fix artifact does not match the finding type.
+
+   Also evaluate **cross-session spec consistency**: did the AI's interpretation of requirements shift between sessions without a corresponding DESIGN.md update? This is distinct from a finding being routed back — it is the silent case where no finding was raised but behavioral assumptions changed anyway. Named indicators: commit messages describing behavior that contradicts DESIGN.md; DECISIONS.md entries that expand or reinterpret a feature without a spec revision; IAR findings about unexpected behavior that had no prior spec mention (the spec did not define it, so it was not caught until the adversary looked). The test: can the current DESIGN.md, read cold, produce the current implementation? If a new AI session following DESIGN.md would build something meaningfully different, the spec has drifted from the implementation without being updated.
 
 8. **Role integrity** — Did the human director actually direct — define goals, set constraints, make judgment calls, push back on agent defaults — or did the agent make all decisions? Review DESIGN.md, decisions logs, and commit messages. A design doc that shows no evidence of human scoping choices, or a commit history where every decision traces to an agent default, is a finding. The human's fingerprints should be visible in the work.
 
@@ -81,7 +89,7 @@ For each finding, cite the specific artifact and location (commit hash, log entr
 
 ## Program Phase Context
 
-Tool requirements and process expectations scale with program phase. When evaluating a project, establish its phase before applying this domain:
+**Note:** "Phase" in this section refers to the apprentice program progression tier (Phase 1 apprentice, Phase 2 apprentice, etc.), not to the VSDD pipeline phases (1, 1b, 2a, 2b, 3, 4, 5, 6). The two numbering systems are distinct. Tool requirements and process expectations scale with program tier. When evaluating a project, establish its program tier before applying this domain:
 
 - **Phase 1** — Crosslink not yet introduced. Issue tracking compliance (dim 11) is not applicable. Evaluate all other dimensions.
 - **Phase 2** — Crosslink introduced. Issue tracking compliance is required from the first Phase 2 project onward. Retroactive application to Phase 1 projects is not appropriate.

@@ -1,8 +1,6 @@
-# Platform Engineering Review
+# Platform Engineer Review
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
-
-**Reviewer role: Platform Engineer** (Platform Engineer / DevOps Engineer / Infrastructure Engineer)
 
 **Reviewer role: Platform Engineer** (Platform Engineer / DevOps Engineer / Infrastructure Engineer)
 
@@ -22,7 +20,7 @@ Regression check: verify that all pipeline gates and infrastructure controls ins
 
 **Left-shift lens:** For every manual check in the project's IAR gate checklists, evaluate whether it can be automated and moved into CI. Automating a check is always preferable to a human remembering to run it.
 
-**Coordination:** Flag any findings that should be surfaced to [QUALITY-ENGINEERING-REVIEW.md](QUALITY-ENGINEERING-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), or [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). If this review suggests the need for a new IAR domain, log it as a finding.
+**Coordination:** Flag any findings that should be surfaced to [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), or [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). If this review suggests the need for a new IAR domain, log it as a finding.
 
 **Review posture:** Many PE dimensions are compliance checks — does X exist or not — rather than adversarial judgment calls requiring interpretation. The value is systematic coverage, not finding-count. Adversarial intensity applies most to judgment-dependent decisions: which sections are deemed inapplicable, what risk thresholds are accepted, and whether left-shift opportunities are being rationalized away. Scrutinize every "not applicable" determination — an agent that finds no applicable security scanning concerns in a published package, or no infrastructure concerns in a deployed application, is likely rationalizing rather than reviewing.
 
@@ -86,4 +84,4 @@ Regression check: verify that all pipeline gates and infrastructure controls ins
 
 ---
 
-Review entries are logged in `iterative-adversarial-refinement/PLATFORM-ENGINEERING-REVIEW.md` inside the project being reviewed.
+Review entries are logged in `iterative-adversarial-refinement/PLATFORM-ENGINEER-REVIEW.md` inside the project being reviewed.

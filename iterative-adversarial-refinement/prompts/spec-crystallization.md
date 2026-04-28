@@ -6,22 +6,6 @@ This is not a review prompt. It is a construction prompt — it drives the creat
 
 ---
 
-## Project type
-
-Before starting, characterize the project. Different project types require different framing for the driving questions below.
-
-| Type | Key spec concerns | Notes |
-|---|---|---|
-| **User-facing app** (browser, desktop, mobile) | Empty states, error states, form behavior, navigation, persistence | Standard driving questions below apply |
-| **CLI tool** | Command interface, argument validation, stdout/stderr/exit code contracts, piped input, interactive vs. scripted use | Replace "UI" questions with interface contract questions |
-| **Library / module** | Public API contracts, caller invariants, versioning behavior, error propagation to callers | No "user" — the caller is the user; define the API surface exhaustively |
-| **Infrastructure / service** | Deployment context, failure modes, latency contracts, integration surfaces, operational requirements | No UI; spec the interface, the failure envelope, and the observability surface |
-| **Research / speculative** | Learning goals, validation criteria, what a negative result looks like, kill criteria | The "acceptance criteria" are epistemic: what would you have learned? |
-
-Establish the project type before the first driving question. The purity boundary and verification architecture look different for each type.
-
----
-
 ## Prompt
 
 You are helping create a software specification under the Verified Spec-Driven Development (VSDD) methodology. This is Phase 1: Spec Crystallization. Your role is to drive toward a specification that is complete enough to be verified — not just described.
@@ -36,6 +20,20 @@ You are helping create a software specification under the Verified Spec-Driven D
 - **Scope boundary**: what is explicitly out of scope is as important as what is in scope. An unconstrained spec grows
 
 **What a bad spec looks like:** A feature list. A list of "the app will..." statements. A description of the happy path with no failure modes. A data model without invariants. A UI description without empty states or error states. An acceptance criterion that the developer and reviewer would interpret differently.
+
+---
+
+## Project type
+
+Before starting, characterize the project type below and establish it with the AI before the first driving question. Different project types require different framing — the purity boundary and verification architecture look different for each.
+
+| Type | Key spec concerns | Notes |
+|---|---|---|
+| **User-facing app** (browser, desktop, mobile) | Empty states, error states, form behavior, navigation, persistence | Standard driving questions below apply |
+| **CLI tool** | Command interface, argument validation, stdout/stderr/exit code contracts, piped input, interactive vs. scripted use | Replace "UI" questions with interface contract questions |
+| **Library / module** | Public API contracts, caller invariants, versioning behavior, error propagation to callers | No "user" — the caller is the user; define the API surface exhaustively |
+| **Infrastructure / service** | Deployment context, failure modes, latency contracts, integration surfaces, operational requirements | No UI; spec the interface, the failure envelope, and the observability surface |
+| **Research / speculative** | Learning goals, validation criteria, what a negative result looks like, kill criteria | The "acceptance criteria" are epistemic: what would you have learned? |
 
 ---
 

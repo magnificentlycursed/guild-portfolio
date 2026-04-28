@@ -18,11 +18,13 @@ Read DESIGN.md first to understand what the application is supposed to do and wh
 
 For each finding, cite file and line number. Classify as **resolved** (fix applied this review), **accepted risk** (no fix, explicit rationale and risk owner required), **dismissed** (no action taken, rationale required), or **hallucinated** (the adversary invented an attack that does not work — demonstrate why the control holds. Consistent hallucinated findings are the maximum viable refinement signal).
 
-**Coordination:** Flag findings to [SECURITY-REVIEW.md](SECURITY-REVIEW.md) when a Red Team finding reveals an absent control the Security review should have caught. Flag to [QE-REVIEW.md](QUALITY-ENGINEERING-REVIEW.md) when an exploitable path has no test coverage. Flag to [SA-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) when an attack succeeds because of an architectural decision.
+Regression check: verify that previously-confirmed attack mitigations remain intact. Implementation changes can silently reopen entry points, weaken input validation, or remove controls that a prior Red Team pass confirmed as adequately defended. Every change to input handling, rendering, storage, or authentication logic is in scope for this check regardless of stated scope.
+
+**Coordination:** Flag findings to [SECURITY-REVIEW.md](SECURITY-REVIEW.md) when a Red Team finding reveals an absent control the Security review should have caught. Flag to [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) when an exploitable path has no test coverage. Flag to [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) when an attack succeeds because of an architectural decision.
 
 **Sycophancy check:** An agent that built the application will rationalize its defenses as adequate because it believes in the controls it generated. The Red Team does not evaluate intent — it evaluates outcome. For every control, ask: "can this be bypassed by a caller who does not follow the happy path?" An application where every attack is dismissed as "not applicable" has not been red-teamed — it has been reassured.
 
-**Language and interface supplement:** Consult `../../lang/` for the supplement matching the project's primary language and interface type. Apply the **Security** section — attack tooling, injection patterns, and client-side exploit vectors are language- and framework-specific.
+**Language and interface supplement:** Consult `../../lang/` for the supplement matching the project's primary language and interface type. Apply the **Red Team** section — attack tooling, injection patterns, and client-side exploit vectors are language- and framework-specific.
 
 ## Standard Evaluation Dimensions
 

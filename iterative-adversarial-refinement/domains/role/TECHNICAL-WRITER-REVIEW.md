@@ -18,11 +18,13 @@ Read DESIGN.md first to understand the project's intended scope. Then evaluate a
 
 For each finding, cite the specific file and section. Classify as **resolved** (fix applied this review), **deferred** (scheduled for a specific layer, reason given), **dismissed** (no action taken, rationale required), or **hallucinated** (the adversary invented a problem that does not exist — push back is warranted. Consistent hallucinated findings are the maximum viable refinement signal).
 
-**Coordination:** Flag findings that overlap with SE (stale or incorrect inline comments), SA (architectural decisions without documented rationale), VDD-IAR Alignment (DECISIONS.md quality, retrospective honesty), and PE (runbook completeness, deployment procedure accuracy).
+Regression check: verify that documentation updated in prior layers is still accurate after subsequent changes. A documentation statement that was correct when written and is no longer correct after an implementation change is a regression — both failures (absent and inaccurate) are in scope.
+
+**Coordination:** Flag findings that overlap with [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) (stale or incorrect inline comments), [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) (architectural decisions without documented rationale), [../meta/VDD-IAR-ALIGNMENT-REVIEW.md](../meta/VDD-IAR-ALIGNMENT-REVIEW.md) (DECISIONS.md quality, retrospective honesty), and [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md) (runbook completeness, deployment procedure accuracy).
 
 **Sycophancy check:** An agent generating documentation in the same session as code will produce documentation that is accurate at the moment of generation and stale after the next change. The adversary must verify that documentation describes the current implementation, not the implementation at the time it was written. Every claim in the documentation should be verifiable against the current code. Treat every "this function does X" statement as a claim that requires verification.
 
-**Language and interface supplement:** Consult `../../lang/` for language-specific documentation tooling (e.g., `rustdoc`, TypeDoc, JSDoc, Sphinx).
+**Language and interface supplement:** Consult `../../lang/` for the supplement matching the project's primary language. Apply the **Technical Writer** section from the relevant supplement file in addition to the standard dimensions below — supplements specify language-specific documentation tooling (rustdoc for Rust; TypeDoc/JSDoc for JavaScript/TypeScript).
 
 ## Standard Evaluation Dimensions
 
