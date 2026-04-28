@@ -65,3 +65,69 @@ DESIGN.md: `stdout prints: "Issue #<id> status → <new_status>."` The right arr
 One real finding resolved (stale library reference). Three dismissed with rationale. No open items. Pre-implementation SE review is limited in scope — the primary value will come in Layer 1 review when code exists.
 
 **Coordination:** Finding 2 (`updated_at` at creation) surfaced from QE Finding 4 — both note the `created_at` immutability invariant as an implementation concern. SE will verify in Review 2 that the status-change handler does not touch `created_at`.
+
+---
+
+---
+
+## Review 2 — 2026-04-27 22:00Z
+
+**Scope:** Layer 1 stub code — `src/main.rs`, `src/lib.rs`, `tests/layer1.rs`, `Cargo.toml`. Evaluating implementation quality, API boundaries, naming, and correctness of the stub structure. No behavioral implementation exists.
+
+**Session note:** In-session with all other Layer 1 domain reviews. Acknowledged quality tradeoff.
+
+---
+
+### Dismissed
+
+**Finding 1 — `validate_title` and `next_id` parameter names produce unused-variable warnings (Dim 5)**
+
+Both stub functions name their parameters (`raw`, `existing_ids`) but `todo!()` bodies never reference them, producing `unused variable` warnings from the compiler.
+
+**Classification:** Dismissed. This is the expected and correct behavior for Red Gate stubs. Prefixing with `_` (`_raw`, `_existing_ids`) would suppress the warnings but would also make the stub signatures less readable as documentation of what the function will use. The warnings are intentional signals that the stubs are not yet implemented. They will resolve naturally when the function bodies are written. Suppressing them with `_` prefix would obscure this signal.
+
+---
+
+**Finding 2 — `validate_title` error type is `String`; `Result<String, String>` is stringly typed (Dim 3)**
+
+The function signature uses `String` for both the success and error types. An `Err` value is indistinguishable from an `Ok` value at the type level except by which arm they're in. A dedicated error enum would allow callers to match on specific error variants.
+
+**Classification:** Dismissed. For a Phase 1 learning project, `Result<String, String>` is appropriate. The error is a human-readable message rendered to stderr — no caller needs to branch on error variants. A dedicated error type would be correct production practice but is out of scope for the assignment's learning objectives. If the tool grows beyond Phase 1, the error type is the first thing to refactor. Cross-referenced in SA log.
+
+---
+
+**Finding 3 — `next_id` takes `&[u64]` (slice of IDs) rather than `&[Issue]` (slice of issues) (Dim 6)**
+
+Passing extracted IDs rather than the full issue slice means the caller must extract IDs before calling `next_id`. This is a minor API clarity question.
+
+**Classification:** Dismissed. A function that computes `max(ids) + 1` has no reason to know about the `Issue` type. Taking `&[u64]` keeps `next_id` a pure arithmetic function with no coupling to the domain model. The caller extracts IDs with `.iter().map(|i| i.id).collect()` or equivalent — a one-liner. The narrow API is correct.
+
+---
+
+**Finding 4 — `src/main.rs` is `fn main() {}` with no argument parsing stub (Dim 1)**
+
+The binary entry point is completely empty. Any invocation of the binary exits 0 with no output.
+
+**Classification:** Dismissed. This is the correct Red Gate stub for a binary that has not yet been implemented. The empty `main()` produces the expected Red Gate behavior: integration tests that assert exit codes fail because the binary exits 0 for everything; tests that assert stdout content fail because stdout is empty. The Red Gate is working correctly.
+
+---
+
+**Finding 5 — Unit test `id_assignment_increments_from_max` passes an unsorted slice (Dim 1)**
+
+`next_id(&[1, 3, 5])` passes a sorted slice. The test would also pass if the implementation used `ids[ids.len() - 1] + 1` (last element) rather than `ids.iter().max()`. A test with an unsorted slice (`&[5, 1, 3]`) would distinguish these implementations.
+
+**Classification:** Dismissed. The test correctly specifies `max(existing_ids) + 1`. Whether the implementation uses `.iter().max()` or a sort-and-take-last approach is an internal detail. The spec says "max" — any implementation that produces the correct answer for sorted and unsorted inputs satisfies the contract. Adding an unsorted-slice test variant would over-specify the test. The implementation should use `.iter().max()` — this is a natural Rust idiom and the test is sufficient.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+Five dismissed findings, all hallucinated or style-level concerns. The stub structure is correct. Library/binary split is appropriate. Public API boundary is minimal and correct. `todo!()` is the right Red Gate mechanism. No real findings.
+
+**Deferred to SE Review 3 (Layer 1 implementation):** Verify that the status-change handler does not touch `created_at` (QE Finding 4 / SE Review 1 Finding 2 coordination note). This cannot be verified until implementation code exists.

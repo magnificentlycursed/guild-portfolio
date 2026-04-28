@@ -20,6 +20,8 @@ Regression check: verify that performance characteristics established in prior l
 
 **Coordination:** Performance findings frequently overlap with [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) (architectural decisions that create performance constraints), [DATA-ENGINEER-REVIEW.md](DATA-ENGINEER-REVIEW.md) (data access patterns, query efficiency), [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md) (build tooling, asset pipelines, CI performance budgets), and [UX-REVIEW.md](UX-REVIEW.md) (loading states, feedback during slow operations). Flag cross-domain findings.
 
+**DESIGN.md change authority:** If a finding requires a change to `DESIGN.md`, classify it "Raised to SO" and document the proposed change and rationale. Do not apply the change. `DESIGN.md` is a controlled spec document — the Solution Owner is the sole domain authorized to modify it.
+
 **Sycophancy check:** An agent that generated the implementation will not have considered performance — it will have generated correct code without considering the cost of correctness at scale. The most common failure is not a slow algorithm — it is an algorithm that is fast at small scale and catastrophically slow at realistic scale, never tested with production-representative data. Flag any dimension where "works in tests" is the only evidence of performance adequacy.
 
 **Language and interface supplement:** Consult `../../lang/` for the supplement matching the project's primary language. Apply the **Performance Engineer** section from the relevant supplement file in addition to the standard dimensions below — supplements specify language-specific tooling for profiling, benchmarking, and performance measurement.

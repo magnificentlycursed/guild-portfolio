@@ -134,3 +134,51 @@ Layer 6 delivers three distinct capabilities: `--description` on create, `tracke
 
 One real finding resolved (Layer 1 sort algorithm specification). Two dismissed. The decomposition is architecturally sound: each layer delivers an independent, verifiable capability; layer ordering is correct (each layer depends only on previous layers); no structural debt is introduced between layers.
 
+---
+
+---
+
+## Review 3 — 2026-04-27 22:00Z
+
+**Scope:** Layer 1 stub architecture — `Cargo.toml`, `src/main.rs`, `src/lib.rs`, `tests/layer1.rs`. Evaluating structural decisions, API boundary, and whether the stub introduces any architectural debt before implementation begins.
+
+**Session note:** In-session with all other Layer 1 domain reviews. Acknowledged quality tradeoff.
+
+---
+
+### Dismissed
+
+**Finding 1 — Library/binary split (`lib.rs` / `main.rs`) adds a crate boundary for a small binary (Dim 9 — complexity budget)**
+
+The project declares both `[[bin]]` and `[lib]` targets in `Cargo.toml`, creating a `lib.rs` library and a `main.rs` binary that uses it. For a small CLI tool, this is more structure than a `main.rs`-only approach.
+
+**Classification:** Dismissed. The split is architecturally correct and not premature. The unit tests in `lib.rs` require the library target — integration tests in `tests/` test the binary via subprocess, but unit tests for `validate_title` and `next_id` must compile the library directly. Without a `[lib]` target, unit tests would have to be in `main.rs` as `#[test]` functions, which is a known antipattern for CLI binaries (it pollutes the binary entry point and makes it harder to test in isolation). The split is justified by the testing architecture.
+
+---
+
+**Finding 2 — The `tracker()` helper in `tests/layer1.rs` is not extracted to a shared test helper module (Dim 4)**
+
+The `tracker()` function will be duplicated in every `tests/layerN.rs` file. It could be in a `tests/common/mod.rs` shared module.
+
+**Classification:** Dismissed. Premature abstraction. Only one test file exists. The helper is three lines. When `tests/layer2.rs` exists, the duplication is two instances — below the threshold for extraction. Extract when Layer 3 or Layer 4 introduces a third file, or when the helper grows beyond argument-building (e.g., if it gains environment variable setup).
+
+---
+
+**Finding 3 — `validate_title` returns `Result<String, String>` rather than a richer error type (Dim 3)**
+
+See SE Review 2 Finding 2.
+
+**Classification:** Dismissed. Cross-reference with SE Review 2 Finding 2 — the dismissal rationale applies architecturally as well. `String` errors are appropriate for a tool whose only error-handling action is printing to stderr. No error variant routing is needed.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+Three dismissed findings — all hallucinated or premature concerns. The stub architecture is minimal, correct, and non-debt-generating. Library/binary split is justified by the testing architecture. No new structural findings.
+

@@ -177,13 +177,11 @@ This is portfolio project #2, per the Phase 1 apprentice program assignment in `
 ### Storage file
 
 ```
-{
-  "issues": [Issue]   // array of issue objects; order is not significant (list sorts on display)
-}
+[Issue]   // top-level array of issue objects; order is not significant (list sorts on display)
 ```
 
 **Storage invariants:**
-- If the file does not exist, the tracker is treated as empty (`issues = []`)
+- If the file does not exist, the tracker is treated as empty (empty array)
 - On every create, the new issue's ID is assigned as `max(existing_ids) + 1`, or `1` if the issue list is empty
 - `tracker.json` is written directly on every mutation; on I/O failure the file may be in an indeterminate state — the error is reported and the binary exits 1. Atomic writes are the correct production approach and are deferred — implementation cost exceeds the failure risk for a single-user local tool.
 

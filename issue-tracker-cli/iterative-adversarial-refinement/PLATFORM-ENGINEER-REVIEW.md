@@ -79,3 +79,61 @@ No pre-commit hook configuration exists. For a Phase 1 portfolio project, hooks 
 ### Summary
 
 Three findings resolved: `rust-toolchain.toml`, `.gitignore`, and CI pipeline created. Two findings remain deferred to Layer 1: `Cargo.lock` (requires Cargo.toml first) and pre-commit hooks (requires a hook framework decision). Coverage threshold enforcement deferred to Layer 2 when test volume makes a threshold meaningful.
+
+---
+
+---
+
+## Review 2 — 2026-04-27 22:00Z
+
+**Scope:** Layer 1 build configuration — `Cargo.toml`, `Cargo.lock` status, CI configuration. Evaluating delivery of the two deferred findings from Review 1.
+
+**Session note:** In-session with all other Layer 1 domain reviews. Acknowledged quality tradeoff.
+
+---
+
+### Resolved
+
+**Finding 4 (from Review 1) — `Cargo.lock` not in version control**
+
+`Cargo.toml` now exists. `cargo test` was run, generating `Cargo.lock` with 66 packages locked (all from dev-dependencies: assert_cmd, predicates, serde_json, tempfile and their transitive dependencies). The `Cargo.lock` file is not in `.gitignore` and must be committed alongside the Layer 1 Red Gate commit.
+
+**Resolution:** `Cargo.lock` must be staged and committed with the Layer 1 Red Gate files. This is a gate requirement for the Red Gate commit, not the merge gate. **Action item for the current commit.**
+
+---
+
+### Open
+
+**Finding 5 (from Review 1) — No pre-commit hooks (Dim 10)**
+
+Status: Still open. No pre-commit hook framework has been configured. For a portfolio project intended for external review, hooks covering local username leakage and secret detection are required.
+
+**Classification: Open.** The framework decision (lefthook, pre-commit, husky, or a shell script in `.git/hooks`) is a human director decision. The minimum requirements:
+- Reject commits that include absolute paths containing the developer's local username (e.g., `DEVELOPER_HOME/`) in committed files. This prevents local machine-specific paths from appearing in public portfolio code.
+- The CI pipeline already runs `cargo fmt --check` and `cargo clippy` — pre-commit hooks for these are optional if the developer is disciplined about running them locally.
+
+**Gate:** This remains a Layer 1 merge gate requirement. Cargo.lock commit (Finding 4) unblocks the Red Gate commit; pre-commit hooks unblock the merge gate.
+
+---
+
+### Dismissed
+
+**Finding 6 — `Cargo.toml` has no `[profile.release]` section (Dim 7)**
+
+No release profile optimization settings are declared. The default release profile (`opt-level = 3`, no debug info) applies.
+
+**Classification:** Dismissed. The default release profile is appropriate for a personal CLI tool. LTO, codegen-units, and strip settings are production optimization concerns. The assignment has no performance budget for the binary; the default profile is correct for this stage.
+
+---
+
+**Finding 7 — CI `cargo audit` step installs `cargo-audit` at CI runtime (Dim 1)**
+
+The workflow runs `cargo install cargo-audit --locked` on every CI run. This adds ~30 seconds to the CI runtime if not cached.
+
+**Classification:** Dismissed. `Swatinem/rust-cache@v2` is configured in the CI pipeline. `cargo install` artifacts are cached between runs on matching toolchain/dependency fingerprints. The first run pays the install cost; subsequent runs use the cache. Acceptable for a portfolio project. Using a pre-built action (e.g., `rustsec/audit-check`) would be an optimization but is not required.
+
+---
+
+### Summary
+
+Finding 4 resolved: `Cargo.lock` must be committed with the current Red Gate commit. Finding 5 remains open and gates the Layer 1 merge. One action item: commit `Cargo.lock` now.

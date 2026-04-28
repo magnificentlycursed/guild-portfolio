@@ -20,6 +20,8 @@ For each dimension, classify as **demonstrated** (evidence is clear and specific
 
 **Coordination:** Process evidence connects to [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md) (was the methodology followed?). Decision ownership connects to [SOLUTION-ARCHITECT-REVIEW.md](../role/SOLUTION-ARCHITECT-REVIEW.md) and [SOFTWARE-ENGINEER-REVIEW.md](../role/SOFTWARE-ENGINEER-REVIEW.md) (are the architectural and implementation decisions the developer's?). Documentation connects to [SOFTWARE-ENGINEER-REVIEW.md](../role/SOFTWARE-ENGINEER-REVIEW.md) (is the knowledge transferred? See the Extended: Documentation section).
 
+**DESIGN.md change authority:** If a finding requires a change to `DESIGN.md`, classify it "Raised to SO" and document the proposed change and rationale. Do not apply the change. `DESIGN.md` is a controlled spec document — the Solution Owner is the sole domain authorized to modify it.
+
 **Sycophancy check:** This is the domain where sycophancy does the most harm. An agent reviewing portfolio work has every incentive to find it impressive — it helped build it. The adversary must push on the hardest question in this domain: could this developer reproduce the key decisions without the AI? That question cannot be answered by reading the code. It requires direct interrogation.
 
 **Language and interface supplement:** Not applicable. Portfolio assessment evaluates developer ownership, growth evidence, and decision rationale — concerns that are independent of implementation language or interface type.

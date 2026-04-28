@@ -22,6 +22,8 @@ Regression check: verify that documentation updated in prior layers is still acc
 
 **Coordination:** Flag findings that overlap with [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) (stale or incorrect inline comments), [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) (architectural decisions without documented rationale), [../meta/VDD-IAR-ALIGNMENT-REVIEW.md](../meta/VDD-IAR-ALIGNMENT-REVIEW.md) (DECISIONS.md quality, retrospective honesty), and [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md) (runbook completeness, deployment procedure accuracy).
 
+**DESIGN.md change authority:** If a finding requires a change to `DESIGN.md`, classify it "Raised to SO" and document the proposed change and rationale. Do not apply the change. `DESIGN.md` is a controlled spec document — the Solution Owner is the sole domain authorized to modify it.
+
 **Sycophancy check:** An agent generating documentation in the same session as code will produce documentation that is accurate at the moment of generation and stale after the next change. The adversary must verify that documentation describes the current implementation, not the implementation at the time it was written. Every claim in the documentation should be verifiable against the current code. Treat every "this function does X" statement as a claim that requires verification.
 
 **Language and interface supplement:** Consult `../../lang/` for the supplement matching the project's primary language. Apply the **Technical Writer** section from the relevant supplement file in addition to the standard dimensions below — supplements specify language-specific documentation tooling (rustdoc for Rust; TypeDoc/JSDoc for JavaScript/TypeScript).

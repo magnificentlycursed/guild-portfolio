@@ -194,3 +194,67 @@ Two open items: dim 6 (in-session batching across all domains) and the new findi
 
 **Gate status:** Decomposition phase is complete. Layer 1 may open. One open finding gates the Layer 1 **merge** (not the Layer 1 start): at least one cold-session domain review must be conducted against the Layer 1 implementation before it merges. The Layer 1 gate will also evaluate dims 3, 4, 5 for the first time.
 
+---
+
+---
+
+## Review 3 — 2026-04-27 22:00Z
+
+**Scope:** Layer 1 Red Gate phase process compliance. Artifacts reviewed: `Cargo.toml`, `src/main.rs`, `src/lib.rs`, `tests/layer1.rs`, all IAR Review 2 logs across all active domains. No behavioral implementation exists — this review covers the Red Gate writing phase only.
+
+**Program phase:** Phase 1. Crosslink not yet introduced. Dim 11 not applicable.
+
+**Session note:** In-session with all other Layer 1 domain reviews. This is the same quality tradeoff as Review 2. The VDD-IAR Review 2 open finding (dim 6 — cold-session review required before Layer 1 merge) is carried forward and remains open.
+
+---
+
+### Dismissed
+
+**Dim 1 (Design-before-code)** — DESIGN.md exists and precedes all code. No behavioral implementation has been written. The Red Gate tests are the only code artifact, and they are required process output, not implementation. ✓
+
+**Dim 2 (Decomposition)** — `TODO.md` exists with 7 layers, each containing acceptance criteria, manual testing checklist, and Red Gate test plan. Layer 1 plan was verified against the Red Gate tests written: all 13 integration test names and all 4 unit test names match the documented Red Gate test plan in `TODO.md` Layer 1. ✓
+
+**Dim 4 (Test discipline)** — Tests were written before any implementation. All 17 tests (13 integration + 4 unit) fail against the stubs, verified by running `cargo test`. Integration tests fail with output mismatches (empty main produces no output, no file, exits 0). Unit tests fail with `not yet implemented` panics from `todo!()`. Both failure modes confirm the Red Gate is active and the stubs do not accidentally pass tests. ✓
+
+**Dim 7 (IAR iteration)** — Layer 1 IAR suite (QE, SE, Security, SA, SO, Data Engineer, Platform, VDD-IAR) was run against the Red Gate artifacts. One real finding was produced (QE/SO/DE: JSON storage format mismatch) and resolved. The suite produced real, actionable findings at the pre-implementation gate. IAR iteration is functioning. ✓
+
+**Dim 8 (Role integrity)** — Human director directed "begin work on Layer 1, write the Red Gate tests." The agent wrote the tests as directed. The IAR was run as directed. ✓
+
+---
+
+### Resolved
+
+**New Finding 1 — DESIGN.md was changed before SO review ran (Dim 8 — Role integrity)**
+
+QE Review 2 identified a spec-test mismatch (integration tests assumed a top-level JSON array; DESIGN.md specified a wrapped object `{"issues": [...]}`). The correct process: QE raises to SO, SO evaluates and applies or rejects. The actual sequence: QE identified the finding, DESIGN.md was changed immediately, and SO review was written after the fact.
+
+The change was correct — SO Review 7 independently evaluated it and approved. But the authority chain was inverted: the change was applied before the authority that holds change rights reviewed it. An IAR domain that changes DESIGN.md directly rather than escalating is acting outside its role.
+
+**Classification: Resolved — process violation acknowledged; change approved by SO retroactively; must not recur.** The VDD-IAR record of this violation is the corrective action. Future DESIGN.md changes by non-SO domains must follow the escalation pattern: raise to SO, wait for SO decision, then apply under SO authority. The change itself stands; the process discipline applies going forward.
+
+---
+
+### Open
+
+**Finding 2 (from Review 2) — Dim 6: Cold-session review required before Layer 1 merges**
+
+Status: Still open. All Layer 1 IAR reviews (including this one) are in-session. The requirement for at least one cold-session domain review (QE or Security recommended) before Layer 1 implementation code merges is unchanged.
+
+**Classification: Open — gates Layer 1 merge.** The cold-session review requirement is not a Red Gate requirement (it gates merge, not start). Layer 1 implementation may begin. Before merging Layer 1, run QE Review 3 or Security Review 3 in a fresh session with no access to the current session's context.
+
+---
+
+### Deferred
+
+**Dims 3, 5 (Layer gate compliance, human verification)** — Not evaluable until Layer 1 implementation exists and a layer gate is attempted. Will be evaluated in VDD-IAR Review 4 at the Layer 1 gate.
+
+**Dim 10 (Retrospective quality)** — Layer 1 not yet complete. Deferred to VDD-IAR Review 4.
+
+---
+
+### Summary
+
+Red Gate phase is substantially process-compliant with one resolved violation: DESIGN.md was changed before SO review ran. The change is correct and approved retroactively by SO Review 7, and the violation is now on record. Tests are written and failing before any implementation. One open item gates the Layer 1 merge (cold-session review). Dims 3, 5, 10 evaluated at the Layer 1 close gate.
+
+**Gate status:** Layer 1 implementation may begin. Layer 1 merge gate requirements: (1) cold-session IAR review (QE or Security), (2) pre-commit hooks (Platform Finding 5), (3) all 17 Red Gate tests passing, (4) manual testing checklist completed.
+
