@@ -1,6 +1,218 @@
 # Changelog
 
-All notable changes to the AIR suite are recorded here. Entries are in reverse chronological order. Timestamps are UTC (Zulu).
+All notable changes to the IAR suite are recorded here. Entries are in reverse chronological order. Timestamps are UTC (Zulu).
+
+---
+
+## Unreleased — 2026-04-27 (session 17)
+
+### Changed
+- **`README.md`** — Security Engineer Focus cell updated to include "audit logging, data classification and control requirements" — reflects dims 7 and 8 added in session 15. Cell was stale after scope expansion.
+- **`README.md`** — Solution Architect Focus cell updated to include "external service integration" — reflects `### Extended: External Service Integration` (dims 23–27) added in session 15. Cell was stale after scope expansion.
+- **`domains/role/SOLUTION-ARCHITECT-REVIEW.md`** — Added Privacy to coordination links: "dim 27 — data transmitted to external services; cross-reference with Privacy dim 6 when Privacy is active." Privacy was already cross-referenced inside dim 27's text but absent from the coordination section.
+
+---
+
+## Unreleased — 2026-04-28 (session 16)
+
+### Changed
+- **`domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md`** — Added cross-session spec consistency sub-section to dim 7 (IAR iteration and feedback routing). Named failure mode: AI interpretation of requirements shifts between sessions without a DESIGN.md update. Concrete test: can the current DESIGN.md, read cold, produce the current implementation? Named artifact indicators: commits contradicting DESIGN.md, DECISIONS.md entries expanding features without a spec revision, IAR findings about behavior absent from the spec. Addresses G-22.
+- **`domains/role/SOLUTION-ARCHITECT-REVIEW.md`** — Added feature-enhancement activation note to `### Extended: External Interface Contracts` section. Dims 16 (backward compatibility) and 17 (contract testing) now explicitly activate for feature enhancements — any change that existing callers, users, or stored data must survive. Addresses G-30.
+- **`GAP-ANALYSIS-LOG.md`** — Updated statuses: G-22 Open → Addressed; G-30 Open → Addressed.
+
+---
+
+## Unreleased — 2026-04-28 (session 15)
+
+### Added
+- **`domains/role/SECURITY-REVIEW.md`** — Added dim 7 (Audit logging): named audit events, tamper-evidence requirement, retention and separation from application logs, forensic reconstruction test, context-scoped note for single-user vs. enterprise deployment. Addresses G-09.
+- **`domains/role/SECURITY-REVIEW.md`** — Added dim 8 (Data classification and control requirements): classification tiers (public/internal/confidential/restricted), proportionate control requirements, named failure modes, explicit cross-reference to Privacy dim 1 for coordination. Addresses G-10. Ownership decision: Privacy dim 1 owns data identification; Security dim 8 owns control mandates from classification.
+- **`domains/role/SOLUTION-ARCHITECT-REVIEW.md`** — Added `### Extended: External Service Integration` section (dims 23–27): external dependency inventory, failure and timeout handling, API contract drift, credentials to external services, data transmitted to external services with cross-reference to Privacy dim 6. Addresses G-32.
+
+### Changed
+- **`domains/role/SECURITY-REVIEW.md`** — Added Privacy to coordination links (dim 8 data classification cross-references Privacy dim 1). Addresses G-09/G-10.
+- **`GAP-ANALYSIS-LOG.md`** — Updated statuses: G-09 Open → Addressed; G-10 Open → Addressed; G-32 Open → Addressed; G-36 Open → Dismissed (business viability is out of IAR scope, no natural reviewer role).
+
+---
+
+## Unreleased — 2026-04-28 (session 14)
+
+### Added
+- **`lang/javascript-typescript.md`** — Added `## Technical Writer` section: TypeDoc/JSDoc generation config, TSDoc comment completeness (`@param`/`@returns`/`@throws`/`@example`), README example accuracy, `@deprecated` markers. Addresses G-84.
+- **`lang/javascript-typescript.md`** — Added `## Localization` section: `Intl.*` API usage with explicit locale parameters, i18next/react-i18next configuration, missing translation key handling, locale injection in tests. Addresses G-85.
+- **`lang/rust.md`** — Added `## Technical Writer` section: rustdoc coverage (`cargo doc --no-deps`), doc test quality (`cargo test --doc`), module-level `//!` docs, `#[doc(hidden)]` discipline, `cargo doc --document-private-items`. Addresses G-84.
+- **`lang/rust.md`** — Added `## Localization` section: fluent-rs bundle configuration with `LanguageIdentifier` and fallback chains, Fluent message completeness, missing message error handling, rust-i18n macro usage and key coverage. Addresses G-85.
+
+### Changed
+- **`domains/role/TECHNICAL-WRITER-REVIEW.md`** — Updated lang supplement note from gap-reference language ("not yet covered — see G-84") to standard "Apply the **Technical Writer** section" format. Addresses G-84.
+- **`domains/role/LOCALIZATION-REVIEW.md`** — Updated lang supplement note from gap-reference language ("not yet covered — see G-85") to standard "Apply the **Localization** section" format. Addresses G-85.
+- **`domains/role/SECURITY-REVIEW.md`** — Revised inline G-07 note at end of dim 6. Previous note said "G-07 is still open... single dimension above is insufficient." Security dim 6 has been substantially expanded since that note was written; the note was stale and contradicted the current dimension content. Replaced with forward-looking guidance: for complex multi-user auth, a dedicated domain may be warranted. Gap log updated to Addressed (partial) for G-07 and G-08.
+- **`prompts/suite-development.md`** — Removed gap markers (`**Gap**`) from Technical Writer and Localization rows in the lang supplement coverage table; updated to ✓. Removed now-stale trailing sentence referencing G-84/G-85. Addresses G-84, G-85.
+- **`GAP-ANALYSIS-LOG.md`** — Updated statuses: G-07 Open → Addressed (partial); G-08 Open → Addressed (partial); G-24 Open → Addressed (partial); G-25 Open → Addressed (partial); G-84 Open → Addressed; G-85 Open → Addressed.
+
+---
+
+## Unreleased — 2026-04-28 (session 13)
+
+### Changed
+- **`domains/role/DATA-ENGINEER-REVIEW.md`** — Added parenthetical job title variants to the reviewer role line. Previous: `**Reviewer role: Data Engineer**`. Updated: `**Reviewer role: Data Engineer** (Data Engineer / Database Engineer / Data Platform Engineer)`. Every other role domain follows the governing standard format `[Title] ([variants])`; DE was the only exception. Addresses Review 14 Finding 1.
+- **`README.md`** — Updated core domain table "Job title" column for Data Engineer from "Data Engineer" to "Data Engineer / Database Engineer / Data Platform Engineer" to match the domain file and align with the slash-delimited variant format used by all other rows. Addresses Review 14 Finding 1.
+
+---
+
+## Unreleased — 2026-04-28 (session 12)
+
+### Changed
+- **`prompts/review-session.md`** — Added VDD-IAR Alignment to the Deferred classification exclusion note. Previous note said "Not valid for Security or Red Team" — VDD-IAR Alignment also prohibits deferred (governing standard: process findings are binary). A reviewer following the primer could incorrectly defer a VDD-IAR Alignment finding. New note: "Not valid for Security, Red Team, or VDD-IAR Alignment." Addresses Review 13 Finding 1.
+
+---
+
+## Unreleased — 2026-04-28 (session 11)
+
+### Changed
+- **`CHANGELOG.md`** — Fixed "AIR suite" → "IAR suite" in the file description. Addresses Review 12 Finding 1.
+- **`domains/role/PERFORMANCE-ENGINEER-REVIEW.md`** — Rewrote lang supplement note to match the standard format used by all other domains: "Apply the **Performance Engineer** section from the relevant supplement file in addition to the standard dimensions below." Previous note said only "Consult `../../lang/`" without naming the section. Addresses Review 12 Finding 2.
+- **`domains/role/SOLUTION-OWNER-REVIEW.md`** — Replaced supplement note with an explicit opt-out. Previous note directed reviewer to "consult the supplement" for technology choice verification, but no SO section exists in any supplement — `suite-development.md` table marks SO as Language-agnostic. New note clarifies: SO is language-agnostic; for technology fitness context, consult the SA section of the relevant supplement. Addresses Review 12 Finding 3.
+
+---
+
+## Unreleased — 2026-04-28 (session 10)
+
+### Changed
+- **`domains/role/SOLUTION-ARCHITECT-REVIEW.md`** — Added `[DATA-ENGINEER-REVIEW.md]` to SA's coordination links. SA dim 3 evaluates data model integrity; DE is the natural escalation target for deeper data-layer analysis. DE was the only core domain absent from SA coordination despite the explicit overlap. Addresses Review 11 Finding 1.
+- **`lang/javascript-typescript.md`** — Added "Coverage enforcement" bullet to Platform Engineering section naming Jest `coverageThreshold`, Vitest `coverage.thresholds`, `c8`, and `nyc` as the JS/TS-specific coverage tooling. Symmetric with `rust.md` Platform Engineering section. Addresses Review 11 Finding 2.
+- **`domains/role/ACCESSIBILITY-REVIEW.md`** — Updated lang supplement note to specify "See the **UX** section of `../../lang/browser-app.md`" and name the content. `browser-app.md` has no `## Accessibility` section; the relevant dimensions live in `## UX`. Addresses Review 11 Finding 3.
+
+---
+
+## Unreleased — 2026-04-28 (session 9)
+
+### Changed
+- **`README.md`** — Fixed stale "Phase 4" reference in session primers section: "the adversary applies pressure during Phase 1, not only during Phase 4" → "Phase 3". Renumbering pass in Review 6 missed this sentence. Addresses Review 10 Finding 1.
+- **`domains/role/QUALITY-ENGINEER-REVIEW.md`** — Added `[SOFTWARE-ENGINEER-REVIEW.md]` as the first entry in QE's coordination links. SE was absent despite the domain boundary text explicitly describing the QE/SE split: QE flags missing tests, SE flags bugs. Addresses Review 10 Finding 2.
+- **`domains/meta/PORTFOLIO-ASSESSMENT-REVIEW.md`** — Regression check now includes instruction to read the preceding project's `PORTFOLIO-ASSESSMENT-REVIEW.md` log and a note that the check is vacuously met if no prior assessment exists. Addresses Review 10 Finding 3.
+- **`domains/meta/PORTFOLIO-ASSESSMENT-REVIEW.md`** — Dim 8 rewritten: replaced "the developer could have built this without AI assistance" with a framing based on ownership of scope. The governing methodology assumes AI does the building; the test is whether the developer directed and owns the complexity, not whether they could have built it solo. Addresses Review 10 Finding 4.
+
+---
+
+## Unreleased — 2026-04-28 (session 8)
+
+### Changed
+- **`lang/rust.md`** — Removed six inline "(Source: claude.md; verify against current apprentice-onboarding content.)" annotations from dimension bullets across Quality Engineering, Security, Software Engineering, and Platform Engineering sections. Source provenance is now consolidated in the `**Source note:**` paragraph added at the top of the file. Addresses Review 9 Finding 1.
+- **`GAP-ANALYSIS-LOG.md`** — Updated G-12 status from "Addressed (API-CONTRACT-REVIEW.md)" to "Addressed (SA Extended: External Interface Contracts)". The referenced file does not exist; the gap was addressed by SA's Extended: External Interface Contracts section. Addresses Review 9 Finding 2.
+- **`GAP-ANALYSIS-LOG.md`** — Updated G-20, G-21, G-23 status from "Open" to "Addressed (partial)" and Last Reviewed from 2026-04-25 to 2026-04-27, consistent with G-76 which registered the partial addressing. Addresses Review 9 Finding 3.
+- **`lang/cli.md`** — Removed "(or alongside)" from intro paragraph. Intro now reads "in place of the standard UX dimensions," matching the section header which states the CLI dimensions replace browser-centric UX dimensions. Addresses Review 9 Finding 4.
+
+---
+
+## Unreleased — 2026-04-27 (session 7)
+
+### Changed
+- **`prompts/implementation.md`** — Updated H1, prompt text, and internal section headers from "Phase 2–3" / "Phase 2" / "Phase 3" to "Phase 2a–2b" / "Phase 2a" / "Phase 2b" to match the renumbering from Review 6. Addresses Review 8 Finding 1.
+- **`domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md`** — Added disambiguation note to Program Phase Context section clarifying "Phase" refers to apprentice program tiers, not VSDD pipeline phases. Addresses Review 8 Finding 2.
+- **`domains/role/ACCESSIBILITY-REVIEW.md`** — Removed dim 13 ("Regression") which duplicated the regression check paragraph already present in the Current Review Prompt section. Addresses Review 8 Finding 3.
+- **`domains/role/TECHNICAL-WRITER-REVIEW.md`**, **`ACCESSIBILITY-REVIEW.md`**, **`LOCALIZATION-REVIEW.md`**, **`PERFORMANCE-ENGINEER-REVIEW.md`**, **`PRIVACY-REVIEW.md`** — Converted prose coordination sections to Markdown links with relative paths and parenthetical context preserved. **`RED-TEAM-REVIEW.md`** — Fixed abbreviated display name "[SA-REVIEW.md]" → "[SOLUTION-ARCHITECT-REVIEW.md]". Addresses Review 8 Finding 4.
+- **`README.md`** — Added cross-reference to `PORTFOLIO-ASSESSMENT-REVIEW.md` in portfolio-arc review section. Addresses Review 8 Finding 5.
+
+---
+
+## Unreleased — 2026-04-27 (session 6)
+
+### Changed
+- **`domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md`** — Added regression check paragraph in correct position (before Coordination). Moved sycophancy check to before lang supplement (was after). Addresses Review 7 Finding 1.
+- **`domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md`** — Dim 7 extended with feedback routing fidelity sub-criterion: findings must route to the appropriate earlier phase (spec findings → DESIGN.md, test findings → test suite, implementation findings → code). Addresses Review 7 Finding 3.
+- **`domains/meta/PORTFOLIO-ASSESSMENT-REVIEW.md`** — Added "Read DESIGN.md and the assignment brief" instruction. Added regression check paragraph. Moved sycophancy check to after Coordination (was before). Addresses Review 7 Finding 2.
+
+---
+
+## Unreleased — 2026-04-27 (session 5)
+
+### Changed
+- **`README.md`** — Phase numbering aligned with VSDD whitepaper. Pipeline table: phases renamed 2→2a, 3→2b, 4→3; Phase 4 (Feedback Integration) row added (was absent). Opening paragraph and VSDD pipeline context section updated to "IAR owns Phase 3." Session primer table updated: "Phase 2–3" → "Phase 2a–2b"; "Phase 4" → "Phase 3." Addresses Review 6 Finding 1.
+- **`README.md`** — Added same-model review limitation note to Session isolation section. Addresses Review 6 Finding 2.
+- **`prompts/review-session.md`** — H1 title and posture paragraph updated from "VSDD Phase 4" to "VSDD Phase 3." Addresses Review 6 Finding 1.
+- **`domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md`** — Purpose statement updated from "VSDD Phase 4 (Adversarial Refinement)" to "VSDD Phase 3." Addresses Review 6 Finding 1.
+
+---
+
+## Unreleased — 2026-04-27 (session 4)
+
+### Changed
+- **`domains/role/TECHNICAL-WRITER-REVIEW.md`**, **`LOCALIZATION-REVIEW.md`**, **`ACCESSIBILITY-REVIEW.md`**, **`PRIVACY-REVIEW.md`**, **`PERFORMANCE-ENGINEER-REVIEW.md`** — Regression check paragraphs moved to correct position: before Coordination, not after. Ordering violation introduced in session 3 resolution pass. Addresses Finding 1 from Review 5.
+- **`domains/role/SOLUTION-OWNER-REVIEW.md`** — Added regression check paragraph in correct position (before Coordination). Addresses Finding 2 from Review 5.
+- **`domains/role/RED-TEAM-REVIEW.md`** — Added regression check paragraph in correct position (before Coordination). Addresses Finding 3 from Review 5.
+- **`domains/role/DOMAIN-INDEX.md`** — Fixed broken relative paths to meta domain files: `../../meta/` → `../meta/`. Addresses Finding 4 from Review 5.
+- **`README.md`** — Data Engineer Focus column: removed activation guidance ("Optional for projects without a meaningful data layer") which belongs exclusively in DOMAIN-INDEX; replaced with reference to DOMAIN-INDEX for scope-down guidance. Addresses Finding 5 from Review 5. **README vs. DOMAIN-INDEX:** These files serve distinct purposes and are not redundant. README describes what domains cover; DOMAIN-INDEX is authoritative for when and whether domains activate.
+- **`domains/role/DATA-ENGINEER-REVIEW.md`** — Added PRIVACY-REVIEW.md to coordination links with escalation note for dim 9 findings. Addresses Finding 10 from Review 5.
+- **`domains/meta/PORTFOLIO-ASSESSMENT-REVIEW.md`** — Coordination links converted from prose to relative-path Markdown links. Addresses Finding 11 from Review 5.
+- **`domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md`** — Moved `## Governing References` section from before `## Current Review Prompt` to between the prompt section and `## Standard Evaluation Dimensions`. Added prerequisite preamble framing. Addresses Finding 7 from Review 5.
+- **`domains/role/SOFTWARE-ENGINEER-REVIEW.md`** — Added coordination notes to both Extended sections: Extended: Documentation defers to TW when TW is active; Extended: Performance defers to PE when PE is active. Addresses Finding 8 from Review 5.
+- **`prompts/spec-crystallization.md`** — Moved `## Project type` section from before `## Prompt` to after it (between `## Prompt` closing separator and `## Project description`), satisfying the governing standard's required element ordering. Addresses Finding 9 from Review 5.
+- **`prompts/suite-development.md`** — Added explicit meta-domain exception to element 3 (Reviewer role line): meta domains in `domains/meta/` are exempt from the reviewer role requirement by design. Addresses Finding 6 from Review 5.
+- **`prompts/review-session.md`** — Rewrote the "After each domain review" classification section as a complete taxonomy with per-domain callouts for non-standard classifications. Added guidance that domain file schemas are authoritative. Addresses Finding 12 from Review 5.
+- **`SUITE-REVIEW.md`** — Added Review 5 entry covering all 12 findings.
+
+---
+
+## Unreleased — 2026-04-27 (session 3)
+
+### Changed
+- **`SUITE-REVIEW.md`** — Added `## Suite Meta-Reviews` section header before `## Review 3` to match the structural organization of `## Gap Analysis Runs`. Added Review 4 entry documenting all 11 findings from the adversarial pass this session.
+- **`domains/role/TECHNICAL-WRITER-REVIEW.md`** — Supplement reference updated to acknowledge G-84 (open gap) and removed false implication that a `lang/` section exists. Added regression check paragraph. Addresses Finding 1 and Finding 6 from Review 4.
+- **`domains/role/LOCALIZATION-REVIEW.md`** — Supplement reference updated to acknowledge G-85 (new open gap) and removed false implication that a `lang/` section exists. Added regression check paragraph. Addresses Finding 2 and Finding 6 from Review 4.
+- **`domains/role/RED-TEAM-REVIEW.md`** — Supplement reference corrected: "Apply the **Security** section" → "Apply the **Red Team** section." Addresses Finding 3 from Review 4.
+- **`domains/role/SOLUTION-OWNER-REVIEW.md`** — Sycophancy check rewritten with domain-specific failure mode: an agent that helped write DESIGN.md will not flag scope creep it introduced. Addresses Finding 5 from Review 4.
+- **`domains/role/UX-REVIEW.md`** — Sycophancy check rewritten with domain-specific failure mode: an AI cannot experience a UI. Added note to dim 7 directing deeper accessibility coverage to the Accessibility domain. Addresses Finding 5 and Finding 11 from Review 4.
+- **`domains/role/DATA-ENGINEER-REVIEW.md`** — Sycophancy check rewritten with domain-specific failure mode: an agent that designed the data model will not question schema decisions. Addresses Finding 5 from Review 4.
+- **`domains/role/ACCESSIBILITY-REVIEW.md`** — Added regression check paragraph. Addresses Finding 6 from Review 4.
+- **`domains/role/PRIVACY-REVIEW.md`** — Added regression check paragraph. Addresses Finding 6 from Review 4.
+- **`domains/role/PERFORMANCE-ENGINEER-REVIEW.md`** — Added regression check paragraph. Addresses Finding 6 from Review 4.
+- **`README.md`** — Candidate domains list updated: removed Performance, Privacy, and Internationalisation (all now implemented extended domains). Expanded "Review logs" example file tree to include the 6 extended domain log files with an "include only when active" note. Addresses Finding 4 and Finding 8 from Review 4.
+- **`prompts/suite-development.md`** — Classification schemas table expanded: added Privacy (`accepted risk`), Localization (`accepted scope`), and Portfolio Assessment (`demonstrated`/`partial`/`absent`/`hallucinated`). Added numbered format definition for gap analysis run entries in `SUITE-REVIEW.md` to "SUITE-REVIEW.md discipline" section. Coverage table: Localization row updated from "Language-agnostic" to gap (G-85); closing note updated to reference both G-84 and G-85. Addresses Finding 7, Finding 10, and Finding 2 from Review 4.
+- **`GAP-ANALYSIS-LOG.md`** — Added G-85 (Localization lang supplement absent). Updated G-77 status from `Addressed (QE/Security/SA/SE)` to `Addressed` (now fully resolved across SO, UX, DE as well).
+
+---
+
+## Unreleased — 2026-04-27 (session 2)
+
+### Changed
+- **`GAP-ANALYSIS-LOG.md`** — Structural consolidation: run narratives (Runs 1–10) stripped from this file. The file now contains only the gap registry table and file header. Run narrative content moved to `SUITE-REVIEW.md`. Each registry ID is now a Markdown link to the `## Gap Analysis Run N` section in `SUITE-REVIEW.md` where that gap was first identified. G-84 links to `SUITE-REVIEW.md#review-3--2026-04-27` (identified in a meta-review, not a gap analysis run). "How to run a gap analysis" step 6 updated to direct run entries to `SUITE-REVIEW.md`.
+- **`SUITE-REVIEW.md`** — Added `## Gap Analysis Runs` section containing all ten gap analysis run narratives (Runs 1–10) in reverse chronological order, consistent with the file's existing convention.
+- **`prompts/suite-development.md`** — "Running gap analysis" section updated: the closing entry requirement now explicitly names `SUITE-REVIEW.md` as the target for run narratives, with a clarifying note that `GAP-ANALYSIS-LOG.md` contains only the registry.
+
+---
+
+## Unreleased — 2026-04-27
+
+### Added
+- **`domains/role/DOMAIN-INDEX.md`** — Authoritative classification of core vs. extended domains with activation criteria per extended domain. Supplements the README domain tables with filesystem-local reference and explicit conditions under which each extended domain becomes active.
+- **`prompts/implementation.md`** — New session primer for VSDD Phase 2–3 (Red Gate and Implementation). Establishes tests-before-code posture, driving questions for test writing and implementation, Red Gate anti-patterns to reject, and completion criteria. Fills the phase coverage gap: spec-crystallization and decomposition primers existed for Phase 1/1b; implementation was unprimed.
+- **`prompts/review-session.md`** — New session primer for VSDD Phase 4 (Adversarial Review). Establishes adversarial posture before loading any domain prompt. Names sycophancy failure modes at the session level (not domain level), covers DESIGN.md prerequisite check, domain selection and sequencing, session isolation, and post-review classification requirements.
+- **`prompts/suite-development.md`** — New session primer for IAR suite development work. Governs adding/modifying domains, dimensions, and primers. Specifies the complete domain file structure, primer structure, pre-change checklists, gap registry discipline, SUITE-REVIEW.md and CHANGELOG.md requirements, and a lang supplement coverage table.
+- **`SECURITY-REVIEW.md` — `## Threat Model` section** — Required prerequisite section added before Standard Evaluation Dimensions. Before applying the checklist, the reviewer must name threat actors, crown jewel, and entry points. Output is logged as a preamble record in the review log, not a classified finding. Addresses G-06.
+- **`lang/javascript-typescript.md` — Red Team section** — JS/TS-specific attack vectors: prototype pollution exploitation (payload format, mitigation patterns), DOM-based XSS sinks enumeration, JWT algorithm confusion (alg:none, library version verification), npm supply chain and dependency confusion, localStorage/sessionStorage as persistence injection surface.
+- **`lang/javascript-typescript.md` — Performance Engineer section** — Bundle size analysis tooling (webpack-bundle-analyzer, source-map-explorer), V8 profiling via Chrome DevTools, Web Vitals as performance contract (LCP/INP/CLS targets), event delegation efficiency.
+- **`lang/rust.md` — Red Team section** — Rust-specific attack vectors: integer overflow in release builds (wrapping arithmetic, `u32::MAX` boundaries), panic as DoS vector (`.unwrap()` on user-influenced paths), path traversal via `Path::join`, `unsafe` block exploitation, crates.io supply chain.
+- **`lang/rust.md` — Performance Engineer section** — Criterion benchmarking discipline, flamegraph profiling (`cargo flamegraph`), debug vs. release build performance differential, allocation patterns in hot paths, async blocking operations in executor threads.
+- **`README.md` — Expanded primers table** — Added Implementation, Adversarial Review, and Suite Development primers with when-to-use descriptions. Primer table now covers all five session types.
+- **`README.md` — Running IAR preamble** — Three new constraints before the refinement loop: human-in-the-loop requirement (IAR's adversarial value collapses without human classification decisions), DESIGN.md prerequisite (no domain reviews without a spec), domain activation guidance (pointer to DOMAIN-INDEX.md).
+
+### Changed
+- **Domain folder restructure** — All domain files moved from root to `domains/role/` (role domains) and `domains/meta/` (meta domains). All internal links updated to relative paths (`../../README.md`, `../../lang/`).
+- **Domain file renames** — `SOFTWARE-ENGINEERING-REVIEW.md` → `SOFTWARE-ENGINEER-REVIEW.md`, `QUALITY-ENGINEERING-REVIEW.md` → `QUALITY-ENGINEER-REVIEW.md`, `PLATFORM-ENGINEERING-REVIEW.md` → `PLATFORM-ENGINEER-REVIEW.md`, `DATA-ENGINEERING-REVIEW.md` → `DATA-ENGINEER-REVIEW.md`. H1 titles updated to match. All cross-references updated.
+- **`PERFORMANCE-REVIEW.md` → `PERFORMANCE-ENGINEER-REVIEW.md`**, **`DOCUMENTATION-REVIEW.md` → `TECHNICAL-WRITER-REVIEW.md`** — Renamed to role-based titles. H1 titles and Reviewer role lines updated.
+- **README domain tables** — Restructured into three categories: Core role domains (8, always active), Extended role domains (6, activation-conditional), Meta domains (2). Added Role and Job title columns. All file paths updated to new folder locations.
+- **Reviewer role lines** — Added `**Reviewer role: [Title]** ([Job title variants])` to all domain files that were missing it. Duplicate lines removed from 10 files where the line was accidentally inserted twice.
+- **`PORTFOLIO-ASSESSMENT-REVIEW.md`** — Added explicit lang supplement opt-out line with rationale.
+- **`prompts/suite-development.md`** — Governing standard updated: lang supplement reference is required OR must have explicit opt-out with rationale; element 6 now distinguishes required structural sections (prerequisite records) from optional extended sections (conditional sub-dimensions).
+
+### Fixed
+- **`RED-TEAM-REVIEW.md`** — Coordination link text corrected: `[QE-REVIEW.md]` → `[QUALITY-ENGINEER-REVIEW.md]`.
+- **`GAP-ANALYSIS-LOG.md`** — Duplicate rows for G-02, G-03, G-12, G-34 removed; original rows updated in-place to Addressed status. G-80–G-83 moved from appended duplicates to proper numeric position in registry table. G-06, G-19, G-27 updated to Addressed. G-84 added (Technical Writer lang supplement gap).
+
+### Removed
+- **`OBSERVABILITY-REVIEW.md`** — Content absorbed into `PLATFORM-ENGINEER-REVIEW.md` dims 27–33 (error surfacing, error classification, diagnostic completeness, health surfaces, sensitive data exclusion, silent success confirmation, runbook coverage).
+- **`API-CONTRACT-REVIEW.md`** — Content absorbed into `SOLUTION-ARCHITECT-REVIEW.md` Extended: External Interface Contracts (dims 13–22).
 
 ---
 
@@ -20,9 +232,9 @@ All notable changes to the AIR suite are recorded here. Entries are in reverse c
   - Merging gate updated: requires MVR (not just one passing run), adds VDD-IAR Alignment as a required gate, adds round numbers to log format
 - **SOLUTION-OWNER-REVIEW.md** — Removed dims 9 (complexity budget for one → SA), 11 (VDD process fidelity → VDD-IAR Alignment), 12 (linear accountability → VDD-IAR Alignment). Assignment compliance renumbered to dim 9. SO returns to its original identity: the spec contract.
 - **SOLUTION-ARCHITECT-REVIEW.md** — Dim 9 (complexity budget) expanded to include maintainer-scale complexity. Now covers both problem-proportionate complexity and team-proportionate complexity. Cross-references SO dim 4 (over-engineering) to distinguish the two concerns.
-- **QUALITY-ENGINEERING-REVIEW.md** — Removed dim 14 (manual testing checklists → VDD-IAR Alignment). Added domain boundary statement: QE owns the test system; SE owns the bugs. When QE finds a logic error with no test, flag the missing test here; SE flags the bug.
-- **SOFTWARE-ENGINEERING-REVIEW.md** — Added domain boundary statement: SE owns the implementation; QE owns the test system. SE flags bugs; QE flags missing tests. Do not duplicate by evaluating test architecture in SE.
-- **PLATFORM-ENGINEERING-REVIEW.md** — Replaced generic sycophancy check with a posture note acknowledging that most PE dimensions are compliance checks, not adversarial judgment calls. Sycophancy risk is specifically scoped to inapplicability decisions and threshold acceptance. This is more honest about what PE actually does.
+- **QUALITY-ENGINEER-REVIEW.md** — Removed dim 14 (manual testing checklists → VDD-IAR Alignment). Added domain boundary statement: QE owns the test system; SE owns the bugs. When QE finds a logic error with no test, flag the missing test here; SE flags the bug.
+- **SOFTWARE-ENGINEER-REVIEW.md** — Added domain boundary statement: SE owns the implementation; QE owns the test system. SE flags bugs; QE flags missing tests. Do not duplicate by evaluating test architecture in SE.
+- **PLATFORM-ENGINEER-REVIEW.md** — Replaced generic sycophancy check with a posture note acknowledging that most PE dimensions are compliance checks, not adversarial judgment calls. Sycophancy risk is specifically scoped to inapplicability decisions and threshold acceptance. This is more honest about what PE actually does.
 
 ---
 
@@ -57,14 +269,14 @@ All notable changes to the AIR suite are recorded here. Entries are in reverse c
 - **GAP-ANALYSIS-LOG.md Run 3** — 2026-04-25 22:00Z. Context: personal developer using AI-accelerated tools, portfolio-to-side-business trajectory. Identified 6 new gaps (G-33–G-38) including: sycophancy detection (G-33, addressed), future-maintainability-for-one assessment (G-35, addressed), session continuity across AI conversations (G-37, addressed), complexity trap from AI over-engineering (G-38, addressed).
 
 ### Changed
-- **QUALITY-ENGINEERING-REVIEW.md** — Removed browser-specific dimensions 11–13 (accessibility, browser compatibility, responsive design) from standard dimensions; these are now in `lang/browser-app.md`. Generalized dim 14 (security surface) to remove npm-specific language. Renumbered to 13 dimensions. Added language and interface supplement instruction.
+- **QUALITY-ENGINEER-REVIEW.md** — Removed browser-specific dimensions 11–13 (accessibility, browser compatibility, responsive design) from standard dimensions; these are now in `lang/browser-app.md`. Generalized dim 14 (security surface) to remove npm-specific language. Renumbered to 13 dimensions. Added language and interface supplement instruction.
 - **SECURITY-REVIEW.md** — Removed web-specific dimensions 1 (rendering safety), 2 (URL injection), and 5 (CSP) from standard dimensions; these are now in `lang/browser-app.md` and `lang/javascript-typescript.md`. Generalized remaining dimensions to be language-agnostic. Added dim 4 (secret handling) and dim 6 (authentication/authorization) as generic security dimensions. Renumbered to 6 dimensions. Added language and interface supplement instruction.
 - **UX-REVIEW.md** — Added interface-type note: standard dimensions assume a browser-rendered interface; CLI projects should consult `lang/cli.md`; browser apps should also consult `lang/browser-app.md`.
-- **PLATFORM-ENGINEERING-REVIEW.md** — Generalized npm-specific language in dims 1, 3, 4, and 11 to be ecosystem-agnostic with ecosystem-appropriate examples. Added language and interface supplement instruction.
+- **PLATFORM-ENGINEER-REVIEW.md** — Generalized npm-specific language in dims 1, 3, 4, and 11 to be ecosystem-agnostic with ecosystem-appropriate examples. Added language and interface supplement instruction.
 - **SOLUTION-ARCHITECT-REVIEW.md** — Added language and interface supplement instruction.
 - **SOLUTION-OWNER-REVIEW.md** — Added language and interface supplement instruction (SO review is primarily spec-driven; supplement used to verify technology choices against the spec).
-- **SOFTWARE-ENGINEERING-REVIEW.md** — Added language and interface supplement instruction.
-- **DATA-ENGINEERING-REVIEW.md** — Added language and interface supplement instruction.
+- **SOFTWARE-ENGINEER-REVIEW.md** — Added language and interface supplement instruction.
+- **DATA-ENGINEER-REVIEW.md** — Added language and interface supplement instruction.
 - **GAP-ANALYSIS-LOG.md** — Fixed blank line between G-17 and G-18 rows that broke markdown table rendering. Updated gap registry statuses: G-33, G-35, G-37, G-38 marked Addressed.
 
 ---
@@ -89,7 +301,7 @@ All notable changes to the AIR suite are recorded here. Entries are in reverse c
 ## 2026-04-25 23:51Z — `0bef3f6`
 
 ### Changed
-- **PLATFORM-ENGINEERING-REVIEW.md** — Massively expanded from CI/CD-only to full delivery platform ownership across four areas:
+- **PLATFORM-ENGINEER-REVIEW.md** — Massively expanded from CI/CD-only to full delivery platform ownership across four areas:
   - **CI/CD** (dims 1–9): pipeline completeness, gate enforcement, dependency installation, environment pinning, cache correctness, coverage thresholds, action/dependency pinning, artifact hygiene, left-shift opportunities
   - **DevSecOps** (dims 10–15): security scanning, secret management, supply chain integrity, least privilege, compliance gates
   - **Infrastructure** (dims 16–21): Infrastructure as Code, cloud/on-premise resource hygiene, containerization, container security, environment parity, disaster recovery
@@ -101,13 +313,13 @@ All notable changes to the AIR suite are recorded here. Entries are in reverse c
 ## 2026-04-25 23:40Z — `2b6446a`
 
 ### Added
-- **SOFTWARE-ENGINEERING-REVIEW.md** — New domain. Evaluates implementation quality at the code level: correctness, error handling, naming, function design, duplication, complexity, type safety, defensive coding, comments and self-documentation, consistency. Distinct from Solution Architect (which evaluates structure and boundaries) and Quality Engineering (which evaluates the test system). 10 standard dimensions.
-- **DATA-ENGINEERING-REVIEW.md** — New domain. Evaluates the data layer: data model correctness, validation and normalization, schema evolution, data integrity invariants, storage fitness, access patterns, serialization, data consistency, sensitive data handling, test coverage of data paths. Marked optional for projects without a meaningful data layer.
+- **SOFTWARE-ENGINEER-REVIEW.md** — New domain. Evaluates implementation quality at the code level: correctness, error handling, naming, function design, duplication, complexity, type safety, defensive coding, comments and self-documentation, consistency. Distinct from Solution Architect (which evaluates structure and boundaries) and Quality Engineering (which evaluates the test system). 10 standard dimensions.
+- **DATA-ENGINEER-REVIEW.md** — New domain. Evaluates the data layer: data model correctness, validation and normalization, schema evolution, data integrity invariants, storage fitness, access patterns, serialization, data consistency, sensitive data handling, test coverage of data paths. Marked optional for projects without a meaningful data layer.
 
 ### Changed
-- **QA-REVIEW.md → QUALITY-ENGINEERING-REVIEW.md** — Renamed via `git mv`. Scope broadened from bug-finding to test architecture and quality system: added test falsifiability (dim 2, "a test that cannot fail on a defective implementation has no value"), coverage meaningfulness (dim 4), test architecture and independence (dim 5), and quality gates (dim 16).
+- **QA-REVIEW.md → QUALITY-ENGINEER-REVIEW.md** — Renamed via `git mv`. Scope broadened from bug-finding to test architecture and quality system: added test falsifiability (dim 2, "a test that cannot fail on a defective implementation has no value"), coverage meaningfulness (dim 4), test architecture and independence (dim 5), and quality gates (dim 16).
 - **All domain prompts** — Added DESIGN.md as required first read for all domain reviews. All domains now treat DESIGN.md as authoritative context for the project's scope, constraints, and feature set.
-- **All cross-domain coordination links** — Updated from `QA-REVIEW.md` to `QUALITY-ENGINEERING-REVIEW.md`.
+- **All cross-domain coordination links** — Updated from `QA-REVIEW.md` to `QUALITY-ENGINEER-REVIEW.md`.
 - **README.md** — Added Software Engineering and Data Engineering to domain table. Updated domain count and descriptions. Added note that not all domains are required for all projects. Updated sequencing (run DE before SA when data model changes are significant). Updated merging gate and log structure to reflect 8 domains.
 
 ---
@@ -121,7 +333,7 @@ Initial AIR suite. Six review domains extracted from the bookmark-manager projec
 - **QA-REVIEW.md** — Quality assurance: acceptance criteria, test coverage, validation gaps, logic errors, dead code, unused dependencies, dependency versions, accessibility, browser compatibility, responsive design, security surface.
 - **UX-REVIEW.md** — User experience: empty states, error messages, focus and keyboard behavior, visual consistency, affordances, feedback patterns, accessibility, responsive design, browser compatibility, long content, reduced motion, native dialog quality.
 - **SECURITY-REVIEW.md** — Security: rendering safety, URL injection, storage data validation, dependency CVEs, CSP, information exposure, input handling.
-- **PLATFORM-ENGINEERING-REVIEW.md** — CI/CD pipeline and gate enforcement.
+- **PLATFORM-ENGINEER-REVIEW.md** — CI/CD pipeline and gate enforcement.
 - **SOLUTION-ARCHITECT-REVIEW.md** — Architecture: separation of concerns, coupling, data model integrity, interface contracts, state management, immutability, extensibility, technology fitness, complexity budget, decision documentation.
 - **SOLUTION-OWNER-REVIEW.md** — Scope and delivery: spec coverage, scope creep, technology compliance, over-engineering, under-delivery, design fidelity, backlog candidates, prior-review additions. Opens every review with a compliance table (Met/Partial/Missing). DESIGN.md treated as a Scope of Work contract. "Quality does not justify scope."
 

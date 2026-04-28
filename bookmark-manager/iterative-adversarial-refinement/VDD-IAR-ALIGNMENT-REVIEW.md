@@ -57,12 +57,16 @@ This is the same concern as Dim 1 — a workflow artifact rather than a gate vio
 
 **Classification:** Dismissed. Gate intent is present for all layers. The initial bundling is a commit workflow choice, not a skipped gate.
 
-#### Dim 4 (Test discipline) — Tests written with implementation; no test-after batching
-Tests in the initial commit are coextensive with code. Subsequent layers add tests in the same commit as the feature they test. There is no pattern of unbatched tests arriving after features are already complete.
+#### Dim 4 (Test discipline) — Tests co-committed with implementation; TDD not verifiable from git alone
+Tests in the initial commit are coextensive with code, and subsequent layers add tests in the same commit as the feature they cover. No batch-test commits exist. This satisfies the co-commit standard.
 
-The unit test file covers 77 distinct cases across all functions in `bookmarks.ts`. Tests are behavioral: they verify return values and mutations (or lack thereof), not implementation details. Test names clearly describe the scenario and expected outcome.
+Positive test-first evidence: test names are behavioral ("returns an error message for a whitespace-only string", "does not mutate the original array") — consistent with describing intent before writing code. No implementation-detail coupling visible in the test file.
 
-**Classification:** Dismissed.
+What cannot be verified: whether tests were written before implementation within each commit. The "committed together" pattern is consistent with both test-first-committed-together and code-first-tests-added-immediately-after. No CI failure history or commit message evidence establishes a failing-test state before implementation.
+
+Under the hardened dim 4 standard (test-after is a finding, same-commit is acceptable with contextual support), this is borderline. The behavioral naming and lack of implementation coupling corroborate test-first intent (see QE dim 14 below — no QE review against the new dim has been run yet).
+
+**Classification:** Dismissed. Co-commit pattern is present; behavioral test naming corroborates test-first intent. QE dim 14 review pending against the bookmark-manager.
 
 #### Dim 5 (Human verification) — Manual testing checklists completed for all layers
 Every layer in `TODO.md` has a completed manual testing checklist with a completion date. The checklists are specific — they name what to observe, not just what to click. Layer 6 checklist includes reduced motion testing ("Verify transitions are not shown when the OS has reduced motion enabled"), which requires OS-level configuration, not just browser interaction.
@@ -128,4 +132,10 @@ The retrospective shows awareness of process gaps (the Layer 3 label mistake, th
 
 *(none)*
 
-**Summary:** The bookmark-manager demonstrates strong VDD-IAR process alignment. The only notable gap — Layers 1 and 2 arriving in a single commit, making design-before-code and layer gate separation unverifiable from git — is a commit workflow artifact with contextual evidence pointing toward correct intent. All other dimensions show clear evidence of: deliberate upfront design, sequential layered development, multi-round adversarial refinement, genuine human direction, completed manual verification at every layer, and honest retrospection. MVR signal: a second VDD-IAR Alignment pass is unlikely to produce real findings.
+#### Dim 11 (Issue tracking compliance) — Not applicable: Phase 1 project
+
+The bookmark-manager is a Phase 1 project. Crosslink is introduced in Phase 2. Issue tracking compliance is not required for Phase 1 work, and the absence of crosslink usage is correct phase alignment, not a finding.
+
+**Classification:** Not applicable.
+
+**Summary:** The bookmark-manager demonstrates strong VDD-IAR process alignment. The only notable gap — Layers 1 and 2 arriving in a single commit, making design-before-code and layer gate separation unverifiable from git — is a commit workflow artifact with contextual evidence pointing toward correct intent. All other dimensions show clear evidence of: deliberate upfront design, sequential layered development, multi-round adversarial refinement, genuine human direction, completed manual verification at every layer, and honest retrospection. Dim 11 is not applicable (Phase 1 project). MVR signal: a second VDD-IAR Alignment pass is unlikely to produce real findings.

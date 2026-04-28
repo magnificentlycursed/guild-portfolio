@@ -35,6 +35,32 @@ Regression check: verify that all previously-working features still work. Prior 
 
 ---
 
+## Review 10 — 2026-04-27
+
+**Scope:** Portfolio retrospective — dim 14 (TDD proxy indicators) only. New dimension added to QE suite after G-52 gap analysis. All prior dimensions covered by Reviews 1–9.
+
+### Dismissed
+
+#### Dim 14 (TDD proxy indicators) — Test suite exhibits test-first structural characteristics
+
+**Interface focus:** All unit tests call `bookmarks.ts` functions at their exported interface. No test reaches into private implementation — `normalizeBookmark` is a private function with no direct test; it is exercised through `loadBookmarks`, which is the correct boundary. ✓
+
+**Failure specificity:** Tests are specific enough that they would fail against naive implementations. Examples: `validateUrl` tests check the exact error string, not just a truthy return value; `sortBookmarks` tests verify the exact id ordering, not just "sorted somehow"; `deleteBookmark` tests verify the specific surviving ids, not just reduced length. Running these against `return null` or `return []` would produce failures. ✓
+
+**Behavioral naming:** Test names describe expected behavior from the caller's perspective, not internal structure. "returns an error message for a whitespace-only string", "does not mutate the original array", "produces a stable, deterministic order for bookmarks with identical timestamps" — each name states the contract, not the mechanism. ✓
+
+**Branch distribution:** Branch coverage is 100% on `bookmarks.ts`. The distribution looks earned: `validateUrl` has dedicated tests for empty string, no protocol, `ftp://`, `javascript:`, `data:`, `http://`, `https://`, uppercase protocols, and protocol-only — each case has its own test. This pattern is consistent with writing a test for each case before handling it, not with hitting cases incidentally through happy-path tests. ✓
+
+**Implementation coupling:** No test inspects internal state, calls private functions, or would break on a refactor that preserves behavior. `saveBookmarks` tests verify what was stored under the correct key, not how it was stored. `updateBookmark` tests verify the returned array's contents, not intermediate values. ✓
+
+All five proxy indicators are positive. Combined with the co-commit pattern in VDD-IAR Alignment dim 4, the evidence supports test-first discipline throughout.
+
+**Classification:** Dismissed.
+
+**Tests:** 80 unit | 95 browser | coverage 100%
+
+---
+
 ## Review 9 — 2026-04-24 16:30Z
 **Scope:** Layer 6 (Polish) — all 14 standard dimensions. Changes: dark color scheme (`styles.css` rewrite), collapsible add form (`index.html`, `src/main.ts`), `extractDomain` (`src/bookmarks.ts`), inline delete confirmation (`src/main.ts`), tag badge filter activation (`src/main.ts`), `@keyframes` transitions, 44px touch targets. Regression check covers all prior layers.
 

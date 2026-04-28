@@ -1,6 +1,6 @@
 # CLI Interface Type Supplement
 
-These dimensions supplement the standard IAR domain reviews for command-line interface projects. The standard UX review dimensions assume a browser-rendered interface — for CLI projects, use the dimensions below in place of (or alongside) the standard UX dimensions. Additional CLI-relevant dimensions appear under Quality Engineering and Software Engineering.
+These dimensions supplement the standard IAR domain reviews for command-line interface projects. The standard UX review dimensions assume a browser-rendered interface — for CLI projects, use the dimensions below in place of the standard UX dimensions. Additional CLI-relevant dimensions appear under Quality Engineering and Software Engineering.
 
 ---
 

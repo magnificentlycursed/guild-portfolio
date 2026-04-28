@@ -1,6 +1,8 @@
 # Solution Owner Review
 
-This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. It may be run independently or alongside other domains. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
+This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
+
+**Reviewer role: Solution Owner** (Solution Owner / Product Owner / Product Manager)
 
 The purpose of this review is to guard the project against scope creep and over-engineering. DESIGN.md is a Scope of Work — a contract. The SO review holds the implementation to that contract: 100% of what was agreed, nothing that was not. Bugs and defects are always in scope to fix. Features, behaviors, technologies, and abstractions that are not in DESIGN.md are not.
 
@@ -20,11 +22,13 @@ Deviations from DESIGN.md that have been explicitly approved by the stakeholder 
 
 This review does not block bug fixes or defect resolution. It blocks additions.
 
+Regression check: verify that previously-confirmed spec compliance is still present after new code was added. A new layer can inadvertently narrow, remove, or silently reinterpret a feature that prior layers accepted as correctly implemented. Verify the compliance table still holds, not just the delta.
+
 **Coordination:** Flag any out-of-scope items that other domains have recommended or resolved. The SO has veto power over additions regardless of which domain introduced them. If this review suggests the need for a new IAR domain, log it as a finding.
 
-**Sycophancy check:** If the agent agreed with every decision reviewed in this domain without challenge, treat that as a finding. An AI agent that validates every choice it helped produce is not providing adversarial review — it is confirming its own work. Flag any area where a significant decision went unquestioned but warranted scrutiny.
+**Sycophancy check:** An agent that participated in scoping and speccing the project will not flag scope creep it introduced. If the AI helped write or refine DESIGN.md, it treats every element of DESIGN.md as intentional — because it intended it. The adversary must evaluate DESIGN.md against the upstream assignment brief (dim 9) without treating DESIGN.md as authoritative. A spec that was scope-crept during Phase 1 will produce a project that passes every other SO dimension and still fails an external review.
 
-**Language and interface supplement:** Consult `lang/` for the supplement matching the project's primary language and interface type. The SO review is primarily spec-driven and language-agnostic — use the language supplement to verify that technology choices (libraries, tools, frameworks) are appropriate to the language and not beyond what the spec requires.
+**Language and interface supplement:** Not applicable. The SO review evaluates spec compliance, which is language-agnostic. No supplement section exists for SO. For evaluating whether technology choices are appropriate to the language (dim 3 — Technology compliance), consult the **Solution Architect** section of the relevant lang supplement (`../../lang/rust.md` or `../../lang/javascript-typescript.md`) — SA evaluates technology fitness from an architectural lens that informs SO's technology compliance check.
 
 ## Standard Evaluation Dimensions
 
@@ -37,6 +41,8 @@ This review does not block bug fixes or defect resolution. It blocks additions.
 7. **Design fidelity** — Does the implementation match the interface, data model, and behavioral descriptions in DESIGN.md? Flag divergences even if the alternative is arguably better. The spec describes what was agreed — not what is theoretically optimal.
 8. **Prior-review additions** — Did findings from other IAR domains introduce behavior, structure, or technology not covered by DESIGN.md? Each such addition requires explicit SO approval. Other domains optimize within the spec; they do not expand it.
 9. **Assignment compliance** — Does DESIGN.md accurately reflect the upstream assignment brief, or did scope creep enter at the design stage? Read the assignment instructions alongside DESIGN.md. Flag technology choices, constraints, tooling, or scope additions in DESIGN.md that deviate from the assignment. A student who scope-creeps their own design doc before writing a line of code will pass every other SO dimension and still fail an external review. DESIGN.md is only authoritative as a contract if it faithfully represents what was asked for.
+
+   **Program phase tool introduction:** The assignment brief does not prescribe every tool — the apprentice-onboarding program introduces tools progressively by phase. Absence of a Phase 2+ tool in a Phase 1 project is not a scope deviation; it is correct phase alignment. Do not flag crosslink, formal verification harnesses, or other Phase 2+ requirements as missing from Phase 1 projects. Consult `apprentice-onboarding/` for the authoritative tool introduction schedule before flagging tool-related compliance gaps. When in doubt, the question is: was this tool required by the assignment as issued, or was it introduced later in the program?
 
 ---
 
