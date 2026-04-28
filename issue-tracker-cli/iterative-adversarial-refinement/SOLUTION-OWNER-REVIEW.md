@@ -467,3 +467,71 @@ Two real findings. One resolved (column width inconsistency — spec update requ
 All three prior in-session concerns (dim 9 slippage from spec authorship context) are addressed: the only genuine assignment-compliance gap (delete confirmation signal) is documented and dismissed with rationale. No scope creep found beyond what prior reviews addressed. No under-delivery.
 
 **Spec is ready for Layer 1 to open.**
+
+---
+
+---
+
+## Review 8 — 2026-04-28 05:30Z
+
+**Scope:** Layer 1 implementation — spec compliance audit. Verifying the implementation satisfies all Layer 1 acceptance criteria, no scope creep, and documentation is current.
+
+**Session note:** In-session with Layer 1 IAR suite. Acknowledged quality tradeoff.
+
+---
+
+### Resolved
+
+**Finding 1 — README.md status block was stale (Dim 9 — Scope/documentation accuracy)**
+
+README.md showed Layer 1 implementation as unchecked (`- [ ] Layer 1: Core create + list`) after Layer 1 implementation was complete. Also the status line read "Spec complete. Implementation in progress." which was accurate during Layer 1 implementation but should be updated to reflect Layer 1 being complete.
+
+**Resolution:** Updated README.md:
+- `- [ ] Layer 1: Core create + list` → `- [x] Layer 1: Core create + list`
+- Status line updated to: `Layer 1 implementation complete. Layer 2 not started.`
+
+---
+
+**Finding 2 — DECISIONS.md missing storage format decision (Dim 9 — Decision documentation)**
+
+DECISIONS.md was created in TW Review 1 with spec-phase decisions. The storage format change (top-level array vs. wrapped object) — a significant SO Review 7 decision — was not recorded. A reader of DECISIONS.md would not find the rationale for why `tracker.json` is a top-level array.
+
+**Resolution:** Added entry to DECISIONS.md: "Top-level JSON array storage format" with rationale referencing SO Review 7, the removal of `next_id` from SA Review 1, and the simplicity argument.
+
+---
+
+### Dismissed
+
+**Finding 3 — Post-deserialization validation was absent (Dim 2 — Spec compliance)**
+
+DESIGN.md Storage edge cases explicitly required that invalid domain values in valid JSON trigger the corrupt-data error. The initial Layer 1 implementation did not implement this. Security Review 3 identified and resolved the gap. This is the correct process: domain identifies → escalation → resolution.
+
+**Classification:** Dismissed. The gap is resolved. SO's role here is to confirm the resolution is spec-compliant — it is. The error message and behavior match DESIGN.md exactly.
+
+---
+
+**Finding 4 — Layer 1 scope: no features beyond `create` and `list` (Dim 1)**
+
+Verified: `main.rs` defines only `Create` and `List` subcommands. No `status`, `show`, or `delete` subcommands exist. `lib.rs` implements only `cmd_create` and `cmd_list`. No `--priority`, `--label`, or `--description` flags are wired in Layer 1. The scope matches TODO.md Layer 1's "Not in this layer" constraint.
+
+**Classification:** Dismissed. Scope compliance confirmed.
+
+---
+
+**Finding 5 — CHANGELOG.md missing Layer 1 implementation entry (Dim 9 — Documentation currency)**
+
+Observed and resolved by TW Review 2 in coordination with this review. CHANGELOG.md was updated with a Layer 1 implementation entry before this finding was classified.
+
+**Classification:** Dismissed. Resolved by TW Review 2.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+Two real findings resolved: README.md Layer 1 status stale (fixed), DECISIONS.md missing storage format decision (added). Two dismissed. No open items. The implementation is spec-compliant, scope-correct, and documentation is now current.

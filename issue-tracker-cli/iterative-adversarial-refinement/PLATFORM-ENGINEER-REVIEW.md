@@ -109,7 +109,7 @@ Three findings resolved: `rust-toolchain.toml`, `.gitignore`, and CI pipeline cr
 Status: Still open. No pre-commit hook framework has been configured. For a portfolio project intended for external review, hooks covering local username leakage and secret detection are required.
 
 **Classification: Open.** The framework decision (lefthook, pre-commit, husky, or a shell script in `.git/hooks`) is a human director decision. The minimum requirements:
-- Reject commits that include absolute paths containing the developer's local username (e.g., `DEVELOPER_HOME/`) in committed files. This prevents local machine-specific paths from appearing in public portfolio code.
+- Reject commits that include absolute paths containing the developer's local home directory path in committed files. This prevents local machine-specific paths from appearing in public portfolio code.
 - The CI pipeline already runs `cargo fmt --check` and `cargo clippy` — pre-commit hooks for these are optional if the developer is disciplined about running them locally.
 
 **Gate:** This remains a Layer 1 merge gate requirement. Cargo.lock commit (Finding 4) unblocks the Red Gate commit; pre-commit hooks unblock the merge gate.
@@ -137,3 +137,65 @@ The workflow runs `cargo install cargo-audit --locked` on every CI run. This add
 ### Summary
 
 Finding 4 resolved: `Cargo.lock` must be committed with the current Red Gate commit. Finding 5 remains open and gates the Layer 1 merge. One action item: commit `Cargo.lock` now.
+
+---
+
+---
+
+## Review 3 — 2026-04-28 05:30Z
+
+**Scope:** Layer 1 implementation — build configuration with runtime dependencies added. Evaluating `Cargo.toml` runtime dependency declarations, `cargo audit` status, and the still-open pre-commit hooks finding.
+
+**Session note:** In-session with Layer 1 IAR suite. Acknowledged quality tradeoff.
+
+---
+
+### Resolved
+
+**Finding 4 (from Reviews 1–2) — `Cargo.lock` status**
+
+`Cargo.lock` exists (generated on first `cargo test`). It was not in the git index at the time of Review 2 but the current session confirms it must be committed. Re-confirming: the `Cargo.lock` will be staged and committed as part of the Layer 1 implementation commit.
+
+**Classification:** Resolved. `Cargo.lock` staged for commit.
+
+---
+
+**Finding 8 — Runtime dependencies introduced without audit (Dim 3 — Dependency audit)**
+
+Runtime dependencies added: `serde` 1.x, `serde_json` 1.x, `clap` 4.x, `chrono` 0.4. These are widely-used, well-maintained crates with large community audit coverage.
+
+`cargo audit` run against the full `Cargo.lock` (100 packages): **0 vulnerabilities found**. The audit database was loaded from the RustSec advisory database. CI pipeline already enforces `cargo audit` on every push.
+
+**Classification:** Resolved. No advisories. Dependency audit clean.
+
+---
+
+### Open
+
+**Finding 5 (from Reviews 1–2) — No pre-commit hooks (Dim 10)**
+
+Status: Still open. No pre-commit hook framework has been configured. This is a Layer 1 merge gate requirement.
+
+**Minimum requirements (unchanged from Review 2):**
+- Reject commits containing absolute home directory paths in committed files.
+- Secret/credential detection (no keys, tokens, or passwords in committed files).
+
+**Recommended approach:** A shell script in `.git/hooks/pre-commit` — the simplest option requiring no external tooling for a single-developer project. Alternatively, `pre-commit` framework with a YAML config if the developer prefers a declarative approach.
+
+**Gate status:** This still gates the Layer 1 merge. Pre-commit hooks cannot be implemented automatically — the framework selection is a human director decision. The developer must configure at minimum the absolute-path check before merging Layer 1.
+
+---
+
+### Dismissed
+
+**Finding 9 — `Cargo.toml` runtime dependencies at semver-compatible ranges (Dim 3)**
+
+`serde = { version = "1", features = ["derive"] }` — semver-compatible range. Same for others. For a portfolio project, this is the correct level of version pinning: `Cargo.lock` provides exact reproducibility; `Cargo.toml` allows compatible updates. Pinning to exact versions (`= "1.0.228"`) in `Cargo.toml` is over-specified.
+
+**Classification:** Dismissed. Semver ranges in `Cargo.toml` with a committed `Cargo.lock` is the idiomatic Rust approach for binary crates.
+
+---
+
+### Summary
+
+`cargo audit` clean: 0 vulnerabilities across 100 dependencies. `Cargo.lock` to be committed with Layer 1 implementation. Pre-commit hooks remain the one open gate item requiring human director action. No new platform issues from the runtime dependency additions.

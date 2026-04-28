@@ -135,3 +135,70 @@ The test suite reads `tracker.json` via `serde_json::from_str::<serde_json::Valu
 ### Summary
 
 One real finding raised to SO (storage schema mismatch — cross-reference with QE Review 2). Three dismissed findings. The data layer test coverage for Layer 1 is complete pending SO's resolution of the schema finding. Key Layer 6 requirement (`description` absent-not-null) is tracked in the existing Layer 6 Red Gate test plan.
+
+---
+
+---
+
+## Review 3 — 2026-04-28 05:30Z
+
+**Scope:** Layer 1 implementation — `src/lib.rs`, `Cargo.toml`. Evaluating data model correctness, post-deserialization validation, serialization behavior, and schema alignment.
+
+**Session note:** In-session with Layer 1 IAR suite. Acknowledged quality tradeoff.
+
+---
+
+### Resolved
+
+**Finding 1 — Post-deserialization validation absent (Dim 2 — Domain validation)**
+
+Data Engineer Review 1 Finding 1 (cross-referenced with Security Review 1) required that the implementation validate each deserialized issue's domain values. The initial Layer 1 implementation did not implement this validation — `load_issues` returned `Ok(issues)` without checking field values against domain constraints.
+
+A `tracker.json` with `"status": "flying"` would silently produce an `Issue` struct with an invalid `status` field, which would then be silently sorted to the bottom of the list (via `usize::MAX` in `priority_rank`) — invisible to the user. An `"id": 0` issue would violate the ID-is-positive-integer invariant.
+
+**Resolution:** `issue_fields_are_valid()` added in `lib.rs`. Validates: `id > 0`, `!title.trim().is_empty()`, `status ∈ {"open", "in-progress", "done"}`, `priority ∈ {"low", "medium", "high"}`. Called in `load_issues` after successful deserialization; any failing issue triggers the corrupt-data error path. Constant `VALID_STATUSES` and `VALID_PRIORITIES` arrays are defined for readability and future extensibility. Cross-referenced: Security Review 3, Red Team Review 2.
+
+---
+
+### Dismissed
+
+**Finding 2 — `description` field serialization is correct (Dim 7 — Review 1 requirement)**
+
+Data Engineer Review 1 Finding 2 required `#[serde(skip_serializing_if = "Option::is_none")]` on the `description` field. Verified present in `lib.rs`:
+
+```rust
+#[serde(skip_serializing_if = "Option::is_none")]
+pub description: Option<String>,
+```
+
+Layer 1 never writes a description (all creates use `description: None`), so this attribute does not affect Layer 1 output. Its presence ensures that when Layer 6 implements description storage, the correct serialization behavior is in place from the start.
+
+**Classification:** Dismissed. Requirement satisfied.
+
+---
+
+**Finding 3 — Storage format is a top-level array as approved by SO Review 7 (Dim 1)**
+
+`load_issues` uses `serde_json::from_str::<Vec<Issue>>()` — correct for the `[Issue]` top-level array format. SO Review 7 approved the format change. The implementation matches the spec.
+
+**Classification:** Dismissed. No action required.
+
+---
+
+**Finding 4 — `labels` serializes as `[]` (empty array), not absent (Dim 7)**
+
+`Issue` has `pub labels: Vec<String>` with no `skip_serializing_if`. A freshly-created issue will serialize as `"labels": []` rather than omitting the `labels` key. DESIGN.md Data Model shows `"labels": [String]` — an empty array is within spec (the type is `[String]`, which includes the empty case). DESIGN.md does not require omitting the key when labels are empty (unlike `description`, which explicitly requires key omission when absent).
+
+**Classification:** Dismissed. `"labels": []` is the correct serialization. The `create_first_issue_unchanged_after_second_create` test asserts `v[0]["labels"] == serde_json::json!([])` — confirming this is the expected representation.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+One real finding resolved: post-deserialization domain validation now implemented. Three dismissed findings. The data layer is now specification-compliant: the top-level array format is correctly deserialized, domain values are validated after deserialization, `description` is absent-not-null, and `labels` serializes as an empty array. No open items.

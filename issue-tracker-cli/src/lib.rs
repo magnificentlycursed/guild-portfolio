@@ -1,9 +1,145 @@
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::Path;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Issue {
+    pub id: u64,
+    pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    pub status: String,
+    pub priority: String,
+    pub labels: Vec<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
 pub fn validate_title(raw: &str) -> Result<String, String> {
-    todo!()
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        Err("Title cannot be empty.".to_string())
+    } else {
+        Ok(trimmed.to_string())
+    }
 }
 
 pub fn next_id(existing_ids: &[u64]) -> u64 {
-    todo!()
+    existing_ids.iter().max().copied().unwrap_or(0) + 1
+}
+
+pub fn current_timestamp() -> String {
+    Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string()
+}
+
+const CORRUPT_DATA_ERROR: &str =
+    "Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.";
+
+const VALID_STATUSES: &[&str] = &["open", "in-progress", "done"];
+const VALID_PRIORITIES: &[&str] = &["low", "medium", "high"];
+
+fn issue_fields_are_valid(issue: &Issue) -> bool {
+    issue.id > 0
+        && !issue.title.trim().is_empty()
+        && VALID_STATUSES.contains(&issue.status.as_str())
+        && VALID_PRIORITIES.contains(&issue.priority.as_str())
+}
+
+pub fn load_issues(path: &Path) -> Result<Vec<Issue>, String> {
+    if !path.exists() {
+        return Ok(Vec::new());
+    }
+    let contents =
+        fs::read_to_string(path).map_err(|e| format!("Could not read tracker data: {}.", e))?;
+    let issues: Vec<Issue> =
+        serde_json::from_str(&contents).map_err(|_| CORRUPT_DATA_ERROR.to_string())?;
+    if issues.iter().any(|i| !issue_fields_are_valid(i)) {
+        return Err(CORRUPT_DATA_ERROR.to_string());
+    }
+    Ok(issues)
+}
+
+pub fn save_issues(path: &Path, issues: &[Issue]) -> Result<(), String> {
+    let contents = serde_json::to_string_pretty(issues).unwrap();
+    fs::write(path, contents).map_err(|e| format!("Could not save tracker data: {}.", e))
+}
+
+pub fn cmd_create(title_raw: &str, issues_path: &Path) -> Result<(), String> {
+    let title = validate_title(title_raw)?;
+    let mut issues = load_issues(issues_path)?;
+    let ids: Vec<u64> = issues.iter().map(|i| i.id).collect();
+    let id = next_id(&ids);
+    let now = current_timestamp();
+    issues.push(Issue {
+        id,
+        title: title.clone(),
+        description: None,
+        status: "open".to_string(),
+        priority: "medium".to_string(),
+        labels: Vec::new(),
+        created_at: now.clone(),
+        updated_at: now,
+    });
+    save_issues(issues_path, &issues)?;
+    println!("Created issue #{}: {}", id, title);
+    Ok(())
+}
+
+const PRIORITY_ORDER: &[&str] = &["high", "medium", "low"];
+
+fn priority_rank(p: &str) -> usize {
+    PRIORITY_ORDER
+        .iter()
+        .position(|&x| x == p)
+        .unwrap_or(usize::MAX)
+}
+
+fn truncate_with_ellipsis(s: &str, max_chars: usize) -> String {
+    let chars: Vec<char> = s.chars().collect();
+    if chars.len() <= max_chars {
+        s.to_string()
+    } else {
+        let truncated: String = chars[..max_chars - 1].iter().collect();
+        format!("{}…", truncated)
+    }
+}
+
+pub fn cmd_list(issues_path: &Path) -> Result<(), String> {
+    let mut issues = load_issues(issues_path)?;
+    issues.retain(|i| i.status == "open");
+
+    if issues.is_empty() {
+        println!("No open issues. Nice work!");
+        return Ok(());
+    }
+
+    issues.sort_by(|a, b| {
+        priority_rank(&a.priority)
+            .cmp(&priority_rank(&b.priority))
+            .then(a.id.cmp(&b.id))
+    });
+
+    println!(
+        "{:<4} {:<11} {:<8} {:<20} Title",
+        "ID", "Status", "Priority", "Labels"
+    );
+
+    for issue in &issues {
+        let labels_raw = if issue.labels.is_empty() {
+            "(none)".to_string()
+        } else {
+            issue.labels.join(", ")
+        };
+        let labels_display = truncate_with_ellipsis(&labels_raw, 20);
+        let title_display = truncate_with_ellipsis(&issue.title, 50);
+        println!(
+            "{:<4} {:<11} {:<8} {:<20} {}",
+            issue.id, issue.status, issue.priority, labels_display, title_display
+        );
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

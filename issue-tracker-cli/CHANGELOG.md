@@ -1,5 +1,30 @@
 # Changelog
 
+## Layer 1 — 2026-04-28 05:30Z
+
+**Scope:** VSDD Phase 2a (Red Gate) + Phase 2b (Implementation). `tracker create` and `tracker list` commands, core data model, storage layer.
+
+### Added
+
+- **`src/lib.rs`** — Core library: `Issue` struct (serde Serialize/Deserialize), `validate_title`, `next_id`, `current_timestamp`, `load_issues`, `save_issues`, `cmd_create`, `cmd_list`. Post-deserialization domain validation in `load_issues` rejects issues with invalid status, priority, ID, or empty title as corrupt data (Security Review 3 / Data Engineer Review 3 finding).
+
+- **`src/main.rs`** — CLI entrypoint using clap derive: `tracker create "<title>"` and `tracker list` subcommands wired to library command handlers.
+
+- **`Cargo.toml`** — Runtime dependencies: `serde` 1.x (derive), `serde_json` 1.x, `clap` 4.x (derive), `chrono` 0.4.
+
+- **`tests/layer1.rs`** — 14 integration tests covering the full Layer 1 acceptance criteria (create, list, error states, storage correctness, timestamp invariants, truncation). Includes `invalid_domain_values_in_json_causes_error_exit` added in IAR Review 4 (QE Review 4 finding).
+
+- **`src/lib.rs` unit tests** — 4 unit tests covering `validate_title` and `next_id`.
+
+### IAR — Layer 1 Reviews
+
+- **QE Review 3 (cold-session):** Truncation test sharpened (asserts exact 49-char prefix); `create_first_issue_unchanged_after_second_create` extended to cover `labels`, `created_at`, `updated_at`; `malformed_json` test updated to assert distinguishing suffix of the parse-failure message.
+- **SE Review 3 (cold-session):** 5 dismissed findings. No defects. `created_at` immutability confirmed.
+- **QE Review 4 / Security Review 3 / Data Engineer Review 3:** Post-deserialization domain validation gap identified and resolved — `load_issues` now validates all field domain values after deserialization. New test `invalid_domain_values_in_json_causes_error_exit` added. 18 tests total, all passing.
+- **All other domains:** No additional findings. See domain review logs for full detail.
+
+---
+
 ## Spec phase — 2026-04-27 21:00Z
 
 **Scope:** VSDD Phase 1 (Spec Crystallization) and Phase 1b (Decomposition). No implementation code. All changes are specification, planning, and process artifacts.

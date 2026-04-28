@@ -80,3 +80,65 @@ The following UX dimensions cannot be evaluated from the spec alone and must be 
 ### Summary
 
 No blocking findings. Five findings dismissed or hallucinated. Four items deferred to Layer 7 manual verification. The spec's interface design is clean for a CLI-first interactive tool: consistent flag naming, explicit stdout/stderr contract, tabular output with truncation, complete error message formats. The two design tradeoffs (no delete confirmation, empty state on stdout) are documented with rationale.
+
+---
+
+---
+
+## Review 2 — 2026-04-28 05:30Z
+
+**Scope:** Layer 1 implementation — `src/main.rs`, `src/lib.rs`. Evaluating actual CLI behavior as delivered: subcommand structure, help output, stdout/stderr routing, empty state, error message format, and list output readability.
+
+**Session note:** In-session with Layer 1 IAR suite. Acknowledged quality tradeoff. Binary behavior is inferred from test output and code; direct binary execution is the developer's responsibility per the manual testing checklist.
+
+---
+
+### Dismissed
+
+**Finding 1 — `tracker --help` output is clap-generated and has not been reviewed for accuracy (CLI Dim 1)**
+
+clap generates `--help` output from the struct/variant doc comments in `main.rs`. The current doc comments are:
+- Binary: `about = "Personal issue tracker"`
+- `Create` variant: `/// Create a new issue`
+- `List` variant: `/// List open issues`
+- `title` field: `/// Issue title`
+
+These are accurate for Layer 1 scope. Layer 7 will add flags (`--priority`, `--label`, `--description`, `--status`) with their valid values documented in the derive attributes, and the help text will be verified against the Layer 7 acceptance criteria.
+
+**Classification:** Dismissed. Accurate for Layer 1 scope. Layer 7 acceptance criteria include help text review for all subcommands and flags.
+
+---
+
+**Finding 2 — Error message format: `Error: <message>` on stderr, nothing on stdout (CLI Dim 8)**
+
+Verified from `tests/layer1.rs`: all error tests assert `.stderr(contains("Error: ...")).stdout("")`. The format is consistent with the spec. `main.rs` routes errors through `eprintln!("Error: {}", e)`.
+
+**Classification:** Dismissed. Error message routing is correct and consistent.
+
+---
+
+**Finding 3 — List output column alignment (CLI Dim 3 — Output scannability)**
+
+The list format uses `{:<4} {:<11} {:<8} {:<20}` left-aligned padding. The test `list_shows_header_and_issues` verifies all column names are present but does not verify exact alignment. Visual alignment is a manual testing concern.
+
+**Classification:** Dismissed. Alignment is structurally correct by the fixed-width format strings. Manual verification (TODO.md Layer 1 checklist item: "Run `tracker list` → verify table shows both issues with correct header") is the appropriate gate for visual quality. No automated test can substitute for the developer reading the output.
+
+---
+
+**Finding 4 — Empty state "No open issues. Nice work!" routes to stdout (CLI Dim 6)**
+
+Review 1 Finding 1 dismissed this; confirming the implementation matches the spec (`println!("No open issues. Nice work!")`) and the test `list_with_no_json_shows_empty_state` asserts it on stdout. No regression.
+
+**Classification:** Dismissed. Behavior matches spec and prior dismissal.
+
+---
+
+### Open
+
+*(none — items deferred to Layer 7 manual testing remain deferred)*
+
+---
+
+### Summary
+
+Four dismissed findings. No new UX concerns from the implementation. The Layer 1 implementation correctly routes success to stdout, errors to stderr, and error messages follow the `Error: <message>` format. Layer 7 deferred items (help accuracy for all flags, color rendering in TTY, piped-output ANSI suppression) remain open. Manual testing checklist must be completed by the developer before the Layer 1 gate closes.

@@ -87,6 +87,12 @@ fn create_second_issue_gets_id_2() {
 fn create_first_issue_unchanged_after_second_create() {
     let dir = TempDir::new().unwrap();
     tracker(&dir).args(["create", "First"]).assert().success();
+
+    let raw_after_first = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
+    let v1: serde_json::Value = serde_json::from_str(&raw_after_first).unwrap();
+    let first_created_at = v1[0]["created_at"].as_str().unwrap().to_string();
+    let first_updated_at = v1[0]["updated_at"].as_str().unwrap().to_string();
+
     tracker(&dir).args(["create", "Second"]).assert().success();
 
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
@@ -95,6 +101,9 @@ fn create_first_issue_unchanged_after_second_create() {
     assert_eq!(v[0]["title"], "First");
     assert_eq!(v[0]["status"], "open");
     assert_eq!(v[0]["priority"], "medium");
+    assert_eq!(v[0]["labels"], serde_json::json!([]));
+    assert_eq!(v[0]["created_at"].as_str().unwrap(), first_created_at);
+    assert_eq!(v[0]["updated_at"].as_str().unwrap(), first_updated_at);
 }
 
 #[test]
@@ -177,12 +186,34 @@ fn list_truncates_title_at_50_chars_with_ellipsis() {
         .clone();
     let out = String::from_utf8(output).unwrap();
 
-    // Truncated to 50 chars ending with ellipsis; full 60-char title must not appear
-    assert!(out.contains('…'), "expected ellipsis in output:\n{out}");
+    // Truncated to exactly 49 content chars + ellipsis; full 60-char title must not appear
+    let expected = format!("{}…", "A".repeat(49));
+    assert!(
+        out.contains(&expected),
+        "expected 49 'A's + '…' in output:\n{out}"
+    );
     assert!(!out.contains(&long_title), "full title should be truncated");
 }
 
 // --- error handling ---
+
+#[test]
+fn invalid_domain_values_in_json_causes_error_exit() {
+    let dir = TempDir::new().unwrap();
+    fs::write(
+        dir.path().join("tracker.json"),
+        br#"[{"id":1,"title":"Fix bug","status":"flying","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]"#,
+    )
+    .unwrap();
+    tracker(&dir)
+        .args(["list"])
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::contains(
+            "The file may be corrupt. Delete tracker.json to start fresh.",
+        ));
+}
 
 #[test]
 fn malformed_json_causes_error_exit() {
@@ -194,5 +225,7 @@ fn malformed_json_causes_error_exit() {
         .assert()
         .failure()
         .code(1)
-        .stderr(predicate::str::contains("Could not read tracker data"));
+        .stderr(predicate::str::contains(
+            "The file may be corrupt. Delete tracker.json to start fresh.",
+        ));
 }

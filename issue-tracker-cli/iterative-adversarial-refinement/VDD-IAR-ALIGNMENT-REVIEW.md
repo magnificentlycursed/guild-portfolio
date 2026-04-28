@@ -258,3 +258,83 @@ Red Gate phase is substantially process-compliant with one resolved violation: D
 
 **Gate status:** Layer 1 implementation may begin. Layer 1 merge gate requirements: (1) cold-session IAR review (QE or Security), (2) pre-commit hooks (Platform Finding 5), (3) all 17 Red Gate tests passing, (4) manual testing checklist completed.
 
+---
+
+---
+
+## Review 4 — 2026-04-28 05:30Z
+
+**Scope:** Layer 1 implementation phase process compliance — code complete, IAR suite run, findings resolved. Evaluating: design-before-code discipline, test discipline, layer gate compliance, role integrity, human verification, and retrospective quality.
+
+**Program phase:** Phase 1. Crosslink not introduced. Dim 11 not applicable.
+
+**Session note:** In-session with Layer 1 IAR suite. This is a quality tradeoff. Same limitations as prior in-session reviews apply.
+
+**Governing methodology:** `apprentice-onboarding/02-the-methodology/01-how-we-build.md`.
+
+---
+
+### Resolved
+
+*(none — no new process violations this round)*
+
+---
+
+### Dismissed
+
+**Dim 1 (Design-before-code)** — DESIGN.md existed and was complete before any implementation commit. The implementation was directed against the spec. ✓
+
+**Dim 2 (Decomposition)** — `TODO.md` with 7 layers was in place before implementation began. Layer 1 acceptance criteria were pre-defined. ✓
+
+**Dim 4 (Test discipline)** — All 17 Red Gate tests were written and confirmed failing before implementation began (VDD-IAR Review 3, Dim 4). The 18th test (`invalid_domain_values_in_json_causes_error_exit`) was added post-implementation as an IAR finding — not a Red Gate violation, as it was added to cover a spec requirement that was missing from the pre-planned Red Gate suite. The process failure is that the gap was not caught at Red Gate writing time; the IAR process correctly caught and corrected it. ✓ (with noted gap)
+
+**Dim 6 (IAR fresh context)** — QE Review 3 was conducted in a cold session and satisfies the merge gate cold-session requirement (VDD-IAR Review 2 Finding 2, Review 3 Finding 2). The current in-session IAR pass covers the remaining domains. Quality tradeoff documented in each domain log. Cold-session requirement is met for the merge gate. ✓
+
+**Dim 7 (IAR iteration)** — Three rounds of QE review produced real findings through all three passes. Security, Red Team, and Data Engineer reviews each identified the same post-deserialization gap independently. SA, SE, SO, Platform, UX, TW all ran. The finding progression moved from real findings (post-deser validation, README stale, CHANGELOG missing) to dismissed findings. This is the expected MVR pattern. ✓
+
+**Dim 8 (Role integrity)** — Human director directed Layer 1 implementation ("Load implementation.md and complete layer 1") and directed the IAR suite ("Load the review-session prompt. Run the full IAR suite plus meta domains. Fix all findings"). The agent implemented and reviewed as directed. DESIGN.md change authority is now enforced in all shared domain prompts (VDD-IAR Review 3 resolved finding). ✓
+
+---
+
+### Open
+
+**Dim 3 (Layer gate compliance) — Manual testing checklist not yet completed**
+
+The Layer 1 merge gate requires: "manual testing checklist completed" (VDD-IAR Review 3 gate requirements, item 4). The TODO.md Layer 1 manual testing checklist is:
+- [ ] Happy path: `tracker create "First issue"` from clean directory
+- [ ] `tracker create "Second issue"` → two issues in JSON
+- [ ] `tracker list` → verify table, header, correct fields
+- [ ] Empty state: delete `tracker.json`, `tracker list` → "No open issues. Nice work!"
+- [ ] Error state — empty title
+- [ ] Error state — whitespace title
+- [ ] Error state — malformed JSON
+- [ ] Persistence: reinstall binary, `tracker list` → data intact
+- [ ] Long title: 60-char title → truncated at 50 with `…` in list; full title in JSON
+
+**Classification: Open.** The developer must run these checks and confirm they pass before the Layer 1 merge gate closes. The manual checklist is the human verification artifact required by Dim 5.
+
+**Dim 5 (Human verification)** — The manual testing checklist above is the human verification artifact. Until the developer completes it and records the completion (by checking the boxes in TODO.md), Dim 5 is open.
+
+**Platform Finding 5 — Pre-commit hooks** — Still open. Not evaluable without human director framework decision.
+
+---
+
+### Deferred
+
+**Dim 10 (Retrospective quality)** — Layer 1 is not yet merged. A retrospective entry is expected in DECISIONS.md or as a layer note in CHANGELOG.md when Layer 1 closes. The CHANGELOG.md Layer 1 entry includes the IAR-driven changes; a retrospective note on what was unexpected or learned is the remaining item. Deferred to Layer 1 merge completion.
+
+---
+
+### Summary
+
+Process is substantially compliant. The one critical IAR finding (post-deserialization validation) was caught by multiple domains working independently — the correct adversarial behavior. Cold-session requirement satisfied by QE Review 3. Two gate items remain open: (1) manual testing checklist (human action required), (2) pre-commit hooks (human framework decision required). Layer 1 may not merge until both are satisfied.
+
+**Current Layer 1 merge gate status:**
+- [x] Cold-session IAR review — QE Review 3 (cold-session)
+- [x] All 18 tests passing (18 = 14 integration + 4 unit)
+- [x] Clippy clean, fmt clean
+- [x] `cargo audit`: 0 advisories
+- [x] All IAR domains run and all findings resolved or dismissed
+- [ ] Pre-commit hooks configured (Platform Review 3 Finding 5 — requires human action)
+- [ ] Manual testing checklist completed (VDD-IAR Dim 3/5 — requires developer to run binary)
+

@@ -81,3 +81,71 @@ No source code exists. No `pub` items to document.
 Three deferred findings (README, CHANGELOG, DECISIONS.md) — all expected for a pre-implementation pass. Two dismissed. One deferred to code review. The documentation artifacts that exist (DESIGN.md, TODO.md, IAR logs) are thorough and accurate. The gap is the user-facing onboarding documentation, which must follow the implementation.
 
 **Key requirement:** README and CHANGELOG are required before the Layer 1 merge gate closes. DECISIONS.md is now created. Add README and CHANGELOG to the Layer 1 IAR checklist.
+
+---
+
+---
+
+## Review 2 — 2026-04-28 05:30Z
+
+**Scope:** Layer 1 implementation — all documentation artifacts: `README.md`, `CHANGELOG.md`, `DECISIONS.md`, `TODO.md`, IAR review logs, `src/lib.rs` public API. Evaluating completeness, currency, and handoff quality.
+
+**Session note:** In-session with Layer 1 IAR suite. Acknowledged quality tradeoff.
+
+---
+
+### Resolved
+
+**Finding 1 (from Review 1) — README.md exists but was stale (Dim 1 — README completeness)**
+
+Review 1 deferred README creation to Layer 1 gate. README.md exists and contains: project purpose, command reference, install/build/test instructions, storage explanation, and a status tracker.
+
+Finding: the Layer 1 status was showing as unchecked despite implementation being complete. Status line said "Spec complete. Implementation in progress."
+
+**Resolution:** Updated README.md: Layer 1 status checked; status line updated to "Layer 1 implementation complete. Layer 2 not started." (coordinated with SO Review 8 Finding 1).
+
+---
+
+**Finding 2 (from Review 1) — No CHANGELOG.md (Dim 8)**
+
+Review 1 deferred CHANGELOG creation to Layer 1 gate. CHANGELOG.md now exists with a spec-phase entry.
+
+Finding: no Layer 1 implementation entry was present.
+
+**Resolution:** Added a Layer 1 implementation entry to CHANGELOG.md: scope, added files, IAR findings and resolutions, test count.
+
+---
+
+**Finding 3 (from Review 1) — DECISIONS.md** — Already resolved in Review 1 (the DECISIONS.md was created). Re-checking: DECISIONS.md exists and covers 12 key decisions. One gap: the storage format decision (top-level array) was missing. Coordinated with SO Review 8 Finding 2.
+
+**Resolution:** SO Review 8 added the storage format entry. DECISIONS.md is now complete for spec-phase and Layer 1 decisions.
+
+---
+
+### Dismissed
+
+**Finding 4 — rustdoc on public `lib.rs` items (Rust supplement — Dim 6)**
+
+`lib.rs` exports: `Issue`, `validate_title`, `next_id`, `current_timestamp`, `load_issues`, `save_issues`, `cmd_create`, `cmd_list`. None have `///` doc comments.
+
+**Classification:** Dismissed. Reaffirming QE Review 3 Finding 4 dismissal: this is a binary's internal library crate exposed for integration testing, not a library API for external consumers. The `pub` visibility is an implementation detail of the testing architecture, not a publication commitment. `cargo doc` would generate empty documentation for these items, which is appropriate — a consumer of this crate is the binary, not an external user. Rustdoc is relevant at Layer 7 if the public API surface is intended for external use; it is not at Layer 1.
+
+---
+
+**Finding 5 — TODO.md Layer 1 checklist items for invalid domain values test**
+
+The `invalid_domain_values_in_json_causes_error_exit` test was added in QE Review 4 but is not listed in TODO.md's Layer 1 Red Gate section.
+
+**Classification:** Dismissed. The test was added as a consequence of IAR (not a pre-planned Red Gate test) and is correctly classified as an IAR-driven addition rather than a pre-implementation Red Gate test. The Red Gate section in TODO.md documents the tests planned before implementation; additional tests discovered during IAR are recorded in the IAR log (QE Review 4). No update to TODO.md is required.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+Three deferred findings from Review 1 now resolved: README.md updated (Layer 1 status correct); CHANGELOG.md Layer 1 entry added; DECISIONS.md storage format entry added. Two dismissed. Documentation is now current for Layer 1. The project is handoff-ready at this layer: a new reader can clone, build, run, and understand why key decisions were made.
