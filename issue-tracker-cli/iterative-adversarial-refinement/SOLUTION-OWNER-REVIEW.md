@@ -281,6 +281,76 @@ The assignment says "optional description." The spec treated empty-string descri
 
 ## Open items entering Layer 1
 
-- Cold-session SO review recommended before Layer 1 opens (all three reviews conducted in-session with spec authorship)
-- SA Review 1 findings resolved — see [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md)
-- VDD-IAR Alignment review pending — see [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md)
+- ~~Cold-session SO review recommended before Layer 1 opens~~ — completed (Review 6)
+- ~~SA Review 1 findings resolved~~ — SA Review 2 also complete; see [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md)
+- ~~VDD-IAR Alignment review pending~~ — Reviews 1 and 2 complete; see [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md)
+- **Layer 1 merge gate:** at least one cold-session domain review (QE or Security) required after Layer 1 implementation — see VDD-IAR Finding 2
+
+---
+
+---
+
+## Review 6 — 2026-04-27 20:00Z
+
+**Scope:** Full DESIGN.md cold-session pass — assignment compliance (dim 9), scope coverage (dim 1), internal consistency (dim 7), scope creep (dim 2). No implementation exists; review is spec-only.
+
+**Session note:** Cold session. No participation in spec authorship or prior reviews. This is the review recommended in the open items from Reviews 1–5.
+
+### Compliance Table
+
+*(Full table above under scope; addendum findings below)*
+
+### Findings
+
+---
+
+**Finding 1 — `tracker delete <id>` "with confirmation" in assignment Layer 6 not addressed in DESIGN.md (Dim 9)**
+
+The assignment's Layer 6 build description states: "`tracker delete <id>` with confirmation." DESIGN.md Feature 5 defines delete as non-interactive: the command runs, prints `Deleted issue #<id>.`, and exits. The Out of Scope section explicitly rules out interactive mode: "the tool is non-interactive; it reads arguments from the command line and exits."
+
+This is a genuine tension: the assignment's build layer guidance includes a confirmation prompt; DESIGN.md explicitly disallows interactive behavior without documenting that it is overriding that signal.
+
+Prior SO reviews 1, 3, 4, 5 did not flag or dismiss this. The finding was not hallucinated by prior reviews — it was simply not raised.
+
+Mitigation context: The assignment describes build layers as "one way to layer the build" (explicitly advisory), and the formal interface section — "`tracker delete <id>` (remove an issue)" — carries no mention of confirmation. The design choice to make the tool non-interactive is defensible. But the overriding rationale must be documented, not silently assumed.
+
+**Classification:** Dismissed — the Layer 6 build layers are explicitly framed as advisory ("here's one way to layer the build"), not a formal interface spec. The authoritative interface section lists `tracker delete <id>` with no confirmation signal. The non-interactive design choice is consistent with CLI tool conventions (no command in the assignment's interface list prompts for input). **Rationale added to the Out of Scope "Interactive mode" bullet to document the Layer 6 signal and why it was not adopted.**
+
+---
+
+**Finding 2 — Labels column width: spec text (20 chars) and example table (14 chars) are inconsistent (Dim 7)**
+
+The Interface section states: "Column widths are fixed minimums: `Labels` 20 chars." The example table in the same section shows:
+
+```
+ID   Status       Priority  Labels        Title
+1    open         high      bug, auth     Fix the login bug
+```
+
+Counting the Labels column from the example header: `Labels` (6) + 8 spaces = 14 characters before `Title` begins. The data rows confirm: `bug, auth     ` = 9 + 5 spaces = 14 characters. The example and the spec text specify different widths.
+
+An implementer reading the spec text will produce a 20-char Labels column. An implementer writing tests against the example output will expect 14 chars. These will disagree.
+
+This finding was introduced by the column-width resolution in Review 1 Finding 3, which originally specified 30 chars and was later changed. The example was not updated to match.
+
+**Classification:** Resolved — updated the example table to match the specified 20-char Labels column. See spec update below.
+
+---
+
+**Finding 3 — Empty description rejection not explicitly required by assignment (Dim 9 — marginal)**
+
+The assignment's security habit check states: "Validate all input from the command line. Reject empty titles." Titles are called out by name; descriptions are not. DESIGN.md (Review 5 Finding 6) added: `--description ""` → `Error: Description cannot be empty.` → exit 1.
+
+This is a defensible extension of the assignment's general input-validation principle and consistent with how the spec handles empty labels. However, the assignment names only titles explicitly, and the Finding 6 addition went beyond the literal assignment text without documenting that it was an interpretive extension rather than an explicit assignment requirement.
+
+**Classification:** Dismissed — the assignment's security guidance is general ("Validate all input from the command line") and applying it to description is a straightforward extension of the named principle. The spec is more complete for having it. The behavior is consistent with empty-label and empty-title handling. No action required beyond noting it as an interpretive decision.
+
+---
+
+### Summary
+
+Two real findings. One resolved (column width inconsistency — spec update required). One dismissed with documented rationale (delete confirmation). One dismissed as within reasonable interpretive scope (empty description validation).
+
+All three prior in-session concerns (dim 9 slippage from spec authorship context) are addressed: the only genuine assignment-compliance gap (delete confirmation signal) is documented and dismissed with rationale. No scope creep found beyond what prior reviews addressed. No under-delivery.
+
+**Spec is ready for Layer 1 to open.**

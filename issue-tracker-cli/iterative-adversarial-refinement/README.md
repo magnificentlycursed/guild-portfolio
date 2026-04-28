@@ -4,6 +4,8 @@ IAR is the adversarial review mechanism of Verification-Driven Development (VDD)
 
 ## Domains
 
+### Core (run every layer)
+
 | Domain | Log file | Focus |
 |---|---|---|
 | Solution Owner | [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) | Spec compliance, scope creep, over-engineering, under-delivery, technology choices, assignment compliance |
@@ -11,6 +13,30 @@ IAR is the adversarial review mechanism of Verification-Driven Development (VDD)
 | Quality Engineer | [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) | Test correctness, Red Gate compliance, acceptance criteria coverage, integration tests, error path coverage |
 | Software Engineer | [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) | Implementation correctness, naming, error handling, type safety, complexity, maintainability |
 | Security | [SECURITY-REVIEW.md](SECURITY-REVIEW.md) | Input validation, file path handling, I/O error surfaces, dependency CVEs, information exposure |
+| Platform Engineer | [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md) | CI/CD, build setup, dependency audit, toolchain pinning, pre-commit hooks |
+| UX (CLI supplement) | [UX-REVIEW.md](UX-REVIEW.md) | CLI discoverability, stdout/stderr discipline, empty states, error message quality, exit codes |
+| Data Engineer | [DATA-ENGINEER-REVIEW.md](DATA-ENGINEER-REVIEW.md) | Data model correctness, validation, schema evolution, serialization, storage fitness |
+
+### Extended (activated for this project)
+
+| Domain | Log file | Activation rationale |
+|---|---|---|
+| Red Team | [RED-TEAM-REVIEW.md](RED-TEAM-REVIEW.md) | User-controlled CLI input; file I/O operations |
+| Technical Writer | [TECHNICAL-WRITER-REVIEW.md](TECHNICAL-WRITER-REVIEW.md) | Portfolio project intended for handoff and external review |
+
+### Extended (not activated)
+
+| Domain | Rationale |
+|---|---|
+| Accessibility | Not applicable — CLI tool, no browser/native UI |
+| Performance Engineer | Simple single-user CLI with trivial data volumes; no SLA |
+| Privacy | Single-user personal tool; issue data is personal notes, not regulated PII |
+| Localization | Explicitly single-locale (English); no locale-specific formatting |
+
+### Meta
+
+| Domain | Log file | Focus |
+|---|---|---|
 | VDD-IAR Alignment | [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md) | Design-before-code, layered decomposition, layer gate compliance, test discipline, human verification, IAR iteration |
 
 ## Project context

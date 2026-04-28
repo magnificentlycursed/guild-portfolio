@@ -103,3 +103,94 @@ Dim 3 (layer gate compliance), dim 4 (test discipline), and dim 5 (human verific
 ### Note — Dim 10 deferred
 
 No retrospective is expected at the pre-implementation phase.
+
+---
+
+---
+
+## Review 2 — 2026-04-27 21:00Z
+
+**Scope:** Post-decomposition process compliance. Artifacts reviewed: `DESIGN.md`, `TODO.md`, all IAR review logs (SO Reviews 1–6, SA Reviews 1–2, QE Review 1, SE Review 1, Security Review 1, Platform Review 1, UX Review 1, Data Engineer Review 1, Technical Writer Review 1, Red Team Review 1, VDD-IAR Review 1). No implementation code exists.
+
+**Program phase:** Phase 1. Crosslink not introduced. Dim 11 not applicable.
+
+**Governing methodology:** `apprentice-onboarding/02-the-methodology/01-how-we-build.md`.
+
+**Session note:** This review is conducted in the same session as all other IAR domain reviews (QE, SE, Security, Platform, UX, Data Engineer, Technical Writer, Red Team, SA Review 2). This is a quality tradeoff. Session-isolation (dim 6) is the primary concern in this review.
+
+---
+
+### Resolved
+
+**Finding 1 (from Review 1) — Dim 2: TODO.md not yet written**
+
+`TODO.md` now exists with 7 layers, each containing: goal statement, acceptance criteria, manual testing checklist, Red Gate test plan, and IAR domain assignment. All layers are ordered correctly and each builds on the previous. The coverage check at the bottom traces every DESIGN.md requirement to a layer.
+
+**Classification:** Resolved. Dim 2 is satisfied.
+
+---
+
+**Finding 3 (from Review 1) — Dim 9: No per-layer manual testing checklists**
+
+`TODO.md` contains per-layer manual testing checklists for all 7 layers, covering happy path, error states, empty states, persistence checks, and layer-specific edge cases.
+
+**Classification:** Resolved. Dim 9 is satisfied for the decomposition phase.
+
+---
+
+### Open
+
+**Finding 2 (from Review 1) — Dim 6: All prior reviews conducted in-session with authorship**
+
+Status: Partially addressed. SO Review 6 was conducted in a cold session (fresh relative to spec authorship). The IAR suite (all 10 domains) was conducted in-session with each other and with `TODO.md` authorship.
+
+Evidence of adversarial integrity: the suite produced real findings across all domains requiring spec updates. However, findings requiring full session independence may still be missed.
+
+**Classification: Open — gates Layer 1 merge.** Before Layer 1 implementation code is merged, at least one domain review (QE or Security recommended as highest-value for implementation phase) must be conducted in a cold session relative to the Layer 1 implementation. This is a Layer 1 gate requirement, not a current blocker.
+
+---
+
+**New Finding 1 — Dim 6: Current IAR suite is a single-session batch across all domains**
+
+The `review-session.md` primer states: "Run one domain per session." This suite reviewed 10 domains in one session, with cross-domain finding awareness visible in the logs (Security/Data/Red Team converging on the same gap independently rather than freshly).
+
+Batching was necessary: 8 of 10 domains were being activated for the first time. The quality tradeoff is documented in each domain log. For Layer 1's IAR, individual sessions or pairs (QE+SE, Security+Red Team) are the target pattern.
+
+**Classification:** Dismissed — batch IAR is a documented quality tradeoff for first-activation runs. The Layer 1 IAR planning guidance is established. No further action required for this finding.
+
+---
+
+**New Finding 2 — Dim 2: IAR README listed only 6 of 10 active domains**
+
+The project's `iterative-adversarial-refinement/README.md` listed only SO, SA, QE, SE, Security, and VDD-IAR Alignment. Platform Engineer, UX (CLI), Data Engineer, Technical Writer, and Red Team were missing from the project's domain tracking.
+
+**Classification:** Resolved. Project IAR README updated to list all active core and extended domains with activation rationale for extended domains and non-activation rationale for inactive extended domains.
+
+---
+
+### Dismissed
+
+**Dim 1 (Design-before-code)** — Confirmed clean in Review 1. No implementation commits exist. The design precedes all code. ✓
+
+**Dim 7 (IAR iteration)** — 6 rounds of SO review, 2 rounds of SA review, 1 round of each new domain. Each round produced real findings. The spec improved materially through the rounds. Iteration integrity is present. ✓
+
+**Dim 8 (Role integrity)** — Confirmed clean in Review 1. Human director made explicit scoping decisions throughout (directing toward "100% assignment compliance, no more, no less"; approving or rejecting each finding). ✓
+
+**Dim 11 (Issue tracking)** — Phase 1. Not applicable. ✓
+
+---
+
+### Deferred
+
+**Dims 3, 4, 5 (Layer gate compliance, test discipline, human verification)** — Not evaluable until at least one implementation layer exists. Will be evaluated in VDD-IAR Review 3 at the Layer 1 gate.
+
+**Dim 10 (Retrospective quality)** — Pre-implementation. Not applicable until a layer completes.
+
+---
+
+### Summary
+
+Two open items: dim 6 (in-session batching across all domains) and the new finding on in-session IAR suite execution. The decomposition is sound. `TODO.md` satisfies dim 2 and dim 9. Domain tracking is now correct. The process is ready for Layer 1 implementation, with the acknowledged quality tradeoff that all pre-implementation IAR reviews were conducted in-session.
+
+**Gate status:** Decomposition phase is complete. Layer 1 may open. One open finding gates the Layer 1 **merge** (not the Layer 1 start): at least one cold-session domain review must be conducted against the Layer 1 implementation before it merges. The Layer 1 gate will also evaluate dims 3, 4, 5 for the first time.
+

@@ -157,7 +157,7 @@ This is portfolio project #2, per the Phase 1 apprentice program assignment in `
 {
   "id":          u64,              // positive integer, 1-indexed, immutable after creation
   "title":       String,           // non-empty, trimmed
-  "description": Option<String>,   // absent if not provided; stored as-is if provided
+  "description": Option<String>,   // absent if not provided; stored as-is if provided. "Absent" means the JSON key is omitted, not serialized as null. Implementations must omit the key when the value is None.
   "status":      "open" | "in-progress" | "done",
   "priority":    "low" | "medium" | "high",
   "labels":      [String],         // may be empty; deduplicated at creation; case-preserved
@@ -220,10 +220,10 @@ This is portfolio project #2, per the Phase 1 apprentice program assignment in `
 **List output format:** tabular, fixed-width columns, header row. Column widths are fixed minimums: `ID` 4 chars, `Status` 11 chars, `Priority` 8 chars, `Labels` 20 chars, `Title` consuming the remainder up to 50 characters. `Labels` renders all labels comma-separated and truncates at 20 characters with `…` if longer. `Title` truncates at 50 characters with `…` if longer. `show` always displays the full, untruncated values. Example:
 
 ```
-ID   Status       Priority  Labels        Title
-1    open         high      bug, auth     Fix the login bug
-2    in-progress  medium    feature       Add search bar
-3    open         low       (none)        Update README
+ID   Status       Priority  Labels               Title
+1    open         high      bug, auth            Fix the login bug
+2    in-progress  medium    feature              Add search bar
+3    open         low       (none)               Update README
 ```
 
 **Color output (polish layer — Layer 7):** Priority and status values are colored in list and show output when stdout is a TTY. Color is suppressed when stdout is piped or redirected (detect with `std::io::IsTerminal`).
@@ -292,7 +292,7 @@ Updated:     2026-04-27T15:00:00Z
 
 - Non-integer (`tracker show abc`) → error: `'abc' is not a valid issue ID.`
 - Zero (`tracker status 0 done`) → error: zero is not a positive integer
-- Negative number (`tracker delete -1`) → clap treats `-1` as a flag; command will fail with a usage error
+- Negative number (`tracker delete -1`) → the CLI parser treats `-1` as a flag and produces a usage error; the command exits 1
 - ID of a deleted issue (e.g., issue #3 was deleted; `tracker show 3`) → error: `Issue #3 not found.`
 - ID larger than any existing issue but within u64 range → error: `Issue #<id> not found.`
 
@@ -320,6 +320,7 @@ Updated:     2026-04-27T15:00:00Z
 
 - `tracker.json` does not exist → treated as empty tracker; first `create` produces `tracker.json`
 - `tracker.json` contains valid JSON but unknown fields → unknown fields are ignored (forward-compatible deserialization)
+- `tracker.json` contains valid JSON but invalid domain values (e.g., `"status": "flying"`, `"priority": ""`, `"id": 0`, `"title": ""`) → stderr `Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.` → exit 1
 - `tracker.json` contains malformed JSON → stderr `Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.` → exit 1
 - `tracker.json` exists but is not readable (permissions) → stderr `Error: Could not read tracker data: permission denied.` → exit 1
 - Write fails (disk full, permissions) → stderr `Error: Could not save tracker data: <reason>.` → exit 1
@@ -388,7 +389,7 @@ Prefer separating validation, filtering, and sorting logic into functions with n
 - **Issue comments** — no per-issue comment thread
 - **Remote or synced storage** — local file only; no cloud backend, no API
 - **Archiving** — delete is the only removal mechanism; no soft-delete or archive state
-- **Interactive mode** — the tool is non-interactive; it reads arguments from the command line and exits; no TUI or REPL
+- **Interactive mode** — the tool is non-interactive; it reads arguments from the command line and exits; no TUI or REPL. The assignment's Layer 6 build guidance mentions "`tracker delete <id>` with confirmation," but the authoritative interface section lists `tracker delete <id>` with no confirmation signal, and build layers are explicitly advisory. Non-interactive delete is consistent with all other subcommands and standard CLI conventions.
 - **Concurrent access** — no file locking; undefined behavior if two instances run simultaneously against the same `tracker.json`
 - **Atomic writes** — direct write to `tracker.json` on every mutation; no temp-file-and-rename. Correct production practice but implementation cost exceeds failure risk for a single-user local tool. Revisit if the tool is ever used in a context with multiple concurrent writers.
 - **Structured exit codes for scripted callers** — exit 0/1 only; no separate exit code for I/O vs. user errors. This tool is used interactively; no scripted caller exists to distinguish error categories.

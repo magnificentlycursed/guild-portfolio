@@ -81,3 +81,56 @@ This is not a finding. The purity boundary is a correct application of the VSDD 
 ### Dismissed
 
 *(none)*
+
+---
+
+---
+
+## Review 2 — 2026-04-27 21:00Z
+
+**Scope:** `TODO.md` layered decomposition. Evaluating whether the layer structure has sound architectural boundaries, correct ordering, and does not introduce refactoring debt between layers.
+
+**Session note:** In-session with all other domain reviews. Acknowledged quality tradeoff.
+
+---
+
+### Resolved
+
+**Finding 1 — Layer 1 sort description implied a simplified sort algorithm (Dim 9 — complexity budget)**
+
+`TODO.md` Layer 1 acceptance criteria stated: "List output is sorted by ID ascending (ties in priority — all medium at this layer)." The parenthetical explains the effective behavior (ID ascending) without requiring the full sort algorithm. An implementer reading only this could implement a simple ID-ascending sort and then need to refactor the sort algorithm in Layer 3 when priorities are introduced. This is structural debt baked into the decomposition.
+
+The correct approach: implement the full priority→ID sort algorithm from Layer 1. Since all issues are medium priority at Layer 1, the effective output is ID ascending — but the code uses the full algorithm. Layer 3 then adds the `--priority` filter and the sort is already correct.
+
+**Resolution:** Updated `TODO.md` Layer 1 acceptance criteria to explicitly require the full sort algorithm: "uses the full sort algorithm (priority descending then ID ascending within tier); since all issues default to `medium`, the effective order is ID ascending. The sort algorithm must be the full algorithm from the start — not a simplified ID-only sort."
+
+---
+
+### Dismissed
+
+**Finding 2 — Layer 5 (compound filtering) as a standalone layer**
+
+Is a separate layer for compound filtering architecturally justified, or is it a test-only concern folded into Layer 4?
+
+**Classification:** Dismissed. Compound filter AND-logic is a distinct behavioral requirement: it verifies that three independently-implemented filters compose correctly, and that the no-match message is correct for each combination. Testing this in Layer 4 would require all three filters to exist in Layer 4, which would pull priority filtering (Layer 3) and status filtering (Layer 2) forward out of their natural sequence. Layer 5 is the correct place to verify inter-filter composition once all filters exist. The layer is small but necessary.
+
+---
+
+**Finding 3 — Layer 6 combines description, show, and delete — possibly too broad**
+
+Layer 6 delivers three distinct capabilities: `--description` on create, `tracker show`, and `tracker delete`. Is this one layer or three?
+
+**Classification:** Dismissed. All three are tightly coupled: `--description` is only meaningful once `tracker show` exists to display it fully; `tracker delete` is naturally paired with `tracker show` (the assignment's Layer 6 groups them explicitly). The acceptance criteria for all three fit in a single verifiable layer — a user can create with a description, show the full details, and delete an issue. None of the three creates a standalone capability without the others.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+One real finding resolved (Layer 1 sort algorithm specification). Two dismissed. The decomposition is architecturally sound: each layer delivers an independent, verifiable capability; layer ordering is correct (each layer depends only on previous layers); no structural debt is introduced between layers.
+
