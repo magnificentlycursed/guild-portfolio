@@ -14,3 +14,10 @@ repos:
         entry: issue-tracker-cli/.pre-commit-hooks/check-no-home-paths.sh
         pass_filenames: true
         types: [text]
+
+      - id: cargo-fmt-check
+        name: cargo fmt (issue-tracker-cli)
+        language: system
+        entry: bash -c 'cd issue-tracker-cli && cargo fmt --check'
+        pass_filenames: false
+        files: ^issue-tracker-cli/.*\.rs$

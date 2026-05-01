@@ -262,3 +262,49 @@ No additional platform findings. CI pipeline, toolchain pin, `Cargo.lock`, and p
 ### Summary
 
 One finding resolved: `tracker.json` added to `.gitignore`. All platform requirements satisfied. MVR reached for Layer 1.
+
+---
+
+---
+
+## Review 6 — 2026-05-01 00:00Z
+
+**Scope:** Post-merge gap — `cargo fmt --check` enforced in CI but not locally via pre-commit hooks. CI failed on first PR with formatting violations that a local hook would have caught before push.
+
+---
+
+### Resolved
+
+**Finding 11 — `cargo fmt --check` not enforced pre-commit (Dim 10)**
+
+CI pipeline runs `cargo fmt --check` on every push. The pre-commit hook configuration did not include a corresponding local check. A formatting violation (`#[allow]` attribute and its trailing comment on the same line; two `assert!` calls exceeding line width) passed the pre-commit hook suite and reached CI, where it failed.
+
+The CI failure is a correct catch, but the feedback loop is slower than local: push → CI trigger → wait → read failure → fix → push again. A pre-commit hook provides the same feedback in under one second without a round-trip.
+
+**Resolution:** Added `cargo-fmt-check` hook to `.pre-commit-config.yaml`:
+
+```yaml
+- id: cargo-fmt-check
+  name: cargo fmt (issue-tracker-cli)
+  language: system
+  entry: bash -c 'cd issue-tracker-cli && cargo fmt --check'
+  pass_filenames: false
+  files: ^issue-tracker-cli/.*\.rs$
+```
+
+The hook runs only when `.rs` files under `issue-tracker-cli/` are staged. `pre-commit run cargo-fmt-check --all-files` verified passing on current codebase.
+
+**Classification:** Resolved.
+
+---
+
+### Dismissed
+
+No additional platform findings.
+
+---
+
+### Summary
+
+Finding 11 resolved: `cargo fmt --check` now runs as a pre-commit hook, closing the gap between local and CI formatting enforcement.
+
