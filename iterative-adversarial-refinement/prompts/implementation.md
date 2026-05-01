@@ -52,7 +52,7 @@ Before writing any implementation:
 Once the Red Gate is set and every new test is confirmed failing:
 
 1. Implement to make failing tests pass — no more, no less.
-2. Do not add tests during implementation. If you discover a missing test, note it; add it in a separate commit after the current feature is working, so the Red Gate record is clean.
+2. Do not add tests during implementation. If you discover a missing test, note it; add it in a separate commit after the current feature is working, so the Red Gate record is clean. A retroactive test cannot satisfy the Red Gate (the implementation exists before the test fails), so log it as a **Red Gate deviation** in the commit message and review log: "retroactive Red Gate: [behavior name] — discovered during Phase 2b, test added post-implementation, confirmed passes against current implementation." This is a known limitation, not a workaround. Do not silently add retroactive tests without the label.
 3. Do not implement features not covered by a failing test. If a feature seems obviously needed but has no test, that is a spec gap — surface it rather than silently implementing it.
 4. After each feature is complete, run the full test suite. No previously-passing test may begin failing. A regression requires a fix before moving to the next feature.
 

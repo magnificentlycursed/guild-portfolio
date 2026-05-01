@@ -110,6 +110,7 @@ Living table of all identified gaps. Update statuses here as gaps are addressed 
 | [G-83](SUITE-REVIEW.md#gap-analysis-run-10--2026-04-27) | No Localization domain: i18n readiness entirely unowned; locale assumptions baked in by AI agent without surfacing | Missing domain | Medium | High | Addressed | 2026-04-27 | 2026-04-27 |
 | [G-84](SUITE-REVIEW.md#review-3--2026-04-27) | Technical Writer lang supplement absent — rustdoc, TypeDoc, JSDoc tooling guidance not in javascript-typescript.md or rust.md | Dimension gap | Medium | Medium | Addressed | 2026-04-27 | 2026-04-28 |
 | [G-85](SUITE-REVIEW.md#review-4--2026-04-27-2000z) | Localization lang supplement absent — JS/TS section needed (Intl.* APIs, i18next, react-i18next); Rust section needed (fluent-rs) | Dimension gap | Medium | High | Addressed | 2026-04-27 | 2026-04-28 |
+| [G-86](SUITE-REVIEW.md#review-16--2026-05-01-0000z) | No VSDD Phase 4 (Feedback Routing) session primer — developer has no guide for routing IAR findings to correct earlier phase | Missing primer | Medium | Medium | Open | 2026-05-01 | 2026-05-01 |
 
 **Status values:** Open · Addressed · Deferred · Dismissed · Context-Dependent
 

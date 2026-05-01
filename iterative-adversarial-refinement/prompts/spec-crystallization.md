@@ -106,7 +106,18 @@ Before this spec is considered done, argue with it:
 4. Read the edge case catalog. Is every input that could be entered in production represented? Assume the first user will enter something unexpected.
 5. Read the out-of-scope section. Is each item *actually* excluded, or could a careless implementation accidentally include it?
 
-The spec is ready to move to Phase 1b (decomposition) when you cannot find an undefined behavior after genuine adversarial pressure.
+---
+
+## Completion criteria
+
+The spec is ready to move to Phase 1b (decomposition) when:
+
+1. Every feature has explicit preconditions, postconditions, and invariants — not just happy-path descriptions
+2. The edge case catalog covers boundary values, empty inputs, malformed inputs, and failure modes enumerated before implementation
+3. The interface definitions specify data shapes, validation rules, and error responses at every system boundary
+4. The verification architecture names which behaviors are automatable, which require manual testing, and where the purity boundary is
+5. The out-of-scope section explicitly names excluded features with rationale
+6. You cannot find an undefined behavior after genuine adversarial pressure using the self-adversary check above
 
 ---
 
