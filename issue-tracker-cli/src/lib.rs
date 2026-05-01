@@ -110,6 +110,45 @@ pub fn cmd_create(title_raw: &str, issues_path: &Path) -> Result<(), String> {
     Ok(())
 }
 
+/// Parses and normalizes a status string (case-insensitive).
+///
+/// Returns the canonical lowercase status value, or an error describing the valid values.
+pub fn parse_status(raw: &str) -> Result<String, String> {
+    match raw.to_lowercase().as_str() {
+        "open" | "in-progress" | "done" => Ok(raw.to_lowercase()),
+        _ => Err(format!(
+            "Invalid status '{}'. Expected: open, in-progress, or done.",
+            raw
+        )),
+    }
+}
+
+/// Parses an issue ID from a string. Must be a positive integer (>= 1).
+pub fn parse_id(raw: &str) -> Result<u64, String> {
+    raw.parse::<u64>().ok().filter(|&n| n > 0).ok_or_else(|| {
+        format!(
+            "'{}' is not a valid issue ID. Expected a positive integer.",
+            raw
+        )
+    })
+}
+
+/// Implements `tracker status <id> <status>`.
+pub fn cmd_status(id_raw: &str, status_raw: &str, issues_path: &Path) -> Result<(), String> {
+    let id = parse_id(id_raw)?;
+    let new_status = parse_status(status_raw)?;
+    let mut issues = load_issues(issues_path)?;
+    let issue = issues
+        .iter_mut()
+        .find(|i| i.id == id)
+        .ok_or_else(|| format!("Issue #{} not found.", id))?;
+    issue.status = new_status.clone();
+    issue.updated_at = current_timestamp();
+    save_issues(issues_path, &issues)?;
+    println!("Issue #{} status \u{2192} {}.", id, new_status);
+    Ok(())
+}
+
 const PRIORITY_ORDER: &[&str] = &["high", "medium", "low"];
 
 fn priority_rank(p: &str) -> usize {
@@ -193,5 +232,30 @@ mod tests {
     #[test]
     fn id_assignment_increments_from_max() {
         assert_eq!(next_id(&[1, 3, 5]), 6);
+    }
+
+    #[test]
+    fn status_value_parsing_valid_cases() {
+        assert_eq!(parse_status("open"), Ok("open".to_string()));
+        assert_eq!(parse_status("in-progress"), Ok("in-progress".to_string()));
+        assert_eq!(parse_status("done"), Ok("done".to_string()));
+        assert_eq!(parse_status("OPEN"), Ok("open".to_string()));
+        assert_eq!(parse_status("IN-PROGRESS"), Ok("in-progress".to_string()));
+        assert_eq!(parse_status("DONE"), Ok("done".to_string()));
+    }
+
+    #[test]
+    fn status_value_parsing_rejects_invalid() {
+        assert!(parse_status("done.").is_err());
+        assert!(parse_status("in_progress").is_err());
+        assert!(parse_status("closed").is_err());
+    }
+
+    #[test]
+    fn id_must_be_positive_integer() {
+        assert!(parse_id("0").is_err());
+        assert!(parse_id("abc").is_err());
+        assert_eq!(parse_id("1"), Ok(1));
+        assert_eq!(parse_id("42"), Ok(42));
     }
 }
