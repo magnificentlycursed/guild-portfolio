@@ -79,7 +79,8 @@ pub fn load_issues(path: &Path) -> Result<Vec<Issue>, String> {
 
 /// Serializes `issues` as pretty-printed JSON and writes it to `path`.
 pub fn save_issues(path: &Path, issues: &[Issue]) -> Result<(), String> {
-    #[allow(clippy::unwrap_used)] // Vec<Issue> is always serializable: no floats, no cycles, all fields implement Serialize
+    #[allow(clippy::unwrap_used)]
+    // Vec<Issue> is always serializable: no floats, no cycles, all fields implement Serialize
     let contents = serde_json::to_string_pretty(issues).unwrap();
     fs::write(path, contents).map_err(|e| format!("Could not save tracker data: {}.", e))
 }

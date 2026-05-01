@@ -151,7 +151,10 @@ fn list_shows_header_and_issues() {
     assert!(out.contains("Labels"));
     assert!(out.contains("Title"));
     assert!(out.contains("Fix bug"));
-    assert!(out.contains("(none)"), "unlabeled issue should show '(none)' in Labels column");
+    assert!(
+        out.contains("(none)"),
+        "unlabeled issue should show '(none)' in Labels column"
+    );
 }
 
 #[test]
@@ -219,8 +222,14 @@ fn list_shows_multiple_issues_in_id_order() {
         .clone();
     let out = String::from_utf8(output).unwrap();
 
-    assert!(out.contains("First issue"), "first issue should appear in list");
-    assert!(out.contains("Second issue"), "second issue should appear in list");
+    assert!(
+        out.contains("First issue"),
+        "first issue should appear in list"
+    );
+    assert!(
+        out.contains("Second issue"),
+        "second issue should appear in list"
+    );
     let pos_first = out.find("First issue").unwrap();
     let pos_second = out.find("Second issue").unwrap();
     assert!(
