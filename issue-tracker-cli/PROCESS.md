@@ -47,6 +47,18 @@ The review-session primer pass also found that prior "MVR reached" signals were 
 
 Pre-commit hooks caught a real problem: the hook script used `$HOME` at runtime to avoid hardcoding usernames, but the review log text itself contained the literal username as example text from Review 2. The hook failed on the first run and required fixing the review documentation. The git history was then rewritten with `git filter-repo` to remove the historical occurrence from commit `f874a60`.
 
+`git filter-repo` has a consequence that the manual does not emphasize: when run on a non-fresh clone (i.e., a working repo with an `origin` remote), it rewrites **all** commits in the local repository — not just the branch in use — and removes the `origin` remote as a side effect. The result was that every commit SHA in the local repo changed, including commits already shared with `main` on the remote. The local `issue-tracker-cli` branch was now based on a rewritten `main` that GitHub had never seen, producing the error "There isn't anything to compare — main and issue-tracker-cli are entirely different commit histories" when attempting to open a PR.
+
+The fix required several steps:
+1. Delete a corrupted remote tracking ref (`refs/remotes/origin/issue-tracker-cli 2` — a ref with a literal space in its name, created by a prior bad push attempt) that was causing every `git fetch` to fail.
+2. Restore the `origin` remote (filter-repo removes it).
+3. Reset local `main` to `origin/main` to recover the authoritative commit graph.
+4. Identify that the remote `main` already contained the first two branch commits (merged as PR #9 earlier in the session), so only 5 commits needed to be replayed.
+5. `git rebase --onto main <old-base-sha> issue-tracker-cli` to replay those 5 commits on top of real remote `main`.
+6. Force-push the rebased branch.
+
+The lesson: `git filter-repo` on a working repo should be treated as a full history replacement. Before running it, note the current remote `main` SHA, remove and re-add the remote afterward, and plan for a rebase to restore a common ancestor with the remote. Running it on a fresh clone (no remote) avoids the problem entirely.
+
 ---
 
 ### What was hardest
