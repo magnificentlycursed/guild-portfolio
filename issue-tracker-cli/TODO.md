@@ -72,36 +72,36 @@ Unit tests:
 **Goal:** The user can change an issue's status, and the default list shows only open issues.
 
 **Acceptance Criteria:**
-- [ ] `tracker status 1 in-progress` exits 0 and prints `Issue #1 status → in-progress.`
-- [ ] `tracker status 1 done` exits 0 and prints `Issue #1 status → done.`
-- [ ] After `tracker status 1 done`, `tracker.json` has the issue's `status` updated to `done` and `updated_at` refreshed; all other fields are unchanged
-- [ ] `updated_at` after a status change is `>=` `updated_at` before the change
-- [ ] `tracker list` (no flags) shows only `open` issues; issues with status `done` or `in-progress` do not appear
-- [ ] `tracker list --status done` shows `done` issues; `open` and `in-progress` do not appear
-- [ ] `tracker list --status in-progress` shows `in-progress` issues
-- [ ] `tracker list --status open` behaves identically to `tracker list` (explicit `open` flag matches default)
-- [ ] `tracker status 1 IN-PROGRESS` (uppercase) exits 0; stored value is lowercase `in-progress`
-- [ ] `tracker status 1 in-progress` when issue is already `in-progress` exits 0, prints confirmation, refreshes `updated_at`
-- [ ] `tracker status abc open` exits 1, stderr `Error: 'abc' is not a valid issue ID. Expected a positive integer.`
-- [ ] `tracker status 0 open` exits 1, stderr `Error: '0' is not a valid issue ID. Expected a positive integer.`
-- [ ] `tracker status 99 open` (ID not found) exits 1, stderr `Error: Issue #99 not found.`
-- [ ] `tracker status 1 flying` exits 1, stderr `Error: Invalid status 'flying'. Expected: open, in-progress, or done.`
-- [ ] `tracker list --status flying` exits 1, stderr `Error: Invalid status 'flying'. Expected: open, in-progress, or done.`
-- [ ] All issues done, `tracker list` (default) prints `No open issues. Nice work!`
+- [x] `tracker status 1 in-progress` exits 0 and prints `Issue #1 status → in-progress.`
+- [x] `tracker status 1 done` exits 0 and prints `Issue #1 status → done.`
+- [x] After `tracker status 1 done`, `tracker.json` has the issue's `status` updated to `done` and `updated_at` refreshed; all other fields are unchanged
+- [x] `updated_at` after a status change is `>=` `updated_at` before the change
+- [x] `tracker list` (no flags) shows only `open` issues; issues with status `done` or `in-progress` do not appear
+- [x] `tracker list --status done` shows `done` issues; `open` and `in-progress` do not appear
+- [x] `tracker list --status in-progress` shows `in-progress` issues
+- [x] `tracker list --status open` behaves identically to `tracker list` (explicit `open` flag matches default)
+- [x] `tracker status 1 IN-PROGRESS` (uppercase) exits 0; stored value is lowercase `in-progress`
+- [x] `tracker status 1 in-progress` when issue is already `in-progress` exits 0, prints confirmation, refreshes `updated_at`
+- [x] `tracker status abc open` exits 1, stderr `Error: 'abc' is not a valid issue ID. Expected a positive integer.`
+- [x] `tracker status 0 open` exits 1, stderr `Error: '0' is not a valid issue ID. Expected a positive integer.`
+- [x] `tracker status 99 open` (ID not found) exits 1, stderr `Error: Issue #99 not found.`
+- [x] `tracker status 1 flying` exits 1, stderr `Error: Invalid status 'flying'. Expected: open, in-progress, or done.`
+- [x] `tracker list --status flying` exits 1, stderr `Error: Invalid status 'flying'. Expected: open, in-progress, or done.`
+- [x] All issues done, `tracker list` (default) prints `No open issues. Nice work!`
 
 **Not in this layer:** `--priority` filter, `--label` filter, compound filters
 
 **Manual Testing Checklist:**
-- [ ] Happy path: create two issues → `tracker status 1 in-progress` → `tracker status 2 done` → `tracker list` shows only issue #1 (open) → `tracker list --status done` shows only issue #2 → `tracker list --status in-progress` shows only issue #1
-- [ ] Re-open: `tracker status 2 open` → `tracker list` shows both issues
-- [ ] Idempotent: `tracker status 1 in-progress` again → exit 0, confirmation printed, `updated_at` updated in `tracker.json`
-- [ ] Empty open state: mark all issues done → `tracker list` prints `No open issues. Nice work!`
-- [ ] Error — invalid ID: `tracker status abc done` → exit 1, stderr shows ID error
-- [ ] Error — zero ID: `tracker status 0 done` → exit 1, stderr shows ID error
-- [ ] Error — not found: `tracker status 99 done` → exit 1, stderr shows not-found error
-- [ ] Error — invalid status: `tracker status 1 completed` → exit 1, stderr shows valid values
-- [ ] Error — invalid list status: `tracker list --status closed` → exit 1
-- [ ] Persistence: change status, reinstall binary, run `tracker list --status in-progress` → change is intact
+- [x] Happy path: create two issues → `tracker status 1 in-progress` → `tracker status 2 done` → `tracker list` shows only issue #1 (open) → `tracker list --status done` shows only issue #2 → `tracker list --status in-progress` shows only issue #1
+- [x] Re-open: `tracker status 2 open` → `tracker list` shows both issues
+- [x] Idempotent: `tracker status 1 in-progress` again → exit 0, confirmation printed, `updated_at` updated in `tracker.json`
+- [x] Empty open state: mark all issues done → `tracker list` prints `No open issues. Nice work!`
+- [x] Error — invalid ID: `tracker status abc done` → exit 1, stderr shows ID error
+- [x] Error — zero ID: `tracker status 0 done` → exit 1, stderr shows ID error
+- [x] Error — not found: `tracker status 99 done` → exit 1, stderr shows not-found error
+- [x] Error — invalid status: `tracker status 1 completed` → exit 1, stderr shows valid values
+- [x] Error — invalid list status: `tracker list --status closed` → exit 1
+- [x] Persistence: change status, reinstall binary, run `tracker list --status in-progress` → change is intact
 
 **Red Gate — tests to write first:**
 

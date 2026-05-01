@@ -168,16 +168,27 @@ fn truncate_with_ellipsis(s: &str, max_chars: usize) -> String {
     }
 }
 
-/// Implements `tracker list`.
+/// Implements `tracker list [--status <s>]`.
 ///
-/// Prints all open issues sorted by priority (high → medium → low) then ID ascending.
-/// Prints `No open issues. Nice work!` when no open issues exist.
-pub fn cmd_list(issues_path: &Path) -> Result<(), String> {
+/// Without `--status`: shows only `open` issues; prints `No open issues. Nice work!` when empty.
+/// With `--status <s>`: validates and filters by that status; prints `No issues match the given
+/// filters.` when empty — unless the effective filter is `open`, which keeps the original message.
+pub fn cmd_list(status_filter: Option<&str>, issues_path: &Path) -> Result<(), String> {
+    let effective_status = match status_filter {
+        None => "open".to_string(),
+        Some(s) => parse_status(s)?,
+    };
+    let is_open_view = effective_status == "open";
+
     let mut issues = load_issues(issues_path)?;
-    issues.retain(|i| i.status == "open");
+    issues.retain(|i| i.status == effective_status);
 
     if issues.is_empty() {
-        println!("No open issues. Nice work!");
+        if is_open_view {
+            println!("No open issues. Nice work!");
+        } else {
+            println!("No issues match the given filters.");
+        }
         return Ok(());
     }
 
