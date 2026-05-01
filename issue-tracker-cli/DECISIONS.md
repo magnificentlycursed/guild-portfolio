@@ -68,6 +68,14 @@ Key decisions made during the spec phase, with rationale. Source: IAR review log
 
 ---
 
+## Code Quality Enforcement
+
+**`#![deny(clippy::unwrap_used)]` at crate level** — enforced in `lib.rs`; any `unwrap()` in future layers requires an inline `#[allow]` with a comment explaining why it is safe.
+- SE Review 6 (general adversarial pass)
+- Why: the single `unwrap()` in `save_issues` was verified safe in review logs but had no CI enforcement. A future developer adding a second `unwrap()` on a user-facing path would face no automated check. Enforcing at crate level forces explicit inline justification for every `unwrap()`, making safety analysis visible at the call site rather than only in the review history.
+
+---
+
 ## Out of Scope (deliberate exclusions)
 
 **No Windows line-ending normalization** — `\r\n` is not normalized to `\n` on storage.

@@ -535,3 +535,23 @@ Observed and resolved by TW Review 2 in coordination with this review. CHANGELOG
 ### Summary
 
 Two real findings resolved: README.md Layer 1 status stale (fixed), DECISIONS.md missing storage format decision (added). Two dismissed. No open items. The implementation is spec-compliant, scope-correct, and documentation is now current.
+
+---
+
+---
+
+## Review 9 — 2026-04-30 00:00Z
+
+**Scope:** Layer 1 gate closure pass — no spec or documentation changes since Review 8 other than gate closure records (TODO.md manual checklist, IAR log updates).
+
+**Session note:** In-session with all other domain reviews. Acknowledged quality tradeoff.
+
+---
+
+### Dismissed
+
+**Layer 1 scope compliance** — `tracker create` and `tracker list` only. No Layer 2+ features introduced. Scope discipline maintained. ✓
+
+**Documentation currency** — README, CHANGELOG, TODO all current. Manual testing checklist complete. DECISIONS.md complete. ✓
+
+**No SO findings.** MVR reached for Layer 1.

@@ -123,3 +123,17 @@ The documentation is thorough but justifiably so: DESIGN.md is a complete behavi
 **Assessment:** Two dimensions demonstrated from artifacts alone. Six dimensions are Partial — all require developer response. This is the expected pattern for a mid-layer assessment: the artifacts provide strong evidence of direction but cannot substitute for the developer's own voice. The gate interview questions are the mechanism to convert Partial to Demonstrated.
 
 **Gate interview required before Layer 1 closes.** The developer should be asked the named questions in dims 1–2 and 4–7 before this review can produce final classifications.
+
+---
+
+---
+
+## Review 2 — 2026-04-30 00:00Z
+
+**Scope:** Layer 1 gate closure — gate interview status.
+
+**Director decision:** Gate interview deferred. The six Partial dimensions from Review 1 remain Partial. The Layer 1 merge gate closes without final portfolio assessment classification by director decision.
+
+**Gate interview questions preserved for later:** See Review 1, dims 1–2 and 4–7. These questions remain valid at any future layer gate or as a standalone portfolio review exercise.
+
+**Summary:** No change to dimension classifications. Gate interview is deferred indefinitely.

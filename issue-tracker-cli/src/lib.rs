@@ -1,8 +1,14 @@
+#![deny(clippy::unwrap_used)]
+
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
+/// A single tracked issue, as stored in `tracker.json`.
+///
+/// All fields except `description` are required. `description` is omitted from
+/// the JSON output when absent (`None`) rather than serialized as `null`.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Issue {
     pub id: u64,
@@ -16,6 +22,7 @@ pub struct Issue {
     pub updated_at: String,
 }
 
+/// Trims `raw` and returns the trimmed title, or an error if it is empty after trimming.
 pub fn validate_title(raw: &str) -> Result<String, String> {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
@@ -25,10 +32,15 @@ pub fn validate_title(raw: &str) -> Result<String, String> {
     }
 }
 
+/// Returns `max(existing_ids) + 1`, or `1` if the slice is empty.
+///
+/// IDs are never reused: the next ID is always strictly greater than all existing IDs,
+/// including those of deleted issues.
 pub fn next_id(existing_ids: &[u64]) -> u64 {
     existing_ids.iter().max().copied().unwrap_or(0) + 1
 }
 
+/// Returns the current UTC time as an ISO 8601 string at second precision (e.g. `"2026-04-27T14:00:00Z"`).
 pub fn current_timestamp() -> String {
     Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string()
 }
@@ -46,6 +58,11 @@ fn issue_fields_are_valid(issue: &Issue) -> bool {
         && VALID_PRIORITIES.contains(&issue.priority.as_str())
 }
 
+/// Loads all issues from `path`.
+///
+/// Returns an empty `Vec` if the file does not exist. Returns `Err` if the file
+/// cannot be read, contains malformed JSON, or contains issues with invalid domain
+/// values (e.g. unknown status, zero ID, empty title).
 pub fn load_issues(path: &Path) -> Result<Vec<Issue>, String> {
     if !path.exists() {
         return Ok(Vec::new());
@@ -60,11 +77,17 @@ pub fn load_issues(path: &Path) -> Result<Vec<Issue>, String> {
     Ok(issues)
 }
 
+/// Serializes `issues` as pretty-printed JSON and writes it to `path`.
 pub fn save_issues(path: &Path, issues: &[Issue]) -> Result<(), String> {
+    #[allow(clippy::unwrap_used)] // Vec<Issue> is always serializable: no floats, no cycles, all fields implement Serialize
     let contents = serde_json::to_string_pretty(issues).unwrap();
     fs::write(path, contents).map_err(|e| format!("Could not save tracker data: {}.", e))
 }
 
+/// Implements `tracker create "<title>"`.
+///
+/// Validates the title, assigns the next ID, appends the new issue to storage,
+/// and prints `Created issue #<id>: <title>` to stdout.
 pub fn cmd_create(title_raw: &str, issues_path: &Path) -> Result<(), String> {
     let title = validate_title(title_raw)?;
     let mut issues = load_issues(issues_path)?;
@@ -105,6 +128,10 @@ fn truncate_with_ellipsis(s: &str, max_chars: usize) -> String {
     }
 }
 
+/// Implements `tracker list`.
+///
+/// Prints all open issues sorted by priority (high → medium → low) then ID ascending.
+/// Prints `No open issues. Nice work!` when no open issues exist.
 pub fn cmd_list(issues_path: &Path) -> Result<(), String> {
     let mut issues = load_issues(issues_path)?;
     issues.retain(|i| i.status == "open");
@@ -154,7 +181,7 @@ mod tests {
 
     #[test]
     fn title_trimmed_before_storage() {
-        assert_eq!(validate_title("  Fix bug  ").unwrap(), "Fix bug");
+        assert_eq!(validate_title("  Fix bug  "), Ok("Fix bug".to_string()));
     }
 
     #[test]

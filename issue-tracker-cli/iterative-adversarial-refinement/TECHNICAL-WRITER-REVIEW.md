@@ -149,3 +149,45 @@ The `invalid_domain_values_in_json_causes_error_exit` test was added in QE Revie
 ### Summary
 
 Three deferred findings from Review 1 now resolved: README.md updated (Layer 1 status correct); CHANGELOG.md Layer 1 entry added; DECISIONS.md storage format entry added. Two dismissed. Documentation is now current for Layer 1. The project is handoff-ready at this layer: a new reader can clone, build, run, and understand why key decisions were made.
+
+---
+
+---
+
+## Review 3 — 2026-04-30 00:00Z
+
+**Scope:** Layer 1 gate closure pass — TODO.md manual checklist complete; gate closure records added to IAR logs.
+
+**Session note:** In-session with all other domain reviews. Acknowledged quality tradeoff.
+
+---
+
+### Dismissed
+
+TODO.md manual testing section all checked. Gate status note updated. IAR review logs current. CHANGELOG accurate. No documentation gaps. **No TW findings.** MVR reached for Layer 1.
+
+---
+
+---
+
+## Review 4 — 2026-04-30 00:00Z
+
+**Scope:** General adversarial review, pre-merge gate. Review-session primer loaded. Applying Rust TW supplement (rustdoc coverage).
+
+**Session note:** In-session review. Acknowledged quality tradeoff.
+
+---
+
+### Resolved
+
+**Finding 6 — No rustdoc coverage on public `lib.rs` items (Rust TW Supplement — rustdoc coverage)**
+
+All seven public functions and the `Issue` struct had zero `///` doc comments.
+
+**Resolution:** Added `///` doc comments to all public items in `lib.rs`: `Issue` struct (struct-level doc + field semantics noted inline), `validate_title`, `next_id`, `current_timestamp`, `load_issues`, `save_issues`, `cmd_create`, `cmd_list`. `cargo doc --no-deps` produces no warnings. Comments are concise — they describe the contract, not the implementation.
+
+---
+
+### Summary
+
+One finding resolved: rustdoc coverage added to all public `lib.rs` items. `cargo doc --no-deps` clean. MVR reached for Layer 1.

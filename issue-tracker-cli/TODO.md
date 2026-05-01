@@ -28,17 +28,17 @@ Phase: 1 (TODO.md is source of truth)
 **Not in this layer:** `--priority`, `--label`, `--description`, `--status` filter, `tracker status`, `tracker show`, `tracker delete`
 
 **Manual Testing Checklist:**
-- [ ] Happy path: from a clean directory (no `tracker.json`), run `tracker create "First issue"` → verify exit 0, output `Created issue #1: First issue`, `tracker.json` created
-- [ ] Run `tracker create "Second issue"` → output `Created issue #2: Second issue`; open `tracker.json` and confirm both issues present, first issue unchanged
-- [ ] Run `tracker list` → verify table shows both issues with correct header, both with status `open`, priority `medium`, labels `(none)`
-- [ ] Empty state: delete `tracker.json`, run `tracker list` → output is exactly `No open issues. Nice work!`
-- [ ] Error state — empty title: `tracker create ""` → verify exit 1, stderr shows `Error: Title cannot be empty.`, no `tracker.json` created (or existing data unchanged)
-- [ ] Error state — whitespace title: `tracker create "   "` → same error
-- [ ] Error state — malformed JSON: write `{bad json}` to `tracker.json`, run `tracker list` → exit 1, stderr shows corrupt-file message
-- [ ] Persistence: create two issues, reinstall binary with `cargo install --path .`, run `tracker list` → data is intact
-- [ ] Long title: create an issue with a 60-character title → `tracker list` shows the title truncated at 50 chars with `…`; `tracker.json` stores the full 60-char title
+- [x] Happy path: from a clean directory (no `tracker.json`), run `tracker create "First issue"` → verify exit 0, output `Created issue #1: First issue`, `tracker.json` created
+- [x] Run `tracker create "Second issue"` → output `Created issue #2: Second issue`; open `tracker.json` and confirm both issues present, first issue unchanged
+- [x] Run `tracker list` → verify table shows both issues with correct header, both with status `open`, priority `medium`, labels `(none)`
+- [x] Empty state: delete `tracker.json`, run `tracker list` → output is exactly `No open issues. Nice work!`
+- [x] Error state — empty title: `tracker create ""` → verify exit 1, stderr shows `Error: Title cannot be empty.`, no `tracker.json` created (or existing data unchanged)
+- [x] Error state — whitespace title: `tracker create "   "` → same error
+- [x] Error state — malformed JSON: write `{bad json}` to `tracker.json`, run `tracker list` → exit 1, stderr shows corrupt-file message
+- [x] Persistence: create two issues, reinstall binary with `cargo install --path .`, run `tracker list` → data is intact
+- [x] Long title: create an issue with a 60-character title → `tracker list` shows the title truncated at 50 chars with `…`; `tracker.json` stores the full 60-char title
 
-**Layer 1 status: implementation complete — all 17 Red Gate tests passing; manual testing and cold-session IAR review pending before gate closes.**
+**Layer 1 status: complete — all 18 Red Gate tests passing; manual testing complete; portfolio assessment gate interview deferred.**
 
 **Red Gate — tests to write first:**
 

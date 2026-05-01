@@ -151,6 +151,7 @@ fn list_shows_header_and_issues() {
     assert!(out.contains("Labels"));
     assert!(out.contains("Title"));
     assert!(out.contains("Fix bug"));
+    assert!(out.contains("(none)"), "unlabeled issue should show '(none)' in Labels column");
 }
 
 #[test]
@@ -193,6 +194,59 @@ fn list_truncates_title_at_50_chars_with_ellipsis() {
         "expected 49 'A's + '…' in output:\n{out}"
     );
     assert!(!out.contains(&long_title), "full title should be truncated");
+}
+
+// --- list ordering and multi-issue ---
+
+#[test]
+fn list_shows_multiple_issues_in_id_order() {
+    let dir = TempDir::new().unwrap();
+    tracker(&dir)
+        .args(["create", "First issue"])
+        .assert()
+        .success();
+    tracker(&dir)
+        .args(["create", "Second issue"])
+        .assert()
+        .success();
+
+    let output = tracker(&dir)
+        .args(["list"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let out = String::from_utf8(output).unwrap();
+
+    assert!(out.contains("First issue"), "first issue should appear in list");
+    assert!(out.contains("Second issue"), "second issue should appear in list");
+    let pos_first = out.find("First issue").unwrap();
+    let pos_second = out.find("Second issue").unwrap();
+    assert!(
+        pos_first < pos_second,
+        "issue #1 should appear before issue #2 (id-ascending order within same priority tier)"
+    );
+}
+
+// --- corrupt data variants ---
+
+#[test]
+fn zero_id_in_json_causes_error_exit() {
+    let dir = TempDir::new().unwrap();
+    fs::write(
+        dir.path().join("tracker.json"),
+        br#"[{"id":0,"title":"Fix bug","status":"open","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]"#,
+    )
+    .unwrap();
+    tracker(&dir)
+        .args(["list"])
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::contains(
+            "The file may be corrupt. Delete tracker.json to start fresh.",
+        ));
 }
 
 // --- error handling ---

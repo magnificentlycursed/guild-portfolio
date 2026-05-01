@@ -202,3 +202,19 @@ Layer 1 never writes a description (all creates use `description: None`), so thi
 ### Summary
 
 One real finding resolved: post-deserialization domain validation now implemented. Three dismissed findings. The data layer is now specification-compliant: the top-level array format is correctly deserialized, domain values are validated after deserialization, `description` is absent-not-null, and `labels` serializes as an empty array. No open items.
+
+---
+
+---
+
+## Review 4 — 2026-04-30 00:00Z
+
+**Scope:** Layer 1 gate closure pass — no code or schema changes since Review 3.
+
+**Session note:** In-session with all other domain reviews. Acknowledged quality tradeoff.
+
+---
+
+### Dismissed
+
+Schema correct, validation in place, serialization spec-compliant. **No Data Engineer findings.** MVR reached for Layer 1.

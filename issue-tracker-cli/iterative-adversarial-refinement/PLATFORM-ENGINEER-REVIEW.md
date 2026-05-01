@@ -199,3 +199,66 @@ Status: Still open. No pre-commit hook framework has been configured. This is a 
 ### Summary
 
 `cargo audit` clean: 0 vulnerabilities across 100 dependencies. `Cargo.lock` to be committed with Layer 1 implementation. Pre-commit hooks remain the one open gate item requiring human director action. No new platform issues from the runtime dependency additions.
+
+---
+
+---
+
+## Review 4 — 2026-04-30 00:00Z
+
+**Scope:** Layer 1 gate closure — pre-commit hook configuration delivered. Evaluating Finding 5 resolution.
+
+---
+
+### Resolved
+
+**Finding 5 (from Reviews 1–3) — Pre-commit hooks (Dim 10)**
+
+Pre-commit framework configured at git root (`guild-portfolio/.pre-commit-config.yaml`). Hooks installed:
+- `detect-private-key` — rejects staged files containing private key material
+- `no-commit-to-branch` — prevents direct commits to `main`
+- `no-home-dir-paths` (local) — rejects staged files containing `$HOME` resolved at runtime; no username hardcoded in any committed file
+
+Hook script at `issue-tracker-cli/.pre-commit-hooks/check-no-home-paths.sh` uses `$HOME` at runtime. Verified: `pre-commit run --all-files` passed; hook correctly caught and prompted removal of two legacy occurrences of the developer's home directory path in `PLATFORM-ENGINEER-REVIEW.md` (review documentation example text). Both occurrences replaced with generic descriptions before commit. Final `grep -rn` scan confirmed zero occurrences of the local username across all tracked files.
+
+Git history was subsequently rewritten with `git filter-repo --force` to remove a username occurrence from commit `f874a60`. Force-push to remote confirmed clean.
+
+**Classification:** Resolved.
+
+---
+
+### Summary
+
+Finding 5 closed. All platform findings are now resolved. The Layer 1 merge gate platform requirements are fully satisfied.
+
+---
+
+---
+
+## Review 5 — 2026-04-30 00:00Z
+
+**Scope:** Layer 1 gate closure pass — no CI/build changes since Review 4. Manual testing session created `tracker.json` artifact.
+
+**Session note:** In-session with all other domain reviews. Acknowledged quality tradeoff.
+
+---
+
+### Resolved
+
+**Finding 10 — `tracker.json` not in `.gitignore` (Dim 8 — Artifact hygiene)**
+
+Manual testing of the Layer 1 binary created `tracker.json` in `issue-tracker-cli/`. The file appeared as `??` in `git status`. The `.gitignore` only excluded `/target`; `tracker.json` was not listed. Any developer running `tracker` from the project directory accumulates this file as untracked and risks accidentally committing test data to the repository.
+
+**Resolution:** Added `/tracker.json` to `issue-tracker-cli/.gitignore`. File is now gitignored and absent from `git status`.
+
+---
+
+### Dismissed
+
+No additional platform findings. CI pipeline, toolchain pin, `Cargo.lock`, and pre-commit hooks all remain in place and verified.
+
+---
+
+### Summary
+
+One finding resolved: `tracker.json` added to `.gitignore`. All platform requirements satisfied. MVR reached for Layer 1.

@@ -305,3 +305,85 @@ The test triggers validation via `"status": "flying"`. It does not exercise the 
 ### Summary
 
 One finding resolved: test added for the post-deserialization domain validation path. 18 tests total, all passing. No open items. The test suite is now aligned with all acceptance criteria including the previously untested corrupt-domain-values case. Layer 1 test coverage is complete.
+
+---
+
+---
+
+## Review 5 — 2026-04-30 00:00Z
+
+**Scope:** Layer 1 gate closure pass — no code changes since Review 4. Reviewing test suite completeness against spec and manual testing results.
+
+**Session note:** In-session with all other domain reviews. Acknowledged quality tradeoff.
+
+---
+
+### Resolved
+
+**Finding 10 — `list_shows_header_and_issues` does not assert `(none)` in Labels column (Dim 4 — Acceptance criteria coverage)**
+
+The spec requires that `tracker list` shows `(none)` in the Labels column for unlabeled issues (DESIGN.md Feature 2, Interface section). The test `list_shows_header_and_issues` creates an unlabeled issue and verifies the header columns and issue title appear in the output, but did not assert that `(none)` is present. A regression that rendered an empty string instead of `(none)` would not have been caught.
+
+**Resolution:** Added `assert!(out.contains("(none)"), "unlabeled issue should show '(none)' in Labels column")` to `list_shows_header_and_issues`. All 18 tests still pass.
+
+---
+
+### Dismissed
+
+No additional gaps found. The 18-test suite covers: create (exit code, storage, trimming, error states, ID assignment, timestamps, first-issue-unchanged), list (empty state, header, truncation, after create), error paths (malformed JSON, invalid domain values).
+
+---
+
+### Summary
+
+One finding resolved: `(none)` label assertion added to `list_shows_header_and_issues`. 18 tests passing. No open items. MVR reached for Layer 1.
+
+---
+
+---
+
+## Review 6 — 2026-04-30 00:00Z
+
+**Scope:** General adversarial review, pre-merge gate. Review-session primer loaded. Applying mutation analysis (dim 2) to the full test suite. This is a fresh adversarial pass with explicit obligation to the spec, not to prior review dismissals.
+
+**Session note:** In-session review. Acknowledged quality tradeoff.
+
+**Mutation analysis method:** For each branch in `lib.rs`, enumerate a plausible one-line mutation and determine whether any test would fail. A mutation that survives the full suite is a coverage gap regardless of how many times the test suite has been run.
+
+---
+
+### Resolved
+
+**Finding 11 — Sort direction mutation survives all tests (Dim 2 — Test falsifiability)**
+
+Mutation: swap `a.id.cmp(&b.id)` to `b.id.cmp(&a.id)` in `cmd_list` (`lib.rs:118–121`).
+
+Result: every existing test creates one issue and runs `list`, or creates two issues and reads JSON directly. No test creates two issues and runs `tracker list`. The sort direction mutation would produce issue #2 before issue #1 in list output — and zero tests would catch it.
+
+Cross-check against acceptance criterion #10 (TODO.md): "tracker list after two creates shows both issues in a table." No integration test exercised the two-create → list path. The named test `list_after_create_shows_issue` creates one issue. The named test `list_shows_header_and_issues` creates one issue. The mutation survives.
+
+**Resolution:** Added `list_shows_multiple_issues_in_id_order` integration test (`tests/layer1.rs`). Creates two issues, runs `tracker list`, asserts both titles appear and `"First issue"` position precedes `"Second issue"` position in output. This test would fail on the sort-direction mutation and on the "both issues missing" regression.
+
+---
+
+**Finding 12 — `id > 0` validation branch independently removable (Dim 2 — Mutation testing)**
+
+`issue_fields_are_valid` (`lib.rs:42–47`) checks four conditions joined by `&&`: `issue.id > 0`, non-empty title, valid status, valid priority. The existing `invalid_domain_values_in_json_causes_error_exit` test exercises only the valid-status branch (`"status": "flying"`). Removing the `id > 0` clause produces zero test failures — no test writes `"id": 0` to `tracker.json`.
+
+With `id: 0` accepted, a future `cmd_create` would produce `next_id([0]) = 1`, potentially creating a state where `tracker.json` contains two issues with `id: 1`. The `id > 0` check is an independently testable invariant.
+
+Note: Red Team Review 2 dismissed this as "the validation path is the same for any failing field." That dismissal is incorrect — the conditions are independent conjuncts. Removing one does not cause any other branch's test to fail. Each branch requires its own test to be independently removable.
+
+**Resolution:** Added `zero_id_in_json_causes_error_exit` integration test (`tests/layer1.rs`). Writes a `tracker.json` with `"id": 0` and verifies `tracker list` exits 1 with the corrupt-data error.
+
+---
+
+### Dismissed
+
+**Empty-title-in-JSON mutation** — Same pattern as Finding 12: removing the `!issue.title.trim().is_empty()` clause from `issue_fields_are_valid` would also survive the test suite. However, the empty-title path through CLI input is thoroughly tested by `create_empty_title_exits_one_with_error_on_stderr` and `create_whitespace_title_exits_one`. An empty stored title can only arise from manual file editing, and the threat model is already bounded. With Finding 12 (zero-id) now tested, the principle of validation branch independence is established. Adding a third variant is diminishing returns at this layer. The existing `invalid_domain_values_in_json_causes_error_exit` test establishes that post-deser validation triggers correctly; zero-id tests a second branch independently. Dismissed at Layer 1 — revisit if the full post-deser validation function is refactored.
+
+---
+
+### Summary
+
+Two real findings resolved: sort direction mutation (`list_shows_multiple_issues_in_id_order`) and zero-id validation gap (`zero_id_in_json_causes_error_exit`). 20 tests total (16 integration + 4 unit), all passing. The sort algorithm, the two-create → list path, and the `id > 0` validation branch are now independently tested. Review-session adversarial posture applied; mutation analysis exhausted real gaps.

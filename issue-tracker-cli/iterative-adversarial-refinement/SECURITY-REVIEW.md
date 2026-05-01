@@ -235,3 +235,19 @@ Both the JSON parse failure and domain validation failure produce the same user-
 One real finding resolved: post-deserialization domain validation was absent and is now implemented. `cargo audit` passes with 0 advisories. No panic surface on user-facing paths. The attack surface remains extremely small: single hardcoded file path, no network, no auth, all user input validated at the CLI boundary. The implementation now treats both structurally-malformed and semantically-invalid file data as corrupt, as required by the spec.
 
 **Coordination:** Finding 1 resolved jointly with Data Engineer Review 3 (domain validation) and Red Team Review 2 (crafted-file attack). QE Review 4 added the corresponding test (`invalid_domain_values_in_json_causes_error_exit`).
+
+---
+
+---
+
+## Review 4 — 2026-04-30 00:00Z
+
+**Scope:** Layer 1 gate closure pass — no code changes since Review 3.
+
+**Session note:** In-session with all other domain reviews. Acknowledged quality tradeoff.
+
+---
+
+### Dismissed
+
+No new security concerns. Post-deserialization validation in place. Pre-commit hooks (including `detect-private-key`) active. `cargo audit` 0 advisories. Attack surface unchanged. **No Security findings.** MVR reached for Layer 1.

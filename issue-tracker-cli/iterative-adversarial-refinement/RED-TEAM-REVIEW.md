@@ -161,3 +161,19 @@ A `tracker.json` with `"id": 0` is now caught by the `issue.id > 0` check in `is
 ### Summary
 
 Both deferred findings from Review 1 resolved: `.unwrap()` discipline verified (no panic surface on user-facing paths); supply chain audit clean (0 advisories). The crafted-file attack path (Finding 1) is now mitigated by post-deserialization validation. The tool's attack surface is as small as its deployment context warrants. Maximum viable refinement reached for Layer 1.
+
+---
+
+---
+
+## Review 3 — 2026-04-30 00:00Z
+
+**Scope:** Layer 1 gate closure pass — no code changes since Review 2.
+
+**Session note:** In-session with all other domain reviews. Acknowledged quality tradeoff.
+
+---
+
+### Dismissed
+
+No new attack surface. All prior findings resolved. **No Red Team findings.** MVR reached for Layer 1.

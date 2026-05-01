@@ -269,3 +269,57 @@ Layer 1 has no status-change handler. No mutation path exists that could touch `
 No real findings in the added validation code. The `CORRUPT_DATA_ERROR` constant deduplication is correct. The `VALID_STATUSES`/`VALID_PRIORITIES` constants are appropriately scoped for Layer 1. The `issue_fields_are_valid()` validation is correct and defensive. `created_at` immutability remains deferred to the Layer 2 status-change implementation. SE Review 5 takes that deferred item.
 
 **Deferred to SE Review 5 (Layer 2 implementation):** Verify that the status-change handler does not write to `created_at`.
+
+---
+
+---
+
+## Review 5 — 2026-04-30 00:00Z (general adversarial pass)
+
+**Scope:** Layer 1 gate closure pass — no code changes since Review 4 except test assertion added (`(none)` in `list_shows_header_and_issues`). Reviewing test change and deferred item status.
+
+**Session note:** In-session with all other domain reviews. Acknowledged quality tradeoff.
+
+---
+
+### Dismissed
+
+**Test assertion added (`(none)` in Labels column)** — The assertion `assert!(out.contains("(none)"))` added to `list_shows_header_and_issues` is correct. `cmd_list` renders `"(none)"` when `issue.labels.is_empty()` (lib.rs:129–131). The assertion validates the correct branch.
+
+**Deferred item (`created_at` immutability)** — No status-change handler exists. Deferred item remains at SE Review 5 (Layer 2).
+
+**No SE findings.** MVR reached for Layer 1.
+
+---
+
+---
+
+## Review 6 — 2026-04-30 00:00Z
+
+**Scope:** General adversarial review, pre-merge gate. Review-session primer loaded. Applying Rust SE supplement. Assumption surfacing on library behavior.
+
+**Session note:** In-session review. Acknowledged quality tradeoff.
+
+---
+
+### Resolved
+
+**Finding 5 — No `#![deny(clippy::unwrap_used)]` at crate level (Rust SE Supplement — Clippy lint configuration)**
+
+The Rust SE supplement specifies the standard deny set includes `clippy::unwrap_used`. The CI runs `cargo clippy -- -D warnings` which denies all default-warning lints, but `clippy::unwrap_used` is not a default-warning lint — it requires explicit opt-in. The `.unwrap()` in `save_issues` (`lib.rs`) has its safety documented only in the IAR review logs, not at the call site. A future developer introducing a second `.unwrap()` on a user-facing path would face no CI enforcement.
+
+**Resolution:** Added `#![deny(clippy::unwrap_used)]` to `lib.rs` line 1. Added `#[allow(clippy::unwrap_used)]` with an inline safety comment on the `serde_json::to_string_pretty` call in `save_issues`. Fixed the unit test `title_trimmed_before_storage` to use `assert_eq!(validate_title(...), Ok(...))` instead of `.unwrap()`. Clippy clean verified.
+
+---
+
+### Dismissed
+
+**`PRIORITY_ORDER` constant position (`lib.rs:90`)** — The constant is defined between `cmd_create` and `priority_rank`. In Rust, constant position does not affect visibility or compilation. This is a style preference, not a defect.
+
+**`truncate_with_ellipsis` underflow risk for `max_chars = 0`** — The function subtracts 1 from `max_chars` (usize), which would wrap to `usize::MAX` if `max_chars = 0`. However, the function is private and is only called with hardcoded constants `50` and `20`. The risk is hypothetical for the current call sites and unreachable in practice.
+
+---
+
+### Summary
+
+One finding resolved: `#![deny(clippy::unwrap_used)]` added to enforce inline safety documentation on any future `.unwrap()` use. The single existing `.unwrap()` is annotated with an inline safety rationale. All dismissed findings are structural observations with no defect implications.
