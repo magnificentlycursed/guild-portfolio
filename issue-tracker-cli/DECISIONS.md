@@ -14,6 +14,10 @@ Key decisions made during the spec phase, with rationale. Source: IAR review log
 - SA Review 1, Finding 3
 - Why: a stored `next_id` counter introduces a sync invariant that must be maintained across all writes and can fall out of sync with manual file edits. Computing the next ID from the existing maximum is simpler, has no failure mode, and is fast enough for any realistic issue count.
 
+**Top-level JSON array storage format** — `tracker.json` is a top-level `[Issue]` array, not a wrapped object `{"issues": [...]}`.
+- SO Review 7 (approved), QE Review 2 / Data Engineer Review 2 (raised)
+- Why: the original wrapper object contained two top-level keys (`"issues"` and `"next_id"`). SA Review 1 removed `"next_id"` as unnecessary complexity. After that removal, the wrapper contained a single key with no peers and added no information. A top-level array is simpler to deserialize (`serde_json::from_str::<Vec<Issue>>`) and is more idiomatic for a homogeneous collection.
+
 **`description` field absent (not null) when not provided** — serialize `None` as a missing key, not `"description": null`.
 - Data Engineer Review 1, Finding 2
 - Why: absent and null carry different semantics in JSON. Omitting the key makes forward compatibility cleaner — a future schema that assigns meaning to `null` is unambiguous.
@@ -61,6 +65,14 @@ Key decisions made during the spec phase, with rationale. Source: IAR review log
 **Description stored verbatim** — no trimming of leading/trailing whitespace.
 - DESIGN.md (implicit in Feature 1 specification)
 - Why: a user providing a description with intentional formatting or leading whitespace has expressed intent. Unlike titles (where leading whitespace is almost always accidental), descriptions are free-form. Title trimming is title-specific.
+
+---
+
+## Code Quality Enforcement
+
+**`#![deny(clippy::unwrap_used)]` at crate level** — enforced in `lib.rs`; any `unwrap()` in future layers requires an inline `#[allow]` with a comment explaining why it is safe.
+- SE Review 6 (general adversarial pass)
+- Why: the single `unwrap()` in `save_issues` was verified safe in review logs but had no CI enforcement. A future developer adding a second `unwrap()` on a user-facing path would face no automated check. Enforcing at crate level forces explicit inline justification for every `unwrap()`, making safety analysis visible at the call site rather than only in the review history.
 
 ---
 

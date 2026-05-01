@@ -1,5 +1,66 @@
 # Changelog
 
+## Layer 1 gate closure — 2026-04-30 00:00Z
+
+**Scope:** Post-implementation IAR iterations, gate closure work. No new features. No changes to the Layer 1 behavioral contract.
+
+### Added
+
+- **`tests/layer1.rs`** — Two new integration tests:
+  - `list_shows_multiple_issues_in_id_order` — creates two issues, runs `tracker list`, asserts both titles appear and issue #1 precedes issue #2 (guards sort direction and two-issue list coverage; general adversarial review finding).
+  - `zero_id_in_json_causes_error_exit` — writes `"id": 0` to `tracker.json`, asserts corrupt-data error exit (independently tests the `id > 0` validation branch in `issue_fields_are_valid`; general adversarial review finding).
+  - Total: 20 tests (16 integration + 4 unit), all passing.
+
+- **`issue-tracker-cli/.pre-commit-hooks/check-no-home-paths.sh`** — Shell hook rejecting staged files that contain `$HOME` (resolved at runtime; no username hardcoded). Platform Engineer Review 4 finding.
+
+- **`.pre-commit-config.yaml`** (git root) — Pre-commit framework configuration: `detect-private-key`, `no-commit-to-branch` (main), `no-home-dir-paths` (local hook). Platform Engineer Review 1–3 deferred item closed.
+
+- **`PROCESS.md`** — Layer 1 process retrospective: phases, findings caught by IAR, and session notes.
+
+### Changed
+
+- **`src/lib.rs`** — `#![deny(clippy::unwrap_used)]` added at crate level; `#[allow(clippy::unwrap_used)]` with inline safety rationale added at the `serde_json::to_string_pretty` call in `save_issues`; unit test `title_trimmed_before_storage` converted from `.unwrap()` to `assert_eq!` form (SE general adversarial review finding).
+
+- **`src/lib.rs`** — `///` doc comments added to all public items: `Issue` struct, `validate_title`, `next_id`, `current_timestamp`, `load_issues`, `save_issues`, `cmd_create`, `cmd_list`. `cargo doc --no-deps` clean (TW Review 4 finding).
+
+- **`issue-tracker-cli/.gitignore`** — Added `/tracker.json` to prevent accidental commits of local test data (Platform Engineer Review 5 finding).
+
+- **`TODO.md`** — Layer 1 manual testing checklist all checked; status note updated.
+
+### IAR — Gate closure reviews
+
+- **General adversarial review (review-session primer):** QE Review 6 (sort direction + zero-id mutation); SE Review 6 (clippy::unwrap_used); TW Review 4 (rustdoc). Three findings resolved.
+- **IAR suite (pre-gate closure pass):** QE Review 5 (`(none)` label assertion), Platform Review 5 (tracker.json gitignore). Two findings resolved.
+- **Platform Review 4:** Pre-commit hooks configured; username leakage in prior review log text caught and removed; git history rewritten with `git filter-repo` to remove one historical username occurrence.
+- **VDD-IAR Alignment Review 7:** Gate confirmed ready to merge. Premature MVR signals from Reviews 5–6 corrected by adversarial pass.
+
+---
+
+## Layer 1 — 2026-04-28 05:30Z
+
+**Scope:** VSDD Phase 2a (Red Gate) + Phase 2b (Implementation). `tracker create` and `tracker list` commands, core data model, storage layer.
+
+### Added
+
+- **`src/lib.rs`** — Core library: `Issue` struct (serde Serialize/Deserialize), `validate_title`, `next_id`, `current_timestamp`, `load_issues`, `save_issues`, `cmd_create`, `cmd_list`. Post-deserialization domain validation in `load_issues` rejects issues with invalid status, priority, ID, or empty title as corrupt data (Security Review 3 / Data Engineer Review 3 finding).
+
+- **`src/main.rs`** — CLI entrypoint using clap derive: `tracker create "<title>"` and `tracker list` subcommands wired to library command handlers.
+
+- **`Cargo.toml`** — Runtime dependencies: `serde` 1.x (derive), `serde_json` 1.x, `clap` 4.x (derive), `chrono` 0.4.
+
+- **`tests/layer1.rs`** — 14 integration tests covering the full Layer 1 acceptance criteria (create, list, error states, storage correctness, timestamp invariants, truncation). Includes `invalid_domain_values_in_json_causes_error_exit` added in IAR Review 4 (QE Review 4 finding).
+
+- **`src/lib.rs` unit tests** — 4 unit tests covering `validate_title` and `next_id`.
+
+### IAR — Layer 1 Reviews
+
+- **QE Review 3 (cold-session):** Truncation test sharpened (asserts exact 49-char prefix); `create_first_issue_unchanged_after_second_create` extended to cover `labels`, `created_at`, `updated_at`; `malformed_json` test updated to assert distinguishing suffix of the parse-failure message.
+- **SE Review 3 (cold-session):** 5 dismissed findings. No defects. `created_at` immutability confirmed.
+- **QE Review 4 / Security Review 3 / Data Engineer Review 3:** Post-deserialization domain validation gap identified and resolved — `load_issues` now validates all field domain values after deserialization. New test `invalid_domain_values_in_json_causes_error_exit` added. 18 tests total, all passing.
+- **All other domains:** No additional findings. See domain review logs for full detail.
+
+---
+
 ## Spec phase — 2026-04-27 21:00Z
 
 **Scope:** VSDD Phase 1 (Spec Crystallization) and Phase 1b (Decomposition). No implementation code. All changes are specification, planning, and process artifacts.

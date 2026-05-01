@@ -18,6 +18,8 @@ Regression check: verify that data handling controls established in prior layers
 
 **Coordination:** Flag findings that overlap with [SECURITY-REVIEW.md](SECURITY-REVIEW.md) (PII in logs or error output), [DATA-ENGINEER-REVIEW.md](DATA-ENGINEER-REVIEW.md) (retention enforcement at the data layer), [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md) (pre-commit hooks for PII detection), and [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) (architectural decisions that create unnecessary data collection).
 
+**DESIGN.md change authority:** If a finding requires a change to `DESIGN.md`, classify it "Raised to SO" and document the proposed change and rationale. Do not apply the change. `DESIGN.md` is a controlled spec document — the Solution Owner is the sole domain authorized to modify it.
+
 **Sycophancy check:** Privacy is the dimension most often dismissed as "not applicable yet" or "we'll handle this when we have users." An agent will not proactively flag privacy concerns — it will implement what was asked without considering whether what was asked is appropriate to collect. The adversary must apply privacy pressure before data collection exists in the codebase, not after. A privacy debt incurred at implementation is far more expensive to resolve after data exists than before.
 
 **Language and interface supplement:** No supplement required — privacy is language-agnostic. The data collected and its handling are the artifact; the language is incidental.

@@ -57,13 +57,13 @@ Issues are stored in `tracker.json` in the directory where you run the command. 
 
 ## Status
 
-**Spec complete. Implementation in progress.**
+**Layer 1 implementation complete. Layer 2 not started.**
 
 - [x] DESIGN.md — full behavioral specification
 - [x] TODO.md — 7-layer development plan with Red Gate test plans
 - [x] DECISIONS.md — key design decisions with rationale
 - [x] IAR suite — 10 domains reviewed
-- [ ] Layer 1: Core create + list
+- [x] Layer 1: Core create + list
 - [ ] Layer 2: Status flow
 - [ ] Layer 3: Priority
 - [ ] Layer 4: Labels
@@ -80,4 +80,5 @@ Issues are stored in `tracker.json` in the directory where you run the command. 
 | `DESIGN.md` | Full behavioral specification — preconditions, postconditions, error states, edge cases |
 | `TODO.md` | Layered development plan with acceptance criteria, manual testing checklists, Red Gate test plans |
 | `DECISIONS.md` | Key design decisions with rationale |
+| `PROCESS.md` | Layer-by-layer process retrospective — what was built, what was caught by IAR, what was learned |
 | `iterative-adversarial-refinement/` | IAR review logs for all 10 active domains |

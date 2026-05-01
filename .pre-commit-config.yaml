@@ -1,0 +1,23 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: detect-private-key
+      - id: no-commit-to-branch
+        args: ['--branch', 'main']
+
+  - repo: local
+    hooks:
+      - id: no-home-dir-paths
+        name: block local home directory paths
+        language: script
+        entry: issue-tracker-cli/.pre-commit-hooks/check-no-home-paths.sh
+        pass_filenames: true
+        types: [text]
+
+      - id: cargo-fmt-check
+        name: cargo fmt (issue-tracker-cli)
+        language: system
+        entry: bash -c 'cd issue-tracker-cli && cargo fmt --check'
+        pass_filenames: false
+        files: ^issue-tracker-cli/.*\.rs$

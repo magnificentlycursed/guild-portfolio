@@ -134,3 +134,115 @@ Layer 6 delivers three distinct capabilities: `--description` on create, `tracke
 
 One real finding resolved (Layer 1 sort algorithm specification). Two dismissed. The decomposition is architecturally sound: each layer delivers an independent, verifiable capability; layer ordering is correct (each layer depends only on previous layers); no structural debt is introduced between layers.
 
+---
+
+---
+
+## Review 3 — 2026-04-27 22:00Z
+
+**Scope:** Layer 1 stub architecture — `Cargo.toml`, `src/main.rs`, `src/lib.rs`, `tests/layer1.rs`. Evaluating structural decisions, API boundary, and whether the stub introduces any architectural debt before implementation begins.
+
+**Session note:** In-session with all other Layer 1 domain reviews. Acknowledged quality tradeoff.
+
+---
+
+### Dismissed
+
+**Finding 1 — Library/binary split (`lib.rs` / `main.rs`) adds a crate boundary for a small binary (Dim 9 — complexity budget)**
+
+The project declares both `[[bin]]` and `[lib]` targets in `Cargo.toml`, creating a `lib.rs` library and a `main.rs` binary that uses it. For a small CLI tool, this is more structure than a `main.rs`-only approach.
+
+**Classification:** Dismissed. The split is architecturally correct and not premature. The unit tests in `lib.rs` require the library target — integration tests in `tests/` test the binary via subprocess, but unit tests for `validate_title` and `next_id` must compile the library directly. Without a `[lib]` target, unit tests would have to be in `main.rs` as `#[test]` functions, which is a known antipattern for CLI binaries (it pollutes the binary entry point and makes it harder to test in isolation). The split is justified by the testing architecture.
+
+---
+
+**Finding 2 — The `tracker()` helper in `tests/layer1.rs` is not extracted to a shared test helper module (Dim 4)**
+
+The `tracker()` function will be duplicated in every `tests/layerN.rs` file. It could be in a `tests/common/mod.rs` shared module.
+
+**Classification:** Dismissed. Premature abstraction. Only one test file exists. The helper is three lines. When `tests/layer2.rs` exists, the duplication is two instances — below the threshold for extraction. Extract when Layer 3 or Layer 4 introduces a third file, or when the helper grows beyond argument-building (e.g., if it gains environment variable setup).
+
+---
+
+**Finding 3 — `validate_title` returns `Result<String, String>` rather than a richer error type (Dim 3)**
+
+See SE Review 2 Finding 2.
+
+**Classification:** Dismissed. Cross-reference with SE Review 2 Finding 2 — the dismissal rationale applies architecturally as well. `String` errors are appropriate for a tool whose only error-handling action is printing to stderr. No error variant routing is needed.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+Three dismissed findings — all hallucinated or premature concerns. The stub architecture is minimal, correct, and non-debt-generating. Library/binary split is justified by the testing architecture. No new structural findings.
+
+---
+
+---
+
+## Review 4 — 2026-04-28 05:30Z
+
+**Scope:** Layer 1 full implementation — `src/lib.rs`, `src/main.rs`, `Cargo.toml`. Evaluating the implemented architecture: module structure, data flow, separation of concerns, and whether the implementation introduces any architectural debt for future layers.
+
+**Session note:** In-session with Layer 1 IAR suite. Acknowledged quality tradeoff.
+
+---
+
+### Dismissed
+
+**Finding 1 — `VALID_STATUSES` and `VALID_PRIORITIES` are hardcoded string slice constants rather than enums (Dim 3 — Type safety)**
+
+The implementation uses `const VALID_STATUSES: &[&str] = &["open", "in-progress", "done"]` for validation rather than a `Status` enum. `Issue.status` is typed as `String`. An enum would make invalid status values unrepresentable after deserialization.
+
+**Classification:** Dismissed. Layer 1 does not implement status change or status parsing from user input — all new issues receive the hardcoded `"open"`. The `VALID_STATUSES`/`VALID_PRIORITIES` constants are used only in the post-deserialization corruption check. Introducing enums now would require custom serde implementations and add complexity before the feature that needs the enum exists (Layer 2 status change, Layer 3 priority parsing). The correct time to introduce enums is when the parsing layer is implemented. At that point, the type system can enforce validity rather than runtime checks. No architectural debt at Layer 1 — the string-based model is explicitly temporary and the validation constants are already in place.
+
+---
+
+**Finding 2 — `cmd_create` and `cmd_list` are in `lib.rs`, not a commands module (Dim 4 — Cohesion)**
+
+The library module contains both data model types, pure functions (`validate_title`, `next_id`), I/O functions (`load_issues`, `save_issues`), and command handlers (`cmd_create`, `cmd_list`). As more commands are added, this module will grow.
+
+**Classification:** Dismissed at Layer 1. Two commands do not justify module decomposition. When five commands exist (Layer 6 implementation complete), splitting into `lib/storage.rs`, `lib/validate.rs`, and `lib/commands.rs` would be appropriate. The SA Review 3 principle (don't extract until three instances exist) applies here. Layer 6 is the right point to revisit module structure.
+
+---
+
+**Finding 3 — `priority_rank` returns `usize::MAX` for unknown priorities (Dim 1 — defensive fallback)**
+
+Reviewed in SE Review 3 / SA Review 4 context. With post-deserialization validation now in place (`VALID_PRIORITIES.contains(&issue.priority.as_str())`), any issue loaded from storage has a valid priority. The `usize::MAX` fallback in `priority_rank` is now structurally unreachable for issues from storage — it would only trigger for issues constructed incorrectly in code, which doesn't happen. The fallback remains a safe defensive pattern.
+
+**Classification:** Dismissed. The `usize::MAX` fallback is now doubly safe: the validation gate prevents invalid priorities from reaching `priority_rank`, and the fallback handles the hypothetically-impossible case. No action needed.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+Three dismissed findings. The Layer 1 architecture is clean and appropriate. The `lib.rs` structure will require module decomposition at Layer 6 — this is the correct time to do it, not now. Enum-based status/priority types are deferred to Layer 2/3. No architectural debt introduced at Layer 1.
+
+---
+
+---
+
+## Review 5 — 2026-04-30 00:00Z
+
+**Scope:** Layer 1 gate closure pass — no code changes since Review 4.
+
+**Session note:** In-session with all other domain reviews. Acknowledged quality tradeoff.
+
+---
+
+### Dismissed
+
+No architectural concerns. The Layer 1 architecture is unchanged and all prior findings remain resolved. **No SA findings.** MVR reached for Layer 1.
+

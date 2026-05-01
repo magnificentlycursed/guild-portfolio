@@ -290,6 +290,119 @@ The assignment says "optional description." The spec treated empty-string descri
 
 ---
 
+## Review 7 — 2026-04-27 22:00Z
+
+**Scope:** Layer 1 Red Gate tests — scope compliance, spec alignment, and pending DESIGN.md change decision. Artifacts reviewed: `DESIGN.md` (current state after change was applied), `tests/layer1.rs`, QE Review 2, Data Engineer Review 2.
+
+**Session note:** In-session. Acknowledged quality tradeoff. This is not the cold-session review required at the merge gate — that remains open.
+
+**Adversarial posture (review-session primer applied):** SO did not participate in writing the spec, the tests, or the prior domain reviews. DESIGN.md and the proposed change are read fresh. A change to DESIGN.md was applied before this review ran — SO's obligation is to evaluate it independently and approve or revert.
+
+### Compliance Table
+
+| Layer 1 acceptance criterion | Covered by Red Gate test | Notes |
+|---|---|---|
+| `tracker create "Fix bug"` exits 0, prints confirmation | `create_valid_title_exits_zero_and_prints_confirmation` | ✓ |
+| Empty title exits 1, stderr | `create_empty_title_exits_one_with_error_on_stderr` | ✓ |
+| Whitespace-only title exits 1 | `create_whitespace_title_exits_one` | ✓ |
+| Title is trimmed before storage | `create_trims_title` | ✓ |
+| Issue stored in tracker.json | `create_stores_issue_in_json` | ✓ |
+| Second create gets id=2 | `create_second_issue_gets_id_2` | ✓ |
+| First issue unchanged after second create | `create_first_issue_unchanged_after_second_create` | ✓ |
+| `created_at == updated_at` on fresh issue | `create_timestamps_equal_on_fresh_issue` | ✓ |
+| `tracker list` with no file shows empty state | `list_with_no_json_shows_empty_state` | ✓ |
+| List shows header and issues | `list_shows_header_and_issues` | ✓ |
+| List shows created issue | `list_after_create_shows_issue` | ✓ |
+| Title truncated at 50 chars with `…` | `list_truncates_title_at_50_chars_with_ellipsis` | ✓ |
+| Malformed JSON causes error exit | `malformed_json_causes_error_exit` | ✓ |
+
+---
+
+### Escalations received
+
+- **QE Review 2, Finding 1** — Integration tests assume a top-level JSON array; DESIGN.md specifies `{"issues": [...]}`. Two resolution options proposed: fix tests or simplify spec. DESIGN.md change authority deferred to SO.
+- **Data Engineer Review 2, Finding 1** — Same finding from the schema layer; DE recommends the top-level array as the simpler and more idiomatic Rust representation.
+
+---
+
+### Adversarial evaluation of the applied DESIGN.md change
+
+The change was applied before this review ran. SO reads it cold and evaluates whether it stands.
+
+**Question 1 — Does the assignment constrain the storage file format?**
+
+The assignment requires a local JSON file named `tracker.json`. It does not specify the internal JSON structure. Both a wrapped object and a top-level array satisfy the assignment. The format is within SO authority to specify.
+
+**Question 2 — Was the wrapped format `{"issues": [...]}` justified by something that still holds?**
+
+The original storage spec had two top-level keys: `"issues": [...]` and `"next_id": n`. A wrapper object made sense as the container for two peers. SA Review 1 (Finding 3) removed `"next_id"` as unnecessary complexity for a single-user tool computing `max(ids) + 1` at create time. After that removal, the wrapper object contains a single key. It adds a JSON nesting level and a string key that carry no information. The original justification does not hold.
+
+**Question 3 — Does DESIGN.md contain stale `"issues"` JSON key references?**
+
+Searched DESIGN.md for all occurrences of the word `issues`. Every occurrence is generic English prose referencing the tracked work items ("no two issues share the same ID", "no issues match the given filters"). No occurrence references the removed JSON key. The change is complete.
+
+**Question 4 — Does the top-level array introduce any risks not present in the wrapped format?**
+
+One concern: a top-level array cannot accommodate future top-level metadata keys (e.g., a schema version field) without a breaking format change; a wrapped object can. Assessed: (a) no metadata key is in scope; (b) no version migration is planned; (c) the assignment is a single-user personal tool with no versioning requirement; (d) speculating a future metadata need to justify present complexity is the same reasoning SA Review 1 rejected when it removed `"next_id"`. The concern does not justify retaining the wrapper.
+
+**Verdict: APPROVE.** The change is assignment-compliant, correctly motivated by the removal of `"next_id"` in SA Review 1, complete (no stale references), and produces a simpler spec and a simpler implementation.
+
+---
+
+### Resolved
+
+**Finding 1 — Storage format: wrapped object vs. top-level array (Dim 9 / SO change authority)**
+
+**Received from:** QE Review 2 Finding 1, Data Engineer Review 2 Finding 1.
+
+Following independent adversarial evaluation above: the `{"issues": [...]}` wrapper lost its justification when SA Review 1 removed `"next_id"`. The top-level array is correct, assignment-compliant, and simpler.
+
+**Resolution approved:** DESIGN.md storage format stands as `[Issue]` (top-level array). Empty-tracker invariant reads "empty array." No stale references remain. The integration tests in `tests/layer1.rs` are correct as written. No test changes required.
+
+---
+
+### Dismissed
+
+**Finding 2 — No test for unknown subcommand (Dim 1)**
+
+Layer 7 scope. `unknown_subcommand_exits_one` is documented in TODO.md Layer 7.
+
+**Classification:** Dismissed. Correctly deferred.
+
+---
+
+**Finding 3 — No test for `--help` in Layer 1 (Dim 1)**
+
+Layer 7 scope.
+
+**Classification:** Dismissed. Correctly deferred.
+
+---
+
+### Process finding — raised to VDD-IAR
+
+**Process violation: DESIGN.md was changed before this SO review ran.**
+
+The correct sequence is: domain raises finding → SO evaluates → SO applies or rejects the change. The actual sequence was: domain raises finding → DESIGN.md changed → SO evaluates after the fact. The change happened to be correct and is approved, but the authority chain was inverted. This is a dim 8 (role integrity) concern. Raised to VDD-IAR Alignment for assessment. The change itself stands; the process must not recur.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+DESIGN.md change independently evaluated and approved. The `{"issues": [...]}` wrapper lost its justification when SA Review 1 removed `"next_id"`; the top-level array is the correct simplification. No stale references. All 13 Red Gate tests are in-scope for Layer 1. One process finding raised to VDD-IAR: DESIGN.md was changed before SO review ran.
+
+**Cold-session gate still open:** At least one cold-session domain review (QE or Security) required before Layer 1 implementation code merges.
+
+---
+
+---
+
 ## Review 6 — 2026-04-27 20:00Z
 
 **Scope:** Full DESIGN.md cold-session pass — assignment compliance (dim 9), scope coverage (dim 1), internal consistency (dim 7), scope creep (dim 2). No implementation exists; review is spec-only.
@@ -354,3 +467,91 @@ Two real findings. One resolved (column width inconsistency — spec update requ
 All three prior in-session concerns (dim 9 slippage from spec authorship context) are addressed: the only genuine assignment-compliance gap (delete confirmation signal) is documented and dismissed with rationale. No scope creep found beyond what prior reviews addressed. No under-delivery.
 
 **Spec is ready for Layer 1 to open.**
+
+---
+
+---
+
+## Review 8 — 2026-04-28 05:30Z
+
+**Scope:** Layer 1 implementation — spec compliance audit. Verifying the implementation satisfies all Layer 1 acceptance criteria, no scope creep, and documentation is current.
+
+**Session note:** In-session with Layer 1 IAR suite. Acknowledged quality tradeoff.
+
+---
+
+### Resolved
+
+**Finding 1 — README.md status block was stale (Dim 9 — Scope/documentation accuracy)**
+
+README.md showed Layer 1 implementation as unchecked (`- [ ] Layer 1: Core create + list`) after Layer 1 implementation was complete. Also the status line read "Spec complete. Implementation in progress." which was accurate during Layer 1 implementation but should be updated to reflect Layer 1 being complete.
+
+**Resolution:** Updated README.md:
+- `- [ ] Layer 1: Core create + list` → `- [x] Layer 1: Core create + list`
+- Status line updated to: `Layer 1 implementation complete. Layer 2 not started.`
+
+---
+
+**Finding 2 — DECISIONS.md missing storage format decision (Dim 9 — Decision documentation)**
+
+DECISIONS.md was created in TW Review 1 with spec-phase decisions. The storage format change (top-level array vs. wrapped object) — a significant SO Review 7 decision — was not recorded. A reader of DECISIONS.md would not find the rationale for why `tracker.json` is a top-level array.
+
+**Resolution:** Added entry to DECISIONS.md: "Top-level JSON array storage format" with rationale referencing SO Review 7, the removal of `next_id` from SA Review 1, and the simplicity argument.
+
+---
+
+### Dismissed
+
+**Finding 3 — Post-deserialization validation was absent (Dim 2 — Spec compliance)**
+
+DESIGN.md Storage edge cases explicitly required that invalid domain values in valid JSON trigger the corrupt-data error. The initial Layer 1 implementation did not implement this. Security Review 3 identified and resolved the gap. This is the correct process: domain identifies → escalation → resolution.
+
+**Classification:** Dismissed. The gap is resolved. SO's role here is to confirm the resolution is spec-compliant — it is. The error message and behavior match DESIGN.md exactly.
+
+---
+
+**Finding 4 — Layer 1 scope: no features beyond `create` and `list` (Dim 1)**
+
+Verified: `main.rs` defines only `Create` and `List` subcommands. No `status`, `show`, or `delete` subcommands exist. `lib.rs` implements only `cmd_create` and `cmd_list`. No `--priority`, `--label`, or `--description` flags are wired in Layer 1. The scope matches TODO.md Layer 1's "Not in this layer" constraint.
+
+**Classification:** Dismissed. Scope compliance confirmed.
+
+---
+
+**Finding 5 — CHANGELOG.md missing Layer 1 implementation entry (Dim 9 — Documentation currency)**
+
+Observed and resolved by TW Review 2 in coordination with this review. CHANGELOG.md was updated with a Layer 1 implementation entry before this finding was classified.
+
+**Classification:** Dismissed. Resolved by TW Review 2.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+Two real findings resolved: README.md Layer 1 status stale (fixed), DECISIONS.md missing storage format decision (added). Two dismissed. No open items. The implementation is spec-compliant, scope-correct, and documentation is now current.
+
+---
+
+---
+
+## Review 9 — 2026-04-30 00:00Z
+
+**Scope:** Layer 1 gate closure pass — no spec or documentation changes since Review 8 other than gate closure records (TODO.md manual checklist, IAR log updates).
+
+**Session note:** In-session with all other domain reviews. Acknowledged quality tradeoff.
+
+---
+
+### Dismissed
+
+**Layer 1 scope compliance** — `tracker create` and `tracker list` only. No Layer 2+ features introduced. Scope discipline maintained. ✓
+
+**Documentation currency** — README, CHANGELOG, TODO all current. Manual testing checklist complete. DECISIONS.md complete. ✓
+
+**No SO findings.** MVR reached for Layer 1.

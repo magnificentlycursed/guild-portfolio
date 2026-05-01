@@ -11,32 +11,34 @@ Phase: 1 (TODO.md is source of truth)
 **Goal:** The user can create an issue by title and see it in a list that persists across invocations.
 
 **Acceptance Criteria:**
-- [ ] `cargo new tracker` project compiles with `cargo build` — no errors
-- [ ] `tracker create "Fix bug"` exits 0 and prints exactly `Created issue #1: Fix bug`
-- [ ] `tracker create "  Fix bug  "` stores the title as `Fix bug` (trimmed) and prints `Created issue #1: Fix bug`
-- [ ] `tracker create ""` exits 1 and prints `Error: Title cannot be empty.` to stderr (nothing on stdout)
-- [ ] `tracker create "   "` exits 1 and prints `Error: Title cannot be empty.` to stderr
-- [ ] After `tracker create "Fix bug"`, `tracker.json` exists and contains an issue object with `id=1`, `title="Fix bug"`, `status="open"`, `priority="medium"`, `labels=[]`, `created_at` and `updated_at` as ISO 8601 UTC timestamps
-- [ ] `created_at` and `updated_at` are equal on a freshly created issue
-- [ ] Second `tracker create` produces `id=2`; `tracker.json` contains both issues; first issue is unchanged
-- [ ] `tracker list` with no `tracker.json` prints `No open issues. Nice work!` and exits 0
-- [ ] `tracker list` after two creates shows both issues in a table with header row: `ID`, `Status`, `Priority`, `Labels`, `Title`
-- [ ] List output uses the full sort algorithm (priority descending, then ID ascending within the same priority tier); since all issues default to `medium` priority at this layer, the effective output order is ID ascending. The sort algorithm must be the full algorithm from the start — not a simplified ID-only sort that would require refactoring in Layer 3.
-- [ ] Title truncates at 50 characters with `…` in list output; full title is stored untruncated in `tracker.json`
-- [ ] `tracker.json` containing malformed JSON causes any command to exit 1 and print `Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.` to stderr
+- [x] `cargo new tracker` project compiles with `cargo build` — no errors
+- [x] `tracker create "Fix bug"` exits 0 and prints exactly `Created issue #1: Fix bug`
+- [x] `tracker create "  Fix bug  "` stores the title as `Fix bug` (trimmed) and prints `Created issue #1: Fix bug`
+- [x] `tracker create ""` exits 1 and prints `Error: Title cannot be empty.` to stderr (nothing on stdout)
+- [x] `tracker create "   "` exits 1 and prints `Error: Title cannot be empty.` to stderr
+- [x] After `tracker create "Fix bug"`, `tracker.json` exists and contains an issue object with `id=1`, `title="Fix bug"`, `status="open"`, `priority="medium"`, `labels=[]`, `created_at` and `updated_at` as ISO 8601 UTC timestamps
+- [x] `created_at` and `updated_at` are equal on a freshly created issue
+- [x] Second `tracker create` produces `id=2`; `tracker.json` contains both issues; first issue is unchanged
+- [x] `tracker list` with no `tracker.json` prints `No open issues. Nice work!` and exits 0
+- [x] `tracker list` after two creates shows both issues in a table with header row: `ID`, `Status`, `Priority`, `Labels`, `Title`
+- [x] List output uses the full sort algorithm (priority descending, then ID ascending within the same priority tier); since all issues default to `medium` priority at this layer, the effective output order is ID ascending. The sort algorithm must be the full algorithm from the start — not a simplified ID-only sort that would require refactoring in Layer 3.
+- [x] Title truncates at 50 characters with `…` in list output; full title is stored untruncated in `tracker.json`
+- [x] `tracker.json` containing malformed JSON causes any command to exit 1 and print `Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.` to stderr
 
 **Not in this layer:** `--priority`, `--label`, `--description`, `--status` filter, `tracker status`, `tracker show`, `tracker delete`
 
 **Manual Testing Checklist:**
-- [ ] Happy path: from a clean directory (no `tracker.json`), run `tracker create "First issue"` → verify exit 0, output `Created issue #1: First issue`, `tracker.json` created
-- [ ] Run `tracker create "Second issue"` → output `Created issue #2: Second issue`; open `tracker.json` and confirm both issues present, first issue unchanged
-- [ ] Run `tracker list` → verify table shows both issues with correct header, both with status `open`, priority `medium`, labels `(none)`
-- [ ] Empty state: delete `tracker.json`, run `tracker list` → output is exactly `No open issues. Nice work!`
-- [ ] Error state — empty title: `tracker create ""` → verify exit 1, stderr shows `Error: Title cannot be empty.`, no `tracker.json` created (or existing data unchanged)
-- [ ] Error state — whitespace title: `tracker create "   "` → same error
-- [ ] Error state — malformed JSON: write `{bad json}` to `tracker.json`, run `tracker list` → exit 1, stderr shows corrupt-file message
-- [ ] Persistence: create two issues, reinstall binary with `cargo install --path .`, run `tracker list` → data is intact
-- [ ] Long title: create an issue with a 60-character title → `tracker list` shows the title truncated at 50 chars with `…`; `tracker.json` stores the full 60-char title
+- [x] Happy path: from a clean directory (no `tracker.json`), run `tracker create "First issue"` → verify exit 0, output `Created issue #1: First issue`, `tracker.json` created
+- [x] Run `tracker create "Second issue"` → output `Created issue #2: Second issue`; open `tracker.json` and confirm both issues present, first issue unchanged
+- [x] Run `tracker list` → verify table shows both issues with correct header, both with status `open`, priority `medium`, labels `(none)`
+- [x] Empty state: delete `tracker.json`, run `tracker list` → output is exactly `No open issues. Nice work!`
+- [x] Error state — empty title: `tracker create ""` → verify exit 1, stderr shows `Error: Title cannot be empty.`, no `tracker.json` created (or existing data unchanged)
+- [x] Error state — whitespace title: `tracker create "   "` → same error
+- [x] Error state — malformed JSON: write `{bad json}` to `tracker.json`, run `tracker list` → exit 1, stderr shows corrupt-file message
+- [x] Persistence: create two issues, reinstall binary with `cargo install --path .`, run `tracker list` → data is intact
+- [x] Long title: create an issue with a 60-character title → `tracker list` shows the title truncated at 50 chars with `…`; `tracker.json` stores the full 60-char title
+
+**Layer 1 status: complete — all 18 Red Gate tests passing; manual testing complete; portfolio assessment gate interview deferred.**
 
 **Red Gate — tests to write first:**
 

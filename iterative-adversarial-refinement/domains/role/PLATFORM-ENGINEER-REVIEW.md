@@ -22,6 +22,8 @@ Regression check: verify that all pipeline gates and infrastructure controls ins
 
 **Coordination:** Flag any findings that should be surfaced to [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md), [UX-REVIEW.md](UX-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md), or [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). If this review suggests the need for a new IAR domain, log it as a finding.
 
+**DESIGN.md change authority:** If a finding requires a change to `DESIGN.md`, classify it "Raised to SO" and document the proposed change and rationale. Do not apply the change. `DESIGN.md` is a controlled spec document — the Solution Owner is the sole domain authorized to modify it.
+
 **Review posture:** Many PE dimensions are compliance checks — does X exist or not — rather than adversarial judgment calls requiring interpretation. The value is systematic coverage, not finding-count. Adversarial intensity applies most to judgment-dependent decisions: which sections are deemed inapplicable, what risk thresholds are accepted, and whether left-shift opportunities are being rationalized away. Scrutinize every "not applicable" determination — an agent that finds no applicable security scanning concerns in a published package, or no infrastructure concerns in a deployed application, is likely rationalizing rather than reviewing.
 
 **Sycophancy check:** The primary sycophancy risk in this domain is around applicability decisions and threshold acceptance, not binary existence checks. Flag any case where an inapplicable determination was made without examining whether it genuinely does not apply, and any case where an accepted risk was accepted without specific evidence of the risk level.

@@ -20,6 +20,8 @@ Regression check: verify that all previously-addressed accessibility improvement
 
 **Coordination:** Flag findings that overlap with [UX-REVIEW.md](UX-REVIEW.md) (cognitive accessibility, error messaging, affordances), [SECURITY-REVIEW.md](SECURITY-REVIEW.md) (ARIA attributes that leak implementation details), and [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md) (CI integration of automated accessibility scanning).
 
+**DESIGN.md change authority:** If a finding requires a change to `DESIGN.md`, classify it "Raised to SO" and document the proposed change and rationale. Do not apply the change. `DESIGN.md` is a controlled spec document — the Solution Owner is the sole domain authorized to modify it.
+
 **Sycophancy check:** Accessibility failures are the most commonly rationalized class of bug. "Users with disabilities aren't our target audience" is not a rationale — it is a scope decision that requires explicit justification and acceptance from the project owner. An agent reviewing its own accessibility implementation will frequently dismiss failures with "the semantic meaning is clear from context" or "screen reader users would understand this" without having tested with a screen reader. Every dismissed finding requires a specific, verifiable reason.
 
 **Language and interface supplement:** See the **UX** section of `../../lang/browser-app.md` for browser-specific accessibility dimensions (focus trap testing, contrast requirements, semantic HTML, reduced motion). Browser-app.md has no separate Accessibility section — the browser-specific accessibility content lives in its UX section. This domain goes deeper than those dimensions.

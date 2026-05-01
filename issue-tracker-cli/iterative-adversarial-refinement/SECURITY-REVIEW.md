@@ -107,3 +107,147 @@ No `Cargo.toml` exists yet. `cargo audit` cannot run. Deferred.
 One real finding resolved (post-deserialization validation gap). One accepted risk (plaintext storage). Two dismissed, two deferred. The threat model is well-bounded for this deployment context. The critical finding — treating deserialized file data as trusted — is now specified. The implementation must apply domain validation after deserialization, not only after JSON parsing.
 
 **Coordination:** Finding 1 is cross-referenced in Data Engineer log (schema validation) and Red Team log (crafted file attack). `cargo audit` deferred to Platform Engineer for CI gate setup.
+
+---
+
+---
+
+## Review 2 — 2026-04-27 22:00Z
+
+**Scope:** Layer 1 stub — `Cargo.toml`, `src/main.rs`, `src/lib.rs`, `tests/layer1.rs`. Evaluating security posture of the dependency declaration and stub code. No behavioral implementation exists.
+
+**Session note:** In-session with all other Layer 1 domain reviews. Acknowledged quality tradeoff.
+
+---
+
+### Resolved
+
+**Finding 6 (from Review 1) — `cargo audit` deferred because no Cargo.toml existed**
+
+`Cargo.toml` now exists. `cargo audit` can run. Dependency declaration:
+
+```toml
+[dev-dependencies]
+assert_cmd = "2"
+predicates = "3"
+serde_json = "1"
+tempfile = "3"
+```
+
+No `[dependencies]` section exists — the runtime binary has zero external crate dependencies. Dev-dependencies are only compiled into test binaries. The production binary surface area is exclusively the Rust standard library.
+
+`cargo audit` on a binary with no runtime dependencies will pass with no advisories. The audit becomes meaningful when runtime dependencies are declared (Layer 1 implementation: serde, serde_json, clap, or equivalent). At that point the CI `cargo audit` step will catch any known vulnerabilities in those crates.
+
+**Resolution:** Partially resolved. `cargo audit` is now runnable. The deferred finding is resolved for the stub phase. When runtime dependencies are declared during Layer 1 implementation, `cargo audit` must pass before the Layer 1 merge gate closes — this is already enforced by the CI pipeline.
+
+---
+
+### Dismissed
+
+**Finding 7 — Dev-dependencies included in test binaries (Dim 3)**
+
+`assert_cmd`, `predicates`, `serde_json`, `tempfile` are in `[dev-dependencies]`. They are not compiled into the production binary.
+
+**Classification:** Hallucinated. Dev-dependencies are a Cargo mechanism for test-only dependencies — they produce no additional attack surface in the shipped binary. `cargo build --release` does not compile dev-dependencies. The CI pipeline already runs `cargo build` (not `cargo test`) to produce the release binary. No concern.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+Review 1 Finding 6 resolved: `Cargo.toml` exists; `cargo audit` is now runnable on zero runtime dependencies and will pass. Full audit effectiveness contingent on runtime dependencies being declared during Layer 1 implementation. CI enforces `cargo audit` on every push. No new security findings in stub code.
+
+---
+
+---
+
+## Review 3 — 2026-04-28 05:30Z
+
+**Scope:** Layer 1 implementation — `src/lib.rs`, `src/main.rs`, `Cargo.toml`, `tests/layer1.rs`. Evaluating implementation security posture: input handling, file I/O, dependency audit, and post-deserialization validation from Review 1's findings.
+
+**Session note:** In-session with Layer 1 IAR suite. Acknowledged quality tradeoff. This is the implementation gate review; QE Review 3 (cold-session) satisfies the merge-gate cold-session requirement separately.
+
+**Adversarial posture (review-session primer applied):** I am reading this code as an attacker looking for inputs that produce undefined behavior, panics, or silent data corruption. The small attack surface is a conclusion to earn, not an assumption to start from.
+
+---
+
+### Resolved
+
+**Finding 1 — Post-deserialization validation not implemented (Dim 2 — Input validation)**
+
+Security Review 1, Finding 1 specified that `tracker.json` data must be treated as untrusted: semantically invalid field values in structurally-valid JSON must trigger the corrupt-data error path. DESIGN.md Storage edge cases explicitly states: "`tracker.json` contains valid JSON but invalid domain values (e.g., `"status": "flying"`, `"priority": ""`, `"id": 0`, `"title": ""`) → stderr `Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.` → exit 1."
+
+The Layer 1 implementation's `load_issues` in `lib.rs` called `serde_json::from_str::<Vec<Issue>>()` without any post-deserialization domain validation. A crafted `tracker.json` with `"status": "flying"` would deserialize successfully into the `Issue` struct (all fields are `String` typed), and `cmd_list` would then operate on the invalid data — silently sorting an issue with an unknown priority to the bottom of the list (via `usize::MAX` in `priority_rank`), hiding the corrupt record from the user rather than reporting the corruption.
+
+**Resolution:** Added `issue_fields_are_valid()` validation function and `CORRUPT_DATA_ERROR` constant to `lib.rs`. `load_issues` now validates each deserialized issue against domain constraints (positive ID, non-empty title after trim, valid status, valid priority) and returns `Err(CORRUPT_DATA_ERROR)` if any issue fails validation. Cross-referenced: Data Engineer Review 3, Red Team Review 2, QE Review 4.
+
+---
+
+### Accepted Risk
+
+**Finding 2 (Review 1, re-evaluated) — Plaintext storage**
+
+Unchanged from Review 1 assessment. Accepted.
+
+---
+
+### Dismissed
+
+**Finding 3 — `cargo audit` passes with 0 advisories (Dim 3 — Dependency audit)**
+
+Runtime dependencies declared: serde 1.x, serde_json 1.x, clap 4.x, chrono 0.4. `cargo audit` run against `Cargo.lock` (100 locked packages): 0 vulnerabilities found. The CI pipeline enforces this check on every push.
+
+**Classification:** Dismissed. No action required.
+
+---
+
+**Finding 4 — No unsafe `.unwrap()` on user-facing paths (Dim 2 — Panic surface)**
+
+Reviewed all `.unwrap()` in `lib.rs`:
+- `serde_json::to_string_pretty(issues).unwrap()` in `save_issues` — infallible for `Vec<Issue>` (all fields serializable; no NaN, no reference cycles). Previously dismissed in SE Review 3; confirmed here.
+- No `.unwrap()` on values derived from user input or external file content. The file-read and JSON-parse paths both return `Result` with `?` propagation.
+
+**Classification:** Dismissed. No panic surface on user-facing code paths.
+
+---
+
+**Finding 5 — `CORRUPT_DATA_ERROR` constant deduplicates error message (Positive observation)**
+
+Both the JSON parse failure and domain validation failure produce the same user-actionable error message. The refactored code uses a `const CORRUPT_DATA_ERROR: &str` shared between both code paths. This removes a potential future inconsistency where one path's message drifts from the other.
+
+**Classification:** Dismissed — observation noted positively. No action required.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+One real finding resolved: post-deserialization domain validation was absent and is now implemented. `cargo audit` passes with 0 advisories. No panic surface on user-facing paths. The attack surface remains extremely small: single hardcoded file path, no network, no auth, all user input validated at the CLI boundary. The implementation now treats both structurally-malformed and semantically-invalid file data as corrupt, as required by the spec.
+
+**Coordination:** Finding 1 resolved jointly with Data Engineer Review 3 (domain validation) and Red Team Review 2 (crafted-file attack). QE Review 4 added the corresponding test (`invalid_domain_values_in_json_causes_error_exit`).
+
+---
+
+---
+
+## Review 4 — 2026-04-30 00:00Z
+
+**Scope:** Layer 1 gate closure pass — no code changes since Review 3.
+
+**Session note:** In-session with all other domain reviews. Acknowledged quality tradeoff.
+
+---
+
+### Dismissed
+
+No new security concerns. Post-deserialization validation in place. Pre-commit hooks (including `detect-private-key`) active. `cargo audit` 0 advisories. Attack surface unchanged. **No Security findings.** MVR reached for Layer 1.
