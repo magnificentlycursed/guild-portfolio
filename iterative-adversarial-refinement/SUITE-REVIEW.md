@@ -114,6 +114,18 @@ SA dim 27 (data transmitted to external services) contains an explicit cross-ref
 
 **Resolution:** Added Privacy to SA coordination links with scoping note: "dim 27 — data transmitted to external services; cross-reference with Privacy dim 6 when Privacy is active."
 
+**Follow-up finding after session (resolved same session):**
+
+**Finding 6 — `implementation.md` Phase 2a missing explicit commit requirement before Phase 2b.**
+
+During Layer 2 implementation of issue-tracker-cli, Phase 2a was completed correctly (tests written, all confirmed failing in the working tree) but implementation began before the Red Gate state was committed. The result was a commit labeled "Red Gate — tests and stubs" that actually contained real implementations — the commit message was false. VDD-IAR Alignment dim 4 would have no way to verify test-first discipline from the commit history.
+
+The Phase 2a section had three steps (write tests, confirm they fail, confirm the failure reason) but no step requiring the Red Gate commit before Phase 2b begins. The Phase 2b transition said "Once the Red Gate is set and every new test is confirmed failing" — which a developer could satisfy entirely within a single session without ever committing the failing state.
+
+This is the same failure mode that VDD-IAR Alignment dim 4 detects from the outside: "implementation commits consistently precede any test commits." Here it was the process document itself that failed to prevent it.
+
+**Resolution:** Added step 4 to Phase 2a: "Commit the Red Gate state before Phase 2b begins. The commit is the boundary between phases — every file change after it is implementation. If implementation begins before this commit, the commit history cannot distinguish test-first from test-after, and VDD-IAR Alignment dim 4 cannot be verified." Updated Phase 2b transition to reference "set, confirmed failing, and committed."
+
 ---
 
 ## Gap Analysis Run 13 — 2026-04-28 08:00Z
