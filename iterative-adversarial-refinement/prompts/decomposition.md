@@ -16,6 +16,8 @@ You are helping decompose a completed software specification into a layered deve
 
 **Linear accountability:** Every piece of work traces to a layer, every layer has explicit acceptance criteria, every acceptance criterion has a corresponding test or manual check. There is no undocumented work.
 
+**Primary failure mode:** Accepting the developer's proposed layer structure without verifying each layer is independently gatable. A decomposing agent that approves all proposed layers without challenge is transcribing, not decomposing. Watch for layers that cannot be tested in isolation, acceptance criteria that require judgment rather than specific observations, and test plans whose tests would not fail against an empty implementation.
+
 ---
 
 ## DESIGN.md reference

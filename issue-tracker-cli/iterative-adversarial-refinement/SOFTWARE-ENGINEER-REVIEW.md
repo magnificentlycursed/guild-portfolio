@@ -323,3 +323,119 @@ The Rust SE supplement specifies the standard deny set includes `clippy::unwrap_
 ### Summary
 
 One finding resolved: `#![deny(clippy::unwrap_used)]` added to enforce inline safety documentation on any future `.unwrap()` use. The single existing `.unwrap()` is annotated with an inline safety rationale. All dismissed findings are structural observations with no defect implications.
+
+---
+
+---
+
+## Review 7 — 2026-05-01 00:00Z
+
+**Scope:** Layer 2 implementation — `src/lib.rs`, `src/main.rs`. Evaluating correctness, naming, error handling, and structural quality of Layer 2 additions.
+
+**Session note:** In-session with full Layer 2 IAR suite. Acknowledged quality tradeoff. Review-session primer applied.
+
+**Language supplement applied:** `lang/rust.md` (SE section) + `lang/cli.md` (SE section).
+
+**Deferred item from SE Review 4/5:** Verify that the status-change handler does not write to `created_at`. Verified: `cmd_status` mutates only `issue.status` and `issue.updated_at`. `issue.created_at` is not referenced. Deferred item discharged. ✓
+
+---
+
+### Resolved
+
+**Finding 1 — `cmd_status` uses `new_status.clone()` unnecessarily (Dim 7 — Unnecessary clone)**
+
+`lib.rs`:
+```rust
+issue.status = new_status.clone();
+issue.updated_at = current_timestamp();
+save_issues(issues_path, &issues)?;
+println!("Issue #{} status \u{2192} {}.", id, new_status);
+```
+
+`new_status` is cloned into `issue.status` (line 1) and then the original is used in `println!` (line 4). This allocates a second `String` unnecessarily.
+
+Naively replacing the clone with a move (`issue.status = new_status`) and reading `issue.status` in the `println!` caused a borrow conflict: the `&mut Issue` returned by `iter_mut().find()` holds a mutable borrow of `issues` that NLL extends through the `println!` line, conflicting with the immutable borrow `save_issues(issues_path, &issues)` requires.
+
+The correct fix replaces `iter_mut().find()` with `iter().position()`, returning a `usize` index instead of a `&mut Issue`. The index carries no borrow, so all three operations are borrow-conflict-free:
+
+```rust
+let idx = issues
+    .iter()
+    .position(|i| i.id == id)
+    .ok_or_else(|| format!("Issue #{} not found.", id))?;
+issues[idx].status = new_status;
+issues[idx].updated_at = current_timestamp();
+save_issues(issues_path, &issues)?;
+println!("Issue #{} status \u{2192} {}.", id, issues[idx].status);
+```
+
+`new_status` is moved into `issues[idx].status` (zero clones). `save_issues` takes an immutable borrow of `issues` after the index-based mutations complete. `println!` takes another immutable borrow after `save_issues` returns — no conflict.
+
+`clippy::needless_clone` does not catch the original case because `new_status` is used after the clone point, but the clone is unnecessary given the correct restructuring.
+
+**Resolution:** Refactored `cmd_status` from `iter_mut().find()` to `iter().position()`. `new_status` moved directly into `issues[idx].status`. `println!` reads `issues[idx].status`. Zero clones, no borrow conflict. `#![deny(clippy::unwrap_used)]` is unaffected. All 41 tests pass.
+
+---
+
+**Finding 2 — `parse_status` called `raw.to_lowercase()` twice (Dim 7 — Redundant allocation)**
+
+Before SA Review 6 fix:
+```rust
+match raw.to_lowercase().as_str() {
+    "open" | "in-progress" | "done" => Ok(raw.to_lowercase()),
+    ...
+}
+```
+`raw.to_lowercase()` allocated two `String`s for the common (success) path.
+
+**Classification:** Resolved by SA Review 6 Finding 1 — `parse_status` now uses `VALID_STATUSES` with a single `let lower = raw.to_lowercase()`. This finding is discharged by the SA fix.
+
+---
+
+### Dismissed
+
+**Finding 3 — `parse_id` collapses all error cases into one message (Dim 5 — Error specificity)**
+
+`parse_id("abc")`, `parse_id("0")`, and `parse_id("-5")` (parsed by u64 as a parse error) all produce the same message: `'<input>' is not a valid issue ID. Expected a positive integer.` The spec requires this message for all three cases (DESIGN.md Feature 3 error states). The implementation is spec-correct.
+
+**Classification:** Dismissed. The unified message is the spec-required behavior.
+
+---
+
+**Finding 4 — `parse_id` uses `.ok().filter().ok_or_else()` chain (Dim 6 — Readability)**
+
+```rust
+raw.parse::<u64>().ok().filter(|&n| n > 0).ok_or_else(|| format!(...))
+```
+
+This is idiomatic Rust for "parse → filter → convert to Result." An alternative with explicit `match` would be more verbose. The chain is correct and readable for someone familiar with Rust iterators.
+
+**Classification:** Dismissed. The chain is idiomatic and correct.
+
+---
+
+**Finding 5 — `created_at` immutability (deferred item discharged)**
+
+`cmd_status` does not reference `created_at`. The `Status` subcommand in `main.rs` passes only `id` and `status` strings to `cmd_status`. No code path in the Layer 2 additions touches `created_at`. Structural invariant holds. ✓
+
+**Classification:** Dismissed. Deferred item fully discharged at Layer 2.
+
+---
+
+**Finding 6 — No new `unwrap()` on user-facing paths (Dim 5)**
+
+`parse_status`, `parse_id`, `cmd_status`: no `.unwrap()` calls. The existing `save_issues` `.unwrap()` is unchanged and carries its inline safety comment. `#![deny(clippy::unwrap_used)]` continues to enforce documentation on any future `.unwrap()`.
+
+**Classification:** Dismissed. Clean.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+One real finding resolved: `cmd_status` refactored from `iter_mut().find()` to `iter().position()` — eliminates unnecessary `new_status.clone()` and the resulting borrow conflict. `new_status` is moved into `issues[idx].status`; `println!` reads `issues[idx].status`. Finding 2 discharged by the SA fix. `created_at` immutability deferred item fully discharged. No panic surface on user-facing paths. No new `.unwrap()` without safety documentation.

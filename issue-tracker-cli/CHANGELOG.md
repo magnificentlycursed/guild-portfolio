@@ -1,5 +1,30 @@
 # Changelog
 
+## Layer 2 — 2026-05-01 00:00Z
+
+**Scope:** VSDD Phase 2a (Red Gate) + Phase 2b (Implementation). `tracker status` command and `--status` filter for `tracker list`. All 16 Layer 2 acceptance criteria met; manual testing complete.
+
+### Added
+
+- **`src/lib.rs`** — `parse_status`: parses and normalizes status strings (case-insensitive; derives from `VALID_STATUSES` constant — single source of truth). `parse_id`: validates issue IDs as positive integers. `cmd_status`: implements `tracker status <id> <status>` — validates ID and status, finds issue by ID, updates `status` and `updated_at`, writes to storage.
+
+- **`src/main.rs`** — `Status` subcommand added with `id: String` and `status: String` positional arguments. `List` subcommand wired to pass `--status` flag value to `cmd_list`.
+
+- **`tests/layer2.rs`** — 18 integration tests covering all Layer 2 acceptance criteria: status change (happy path, JSON validation, timestamp refresh, field immutability, case-insensitive input, idempotent set), list status filtering (default excludes non-open, explicit status filter, open explicit == default, all-done empty state, no-match filter message), and all error paths (invalid ID string, zero ID, not found, invalid status value, invalid list filter). Total suite: 38 tests (34 integration + 4 unit), all passing.
+
+- **`src/lib.rs` unit tests** — 3 unit tests: `status_value_parsing_valid_cases`, `status_value_parsing_rejects_invalid`, `id_must_be_positive_integer`.
+
+### IAR — Layer 2 Reviews
+
+- **SA Review 6:** `parse_status` unified with `VALID_STATUSES` — single source of truth for valid status values. Previously `parse_status` had an independent match arm; now it iterates `VALID_STATUSES`. Eliminates the two-source-of-truth gap identified as a deferred item in SA Review 4.
+- **SE Review 7:** `cmd_status` refactored from `iter_mut().find()` to `iter().position()` — eliminates unnecessary `new_status.clone()` and the resulting borrow conflict. `new_status` moved into `issues[idx].status`; `println!` reads `issues[idx].status`. Zero clones.
+- **QE Review 7:** `list_nonempty_status_filter_with_no_match_shows_filter_message` added — verifies `--status done` with no matching issues prints "No issues match the given filters." Catches the `is_open_view` mutation that survived all 37 prior tests.
+- **SO Review 10:** CHANGELOG entry added; README status updated.
+- **All other domains:** No findings requiring code changes. Security, Platform, UX, Data Engineer, Red Team all reached MVR for Layer 2.
+- **VDD-IAR Review 8:** Dim 4 violation (Category B) logged and closed — `list_explicit_open_filter_matches_default` and `list_all_done_default_shows_empty_state` were written post-implementation without a named finding; both cover documented acceptance criteria (same disposition as `invalid_domain_values_in_json_causes_error_exit`, Layer 1). Two open gate items remain: cold-session review requirement (dim 6), second IAR pass to confirm MVR (dim 7).
+
+---
+
 ## Layer 1 gate closure — 2026-04-30 00:00Z
 
 **Scope:** Post-implementation IAR iterations, gate closure work. No new features. No changes to the Layer 1 behavioral contract.

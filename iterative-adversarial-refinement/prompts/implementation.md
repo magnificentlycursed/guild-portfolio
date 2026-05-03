@@ -31,6 +31,7 @@ Before writing any implementation:
 1. For each acceptance criterion in the layer plan, write the corresponding test.
 2. Run the test suite. Every new test must fail. A new test that passes against a stub or empty function body was not written first — revise it.
 3. Confirm the failure reason is what you expect: the test fails because the feature does not exist, not because of a setup error.
+4. **Commit the Red Gate state before Phase 2b begins.** A Red Gate that exists only in the working tree is not verifiable from the project history. The commit is the boundary between Phase 2a and Phase 2b — every file change after it is implementation. If implementation begins before this commit, the commit history cannot distinguish test-first from test-after, and VDD-IAR Alignment dim 4 cannot be verified.
 
 **Driving questions for test writing:**
 
@@ -49,10 +50,10 @@ Before writing any implementation:
 
 ## Phase 2b: Implementation
 
-Once the Red Gate is set and every new test is confirmed failing:
+Once the Red Gate is set, every new test is confirmed failing, and the Red Gate state is committed:
 
 1. Implement to make failing tests pass — no more, no less.
-2. Do not add tests during implementation. If you discover a missing test, note it; add it in a separate commit after the current feature is working, so the Red Gate record is clean.
+2. Do not add tests during implementation. If you discover a missing test, note it; add it in a separate commit after the current feature is working, so the Red Gate record is clean. A retroactive test cannot satisfy the Red Gate (the implementation exists before the test fails), so log it as a **Red Gate deviation** in the commit message and review log: "retroactive Red Gate: [behavior name] — discovered during Phase 2b, test added post-implementation, confirmed passes against current implementation." This is a known limitation, not a workaround. Do not silently add retroactive tests without the label.
 3. Do not implement features not covered by a failing test. If a feature seems obviously needed but has no test, that is a spec gap — surface it rather than silently implementing it.
 4. After each feature is complete, run the full test suite. No previously-passing test may begin failing. A regression requires a fix before moving to the next feature.
 

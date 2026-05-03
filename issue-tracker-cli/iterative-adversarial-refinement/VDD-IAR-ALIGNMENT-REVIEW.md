@@ -495,3 +495,79 @@ One item remains open for director decision: rustdoc coverage on public `lib.rs`
 - [~] Portfolio assessment gate interview — deferred by director decision
 - [x] rustdoc on public `lib.rs` items (TW Review 4)
 
+---
+
+---
+
+## Review 8 — 2026-05-01 00:00Z
+
+**Scope:** Layer 2 implementation — full process compliance evaluation. Artifacts reviewed: `DESIGN.md`, `TODO.md`, `src/lib.rs`, `src/main.rs`, `tests/layer2.rs`, all Layer 2 IAR domain logs. Run last, per sequencing guidance.
+
+**Program phase:** Phase 1. Crosslink not yet introduced. Dim 11 not applicable.
+
+**Session note:** In-session with full Layer 2 IAR suite. Same model as builder. Single-session batch across all domains. Acknowledged quality tradeoff. Review-session primer applied. Prior in-session quality tradeoff carries forward.
+
+---
+
+### Dismissed
+
+**Dim 1 (Design-before-code)** — DESIGN.md was complete (post-IAR spec phase) before any Layer 2 code was written. Layer 2 features (`tracker status`, `--status` filter) are specified in Feature 2 and Feature 3 of DESIGN.md with full preconditions, postconditions, and error states. ✓
+
+**Dim 2 (Decomposition)** — `TODO.md` Layer 2 acceptance criteria were in place before implementation. 16 acceptance criteria and 8 manual testing checklist items are documented and all checked. ✓
+
+**Dim 5 (Human verification)** — Layer 2 manual testing checklist (TODO.md) is fully checked. The developer ran the binary and verified the Layer 2 behaviors before this IAR pass. ✓
+
+**Dim 8 (Role integrity)** — Human director directed Layer 2 implementation and this IAR pass. Agent implemented and reviewed as directed. ✓
+
+---
+
+### Open
+
+**Finding 1 — Dim 4 (Test discipline): Two tests in `tests/layer2.rs` are not in the TODO.md Red Gate plan**
+
+`list_explicit_open_filter_matches_default` and `list_all_done_default_shows_empty_state` appear in `tests/layer2.rs` but are not listed in the TODO.md Layer 2 Red Gate test plan. Both cover Layer 2 acceptance criteria that ARE documented in TODO.md.
+
+**Director classification (2026-05-02):** Both tests were written after implementation. No IAR finding claims credit for either — no log entry requested them, and QE Review 7 noted their existence but escalated rather than took ownership. Most likely origin: written informally during the implementation pass as manual checklist items were converted to code, not in response to a named finding.
+
+**Classification: Dim 4 violation, Category B (coverage gap) — closed.**
+
+- Category A (scope creep): not applicable — both tests cover explicitly documented acceptance criteria.
+- Category B (coverage gap): both tests cover spec-required behavior that was in the manual testing checklist but was not translated into Red Gate tests before implementation began. This is the violation.
+- Category C (finding-driven): no evidence — no IAR finding in any log requested these tests.
+
+Mitigating factors: both tests are falsifiable and would fail against a stub; neither introduces scope beyond the spec; the implementation was spec-driven regardless of test timing. The process gap is narrowly that these two acceptance criteria items were not pre-specified as failing Red Gate tests.
+
+Precedent: same category and same disposition as `invalid_domain_values_in_json_causes_error_exit` (Layer 1, VDD-IAR Review 4): logged as a gap, noted, closed. No retroactive test remediation required.
+
+---
+
+**Finding 2 — Dim 6 (IAR fresh context): No cold-session review conducted for Layer 2**
+
+The entire Layer 2 IAR suite was run in a single session with the same model that built the implementation. VDD-IAR Review 2 established a precedent for Layer 1: "At least one cold-session domain review (QE or Security) must be conducted before Layer 1 merges." The same quality requirement applies to Layer 2.
+
+**Classification: Open — gates Layer 2 merge.** Before Layer 2 merges, at least one domain review (QE or Security recommended) must be conducted in a fresh session with no access to this session's context. This mirrors the Layer 1 gate requirement.
+
+---
+
+**Finding 3 — Dim 7 (IAR iteration): This is the first IAR pass for Layer 2; MVR not yet reached**
+
+By process definition, MVR requires the adversary to run until it produces only hallucinated findings. This is round 1. Real findings were produced (QE: missing test; SA: two sources of truth; SE: unnecessary clone; SO: stale docs). All real findings were resolved in this pass. A second pass is required to confirm MVR.
+
+**Classification: Open — gates Layer 2 merge.** A second IAR pass is required. If the second pass produces only hallucinated or dismissed findings, MVR is reached and the layer may merge. Note: the cold-session requirement (Finding 2) means the second pass should ideally be a cold session for at least one domain.
+
+---
+
+### Summary
+
+Layer 2 process is partially compliant. DESIGN.md preceded all code (dim 1 ✓), decomposition was in place (dim 2 ✓), manual verification complete (dim 5 ✓), role integrity intact (dim 8 ✓). Dim 4 violation (Category B) logged and closed. Two open items gate the merge: cold-session review requirement (dim 6) and second IAR pass to confirm MVR (dim 7).
+
+**Current Layer 2 merge gate status:**
+- [x] 41 tests passing (34 integration + 7 unit) — after QE Finding 1 fix
+- [x] Clippy clean, fmt clean
+- [x] `cargo audit`: 0 advisories
+- [x] All IAR domains run, all findings resolved or dismissed — Round 1
+- [x] Manual testing checklist completed (TODO.md, Layer 2)
+- [x] Director classification: two extra tests — dim 4 violation (Category B), logged and closed (VDD-IAR Finding 1)
+- [ ] Cold-session domain review (QE or Security) — required before merge
+- [ ] Second IAR pass to confirm MVR (VDD-IAR Finding 3)
+

@@ -15,8 +15,19 @@ enum Commands {
         /// Issue title
         title: String,
     },
-    /// List open issues
-    List,
+    /// List issues (default: open only)
+    List {
+        /// Filter by status: open, in-progress, done
+        #[arg(long)]
+        status: Option<String>,
+    },
+    /// Change an issue's status
+    Status {
+        /// Issue ID
+        id: String,
+        /// New status: open, in-progress, done
+        status: String,
+    },
 }
 
 fn main() {
@@ -25,7 +36,8 @@ fn main() {
 
     let result = match cli.command {
         Commands::Create { title } => tracker::cmd_create(&title, path),
-        Commands::List => tracker::cmd_list(path),
+        Commands::List { status } => tracker::cmd_list(status.as_deref(), path),
+        Commands::Status { id, status } => tracker::cmd_status(&id, &status, path),
     };
 
     if let Err(e) = result {

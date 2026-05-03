@@ -4,6 +4,21 @@ All notable changes to the IAR suite are recorded here. Entries are in reverse c
 
 ---
 
+## Unreleased — 2026-05-01 (session 18, follow-up)
+
+### Changed
+- **`prompts/decomposition.md`** — Added "Primary failure mode" paragraph to `## Prompt` section: names the specific failure mode for decomposition sessions (accepting all proposed layers without challenge). The governing standard requires the `## Prompt` section to name a primary failure mode; `decomposition.md` lacked this while `review-session.md` and others had explicit equivalents. Addresses finding from Review 16.
+- **`prompts/implementation.md`** — Updated Phase 2b item 2 to define the retroactive Red Gate deviation protocol. Retroactive tests (discovered during implementation) cannot satisfy the Red Gate; the primer now requires them to be labeled as deviations in commit message and review log. Addresses finding from Review 16.
+- **`prompts/spec-crystallization.md`** — Added dedicated `## Completion criteria` section with six numbered criteria drawn from VSDD Phase 1 standard. Removed embedded completion sentence from `## Self-adversary check` to avoid duplication. Structural consistency with `implementation.md` and `decomposition.md`. Addresses finding from Review 16.
+- **`GAP-ANALYSIS-LOG.md`** — Added G-86: No VSDD Phase 4 (Feedback Routing) session primer. Open.
+- **`SUITE-REVIEW.md`** — Review 16 logged: VDD-IAR and VSDD alignment review of all session primers in `prompts/`. 3 findings resolved, 2 hallucinated, 1 new gap registered (G-86).
+
+### Changed (follow-up — same session, post-violation detection)
+- **`prompts/implementation.md`** — Added Phase 2a step 4: explicit requirement to commit the Red Gate state before Phase 2b begins. The commit is the boundary between phases; implementation before that commit makes test-first discipline unverifiable from history. Updated Phase 2b opening to reference "set, confirmed failing, and committed." Finding surfaced by actual violation during Layer 2 implementation: Red Gate was confirmed in the working tree but not committed before implementations were written; the resulting "Red Gate" commit contained real implementations, not stubs.
+- **`SUITE-REVIEW.md`** — Finding 6 added to Review 16 record: describes the violation, the primer gap that permitted it, and the resolution.
+
+---
+
 ## Unreleased — 2026-04-27 (session 17)
 
 ### Changed

@@ -308,3 +308,53 @@ No additional platform findings.
 
 Finding 11 resolved: `cargo fmt --check` now runs as a pre-commit hook, closing the gap between local and CI formatting enforcement.
 
+---
+
+---
+
+## Review 7 — 2026-05-01 00:00Z
+
+**Scope:** Layer 2 implementation — platform impact assessment. No new CI changes, no new dependencies, no toolchain changes.
+
+**Session note:** In-session with full Layer 2 IAR suite. Acknowledged quality tradeoff.
+
+---
+
+### Dismissed
+
+**Finding 1 — Two Layer 2 tests sleep 1 second each (Dim 1 — CI runtime)**
+
+`status_change_refreshes_updated_at` and `status_idempotent_same_value_succeeds` each call `std::thread::sleep(Duration::from_secs(1))` to guarantee a different timestamp at second precision. This adds ≥2 seconds wall-clock to CI test runs.
+
+**Classification:** Accepted limitation. The 1-second sleep is the minimum required to test timestamp-refresh behavior at second precision (ISO 8601 per spec). The alternative — mocking `current_timestamp()` — would require making the timestamp function injectable, adding implementation complexity beyond Phase 1 scope. The CI overhead is bounded and documented.
+
+---
+
+**Finding 2 — No new Cargo dependencies (Dim 3)**
+
+Layer 2 added no runtime or dev-dependencies. `cargo audit` unchanged. ✓
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 3 — `cargo fmt --check` pre-commit hook active (Dim 10)**
+
+The hook added in Platform Review 6 correctly catches formatting violations before push. Layer 2 additions pass `cargo fmt --check`. ✓
+
+**Classification:** Dismissed. Hook functioning as expected.
+
+---
+
+**Finding 4 — `cargo clippy -- -D warnings` passes on Layer 2 additions (Dim 7)**
+
+Verified: `cargo clippy -- -D warnings` produces no warnings on the Layer 2 implementation. `#![deny(clippy::unwrap_used)]` continues to enforce the no-unwrap policy. ✓
+
+**Classification:** Dismissed.
+
+---
+
+### Summary
+
+No platform findings. CI pipeline, toolchain pin, `Cargo.lock`, and pre-commit hooks all unchanged and verified. One accepted limitation (1-second sleeps in timestamp tests). **No PE findings requiring action.** MVR reached for Layer 2.
+

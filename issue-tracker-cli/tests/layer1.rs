@@ -197,6 +197,12 @@ fn list_truncates_title_at_50_chars_with_ellipsis() {
         "expected 49 'A's + '…' in output:\n{out}"
     );
     assert!(!out.contains(&long_title), "full title should be truncated");
+    // Off-by-one guard: 50 content chars + ellipsis would be 51 display chars, exceeding the 50-char column limit
+    let not_expected = format!("{}…", "A".repeat(50));
+    assert!(
+        !out.contains(&not_expected),
+        "title must not truncate to 50 chars + ellipsis (would exceed 50-char display limit)"
+    );
 }
 
 // --- list ordering and multi-issue ---
