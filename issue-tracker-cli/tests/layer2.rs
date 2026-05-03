@@ -313,7 +313,7 @@ fn status_not_found_exits_one() {
         .assert()
         .failure()
         .code(1)
-        .stderr(predicate::str::contains("not found"))
+        .stderr(predicate::str::contains("Issue #99 not found."))
         .stdout("");
 }
 
@@ -340,4 +340,16 @@ fn list_invalid_status_filter_exits_one() {
         .code(1)
         .stderr(predicate::str::contains("Invalid status"))
         .stdout("");
+}
+
+#[test]
+fn list_nonempty_status_filter_with_no_match_shows_filter_message() {
+    let dir = TempDir::new().unwrap();
+    tracker(&dir).args(["create", "Fix bug"]).assert().success();
+    // Issue is open; listing --status done should find nothing and print the filter message
+    tracker(&dir)
+        .args(["list", "--status", "done"])
+        .assert()
+        .success()
+        .stdout("No issues match the given filters.\n");
 }

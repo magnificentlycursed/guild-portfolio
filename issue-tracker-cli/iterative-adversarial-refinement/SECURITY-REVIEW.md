@@ -251,3 +251,64 @@ One real finding resolved: post-deserialization domain validation was absent and
 ### Dismissed
 
 No new security concerns. Post-deserialization validation in place. Pre-commit hooks (including `detect-private-key`) active. `cargo audit` 0 advisories. Attack surface unchanged. **No Security findings.** MVR reached for Layer 1.
+
+---
+
+---
+
+## Review 5 — 2026-05-01 00:00Z
+
+**Scope:** Layer 2 implementation — new entry points: `tracker status <id> <status>` and `tracker list --status <s>`. Evaluating input validation, panic surface, and dependency audit.
+
+**Session note:** In-session with full Layer 2 IAR suite. Acknowledged quality tradeoff. Review-session primer applied.
+
+**Posture:** Looking for crash paths, validation gaps, and information exposure in the Layer 2 additions.
+
+---
+
+### Dismissed
+
+**Finding 1 — `parse_id` and `parse_status` validation coverage (Dim 2 — Input validation)**
+
+All user-supplied strings in Layer 2 are validated before use:
+- `parse_id`: rejects non-u64 strings and zero via `.parse::<u64>().ok().filter(|&n| n > 0)`. No panic. ✓
+- `parse_status`: rejects any string not in `{"open", "in-progress", "done"}` (now via `VALID_STATUSES` after SA Review 6). No panic. ✓
+- `cmd_list`: the `--status` flag value is validated via `parse_status` before any filtering. ✓
+
+**Classification:** Dismissed. Validation is complete and correct at all entry points.
+
+---
+
+**Finding 2 — No new `.unwrap()` on user-facing paths (Dim 2 — Panic surface)**
+
+`parse_id`, `parse_status`, `cmd_status`, and the updated `cmd_list` contain no `.unwrap()`. All error paths use `?` propagation. `#![deny(clippy::unwrap_used)]` enforces this. ✓
+
+**Classification:** Dismissed. Clean.
+
+---
+
+**Finding 3 — No new runtime dependencies (Dim 3 — Dependency audit)**
+
+Layer 2 added no crates. `cargo audit` runs against an unchanged `Cargo.lock`. 0 advisories. ✓
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 4 — `tracker status -1 done` treated as a flag by the CLI parser (Dim 2)**
+
+`parse::<u64>()` on a negative-looking string passed through the CLI will never be reached — clap treats `-1` as a flag name and produces a usage error at the argument parsing layer. This is the specified behavior (DESIGN.md Edge Cases / IDs). The implementation is correct.
+
+**Classification:** Hallucinated. The concern does not produce a new attack surface; the behavior is specified and handled by clap.
+
+---
+
+### Accepted Risk
+
+**Review 1 Finding 2 (plaintext storage)** — Unchanged. Layer 2 adds status mutation but does not change the storage model. Accepted.
+
+---
+
+### Summary
+
+No new security findings. Layer 2 adds two entry points; both are fully validated at the boundary. No panic surface. No new dependencies. Attack surface unchanged from Layer 1. **No Security findings.** MVR reached for Layer 2.

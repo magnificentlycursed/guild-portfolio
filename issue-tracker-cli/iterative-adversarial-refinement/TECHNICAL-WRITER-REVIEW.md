@@ -191,3 +191,72 @@ All seven public functions and the `Issue` struct had zero `///` doc comments.
 ### Summary
 
 One finding resolved: rustdoc coverage added to all public `lib.rs` items. `cargo doc --no-deps` clean. MVR reached for Layer 1.
+
+---
+
+---
+
+## Review 5 — 2026-05-01 00:00Z
+
+**Scope:** Layer 2 implementation — documentation completeness, currency, and handoff quality. Artifacts reviewed: `README.md`, `CHANGELOG.md`, `PROCESS.md`, `DECISIONS.md`, `src/lib.rs` public API, `tests/layer2.rs`.
+
+**Session note:** In-session with full Layer 2 IAR suite. Acknowledged quality tradeoff. Review-session primer applied.
+
+---
+
+### Resolved
+
+**Finding 1 (from SO Review 10) — CHANGELOG.md missing Layer 2 entry (Dim 8 — CHANGELOG quality)**
+
+Resolved by SO Review 10 Finding 1. CHANGELOG.md now has a Layer 2 entry. TW confirms the entry is present and documents the scope, features, tests, and IAR findings. ✓
+
+**Classification:** Resolved via SO Review 10.
+
+---
+
+**Finding 2 (from SO Review 10) — README.md status stale (Dim 1 — README accuracy)**
+
+Resolved by SO Review 10 Finding 2. README status block updated, Layer 2 checked, status line current. ✓
+
+**Classification:** Resolved via SO Review 10.
+
+---
+
+**Finding 3 — New public functions `parse_status` and `parse_id` have doc comments (Rust TW Supplement — rustdoc coverage)**
+
+`lib.rs` now exports `parse_status` and `parse_id`. Both have `///` doc comments:
+- `parse_status`: "Parses and normalizes a status string (case-insensitive)..."
+- `parse_id`: "Parses an issue ID from a string. Must be a positive integer (>= 1)."
+
+`cargo doc --no-deps` produces no warnings. ✓
+
+**Classification:** Dismissed. Rustdoc coverage maintained.
+
+---
+
+### Dismissed
+
+**Finding 4 — PROCESS.md developer reflection sections remain as placeholders (Dim 10 — Retrospective quality)**
+
+PROCESS.md Layer 1 has:
+- "What was hardest" — `*[Your reflection here...]*` placeholder
+- "What the process felt like" — `*[First-person reflection...]*` placeholder
+- "Layer 2 and beyond" — `*(To be written after each layer closes.)*`
+
+These sections require first-person developer input. TW cannot fill them in on behalf of the developer — they are a Portfolio Assessment concern, not a TW finding about documentation accuracy.
+
+**Classification:** Dismissed from TW. The sections are placeholders explicitly marked as developer-authored content. The structure is correct; the content is pending developer action. Cross-reference: Portfolio Assessment Review dim 4 (growth evidence) and dim 5 (failure honesty).
+
+---
+
+**Finding 5 — `tests/layer2.rs` `tracker()` helper is undocumented (Rust TW Supplement)**
+
+The test helper is three lines and its purpose is self-evident. No doc comment is needed on a private test helper.
+
+**Classification:** Hallucinated.
+
+---
+
+### Summary
+
+Two deferred findings from prior reviews resolved (CHANGELOG, README). Rustdoc coverage maintained on new public functions. PROCESS.md placeholders flagged as requiring developer input — not a TW-actionable gap. **No outstanding TW findings.** MVR reached for Layer 2.

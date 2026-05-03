@@ -177,3 +177,55 @@ Both deferred findings from Review 1 resolved: `.unwrap()` discipline verified (
 ### Dismissed
 
 No new attack surface. All prior findings resolved. **No Red Team findings.** MVR reached for Layer 1.
+
+---
+
+---
+
+## Review 4 — 2026-05-01 00:00Z
+
+**Scope:** Layer 2 implementation — adversarial evaluation of new entry points: `tracker status <id> <status>` and `tracker list --status <s>`.
+
+**Session note:** In-session with full Layer 2 IAR suite. Acknowledged quality tradeoff.
+
+**Posture:** Attempting to crash, corrupt data, or produce undefined behavior through crafted inputs and sequences.
+
+---
+
+### Dismissed
+
+**Finding 1 — Status string injection (CLI input path)**
+
+`tracker status 1 "done; rm -rf /"` — `parse_status` rejects any value not in `{"open", "in-progress", "done"}`. The string is never passed to a shell, never written to disk, never interpreted. The boundary is `VALID_STATUSES.contains(&lower.as_str())`. ✓
+
+**Classification:** Hallucinated. No injection surface exists.
+
+---
+
+**Finding 2 — Very large ID string**
+
+`tracker status 9999999999999999999999 done` — `parse::<u64>()` returns `Err` for values exceeding `u64::MAX`. No panic, no storage access, clean error message. ✓
+
+**Classification:** Hallucinated. `u64` parsing handles overflow correctly.
+
+---
+
+**Finding 3 — Rapid status toggling to produce timestamp collision**
+
+Two rapid `tracker status` invocations within the same second would produce identical `updated_at` timestamps (second precision). No state corruption results — the second write just overwrites with the same timestamp. The spec notes this: "`updated_at` after a status change is `>=` `updated_at` before the change" (allowing equal). ✓
+
+**Classification:** Hallucinated. The timestamp equality case is spec-defined and non-corrupting.
+
+---
+
+**Finding 4 — Crafted `tracker.json` with a status field not in `VALID_STATUSES`**
+
+Unchanged from Layer 1 analysis. `issue_fields_are_valid` catches this; `load_issues` returns `Err(CORRUPT_DATA_ERROR)` before any command executes. The mitigation is in place and unchanged. ✓
+
+**Classification:** Dismissed. Already mitigated; unchanged from Layer 1.
+
+---
+
+### Summary
+
+No new attack vectors. Layer 2 adds two entry points; both are fully validated. The attack surface remains the same bounded scope as Layer 1: no shell execution, no user-controlled file paths, all inputs validated before use. **No Red Team findings.** MVR reached for Layer 2.

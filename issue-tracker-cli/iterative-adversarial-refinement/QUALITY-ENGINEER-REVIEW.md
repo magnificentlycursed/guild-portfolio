@@ -387,3 +387,209 @@ Note: Red Team Review 2 dismissed this as "the validation path is the same for a
 ### Summary
 
 Two real findings resolved: sort direction mutation (`list_shows_multiple_issues_in_id_order`) and zero-id validation gap (`zero_id_in_json_causes_error_exit`). 20 tests total (16 integration + 4 unit), all passing. The sort algorithm, the two-create → list path, and the `id > 0` validation branch are now independently tested. Review-session adversarial posture applied; mutation analysis exhausted real gaps.
+
+---
+
+---
+
+## Review 7 — 2026-05-01 00:00Z
+
+**Scope:** Layer 2 implementation — `tests/layer2.rs`, `src/lib.rs` unit tests, `TODO.md` Red Gate plan. Evaluating test correctness, Red Gate compliance, acceptance criteria coverage, and mutation analysis.
+
+**Session note:** In-session with full Layer 2 IAR suite. Acknowledged quality tradeoff. Review-session primer applied. Adversarial obligation is to the spec, not the developer.
+
+**Language supplement applied:** `lang/rust.md` (QE section) + `lang/cli.md` (QE section).
+
+**Test count:** 17 integration tests in `tests/layer2.rs`, 3 unit tests added to `src/lib.rs` (`status_value_parsing_valid_cases`, `status_value_parsing_rejects_invalid`, `id_must_be_positive_integer`). Total suite: 37 tests (33 integration + 4 layer1 unit), all passing.
+
+---
+
+### Resolved
+
+**Finding 1 — No test for non-open status filter with empty results (Dim 2 — Test falsifiability)**
+
+The `is_open_view` logic in `cmd_list` controls which empty-state message appears:
+- `effective_status == "open"` → "No open issues. Nice work!"
+- anything else → "No issues match the given filters."
+
+Mutation: change `let is_open_view = effective_status == "open";` to `let is_open_view = true;`
+
+Result: `tracker list --status done` with no done issues would produce "No open issues. Nice work!" instead of "No issues match the given filters." **Zero of the 37 tests catch this mutation.**
+
+Cross-check against acceptance criteria: "Issues exist but none match the filters → prints `No issues match the given filters.`" (DESIGN.md Feature 2). No test exercises this path for `--status done` or `--status in-progress` producing zero results.
+
+**Resolution:** Added `list_nonempty_status_filter_with_no_match_shows_filter_message` to `tests/layer2.rs`. Creates one open issue, runs `tracker list --status done` (no done issues exist), asserts stdout = `No issues match the given filters.\n`. This test fails on the `is_open_view = true` mutation and passes on the correct implementation. All 38 tests pass.
+
+---
+
+### Dismissed
+
+**Finding 2 — Two tests beyond the Red Gate plan in TODO.md (Dim 4 — Red Gate compliance)**
+
+`tests/layer2.rs` contains 17 integration tests; the Red Gate plan in TODO.md lists 15. The two extra tests are:
+- `list_explicit_open_filter_matches_default`
+- `list_all_done_default_shows_empty_state`
+
+Both cover Layer 2 acceptance criteria (`tracker list --status open` behaves identically to default; all done → "Nice work!" on default view). Both are accurate and useful. The question is whether they were written before or after implementation — a Red Gate compliance question for VDD-IAR Alignment dim 4.
+
+From a QE perspective: both tests are falsifiable and would fail against a stub. They cover spec requirements. No quality concern about the tests themselves. The Red Gate sequence question is escalated to VDD-IAR Alignment Review.
+
+**Classification:** Dismissed from QE. Tests are correct. VDD-IAR evaluates timing.
+
+---
+
+**Finding 3 — `status_change_refreshes_updated_at` uses a 1-second sleep (Dim 1)**
+
+The test verifies that `updated_at` advances after a status change. It sleeps 1 second to guarantee a different timestamp at second precision (per spec: "ISO 8601, second precision"). The only alternative is a sub-second precision timestamp (out of scope) or a mocked clock (implementation complexity exceeding the scope). The sleep is the minimum correct test for second-precision timestamp semantics.
+
+**Classification:** Dismissed. The sleep is necessary and correctly motivated by the spec's second-precision requirement.
+
+---
+
+**Finding 4 — No integration test for `tracker status 1 IN-PROGRESS` (uppercase) end-to-end (Dim 1)**
+
+The acceptance criterion "`tracker status 1 IN-PROGRESS` (uppercase) exits 0; stored value is lowercase `in-progress`" is covered by the unit test `status_value_parsing_valid_cases` (tests `parse_status("IN-PROGRESS")`) and the integration test `status_is_case_insensitive_on_input` (tests "DONE" end-to-end). The integration path is: main.rs passes raw string → `cmd_status` → `parse_status`. The DONE integration test verifies the end-to-end path works for a case-insensitive value; the unit test verifies IN-PROGRESS parsing specifically.
+
+**Classification:** Hallucinated. The combination of the unit test (IN-PROGRESS) and the integration test (DONE end-to-end) provides sufficient coverage. An additional integration test for IN-PROGRESS would duplicate coverage with no additional falsifiability.
+
+---
+
+**Finding 5 — `status_change_leaves_other_fields_unchanged` does not assert `description` field (Dim 1)**
+
+The test asserts `id`, `title`, `priority`, `labels`, `created_at` are unchanged after a status update. It does not assert the `description` field.
+
+**Classification:** Dismissed. Layer 2 has no `--description` flag — all created issues have `description: None`, which serializes as absent (no key). A status change cannot produce a description field where none existed. `description` is Layer 6 scope; asserting it in Layer 2 would assert on a field that doesn't exist in the JSON output yet. No gap.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+One real finding resolved: `list_nonempty_status_filter_with_no_match_shows_filter_message` added — the `is_open_view` mutation now fails. 38 tests total (34 integration + 4 unit), all passing. Mutation analysis exhausted real gaps in the Layer 2 test suite. The Red Gate sequence question (two extra tests) is escalated to VDD-IAR Alignment.
+
+---
+
+---
+
+## Review 8 — 2026-05-02 00:00Z
+
+**Scope:** Cold-session adversarial pass over the full Layer 2 implementation. Files read: `DESIGN.md`, `src/lib.rs`, `src/main.rs`, `tests/layer1.rs`, `tests/layer2.rs`, `Cargo.toml`, `TODO.md`. All prior QE review findings verified as closed. Applying fresh adversarial pressure with obligation to the spec, not to the prior reviewer's conclusions.
+
+**Session note:** Cold session — reviewing code committed in prior sessions. Satisfies adversarial quality standard at the Layer 2 gate. No prior participation in implementation or in-session QE passes.
+
+**Test count correction:** Review 7 logged "38 tests (34 integration + 4 unit)." Actual count observed from `cargo test`: **41 tests** — 16 integration (layer1.rs) + 18 integration (layer2.rs) + 7 unit (lib.rs). The discrepancy of 3 is the layer2 unit tests (`status_value_parsing_valid_cases`, `status_value_parsing_rejects_invalid`, `id_must_be_positive_integer`) which were listed in Review 7's "Test count" note but excluded from the final tally. All 41 tests pass. Not a quality concern; the tests are correct.
+
+**Language supplement applied:** `lang/rust.md` (QE section) + `lang/cli.md` (QE section).
+
+**Assumption surfacing:** All library APIs verified: `serde_json::from_str::<Vec<Issue>>` for a top-level array (confirmed correct after SO Review 7 resolved the wrapped-vs-array question). `chrono::Utc::now()` is real-time UTC; `Option<String>` with `#[serde(skip_serializing_if = "Option::is_none")]` correctly omits absent fields. `Option<T>` deserialization in serde treats missing keys as `None` by default (no `#[serde(default)]` needed). No assumed-but-nonexistent APIs found.
+
+---
+
+### Resolved
+
+**Finding 1 — `list_truncates_title_at_50_chars_with_ellipsis` off-by-one mutation survives (Dim 2 — Test falsifiability)**
+
+QE Review 3, Finding 1 strengthened the truncation test to assert `"A".repeat(49) + "…"` — closing the gap against mutations that truncate shorter than 49 chars. The fix was correct but incomplete: the symmetric off-by-one mutation (truncating to 50 content chars + "…" = 51 display chars instead of the spec's max of 50) also survives.
+
+The mutation is `chars[..max_chars - 1]` → `chars[..max_chars]` in `truncate_with_ellipsis` (`lib.rs:168`). With `max_chars = 50` and a 60-char input, the mutation produces `"A".repeat(50) + "…"`. The existing assertion `out.contains("A".repeat(49) + "…")` returns `true` against this output because the 49-A pattern appears as a substring starting at byte offset 1: the sequence `[A×49][0xE2][0x80][0xA6]` is found within `[A×50][0xE2][0x80][0xA6]`. The second assertion `!out.contains(&long_title)` also passes — the output has 50 As, not 60.
+
+Both assertions pass on the mutated implementation. The mutation is undetected.
+
+The spec contract: "Title consuming the remainder up to 50 characters… Title truncates at 50 characters with `…` if longer." The mutation violates this by rendering 51 display characters for a truncated title.
+
+**Resolution:** Added a negative assertion to `list_truncates_title_at_50_chars_with_ellipsis` (`tests/layer1.rs`):
+
+```rust
+let not_expected = format!("{}…", "A".repeat(50));
+assert!(
+    !out.contains(&not_expected),
+    "title must not truncate to 50 chars + ellipsis (would exceed 50-char display limit)"
+);
+```
+
+This assertion fails on the off-by-one mutation (output contains `"A"×50 + "…"`) and passes on the correct implementation (output contains only `"A"×49 + "…"`). All 41 tests pass.
+
+---
+
+**Finding 2 — `status_not_found_exits_one` assertion does not verify the issue ID appears in the error (Dim 3 — Assertion strength)**
+
+The test asserts `predicate::str::contains("not found")` (`tests/layer2.rs`). The spec mandates: `Error: Issue #<id> not found.`
+
+A mutation that removes the issue ID from the format string in `cmd_status` (`lib.rs:146`) — changing `format!("Issue #{} not found.", id)` to `"Issue not found.".to_string()` — would:
+1. Produce stderr `"Error: Issue not found.\n"`
+2. Still satisfy `contains("not found")` — the test passes
+
+The ID is user-actionable: without it, the user has no way to confirm which issue was not found without re-examining their command. The error format is a spec contract, not implementation detail.
+
+The prior assertion pattern `contains("not found")` is also weaker than comparable error tests in the same file. `status_invalid_id_string_exits_one` checks `contains("not a valid issue ID")`, which uniquely identifies the error path. `contains("not found")` is too broad — any future error that happens to contain "not found" as a substring would satisfy it.
+
+**Resolution:** Updated `status_not_found_exits_one` in `tests/layer2.rs` to assert the spec-mandated full message:
+
+```rust
+.stderr(predicate::str::contains("Issue #99 not found."))
+```
+
+This assertion fails on both the ID-omission mutation and any routing to the wrong error handler. All 41 tests pass.
+
+---
+
+### Raised to SO
+
+**Finding 3 — Empty state messages on `stdout` may pollute piped output (CLI supplement dim 6)**
+
+DESIGN.md specifies that `tracker list` empty state messages go to `stdout`:
+- `"No open issues. Nice work!"` (default view, empty)
+- `"No issues match the given filters."` (explicit filter, no matches)
+
+The implementation follows the spec — both messages go via `println!()`. No finding against the implementation.
+
+The CLI supplement (dim 6) asks: "Is the empty message on `stderr` so it does not pollute piped output?" For example, `tracker list | wc -l` with an empty tracker would output `1` (counting the "Nice work!" line) rather than `0`. A user scripting against list output would need to distinguish data rows from empty state messages.
+
+This is a spec design choice, not an implementation bug. **Classification: Raised to SO.** DESIGN.md is the authoritative contract. QE does not modify it. Proposed question for SO: should empty state messages route to `stderr` to keep `stdout` clean for piped use? If yes, the implementation requires a corresponding change (`eprintln!` instead of `println!`), and the tests `list_with_no_json_shows_empty_state` and `list_all_done_default_shows_empty_state` require updating their `stdout`/`stderr` assertions.
+
+---
+
+### Dismissed
+
+**Dim 1 — Acceptance criteria:** All Layer 1 and Layer 2 acceptance criteria in `TODO.md` are marked complete. The implementation was verified against each: title trimming, ID assignment, timestamp equality, status defaults, sort ordering, status filter, error paths. No uncovered acceptance criterion found.
+
+**Dim 4 — Coverage meaningfulness:** Prior reviews did not measure coverage. No `cargo tarpaulin` or `cargo llvm-cov` is configured. The QE standard requires 80% minimum line coverage enforced in CI. However: (a) this project has no CI infrastructure; (b) the public API functions (`validate_title`, `next_id`, `parse_status`, `parse_id`, `load_issues`, `save_issues`, `cmd_create`, `cmd_list`, `cmd_status`) are all exercised by integration or unit tests; (c) the only unexercised paths are the write-permission-denied and `tracker.json`-is-a-directory I/O failures, which were explicitly dismissed in QE Review 1 Finding 6 as requiring OS-level setup. Coverage measurement is a valid gap but CI enforcement is a PE domain concern. **Dismissed from QE.** Escalated to Platform Engineer for CI configuration.
+
+**Dim 5 — Test architecture:** All integration tests use `TempDir` for isolation — each test gets its own temp directory, no shared file state, no ordering dependencies. The two timing-sensitive tests (`status_change_refreshes_updated_at`, `status_idempotent_same_value_succeeds`) use an explicit 1-second sleep, justified by the spec's second-precision timestamp contract and dismissed in Review 7 Finding 3. No flaky test patterns detected.
+
+**Dim 8 — Dead code:** All exported functions are reachable. `truncate_with_ellipsis` and `priority_rank` are private and called only from `cmd_list`. `issue_fields_are_valid` is private and called only from `load_issues`. No dead public exports.
+
+**Dim 9 — Unused dependencies:** `serde`, `serde_json`, `clap`, `chrono` all used. Dev dependencies `assert_cmd`, `predicates`, `tempfile` all used. None unused.
+
+**Dim 14 — TDD proxy indicators:** Tests call the implementation at its public interface (subcommand invocations via subprocess, or public function calls in unit tests). Test names are behavior-named. Red Gate compliance was verified in Reviews 2 and 7. No implementation coupling detected — the tests assert on outputs and stored JSON, not internal data structures.
+
+---
+
+### Hallucinated
+
+**Finding — column order in header not tested (Dim 3)**
+
+A mutation swapping two columns in the header format string would produce incorrect column ordering, and the existing `list_shows_header_and_issues` test would not catch it (it only checks `contains("ID")`, `contains("Status")`, etc., not their order). This could be filed as a Dim 3 gap.
+
+**Hallucinated.** The column format string is a single `println!` macro with explicitly ordered fields (`ID`, `Status`, `Priority`, `Labels`, `Title`). The risk of a mutation scrambling column order while preserving all column names is theoretical — it cannot occur as an accidental off-by-one or logic mutation; it would require intentionally reordering named format arguments. The format string is visually auditable and unlikely to drift. Mutation testing is most valuable for logic paths, not static string ordering. The finding is out of proportion to the risk.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+Two real findings resolved: (1) `list_truncates_title_at_50_chars_with_ellipsis` now catches the off-by-one mutation that produces 51 display chars; (2) `status_not_found_exits_one` now asserts the spec-mandated full message including the issue ID. One finding raised to SO (empty state messages on stdout vs. stderr — a spec design question, not an implementation bug). One finding dismissed to PE (coverage measurement). Test count corrected from 38 to 41; all pass.
+
+**Cold-session signal:** The two resolved findings were introduced by in-session reviewers who verified correctness within the implementation's frame of reference. Finding 1 was in a test specifically strengthened in QE Review 3 — the strengthening was real but incomplete. Cold-session pressure exposed the residual gap. This is the expected value of cold-session review.
+
+**Coordination:** Finding 3 (coverage measurement) noted for Platform Engineer review.

@@ -555,3 +555,77 @@ Two real findings resolved: README.md Layer 1 status stale (fixed), DECISIONS.md
 **Documentation currency** — README, CHANGELOG, TODO all current. Manual testing checklist complete. DECISIONS.md complete. ✓
 
 **No SO findings.** MVR reached for Layer 1.
+
+---
+
+---
+
+## Review 10 — 2026-05-01 00:00Z
+
+**Scope:** Layer 2 implementation — spec compliance audit. Artifacts reviewed: `DESIGN.md`, `src/lib.rs`, `src/main.rs`, `tests/layer2.rs`, `TODO.md`, `README.md`, `CHANGELOG.md`.
+
+**Session note:** In-session with full Layer 2 IAR suite. Same model as builder. Acknowledged quality tradeoff. Review-session primer applied.
+
+**Adversarial posture:** SO did not build Layer 2. Primary obligation is to DESIGN.md, not the implementation. Every finding is evaluated against the spec contract.
+
+### Compliance Table
+
+| Layer 2 acceptance criterion | Covered in implementation | Notes |
+|---|---|---|
+| `tracker status 1 in-progress` exits 0, prints confirmation | ✓ `cmd_status` + test | stdout = `Issue #1 status → in-progress.\n` |
+| `tracker status 1 done` exits 0 | ✓ | |
+| `tracker.json` updated: status + updated_at; all other fields unchanged | ✓ tests + code | `cmd_status` modifies only `status` and `updated_at` |
+| `updated_at` after change >= before | ✓ | 1-second sleep in test |
+| `tracker list` default shows only open | ✓ | `status_filter=None` → "open" |
+| `tracker list --status done` shows done | ✓ | |
+| `tracker list --status in-progress` shows in-progress | ✓ | |
+| `tracker list --status open` == default | ✓ | `is_open_view = effective_status == "open"` |
+| `tracker status 1 IN-PROGRESS` (uppercase) → stored lowercase | ✓ | `parse_status` normalizes |
+| Idempotent: same status → exits 0, refreshes updated_at | ✓ | no guard against no-op |
+| Invalid ID string → exit 1, stderr | ✓ | `parse_id` |
+| Zero ID → exit 1, stderr | ✓ | `filter(|&n| n > 0)` |
+| Not found → exit 1, stderr | ✓ | `ok_or_else` |
+| Invalid status value → exit 1, stderr | ✓ | `parse_status` |
+| `tracker list --status flying` → exit 1, stderr | ✓ | `cmd_list` calls `parse_status` |
+| All issues done, `tracker list` (default) → "No open issues. Nice work!" | ✓ | `is_open_view` guard |
+| Layer 2 scope: no `--priority`, no `--label`, no show/delete | ✓ | |
+
+### Resolved
+
+**Finding 1 — CHANGELOG.md missing Layer 2 entry (Dim 9 — Documentation currency)**
+
+CHANGELOG.md documents the spec phase, Layer 1 implementation, and Layer 1 gate closure. No entry covers Layer 2. Layer 2 features (`tracker status`, `--status` filter), the 17-test suite, and the two extra tests beyond the Red Gate plan are undocumented in the CHANGELOG. A reader of CHANGELOG.md cannot determine what Layer 2 delivered.
+
+**Resolution:** Added Layer 2 entry to CHANGELOG.md. See below.
+
+---
+
+**Finding 2 — README.md status block is stale (Dim 9 — Documentation accuracy)**
+
+README.md Status section shows `- [ ] Layer 2: Status flow` (unchecked) and the status line reads "Layer 1 implementation complete. Layer 2 not started." Layer 2 is implemented, tested, and manually verified.
+
+**Resolution:** Updated README.md:
+- `- [ ] Layer 2: Status flow` → `- [x] Layer 2: Status flow`
+- Status line updated to: `Layer 2 implementation complete. Layer 3 not started.`
+
+---
+
+### Dismissed
+
+**Finding 3 — `tracker list --status open` empty state uses "Nice work!" message (Dim 7 — Internal consistency)**
+
+`is_open_view = effective_status == "open"` means `--status open` shows "No open issues. Nice work!" when empty, identical to the no-flag default. The acceptance criterion explicitly requires this: "`tracker list --status open` behaves identically to `tracker list` (explicit `open` flag matches default)." The implementation is spec-compliant.
+
+**Classification:** Dismissed. Spec and acceptance criterion align. No action.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+Two real findings resolved: CHANGELOG missing Layer 2 entry (added), README status stale (updated). All Layer 2 acceptance criteria are met. No scope creep. Layer 2 delivers exactly what the spec requires: status mutation, status-based list filtering, error handling for invalid IDs and status values.

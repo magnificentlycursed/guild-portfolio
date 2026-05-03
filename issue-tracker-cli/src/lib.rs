@@ -114,12 +114,14 @@ pub fn cmd_create(title_raw: &str, issues_path: &Path) -> Result<(), String> {
 ///
 /// Returns the canonical lowercase status value, or an error describing the valid values.
 pub fn parse_status(raw: &str) -> Result<String, String> {
-    match raw.to_lowercase().as_str() {
-        "open" | "in-progress" | "done" => Ok(raw.to_lowercase()),
-        _ => Err(format!(
+    let lower = raw.to_lowercase();
+    if VALID_STATUSES.contains(&lower.as_str()) {
+        Ok(lower)
+    } else {
+        Err(format!(
             "Invalid status '{}'. Expected: open, in-progress, or done.",
             raw
-        )),
+        ))
     }
 }
 
@@ -138,14 +140,14 @@ pub fn cmd_status(id_raw: &str, status_raw: &str, issues_path: &Path) -> Result<
     let id = parse_id(id_raw)?;
     let new_status = parse_status(status_raw)?;
     let mut issues = load_issues(issues_path)?;
-    let issue = issues
-        .iter_mut()
-        .find(|i| i.id == id)
+    let idx = issues
+        .iter()
+        .position(|i| i.id == id)
         .ok_or_else(|| format!("Issue #{} not found.", id))?;
-    issue.status = new_status.clone();
-    issue.updated_at = current_timestamp();
+    issues[idx].status = new_status;
+    issues[idx].updated_at = current_timestamp();
     save_issues(issues_path, &issues)?;
-    println!("Issue #{} status \u{2192} {}.", id, new_status);
+    println!("Issue #{} status \u{2192} {}.", id, issues[idx].status);
     Ok(())
 }
 

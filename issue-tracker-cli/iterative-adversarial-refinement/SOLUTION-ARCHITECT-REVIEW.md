@@ -246,3 +246,88 @@ Three dismissed findings. The Layer 1 architecture is clean and appropriate. The
 
 No architectural concerns. The Layer 1 architecture is unchanged and all prior findings remain resolved. **No SA findings.** MVR reached for Layer 1.
 
+---
+
+---
+
+## Review 6 — 2026-05-01 00:00Z
+
+**Scope:** Layer 2 implementation — `src/lib.rs`, `src/main.rs`. Architectural evaluation of the Layer 2 additions: `parse_status`, `parse_id`, `cmd_status`, updated `cmd_list`.
+
+**Session note:** In-session with full Layer 2 IAR suite. Acknowledged quality tradeoff. Review-session primer applied.
+
+---
+
+### Resolved
+
+**Finding 1 — `parse_status` duplicates `VALID_STATUSES`: two independent sources of truth for valid status values (Dim 3 — Type safety / Dim 1 — Consistency)**
+
+SA Review 4 (Layer 1) explicitly deferred enum introduction with the note: "The correct time to introduce enums is when the parsing layer is implemented." Layer 2 is the parsing layer. The implementation did not introduce enums, and now two sources of truth coexist:
+
+- `VALID_STATUSES: &[&str] = &["open", "in-progress", "done"]` — used in `issue_fields_are_valid()` for post-deserialization validation
+- `parse_status()` — uses a hardcoded `match` arm: `"open" | "in-progress" | "done" => Ok(...)`
+
+These are maintained independently. A developer adding a fourth status value would need to update both locations. If only one is updated: `parse_status` accepts values that `issue_fields_are_valid` rejects (a write succeeds, next read fails) or vice versa (deserialization accepts values the parser would reject). Both failure modes produce user-visible errors on the read following a write.
+
+The SA Review 4 deferred item is now due. The correct resolution is one of:
+1. Derive `parse_status` from `VALID_STATUSES` (iterate and match)
+2. Introduce a `Status` enum with `Display` and `FromStr` impls, replacing both
+
+For a Phase 1 project, option 1 (use the constant in `parse_status`) is the minimum correct fix. Option 2 is the full architectural fix deferred from Layer 1.
+
+**Resolution:** Replaced the `match` in `parse_status` with iteration over `VALID_STATUSES`:
+
+```rust
+pub fn parse_status(raw: &str) -> Result<String, String> {
+    let lower = raw.to_lowercase();
+    if VALID_STATUSES.contains(&lower.as_str()) {
+        Ok(lower)
+    } else {
+        Err(format!(
+            "Invalid status '{}'. Expected: open, in-progress, or done.",
+            raw
+        ))
+    }
+}
+```
+
+This also eliminates the double `.to_lowercase()` call (SE Review Finding 2, below). `VALID_STATUSES` is now the single source of truth for valid status values across both parsing and validation. All 37 tests pass.
+
+---
+
+### Dismissed
+
+**Finding 2 — `cmd_list` `is_open_view` logic: string comparison to select empty-state message (Dim 1)**
+
+`is_open_view = effective_status == "open"` is a string comparison that gates which empty-state message to show. Adding a second "special" status (e.g., a future `archived` status with its own message) would require adding another string comparison. This is a pattern that doesn't scale.
+
+**Classification:** Dismissed. Two empty-state messages are all that DESIGN.md specifies, and the implementation correctly handles both. Extending to a third case would require refactoring at that point — not before. The current pattern is the minimum correct implementation for the current spec.
+
+---
+
+**Finding 3 — `Commands::Status` uses `id: String` rather than a typed ID (Dim 3 — Type safety)**
+
+The CLI parser accepts the ID as a `String` and delegates validation to `parse_id()`. This means invalid IDs are caught in the command handler, not at the clap parsing layer.
+
+**Classification:** Dismissed. This is the correct design: the spec requires the error message format `Error: '<id>' is not a valid issue ID. Expected a positive integer.` which must include the raw input string. A typed clap argument (e.g., `u64`) would produce clap's own error format, not the spec-required format. `String` + `parse_id()` is the correct implementation choice. Cross-referenced in SE review.
+
+---
+
+**Finding 4 — `tracker()` helper in `tests/layer2.rs` is a second duplicate of `tests/layer1.rs` helper (Dim 4 — Cohesion)**
+
+SA Review 3 Finding 2 (Layer 1 stub) dismissed extraction as premature with: "Extract when Layer 3 or Layer 4 introduces a third file." Two files now exist.
+
+**Classification:** Dismissed — one below the threshold stated in the prior dismissal. Three test files (Layer 3) is the correct extraction point.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+One real finding resolved: `parse_status` now derives from `VALID_STATUSES` rather than maintaining an independent match — single source of truth for valid status values restored. Three dismissed findings. The Layer 2 architecture is sound: `parse_id` and `parse_status` are pure validation functions with no I/O coupling, `cmd_status` is a thin command handler, and the library/binary split remains clean.
+

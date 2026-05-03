@@ -158,3 +158,79 @@ Four dismissed findings. No new UX concerns from the implementation. The Layer 1
 ### Dismissed
 
 Manual testing confirmed expected UX behavior: empty state message correct, table header and columns align, error messages specific and actionable. Layer 7 deferred items remain deferred. **No UX findings.** MVR reached for Layer 1.
+
+---
+
+---
+
+## Review 4 — 2026-05-01 00:00Z
+
+**Scope:** Layer 2 implementation — CLI UX evaluation of `tracker status` and `--status` filter. Evaluating error message quality, output format, help text, and discoverability.
+
+**Session note:** In-session with full Layer 2 IAR suite. Acknowledged quality tradeoff. CLI supplement applied.
+
+---
+
+### Dismissed
+
+**Finding 1 — Error messages are specific and actionable (CLI Dim 8)**
+
+- Invalid ID: `Error: 'abc' is not a valid issue ID. Expected a positive integer.` — names the bad value and the expected format. ✓
+- Not found: `Error: Issue #99 not found.` — names the missing ID. ✓
+- Invalid status value: `Error: Invalid status 'flying'. Expected: open, in-progress, or done.` — names the bad value and lists valid alternatives. ✓
+
+**Classification:** Dismissed. All error messages are specific, actionable, and follow the `Error: <message>` format on stderr.
+
+---
+
+**Finding 2 — `tracker status --help` doc comments (CLI Dim 1)**
+
+`main.rs` `Status` variant docs:
+```rust
+/// Change an issue's status
+Status {
+    /// Issue ID
+    id: String,
+    /// New status: open, in-progress, done
+    status: String,
+}
+```
+
+Accurate for Layer 2 scope. Help text names the valid status values inline. ✓
+
+**Classification:** Dismissed. Layer 7 will verify the complete help text for all subcommands with all flags in place.
+
+---
+
+**Finding 3 — `tracker list --status` help text (CLI Dim 1)**
+
+`List` variant:
+```rust
+/// Filter by status: open, in-progress, done
+#[arg(long)]
+status: Option<String>,
+```
+
+Accurate. The subcommand's top-level doc ("List issues (default: open only)") correctly documents the default behavior.
+
+**Classification:** Dismissed. Accurate for Layer 2 scope.
+
+---
+
+**Finding 4 — `tracker status` positional argument ordering (CLI Dim 2)**
+
+`tracker status <id> <status>` uses two positional arguments. Passing them in the wrong order (e.g., `tracker status done 1`) produces either a parse error (if `done` is not a valid u64) or a not-found error (if interpreted as ID). The error messages for these cases are not confused — `parse_id("done")` produces an ID error, not a confusing status error. The argument order matches the command name: "set this issue's status to this value."
+
+**Classification:** Dismissed. The positional order is natural and consistent with the spec's interface definition. Accidental transposition produces a clear error.
+
+---
+
+### Open
+
+*(none — Layer 7 manual TTY verification items remain deferred)*
+
+---
+
+### Summary
+
+No UX findings. Layer 2 error messages are specific and actionable. Help text is accurate for current scope. Deferred Layer 7 items (color output, full help accuracy for all flags) remain deferred. **No UX findings.** MVR reached for Layer 2.

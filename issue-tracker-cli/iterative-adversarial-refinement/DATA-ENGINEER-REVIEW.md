@@ -218,3 +218,53 @@ One real finding resolved: post-deserialization domain validation now implemente
 ### Dismissed
 
 Schema correct, validation in place, serialization spec-compliant. **No Data Engineer findings.** MVR reached for Layer 1.
+
+---
+
+---
+
+## Review 5 — 2026-05-01 00:00Z
+
+**Scope:** Layer 2 implementation — data model mutations: `status` field updated by `cmd_status`, `updated_at` refreshed, `created_at` unchanged. Schema evolution: no new fields.
+
+**Session note:** In-session with full Layer 2 IAR suite. Acknowledged quality tradeoff.
+
+---
+
+### Dismissed
+
+**Finding 1 — Status stored as lowercase string; consistent with `issue_fields_are_valid` (Dim 2 — Domain validation)**
+
+`parse_status` now uses `VALID_STATUSES` (after SA Review 6 fix) to normalize and validate the input. The stored value is always one of `{"open", "in-progress", "done"}`, which are exactly the values in `VALID_STATUSES`. `issue_fields_are_valid` uses the same constant. Single source of truth restored. ✓
+
+**Classification:** Dismissed. SA Review 6 resolved the two-source-of-truth concern from the data layer's perspective as well.
+
+---
+
+**Finding 2 — `updated_at` format matches `created_at` (Dim 7 — Serialization consistency)**
+
+`cmd_status` calls `current_timestamp()` for `updated_at`, identical to how `cmd_create` sets both timestamps. The ISO 8601 UTC format at second precision is consistent across all timestamp writes. ✓
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 3 — `created_at` not mutated by `cmd_status` (Dim 2 — Field invariant)**
+
+`cmd_status` modifies only `issue.status` and `issue.updated_at`. `issue.created_at` is not referenced. The `created_at` field invariant (never changes after creation) is structurally enforced. ✓
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 4 — No schema changes; unknown fields still ignored on deserialization (Dim 3 — Forward compatibility)**
+
+`Issue` struct is unchanged. `serde_json`'s default deserialization ignores unknown fields. Forward-compatibility behavior unchanged. ✓
+
+**Classification:** Dismissed.
+
+---
+
+### Summary
+
+No data engineering findings. Schema unchanged. Status mutation is correctly validated and stored. Timestamp consistency maintained. Single source of truth for valid status values restored by SA Review 6. **No DE findings.** MVR reached for Layer 2.

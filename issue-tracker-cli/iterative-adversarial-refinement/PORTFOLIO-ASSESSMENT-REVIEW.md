@@ -137,3 +137,35 @@ The documentation is thorough but justifiably so: DESIGN.md is a complete behavi
 **Gate interview questions preserved for later:** See Review 1, dims 1–2 and 4–7. These questions remain valid at any future layer gate or as a standalone portfolio review exercise.
 
 **Summary:** No change to dimension classifications. Gate interview is deferred indefinitely.
+
+---
+
+---
+
+## Review 3 — 2026-05-01 00:00Z
+
+**Scope:** Layer 2 — portfolio artifact assessment.
+
+**Session note:** In-session. Prior Partial classifications from Review 1 carry forward unchanged.
+
+---
+
+### Dim 3 — Directed development evidence (update)
+
+Layer 2 adds evidence: the `parse_status` two-sources-of-truth finding confirms the developer internalized the SA Review 4 deferred note ("the correct time to introduce enums is when the parsing layer is implemented") but did not act on it during implementation — and the IAR process caught the gap. This is the expected pattern: prior IAR guidance partially followed, gap caught by adversarial review, corrected. The correction itself is evidence of a functioning development process.
+
+**Classification:** Demonstrated (unchanged from Review 1 but with additional evidence).
+
+---
+
+### Dims 4, 5 — Growth evidence / Failure honesty
+
+PROCESS.md placeholder sections remain unfilled. The developer's first-person reflection on Layer 2 ("Layer 2 and beyond — to be written after each layer closes") is not yet written.
+
+**Classification:** Partial (unchanged). Director deferred the gate interview; PROCESS.md developer sections remain pending developer action.
+
+---
+
+### Summary
+
+No change to overall classification. The six Partial dimensions from Review 1 remain Partial pending the gate interview. Dim 3 carries additional evidence from the Layer 2 IAR process. Gate interview questions from Review 1 remain the mechanism to convert Partial to Demonstrated.
