@@ -136,29 +136,29 @@ Unit tests:
 **Goal:** The user can set issue priority, and the list is sorted by priority with filtering support.
 
 **Acceptance Criteria:**
-- [ ] `tracker create "Fix bug" --priority high` stores `"priority": "high"`
-- [ ] `tracker create "Fix bug"` (no flag) stores `"priority": "medium"` (default unchanged from Layer 1)
-- [ ] `tracker create "Fix bug" --priority HIGH` (uppercase) stores `"priority": "high"`
-- [ ] `tracker create "Fix bug" --priority critical` exits 1, stderr `Error: Invalid priority 'critical'. Expected: low, medium, or high.`
-- [ ] `tracker list` output is sorted: all `high` issues before all `medium`, all `medium` before all `low`
-- [ ] Within the same priority tier, issues are sorted by ID ascending
-- [ ] `tracker list --priority high` shows only `high` issues; `medium` and `low` do not appear
-- [ ] `tracker list --priority medium` shows only `medium` issues
-- [ ] `tracker list --priority low` shows only `low` issues
-- [ ] `tracker list --priority invalid` exits 1, stderr `Error: Invalid priority 'invalid'. Expected: low, medium, or high.`
-- [ ] `tracker list --status open --priority high` shows only open high-priority issues (AND-combined; full compound-filter verification in Layer 5)
+- [x] `tracker create "Fix bug" --priority high` stores `"priority": "high"`
+- [x] `tracker create "Fix bug"` (no flag) stores `"priority": "medium"` (default unchanged from Layer 1)
+- [x] `tracker create "Fix bug" --priority HIGH` (uppercase) stores `"priority": "high"`
+- [x] `tracker create "Fix bug" --priority critical` exits 1, stderr `Error: Invalid priority 'critical'. Expected: low, medium, or high.`
+- [x] `tracker list` output is sorted: all `high` issues before all `medium`, all `medium` before all `low`
+- [x] Within the same priority tier, issues are sorted by ID ascending
+- [x] `tracker list --priority high` shows only `high` issues; `medium` and `low` do not appear
+- [x] `tracker list --priority medium` shows only `medium` issues
+- [x] `tracker list --priority low` shows only `low` issues
+- [x] `tracker list --priority invalid` exits 1, stderr `Error: Invalid priority 'invalid'. Expected: low, medium, or high.`
+- [x] `tracker list --status open --priority high` shows only open high-priority issues (AND-combined; full compound-filter verification in Layer 5)
 
 **Not in this layer:** `--label` on create, `--label` filter, compound filter with three flags
 
 **Manual Testing Checklist:**
-- [ ] Happy path: create three issues with priorities `low`, `high`, `medium` in that order → `tracker list` shows `high` first (lowest id in high tier), then `medium`, then `low`
-- [ ] Same-priority tie-breaking: create two `high` issues → both appear before any `medium`, ordered by ID ascending
-- [ ] Filter: `tracker list --priority high` → only high-priority issues visible
-- [ ] Default priority: create issue without `--priority` → `tracker list` shows `medium` in Priority column
-- [ ] Uppercase input: `tracker create "Test" --priority HIGH` → stored as `high`
-- [ ] Error — invalid priority on create: `tracker create "Test" --priority urgent` → exit 1
-- [ ] Error — invalid priority on list: `tracker list --priority urgent` → exit 1
-- [ ] Persistence: create prioritized issues, reinstall binary, `tracker list` → sort order preserved
+- [x] Happy path: create three issues with priorities `low`, `high`, `medium` in that order → `tracker list` shows `high` first (lowest id in high tier), then `medium`, then `low`
+- [x] Same-priority tie-breaking: create two `high` issues → both appear before any `medium`, ordered by ID ascending
+- [x] Filter: `tracker list --priority high` → only high-priority issues visible
+- [x] Default priority: create issue without `--priority` → `tracker list` shows `medium` in Priority column
+- [x] Uppercase input: `tracker create "Test" --priority HIGH` → stored as `high`
+- [x] Error — invalid priority on create: `tracker create "Test" --priority urgent` → exit 1
+- [x] Error — invalid priority on list: `tracker list --priority urgent` → exit 1
+- [x] Persistence: create prioritized issues, reinstall binary, `tracker list` → sort order preserved
 
 **Red Gate — tests to write first:**
 
