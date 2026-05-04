@@ -1,6 +1,58 @@
-# 2026-04-26 Gap Analysis Runs
+# 2026-04-26 Suite Reviews
 
-## Gap Analysis Run 4 — 2026-04-26 00:00Z
+## Review 5 — 2026-04-26 01:00Z
+
+**Context:** Organizational evaluation of the suite's structure and alignment with VDD-IAR. Prompted by the question: is this the right organization? Are additional domains needed? Does the suite reflect what VDD-IAR actually is?
+
+**Suite state at time of run:** Nine domains after this run (previously eight). README restructured. VDD-IAR Alignment domain created. SO stripped to spec-contract identity.
+
+### Findings
+
+**G-46 — SO split identity (High)**
+
+The SO domain had accumulated two distinct adversarial postures: spec-contract review (does the implementation match what was asked?) and process governance (was the work done correctly?). These read different artifacts, apply different adversarial frames, and belong in separate sessions. Having them in one domain created a reviewer that had to context-switch mid-review.
+
+*Decision:* Strip SO to spec-contract focus (9 dims). Move process concerns to VDD-IAR Alignment. Move complexity budget for one to SA.
+
+**G-47 — Suite described as gate, not iterative loop (High)**
+
+The README described IAR as a pre-merge gate: "a full run is required before merging." VDD-IAR is a loop: build → adversary → fix → adversary again → repeat until MVR. The suite name says "Iterative" but the documented structure was a single checkpoint. No guidance existed for within-layer iteration, round numbering, or when to stop iterating.
+
+*Decision:* Rewrite README. Replace "Full run" with "Refinement loop" section. Add round-number requirement to log format. Update merging gate to require MVR, not just one passing run.
+
+**G-48 — QE/SE domain overlap without explicit boundary (Medium)**
+
+SE dim 1 (correctness, logic errors) and QE dim 7 (logic errors) covered the same ground. In practice both reviewers would find the same bugs. The distinction — QE owns tests, SE owns code — was valid but unstated, creating duplicated effort without the benefit of independent confirmation.
+
+*Decision:* Add domain boundary statements to QE and SE prompts. QE flags missing tests when it finds a logic error; SE flags the bug. Both findings are valid independently.
+
+**G-49 — PE posture misrepresented (Low)**
+
+The generic sycophancy check ("if the agent agreed with every decision...") doesn't fit a domain where most dimensions are binary existence checks. The real sycophancy risk in PE is rationalized inapplicability decisions, not agreeing with code quality judgments.
+
+*Decision:* Replace generic sycophancy check with a posture note specific to PE's compliance-check nature. Scope the adversarial pressure to judgment-dependent decisions.
+
+**G-50 — No generalist adversary pass (Medium for personal use)**
+
+The IAR specialists each apply a specific framework. The VDD methodology's adversary has no framework — it just finds everything wrong. No domain covered the gaps between specialist frameworks.
+
+*Decision:* Document as an optional unstructured pass in the README (not a formal domain). It intentionally has no dimensions — adding structure would make it another specialist.
+
+**G-51 — VDD-IAR Alignment domain missing (High)**
+
+Process compliance had no owner. Test discipline, layer gate compliance, IAR fresh context, IAR iteration, role integrity, and retrospective quality were either scattered across SO (awkwardly) or unowned. The methodology's "process over product" principle had no adversarial review mechanism.
+
+*Decision:* Create VDD-IAR-ALIGNMENT-REVIEW.md. Ten dimensions covering the full VDD-IAR loop. Runs last in the sequence (reviews artifacts produced by all other domain runs). Mandatory gate before merge.
+
+### Suite changes made as a result of this run
+
+**G-46 addressed** — SO reduced to 9 dimensions (spec/contract focus). Dims 9 (complexity for one), 11 (VDD fidelity), 12 (linear accountability) removed and redistributed. Complexity budget for one moved to SA dim 9 expansion.
+**G-47 addressed** — README rewritten around VDD-IAR as the governing framework. "Refinement loop" replaces "Full run." Merging gate updated to require MVR and round numbers.
+**G-48 addressed** — Domain boundary notes added to QE and SE prompts.
+**G-49 addressed** — PE sycophancy check replaced with a posture note specific to compliance-check domains.
+**G-50 addressed** — Generalist adversary pass documented as optional README note.
+**G-51 addressed** — VDD-IAR-ALIGNMENT-REVIEW.md created. Added to domain table, sequencing, and merging gate.
+## Review 4 — 2026-04-26 00:00Z
 
 **Context:** Personal developer, AI-accelerated workflow, portfolio-to-journeyman arc. Full evaluation of suite against the guild apprentice-onboarding methodology, the bookmark-manager project history (including the dollspace-gay guild review finding), and the upcoming issue-tracker-cli project. Goal: identify gaps that would cause the suite to pass a project that a guild portfolio reviewer would fail.
 
@@ -64,59 +116,7 @@ Per-project IAR runs evaluate individual projects. The portfolio review evaluate
 **G-44 addressed** — Session isolation note added to README under Full run.
 **G-45 addressed** — Portfolio-arc review section added to README.
 
-**Remaining open:** G-34, G-36 (deferred from Run 3). G-01 through G-32 remain open; most are scoped to contexts (mission-critical teams, consulting engagements) not yet relevant to the current personal portfolio use case.
+**Remaining open:** G-34, G-36 (deferred from Review 3). G-01 through G-32 remain open; most are scoped to contexts (mission-critical teams, consulting engagements) not yet relevant to the current personal portfolio use case.
 
 ---
 
-## Gap Analysis Run 5 — 2026-04-26 01:00Z
-
-**Context:** Organizational evaluation of the suite's structure and alignment with VDD-IAR. Prompted by the question: is this the right organization? Are additional domains needed? Does the suite reflect what VDD-IAR actually is?
-
-**Suite state at time of run:** Nine domains after this run (previously eight). README restructured. VDD-IAR Alignment domain created. SO stripped to spec-contract identity.
-
-### Findings
-
-**G-46 — SO split identity (High)**
-
-The SO domain had accumulated two distinct adversarial postures: spec-contract review (does the implementation match what was asked?) and process governance (was the work done correctly?). These read different artifacts, apply different adversarial frames, and belong in separate sessions. Having them in one domain created a reviewer that had to context-switch mid-review.
-
-*Decision:* Strip SO to spec-contract focus (9 dims). Move process concerns to VDD-IAR Alignment. Move complexity budget for one to SA.
-
-**G-47 — Suite described as gate, not iterative loop (High)**
-
-The README described IAR as a pre-merge gate: "a full run is required before merging." VDD-IAR is a loop: build → adversary → fix → adversary again → repeat until MVR. The suite name says "Iterative" but the documented structure was a single checkpoint. No guidance existed for within-layer iteration, round numbering, or when to stop iterating.
-
-*Decision:* Rewrite README. Replace "Full run" with "Refinement loop" section. Add round-number requirement to log format. Update merging gate to require MVR, not just one passing run.
-
-**G-48 — QE/SE domain overlap without explicit boundary (Medium)**
-
-SE dim 1 (correctness, logic errors) and QE dim 7 (logic errors) covered the same ground. In practice both reviewers would find the same bugs. The distinction — QE owns tests, SE owns code — was valid but unstated, creating duplicated effort without the benefit of independent confirmation.
-
-*Decision:* Add domain boundary statements to QE and SE prompts. QE flags missing tests when it finds a logic error; SE flags the bug. Both findings are valid independently.
-
-**G-49 — PE posture misrepresented (Low)**
-
-The generic sycophancy check ("if the agent agreed with every decision...") doesn't fit a domain where most dimensions are binary existence checks. The real sycophancy risk in PE is rationalized inapplicability decisions, not agreeing with code quality judgments.
-
-*Decision:* Replace generic sycophancy check with a posture note specific to PE's compliance-check nature. Scope the adversarial pressure to judgment-dependent decisions.
-
-**G-50 — No generalist adversary pass (Medium for personal use)**
-
-The IAR specialists each apply a specific framework. The VDD methodology's adversary has no framework — it just finds everything wrong. No domain covered the gaps between specialist frameworks.
-
-*Decision:* Document as an optional unstructured pass in the README (not a formal domain). It intentionally has no dimensions — adding structure would make it another specialist.
-
-**G-51 — VDD-IAR Alignment domain missing (High)**
-
-Process compliance had no owner. Test discipline, layer gate compliance, IAR fresh context, IAR iteration, role integrity, and retrospective quality were either scattered across SO (awkwardly) or unowned. The methodology's "process over product" principle had no adversarial review mechanism.
-
-*Decision:* Create VDD-IAR-ALIGNMENT-REVIEW.md. Ten dimensions covering the full VDD-IAR loop. Runs last in the sequence (reviews artifacts produced by all other domain runs). Mandatory gate before merge.
-
-### Suite changes made as a result of this run
-
-**G-46 addressed** — SO reduced to 9 dimensions (spec/contract focus). Dims 9 (complexity for one), 11 (VDD fidelity), 12 (linear accountability) removed and redistributed. Complexity budget for one moved to SA dim 9 expansion.
-**G-47 addressed** — README rewritten around VDD-IAR as the governing framework. "Refinement loop" replaces "Full run." Merging gate updated to require MVR and round numbers.
-**G-48 addressed** — Domain boundary notes added to QE and SE prompts.
-**G-49 addressed** — PE sycophancy check replaced with a posture note specific to compliance-check domains.
-**G-50 addressed** — Generalist adversary pass documented as optional README note.
-**G-51 addressed** — VDD-IAR-ALIGNMENT-REVIEW.md created. Added to domain table, sequencing, and merging gate.

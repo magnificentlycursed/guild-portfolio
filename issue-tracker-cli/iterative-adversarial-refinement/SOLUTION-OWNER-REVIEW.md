@@ -2,7 +2,13 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
 
+**Reviewer role: Solution Owner** (Solution Owner / Product Owner / Product Manager)
+
 The purpose of this review is to guard the project against scope creep and over-engineering. DESIGN.md is a Scope of Work. The SO review holds the implementation to that contract: 100% of what was agreed, nothing that was not. DESIGN.md is the contract for every other domain review — SO must confirm it is faithful to the assignment before other domains evaluate the implementation against it.
+
+**Language supplement applied:** Not applicable. The SO review evaluates spec compliance, which is language-agnostic. No supplement section exists for SO. For evaluating whether technology choices are appropriate to the language (dim 3 — Technology compliance), consult the Solution Architect section of the relevant lang supplement (`lang/rust.md`) — SA evaluates technology fitness from an architectural lens that informs SO's technology compliance check.
+
+**Sycophancy check:** An agent that participated in scoping and speccing the project will not flag scope creep it introduced. If the AI helped write or refine DESIGN.md, it treats every element of DESIGN.md as intentional — because it intended it. The adversary must evaluate DESIGN.md against the upstream assignment brief (dim 9) without treating DESIGN.md as authoritative. A spec that was scope-crept during Phase 1 will produce a project that passes every other SO dimension and still fails an external review.
 
 ---
 
@@ -44,7 +50,7 @@ The purpose of this review is to guard the project against scope creep and over-
 
 ### Resolved
 
-**Finding 1 — Multi-line description display behavior undefined**
+**Finding 1 — Multi-line description display behavior undefined (Dim 1)**
 
 `DESIGN.md` stored description "verbatim" but the `show` output format was a single-line key-value block. A description containing `\n` would corrupt the display. Spec was silent on this case.
 
@@ -52,7 +58,7 @@ The purpose of this review is to guard the project against scope creep and over-
 
 ---
 
-**Finding 2 — `tracker list --label` with multiple flags: behavior undefined**
+**Finding 2 — `tracker list --label` with multiple flags: behavior undefined (Dim 1)**
 
 Feature 2 stated "only one `--label` filter is supported" but did not define what happens when the user passes two `--label` flags. A reviewer and an implementer would produce different behavior (last wins vs. clap error vs. AND-combine).
 
@@ -60,7 +66,7 @@ Feature 2 stated "only one `--label` filter is supported" but did not define wha
 
 ---
 
-**Finding 3 — List column width contract incomplete**
+**Finding 3 — List column width contract incomplete (Dim 1)**
 
 The list output showed a fixed-width table example but gave no specification of how column widths are determined or what happens to long values. An automated test for `format_issue_row` would have no defined behavior to assert against.
 
@@ -68,7 +74,7 @@ The list output showed a fixed-width table example but gave no specification of 
 
 ---
 
-**Finding 4 — Empty state message deviated from assignment**
+**Finding 4 — Empty state message deviated from assignment (Dim 9)**
 
 Assignment Layer 7 names the exact string `"No open issues. Nice work!"`. DESIGN.md used `"No open issues."` with no note that the wording was intentionally changed.
 
@@ -76,7 +82,7 @@ Assignment Layer 7 names the exact string `"No open issues. Nice work!"`. DESIGN
 
 ---
 
-**Finding 5 — Feature 5 ("Add labels to issues") label post-creation path undocumented**
+**Finding 5 — Feature 5 ("Add labels to issues") label post-creation path undocumented (Dim 1, Dim 9)**
 
 The Out of Scope section excluded "editing after creation" as a blanket rule, but did not explicitly address whether creation-only labels satisfies the assignment's Feature 5. A reviewer could flag this as under-delivery.
 
@@ -84,7 +90,7 @@ The Out of Scope section excluded "editing after creation" as a blanket rule, bu
 
 ---
 
-**Finding 6 — Label length unconstrained**
+**Finding 6 — Label length unconstrained (Dim 1)**
 
 The edge case catalog covered empty labels but not maximum length. The label column in list output has a truncation limit; labels should have a corresponding input constraint so the contract is complete.
 
@@ -99,6 +105,18 @@ The edge case catalog covered empty labels but not maximum length. The label col
 ### Backlogged
 
 *(none)*
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Summary
+
+Six real findings, all resolved via DESIGN.md edits: multi-line description display, multiple-`--label` behavior, list column width contract, empty-state message wording, label post-creation note, and label length cap. No dismissed or backlogged items. Cold-session pass remains warranted before Layer 1 opens.
+
+**Coordination:** *(none)*
 
 ---
 
@@ -125,7 +143,7 @@ The edge case catalog covered empty labels but not maximum length. The label col
 
 ### Resolved
 
-**Finding 1 — Color output excluded but is named in assignment Layer 7**
+**Finding 1 — Color output excluded but is named in assignment Layer 7 (Dim 9)**
 
 Assignment Layer 7 lists "colored output" alongside `--help` and empty-state messages, both of which were already in scope. Out of Scope said "terminal color is a polish-layer concern and is not part of the core contract."
 
@@ -133,7 +151,7 @@ Assignment Layer 7 lists "colored output" alongside `--help` and empty-state mes
 
 ---
 
-**Finding 2 — `clap` and `serde_json` named as spec constraints**
+**Finding 2 — `clap` and `serde_json` named as spec constraints (Dim 3)**
 
 The assignment requires Rust and a local JSON file. Naming specific crates locks the implementation to those choices at spec level.
 
@@ -141,7 +159,7 @@ The assignment requires Rust and a local JSON file. Naming specific crates locks
 
 ---
 
-**Finding 3 — Title 200-char and label 50-char limits not in the assignment**
+**Finding 3 — Title 200-char and label 50-char limits not in the assignment (Dim 2, Dim 4)**
 
 Both limits were added by the spec author to close boundary gaps but create test obligations not required by the assignment.
 
@@ -149,7 +167,7 @@ Both limits were added by the spec author to close boundary gaps but create test
 
 ---
 
-**Finding 4 — "No panics" constraint broader than assignment guidance**
+**Finding 4 — "No panics" constraint broader than assignment guidance (Dim 4, Dim 9)**
 
 Assignment says: handle missing/corrupt JSON without crashing. DESIGN.md had a blanket "no `unwrap()` or `expect()` in production code" rule.
 
@@ -157,7 +175,7 @@ Assignment says: handle missing/corrupt JSON without crashing. DESIGN.md had a b
 
 ---
 
-**Finding 5 — "No warnings" requirement not in assignment**
+**Finding 5 — "No warnings" requirement not in assignment (Dim 9)**
 
 Assignment requires compilation with no errors. Warnings are normal during iterative development.
 
@@ -173,6 +191,18 @@ Assignment requires compilation with no errors. Warnings are normal during itera
 
 *(none)*
 
+### Hallucinated
+
+*(none)*
+
+---
+
+### Summary
+
+Five real findings, all resolved via DESIGN.md edits. Color output added to spec; named crates removed from Technology section; over-specified character limits removed; "no panics" scoped to assignment guidance; "no warnings" replaced with the assignment's actual no-errors requirement. No dismissed or backlogged items.
+
+**Coordination:** *(none)*
+
 ---
 
 ---
@@ -185,7 +215,7 @@ Assignment requires compilation with no errors. Warnings are normal during itera
 
 ### Resolved
 
-**Finding 1 — Purity boundary section presupposes implementation structure and imports Phase 5 language**
+**Finding 1 — Purity boundary section presupposes implementation structure and imports Phase 5 language (Dim 4, Dim 9)**
 
 The purity boundary section named specific function names (`validate_title`, `issue_matches_filters`, `format_issue_row`, `load_store`, etc.) locking the implementation to a particular module structure before any code exists. It also used the phrase "formally verifiable in principle" — VSDD Phase 5 language inappropriate for a Phase 1 first Rust project.
 
@@ -193,7 +223,7 @@ The purity boundary section named specific function names (`validate_title`, `is
 
 ---
 
-**Finding 2 — Display formatting and label deduplication named as standalone unit test items**
+**Finding 2 — Display formatting and label deduplication named as standalone unit test items (Dim 4)**
 
 Both are internal implementation behaviors covered by the integration tests. A `tracker list` invocation that produces wrong output is already a failing integration test; a separate unit test for `format_issue_row` tests implementation internals, not assignment-defined behavior. Label deduplication is equally covered by the full lifecycle integration test.
 
@@ -201,7 +231,7 @@ Both are internal implementation behaviors covered by the integration tests. A `
 
 ---
 
-**Finding 3 — ID assignment listed as a named unit test item**
+**Finding 3 — ID assignment listed as a named unit test item (Dim 4)**
 
 `max(existing_ids) + 1` is two lines of logic covered by the create → delete → create lifecycle integration test. Naming it as a spec-required unit test added test obligations for internal data plumbing.
 
@@ -212,6 +242,22 @@ Both are internal implementation behaviors covered by the integration tests. A `
 ### Dismissed
 
 *(none)*
+
+### Backlogged
+
+*(none)*
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Summary
+
+Three real findings, all resolved via DESIGN.md edits to the Testing Methodology section: removed purity boundary presuppositions and Phase 5 language; removed display formatting and label deduplication from named unit tests; removed ID assignment from named unit tests. No dismissed or backlogged items.
+
+**Coordination:** *(none)*
 
 ---
 
@@ -225,7 +271,7 @@ Both are internal implementation behaviors covered by the integration tests. A `
 
 ### Resolved
 
-**Finding 1 — Title 200-char limit survived Review 3**
+**Finding 1 — Title 200-char limit survived Review 3 (Dim 7)**
 
 The precondition `<title> after trimming is ≤ 200 characters` was not removed when Review 3 removed the corresponding error state and edge cases. The spec had a precondition with no enforced consequence — undefined behavior for titles over 200 chars.
 
@@ -233,7 +279,7 @@ The precondition `<title> after trimming is ≤ 200 characters` was not removed 
 
 ---
 
-**Finding 2 — `clap` named in the `--help` flag description**
+**Finding 2 — `clap` named in the `--help` flag description (Dim 3, Dim 7)**
 
 `clap generates --help for the binary...` re-introduced a named crate dependency after Review 3 removed them from the Technology line.
 
@@ -241,7 +287,7 @@ The precondition `<title> after trimming is ≤ 200 characters` was not removed 
 
 ---
 
-**Finding 3 — `clap`-specific error message quoted in Feature 2**
+**Finding 3 — `clap`-specific error message quoted in Feature 2 (Dim 3)**
 
 Feature 2 quoted the exact clap error string for multiple `--label` flags, locking the spec to one library's error format.
 
@@ -249,7 +295,7 @@ Feature 2 quoted the exact clap error string for multiple `--label` flags, locki
 
 ---
 
-**Finding 4 — `atty` named in color output spec**
+**Finding 4 — `atty` named in color output spec (Dim 3)**
 
 `atty` is a third-party crate. Review 3 removed named crates from the Technology section; this reference was missed.
 
@@ -257,7 +303,7 @@ Feature 2 quoted the exact clap error string for multiple `--label` flags, locki
 
 ---
 
-**Finding 5 — "All pure functions are unit tested" orphaned text**
+**Finding 5 — "All pure functions are unit tested" orphaned text (Dim 7)**
 
 Review 4 removed the purity boundary section; this opening sentence referencing "pure functions" was left behind, making an unsupported claim.
 
@@ -265,7 +311,7 @@ Review 4 removed the purity boundary section; this opening sentence referencing 
 
 ---
 
-**Finding 6 — `--description ""` silently coerced to absent**
+**Finding 6 — `--description ""` silently coerced to absent (Dim 7)**
 
 The assignment says "optional description." The spec treated empty-string description as equivalent to not providing the flag — a non-obvious silent coercion with no error feedback to the user.
 
@@ -277,14 +323,21 @@ The assignment says "optional description." The spec treated empty-string descri
 
 *(none)*
 
+### Backlogged
+
+*(none)*
+
+### Hallucinated
+
+*(none)*
+
 ---
 
-## Open items entering Layer 1
+### Summary
 
-- ~~Cold-session SO review recommended before Layer 1 opens~~ — completed (Review 6)
-- ~~SA Review 1 findings resolved~~ — SA Review 2 also complete; see [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md)
-- ~~VDD-IAR Alignment review pending~~ — Reviews 1 and 2 complete; see [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md)
-- **Layer 1 merge gate:** at least one cold-session domain review (QE or Security) required after Layer 1 implementation — see VDD-IAR Finding 2
+Six real findings, all resolved via DESIGN.md edits: removed surviving 200-char title precondition; replaced two named-crate references (`clap`, `atty`); replaced a clap-specific quoted error string with a generic usage-error description; cleaned up orphaned "pure functions" text; closed the silent empty-description coercion with explicit validation. No dismissed or backlogged items.
+
+**Coordination:** Cold-session SO review recommended before Layer 1 opens (completed in Review 6). SA Review 1 findings resolved; SA Review 2 also complete — see [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md). VDD-IAR Alignment Reviews 1 and 2 complete — see [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md). Layer 1 merge gate: at least one cold-session domain review (QE or Security) required after Layer 1 implementation — see VDD-IAR Finding 2.
 
 ---
 
@@ -292,11 +345,9 @@ The assignment says "optional description." The spec treated empty-string descri
 
 ## Review 7 — 2026-04-27 22:00Z
 
-**Scope:** Layer 1 Red Gate tests — scope compliance, spec alignment, and pending DESIGN.md change decision. Artifacts reviewed: `DESIGN.md` (current state after change was applied), `tests/layer1.rs`, QE Review 2, Data Engineer Review 2.
+**Scope:** Layer 1 Red Gate tests — scope compliance, spec alignment, and pending DESIGN.md change decision. Artifacts reviewed: `DESIGN.md` (current state after change was applied), `tests/layer1.rs`, [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) Review 2, [DATA-ENGINEER-REVIEW.md](DATA-ENGINEER-REVIEW.md) Review 2. SO did not participate in writing the spec, the tests, or the prior domain reviews — review-session primer applied for fresh adversarial posture. A change to DESIGN.md was applied before this review ran; SO's obligation is to evaluate it independently and approve or revert.
 
 **Session note:** In-session. Acknowledged quality tradeoff. This is not the cold-session review required at the merge gate — that remains open.
-
-**Adversarial posture (review-session primer applied):** SO did not participate in writing the spec, the tests, or the prior domain reviews. DESIGN.md and the proposed change are read fresh. A change to DESIGN.md was applied before this review ran — SO's obligation is to evaluate it independently and approve or revert.
 
 ### Compliance Table
 
@@ -379,11 +430,13 @@ Layer 7 scope.
 
 ---
 
-### Process finding — raised to VDD-IAR
+### Backlogged
 
-**Process violation: DESIGN.md was changed before this SO review ran.**
+*(none)*
 
-The correct sequence is: domain raises finding → SO evaluates → SO applies or rejects the change. The actual sequence was: domain raises finding → DESIGN.md changed → SO evaluates after the fact. The change happened to be correct and is approved, but the authority chain was inverted. This is a dim 8 (role integrity) concern. Raised to VDD-IAR Alignment for assessment. The change itself stands; the process must not recur.
+### Hallucinated
+
+*(none)*
 
 ---
 
@@ -395,9 +448,11 @@ The correct sequence is: domain raises finding → SO evaluates → SO applies o
 
 ### Summary
 
-DESIGN.md change independently evaluated and approved. The `{"issues": [...]}` wrapper lost its justification when SA Review 1 removed `"next_id"`; the top-level array is the correct simplification. No stale references. All 13 Red Gate tests are in-scope for Layer 1. One process finding raised to VDD-IAR: DESIGN.md was changed before SO review ran.
+DESIGN.md change independently evaluated and approved. The `{"issues": [...]}` wrapper lost its justification when SA Review 1 removed `"next_id"`; the top-level array is the correct simplification. No stale references. All 13 Red Gate tests are in-scope for Layer 1. One process finding raised to VDD-IAR: DESIGN.md was changed before SO review ran. The correct sequence is: domain raises finding → SO evaluates → SO applies or rejects the change. The actual sequence was: domain raises finding → DESIGN.md changed → SO evaluates after the fact. The change happened to be correct and is approved, but the authority chain was inverted (a dim 8 / role-integrity concern in [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md)). The change itself stands; the process must not recur.
 
-**Cold-session gate still open:** At least one cold-session domain review (QE or Security) required before Layer 1 implementation code merges.
+Cold-session gate still open: at least one cold-session domain review (QE or Security) required before Layer 1 implementation code merges.
+
+**Coordination:** Process finding raised to [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md) for role-integrity assessment.
 
 ---
 
@@ -411,25 +466,11 @@ DESIGN.md change independently evaluated and approved. The `{"issues": [...]}` w
 
 ### Compliance Table
 
-*(Full table above under scope; addendum findings below)*
-
-### Findings
+*(Full table above under Review 1 scope; addendum findings below.)*
 
 ---
 
-**Finding 1 — `tracker delete <id>` "with confirmation" in assignment Layer 6 not addressed in DESIGN.md (Dim 9)**
-
-The assignment's Layer 6 build description states: "`tracker delete <id>` with confirmation." DESIGN.md Feature 5 defines delete as non-interactive: the command runs, prints `Deleted issue #<id>.`, and exits. The Out of Scope section explicitly rules out interactive mode: "the tool is non-interactive; it reads arguments from the command line and exits."
-
-This is a genuine tension: the assignment's build layer guidance includes a confirmation prompt; DESIGN.md explicitly disallows interactive behavior without documenting that it is overriding that signal.
-
-Prior SO reviews 1, 3, 4, 5 did not flag or dismiss this. The finding was not hallucinated by prior reviews — it was simply not raised.
-
-Mitigation context: The assignment describes build layers as "one way to layer the build" (explicitly advisory), and the formal interface section — "`tracker delete <id>` (remove an issue)" — carries no mention of confirmation. The design choice to make the tool non-interactive is defensible. But the overriding rationale must be documented, not silently assumed.
-
-**Classification:** Dismissed — the Layer 6 build layers are explicitly framed as advisory ("here's one way to layer the build"), not a formal interface spec. The authoritative interface section lists `tracker delete <id>` with no confirmation signal. The non-interactive design choice is consistent with CLI tool conventions (no command in the assignment's interface list prompts for input). **Rationale added to the Out of Scope "Interactive mode" bullet to document the Layer 6 signal and why it was not adopted.**
-
----
+### Resolved
 
 **Finding 2 — Labels column width: spec text (20 chars) and example table (14 chars) are inconsistent (Dim 7)**
 
@@ -446,27 +487,57 @@ An implementer reading the spec text will produce a 20-char Labels column. An im
 
 This finding was introduced by the column-width resolution in Review 1 Finding 3, which originally specified 30 chars and was later changed. The example was not updated to match.
 
-**Classification:** Resolved — updated the example table to match the specified 20-char Labels column. See spec update below.
+**Resolution:** Updated the example table to match the specified 20-char Labels column.
 
 ---
 
-**Finding 3 — Empty description rejection not explicitly required by assignment (Dim 9 — marginal)**
+### Dismissed
+
+**Finding 1 — `tracker delete <id>` "with confirmation" in assignment Layer 6 not addressed in DESIGN.md (Dim 9)**
+
+The assignment's Layer 6 build description states: "`tracker delete <id>` with confirmation." DESIGN.md Feature 5 defines delete as non-interactive: the command runs, prints `Deleted issue #<id>.`, and exits. The Out of Scope section explicitly rules out interactive mode: "the tool is non-interactive; it reads arguments from the command line and exits."
+
+This is a genuine tension: the assignment's build layer guidance includes a confirmation prompt; DESIGN.md explicitly disallows interactive behavior without documenting that it is overriding that signal.
+
+Prior SO reviews 1, 3, 4, 5 did not flag or dismiss this. The finding was not hallucinated by prior reviews — it was simply not raised.
+
+Mitigation context: The assignment describes build layers as "one way to layer the build" (explicitly advisory), and the formal interface section — "`tracker delete <id>` (remove an issue)" — carries no mention of confirmation. The design choice to make the tool non-interactive is defensible. But the overriding rationale must be documented, not silently assumed.
+
+**Classification:** Dismissed. The Layer 6 build layers are explicitly framed as advisory ("here's one way to layer the build"), not a formal interface spec. The authoritative interface section lists `tracker delete <id>` with no confirmation signal. The non-interactive design choice is consistent with CLI tool conventions (no command in the assignment's interface list prompts for input). Rationale added to the Out of Scope "Interactive mode" bullet to document the Layer 6 signal and why it was not adopted.
+
+---
+
+**Finding 3 — Empty description rejection not explicitly required by assignment (Dim 9)**
 
 The assignment's security habit check states: "Validate all input from the command line. Reject empty titles." Titles are called out by name; descriptions are not. DESIGN.md (Review 5 Finding 6) added: `--description ""` → `Error: Description cannot be empty.` → exit 1.
 
 This is a defensible extension of the assignment's general input-validation principle and consistent with how the spec handles empty labels. However, the assignment names only titles explicitly, and the Finding 6 addition went beyond the literal assignment text without documenting that it was an interpretive extension rather than an explicit assignment requirement.
 
-**Classification:** Dismissed — the assignment's security guidance is general ("Validate all input from the command line") and applying it to description is a straightforward extension of the named principle. The spec is more complete for having it. The behavior is consistent with empty-label and empty-title handling. No action required beyond noting it as an interpretive decision.
+**Classification:** Dismissed. The assignment's security guidance is general ("Validate all input from the command line") and applying it to description is a straightforward extension of the named principle. The spec is more complete for having it. The behavior is consistent with empty-label and empty-title handling. No action required beyond noting it as an interpretive decision.
+
+---
+
+### Backlogged
+
+*(none)*
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Open
+
+*(none)*
 
 ---
 
 ### Summary
 
-Two real findings. One resolved (column width inconsistency — spec update required). One dismissed with documented rationale (delete confirmation). One dismissed as within reasonable interpretive scope (empty description validation).
+Two real findings. One resolved (column width inconsistency — spec update applied). Two dismissed with documented rationale (delete confirmation; empty-description interpretive extension). All three prior in-session concerns (dim 9 slippage from spec authorship context) are addressed: the only genuine assignment-compliance gap (delete confirmation signal) is documented and dismissed with rationale. No scope creep found beyond what prior reviews addressed. No under-delivery. Spec is ready for Layer 1 to open.
 
-All three prior in-session concerns (dim 9 slippage from spec authorship context) are addressed: the only genuine assignment-compliance gap (delete confirmation signal) is documented and dismissed with rationale. No scope creep found beyond what prior reviews addressed. No under-delivery.
-
-**Spec is ready for Layer 1 to open.**
+**Coordination:** *(none)*
 
 ---
 
@@ -532,9 +603,21 @@ Observed and resolved by TW Review 2 in coordination with this review. CHANGELOG
 
 ---
 
+### Backlogged
+
+*(none)*
+
+### Hallucinated
+
+*(none)*
+
+---
+
 ### Summary
 
-Two real findings resolved: README.md Layer 1 status stale (fixed), DECISIONS.md missing storage format decision (added). Two dismissed. No open items. The implementation is spec-compliant, scope-correct, and documentation is now current.
+Two real findings resolved: README.md Layer 1 status stale (fixed), DECISIONS.md missing storage format decision (added). Three dismissed. No open items. The implementation is spec-compliant, scope-correct, and documentation is now current.
+
+**Coordination:** Finding 5 (CHANGELOG Layer 1 entry) resolved by [TECHNICAL-WRITER-REVIEW.md](TECHNICAL-WRITER-REVIEW.md) Review 2. Finding 3 (post-deser validation) resolved by [SECURITY-REVIEW.md](SECURITY-REVIEW.md) Review 3.
 
 ---
 
@@ -550,11 +633,29 @@ Two real findings resolved: README.md Layer 1 status stale (fixed), DECISIONS.md
 
 ### Dismissed
 
-**Layer 1 scope compliance** — `tracker create` and `tracker list` only. No Layer 2+ features introduced. Scope discipline maintained. ✓
+*(none)*
 
-**Documentation currency** — README, CHANGELOG, TODO all current. Manual testing checklist complete. DECISIONS.md complete. ✓
+### Backlogged
 
-**No SO findings.** MVR reached for Layer 1.
+*(none)*
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+No SO findings. MVR reached for Layer 1. Layer 1 scope compliance verified — `tracker create` and `tracker list` only; no Layer 2+ features introduced; scope discipline maintained. Documentation currency verified — README, CHANGELOG, TODO all current; manual testing checklist complete; DECISIONS.md complete.
+
+**Coordination:** *(none)*
 
 ---
 
@@ -562,11 +663,9 @@ Two real findings resolved: README.md Layer 1 status stale (fixed), DECISIONS.md
 
 ## Review 10 — 2026-05-01 00:00Z
 
-**Scope:** Layer 2 implementation — spec compliance audit. Artifacts reviewed: `DESIGN.md`, `src/lib.rs`, `src/main.rs`, `tests/layer2.rs`, `TODO.md`, `README.md`, `CHANGELOG.md`.
+**Scope:** Layer 2 implementation — spec compliance audit. Artifacts reviewed: `DESIGN.md`, `src/lib.rs`, `src/main.rs`, `tests/layer2.rs`, `TODO.md`, `README.md`, `CHANGELOG.md`. SO did not build Layer 2; primary obligation is to DESIGN.md, not the implementation. Every finding is evaluated against the spec contract.
 
 **Session note:** In-session with full Layer 2 IAR suite. Same model as builder. Acknowledged quality tradeoff. Review-session primer applied.
-
-**Adversarial posture:** SO did not build Layer 2. Primary obligation is to DESIGN.md, not the implementation. Every finding is evaluated against the spec contract.
 
 ### Compliance Table
 
@@ -626,6 +725,18 @@ README.md Status section shows `- [ ] Layer 2: Status flow` (unchecked) and the 
 
 ---
 
+### Backlogged
+
+*(none)*
+
+### Hallucinated
+
+*(none)*
+
+---
+
 ### Summary
 
-Two real findings resolved: CHANGELOG missing Layer 2 entry (added), README status stale (updated). All Layer 2 acceptance criteria are met. No scope creep. Layer 2 delivers exactly what the spec requires: status mutation, status-based list filtering, error handling for invalid IDs and status values.
+Two real findings resolved: CHANGELOG missing Layer 2 entry (added), README status stale (updated). One dismissed (open-status empty-state message — spec-compliant). All Layer 2 acceptance criteria are met. No scope creep. Layer 2 delivers exactly what the spec requires: status mutation, status-based list filtering, error handling for invalid IDs and status values.
+
+**Coordination:** *(none)*

@@ -73,6 +73,8 @@ A complete domain file contains these elements, in order:
 - VDD-IAR Alignment (meta): `resolved`, `dismissed`, `hallucinated` (no `deferred` — process findings are binary)
 - Portfolio Assessment (meta): `demonstrated`, `partial`, `absent`, `hallucinated` (no `resolved` — portfolio evidence is assessed, not fixed during the review)
 
+**Cross-cutting classification — `raised to SO`:** Any role domain that finds a defect requiring a `DESIGN.md` change must classify it `raised to SO` rather than applying the change directly (only Solution Owner has DESIGN.md change authority). The classification is a valid sub-heading (`### Raised to SO`) for any non-meta role domain log; the body must include the proposed change, rationale, and a Markdown link to the SO log entry where the resolution will be tracked.
+
 Verify the classification schema matches the domain's nature before finalizing a new domain file.
 
 ---
@@ -91,6 +93,103 @@ Primers are not domain files. They do not have dimensions, coordination links, o
 
 ---
 
+## Governing standard for project-level review logs
+
+A project-level review log is the file produced by running a domain review on a project under review (e.g., `issue-tracker-cli/iterative-adversarial-refinement/QUALITY-ENGINEER-REVIEW.md`). The domain prompt file specifies *what* to evaluate; this standard specifies *what the resulting log must contain*. Drift in log structure makes cross-domain reading harder and hides governance gaps — apply this standard whenever a new project-level log is created or an existing one is updated.
+
+### File-level header (above the first review)
+
+A complete project-level review log opens with these elements, in order:
+
+1. **H1 title** — `# [Role] Review Log`
+2. **Suite link line** — standard text linking to the project's `README.md` and noting the review is part of the IAR suite
+3. **Purpose statement** — one paragraph stating what this domain evaluates in this project
+4. **Reviewer role line** — `**Reviewer role: [Title]** ([Job title variants])` — required for role domains, copied verbatim from the domain prompt file. **Exception:** meta domains are exempt — parallel to the prompt-file rule.
+5. **Activation line** — `**Activation:** [conditions and rationale]` — required for **extended** domains active on this project; omitted for core domains and meta domains
+6. **Language supplement applied** — required when the domain prompt file references a lang supplement; format: `**Language supplement applied:** \`lang/<file>.md\` ([Section name]).` Domains marked language-agnostic in the prompt file include an explicit opt-out: `**Language supplement applied:** Not applicable. [Reason].`
+7. **Sycophancy check** — required; one paragraph restating the domain-specific failure mode the reviewer must resist. Drawn from the domain prompt file's sycophancy check, not paraphrased into generic warnings.
+
+### Per-review entry preamble (under each `## Review N — YYYY-MM-DD HH:MMZ`)
+
+**Required for all domains:**
+- **Scope:** what artifacts were reviewed in this round
+- **Session note:** session-isolation status (cold session vs. in-session, with explicit acknowledgement of the quality tradeoff when in-session)
+
+**Optional, only when applicable to the domain:**
+- **Posture:** adversarial framing (Red Team)
+- **Program phase:** apprentice phase context (VDD-IAR Alignment)
+- **Reference:** non-DESIGN.md authoritative source the review evaluates against (Solution Owner reviewing against the assignment brief)
+- **Regression check:** prior-review verification (any domain when a prior review for the same scope exists)
+- **Assumption surfacing:** dependency and library-API verification (Quality Engineer, per the QE prompt's G-20/G-21/G-23 obligations) — one short paragraph per review naming assumptions verified or flagged
+
+A reviewer who finds they need a preamble field that is not in either list should propose adding it to this standard rather than introducing it ad-hoc. Examples of fields that are **not** valid additions: `Preamble`, `Governing methodology`, `Mutation analysis method`, free-form `Test count` lines — these duplicate `Scope` or `Session note`, or belong inside individual findings or the closing summary.
+
+### Required pre-review sections
+
+Some domains require an output that must be produced before findings can be classified. These match the "Required sections" carve-out in the domain-file governing standard. The output is a preamble record, not a classified finding.
+
+| Domain | Required section | Source |
+|---|---|---|
+| Security | `### Threat Model` | `SECURITY-REVIEW.md` prompt |
+| Solution Owner | `### Compliance Table` | `SOLUTION-OWNER-REVIEW.md` prompt (assignment compliance audit) |
+
+When a domain prompt file specifies a required section, the project-level review log must contain that section above the finding sections, populated for the round being logged. An absent required section is itself a finding for VDD-IAR Alignment dim 1.
+
+### Finding sections
+
+Group findings by classification heading. Use only the classifications listed for this domain in the **Finding classification schemas by domain type** table elsewhere in this document — no ad-hoc variants (`### Dismissed with Rationale`, `### Observation`, `### Note`, `### Raised to SO`). The classification universe per domain is the source of truth; the log structure must mirror it.
+
+Empty classification sections use a `*(none)*` placeholder so the structure is visible:
+
+```
+### Open
+
+*(none)*
+```
+
+A round that closes with no `### Open` section is a structural error — the absence of open findings is itself a state worth recording. The set of section headings should equal the domain's full classification set, with `*(none)*` used wherever empty.
+
+**Exception — Portfolio Assessment:** Portfolio Assessment groups by dimension (`### Dim N — Name`), not by classification, because each portfolio dimension produces a per-dim assessment (`Demonstrated`/`Partial`/`Absent`/`Hallucinated`) rather than a defect to fix. The classification appears at the end of each dim section and a summary table appears at the close. Portfolio also adds a file-level `**Developer participation note:**` directly under the sycophancy check, naming which dimensions require direct developer interrogation rather than artifact analysis. These exceptions are intentional and limited to Portfolio Assessment; no other domain may use dim-first organization or the participation-note field.
+
+### Finding body
+
+Each finding follows this structure:
+
+```
+**Finding N — Title (Dim X)**
+
+[Prose body — what was observed, why it matters, evidence]
+
+**Resolution:** [for Resolved findings — what was changed and where]
+
+— or —
+
+**Classification:** [Dismissed | Deferred | Hallucinated | Accepted Risk | …]
+[rationale; for Accepted Risk and similar, include the named owner]
+```
+
+- Finding title always includes the dim reference parenthetically (`(Dim 2)`, `(Dim 1, Dim 10)`, `(Rust supplement — path traversal)`)
+- Numbering is continuous within a Review (1, 2, 3, … across all classifications), not restarted per classification
+- Cross-references to other domain logs use Markdown links: `[QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) Finding 4` — not prose ("Logged in QE log")
+- Closer is exactly one of `**Resolution:**` (Resolved only) or `**Classification:**` (everything else). Mixing the two within a single domain's log is drift.
+
+### Closing block
+
+Each review ends with:
+
+1. **`### Summary`** — one short paragraph: tally of findings by class and what the round produced. Required.
+2. **`**Coordination:**`** line — handoffs to other domain logs with linked relative paths to the receiving file. Required when any finding references another domain; `*(none)*` otherwise.
+
+Reviews without a Summary are incomplete. Reviews with cross-domain implications and no Coordination line have an unrecorded handoff.
+
+### Round numbering and ordering
+
+- Reviews are numbered per domain (Review 1, Review 2, …) and ordered chronologically with most recent at the bottom
+- Each `## Review N` is separated from the next by a double horizontal rule (`---\n\n---`)
+- Round numbers are required in every entry (`review-session.md` reinforces this for the merge gate)
+
+---
+
 ## Before adding a dimension
 
 1. Name the failure class: what defect reaches users if this dimension is absent?
@@ -106,7 +205,7 @@ Primers are not domain files. They do not have dimensions, coordination links, o
 4. Create the domain file following the governing standard above. Verify the finding classification schema is appropriate for the domain's nature.
 5. Add the domain to `README.md` in the appropriate table (Core or Extended), with Role, Job title, Prompt file, and Focus columns filled.
 6. Add lang supplement sections where applicable. See **Lang supplement coverage** below.
-7. Add a `SUITE-REVIEW.md` entry documenting the addition, rationale, defect class addressed, and dimensions that were considered and rejected.
+7. Add a suite review session entry in `review-log/YYYY-MM-DD-suite-review.md` (creating the file if no entry exists for that date) documenting the addition, rationale, defect class addressed, and dimensions that were considered and rejected. Add a corresponding row to the **Suite Reviews** table in `SUITE-REVIEW.md` linking to the entry.
 8. Add a `CHANGELOG.md` entry.
 9. Add a `GAP-ANALYSIS-LOG.md` entry if the domain addresses an existing open gap.
 
@@ -116,7 +215,7 @@ Primers are not domain files. They do not have dimensions, coordination links, o
 2. Make the change.
 3. Update the gap registry: if the gap was tracked, mark it Addressed with today's date. If it was not tracked, add it and immediately mark it Addressed.
 4. Log the change in `CHANGELOG.md`.
-5. If the change is structural (new section, new classification schema, changed prompt format): add a `SUITE-REVIEW.md` entry.
+5. If the change is structural (new section, new classification schema, changed prompt format): add a suite review session entry in `review-log/YYYY-MM-DD-suite-review.md` and a corresponding row in the **Suite Reviews** table in `SUITE-REVIEW.md`.
 
 ## Running gap analysis
 
@@ -124,30 +223,50 @@ Read `GAP-ANALYSIS-LOG.md` for the current open gaps, then read all domain files
 
 **Gap registry discipline:** When a gap is resolved by a suite change, update the original row's status in place — change `Open` to `Addressed` and update the `Last Reviewed` date. Do not append a new row for an existing gap. New gaps get new rows; status changes update existing rows.
 
-A gap analysis session ends with:
-- All recently addressed gaps marked Addressed with the date
+A gap analysis session is one mode of suite review (registry-walk lens). Like any suite review session, it ends with:
+- All recently addressed gaps marked Addressed in `GAP-ANALYSIS-LOG.md` with the date
 - Any new gaps discovered added to the registry with a new G-ID
-- A new `## Gap Analysis Run N — date` entry in `SUITE-REVIEW.md` (not in `GAP-ANALYSIS-LOG.md`) summarizing context, findings, decisions, and suite changes made
+- A `## Review N — date` entry in `review-log/YYYY-MM-DD-suite-review.md` (creating the file if no entry exists for that date) summarizing scope, findings, decisions, and suite changes made
+- A corresponding row added to the **Suite Reviews** table in `SUITE-REVIEW.md` linking to the new entry
 
-`GAP-ANALYSIS-LOG.md` contains only the registry table. Run narratives belong in `SUITE-REVIEW.md`.
+`GAP-ANALYSIS-LOG.md` contains only the registry table. Run narratives belong in `review-log/`. `SUITE-REVIEW.md` is the index of those narratives, not their home.
 
-## SUITE-REVIEW.md discipline
+## Suite review and review-log discipline
 
-Every non-trivial suite change requires a `SUITE-REVIEW.md` entry. Non-trivial means: any addition or removal of a domain or primer, any new evaluation dimension, any structural change to the prompt format, or any change to sequencing or activation guidance.
+The IAR suite has three parallel review-record artifacts. Their roles do not overlap:
 
-Mechanical fixes (typos, filename renames, path updates) do not require a `SUITE-REVIEW.md` entry but should be logged in `CHANGELOG.md`.
+- **`SUITE-REVIEW.md`** is an index. It contains one table — **Suite Reviews** — each row pointing to a session entry in `review-log/`.
+- **`review-log/YYYY-MM-DD-suite-review.md`** holds the actual session entries. One file per date; multiple sessions on the same date append to the same file (newest at the top).
+- **`GAP-ANALYSIS-LOG.md`** is the gap registry. Status only — no narrative. One row per gap; status changes update the row in place.
 
-**Gap analysis run entry format** — A `## Gap Analysis Run N — date` entry in `SUITE-REVIEW.md` must contain:
+Every non-trivial suite change requires a session entry in `review-log/` and a corresponding index row in `SUITE-REVIEW.md`. Non-trivial means: any addition or removal of a domain or primer, any new evaluation dimension, any structural change to the prompt format, or any change to sequencing or activation guidance.
 
-1. **Header** — `## Gap Analysis Run N — YYYY-MM-DD HH:MMZ`
-2. **Context** — What prompted this run? New project type, post-mortem, suite change, or scheduled maintenance?
-3. **Scope** — Which domains, supplements, and suite artifacts were evaluated?
-4. **New gaps** — Each newly identified gap listed with the proposed G-ID, description, and severity assessment. New gaps are added to the registry; the run entry is where the rationale lives.
-5. **Addressed gaps** — Each gap closed by changes made during this run, with the G-ID and a one-sentence description of the change.
-6. **Dismissed gaps** — Each gap reviewed and rejected, with G-ID and rationale.
-7. **Suite changes made** — List of files modified, with what changed and why.
+Mechanical fixes (typos, filename renames, path updates) do not require a session entry but should be logged in `CHANGELOG.md`.
 
-The entry is the narrative record. The registry row is the status indicator. Never put narrative in the registry; never omit the registry update.
+**One artifact type, multiple modes.** A suite review may apply fresh adversarial pressure (defect-search lens), walk the gap registry top-down (registry-walk lens), or both. The mode lives in the **Lens** field; it is not a separate artifact type. Sessions previously called "meta-reviews" and "gap analysis runs" are now both `Review N` entries — the distinction is mode, not kind.
+
+### Filename convention
+
+The filename date is the **session start date in UTC**. When a session crosses midnight UTC, it remains in the file matching its start date — do not split it across two files. Same-date sessions append to the existing file (newest at the top).
+
+### Suite review entry format
+
+A `## Review N — date` entry in `review-log/YYYY-MM-DD-suite-review.md` must contain:
+
+1. **Header** — `## Review N — YYYY-MM-DD HH:MMZ`. Review numbers are **sequence-wide across all suite-review files** (Review 30 follows Review 29 even if they live in different date-named files); the timestamp is the session start in UTC.
+2. **Scope** — What artifacts were read this round (specific domain files, primers, supplements, README, gap registry rows, etc.) and what triggered the review (user request, follow-up to a prior finding, scheduled cadence, project type added). Cite specific files when narrow; "all 14 role domains, 2 meta domains, 5 primers" when broad.
+3. **Lens** — The angle the reviewer applied. A lens is a named defect class ("coordination link format compliance", "classification schema coverage", "lang supplement symmetry") OR a registry-walk scope ("walk all open gaps", "review G-22 and G-30"). A diffuse lens produces a diffuse review. If a session has no specific lens, log it as a generalist pass and name the prior passes' specialization gaps it is filling.
+4. **Findings** grouped by classification heading. Valid headings:
+   - `### Resolved` — fix applied and verified during the session. Use both for newly-found defects fixed in-session and for previously-tracked gaps closed in-session (cite the G-ID).
+   - `### Dismissed` — concern reviewed and rejected; rationale required. Use both for newly-raised defects rejected and for previously-tracked gaps dismissed.
+   - `### Hallucinated` — adversary-invented concern that does not apply; rationale required.
+   - `### New gap registered` — finding promoted to a tracked gap; G-ID stated; the registry row is added in `GAP-ANALYSIS-LOG.md`. This heading is **suite-review-specific** — it is not part of the project-level classification universe and is not valid in project-level review logs.
+5. **Finding body** — same shape as project-level review logs: `**Finding N — Title**` for new findings, `**G-XX — Title**` for gap-registry walk entries; prose body; then `**Resolution:**` (Resolved) or `**Classification:**` (everything else). Cross-references to other suite artifacts use Markdown links.
+6. **Closing** — no separate Summary required (the classification headings carry the tally). Follow-up findings introduced after the session has been logged must be marked `**Finding M — Title (added YYYY-MM-DD)**` and placed at the end of the original entry, not in a new entry. Do not silently amend prior findings.
+
+### Common discipline
+
+The session entry is the narrative record. The `GAP-ANALYSIS-LOG.md` row is the status indicator for gaps. The `SUITE-REVIEW.md` row is the index pointer for the session. Never put narrative in the registry; never omit the registry update; never omit the index row. An unindexed session is invisible to future reviewers.
 
 ## Lang supplement coverage
 

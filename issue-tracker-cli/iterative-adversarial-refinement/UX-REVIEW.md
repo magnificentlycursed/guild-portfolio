@@ -2,11 +2,13 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
 
+**Reviewer role: UX Designer** (UX Designer / UX Researcher / Product Designer)
+
 The purpose of this review is to evaluate the user experience of the interface. For CLI projects, the CLI supplement dimensions (`lang/cli.md`) replace the standard browser-centric UX dimensions.
 
-**Supplement applied:** `lang/cli.md` (UX replacement dimensions). Standard browser UX dimensions are not applicable.
+**Language supplement applied:** `lang/cli.md` (UX replacement dimensions). Standard browser UX dimensions are not applicable.
 
-**Sycophancy check:** This review evaluates the specified interface, not a running binary. The adversary cannot observe latency, rendering, or interaction feel from a spec. Findings are limited to what is determinable from DESIGN.md. Dimensions requiring binary execution are flagged for manual testing at the Layer 7 gate.
+**Sycophancy check:** An AI agent cannot experience a user interface — it cannot perceive latency, notice visual imbalance, or discover that a flow is confusing by trying to use it. An agent reviewing its own UI implementation will validate the decisions it made at generation time rather than evaluate the lived experience those decisions create. The adversary must flag any dimension where the review relies on reading code rather than observing the interface. If the project cannot be tested directly in a browser, state that explicitly — do not simulate user experience from source code and report it as a UX evaluation.
 
 ---
 
@@ -18,9 +20,9 @@ The purpose of this review is to evaluate the user experience of the interface. 
 
 ---
 
-### Dismissed with Rationale
+### Dismissed
 
-**Finding 1 — Empty-state messages route to stdout; may pollute piped output (CLI Dim 6)**
+**Finding 1 — Empty-state messages route to stdout; may pollute piped output (CLI supplement dim 6)**
 
 CLI supplement dim 6: "Is the empty message on `stderr` so it does not pollute piped output?"
 
@@ -30,7 +32,7 @@ DESIGN.md specifies that `"No open issues. Nice work!"` and `"No issues match th
 
 ---
 
-**Finding 2 — `tracker delete` has no confirmation gate (CLI Dim 7)**
+**Finding 2 — `tracker delete` has no confirmation gate (CLI supplement dim 7)**
 
 CLI supplement dim 7: "Do commands that delete, overwrite, or irreversibly modify data require explicit confirmation?"
 
@@ -40,7 +42,7 @@ CLI supplement dim 7: "Do commands that delete, overwrite, or irreversibly modif
 
 ---
 
-**Finding 3 — `→` Unicode arrow in status confirmation (CLI Dim 3 — output scannability)**
+**Finding 3 — `→` Unicode arrow in status confirmation (CLI supplement dim 3 — output scannability)**
 
 `Issue #<id> status → <new_status>.` uses the right arrow character U+2192. On non-UTF-8 terminals or systems with legacy encoding, this character may render incorrectly. On the target platform (macOS), this is not an issue.
 
@@ -48,7 +50,7 @@ CLI supplement dim 7: "Do commands that delete, overwrite, or irreversibly modif
 
 ---
 
-**Finding 4 — No `--label` flag asymmetry documented as user-facing behavior (CLI Dim 2)**
+**Finding 4 — No `--label` flag asymmetry documented as user-facing behavior (CLI supplement dim 2)**
 
 Multiple `--label` flags are accepted on `tracker create` (deduplicated) but rejected on `tracker list` (usage error). This asymmetry might surprise users. The `--help` output must make this distinction clear.
 
@@ -58,7 +60,7 @@ Multiple `--label` flags are accepted on `tracker create` (deduplicated) but rej
 
 ### Hallucinated
 
-**Finding 5 — No machine-readable output mode (CLI Dim 10)**
+**Finding 5 — No machine-readable output mode (CLI supplement dim 10)**
 
 CLI supplement dim 10: "If the output is intended to be piped or parsed by other programs, is a `--json` flag available?"
 
@@ -66,20 +68,23 @@ CLI supplement dim 10: "If the output is intended to be piped or parsed by other
 
 ---
 
-### Open for Manual Verification at Layer 7 Gate
+### Open
 
-The following UX dimensions cannot be evaluated from the spec alone and must be verified by running the binary at the Layer 7 gate:
-
-- **CLI Dim 1 (help accuracy):** Does `--help` accurately describe all flags, valid values, and include a usage example? Is it complete for all five subcommands?
-- **CLI Dim 3 (output scannability):** Does the table render clearly with correct column alignment? Is the fixed-width format readable in practice?
-- **CLI Dim 8 (error message quality):** Do error messages include what failed, why (where knowable), and what to do? Test all error paths from the manual checklist.
-- **CLI Dim 9 (interruption):** Does `Ctrl+C` during a write leave `tracker.json` in a partially-written state? This is a manual test — the spec does not address SIGINT handling.
+*(none)*
 
 ---
 
 ### Summary
 
-No blocking findings. Five findings dismissed or hallucinated. Four items deferred to Layer 7 manual verification. The spec's interface design is clean for a CLI-first interactive tool: consistent flag naming, explicit stdout/stderr contract, tabular output with truncation, complete error message formats. The two design tradeoffs (no delete confirmation, empty state on stdout) are documented with rationale.
+No blocking findings. Four findings dismissed and one hallucinated. The spec's interface design is clean for a CLI-first interactive tool: consistent flag naming, explicit stdout/stderr contract, tabular output with truncation, complete error message formats. The two design tradeoffs (no delete confirmation, empty state on stdout) are documented with rationale.
+
+**Items deferred to Layer 7 manual verification at the gate** (cannot be evaluated from the spec alone — adversary cannot run the binary):
+- **CLI dim 1 (help accuracy):** Does `--help` accurately describe all flags, valid values, and include a usage example? Is it complete for all five subcommands?
+- **CLI dim 3 (output scannability):** Does the table render clearly with correct column alignment? Is the fixed-width format readable in practice?
+- **CLI dim 8 (error message quality):** Do error messages include what failed, why (where knowable), and what to do? Test all error paths from the manual checklist.
+- **CLI dim 9 (interruption):** Does `Ctrl+C` during a write leave `tracker.json` in a partially-written state? Manual test — the spec does not address SIGINT handling.
+
+**Coordination:** Finding 2 cross-referenced with [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) Review 6 (no delete confirmation — SO-approved design choice). Finding 3 cross-referenced with [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) Review 1 Finding 4.
 
 ---
 
@@ -133,15 +138,23 @@ Review 1 Finding 1 dismissed this; confirming the implementation matches the spe
 
 ---
 
+### Hallucinated
+
+*(none)*
+
+---
+
 ### Open
 
-*(none — items deferred to Layer 7 manual testing remain deferred)*
+*(none — items deferred to Layer 7 manual testing remain deferred from Review 1)*
 
 ---
 
 ### Summary
 
 Four dismissed findings. No new UX concerns from the implementation. The Layer 1 implementation correctly routes success to stdout, errors to stderr, and error messages follow the `Error: <message>` format. Layer 7 deferred items (help accuracy for all flags, color rendering in TTY, piped-output ANSI suppression) remain open. Manual testing checklist must be completed by the developer before the Layer 1 gate closes.
+
+**Coordination:** *(none)*
 
 ---
 
@@ -157,7 +170,25 @@ Four dismissed findings. No new UX concerns from the implementation. The Layer 1
 
 ### Dismissed
 
-Manual testing confirmed expected UX behavior: empty state message correct, table header and columns align, error messages specific and actionable. Layer 7 deferred items remain deferred. **No UX findings.** MVR reached for Layer 1.
+*(none)*
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+No UX findings. Manual testing confirmed expected UX behavior: empty state message correct, table header and columns align, error messages specific and actionable. Layer 7 deferred items remain deferred. MVR reached for Layer 1.
+
+**Coordination:** *(none)*
 
 ---
 
@@ -225,6 +256,12 @@ Accurate. The subcommand's top-level doc ("List issues (default: open only)") co
 
 ---
 
+### Hallucinated
+
+*(none)*
+
+---
+
 ### Open
 
 *(none — Layer 7 manual TTY verification items remain deferred)*
@@ -233,4 +270,6 @@ Accurate. The subcommand's top-level doc ("List issues (default: open only)") co
 
 ### Summary
 
-No UX findings. Layer 2 error messages are specific and actionable. Help text is accurate for current scope. Deferred Layer 7 items (color output, full help accuracy for all flags) remain deferred. **No UX findings.** MVR reached for Layer 2.
+No UX findings. Layer 2 error messages are specific and actionable. Help text is accurate for current scope. Deferred Layer 7 items (color output, full help accuracy for all flags) remain deferred. MVR reached for Layer 2.
+
+**Coordination:** *(none)*

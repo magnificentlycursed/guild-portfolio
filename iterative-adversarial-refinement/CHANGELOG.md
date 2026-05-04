@@ -4,6 +4,21 @@ All notable changes to the IAR suite are recorded here. Entries are in reverse c
 
 ---
 
+## Unreleased — 2026-05-02 (suite review collapse)
+
+### Changed
+- **`prompts/suite-development.md`** — Collapsed two parallel suite-review artifact types (meta-review and gap analysis run) into a single **Suite Review** type. Replaced the two entry-format specifications with one **Suite review entry format** subsection covering both modes (defect-search lens and registry-walk lens). The mode now lives in the `Lens` field rather than in a separate artifact. Updated cross-cutting wording in "Before adding a domain", "Before modifying a domain", and "Running gap analysis" to reference the unified type. Added project-level review log governing standard (introduced earlier in this session) referenced for finding-body shape.
+- **`prompts/review-session.md`** — Updated "If reviewing the IAR suite itself" to reference the unified `review-log/YYYY-MM-DD-suite-review.md` filename pattern and the single **Suite Reviews** index table. Removed dual-type framing.
+- **`SUITE-REVIEW.md`** — Replaced the two tables (Suite Meta-Reviews + Gap Analysis Runs) with a single **Suite Reviews** table. Renumbered all 29 sessions chronologically as Review 1–29 (oldest = Run 1, newest = Review 16). Added migration footnote with old→new mapping. Reading-convention text updated.
+- **`review-log/`** — Renamed and merged session files: `2026-04-25-gap-analysis.md` → `2026-04-25-suite-review.md`; `2026-04-26-gap-analysis.md` → `2026-04-26-suite-review.md`; `2026-04-27-{gap-analysis,meta-review}.md` merged into `2026-04-27-suite-review.md`; `2026-04-28-{gap-analysis,meta-review}.md` merged into `2026-04-28-suite-review.md`; `2026-05-01-meta-review.md` → `2026-05-01-suite-review.md`. All H1 titles and `## Review N` / `## Gap Analysis Run N` headings updated to the unified numbering. Within-session prose references updated where unambiguous.
+- **`GAP-ANALYSIS-LOG.md`** — Updated all 87 Markdown links to point to renamed files and renumbered anchors. Updated step 6 of "How to run a gap analysis" to direct entries to `review-log/YYYY-MM-DD-suite-review.md`. Updated trailing prose about narrative location.
+- **Project-level review logs** under `issue-tracker-cli/iterative-adversarial-refinement/` — earlier in this session, applied the project-level review log governing standard to all 13 domain logs: file-level reviewer-role/activation/sycophancy headers, dim-ref parentheticals on every finding title, classification-first finding sections, Markdown-linked cross-references, unified Resolution/Classification closer, Summary + Coordination closing. Portfolio Assessment retained its dim-first organization as a documented exception.
+
+### Note
+Historical CHANGELOG entries below this one preserve their original wording and reference the pre-collapse artifact names ("meta-review", "gap analysis run", "Run N", "Review N" under the old numbering). Those entries describe state at points in time and are intentionally not rewritten.
+
+---
+
 ## Unreleased — 2026-05-01 (session 18, follow-up)
 
 ### Changed

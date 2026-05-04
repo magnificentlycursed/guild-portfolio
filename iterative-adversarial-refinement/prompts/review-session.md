@@ -76,8 +76,9 @@ A session that ends with unclassified findings has not completed the review. Log
 
 ## If reviewing the IAR suite itself
 
-When the review target is the suite itself (suite meta-review or gap analysis run, not a project under review):
+When the review target is the suite itself (not a project under review):
 
-- Findings are recorded in `iterative-adversarial-refinement/review-log/YYYY-MM-DD-{meta-review|gap-analysis}.md` — create the file if no entry exists for the date and type, or append to it if one does.
-- Add a corresponding summary row to the appropriate table in `iterative-adversarial-refinement/SUITE-REVIEW.md`. The index is read first by future reviewers; an unindexed run is invisible.
-- New gap registrations also need a row in `GAP-ANALYSIS-LOG.md` linking to the new run file.
+- Findings are recorded in `iterative-adversarial-refinement/review-log/YYYY-MM-DD-suite-review.md` — create the file if no entry exists for the date, or append to it if one does. Suite reviews are a single artifact type; the mode (defect-search vs. registry-walk) lives in the entry's Lens field.
+- Add a corresponding summary row to the **Suite Reviews** table in `iterative-adversarial-refinement/SUITE-REVIEW.md`. The index is read first by future reviewers; an unindexed session is invisible.
+- New gap registrations also need a row in `GAP-ANALYSIS-LOG.md` linking to the new session entry.
+- See the **Suite review entry format** section in `prompts/suite-development.md` for the required entry structure.

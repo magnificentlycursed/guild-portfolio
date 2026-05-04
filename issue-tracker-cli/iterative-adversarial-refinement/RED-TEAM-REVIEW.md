@@ -4,9 +4,11 @@ This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) s
 
 **Reviewer role: Red Team Hacker** (Penetration Tester / Offensive Security Engineer)
 
-**Activation:** User-controlled CLI input is present. Run after Security Engineer.
+**Activation:** User-controlled CLI input; file I/O operations. Run after Security Engineer.
 
-**Language supplement applied:** `lang/rust.md` (Red Team section).
+**Language supplement applied:** `lang/rust.md` (Red Team section) + `lang/cli.md` (Red Team section).
+
+**Sycophancy check:** An agent that built the application will rationalize its defenses as adequate because it believes in the controls it generated. The Red Team does not evaluate intent — it evaluates outcome. For every control, ask: "can this be bypassed by a caller who does not follow the happy path?" An application where every attack is dismissed as "not applicable" has not been red-teamed — it has been reassured.
 
 ---
 
@@ -20,29 +22,49 @@ This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) s
 
 ---
 
-### Accepted Risk
+### Resolved
 
-**Finding 1 — Crafted `tracker.json` with invalid domain values (cross-reference Security Finding 1)**
+**Finding 1 — Crafted `tracker.json` with invalid domain values (Dim 6, cross-reference Security Finding 1)**
 
 A malicious or accidentally crafted `tracker.json` with valid JSON structure but invalid domain values (e.g., `"status": "flying"`, `"id": -1` encoded as a large u64 near `u64::MAX`, `"title": ""`) could produce undefined behavior in an implementation that trusts deserialized data.
 
 For a single-user local tool, the scenario is: the user manually edits `tracker.json` and introduces an invalid value. The question is whether the tool crashes, silently uses the invalid data, or errors cleanly.
 
-**Security Review 1 resolved this** by adding the post-deserialization validation requirement to DESIGN.md. Invalid domain values in deserialized data now trigger the corrupt-data error path (exit 1, informative stderr message).
+[SECURITY-REVIEW.md](SECURITY-REVIEW.md) Review 1 resolved this by adding the post-deserialization validation requirement to DESIGN.md. Invalid domain values in deserialized data now trigger the corrupt-data error path (exit 1, informative stderr message).
 
-**Classification:** Resolved by Security Finding 1. The spec now requires post-deserialization validation. The Red Team confirms this is the correct mitigation — the tool should treat all file-read data as untrusted.
+**Resolution:** Resolved by [SECURITY-REVIEW.md](SECURITY-REVIEW.md) Review 1 Finding 1. The spec now requires post-deserialization validation. The Red Team confirms this is the correct mitigation — the tool should treat all file-read data as untrusted.
 
 ---
 
-### Dismissed
+### Accepted Risk
 
 **Finding 2 — Integer overflow on ID counter at `u64::MAX` (Rust supplement — integer overflow)**
 
 ID assignment: `max(existing_ids) + 1`. If `max(existing_ids)` equals `u64::MAX` (18,446,744,073,709,551,615), the `+ 1` wraps to 0 in Rust release builds (overflow is defined to wrap for release mode arithmetic, unlike debug mode which panics).
 
-**Classification:** Accepted risk. A personal issue tracker would need to create 18.4 quintillion issues to reach this condition. This is not a real threat. Accepted without mitigation. If the implementation uses `checked_add` this is a free mitigation; if it uses `+`, the overflow risk is categorically acceptable.
+**Classification:** Accepted Risk. A personal issue tracker would need to create 18.4 quintillion issues to reach this condition. This is not a real threat. Accepted without mitigation. If the implementation uses `checked_add` this is a free mitigation; if it uses `+`, the overflow risk is categorically acceptable. Risk owner: the user/developer.
 
 ---
+
+### Dismissed
+
+**Finding 4 — Panic via crafted CLI input (Rust supplement — panic as DoS)**
+
+`.unwrap()` on values derived from user input can panic and crash the binary. For a single-user CLI, a crash is inconvenient but not a denial-of-service concern — the user is attacking themselves. The Rust supplement notes this is a DoS vector for server applications; for a CLI the stakes are much lower.
+
+**Classification:** Dismissed at Review 1. No implementation exists yet — re-evaluation tracked in Review 2 when code is available. The Rust SE supplement requires `.unwrap()` discipline on user-facing paths; SE Review will verify when code exists. For a CLI tool, a panic from user input is a quality defect (unhelpful error message) not a security vulnerability. The DESIGN.md Constraints section requires crash-safe I/O for file operations specifically. No spec change needed.
+
+---
+
+**Finding 5 — Supply chain attack on Cargo dependencies (Rust supplement — crates.io supply chain)**
+
+No `Cargo.toml` exists. No dependencies declared.
+
+**Classification:** Dismissed at Review 1; re-evaluated in Review 2 once dependencies exist. [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md) findings (`cargo audit`, `cargo deny`) cover this.
+
+---
+
+### Hallucinated
 
 **Finding 3 — Path traversal via `tracker.json` (Rust supplement — path traversal)**
 
@@ -52,22 +74,6 @@ The file path `tracker.json` is hardcoded in the implementation. No user-supplie
 
 ---
 
-**Finding 4 — Panic via crafted CLI input (Rust supplement — panic as DoS)**
-
-`.unwrap()` on values derived from user input can panic and crash the binary. For a single-user CLI, a crash is inconvenient but not a denial-of-service concern — the user is attacking themselves. The Rust supplement notes this is a DoS vector for server applications; for a CLI the stakes are much lower.
-
-**Classification:** Deferred. No implementation exists. The Rust SE supplement requires `.unwrap()` discipline on user-facing paths. SE Review will verify when code exists. For a CLI tool, a panic from user input is a quality defect (unhelpful error message) not a security vulnerability. The DESIGN.md Constraints section requires crash-safe I/O for file operations specifically. No spec change needed.
-
----
-
-**Finding 5 — Supply chain attack on Cargo dependencies (Rust supplement — crates.io supply chain)**
-
-No `Cargo.toml` exists. No dependencies declared. Deferred to when dependencies are first introduced.
-
-**Classification:** Deferred to Layer 1, when dependencies exist. Platform Engineer findings (cargo audit, cargo deny) cover this.
-
----
-
 ### Open
 
 *(none)*
@@ -76,9 +82,9 @@ No `Cargo.toml` exists. No dependencies declared. Deferred to when dependencies 
 
 ### Summary
 
-The attack surface of this tool is extremely small: hardcoded file path, no network, no auth, single user, all input validated at the CLI boundary. The one real pre-implementation finding (crafted `tracker.json` with invalid domain values) was already resolved by Security Review 1. Two deferred findings (panic discipline, supply chain) will be evaluated in Review 2 when code exists. Two hallucinated. One accepted risk (u64 overflow — not a real threat).
+The attack surface of this tool is extremely small: hardcoded file path, no network, no auth, single user, all input validated at the CLI boundary. The one real pre-implementation finding (crafted `tracker.json` with invalid domain values) was already resolved by Security Review 1. Two findings carried forward (panic discipline, supply chain) for re-evaluation in Review 2. One hallucinated (path traversal). One accepted risk (u64 overflow — not a real threat). Maximum viable refinement is close for the pre-implementation phase.
 
-Maximum viable refinement is close for the pre-implementation phase. The implementation-phase review will focus on `.unwrap()` discipline and dependency audit.
+**Coordination:** Finding 1 cross-referenced with [SECURITY-REVIEW.md](SECURITY-REVIEW.md) Review 1. Findings 4 and 5 carry forward for evaluation when code exists.
 
 ---
 
@@ -86,19 +92,19 @@ Maximum viable refinement is close for the pre-implementation phase. The impleme
 
 ## Review 2 — 2026-04-28 05:30Z
 
-**Scope:** Layer 1 implementation — `src/lib.rs`, `src/main.rs`, `Cargo.lock`. Adversarial posture: attempting to crash, corrupt, or cause undefined behavior through crafted inputs and files.
+**Scope:** Layer 1 implementation — `src/lib.rs`, `src/main.rs`, `Cargo.lock`. Attempting to crash, corrupt, or cause undefined behavior through crafted inputs and files. Looking for ways to break this binary; small attack surface is a conclusion I must earn.
 
 **Session note:** In-session with Layer 1 IAR suite. Acknowledged quality tradeoff.
 
-**Posture:** I am looking for ways to break this binary. Small attack surface is a conclusion I must earn.
+**Posture:** Adversarial — break the binary; do not trust the prior reviewer's "small attack surface" framing.
+
+**Regression check:** Review 1 carried forward Findings 4 (panic discipline) and 5 (supply chain) for evaluation when code exists. Both are re-evaluated below.
 
 ---
 
 ### Resolved
 
-**Finding 4 (Review 1) — Panic via crafted CLI input (deferred from Review 1)**
-
-Review 1 deferred verification of `.unwrap()` discipline to when implementation code exists.
+**Finding 1 — Panic via crafted CLI input (Rust supplement — panic as DoS) (regression check from Review 1 Finding 4)**
 
 Audit of all `.unwrap()` calls in `lib.rs` and `main.rs`:
 
@@ -108,47 +114,53 @@ Audit of all `.unwrap()` calls in `lib.rs` and `main.rs`:
 
 No user-reachable panic surface found.
 
-**Classification:** Resolved. No unsafe unwrap on user-facing paths. Finding 4 discharged.
+**Resolution:** No unsafe unwrap on user-facing paths. Review 1 Finding 4 discharged.
 
 ---
 
-**Finding 5 (Review 1) — Supply chain attack on Cargo dependencies (deferred from Review 1)**
+**Finding 2 — Supply chain attack on Cargo dependencies (Rust supplement — crates.io supply chain) (regression check from Review 1 Finding 5)**
 
 `cargo audit` run against `Cargo.lock` (100 packages: serde, serde_json, clap, chrono and all transitive deps): **0 advisories**. No known vulnerabilities in the dependency tree.
 
-**Classification:** Resolved. Finding 5 discharged.
+**Resolution:** Review 1 Finding 5 discharged.
+
+---
+
+**Finding 3 — Crafted `tracker.json` with invalid domain values (regression check from Review 1 Finding 1) (Dim 6)**
+
+Re-evaluated against the implementation. The initial implementation was vulnerable: `load_issues` deserialized without domain validation, allowing a crafted `tracker.json` with `"status": "flying"` to be silently processed. [SECURITY-REVIEW.md](SECURITY-REVIEW.md) Review 3 / [DATA-ENGINEER-REVIEW.md](DATA-ENGINEER-REVIEW.md) Review 3 identified and resolved this gap — `load_issues` now validates all field domain values and rejects any issue with an invalid value via the corrupt-data error path.
+
+**Resolution:** Resolved via [SECURITY-REVIEW.md](SECURITY-REVIEW.md) Review 3. The mitigated path now exits 1 with an informative message for any crafted file with invalid domain values.
 
 ---
 
 ### Accepted Risk
 
-**Finding 1 (Review 1) — Crafted `tracker.json` with invalid domain values**
+**Finding 4 — Integer overflow on ID counter (regression check from Review 1 Finding 2) (Rust supplement — integer overflow)**
 
-Re-evaluated against the implementation. The initial implementation was vulnerable: `load_issues` deserialized without domain validation, allowing a crafted `tracker.json` with `"status": "flying"` to be silently processed. Security Review 3 / Data Engineer Review 3 identified and resolved this gap — `load_issues` now validates all field domain values and rejects any issue with an invalid value via the corrupt-data error path.
+Unchanged assessment. `u64::MAX` + 1 overflow is unreachable in any realistic use.
 
-**Classification:** Resolved (via Security Review 3). The mitigated path now exits 1 with an informative message for any crafted file with invalid domain values.
+**Classification:** Accepted Risk. Risk owner: the user/developer.
 
 ---
 
 ### Dismissed
 
-**Finding 2 (Review 1, re-evaluated) — Integer overflow on ID counter**
-
-Unchanged assessment. `u64::MAX` + 1 overflow is unreachable in any realistic use. Accepted risk.
-
----
-
-**Finding 3 (Review 1) — Path traversal**
-
-Hallucinated. File path is hardcoded. Unchanged assessment.
-
----
-
-**New Finding 1 — Zero-id crafted file**
+**Finding 5 — Zero-id crafted file (Dim 6)**
 
 A `tracker.json` with `"id": 0` is now caught by the `issue.id > 0` check in `issue_fields_are_valid()`. Exit 1, corrupt-data error. Verified by reading the validation logic. Test `invalid_domain_values_in_json_causes_error_exit` covers the adjacent case (`"status": "flying"`); zero-ID is structurally identical.
 
-**Classification:** Dismissed — handled by the post-deserialization validation. No additional test required at Layer 1; the validation path is the same for any failing field.
+**Classification:** Dismissed. Handled by the post-deserialization validation. No additional test required at Layer 1; the validation path is the same for any failing field.
+
+---
+
+### Hallucinated
+
+**Finding 6 — Path traversal (regression check from Review 1 Finding 3)**
+
+File path is hardcoded. Unchanged assessment.
+
+**Classification:** Hallucinated.
 
 ---
 
@@ -160,7 +172,9 @@ A `tracker.json` with `"id": 0` is now caught by the `issue.id > 0` check in `is
 
 ### Summary
 
-Both deferred findings from Review 1 resolved: `.unwrap()` discipline verified (no panic surface on user-facing paths); supply chain audit clean (0 advisories). The crafted-file attack path (Finding 1) is now mitigated by post-deserialization validation. The tool's attack surface is as small as its deployment context warrants. Maximum viable refinement reached for Layer 1.
+Both carried-forward findings from Review 1 resolved: `.unwrap()` discipline verified (no panic surface on user-facing paths); supply chain audit clean (0 advisories). The crafted-file attack path is now mitigated by post-deserialization validation. The tool's attack surface is as small as its deployment context warrants. Maximum viable refinement reached for Layer 1.
+
+**Coordination:** Finding 3 resolved jointly with [SECURITY-REVIEW.md](SECURITY-REVIEW.md) Review 3 and [DATA-ENGINEER-REVIEW.md](DATA-ENGINEER-REVIEW.md) Review 3.
 
 ---
 
@@ -176,7 +190,25 @@ Both deferred findings from Review 1 resolved: `.unwrap()` discipline verified (
 
 ### Dismissed
 
-No new attack surface. All prior findings resolved. **No Red Team findings.** MVR reached for Layer 1.
+*(none)*
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+No new attack surface. All prior findings resolved. No Red Team findings. MVR reached for Layer 1.
+
+**Coordination:** *(none)*
 
 ---
 
@@ -188,44 +220,54 @@ No new attack surface. All prior findings resolved. **No Red Team findings.** MV
 
 **Session note:** In-session with full Layer 2 IAR suite. Acknowledged quality tradeoff.
 
-**Posture:** Attempting to crash, corrupt data, or produce undefined behavior through crafted inputs and sequences.
+**Posture:** Adversarial — attempting to crash, corrupt data, or produce undefined behavior through crafted inputs and sequences.
 
 ---
 
 ### Dismissed
 
-**Finding 1 — Status string injection (CLI input path)**
+**Finding 4 — Crafted `tracker.json` with a status field not in `VALID_STATUSES` (Dim 6) (regression check)**
 
-`tracker status 1 "done; rm -rf /"` — `parse_status` rejects any value not in `{"open", "in-progress", "done"}`. The string is never passed to a shell, never written to disk, never interpreted. The boundary is `VALID_STATUSES.contains(&lower.as_str())`. ✓
-
-**Classification:** Hallucinated. No injection surface exists.
-
----
-
-**Finding 2 — Very large ID string**
-
-`tracker status 9999999999999999999999 done` — `parse::<u64>()` returns `Err` for values exceeding `u64::MAX`. No panic, no storage access, clean error message. ✓
-
-**Classification:** Hallucinated. `u64` parsing handles overflow correctly.
-
----
-
-**Finding 3 — Rapid status toggling to produce timestamp collision**
-
-Two rapid `tracker status` invocations within the same second would produce identical `updated_at` timestamps (second precision). No state corruption results — the second write just overwrites with the same timestamp. The spec notes this: "`updated_at` after a status change is `>=` `updated_at` before the change" (allowing equal). ✓
-
-**Classification:** Hallucinated. The timestamp equality case is spec-defined and non-corrupting.
-
----
-
-**Finding 4 — Crafted `tracker.json` with a status field not in `VALID_STATUSES`**
-
-Unchanged from Layer 1 analysis. `issue_fields_are_valid` catches this; `load_issues` returns `Err(CORRUPT_DATA_ERROR)` before any command executes. The mitigation is in place and unchanged. ✓
+Unchanged from Layer 1 analysis. `issue_fields_are_valid` catches this; `load_issues` returns `Err(CORRUPT_DATA_ERROR)` before any command executes. The mitigation is in place and unchanged.
 
 **Classification:** Dismissed. Already mitigated; unchanged from Layer 1.
 
 ---
 
+### Hallucinated
+
+**Finding 1 — Status string injection (CLI input path) (Dim 6)**
+
+`tracker status 1 "done; rm -rf /"` — `parse_status` rejects any value not in `{"open", "in-progress", "done"}`. The string is never passed to a shell, never written to disk, never interpreted. The boundary is `VALID_STATUSES.contains(&lower.as_str())`.
+
+**Classification:** Hallucinated. No injection surface exists.
+
+---
+
+**Finding 2 — Very large ID string (Dim 5)**
+
+`tracker status 9999999999999999999999 done` — `parse::<u64>()` returns `Err` for values exceeding `u64::MAX`. No panic, no storage access, clean error message.
+
+**Classification:** Hallucinated. `u64` parsing handles overflow correctly.
+
+---
+
+**Finding 3 — Rapid status toggling to produce timestamp collision (Dim 5)**
+
+Two rapid `tracker status` invocations within the same second would produce identical `updated_at` timestamps (second precision). No state corruption results — the second write just overwrites with the same timestamp. The spec notes this: "`updated_at` after a status change is `>=` `updated_at` before the change" (allowing equal).
+
+**Classification:** Hallucinated. The timestamp equality case is spec-defined and non-corrupting.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
 ### Summary
 
-No new attack vectors. Layer 2 adds two entry points; both are fully validated. The attack surface remains the same bounded scope as Layer 1: no shell execution, no user-controlled file paths, all inputs validated before use. **No Red Team findings.** MVR reached for Layer 2.
+No new attack vectors. Layer 2 adds two entry points; both are fully validated. The attack surface remains the same bounded scope as Layer 1: no shell execution, no user-controlled file paths, all inputs validated before use. No Red Team findings. MVR reached for Layer 2.
+
+**Coordination:** *(none)*

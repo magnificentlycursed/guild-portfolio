@@ -2,9 +2,13 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
 
-The purpose of this review is to evaluate the data layer: modeling, validation, storage, schema evolution, and serialization. Pre-implementation: reviewing the data model and storage specification in DESIGN.md.
+**Reviewer role: Data Engineer** (Data Engineer / Database Engineer / Data Platform Engineer)
+
+The purpose of this review is to evaluate the data layer: modeling, validation, storage, schema evolution, and serialization.
 
 **Language supplement applied:** `lang/rust.md` (Data Engineering section).
+
+**Sycophancy check:** An agent that designed the data model will not question schema decisions — it evaluates whether the implementation matches the schema it chose, not whether the schema was the right choice. The adversary must ask whether each structural decision (field types, normalization approach, storage mechanism, validation boundaries) serves the domain correctly. The most dangerous data bug is not a validation gap — it is a schema that encodes the wrong model of the domain and silently corrupts every downstream operation.
 
 ---
 
@@ -42,7 +46,7 @@ DESIGN.md Data Model: `"description": Option<String>, // absent if not provided.
 
 The spec handles forward-compatibility (new fields added in future): unknown fields are ignored on deserialization. But backward-compatibility (old data missing a field that is now required) is not addressed. If a future version adds a required field, old `tracker.json` data won't have it.
 
-**Classification:** Dismissed. This is a Phase 1 portfolio project. No version migration is planned. The forward-compatibility story (unknown fields ignored) is correctly specified. For backward-compatibility, Rust's `#[serde(default)]` handles missing optional fields by filling the field-type's default. When new fields are added in a future version of this tool, the implementation should use `#[serde(default)]` to provide a sensible default for old data. This is an implementation guidance note, not a current spec gap — adding a schema migration requirement to Phase 1 would be over-engineering (see SA Review 1). **Backlogged** as a future consideration.
+**Classification:** Dismissed. This is a Phase 1 portfolio project. No version migration is planned. The forward-compatibility story (unknown fields ignored) is correctly specified. For backward-compatibility, Rust's `#[serde(default)]` handles missing optional fields by filling the field-type's default. When new fields are added in a future version of this tool, the implementation should use `#[serde(default)]` to provide a sensible default for old data. This is an implementation guidance note, not a current spec gap — adding a schema migration requirement to Phase 1 would be over-engineering (see [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) Review 1). Tracked informally as a future consideration; no SO backlog item raised at Layer 1.
 
 ---
 
@@ -62,6 +66,12 @@ Timestamps (`created_at`, `updated_at`) are stored as ISO 8601 UTC strings rathe
 
 ---
 
+### Hallucinated
+
+*(none)*
+
+---
+
 ### Open
 
 *(none)*
@@ -72,7 +82,7 @@ Timestamps (`created_at`, `updated_at`) are stored as ISO 8601 UTC strings rathe
 
 Two real findings, both resolved via DESIGN.md updates: post-deserialization validation gap (cross-referenced with Security and Red Team), and absent-vs-null serialization behavior for `description`. Three findings dismissed. The data model is well-specified for the project's scope. The key implementation requirements are now explicit: (1) validate domain values after deserialization, (2) use `skip_serializing_if = "Option::is_none"` for the description field.
 
-**Coordination:** Finding 1 cross-referenced in Security log (dim 2) and Red Team log. Finding 2 should be noted in the Layer 1 Red Gate — a test that reads `tracker.json` and asserts the `description` key is absent (not null) when no description was provided. Added to TODO.md Layer 6: `create_without_description_has_no_field_in_json` already covers this.
+**Coordination:** Finding 1 cross-referenced in [SECURITY-REVIEW.md](SECURITY-REVIEW.md) (dim 2) and [RED-TEAM-REVIEW.md](RED-TEAM-REVIEW.md). Finding 2 should be noted in the Layer 1 Red Gate — a test that reads `tracker.json` and asserts the `description` key is absent (not null) when no description was provided. Added to TODO.md Layer 6: `create_without_description_has_no_field_in_json` already covers this.
 
 ---
 
@@ -92,11 +102,11 @@ Two real findings, both resolved via DESIGN.md updates: post-deserialization val
 
 DESIGN.md specified `{"issues": [Issue]}` as the storage format. The integration tests access `tracker.json` using `v[0]["field"]` — correct only for a top-level array. A correct implementation following the wrapped format would cause these tests to silently compare against `null`.
 
-This finding was identified jointly with QE Review 2 Finding 1. See QE Review 2 for the full test-level analysis.
+This finding was identified jointly with [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) Review 2 Finding 1. See QE Review 2 for the full test-level analysis.
 
-From a data-layer perspective, a top-level array is the simpler and more idiomatic representation: deserialization becomes `serde_json::from_str::<Vec<Issue>>(&raw)` with no wrapper struct. The `"issues"` key adds no semantic content — there are no other top-level keys in the format and no schema evolution benefit to the envelope. Consistent with SA Review 1's complexity-budget principle.
+From a data-layer perspective, a top-level array is the simpler and more idiomatic representation: deserialization becomes `serde_json::from_str::<Vec<Issue>>(&raw)` with no wrapper struct. The `"issues"` key adds no semantic content — there are no other top-level keys in the format and no schema evolution benefit to the envelope. Consistent with [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) Review 1's complexity-budget principle.
 
-**Classification: Raised to SO Review 7.** DESIGN.md is controlled by SO. DE proposes the top-level array as the preferred resolution. See SO Review 7 Finding 1 for the decision.
+**Classification:** Raised to SO. DESIGN.md is controlled by SO. DE proposes the top-level array as the preferred resolution. See [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) Review 7 Finding 1 for the decision.
 
 ---
 
@@ -132,9 +142,17 @@ The test suite reads `tracker.json` via `serde_json::from_str::<serde_json::Valu
 
 ---
 
+### Hallucinated
+
+*(none)*
+
+---
+
 ### Summary
 
-One real finding raised to SO (storage schema mismatch — cross-reference with QE Review 2). Three dismissed findings. The data layer test coverage for Layer 1 is complete pending SO's resolution of the schema finding. Key Layer 6 requirement (`description` absent-not-null) is tracked in the existing Layer 6 Red Gate test plan.
+One real finding raised to SO (storage schema mismatch — cross-reference with [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) Review 2). Three dismissed findings. The data layer test coverage for Layer 1 is complete pending SO's resolution of the schema finding. Key Layer 6 requirement (`description` absent-not-null) is tracked in the existing Layer 6 Red Gate test plan.
+
+**Coordination:** Finding 1 raised to [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) Review 7 Finding 1.
 
 ---
 
@@ -156,7 +174,7 @@ Data Engineer Review 1 Finding 1 (cross-referenced with Security Review 1) requi
 
 A `tracker.json` with `"status": "flying"` would silently produce an `Issue` struct with an invalid `status` field, which would then be silently sorted to the bottom of the list (via `usize::MAX` in `priority_rank`) — invisible to the user. An `"id": 0` issue would violate the ID-is-positive-integer invariant.
 
-**Resolution:** `issue_fields_are_valid()` added in `lib.rs`. Validates: `id > 0`, `!title.trim().is_empty()`, `status ∈ {"open", "in-progress", "done"}`, `priority ∈ {"low", "medium", "high"}`. Called in `load_issues` after successful deserialization; any failing issue triggers the corrupt-data error path. Constant `VALID_STATUSES` and `VALID_PRIORITIES` arrays are defined for readability and future extensibility. Cross-referenced: Security Review 3, Red Team Review 2.
+**Resolution:** `issue_fields_are_valid()` added in `lib.rs`. Validates: `id > 0`, `!title.trim().is_empty()`, `status ∈ {"open", "in-progress", "done"}`, `priority ∈ {"low", "medium", "high"}`. Called in `load_issues` after successful deserialization; any failing issue triggers the corrupt-data error path. Constant `VALID_STATUSES` and `VALID_PRIORITIES` arrays are defined for readability and future extensibility. Cross-referenced: [SECURITY-REVIEW.md](SECURITY-REVIEW.md) Review 3, [RED-TEAM-REVIEW.md](RED-TEAM-REVIEW.md) Review 2.
 
 ---
 
@@ -177,7 +195,7 @@ Layer 1 never writes a description (all creates use `description: None`), so thi
 
 ---
 
-**Finding 3 — Storage format is a top-level array as approved by SO Review 7 (Dim 1)**
+**Finding 3 — Storage format is a top-level array as approved by [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) Review 7 (Dim 1)**
 
 `load_issues` uses `serde_json::from_str::<Vec<Issue>>()` — correct for the `[Issue]` top-level array format. SO Review 7 approved the format change. The implementation matches the spec.
 
@@ -199,9 +217,17 @@ Layer 1 never writes a description (all creates use `description: None`), so thi
 
 ---
 
+### Hallucinated
+
+*(none)*
+
+---
+
 ### Summary
 
 One real finding resolved: post-deserialization domain validation now implemented. Three dismissed findings. The data layer is now specification-compliant: the top-level array format is correctly deserialized, domain values are validated after deserialization, `description` is absent-not-null, and `labels` serializes as an empty array. No open items.
+
+**Coordination:** Finding 1 resolved jointly with [SECURITY-REVIEW.md](SECURITY-REVIEW.md) Review 3 and [RED-TEAM-REVIEW.md](RED-TEAM-REVIEW.md) Review 2.
 
 ---
 
@@ -217,7 +243,25 @@ One real finding resolved: post-deserialization domain validation now implemente
 
 ### Dismissed
 
-Schema correct, validation in place, serialization spec-compliant. **No Data Engineer findings.** MVR reached for Layer 1.
+*(none)*
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+No Data Engineer findings. Schema correct, validation in place, serialization spec-compliant. MVR reached for Layer 1.
+
+**Coordination:** *(none)*
 
 ---
 
@@ -237,7 +281,7 @@ Schema correct, validation in place, serialization spec-compliant. **No Data Eng
 
 `parse_status` now uses `VALID_STATUSES` (after SA Review 6 fix) to normalize and validate the input. The stored value is always one of `{"open", "in-progress", "done"}`, which are exactly the values in `VALID_STATUSES`. `issue_fields_are_valid` uses the same constant. Single source of truth restored. ✓
 
-**Classification:** Dismissed. SA Review 6 resolved the two-source-of-truth concern from the data layer's perspective as well.
+**Classification:** Dismissed. [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) Review 6 resolved the two-source-of-truth concern from the data layer's perspective as well.
 
 ---
 
@@ -265,6 +309,20 @@ Schema correct, validation in place, serialization spec-compliant. **No Data Eng
 
 ---
 
+### Hallucinated
+
+*(none)*
+
+---
+
+### Open
+
+*(none)*
+
+---
+
 ### Summary
 
-No data engineering findings. Schema unchanged. Status mutation is correctly validated and stored. Timestamp consistency maintained. Single source of truth for valid status values restored by SA Review 6. **No DE findings.** MVR reached for Layer 2.
+No data engineering findings. Schema unchanged. Status mutation is correctly validated and stored. Timestamp consistency maintained. Single source of truth for valid status values restored by [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) Review 6. MVR reached for Layer 2.
+
+**Coordination:** *(none)*

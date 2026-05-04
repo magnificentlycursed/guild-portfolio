@@ -66,7 +66,7 @@ Domains are organized into three types. All domain prompt files live under `doma
 
 Each domain file contains the current prompt and standard dimensions. Review entries are logged separately under `iterative-adversarial-refinement/` inside the project being reviewed.
 
-The suite's own adversarial review history is logged in [`SUITE-REVIEW.md`](SUITE-REVIEW.md).
+The suite's own adversarial review history is indexed in [`SUITE-REVIEW.md`](SUITE-REVIEW.md), with individual session entries in `review-log/YYYY-MM-DD-suite-review.md`. Suite reviews are a single artifact type — sessions vary in mode (defect-search lens vs. registry-walk lens), and the mode lives in each entry's Lens field. See [`prompts/suite-development.md`](prompts/suite-development.md) for the entry format.
 
 ## Session primers
 
@@ -157,7 +157,7 @@ Any domain review may propose adding a new review domain to IAR. Log it as a fin
 
 Candidate domains to consider as a project grows: SEO, Formal Verification (for VSDD Phase 5+).
 
-The `GAP-ANALYSIS-LOG.md` tracks gap analysis runs against the suite itself. Re-run it when the suite changes, a new project type is being evaluated, or a post-mortem reveals a class of defect the suite did not catch.
+[`GAP-ANALYSIS-LOG.md`](GAP-ANALYSIS-LOG.md) is the gap registry — a status-only table of identified suite gaps. Narratives for sessions that registered, addressed, or dismissed gaps live in `review-log/` and are indexed in `SUITE-REVIEW.md`. Re-run a registry-walk suite review when the suite changes, a new project type is being evaluated, or a post-mortem reveals a class of defect the suite did not catch.
 
 ### Portfolio-arc review
 
@@ -195,9 +195,9 @@ Review entries are stored outside the prompt files to keep the prompts stable an
     LOCALIZATION-REVIEW.md
 ```
 
-The `lang/` folder, `GAP-ANALYSIS-LOG.md`, `SUITE-REVIEW.md`, and `prompts/` live in the suite template, not in individual projects.
+The `lang/` folder, `GAP-ANALYSIS-LOG.md`, `SUITE-REVIEW.md`, `review-log/`, and `prompts/` live in the suite template, not in individual projects.
 
-Only include log files for the domains active on the project. Each log file follows the same structure: scope line, round number, then findings classified as **resolved**, **dismissed**, **hallucinated** (and **accepted risk** for Security, **backlogged** for Solution Owner).
+Only include log files for the domains active on the project. Each project-level review log conforms to the **project-level review log governing standard** in [`prompts/suite-development.md`](prompts/suite-development.md): file-level header (reviewer role, activation if extended, language supplement applied, sycophancy check), per-review preamble (`Scope`, `Session note`, optional domain-specific fields), classification-first finding sections drawn from each domain's allowed schema (e.g., `### Resolved`, `### Dismissed`, `### Hallucinated`, plus `### Accepted Risk` for Security/Red Team/Privacy, `### Backlogged` for Solution Owner, etc.), each finding titled `**Finding N — Title (Dim X)**`, and a closing `### Summary` with a `**Coordination:**` line. Portfolio Assessment is the documented exception (dim-first organization).
 
 ## Merging gate
 
