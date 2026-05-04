@@ -22,7 +22,7 @@ Regression check: verify that all previously-addressed UX concerns remain intact
 
 **Sycophancy check:** An AI agent cannot experience a user interface — it cannot perceive latency, notice visual imbalance, or discover that a flow is confusing by trying to use it. An agent reviewing its own UI implementation will validate the decisions it made at generation time rather than evaluate the lived experience those decisions create. The adversary must flag any dimension where the review relies on reading code rather than observing the interface. If the project cannot be tested directly in a browser, state that explicitly — do not simulate user experience from source code and report it as a UX evaluation.
 
-**Interface type:** The standard dimensions below assume a browser-rendered interface. For CLI projects, consult `../../lang/cli.md` — the CLI UX dimensions replace most of the standard dimensions below. For browser apps, also consult `../../lang/browser-app.md` for browser-specific accessibility, responsive design, and security UX concerns.
+**Interface type:** The standard dimensions below assume a browser-rendered interface. For CLI projects, consult `../../supplements/cli.md` — the CLI UX dimensions replace most of the standard dimensions below. For browser apps, also consult `../../supplements/browser-app.md` for browser-specific accessibility, responsive design, and security UX concerns.
 
 ## Standard Evaluation Dimensions
 

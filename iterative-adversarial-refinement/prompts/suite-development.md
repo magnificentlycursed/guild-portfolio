@@ -1,4 +1,4 @@
-# Session Primer: Suite Development
+# Session Primer: Suite Development (Meta — Suite Contributors)
 
 Use this prompt at the start of any session whose purpose is developing the IAR suite itself — adding or modifying domain files, updating dimensions, running gap analysis, or revising primers. Do not use this for reviewing projects under the suite; use `prompts/review-session.md` for that.
 
@@ -6,9 +6,11 @@ Use this prompt at the start of any session whose purpose is developing the IAR 
 
 ## Prompt
 
-You are helping develop the Iterative Adversarial Refinement (IAR) suite. The suite is itself a software artifact: it has a specification (the VSDD and VDD methodology documents), a design (the domain structure, dimensions, supplement architecture, and session primers), and an implementation (the domain prompt files, README, lang/ supplements, gap analysis log, and DOMAIN-INDEX).
+You are helping develop the Iterative Adversarial Refinement (IAR) suite. The suite is itself a software artifact: it has a specification (the VSDD and VDD methodology documents), a design (the domain structure, dimensions, supplement architecture, and session primer set), and an implementation (the domain prompt files, session primers, README, supplements/ supplements, gap analysis log, and DOMAIN-INDEX).
 
-**Apply the same adversarial standard to the suite that the suite applies to projects.** A dimension that sounds rigorous but would not catch a real defect is a quality failure. A sycophancy check copied unchanged across all domains reduces to boilerplate — it is not designed for the domain's specific failure modes. A new domain that overlaps substantially with an existing one has not been scoped correctly.
+The suite began as adversarial review prompts and dimensions for VSDD Phase 3. It has since expanded to also house session primers for adjacent VSDD phases (Phase 1a spec crystallization, Phase 1b decomposition, Phase 2a–2b implementation), making it a VSDD pipeline support library with adversarial review at its center of gravity rather than its full scope. The directory name and "IAR" identity are retained for continuity with prior project logs and external references. See `README.md` `## Suite scope` for the full artifact map.
+
+**Apply the same adversarial standard to the suite that the suite applies to projects.** A dimension that sounds rigorous but would not catch a real defect is a quality failure. A sycophancy check copied unchanged across all domains reduces to boilerplate — it is not designed for the domain's specific failure modes. A new domain that overlaps substantially with an existing one has not been scoped correctly. The same standard applies to session primers: a primer's `## Prompt` section that does not name a concrete failure mode for its phase produces softer output, and a completion-criteria section that is not falsifiable will pass against incomplete artifacts.
 
 The adversary's question for every proposed change: **what defect would ship to a user if this change were not made?**
 
@@ -21,12 +23,12 @@ The suite currently contains these artifact types:
 | Artifact | Location | Purpose |
 |---|---|---|
 | Domain files | `domains/role/` and `domains/meta/` | Review prompts and evaluation dimensions per role |
-| Lang supplements | `lang/` | Language- and interface-type-specific dimensions applied alongside domain reviews |
+| Language and interface supplements | `supplements/` | Language- and interface-type-specific dimensions applied alongside domain reviews |
 | Session primers | `prompts/` | Posture-setting prompts loaded at the start of a phase or session type |
-| Domain index | `domains/role/DOMAIN-INDEX.md` | Authoritative core/extended classification with activation criteria |
+| Domain index | `domains/DOMAIN-INDEX.md` | Authoritative core/extended classification with activation criteria |
 | README | `README.md` | Suite entry point: domain tables, primer table, running instructions, supplement table |
 | Gap analysis log | `GAP-ANALYSIS-LOG.md` | Running registry of identified suite gaps and their status |
-| Suite review log | `SUITE-REVIEW.md` | Adversarial review runs of the suite itself |
+| Suite review index | `SUITE-REVIEW-INDEX.md` | Index of adversarial review runs of the suite itself |
 | Changelog | `CHANGELOG.md` | Record of all non-trivial changes to suite artifacts |
 
 ---
@@ -46,7 +48,7 @@ A complete domain file contains these elements, in order:
    - Regression check
    - Coordination links (named, linked, relative paths within the same `domains/role/` folder)
    - Sycophancy check (domain-specific failure modes named — not boilerplate)
-   - Lang supplement reference (`../../lang/`) — **required**, or an explicit opt-out line with rationale (e.g., `**Language and interface supplement:** Not applicable. [Reason].`)
+   - Language and interface supplement reference (`../../supplements/`) — **required**, or an explicit opt-out line with rationale (e.g., `**Language and interface supplement:** Not applicable. [Reason].`)
 6. **Domain-specific structural sections** — some domains have additional sections between the prompt and the dimensions. These fall into two categories:
    - **Required sections** — must be completed before the dimensions apply; their output is prerequisite to the review, not a classified finding. Example: `SECURITY-REVIEW.md` `## Threat Model` — the reviewer must name threat actors, crown jewel, and entry points before reading source files. Required sections must state: what the reviewer must produce, and how that output is logged (as a preamble record, not a resolved/dismissed/hallucinated finding).
    - **Optional extended sections** — conditional sub-dimensions that apply to specific project types. Example: `SE` `### Extended: Documentation`, `SA` `### Extended: External Interface Contracts`. Optional sections state the conditions under which they apply.
@@ -106,7 +108,7 @@ A complete project-level review log opens with these elements, in order:
 3. **Purpose statement** — one paragraph stating what this domain evaluates in this project
 4. **Reviewer role line** — `**Reviewer role: [Title]** ([Job title variants])` — required for role domains, copied verbatim from the domain prompt file. **Exception:** meta domains are exempt — parallel to the prompt-file rule.
 5. **Activation line** — `**Activation:** [conditions and rationale]` — required for **extended** domains active on this project; omitted for core domains and meta domains
-6. **Language supplement applied** — required when the domain prompt file references a lang supplement; format: `**Language supplement applied:** \`lang/<file>.md\` ([Section name]).` Domains marked language-agnostic in the prompt file include an explicit opt-out: `**Language supplement applied:** Not applicable. [Reason].`
+6. **Language supplement applied** — required when the domain prompt file references a supplement file in `supplements/`; format: `**Language supplement applied:** \`supplements/<file>.md\` ([Section name]).` Domains marked language-agnostic in the prompt file include an explicit opt-out: `**Language supplement applied:** Not applicable. [Reason].`
 7. **Sycophancy check** — required; one paragraph restating the domain-specific failure mode the reviewer must resist. Drawn from the domain prompt file's sycophancy check, not paraphrased into generic warnings.
 
 ### Per-review entry preamble (under each `## Review N — YYYY-MM-DD HH:MMZ`)
@@ -201,11 +203,11 @@ Reviews without a Summary are incomplete. Reviews with cross-domain implications
 
 1. Name the defect class the domain would catch that no existing domain catches.
 2. Evaluate the role-based taxonomy: what job title does this reviewer hold? Is it a job a real person would have at a real company?
-3. Decide: core domain (every project) or extended domain (conditional on project type)? Document the activation criteria. Add the domain to `domains/role/DOMAIN-INDEX.md`.
+3. Decide: core domain (every project) or extended domain (conditional on project type)? Document the activation criteria. Add the domain to `domains/DOMAIN-INDEX.md`.
 4. Create the domain file following the governing standard above. Verify the finding classification schema is appropriate for the domain's nature.
 5. Add the domain to `README.md` in the appropriate table (Core or Extended), with Role, Job title, Prompt file, and Focus columns filled.
-6. Add lang supplement sections where applicable. See **Lang supplement coverage** below.
-7. Add a suite review session entry in `review-log/YYYY-MM-DD-suite-review.md` (creating the file if no entry exists for that date) documenting the addition, rationale, defect class addressed, and dimensions that were considered and rejected. Add a corresponding row to the **Suite Reviews** table in `SUITE-REVIEW.md` linking to the entry.
+6. Add language and interface supplement sections where applicable. See **Supplement coverage** below.
+7. Add a suite review session entry in `review-log/YYYY-MM-DD-suite-review.md` (creating the file if no entry exists for that date) documenting the addition, rationale, defect class addressed, and dimensions that were considered and rejected. Add a corresponding row to the **Suite Reviews** table in `SUITE-REVIEW-INDEX.md` linking to the entry.
 8. Add a `CHANGELOG.md` entry.
 9. Add a `GAP-ANALYSIS-LOG.md` entry if the domain addresses an existing open gap.
 
@@ -215,7 +217,7 @@ Reviews without a Summary are incomplete. Reviews with cross-domain implications
 2. Make the change.
 3. Update the gap registry: if the gap was tracked, mark it Addressed with today's date. If it was not tracked, add it and immediately mark it Addressed.
 4. Log the change in `CHANGELOG.md`.
-5. If the change is structural (new section, new classification schema, changed prompt format): add a suite review session entry in `review-log/YYYY-MM-DD-suite-review.md` and a corresponding row in the **Suite Reviews** table in `SUITE-REVIEW.md`.
+5. If the change is structural (new section, new classification schema, changed prompt format): add a suite review session entry in `review-log/YYYY-MM-DD-suite-review.md` and a corresponding row in the **Suite Reviews** table in `SUITE-REVIEW-INDEX.md`.
 
 ## Running gap analysis
 
@@ -227,19 +229,19 @@ A gap analysis session is one mode of suite review (registry-walk lens). Like an
 - All recently addressed gaps marked Addressed in `GAP-ANALYSIS-LOG.md` with the date
 - Any new gaps discovered added to the registry with a new G-ID
 - A `## Review N — date` entry in `review-log/YYYY-MM-DD-suite-review.md` (creating the file if no entry exists for that date) summarizing scope, findings, decisions, and suite changes made
-- A corresponding row added to the **Suite Reviews** table in `SUITE-REVIEW.md` linking to the new entry
+- A corresponding row added to the **Suite Reviews** table in `SUITE-REVIEW-INDEX.md` linking to the new entry
 
-`GAP-ANALYSIS-LOG.md` contains only the registry table. Run narratives belong in `review-log/`. `SUITE-REVIEW.md` is the index of those narratives, not their home.
+`GAP-ANALYSIS-LOG.md` contains only the registry table. Run narratives belong in `review-log/`. `SUITE-REVIEW-INDEX.md` is the index of those narratives, not their home.
 
 ## Suite review and review-log discipline
 
 The IAR suite has three parallel review-record artifacts. Their roles do not overlap:
 
-- **`SUITE-REVIEW.md`** is an index. It contains one table — **Suite Reviews** — each row pointing to a session entry in `review-log/`.
+- **`SUITE-REVIEW-INDEX.md`** is an index. It contains one table — **Suite Reviews** — each row pointing to a session entry in `review-log/`.
 - **`review-log/YYYY-MM-DD-suite-review.md`** holds the actual session entries. One file per date; multiple sessions on the same date append to the same file (newest at the top).
 - **`GAP-ANALYSIS-LOG.md`** is the gap registry. Status only — no narrative. One row per gap; status changes update the row in place.
 
-Every non-trivial suite change requires a session entry in `review-log/` and a corresponding index row in `SUITE-REVIEW.md`. Non-trivial means: any addition or removal of a domain or primer, any new evaluation dimension, any structural change to the prompt format, or any change to sequencing or activation guidance.
+Every non-trivial suite change requires a session entry in `review-log/` and a corresponding index row in `SUITE-REVIEW-INDEX.md`. Non-trivial means: any addition or removal of a domain or primer, any new evaluation dimension, any structural change to the prompt format, or any change to sequencing or activation guidance.
 
 Mechanical fixes (typos, filename renames, path updates) do not require a session entry but should be logged in `CHANGELOG.md`.
 
@@ -255,20 +257,31 @@ A `## Review N — date` entry in `review-log/YYYY-MM-DD-suite-review.md` must c
 
 1. **Header** — `## Review N — YYYY-MM-DD HH:MMZ`. Review numbers are **sequence-wide across all suite-review files** (Review 30 follows Review 29 even if they live in different date-named files); the timestamp is the session start in UTC.
 2. **Scope** — What artifacts were read this round (specific domain files, primers, supplements, README, gap registry rows, etc.) and what triggered the review (user request, follow-up to a prior finding, scheduled cadence, project type added). Cite specific files when narrow; "all 14 role domains, 2 meta domains, 5 primers" when broad.
-3. **Lens** — The angle the reviewer applied. A lens is a named defect class ("coordination link format compliance", "classification schema coverage", "lang supplement symmetry") OR a registry-walk scope ("walk all open gaps", "review G-22 and G-30"). A diffuse lens produces a diffuse review. If a session has no specific lens, log it as a generalist pass and name the prior passes' specialization gaps it is filling.
+3. **Lens** — The angle the reviewer applied. Valid forms:
+   - A **named defect class** ("coordination link format compliance", "classification schema coverage", "lang supplement symmetry").
+   - A **registry-walk scope** ("walk all open gaps", "review G-22 and G-30").
+   - A **role-based lens** that applies one or more domain perspectives to the suite as artifact ("Solution Owner + Technical Writer + VDD-IAR Alignment"), or a named bundle of complementary defect-class lenses applied serially or in parallel ("five lenses applied serially — clarity, naming, ambiguity, consistency, transitional-state alignment").
+
+   A diffuse lens produces a diffuse review. If a session has no specific lens, log it as a generalist pass and name the prior passes' specialization gaps it is filling.
 4. **Findings** grouped by classification heading. Valid headings:
    - `### Resolved` — fix applied and verified during the session. Use both for newly-found defects fixed in-session and for previously-tracked gaps closed in-session (cite the G-ID).
    - `### Dismissed` — concern reviewed and rejected; rationale required. Use both for newly-raised defects rejected and for previously-tracked gaps dismissed.
    - `### Hallucinated` — adversary-invented concern that does not apply; rationale required.
    - `### New gap registered` — finding promoted to a tracked gap; G-ID stated; the registry row is added in `GAP-ANALYSIS-LOG.md`. This heading is **suite-review-specific** — it is not part of the project-level classification universe and is not valid in project-level review logs.
 5. **Finding body** — same shape as project-level review logs: `**Finding N — Title**` for new findings, `**G-XX — Title**` for gap-registry walk entries; prose body; then `**Resolution:**` (Resolved) or `**Classification:**` (everything else). Cross-references to other suite artifacts use Markdown links.
-6. **Closing** — no separate Summary required (the classification headings carry the tally). Follow-up findings introduced after the session has been logged must be marked `**Finding M — Title (added YYYY-MM-DD)**` and placed at the end of the original entry, not in a new entry. Do not silently amend prior findings.
+6. **Closing** — no separate Summary required (the classification headings carry the tally). An optional `### Coordination` section may follow the classification sections when findings cluster around a single coordinated decision; use it to name the cluster and the bundled action (e.g., a single restructure pass at a future trigger). Cross-references inside the Coordination section use Markdown links to other suite artifacts. Follow-up findings introduced after the session has been logged must be marked `**Finding M — Title (added YYYY-MM-DD)**` and placed at the end of the original entry, not in a new entry. Do not silently amend prior findings.
+
+### Session isolation
+
+Suite reviews are typically conducted in the same session as the user's pre-flight discussion or the suite changes the review evaluates. Unlike domain reviews — where a cold, isolated session is the gold standard — suite reviews benefit from continuity with the suite's authorial context. The compensation is documented per-entry: each `**Session note:**` line names the session-isolation status and explicitly acknowledges sycophancy risk when in-session.
+
+A cold-session suite review is permitted and produces stronger adversarial pressure on suite artifacts; it is not required. The minimum standard is that the session note explicitly states whether the session is cold or in-session and, if in-session, names a compensation (e.g., findings derived from artifact-state analysis rather than narrative judgment, independent evaluation of any user-named candidates against the lens criteria). A suite-review entry whose session note omits this acknowledgement is a structural error — the missing acknowledgement is itself a finding for VDD-IAR Alignment dim 7 (cross-session spec consistency) applied to the suite.
 
 ### Common discipline
 
-The session entry is the narrative record. The `GAP-ANALYSIS-LOG.md` row is the status indicator for gaps. The `SUITE-REVIEW.md` row is the index pointer for the session. Never put narrative in the registry; never omit the registry update; never omit the index row. An unindexed session is invisible to future reviewers.
+The session entry is the narrative record. The `GAP-ANALYSIS-LOG.md` row is the status indicator for gaps. The `SUITE-REVIEW-INDEX.md` row is the index pointer for the session. Never put narrative in the registry; never omit the registry update; never omit the index row. An unindexed session is invisible to future reviewers.
 
-## Lang supplement coverage
+## Supplement coverage
 
 Supplements provide language-specific failure modes. Not every domain has language-specific concerns — process-compliance and portfolio domains (VDD-IAR Alignment, Portfolio Assessment, Solution Owner) are language-agnostic.
 
@@ -284,9 +297,9 @@ Supplements provide language-specific failure modes. Not every domain has langua
 | Solution Architect | ✓ | ✓ | |
 | Red Team | ✓ | ✓ | |
 | Performance Engineer | ✓ | ✓ | |
-| UX | — | — | Covered by `lang/cli.md` (CLI) and `lang/browser-app.md` (browser) |
+| UX | — | — | Covered by `supplements/cli.md` (CLI) and `supplements/browser-app.md` (browser) |
 | Technical Writer | ✓ | ✓ | |
-| Accessibility | — | — | Covered by `lang/browser-app.md` |
+| Accessibility | — | — | Covered by `supplements/browser-app.md` |
 | Privacy | — | — | Language-agnostic |
 | Localization | ✓ | ✓ | |
 | Solution Owner | — | — | Language-agnostic |

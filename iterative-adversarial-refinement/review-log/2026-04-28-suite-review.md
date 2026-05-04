@@ -135,7 +135,7 @@ The CHANGELOG.md description line reads "All notable changes to the AIR suite ar
 
 **Finding 2 — `PERFORMANCE-ENGINEER-REVIEW.md` lang supplement note uses "Consult" — the only domain that doesn't name a section.**
 
-All other domains with lang supplement references say "Apply the **[Role Name]** section from the relevant supplement file in addition to the standard dimensions below." PE's note said only "Consult `../../lang/` for language-specific performance tooling and patterns." Without a section name, a reviewer following the note doesn't know what to look for in the supplement. This is especially confusing since the supplements contain an explicit `## Performance Engineer` section that was never referenced by name.
+All other domains with lang supplement references say "Apply the **[Role Name]** section from the relevant supplement file in addition to the standard dimensions below." PE's note said only "Consult `../../supplements/` for language-specific performance tooling and patterns." Without a section name, a reviewer following the note doesn't know what to look for in the supplement. This is especially confusing since the supplements contain an explicit `## Performance Engineer` section that was never referenced by name.
 
 **Resolution:** Rewrote the PE supplement note to match the standard format: "Apply the **Performance Engineer** section from the relevant supplement file in addition to the standard dimensions below."
 
@@ -143,7 +143,7 @@ All other domains with lang supplement references say "Apply the **[Role Name]**
 
 **Finding 3 — `SOLUTION-OWNER-REVIEW.md` supplement note directs reviewer to a non-existent SO section.**
 
-SO's supplement note said "Consult `../../lang/` for the supplement matching the project's primary language and interface type... use the language supplement to verify that technology choices (libraries, tools, frameworks) are appropriate to the language." But the `suite-development.md` lang supplement coverage table marks SO as "Language-agnostic" with dashes in both the JS/TS and Rust columns — no SO section exists in either supplement. A reviewer following the note would consult the supplement, find no SO section, and have no guidance on what to apply. The note also contradicted the governing table in the same primer.
+SO's supplement note said "Consult `../../supplements/` for the supplement matching the project's primary language and interface type... use the language supplement to verify that technology choices (libraries, tools, frameworks) are appropriate to the language." But the `suite-development.md` lang supplement coverage table marks SO as "Language-agnostic" with dashes in both the JS/TS and Rust columns — no SO section exists in either supplement. A reviewer following the note would consult the supplement, find no SO section, and have no guidance on what to apply. The note also contradicted the governing table in the same primer.
 
 **Resolution:** Replaced the note with an explicit opt-out that names what to use instead: "Not applicable. The SO review evaluates spec compliance, which is language-agnostic. For evaluating technology choices (dim 3), consult the **Solution Architect** section of the relevant supplement — SA evaluates technology fitness from an architectural lens that informs SO's technology compliance check."
 
@@ -177,9 +177,9 @@ The `rust.md` supplement includes a "Coverage enforcement" bullet in its Platfor
 
 **Finding 3 — `ACCESSIBILITY-REVIEW.md` supplement note unactionable — `browser-app.md` has no `## Accessibility` section.**
 
-The governing standard says "Apply the **[Domain]** section from the relevant supplement file." `ACCESSIBILITY-REVIEW.md` says "See `../../lang/browser-app.md` for browser-specific accessibility dimensions" — but `browser-app.md` has no `## Accessibility` section. The relevant dimensions (focus trap testing, contrast requirements, semantic HTML, reduced motion) live inside the `## UX` section of `browser-app.md`. A reviewer following the governing standard instruction to "apply the Accessibility section" would look for that section, not find it, and conclude there are no browser-specific accessibility supplement dimensions.
+The governing standard says "Apply the **[Domain]** section from the relevant supplement file." `ACCESSIBILITY-REVIEW.md` says "See `../../supplements/browser-app.md` for browser-specific accessibility dimensions" — but `browser-app.md` has no `## Accessibility` section. The relevant dimensions (focus trap testing, contrast requirements, semantic HTML, reduced motion) live inside the `## UX` section of `browser-app.md`. A reviewer following the governing standard instruction to "apply the Accessibility section" would look for that section, not find it, and conclude there are no browser-specific accessibility supplement dimensions.
 
-**Resolution:** Updated the ACCESSIBILITY-REVIEW.md supplement note to explicitly say "See the **UX** section of `../../lang/browser-app.md`" and name the content (focus trap, contrast, semantic HTML, reduced motion) so the reference is actionable.
+**Resolution:** Updated the ACCESSIBILITY-REVIEW.md supplement note to explicitly say "See the **UX** section of `../../supplements/browser-app.md`" and name the content (focus trap, contrast, semantic HTML, reduced motion) so the reference is actionable.
 
 ---
 
@@ -235,11 +235,11 @@ Dim 8 summary sentence: "Appropriate scope for a portfolio project means: the de
 
 ### Resolved
 
-**Finding 1 — `lang/rust.md` inline source citations scattered through six dimension bullets.**
+**Finding 1 — `supplements/rust.md` inline source citations scattered through six dimension bullets.**
 
 Six dimension bullets across four sections (Quality Engineering, Security, Software Engineering, Platform Engineering) each ended with the annotation "(Source: claude.md; verify against current apprentice-onboarding content.)" or "(Source: claude.md; verify against current apprentice-onboarding content for authoritative thresholds.)". This is metadata about data provenance, not review guidance. Placed inline in dimension bullets, these annotations interrupt the text of each dimension and train the reviewer to read past them. The appropriate location is a single consolidated note at the file level.
 
-**Resolution:** Added a `**Source note:**` paragraph at the top of `lang/rust.md` (below the H1, before the first section break) consolidating the provenance disclosure. Removed all six inline citations from dimension bullets.
+**Resolution:** Added a `**Source note:**` paragraph at the top of `supplements/rust.md` (below the H1, before the first section break) consolidating the provenance disclosure. Removed all six inline citations from dimension bullets.
 
 ---
 
@@ -259,7 +259,7 @@ G-76 (added in Review 9) explicitly registered that G-20/21/23 had been partiall
 
 ---
 
-**Finding 4 — `lang/cli.md` intro and section header contradict each other on whether CLI dimensions replace or supplement UX dimensions.**
+**Finding 4 — `supplements/cli.md` intro and section header contradict each other on whether CLI dimensions replace or supplement UX dimensions.**
 
 The intro paragraph said: "use the dimensions below **in place of (or alongside)** the standard UX dimensions." The section header two lines later said: "The following **replace** the browser-centric UX standard dimensions for CLI projects." "In place of (or alongside)" permits additive application (CLI + browser UX both active). "Replace" forecloses it. A practitioner reading the intro for guidance would not know which behavior to apply.
 

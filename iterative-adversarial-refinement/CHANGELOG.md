@@ -4,6 +4,87 @@ All notable changes to the IAR suite are recorded here. Entries are in reverse c
 
 ---
 
+## Unreleased — 2026-05-03 (Review 34: apply G-90 and G-94, register G-96)
+
+### Changed
+- **`prompts/spec-crystallization.md`** — H1 retitled `(VSDD Phase 1)` → `(VSDD Phase 1a)`; in-prompt phase reference and governing-standard reference updated. Addresses G-90.
+- **`README.md`** — VSDD pipeline table phase column `1` → `1a`; "spec issues to Phase 1" and "during Phase 1" updated to `Phase 1a`. `## Suite scope` and pipeline cross-references for `domains/role/DOMAIN-INDEX.md` and `SUITE-REVIEW.md` updated to `domains/DOMAIN-INDEX.md` and `SUITE-REVIEW-INDEX.md`. Addresses G-90 and G-94 sub-issues 2, 3.
+- **`prompts/suite-development.md`** — H1 retitled to `# Session Primer: Suite Development (Meta — Suite Contributors)` (G-94 sub-issue 5). Suite-history paragraph "Phase 1 spec crystallization" → "Phase 1a" (G-90). `## Lang supplement coverage` heading → `## Supplement coverage`; suite-structure table row "Lang supplements" → "Language and interface supplements"; "Lang supplement reference" terminology generalized; `domains/role/DOMAIN-INDEX.md` references updated to `domains/DOMAIN-INDEX.md`; all `SUITE-REVIEW.md` references in current-spec lines updated to `SUITE-REVIEW-INDEX.md`. Addresses G-94 sub-issues 1, 2, 3, 5.
+- **`prompts/review-session.md`** — `domains/role/DOMAIN-INDEX.md` reference updated; `SUITE-REVIEW.md` reference updated to `SUITE-REVIEW-INDEX.md`. Addresses G-94 sub-issues 2, 3.
+- **`domains/role/SOLUTION-OWNER-REVIEW.md`** — "scope-crept during Phase 1" updated to "VSDD Phase 1a" (G-90); "lang supplement" terminology generalized in Language-and-interface-supplement reference (G-94 sub-issue 1).
+- **`domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md`** — "VSDD Phase 1 criteria" → "VSDD Phase 1a criteria" (dim 1); pipeline-list `(1, 1b, 2a, 2b, ...)` → `(1a, 1b, 2a, 2b, ...)` in the Program Phase Context note. Addresses G-90.
+- **`domains/DOMAIN-INDEX.md`** — File moved from `domains/role/DOMAIN-INDEX.md` (G-94 sub-issue 2). Internal references updated: README link `../../README.md` → `../README.md`; meta-domain backticked paths `../meta/` → `meta/`; role-domain entries gained the `role/` prefix for symmetry with the meta entries; `lang/cli.md` reference updated to `supplements/cli.md`.
+- **`SUITE-REVIEW-INDEX.md`** — File renamed from `SUITE-REVIEW.md` (G-94 sub-issue 3).
+- **`supplements/`** — Folder renamed from `lang/`. Path references updated in 24 forward-facing and historical `*.md` files via bulk sed; nonsensical strings produced as side effects in some prior-session narratives were repaired post-bulk. Addresses G-94 sub-issue 1.
+- **`GAP-ANALYSIS-LOG.md`** — G-90 status `Open` → `Addressed`; description rewritten to record the resolution path (Option 1, whitepaper-confirmed). G-94 status `Open` → `Addressed (partial — sub-issue 4 deferred to spinoff-MVP)`; description rewritten to record per-sub-issue outcome. G-96 added (Open) — suite's Phase 1a/1b/2a/2b sub-phase semantics diverge from the whitepaper's Step 1a/1b/1c, 2a/2b/2c structure; resolution path is harmonize-or-document-the-divergence, deferred to evaluation.
+
+### Added
+- **`review-log/2026-05-03-suite-review.md`** — Review 34 logged: applied G-90 and G-94 sub-issues 1, 2, 3, 5; deferred G-94 sub-issue 4 (CHANGELOG release tagging) to spinoff-MVP; registered G-96 (whitepaper sub-phase semantic divergence). Two findings resolved, one new gap registered.
+- **`SUITE-REVIEW-INDEX.md`** — Review 34 row added to the Suite Reviews index.
+
+### Note
+G-94 sub-issue 4 (CHANGELOG release tagging) remains Open inside G-94's "partial" status. Both proposed alternatives — tag spinoff-MVP as `1.0.0`, or rename `## Unreleased` framing to `## Session N` — require either an event that has not occurred or a renumbering that conflicts with the "do not silently amend prior findings" discipline. Reconsider at the spinoff-MVP boundary alongside the rest of the deferred restructure work. G-96 (whitepaper sub-phase divergence) is a deeper finding than G-90 — G-90 fixed the labelling asymmetry; G-96 names the underlying semantic mismatch and offers harmonize-vs-document-divergence as the resolution menu. No action taken on G-96 in this session beyond registration.
+
+---
+
+## Unreleased — 2026-05-03 (Review 33: bundled-deferral dependency analysis)
+
+### Changed
+- **`GAP-ANALYSIS-LOG.md`** — G-90 (VSDD phase numbering inconsistency) status `Deferred` → `Open`. Decoupled from the `issue-tracker-cli` trigger because the gap depends on the upstream VSDD whitepaper, not on project feedback. Description amended in place; row links updated to reference Review 33 as the decoupling record. Addresses Review 33 Finding 1.
+- **`GAP-ANALYSIS-LOG.md`** — G-94 (smaller naming/location bundle) status `Deferred` → `Open`. Decoupled from the `issue-tracker-cli` trigger because the five sub-issues are mechanical or low-coordination and do not depend on real-project pressure or reading patterns. May still travel with the G-88/G-91/G-92/G-93 spinoff-time restructure if convenient, or be addressed independently. Description amended in place. Addresses Review 33 Finding 1.
+
+### Added
+- **`review-log/2026-05-03-suite-review.md`** — Review 33 logged: per-gap dependency analysis of the eight gaps deferred to "after `issue-tracker-cli` completes." Two findings resolved (G-90 and G-94 promoted to Open with rationale; G-88, G-89, G-91, G-92, G-93, G-95 reviewed and confirmed properly Deferred).
+- **`SUITE-REVIEW.md`** — Review 33 row added to the Suite Reviews index.
+
+### Note
+G-88, G-89, G-91, G-92, G-93, G-95 remain Deferred under the `issue-tracker-cli` trigger. Their substance genuinely depends on real-project feedback (G-88, G-89), forward-only path constraints driven by in-flight project references (G-91), or coordination with other deferred gaps (G-92, G-93, G-95). The bundled-trigger pattern is preserved for these six.
+
+---
+
+## Unreleased — 2026-05-03 (Review 32: suite-review entry-format and deferral-trigger consistency)
+
+### Changed
+- **`prompts/suite-development.md`** — Updated `### Suite review entry format` item 3 (Lens) to enumerate three valid forms: named defect class, registry-walk scope, and role-based lens (covering both domain-perspective and named-bundle variants). Reflects practice in Reviews 30 and 31; addresses Review 32 Finding 3.
+- **`prompts/suite-development.md`** — Updated `### Suite review entry format` item 6 (Closing) to permit an optional `### Coordination` section after the classification sections, used to name a cross-finding cluster and bundled action. Markdown links required for cross-references. Addresses Review 32 Finding 1; retroactively conforms Review 31's `### Coordination` section.
+- **`prompts/suite-development.md`** — Added `### Session isolation` subsection to `## Suite review and review-log discipline`. Documents that suite reviews are typically in-session (unlike domain reviews); cold-session is permitted and stronger but not required; minimum standard is an explicit session note naming cold-vs-in-session status and, if in-session, naming a compensation. A missing session note is itself a finding for VDD-IAR Alignment dim 7 applied to the suite. Addresses Review 32 Finding 4.
+- **`GAP-ANALYSIS-LOG.md`** — Added `## Reactivation triggers` subsection between `## How to run a gap analysis` and `## Gap Registry`. Defines the bundled trigger "after `issue-tracker-cli` completes" with three required conditions (all layers merged, final-merge VDD-IAR Alignment classified, project archived). Names abandonment/pivot path; permits decoupling for gaps not actually dependent on `issue-tracker-cli` feedback. Addresses Review 32 Finding 2.
+
+### Added
+- **`review-log/2026-05-03-suite-review.md`** — Review 32 logged: suite-review entry-format and deferral-trigger consistency. Four findings resolved in-session (F1 Coordination heading, F2 trigger definition, F3 lens grammar, F4 session isolation). Two hallucinated (re-raised directory rename — already deferred as G-88; per-entry sycophancy section — boilerplate that G-77 already corrected).
+- **`SUITE-REVIEW.md`** — Review 32 row added to the Suite Reviews index.
+
+---
+
+## Unreleased — 2026-05-03 (Review 31: five-lens adversarial pass, structural findings deferred)
+
+### Added
+- **`review-log/2026-05-03-suite-review.md`** — Review 31 logged: five-lens adversarial review (clarity, naming, ambiguity, consistency, transitional-state alignment) framed for the eventual standalone-repo spinoff. Six new gaps registered (G-90 through G-95), all Deferred to post-`issue-tracker-cli` completion under the same forward-only constraint that applies to G-88 and G-89. Two findings hallucinated (registry/index merge; symmetric completion-criteria sections in all primers).
+- **`SUITE-REVIEW.md`** — Review 31 row added to the Suite Reviews index.
+- **`GAP-ANALYSIS-LOG.md`** — G-90 (phase numbering inconsistency), G-91 (primer folder + file naming), G-92 (suite-meta vs suite-running separation), G-93 (user vs contributor delineation), G-94 (smaller naming/location bundle: `supplements/` folder, `DOMAIN-INDEX.md` location, `SUITE-REVIEW.md` filename, CHANGELOG release tagging, primer H1 convention), G-95 (`implementation.md` covers two distinct phases) — all registered Deferred. Coordinated with G-88 (directory rename) and G-89 (project-level review log structure standardization) as a single bundled restructure pass at the spinoff-MVP boundary.
+
+### Note
+No suite artifacts were modified in this session beyond the registry, index, session log, and changelog. Per user instruction and consistent with the G-88/G-89 deferral pattern, structural changes are forward-only and will not be retroactively applied to completed projects (notably `bookmark-manager` and the in-flight `issue-tracker-cli`). The bundled application pass is expected to coincide with the suite's spinoff into a standalone repository.
+
+---
+
+## Unreleased — 2026-05-03 (suite scope acknowledgement)
+
+### Changed
+- **`README.md`** — Added `## Suite scope` section between the IAR intro and `## VSDD pipeline context`. Names the transitional state explicitly: directory began as IAR-only and has grown to house session primers for adjacent VSDD phases; directory name and "IAR" identity retained for continuity. Lists the four artifact categories (domain prompts, phase primers, lang supplements, suite governance). References the Phase 4–6 gaps (G-86, G-55, G-54). Addresses Review 30 Finding 1.
+- **`README.md`** — Added "Primer" column to the VSDD pipeline table referencing each phase's primer file. Phases 1, 1b, 2a, 2b, 3 link to their primers; Phase 4 cell shows `— (G-86)`; Phase 5 cell shows `— (G-55)`; Phase 6 cell shows `—`. Updated the trailing sentence below the table to point to the full primer table under `## Session primers` rather than naming only Phase 1/1b. Addresses Review 30 Finding 2.
+- **`prompts/suite-development.md`** — Updated `## Prompt` opening: added a paragraph after the artifact list naming the broader scope explicitly (suite has expanded beyond Phase 3; directory name retained for continuity; pointer to README scope section). Generalized the adversarial-standard paragraph with a sentence covering construction primers (a primer's `## Prompt` without a concrete failure mode produces softer output; a non-falsifiable completion-criteria section will pass against incomplete artifacts). Addresses Review 30 Finding 3.
+- **`SUITE-REVIEW.md`** — Updated lead paragraph to include session primers and lang supplements in the implementation list, and to acknowledge the adversarial standard applies to both review prompts and constructive primers. Added pointer to `README.md` `## Suite scope` for the artifact map. Addresses Review 30 Finding 4.
+- **`GAP-ANALYSIS-LOG.md`** — Added G-87: scope expansion was implicit; directory still named/framed as IAR-only despite housing primers for adjacent VSDD phases. Marked Addressed in same session by Review 30 Findings 1, 3, 4.
+- **`GAP-ANALYSIS-LOG.md`** — Added G-88 (Deferred): revisit suite directory name and "IAR" identity after `issue-tracker-cli` completes. Forward-only constraint — any rename applies to projects whose first IAR run is after the decision; completed projects retain their existing `iterative-adversarial-refinement/` review-log paths.
+- **`GAP-ANALYSIS-LOG.md`** — Added G-89 (Deferred): standardize project-level domain review log structure on the suite-review pattern (per-domain index file + dated session entries in `review-log/`). Trigger: revisit after `issue-tracker-cli` completes. Forward-only constraint — completed projects retain their existing single-file domain logs.
+
+### Added
+- **`review-log/2026-05-03-suite-review.md`** — Review 30 logged: SO + TW + VDD-IAR alignment scan of the suite's scope and identity. 4 findings resolved, 2 hallucinated (directory rename, primer scope-section), 3 new gaps registered (G-87 immediately addressed, G-88 and G-89 deferred to post-issue-tracker-cli).
+- **`SUITE-REVIEW.md`** — Review 30 row added to the Suite Reviews index.
+
+---
+
 ## Unreleased — 2026-05-02 (suite review collapse)
 
 ### Changed
@@ -68,10 +149,10 @@ Historical CHANGELOG entries below this one preserve their original wording and 
 ## Unreleased — 2026-04-28 (session 14)
 
 ### Added
-- **`lang/javascript-typescript.md`** — Added `## Technical Writer` section: TypeDoc/JSDoc generation config, TSDoc comment completeness (`@param`/`@returns`/`@throws`/`@example`), README example accuracy, `@deprecated` markers. Addresses G-84.
-- **`lang/javascript-typescript.md`** — Added `## Localization` section: `Intl.*` API usage with explicit locale parameters, i18next/react-i18next configuration, missing translation key handling, locale injection in tests. Addresses G-85.
-- **`lang/rust.md`** — Added `## Technical Writer` section: rustdoc coverage (`cargo doc --no-deps`), doc test quality (`cargo test --doc`), module-level `//!` docs, `#[doc(hidden)]` discipline, `cargo doc --document-private-items`. Addresses G-84.
-- **`lang/rust.md`** — Added `## Localization` section: fluent-rs bundle configuration with `LanguageIdentifier` and fallback chains, Fluent message completeness, missing message error handling, rust-i18n macro usage and key coverage. Addresses G-85.
+- **`supplements/javascript-typescript.md`** — Added `## Technical Writer` section: TypeDoc/JSDoc generation config, TSDoc comment completeness (`@param`/`@returns`/`@throws`/`@example`), README example accuracy, `@deprecated` markers. Addresses G-84.
+- **`supplements/javascript-typescript.md`** — Added `## Localization` section: `Intl.*` API usage with explicit locale parameters, i18next/react-i18next configuration, missing translation key handling, locale injection in tests. Addresses G-85.
+- **`supplements/rust.md`** — Added `## Technical Writer` section: rustdoc coverage (`cargo doc --no-deps`), doc test quality (`cargo test --doc`), module-level `//!` docs, `#[doc(hidden)]` discipline, `cargo doc --document-private-items`. Addresses G-84.
+- **`supplements/rust.md`** — Added `## Localization` section: fluent-rs bundle configuration with `LanguageIdentifier` and fallback chains, Fluent message completeness, missing message error handling, rust-i18n macro usage and key coverage. Addresses G-85.
 
 ### Changed
 - **`domains/role/TECHNICAL-WRITER-REVIEW.md`** — Updated lang supplement note from gap-reference language ("not yet covered — see G-84") to standard "Apply the **Technical Writer** section" format. Addresses G-84.
@@ -101,7 +182,7 @@ Historical CHANGELOG entries below this one preserve their original wording and 
 
 ### Changed
 - **`CHANGELOG.md`** — Fixed "AIR suite" → "IAR suite" in the file description. Addresses Review 12 Finding 1.
-- **`domains/role/PERFORMANCE-ENGINEER-REVIEW.md`** — Rewrote lang supplement note to match the standard format used by all other domains: "Apply the **Performance Engineer** section from the relevant supplement file in addition to the standard dimensions below." Previous note said only "Consult `../../lang/`" without naming the section. Addresses Review 12 Finding 2.
+- **`domains/role/PERFORMANCE-ENGINEER-REVIEW.md`** — Rewrote lang supplement note to match the standard format used by all other domains: "Apply the **Performance Engineer** section from the relevant supplement file in addition to the standard dimensions below." Previous note said only "Consult `../../supplements/`" without naming the section. Addresses Review 12 Finding 2.
 - **`domains/role/SOLUTION-OWNER-REVIEW.md`** — Replaced supplement note with an explicit opt-out. Previous note directed reviewer to "consult the supplement" for technology choice verification, but no SO section exists in any supplement — `suite-development.md` table marks SO as Language-agnostic. New note clarifies: SO is language-agnostic; for technology fitness context, consult the SA section of the relevant supplement. Addresses Review 12 Finding 3.
 
 ---
@@ -110,8 +191,8 @@ Historical CHANGELOG entries below this one preserve their original wording and 
 
 ### Changed
 - **`domains/role/SOLUTION-ARCHITECT-REVIEW.md`** — Added `[DATA-ENGINEER-REVIEW.md]` to SA's coordination links. SA dim 3 evaluates data model integrity; DE is the natural escalation target for deeper data-layer analysis. DE was the only core domain absent from SA coordination despite the explicit overlap. Addresses Review 11 Finding 1.
-- **`lang/javascript-typescript.md`** — Added "Coverage enforcement" bullet to Platform Engineering section naming Jest `coverageThreshold`, Vitest `coverage.thresholds`, `c8`, and `nyc` as the JS/TS-specific coverage tooling. Symmetric with `rust.md` Platform Engineering section. Addresses Review 11 Finding 2.
-- **`domains/role/ACCESSIBILITY-REVIEW.md`** — Updated lang supplement note to specify "See the **UX** section of `../../lang/browser-app.md`" and name the content. `browser-app.md` has no `## Accessibility` section; the relevant dimensions live in `## UX`. Addresses Review 11 Finding 3.
+- **`supplements/javascript-typescript.md`** — Added "Coverage enforcement" bullet to Platform Engineering section naming Jest `coverageThreshold`, Vitest `coverage.thresholds`, `c8`, and `nyc` as the JS/TS-specific coverage tooling. Symmetric with `rust.md` Platform Engineering section. Addresses Review 11 Finding 2.
+- **`domains/role/ACCESSIBILITY-REVIEW.md`** — Updated lang supplement note to specify "See the **UX** section of `../../supplements/browser-app.md`" and name the content. `browser-app.md` has no `## Accessibility` section; the relevant dimensions live in `## UX`. Addresses Review 11 Finding 3.
 
 ---
 
@@ -128,10 +209,10 @@ Historical CHANGELOG entries below this one preserve their original wording and 
 ## Unreleased — 2026-04-28 (session 8)
 
 ### Changed
-- **`lang/rust.md`** — Removed six inline "(Source: claude.md; verify against current apprentice-onboarding content.)" annotations from dimension bullets across Quality Engineering, Security, Software Engineering, and Platform Engineering sections. Source provenance is now consolidated in the `**Source note:**` paragraph added at the top of the file. Addresses Review 9 Finding 1.
+- **`supplements/rust.md`** — Removed six inline "(Source: claude.md; verify against current apprentice-onboarding content.)" annotations from dimension bullets across Quality Engineering, Security, Software Engineering, and Platform Engineering sections. Source provenance is now consolidated in the `**Source note:**` paragraph added at the top of the file. Addresses Review 9 Finding 1.
 - **`GAP-ANALYSIS-LOG.md`** — Updated G-12 status from "Addressed (API-CONTRACT-REVIEW.md)" to "Addressed (SA Extended: External Interface Contracts)". The referenced file does not exist; the gap was addressed by SA's Extended: External Interface Contracts section. Addresses Review 9 Finding 2.
 - **`GAP-ANALYSIS-LOG.md`** — Updated G-20, G-21, G-23 status from "Open" to "Addressed (partial)" and Last Reviewed from 2026-04-25 to 2026-04-27, consistent with G-76 which registered the partial addressing. Addresses Review 9 Finding 3.
-- **`lang/cli.md`** — Removed "(or alongside)" from intro paragraph. Intro now reads "in place of the standard UX dimensions," matching the section header which states the CLI dimensions replace browser-centric UX dimensions. Addresses Review 9 Finding 4.
+- **`supplements/cli.md`** — Removed "(or alongside)" from intro paragraph. Intro now reads "in place of the standard UX dimensions," matching the section header which states the CLI dimensions replace browser-centric UX dimensions. Addresses Review 9 Finding 4.
 
 ---
 
@@ -188,8 +269,8 @@ Historical CHANGELOG entries below this one preserve their original wording and 
 
 ### Changed
 - **`SUITE-REVIEW.md`** — Added `## Suite Meta-Reviews` section header before `## Review 3` to match the structural organization of `## Gap Analysis Runs`. Added Review 4 entry documenting all 11 findings from the adversarial pass this session.
-- **`domains/role/TECHNICAL-WRITER-REVIEW.md`** — Supplement reference updated to acknowledge G-84 (open gap) and removed false implication that a `lang/` section exists. Added regression check paragraph. Addresses Finding 1 and Finding 6 from Review 4.
-- **`domains/role/LOCALIZATION-REVIEW.md`** — Supplement reference updated to acknowledge G-85 (new open gap) and removed false implication that a `lang/` section exists. Added regression check paragraph. Addresses Finding 2 and Finding 6 from Review 4.
+- **`domains/role/TECHNICAL-WRITER-REVIEW.md`** — Supplement reference updated to acknowledge G-84 (open gap) and removed false implication that a `supplements/` section exists. Added regression check paragraph. Addresses Finding 1 and Finding 6 from Review 4.
+- **`domains/role/LOCALIZATION-REVIEW.md`** — Supplement reference updated to acknowledge G-85 (new open gap) and removed false implication that a `supplements/` section exists. Added regression check paragraph. Addresses Finding 2 and Finding 6 from Review 4.
 - **`domains/role/RED-TEAM-REVIEW.md`** — Supplement reference corrected: "Apply the **Security** section" → "Apply the **Red Team** section." Addresses Finding 3 from Review 4.
 - **`domains/role/SOLUTION-OWNER-REVIEW.md`** — Sycophancy check rewritten with domain-specific failure mode: an agent that helped write DESIGN.md will not flag scope creep it introduced. Addresses Finding 5 from Review 4.
 - **`domains/role/UX-REVIEW.md`** — Sycophancy check rewritten with domain-specific failure mode: an AI cannot experience a UI. Added note to dim 7 directing deeper accessibility coverage to the Accessibility domain. Addresses Finding 5 and Finding 11 from Review 4.
@@ -220,15 +301,15 @@ Historical CHANGELOG entries below this one preserve their original wording and 
 - **`prompts/review-session.md`** — New session primer for VSDD Phase 4 (Adversarial Review). Establishes adversarial posture before loading any domain prompt. Names sycophancy failure modes at the session level (not domain level), covers DESIGN.md prerequisite check, domain selection and sequencing, session isolation, and post-review classification requirements.
 - **`prompts/suite-development.md`** — New session primer for IAR suite development work. Governs adding/modifying domains, dimensions, and primers. Specifies the complete domain file structure, primer structure, pre-change checklists, gap registry discipline, SUITE-REVIEW.md and CHANGELOG.md requirements, and a lang supplement coverage table.
 - **`SECURITY-REVIEW.md` — `## Threat Model` section** — Required prerequisite section added before Standard Evaluation Dimensions. Before applying the checklist, the reviewer must name threat actors, crown jewel, and entry points. Output is logged as a preamble record in the review log, not a classified finding. Addresses G-06.
-- **`lang/javascript-typescript.md` — Red Team section** — JS/TS-specific attack vectors: prototype pollution exploitation (payload format, mitigation patterns), DOM-based XSS sinks enumeration, JWT algorithm confusion (alg:none, library version verification), npm supply chain and dependency confusion, localStorage/sessionStorage as persistence injection surface.
-- **`lang/javascript-typescript.md` — Performance Engineer section** — Bundle size analysis tooling (webpack-bundle-analyzer, source-map-explorer), V8 profiling via Chrome DevTools, Web Vitals as performance contract (LCP/INP/CLS targets), event delegation efficiency.
-- **`lang/rust.md` — Red Team section** — Rust-specific attack vectors: integer overflow in release builds (wrapping arithmetic, `u32::MAX` boundaries), panic as DoS vector (`.unwrap()` on user-influenced paths), path traversal via `Path::join`, `unsafe` block exploitation, crates.io supply chain.
-- **`lang/rust.md` — Performance Engineer section** — Criterion benchmarking discipline, flamegraph profiling (`cargo flamegraph`), debug vs. release build performance differential, allocation patterns in hot paths, async blocking operations in executor threads.
+- **`supplements/javascript-typescript.md` — Red Team section** — JS/TS-specific attack vectors: prototype pollution exploitation (payload format, mitigation patterns), DOM-based XSS sinks enumeration, JWT algorithm confusion (alg:none, library version verification), npm supply chain and dependency confusion, localStorage/sessionStorage as persistence injection surface.
+- **`supplements/javascript-typescript.md` — Performance Engineer section** — Bundle size analysis tooling (webpack-bundle-analyzer, source-map-explorer), V8 profiling via Chrome DevTools, Web Vitals as performance contract (LCP/INP/CLS targets), event delegation efficiency.
+- **`supplements/rust.md` — Red Team section** — Rust-specific attack vectors: integer overflow in release builds (wrapping arithmetic, `u32::MAX` boundaries), panic as DoS vector (`.unwrap()` on user-influenced paths), path traversal via `Path::join`, `unsafe` block exploitation, crates.io supply chain.
+- **`supplements/rust.md` — Performance Engineer section** — Criterion benchmarking discipline, flamegraph profiling (`cargo flamegraph`), debug vs. release build performance differential, allocation patterns in hot paths, async blocking operations in executor threads.
 - **`README.md` — Expanded primers table** — Added Implementation, Adversarial Review, and Suite Development primers with when-to-use descriptions. Primer table now covers all five session types.
 - **`README.md` — Running IAR preamble** — Three new constraints before the refinement loop: human-in-the-loop requirement (IAR's adversarial value collapses without human classification decisions), DESIGN.md prerequisite (no domain reviews without a spec), domain activation guidance (pointer to DOMAIN-INDEX.md).
 
 ### Changed
-- **Domain folder restructure** — All domain files moved from root to `domains/role/` (role domains) and `domains/meta/` (meta domains). All internal links updated to relative paths (`../../README.md`, `../../lang/`).
+- **Domain folder restructure** — All domain files moved from root to `domains/role/` (role domains) and `domains/meta/` (meta domains). All internal links updated to relative paths (`../../README.md`, `../../supplements/`).
 - **Domain file renames** — `SOFTWARE-ENGINEERING-REVIEW.md` → `SOFTWARE-ENGINEER-REVIEW.md`, `QUALITY-ENGINEERING-REVIEW.md` → `QUALITY-ENGINEER-REVIEW.md`, `PLATFORM-ENGINEERING-REVIEW.md` → `PLATFORM-ENGINEER-REVIEW.md`, `DATA-ENGINEERING-REVIEW.md` → `DATA-ENGINEER-REVIEW.md`. H1 titles updated to match. All cross-references updated.
 - **`PERFORMANCE-REVIEW.md` → `PERFORMANCE-ENGINEER-REVIEW.md`**, **`DOCUMENTATION-REVIEW.md` → `TECHNICAL-WRITER-REVIEW.md`** — Renamed to role-based titles. H1 titles and Reviewer role lines updated.
 - **README domain tables** — Restructured into three categories: Core role domains (8, always active), Extended role domains (6, activation-conditional), Meta domains (2). Added Role and Job title columns. All file paths updated to new folder locations.
@@ -285,11 +366,11 @@ Historical CHANGELOG entries below this one preserve their original wording and 
 ## Unreleased — 2026-04-26
 
 ### Added
-- **`lang/` subfolder** — Language and interface type supplements. Domain files reference these during review; reviewers apply the relevant supplement's section alongside the standard dimensions for that domain.
-  - `lang/rust.md` — Rust-specific dimensions for QE (doc tests, clippy, integration tests against binary), Security (`.unwrap()` discipline, `cargo audit`, unsafe rationale), SE (error propagation, error type hierarchy, clippy as idiom proxy), PE (`cargo audit`, `cargo clippy --deny warnings`, `cargo fmt --check`, `Cargo.lock` for binaries, toolchain pinning), DE (`serde` boundary validation, `#[serde(default)]` for schema evolution), SA (CLI parsing separation, command enum dispatch, `lib.rs`/`main.rs` split)
-  - `lang/javascript-typescript.md` — JS/TS-specific dimensions for QE (`npm ci`, axe scanning, browser tests, type coverage), Security (rendering safety, URL injection, `JSON.parse` runtime validation, CSP, `npm audit`), SE (`as` casts require runtime validation, `any` types, non-null assertions, unhandled promise rejections), PE (`npm ci`, `package-lock.json`, `npm audit`, Node pinning, `tsc --noEmit`), DE (runtime schema validation, `JSON.parse` error handling, normalization, date handling)
-  - `lang/cli.md` — CLI interface type supplement. Replaces browser-centric UX dimensions with 11 CLI UX dimensions (command discoverability, stdout/stderr discipline, exit codes, empty state messages, destructive confirmation, machine-readable output, verbose/quiet modes, error message quality, interruption handling). Adds CLI-specific QE dimensions (integration tests invoke binary, full stdout/stderr/exit code assertions) and SE dimensions (output formatting as a code concern, structured result types before formatting).
-  - `lang/browser-app.md` — Browser interface type supplement with QE (axe scanning, browser compat, responsive testing, keyboard navigation), Security (rendering safety, URL injection, CSP, storage validation, SRI), and UX (accessibility, responsive design, browser compatibility, reduced motion, native dialog quality) dimensions.
+- **`supplements/` subfolder** — Language and interface type supplements. Domain files reference these during review; reviewers apply the relevant supplement's section alongside the standard dimensions for that domain.
+  - `supplements/rust.md` — Rust-specific dimensions for QE (doc tests, clippy, integration tests against binary), Security (`.unwrap()` discipline, `cargo audit`, unsafe rationale), SE (error propagation, error type hierarchy, clippy as idiom proxy), PE (`cargo audit`, `cargo clippy --deny warnings`, `cargo fmt --check`, `Cargo.lock` for binaries, toolchain pinning), DE (`serde` boundary validation, `#[serde(default)]` for schema evolution), SA (CLI parsing separation, command enum dispatch, `lib.rs`/`main.rs` split)
+  - `supplements/javascript-typescript.md` — JS/TS-specific dimensions for QE (`npm ci`, axe scanning, browser tests, type coverage), Security (rendering safety, URL injection, `JSON.parse` runtime validation, CSP, `npm audit`), SE (`as` casts require runtime validation, `any` types, non-null assertions, unhandled promise rejections), PE (`npm ci`, `package-lock.json`, `npm audit`, Node pinning, `tsc --noEmit`), DE (runtime schema validation, `JSON.parse` error handling, normalization, date handling)
+  - `supplements/cli.md` — CLI interface type supplement. Replaces browser-centric UX dimensions with 11 CLI UX dimensions (command discoverability, stdout/stderr discipline, exit codes, empty state messages, destructive confirmation, machine-readable output, verbose/quiet modes, error message quality, interruption handling). Adds CLI-specific QE dimensions (integration tests invoke binary, full stdout/stderr/exit code assertions) and SE dimensions (output formatting as a code concern, structured result types before formatting).
+  - `supplements/browser-app.md` — Browser interface type supplement with QE (axe scanning, browser compat, responsive testing, keyboard navigation), Security (rendering safety, URL injection, CSP, storage validation, SRI), and UX (accessibility, responsive design, browser compatibility, reduced motion, native dialog quality) dimensions.
 - **Sycophancy check** — Added to all 8 domain prompts. Explicitly names AI self-validation as a failure mode: if the reviewing agent agrees with every decision without challenge, that agreement itself is a finding.
 - **Solution Owner dim 9 — Complexity budget for one** — New dimension evaluating whether architectural complexity is proportionate to the maintenance team size. An AI agent defaults to team-scale practices regardless of the project's actual maintenance model. Distinct from over-engineering (which flags complexity beyond spec); this flags complexity that is proportionate to spec but disproportionate to the team.
 - **Solution Owner — `approved deviation` classification** — New finding classification for deviations from DESIGN.md that were explicitly approved by the stakeholder prior to implementation. Requires documentation of the approval and rationale.
@@ -299,9 +380,9 @@ Historical CHANGELOG entries below this one preserve their original wording and 
 - **GAP-ANALYSIS-LOG.md Run 3** — 2026-04-25 22:00Z. Context: personal developer using AI-accelerated tools, portfolio-to-side-business trajectory. Identified 6 new gaps (G-33–G-38) including: sycophancy detection (G-33, addressed), future-maintainability-for-one assessment (G-35, addressed), session continuity across AI conversations (G-37, addressed), complexity trap from AI over-engineering (G-38, addressed).
 
 ### Changed
-- **QUALITY-ENGINEER-REVIEW.md** — Removed browser-specific dimensions 11–13 (accessibility, browser compatibility, responsive design) from standard dimensions; these are now in `lang/browser-app.md`. Generalized dim 14 (security surface) to remove npm-specific language. Renumbered to 13 dimensions. Added language and interface supplement instruction.
-- **SECURITY-REVIEW.md** — Removed web-specific dimensions 1 (rendering safety), 2 (URL injection), and 5 (CSP) from standard dimensions; these are now in `lang/browser-app.md` and `lang/javascript-typescript.md`. Generalized remaining dimensions to be language-agnostic. Added dim 4 (secret handling) and dim 6 (authentication/authorization) as generic security dimensions. Renumbered to 6 dimensions. Added language and interface supplement instruction.
-- **UX-REVIEW.md** — Added interface-type note: standard dimensions assume a browser-rendered interface; CLI projects should consult `lang/cli.md`; browser apps should also consult `lang/browser-app.md`.
+- **QUALITY-ENGINEER-REVIEW.md** — Removed browser-specific dimensions 11–13 (accessibility, browser compatibility, responsive design) from standard dimensions; these are now in `supplements/browser-app.md`. Generalized dim 14 (security surface) to remove npm-specific language. Renumbered to 13 dimensions. Added language and interface supplement instruction.
+- **SECURITY-REVIEW.md** — Removed web-specific dimensions 1 (rendering safety), 2 (URL injection), and 5 (CSP) from standard dimensions; these are now in `supplements/browser-app.md` and `supplements/javascript-typescript.md`. Generalized remaining dimensions to be language-agnostic. Added dim 4 (secret handling) and dim 6 (authentication/authorization) as generic security dimensions. Renumbered to 6 dimensions. Added language and interface supplement instruction.
+- **UX-REVIEW.md** — Added interface-type note: standard dimensions assume a browser-rendered interface; CLI projects should consult `supplements/cli.md`; browser apps should also consult `supplements/browser-app.md`.
 - **PLATFORM-ENGINEER-REVIEW.md** — Generalized npm-specific language in dims 1, 3, 4, and 11 to be ecosystem-agnostic with ecosystem-appropriate examples. Added language and interface supplement instruction.
 - **SOLUTION-ARCHITECT-REVIEW.md** — Added language and interface supplement instruction.
 - **SOLUTION-OWNER-REVIEW.md** — Added language and interface supplement instruction (SO review is primarily spec-driven; supplement used to verify technology choices against the spec).

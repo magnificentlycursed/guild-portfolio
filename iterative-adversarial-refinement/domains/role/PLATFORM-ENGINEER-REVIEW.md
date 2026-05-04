@@ -28,7 +28,7 @@ Regression check: verify that all pipeline gates and infrastructure controls ins
 
 **Sycophancy check:** The primary sycophancy risk in this domain is around applicability decisions and threshold acceptance, not binary existence checks. Flag any case where an inapplicable determination was made without examining whether it genuinely does not apply, and any case where an accepted risk was accepted without specific evidence of the risk level.
 
-**Language and interface supplement:** Consult `../../lang/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`). Apply the **Platform Engineering** section from the relevant supplement file in addition to the standard dimensions below — language supplements specify the correct tooling for dependency installation, auditing, linting, and format checking.
+**Language and interface supplement:** Consult `../../supplements/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`). Apply the **Platform Engineering** section from the relevant supplement file in addition to the standard dimensions below — language supplements specify the correct tooling for dependency installation, auditing, linting, and format checking.
 
 ## Standard Evaluation Dimensions
 

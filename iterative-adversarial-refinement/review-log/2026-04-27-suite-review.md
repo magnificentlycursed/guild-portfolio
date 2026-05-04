@@ -237,7 +237,7 @@ The "After each domain review" section listed all five common classifications wi
 
 **Finding 1 — TECHNICAL-WRITER-REVIEW.md supplement reference points to nonexistent content.**
 
-The supplement line read "Consult `../../lang/` for language-specific documentation tooling (e.g., `rustdoc`, TypeDoc, JSDoc, Sphinx)." No Technical Writer section exists in any supplement file. The governing standard's coverage table explicitly marks this as a gap (G-84). A reviewer following this instruction consults lang/ and finds nothing — then has no basis to either apply or dismiss the section.
+The supplement line read "Consult `../../supplements/` for language-specific documentation tooling (e.g., `rustdoc`, TypeDoc, JSDoc, Sphinx)." No Technical Writer section exists in any supplement file. The governing standard's coverage table explicitly marks this as a gap (G-84). A reviewer following this instruction consults supplements/ and finds nothing — then has no basis to either apply or dismiss the section.
 
 **Resolution:** Reworded to acknowledge the gap explicitly, reference G-84, and state that the supplement section applies once written.
 
@@ -245,7 +245,7 @@ The supplement line read "Consult `../../lang/` for language-specific documentat
 
 **Finding 2 — LOCALIZATION-REVIEW.md supplement reference contradicts governing standard coverage table.**
 
-The supplement line read "Consult `../../lang/` for language-specific i18n library recommendations and conventions." The suite-development.md coverage table marked Localization as "Language-agnostic" — a contradiction. The domain body references `Intl.NumberFormat`, `Intl.PluralRules`, and `toLocaleDateString()` — JS/TS APIs — and these are not covered anywhere in the supplements.
+The supplement line read "Consult `../../supplements/` for language-specific i18n library recommendations and conventions." The suite-development.md coverage table marked Localization as "Language-agnostic" — a contradiction. The domain body references `Intl.NumberFormat`, `Intl.PluralRules`, and `toLocaleDateString()` — JS/TS APIs — and these are not covered anywhere in the supplements.
 
 **Resolution:** Reworded supplement reference to acknowledge the gap and reference new G-85. Coverage table in suite-development.md updated to remove "Language-agnostic" and mark as gap. G-85 added to GAP-ANALYSIS-LOG.md.
 
@@ -329,7 +329,7 @@ UX dim 7 covers a floor-level accessibility check (labels, contrast, semantic HT
 
 ## Review 13 — 2026-04-27
 
-**Scope:** Full suite pass against the suite-development primer as governing standard. Evaluated: all domain files, both meta domains, all session primers, DOMAIN-INDEX.md, README, lang/ supplements, GAP-ANALYSIS-LOG, SUITE-REVIEW.md, CHANGELOG.md.
+**Scope:** Full suite pass against the suite-development primer as governing standard. Evaluated: all domain files, both meta domains, all session primers, DOMAIN-INDEX.md, README, supplements/ supplements, GAP-ANALYSIS-LOG, SUITE-REVIEW.md, CHANGELOG.md.
 
 **Lens:** Does every artifact meet its own governing standard? What does the suite still fail to catch?
 
@@ -399,7 +399,7 @@ The suite-development.md coverage table explicitly marked Technical Writer as a 
 
 ## Review 12 — 2026-04-27
 
-**Scope:** Full adversarial pass across all domain templates and lang/ supplements. Session primed with `prompts/spec-crystallization.md` (adversarial posture: assume the spec is incomplete; find what is missing) and `prompts/decomposition.md` (push back on dimensions that are too large, too vague, or that mix concerns). Governing docs used as the DESIGN.
+**Scope:** Full adversarial pass across all domain templates and supplements/ supplements. Session primed with `prompts/spec-crystallization.md` (adversarial posture: assume the spec is incomplete; find what is missing) and `prompts/decomposition.md` (push back on dimensions that are too large, too vague, or that mix concerns). Governing docs used as the DESIGN.
 
 **Lens:** What slop would this suite fail to catch? Every domain reviewed for production-critical gaps — not process compliance, but defect classes that would reach users undetected. Suite alignment against VSDD reviewed separately. Open gaps from GAP-ANALYSIS-LOG raised and resolved where appropriate.
 
@@ -409,7 +409,7 @@ The suite-development.md coverage table explicitly marked Technical Writer as a 
 
 **QE: No coverage threshold in the base domain — CRITICAL**
 
-The base QE domain has no coverage threshold requirement. Dim 13 (quality gates) asks whether thresholds are enforced; it does not state what the thresholds should be. A project with 15% coverage and a passing CI run clears QE review. Coverage thresholds exist only in `lang/rust.md` (80% minimum / 100% public API). JS/TS, Python, Go, and any other language project has no threshold.
+The base QE domain has no coverage threshold requirement. Dim 13 (quality gates) asks whether thresholds are enforced; it does not state what the thresholds should be. A project with 15% coverage and a passing CI run clears QE review. Coverage thresholds exist only in `supplements/rust.md` (80% minimum / 100% public API). JS/TS, Python, Go, and any other language project has no threshold.
 
 A coverage threshold in one language supplement and absent from the domain means the domain is calibrated differently depending on which language is used. That is not a language-specific concern — it is a universal quality floor.
 
@@ -685,8 +685,8 @@ The decomposition prompt includes the crosslink issue hierarchy section as a sta
 
 ## Review 11 — 2026-04-27
 
-**Scope:** All domain template files, lang/ supplements, README.md, GAP-ANALYSIS-LOG.md.
-**Artifacts reviewed:** QUALITY-ENGINEER-REVIEW.md, UX-REVIEW.md, SECURITY-REVIEW.md, PLATFORM-ENGINEER-REVIEW.md, SOLUTION-ARCHITECT-REVIEW.md, SOLUTION-OWNER-REVIEW.md, SOFTWARE-ENGINEER-REVIEW.md, DATA-ENGINEER-REVIEW.md, VDD-IAR-ALIGNMENT-REVIEW.md, lang/rust.md, lang/javascript-typescript.md, lang/browser-app.md, lang/cli.md, README.md, GAP-ANALYSIS-LOG.md.
+**Scope:** All domain template files, supplements/ supplements, README.md, GAP-ANALYSIS-LOG.md.
+**Artifacts reviewed:** QUALITY-ENGINEER-REVIEW.md, UX-REVIEW.md, SECURITY-REVIEW.md, PLATFORM-ENGINEER-REVIEW.md, SOLUTION-ARCHITECT-REVIEW.md, SOLUTION-OWNER-REVIEW.md, SOFTWARE-ENGINEER-REVIEW.md, DATA-ENGINEER-REVIEW.md, VDD-IAR-ALIGNMENT-REVIEW.md, supplements/rust.md, supplements/javascript-typescript.md, supplements/browser-app.md, supplements/cli.md, README.md, GAP-ANALYSIS-LOG.md.
 **Primary lens:** VDD-IAR Alignment — governing doc compliance and structural integrity. Secondary observations from QE and SE where relevant.
 
 ---
@@ -823,7 +823,7 @@ This finding is partially addressed by the session primers (which establish the 
 
 #### SE: "Language and interface supplement" instruction absent from VDD-IAR Alignment
 
-Every other domain has: "**Language and interface supplement:** Consult `lang/` for the supplement matching the project's primary language..." The VDD-IAR Alignment domain does not, because process compliance is language-agnostic. This is correct behavior, but it should be stated explicitly rather than absent silently — a reviewer running VDD-IAR Alignment after all other domains might notice the missing instruction and wonder if it was overlooked.
+Every other domain has: "**Language and interface supplement:** Consult `supplements/` for the supplement matching the project's primary language..." The VDD-IAR Alignment domain does not, because process compliance is language-agnostic. This is correct behavior, but it should be stated explicitly rather than absent silently — a reviewer running VDD-IAR Alignment after all other domains might notice the missing instruction and wonder if it was overlooked.
 
 **Resolution:** Add a note to VDD-IAR Alignment that language/interface supplements do not apply to this domain (process compliance is language-agnostic). Minor.
 
@@ -916,7 +916,7 @@ VSDD requires a verification architecture that identifies the pure/deterministic
 
 *Decision:* Add SA dim 12 (VSDD purity boundary map). Add SA section to JS/TS supplement (the only supplement missing one) with purity boundary, module organization, state flow, and event handler coupling dimensions.
 
-**G-56 addressed** — SA dim 12 added. `lang/javascript-typescript.md` SA section added.
+**G-56 addressed** — SA dim 12 added. `supplements/javascript-typescript.md` SA section added.
 
 **G-57 — No effectiveness test for domain prompts (Medium)**
 
@@ -1005,11 +1005,11 @@ VDD-IAR Alignment dim 4 states the Red Gate principle (tests must fail before im
 
 *Decision:* Add Red Gate language to QE dim 2, cross-referencing VDD-IAR Alignment dim 4.
 
-**lang/rust.md gaps from claude.md**
+**supplements/rust.md gaps from claude.md**
 
-The claude.md governing reference specified cargo-deny, cargo-vet, stricter clippy lint configuration, and coverage thresholds (80% minimum / 100% public API). None were in lang/rust.md.
+The claude.md governing reference specified cargo-deny, cargo-vet, stricter clippy lint configuration, and coverage thresholds (80% minimum / 100% public API). None were in supplements/rust.md.
 
-*Decision:* Add to lang/rust.md with sourcing note (claude.md, may be superseded). Applied in Security (cargo-deny, cargo-vet), Platform Engineering (cargo-deny, cargo-vet, coverage enforcement), Quality Engineering (coverage thresholds), and Software Engineering (clippy lint configuration).
+*Decision:* Add to supplements/rust.md with sourcing note (claude.md, may be superseded). Applied in Security (cargo-deny, cargo-vet), Platform Engineering (cargo-deny, cargo-vet, coverage enforcement), Quality Engineering (coverage thresholds), and Software Engineering (clippy lint configuration).
 
 ### Suite changes made as a result of this run
 
@@ -1020,7 +1020,7 @@ The claude.md governing reference specified cargo-deny, cargo-vet, stricter clip
 **SO dim 9 updated** — Phase-appropriate tool introduction language added.
 **QE dim 2 updated** — Red Gate language added.
 **VDD-IAR Alignment intro updated** — IAR-as-adversary framing and governing references section added.
-**lang/rust.md updated** — cargo-deny, cargo-vet, clippy lint config, coverage thresholds added across QE, Security, SE, PE sections.
+**supplements/rust.md updated** — cargo-deny, cargo-vet, clippy lint config, coverage thresholds added across QE, Security, SE, PE sections.
 
 **Remaining open:** G-34, G-36, G-54, G-55. G-54 and G-55 are context-dependent; low severity for current portfolio work.
 

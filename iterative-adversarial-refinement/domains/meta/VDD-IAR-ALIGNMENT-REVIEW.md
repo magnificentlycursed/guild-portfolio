@@ -22,7 +22,7 @@ For each finding, cite the specific artifact and location (commit hash, log entr
 
 **Sycophancy check:** Process failures are easy to rationalize. The agent reviewing this domain is likely the same agent that participated in building the project — it has every incentive to find the process acceptable. The absence of a layer gate record is not ambiguous. Batched test commits are not ambiguous. A single IAR pass that merged immediately after real findings is not ambiguous. Push back on any dimension where the agent reaches for benefit-of-the-doubt rather than evidence.
 
-**Language and interface supplement:** Not applicable. Process compliance is language-agnostic. The `lang/` supplements add language-specific dimensions to implementation-focused domains; the VDD-IAR Alignment domain evaluates methodology compliance, which is independent of the implementation language or interface type.
+**Language and interface supplement:** Not applicable. Process compliance is language-agnostic. The `supplements/` supplements add language-specific dimensions to implementation-focused domains; the VDD-IAR Alignment domain evaluates methodology compliance, which is independent of the implementation language or interface type.
 
 ## Governing References
 
@@ -40,7 +40,7 @@ The reference for the process methodology itself is: `apprentice-onboarding/02-t
 
 1. **Design-before-code** — Was DESIGN.md or an equivalent design artifact created before implementation began? Does the first commit establish design documentation rather than code? Flag any project where the design doc was written after the fact or retroactively expanded to justify implementation choices already made.
 
-   Beyond existence, evaluate spec completeness using VSDD Phase 1 criteria. A design doc that enumerates only happy-path behaviors is an incomplete spec. A complete spec contains:
+   Beyond existence, evaluate spec completeness using VSDD Phase 1a criteria. A design doc that enumerates only happy-path behaviors is an incomplete spec. A complete spec contains:
    - **Behavioral contracts** — preconditions, postconditions, and invariants for each feature. Not just "the form saves the bookmark" but what the system guarantees before, during, and after every operation.
    - **Exhaustive edge case catalog** — boundary values, empty inputs, malformed inputs, concurrent operations, and failure modes. An edge case absent from the spec is likely absent from the tests.
    - **Interface definitions** — explicit data shapes, validation rules, and error responses at every boundary. Interfaces defined only implicitly in code rather than explicitly in the spec were not designed; they emerged.
@@ -91,7 +91,7 @@ The reference for the process methodology itself is: `apprentice-onboarding/02-t
 
 ## Program Phase Context
 
-**Note:** "Phase" in this section refers to the apprentice program progression tier (Phase 1 apprentice, Phase 2 apprentice, etc.), not to the VSDD pipeline phases (1, 1b, 2a, 2b, 3, 4, 5, 6). The two numbering systems are distinct. Tool requirements and process expectations scale with program tier. When evaluating a project, establish its program tier before applying this domain:
+**Note:** "Phase" in this section refers to the apprentice program progression tier (Phase 1 apprentice, Phase 2 apprentice, etc.), not to the VSDD pipeline phases (1a, 1b, 2a, 2b, 3, 4, 5, 6). The two numbering systems are distinct. Tool requirements and process expectations scale with program tier. When evaluating a project, establish its program tier before applying this domain:
 
 - **Phase 1** — Crosslink not yet introduced. Issue tracking compliance (dim 11) is not applicable. Evaluate all other dimensions.
 - **Phase 2** — Crosslink introduced. Issue tracking compliance is required from the first Phase 2 project onward. Retroactive application to Phase 1 projects is not appropriate.

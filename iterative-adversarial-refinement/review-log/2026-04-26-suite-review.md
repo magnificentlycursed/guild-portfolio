@@ -56,7 +56,7 @@ Process compliance had no owner. Test discipline, layer gate compliance, IAR fre
 
 **Context:** Personal developer, AI-accelerated workflow, portfolio-to-journeyman arc. Full evaluation of suite against the guild apprentice-onboarding methodology, the bookmark-manager project history (including the dollspace-gay guild review finding), and the upcoming issue-tracker-cli project. Goal: identify gaps that would cause the suite to pass a project that a guild portfolio reviewer would fail.
 
-**Suite state at time of run:** Eight domains, all with sycophancy checks and language/interface supplements. lang/ subfolder with rust.md, javascript-typescript.md, cli.md, browser-app.md. GAP-ANALYSIS-LOG.md with 38 gaps registered.
+**Suite state at time of run:** Eight domains, all with sycophancy checks and language/interface supplements. supplements/ subfolder with rust.md, javascript-typescript.md, cli.md, browser-app.md. GAP-ANALYSIS-LOG.md with 38 gaps registered.
 
 ### Findings
 

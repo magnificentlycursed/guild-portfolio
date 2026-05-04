@@ -22,7 +22,7 @@ Regression check: verify that architectural decisions from prior layers are stil
 
 **Sycophancy check:** An agent that designed the architecture will find it sound because it reflects its own training distribution and defaults, not because it is right for this project's constraints. Push hardest on dim 9 (complexity budget) and dim 8 (technology fitness): these are the dimensions where agent defaults most consistently diverge from what a single maintainer or small project actually needs. For each technology choice and architectural pattern, ask: "would this choice have been made by a human engineer working alone on a project of this scope, or is it a team-scale default?"
 
-**Language and interface supplement:** Consult `../../lang/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`). Apply the **Solution Architect** section from the relevant supplement file in addition to the standard dimensions below.
+**Language and interface supplement:** Consult `../../supplements/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`). Apply the **Solution Architect** section from the relevant supplement file in addition to the standard dimensions below.
 
 ## Standard Evaluation Dimensions
 
