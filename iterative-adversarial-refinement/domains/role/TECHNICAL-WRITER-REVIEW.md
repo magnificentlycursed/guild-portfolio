@@ -26,7 +26,7 @@ Regression check: verify that documentation updated in prior layers is still acc
 
 **Sycophancy check:** An agent generating documentation in the same session as code will produce documentation that is accurate at the moment of generation and stale after the next change. The adversary must verify that documentation describes the current implementation, not the implementation at the time it was written. Every claim in the documentation should be verifiable against the current code. Treat every "this function does X" statement as a claim that requires verification.
 
-**Language and interface supplement:** Consult `../../lang/` for the supplement matching the project's primary language. Apply the **Technical Writer** section from the relevant supplement file in addition to the standard dimensions below — supplements specify language-specific documentation tooling (rustdoc for Rust; TypeDoc/JSDoc for JavaScript/TypeScript).
+**Language and interface supplement:** Consult `../../supplements/` for the supplement matching the project's primary language. Apply the **Technical Writer** section from the relevant supplement file in addition to the standard dimensions below — supplements specify language-specific documentation tooling (rustdoc for Rust; TypeDoc/JSDoc for JavaScript/TypeScript).
 
 ## Standard Evaluation Dimensions
 

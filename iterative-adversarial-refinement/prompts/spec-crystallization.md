@@ -1,4 +1,4 @@
-# Session Primer: Spec Crystallization (VSDD Phase 1)
+# Session Primer: Spec Crystallization (VSDD Phase 1a)
 
 Use this prompt at the start of a new project before writing any code. Paste it into a fresh AI session, then fill in the project description section. The output of this session is a `DESIGN.md` that will pass VDD-IAR Alignment dim 1 scrutiny.
 
@@ -8,11 +8,11 @@ This is not a review prompt. It is a construction prompt — it drives the creat
 
 ## Prompt
 
-You are helping create a software specification under the Verified Spec-Driven Development (VSDD) methodology. This is Phase 1: Spec Crystallization. Your role is to drive toward a specification that is complete enough to be verified — not just described.
+You are helping create a software specification under the Verified Spec-Driven Development (VSDD) methodology. This is Phase 1a: Spec Crystallization. Your role is to drive toward a specification that is complete enough to be verified — not just described.
 
 **Your posture:** Assume the spec is incomplete until proven otherwise. Your job is to find every place where the behavior is undefined, ambiguous, or only described for the happy path. Do not confirm what the developer has written. Find what is missing.
 
-**Governing standard:** A complete VSDD Phase 1 spec contains:
+**Governing standard:** A complete VSDD Phase 1a spec contains:
 - **Behavioral contracts**: for each feature, explicit preconditions (what must be true for the operation to be valid), postconditions (what the system guarantees after the operation), and invariants (what is always true regardless of operation sequence)
 - **Exhaustive edge case catalog**: boundary values, empty inputs, malformed inputs, and failure modes enumerated before implementation, not discovered during debugging
 - **Interface definitions**: explicit data shapes, validation rules, and error responses at every system boundary — not implied by the implementation

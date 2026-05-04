@@ -4,7 +4,9 @@ This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) s
 
 The purpose of this review is to evaluate the work as a portfolio artifact — not whether it functions correctly, but whether it demonstrates genuine skill, learning, and independent judgment by the developer who built it.
 
-**Sycophancy check:** This is the domain where sycophancy does the most harm. The adversary must push on the hardest question in this domain: could this developer reproduce the key decisions without the AI? That question cannot be answered by reading the code. It requires direct interrogation.
+**Language supplement applied:** Not applicable. Portfolio assessment evaluates developer ownership, growth evidence, and decision rationale — concerns that are independent of implementation language or interface type.
+
+**Sycophancy check:** This is the domain where sycophancy does the most harm. An agent reviewing portfolio work has every incentive to find it impressive — it helped build it. The adversary must push on the hardest question in this domain: could this developer reproduce the key decisions without the AI? That question cannot be answered by reading the code. It requires direct interrogation.
 
 **Developer participation note:** Dimensions 1, 2, 4, 5, 6, and 7 require direct answers from the developer. This review records the questions to be answered at the Layer 1 gate interview; artifact-based assessments are provided where possible, but classification cannot be finalized without developer responses.
 
@@ -122,7 +124,9 @@ The documentation is thorough but justifiably so: DESIGN.md is a complete behavi
 
 **Assessment:** Two dimensions demonstrated from artifacts alone. Six dimensions are Partial — all require developer response. This is the expected pattern for a mid-layer assessment: the artifacts provide strong evidence of direction but cannot substitute for the developer's own voice. The gate interview questions are the mechanism to convert Partial to Demonstrated.
 
-**Gate interview required before Layer 1 closes.** The developer should be asked the named questions in dims 1–2 and 4–7 before this review can produce final classifications.
+Gate interview required before Layer 1 closes. The developer should be asked the named questions in dims 1–2 and 4–7 before this review can produce final classifications.
+
+**Coordination:** Dim 4/5 cross-reference [TECHNICAL-WRITER-REVIEW.md](TECHNICAL-WRITER-REVIEW.md) Review 5 Finding 4 (PROCESS.md placeholders).
 
 ---
 
@@ -130,13 +134,17 @@ The documentation is thorough but justifiably so: DESIGN.md is a complete behavi
 
 ## Review 2 — 2026-04-30 00:00Z
 
-**Scope:** Layer 1 gate closure — gate interview status.
+**Scope:** Layer 1 gate closure — gate interview status. Director decision: gate interview deferred. The six Partial dimensions from Review 1 remain Partial. The Layer 1 merge gate closes without final portfolio assessment classification by director decision. Gate interview questions preserved for later: see Review 1, dims 1–2 and 4–7. These questions remain valid at any future layer gate or as a standalone portfolio review exercise.
 
-**Director decision:** Gate interview deferred. The six Partial dimensions from Review 1 remain Partial. The Layer 1 merge gate closes without final portfolio assessment classification by director decision.
+**Session note:** In-session with all other domain reviews. Acknowledged quality tradeoff.
 
-**Gate interview questions preserved for later:** See Review 1, dims 1–2 and 4–7. These questions remain valid at any future layer gate or as a standalone portfolio review exercise.
+---
 
-**Summary:** No change to dimension classifications. Gate interview is deferred indefinitely.
+### Summary
+
+No change to dimension classifications. Gate interview is deferred indefinitely.
+
+**Coordination:** *(none)*
 
 ---
 
@@ -169,3 +177,5 @@ PROCESS.md placeholder sections remain unfilled. The developer's first-person re
 ### Summary
 
 No change to overall classification. The six Partial dimensions from Review 1 remain Partial pending the gate interview. Dim 3 carries additional evidence from the Layer 2 IAR process. Gate interview questions from Review 1 remain the mechanism to convert Partial to Demonstrated.
+
+**Coordination:** *(none)*

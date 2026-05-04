@@ -24,7 +24,7 @@ Regression check: verify that previously correct behavior has not been silently 
 
 **Assumption surfacing (G-20):** For each external dependency, library function, or framework behavior relied upon, identify the assumption being made. Verify it against the actual documentation for the version in use. AI-generated code frequently calls methods that do not exist, assumes method signatures that differ by one parameter, or relies on return value shapes that changed between versions. Confident code is not correct code.
 
-**Language and interface supplement:** Consult `../../lang/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`) and interface type (e.g., `cli.md`). Apply the **Software Engineering** section from the relevant supplement files in addition to the standard dimensions below.
+**Language and interface supplement:** Consult `../../supplements/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`) and interface type (e.g., `cli.md`). Apply the **Software Engineering** section from the relevant supplement files in addition to the standard dimensions below.
 
 **Domain boundary:** SE owns the implementation — correctness, naming, error handling, and complexity within module boundaries. QE owns the test system. When SE finds a bug, flag it here. If there is also no test covering that path, that is a separate QE finding — do not bundle them. Do not evaluate test architecture here; that belongs to QE.
 

@@ -2,7 +2,13 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
 
+**Reviewer role: Solution Architect** (Solution Architect / Software Architect / Technical Lead)
+
 The purpose of this review is to evaluate whether the architecture — its structure, boundaries, decisions, and tradeoffs — is sound, coherent, and appropriate for the project's stated purpose and constraints. Every review targets the whole application, not only the most recently changed code.
+
+**Language supplement applied:** `lang/rust.md` (SA section).
+
+**Sycophancy check:** An agent that designed the architecture will find it sound because it reflects its own training distribution and defaults, not because it is right for this project's constraints. Push hardest on dim 9 (complexity budget) and dim 8 (technology fitness): these are the dimensions where agent defaults most consistently diverge from what a single maintainer or small project actually needs. For each technology choice and architectural pattern, ask: "would this choice have been made by a human engineer working alone on a project of this scope, or is it a team-scale default?"
 
 ---
 
@@ -12,13 +18,11 @@ The purpose of this review is to evaluate whether the architecture — its struc
 
 **Session note:** Reviewed in-session with spec authorship. Acknowledged quality tradeoff.
 
-**Coordination:** Finding 1 (atomic writes), Finding 2 (exit codes), and Finding 3 (`next_id`) are spec-level decisions that, if changed, require corresponding updates to DESIGN.md before Layer 1 opens. Cross-reference with [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) for the spec compliance angle.
-
 ---
 
 ### Resolved
 
-**Finding 1 — Atomic writes are a production-grade constraint for a personal learning tool**
+**Finding 1 — Atomic writes are a production-grade constraint for a personal learning tool (Dim 9)**
 
 `DESIGN.md` Constraints section: "Atomic writes. Every mutation writes `tracker.json.tmp` then renames it. This is a hard requirement, not a polish item."
 
@@ -30,7 +34,7 @@ The complexity is not proportionate to the maintenance model (single developer, 
 
 ---
 
-**Finding 2 — Exit code 2 is a scripted-caller contract; this tool has no scripted callers**
+**Finding 2 — Exit code 2 is a scripted-caller contract; this tool has no scripted callers (Dim 4, Dim 9)**
 
 `DESIGN.md` Interface section: exit code `2` for I/O errors, distinct from exit code `1` for user errors.
 
@@ -40,7 +44,7 @@ Exit code tiers are meaningful only to a process that checks `$?` and branches o
 
 ---
 
-**Finding 3 — `next_id` counter encodes a non-reuse guarantee the assignment does not require**
+**Finding 3 — `next_id` counter encodes a non-reuse guarantee the assignment does not require (Dim 3, Dim 9)**
 
 `DESIGN.md` Data Model storage file: `"next_id": u64` with invariant `next_id > max(id)` always.
 
@@ -50,7 +54,7 @@ The simpler approach: `max(existing_ids) + 1` computed at create time. For a fla
 
 ---
 
-**Finding 4 — Dynamic column widths add two-pass table rendering to a display concern**
+**Finding 4 — Dynamic column widths add two-pass table rendering to a display concern (Dim 9)**
 
 `DESIGN.md` Interface section: "Column widths are determined by the widest value in each column (including the header)."
 
@@ -60,7 +64,7 @@ A dynamic-width table requires collecting all matching rows, computing per-colum
 
 ---
 
-**Finding 5 — `\r\n` normalization is speculative cross-platform scope**
+**Finding 5 — `\r\n` normalization is speculative cross-platform scope (Dim 9)**
 
 `DESIGN.md` Edge Cases / Description: "`\r\n` line endings are normalized to `\n` on storage."
 
@@ -70,17 +74,29 @@ The target platform is macOS (Darwin). macOS terminal input does not produce `\r
 
 ---
 
-### Observation — Purity boundary is methodology overhead, not assignment scope
-
-The purity boundary section (naming `validate_title`, `issue_matches_filters`, `format_issue_row`, etc. as formally pure) is required by the spec-crystallization primer, not by the assignment. The assignment's learning goals are Rust syntax, CLI design, state machines, and serialization — not VSDD Phase 5 formal verification preparation.
-
-This is not a finding. The purity boundary is a correct application of the VSDD methodology the project is following. It is noted here as a recognized tension: the methodology adds architectural structure that exceeds the assignment's learning objectives. The human director should decide whether this structure is appropriate for this stage of the program.
-
----
-
 ### Dismissed
 
 *(none)*
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+Five real findings, all resolved via DESIGN.md edits: removed atomic-write constraint, collapsed exit code tier from 0/1/2 to 0/1, removed `next_id` counter, replaced dynamic column widths with fixed widths, removed `\r\n` normalization. No dismissed items.
+
+**Note — Purity boundary is methodology overhead, not assignment scope:** The purity boundary section (naming `validate_title`, `issue_matches_filters`, `format_issue_row`, etc. as formally pure) is required by the spec-crystallization primer, not by the assignment. The assignment's learning goals are Rust syntax, CLI design, state machines, and serialization — not VSDD Phase 5 formal verification preparation. This is not a finding. The purity boundary is a correct application of the VSDD methodology the project is following. It is noted here as a recognized tension: the methodology adds architectural structure that exceeds the assignment's learning objectives. The human director should decide whether this structure is appropriate for this stage of the program.
+
+**Coordination:** Findings 1, 2, and 3 are spec-level decisions that, if changed, require corresponding updates to DESIGN.md before Layer 1 opens. Cross-reference with [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) for the spec compliance angle.
 
 ---
 
@@ -108,7 +124,7 @@ The correct approach: implement the full priority→ID sort algorithm from Layer
 
 ### Dismissed
 
-**Finding 2 — Layer 5 (compound filtering) as a standalone layer**
+**Finding 2 — Layer 5 (compound filtering) as a standalone layer (Dim 9)**
 
 Is a separate layer for compound filtering architecturally justified, or is it a test-only concern folded into Layer 4?
 
@@ -116,7 +132,7 @@ Is a separate layer for compound filtering architecturally justified, or is it a
 
 ---
 
-**Finding 3 — Layer 6 combines description, show, and delete — possibly too broad**
+**Finding 3 — Layer 6 combines description, show, and delete — possibly too broad (Dim 9)**
 
 Layer 6 delivers three distinct capabilities: `--description` on create, `tracker show`, and `tracker delete`. Is this one layer or three?
 
@@ -133,6 +149,8 @@ Layer 6 delivers three distinct capabilities: `--description` on create, `tracke
 ### Summary
 
 One real finding resolved (Layer 1 sort algorithm specification). Two dismissed. The decomposition is architecturally sound: each layer delivers an independent, verifiable capability; layer ordering is correct (each layer depends only on previous layers); no structural debt is introduced between layers.
+
+**Coordination:** *(none)*
 
 ---
 
@@ -182,6 +200,8 @@ See SE Review 2 Finding 2.
 
 Three dismissed findings — all hallucinated or premature concerns. The stub architecture is minimal, correct, and non-debt-generating. Library/binary split is justified by the testing architecture. No new structural findings.
 
+**Coordination:** Finding 3 cross-referenced with [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) Review 2 Finding 2.
+
 ---
 
 ---
@@ -230,6 +250,8 @@ Reviewed in SE Review 3 / SA Review 4 context. With post-deserialization validat
 
 Three dismissed findings. The Layer 1 architecture is clean and appropriate. The `lib.rs` structure will require module decomposition at Layer 6 — this is the correct time to do it, not now. Enum-based status/priority types are deferred to Layer 2/3. No architectural debt introduced at Layer 1.
 
+**Coordination:** *(none)*
+
 ---
 
 ---
@@ -244,7 +266,25 @@ Three dismissed findings. The Layer 1 architecture is clean and appropriate. The
 
 ### Dismissed
 
-No architectural concerns. The Layer 1 architecture is unchanged and all prior findings remain resolved. **No SA findings.** MVR reached for Layer 1.
+*(none)*
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+No SA findings. The Layer 1 architecture is unchanged and all prior findings remain resolved. MVR reached for Layer 1.
+
+**Coordination:** *(none)*
 
 ---
 
@@ -330,4 +370,6 @@ SA Review 3 Finding 2 (Layer 1 stub) dismissed extraction as premature with: "Ex
 ### Summary
 
 One real finding resolved: `parse_status` now derives from `VALID_STATUSES` rather than maintaining an independent match — single source of truth for valid status values restored. Three dismissed findings. The Layer 2 architecture is sound: `parse_id` and `parse_status` are pure validation functions with no I/O coupling, `cmd_status` is a thin command handler, and the library/binary split remains clean.
+
+**Coordination:** Finding 1 discharges the deferred enum item from SA Review 4. Finding 3 cross-referenced with [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) Review 7. The `parse_status` deduplication also resolves [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) Review 7 Finding 2 (double `to_lowercase` call).
 

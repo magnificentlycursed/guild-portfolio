@@ -24,7 +24,7 @@ Regression check: verify that data written by prior versions of the application 
 
 **Sycophancy check:** An agent that designed the data model will not question schema decisions — it evaluates whether the implementation matches the schema it chose, not whether the schema was the right choice. The adversary must ask whether each structural decision (field types, normalization approach, storage mechanism, validation boundaries) serves the domain correctly. The most dangerous data bug is not a validation gap — it is a schema that encodes the wrong model of the domain and silently corrupts every downstream operation.
 
-**Language and interface supplement:** Consult `../../lang/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`). Apply the **Data Engineering** section from the relevant supplement file in addition to the standard dimensions below — language supplements cover serialization libraries, schema evolution patterns, and validation idioms specific to the ecosystem.
+**Language and interface supplement:** Consult `../../supplements/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`). Apply the **Data Engineering** section from the relevant supplement file in addition to the standard dimensions below — language supplements cover serialization libraries, schema evolution patterns, and validation idioms specific to the ecosystem.
 
 ## Standard Evaluation Dimensions
 

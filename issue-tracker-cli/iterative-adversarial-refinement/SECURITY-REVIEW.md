@@ -2,9 +2,13 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
 
-The purpose of this review is to apply adversarial pressure to find security vulnerabilities, unsafe patterns, validation gaps, and regressions. At pre-implementation stage, the review evaluates the threat model and `DESIGN.md` specification for security posture.
+**Reviewer role: Security Engineer** (Security Engineer / Application Security Engineer)
 
-**Language supplement applied:** `lang/rust.md` (Security section).
+The purpose of this review is to apply adversarial pressure to find security vulnerabilities, unsafe patterns, validation gaps, and regressions. The review evaluates the threat model, `DESIGN.md`, and source code as they exist at each round.
+
+**Language supplement applied:** `lang/rust.md` (Security section) + `lang/cli.md` (Security section).
+
+**Sycophancy check:** An agent reviewing its own security implementation will rationalize the risks it did not consider during generation as out of scope or not applicable. The most dangerous finding is not a missed CVE — it is a vulnerability class that was never considered at all. Treat every "not applicable" determination with extra scrutiny: verify it genuinely does not apply, not that the reviewer did not think to check. Flag any dimension where the answer is "this project doesn't have X" without verifying that the project cannot be made to have X by an attacker.
 
 ---
 
@@ -64,7 +68,25 @@ Issue titles and descriptions may contain sensitive work information (e.g., "Fix
 
 ### Dismissed
 
-**Finding 3 — File path hardcoded as `tracker.json` in CWD — no path traversal risk (Dim 1, Rust supplement)**
+**Finding 5 — Error messages reveal OS error strings (Dim 5)**
+
+`tracker.json` exists but is not readable (permissions) → stderr `Error: Could not read tracker data: permission denied.` The phrase "permission denied" is the OS error string, potentially revealing filesystem details.
+
+**Classification:** Dismissed. For a single-user local tool, the OS error string is appropriate diagnostic information — the user needs to know it was a permissions problem to take corrective action. There is no confidentiality concern for a personal tool revealing the name of the OS error to its own user. The spec correctly routes this to stderr.
+
+---
+
+**Finding 6 — Dependency audit not yet runnable (Dim 3)**
+
+No `Cargo.toml` exists yet. `cargo audit` cannot run.
+
+**Classification:** Dismissed at Review 1 — re-evaluated in Review 2 once `Cargo.toml` exists. Tracked forward, not deferred (Security has no `deferred` classification).
+
+---
+
+### Hallucinated
+
+**Finding 3 — File path hardcoded as `tracker.json` in CWD — no path traversal risk (Dim 1, Rust supplement — path traversal)**
 
 The storage path `tracker.json` in the current working directory is hardcoded in the spec. No user-supplied path component is involved in the file path. Path traversal attacks require user-controlled path segments — none exist here. The file path is entirely implementation-determined.
 
@@ -80,22 +102,6 @@ The spec explicitly excludes multi-user scenarios. Single-user, local-only, no a
 
 ---
 
-**Finding 5 — Error messages reveal OS error strings (Dim 5)**
-
-`tracker.json` exists but is not readable (permissions) → stderr `Error: Could not read tracker data: permission denied.` The phrase "permission denied" is the OS error string, potentially revealing filesystem details.
-
-**Classification:** Dismissed. For a single-user local tool, the OS error string is appropriate diagnostic information — the user needs to know it was a permissions problem to take corrective action. There is no confidentiality concern for a personal tool revealing the name of the OS error to its own user. The spec correctly routes this to stderr.
-
----
-
-**Finding 6 — Dependency audit (Dim 3)**
-
-No `Cargo.toml` exists yet. `cargo audit` cannot run. Deferred.
-
-**Classification:** Deferred to Layer 1 gate, when dependencies are first declared.
-
----
-
 ### Open
 
 *(none)*
@@ -104,9 +110,9 @@ No `Cargo.toml` exists yet. `cargo audit` cannot run. Deferred.
 
 ### Summary
 
-One real finding resolved (post-deserialization validation gap). One accepted risk (plaintext storage). Two dismissed, two deferred. The threat model is well-bounded for this deployment context. The critical finding — treating deserialized file data as trusted — is now specified. The implementation must apply domain validation after deserialization, not only after JSON parsing.
+One real finding resolved (post-deserialization validation gap). One accepted risk (plaintext storage). Two dismissed, two hallucinated. The threat model is well-bounded for this deployment context. The critical finding — treating deserialized file data as trusted — is now specified. The implementation must apply domain validation after deserialization, not only after JSON parsing.
 
-**Coordination:** Finding 1 is cross-referenced in Data Engineer log (schema validation) and Red Team log (crafted file attack). `cargo audit` deferred to Platform Engineer for CI gate setup.
+**Coordination:** Finding 1 cross-referenced in [DATA-ENGINEER-REVIEW.md](DATA-ENGINEER-REVIEW.md) (schema validation) and [RED-TEAM-REVIEW.md](RED-TEAM-REVIEW.md) (crafted file attack). `cargo audit` re-evaluated in Review 2 once `Cargo.toml` exists; CI gate setup tracked in [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md).
 
 ---
 
@@ -122,7 +128,7 @@ One real finding resolved (post-deserialization validation gap). One accepted ri
 
 ### Resolved
 
-**Finding 6 (from Review 1) — `cargo audit` deferred because no Cargo.toml existed**
+**Finding 1 — `cargo audit` re-evaluated now that `Cargo.toml` exists (Dim 3)**
 
 `Cargo.toml` now exists. `cargo audit` can run. Dependency declaration:
 
@@ -138,13 +144,17 @@ No `[dependencies]` section exists — the runtime binary has zero external crat
 
 `cargo audit` on a binary with no runtime dependencies will pass with no advisories. The audit becomes meaningful when runtime dependencies are declared (Layer 1 implementation: serde, serde_json, clap, or equivalent). At that point the CI `cargo audit` step will catch any known vulnerabilities in those crates.
 
-**Resolution:** Partially resolved. `cargo audit` is now runnable. The deferred finding is resolved for the stub phase. When runtime dependencies are declared during Layer 1 implementation, `cargo audit` must pass before the Layer 1 merge gate closes — this is already enforced by the CI pipeline.
+**Resolution:** `cargo audit` is now runnable. The carried-forward finding is resolved for the stub phase. When runtime dependencies are declared during Layer 1 implementation, `cargo audit` must pass before the Layer 1 merge gate closes — this is already enforced by the CI pipeline.
 
 ---
 
 ### Dismissed
 
-**Finding 7 — Dev-dependencies included in test binaries (Dim 3)**
+*(none)*
+
+### Hallucinated
+
+**Finding 2 — Dev-dependencies included in test binaries (Dim 3)**
 
 `assert_cmd`, `predicates`, `serde_json`, `tempfile` are in `[dev-dependencies]`. They are not compiled into the production binary.
 
@@ -160,7 +170,9 @@ No `[dependencies]` section exists — the runtime binary has zero external crat
 
 ### Summary
 
-Review 1 Finding 6 resolved: `Cargo.toml` exists; `cargo audit` is now runnable on zero runtime dependencies and will pass. Full audit effectiveness contingent on runtime dependencies being declared during Layer 1 implementation. CI enforces `cargo audit` on every push. No new security findings in stub code.
+Review 1 Finding 6 resolved (now Review 2 Finding 1): `Cargo.toml` exists; `cargo audit` is now runnable on zero runtime dependencies and will pass. Full audit effectiveness contingent on runtime dependencies being declared during Layer 1 implementation. CI enforces `cargo audit` on every push. No new security findings in stub code.
+
+**Coordination:** *(none)*
 
 ---
 
@@ -168,11 +180,9 @@ Review 1 Finding 6 resolved: `Cargo.toml` exists; `cargo audit` is now runnable 
 
 ## Review 3 — 2026-04-28 05:30Z
 
-**Scope:** Layer 1 implementation — `src/lib.rs`, `src/main.rs`, `Cargo.toml`, `tests/layer1.rs`. Evaluating implementation security posture: input handling, file I/O, dependency audit, and post-deserialization validation from Review 1's findings.
+**Scope:** Layer 1 implementation — `src/lib.rs`, `src/main.rs`, `Cargo.toml`, `tests/layer1.rs`. Evaluating implementation security posture: input handling, file I/O, dependency audit, and post-deserialization validation from Review 1's findings. Review-session primer applied — reading this code as an attacker looking for inputs that produce undefined behavior, panics, or silent data corruption. The small attack surface is a conclusion to earn, not an assumption to start from.
 
-**Session note:** In-session with Layer 1 IAR suite. Acknowledged quality tradeoff. This is the implementation gate review; QE Review 3 (cold-session) satisfies the merge-gate cold-session requirement separately.
-
-**Adversarial posture (review-session primer applied):** I am reading this code as an attacker looking for inputs that produce undefined behavior, panics, or silent data corruption. The small attack surface is a conclusion to earn, not an assumption to start from.
+**Session note:** In-session with Layer 1 IAR suite. Acknowledged quality tradeoff. This is the implementation gate review; [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) Review 3 (cold-session) satisfies the merge-gate cold-session requirement separately.
 
 ---
 
@@ -184,21 +194,23 @@ Security Review 1, Finding 1 specified that `tracker.json` data must be treated 
 
 The Layer 1 implementation's `load_issues` in `lib.rs` called `serde_json::from_str::<Vec<Issue>>()` without any post-deserialization domain validation. A crafted `tracker.json` with `"status": "flying"` would deserialize successfully into the `Issue` struct (all fields are `String` typed), and `cmd_list` would then operate on the invalid data — silently sorting an issue with an unknown priority to the bottom of the list (via `usize::MAX` in `priority_rank`), hiding the corrupt record from the user rather than reporting the corruption.
 
-**Resolution:** Added `issue_fields_are_valid()` validation function and `CORRUPT_DATA_ERROR` constant to `lib.rs`. `load_issues` now validates each deserialized issue against domain constraints (positive ID, non-empty title after trim, valid status, valid priority) and returns `Err(CORRUPT_DATA_ERROR)` if any issue fails validation. Cross-referenced: Data Engineer Review 3, Red Team Review 2, QE Review 4.
+**Resolution:** Added `issue_fields_are_valid()` validation function and `CORRUPT_DATA_ERROR` constant to `lib.rs`. `load_issues` now validates each deserialized issue against domain constraints (positive ID, non-empty title after trim, valid status, valid priority) and returns `Err(CORRUPT_DATA_ERROR)` if any issue fails validation. Cross-referenced: [DATA-ENGINEER-REVIEW.md](DATA-ENGINEER-REVIEW.md) Review 3, [RED-TEAM-REVIEW.md](RED-TEAM-REVIEW.md) Review 2, [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) Review 4.
 
 ---
 
 ### Accepted Risk
 
-**Finding 2 (Review 1, re-evaluated) — Plaintext storage**
+**Finding 2 — Plaintext storage (regression check from Review 1) (Dim 8)**
 
-Unchanged from Review 1 assessment. Accepted.
+Unchanged from Review 1 assessment.
+
+**Classification:** Accepted Risk. Single-user personal tool with no other users; data is the user's own project notes, stored locally on their own machine. Risk owner: the user/developer.
 
 ---
 
 ### Dismissed
 
-**Finding 3 — `cargo audit` passes with 0 advisories (Dim 3 — Dependency audit)**
+**Finding 3 — `cargo audit` passes with 0 advisories (Dim 3)**
 
 Runtime dependencies declared: serde 1.x, serde_json 1.x, clap 4.x, chrono 0.4. `cargo audit` run against `Cargo.lock` (100 locked packages): 0 vulnerabilities found. The CI pipeline enforces this check on every push.
 
@@ -232,9 +244,9 @@ Both the JSON parse failure and domain validation failure produce the same user-
 
 ### Summary
 
-One real finding resolved: post-deserialization domain validation was absent and is now implemented. `cargo audit` passes with 0 advisories. No panic surface on user-facing paths. The attack surface remains extremely small: single hardcoded file path, no network, no auth, all user input validated at the CLI boundary. The implementation now treats both structurally-malformed and semantically-invalid file data as corrupt, as required by the spec.
+One real finding resolved: post-deserialization domain validation was absent and is now implemented. One accepted risk (plaintext storage) carried forward unchanged. Three dismissed. `cargo audit` passes with 0 advisories. No panic surface on user-facing paths. The attack surface remains extremely small: single hardcoded file path, no network, no auth, all user input validated at the CLI boundary. The implementation now treats both structurally-malformed and semantically-invalid file data as corrupt, as required by the spec.
 
-**Coordination:** Finding 1 resolved jointly with Data Engineer Review 3 (domain validation) and Red Team Review 2 (crafted-file attack). QE Review 4 added the corresponding test (`invalid_domain_values_in_json_causes_error_exit`).
+**Coordination:** Finding 1 resolved jointly with [DATA-ENGINEER-REVIEW.md](DATA-ENGINEER-REVIEW.md) Review 3 (domain validation) and [RED-TEAM-REVIEW.md](RED-TEAM-REVIEW.md) Review 2 (crafted-file attack). [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) Review 4 added the corresponding test (`invalid_domain_values_in_json_causes_error_exit`).
 
 ---
 
@@ -250,7 +262,25 @@ One real finding resolved: post-deserialization domain validation was absent and
 
 ### Dismissed
 
-No new security concerns. Post-deserialization validation in place. Pre-commit hooks (including `detect-private-key`) active. `cargo audit` 0 advisories. Attack surface unchanged. **No Security findings.** MVR reached for Layer 1.
+*(none)*
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+No new Security findings. Post-deserialization validation in place. Pre-commit hooks (including `detect-private-key`) active. `cargo audit` 0 advisories. Attack surface unchanged. MVR reached for Layer 1.
+
+**Coordination:** *(none)*
 
 ---
 
@@ -262,7 +292,7 @@ No new security concerns. Post-deserialization validation in place. Pre-commit h
 
 **Session note:** In-session with full Layer 2 IAR suite. Acknowledged quality tradeoff. Review-session primer applied.
 
-**Posture:** Looking for crash paths, validation gaps, and information exposure in the Layer 2 additions.
+**Posture:** Adversarial — looking for crash paths, validation gaps, and information exposure in the Layer 2 additions.
 
 ---
 
@@ -295,6 +325,8 @@ Layer 2 added no crates. `cargo audit` runs against an unchanged `Cargo.lock`. 0
 
 ---
 
+### Hallucinated
+
 **Finding 4 — `tracker status -1 done` treated as a flag by the CLI parser (Dim 2)**
 
 `parse::<u64>()` on a negative-looking string passed through the CLI will never be reached — clap treats `-1` as a flag name and produces a usage error at the argument parsing layer. This is the specified behavior (DESIGN.md Edge Cases / IDs). The implementation is correct.
@@ -305,10 +337,22 @@ Layer 2 added no crates. `cargo audit` runs against an unchanged `Cargo.lock`. 0
 
 ### Accepted Risk
 
-**Review 1 Finding 2 (plaintext storage)** — Unchanged. Layer 2 adds status mutation but does not change the storage model. Accepted.
+**Finding 5 — Plaintext storage (regression check from Review 1) (Dim 8)**
+
+Layer 2 adds status mutation but does not change the storage model.
+
+**Classification:** Accepted Risk. Carried forward from Review 1 Finding 2. Risk owner: the user/developer.
+
+---
+
+### Open
+
+*(none)*
 
 ---
 
 ### Summary
 
-No new security findings. Layer 2 adds two entry points; both are fully validated at the boundary. No panic surface. No new dependencies. Attack surface unchanged from Layer 1. **No Security findings.** MVR reached for Layer 2.
+No new security findings. Layer 2 adds two entry points; both are fully validated at the boundary. No panic surface. No new dependencies. Attack surface unchanged from Layer 1. MVR reached for Layer 2.
+
+**Coordination:** *(none)*

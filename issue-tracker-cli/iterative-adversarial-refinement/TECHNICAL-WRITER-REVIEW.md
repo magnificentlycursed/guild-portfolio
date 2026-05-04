@@ -2,9 +2,13 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
 
+**Reviewer role: Technical Writer** (Technical Writer / Developer Experience Engineer)
+
 **Activation:** Portfolio project intended for handoff and external review.
 
 **Language supplement applied:** `lang/rust.md` (Technical Writer section).
+
+**Sycophancy check:** An agent generating documentation in the same session as code will produce documentation that is accurate at the moment of generation and stale after the next change. The adversary must verify that documentation describes the current implementation, not the implementation at the time it was written. Every claim in the documentation should be verifiable against the current code. Treat every "this function does X" statement as a claim that requires verification.
 
 ---
 
@@ -12,9 +16,17 @@ This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) s
 
 **Scope:** All documentation artifacts: `DESIGN.md`, `TODO.md`, IAR review logs, project structure. No source code exists.
 
-**Session note:** In-session with all other domain reviews. Acknowledged quality tradeoff.
+**Session note:** In-session with all other domain reviews. Acknowledged quality tradeoff. The documentation and spec were authored in the same sessions; the adversary must evaluate them against what a new reader — without session history — would understand.
 
-**Sycophancy check:** The documentation and spec were authored in the same sessions. The adversary must evaluate them against what a new reader — without session history — would understand.
+---
+
+### Resolved
+
+**Finding 3 — No DECISIONS.md (Dim 4 — Decision rationale)**
+
+Significant design decisions were documented in IAR review logs only — not in a dedicated decisions record. A reader understanding "why is atomic write in Out of Scope?" had to find SA Review 1, Finding 1 and read through the review log.
+
+**Resolution:** Created `issue-tracker-cli/DECISIONS.md` with entries for all key decisions from the spec phase: non-atomic writes, ID assignment, description absent-vs-null, post-deserialization validation, exit codes, non-interactive delete, fixed column widths, library-agnostic spec, color output, validation scope, and deliberate exclusions. Each entry includes the source IAR review and the rationale.
 
 ---
 
@@ -36,17 +48,17 @@ No CHANGELOG exists. For a layered portfolio project, each layer gate close is a
 
 ---
 
-**Finding 3 — No DECISIONS.md (Dim 4 — Decision rationale)**
+**Finding 6 — rustdoc coverage not yet applicable (Rust supplement)**
 
-Significant design decisions were documented in IAR review logs only — not in a dedicated decisions record. A reader understanding "why is atomic write in Out of Scope?" had to find SA Review 1, Finding 1 and read through the review log.
+No source code exists. No `pub` items to document.
 
-**Resolution:** Created `issue-tracker-cli/DECISIONS.md` with entries for all key decisions from the spec phase: non-atomic writes, ID assignment, description absent-vs-null, post-deserialization validation, exit codes, non-interactive delete, fixed column widths, library-agnostic spec, color output, validation scope, and deliberate exclusions. Each entry includes the source IAR review and the rationale.
+**Classification:** Deferred. Rustdoc review will occur in Review 2 when source code exists. The `cargo doc --no-deps 2>&1 | grep "missing documentation"` check will be part of the Layer 1 gate for any public items in `lib.rs`.
 
 ---
 
 ### Dismissed
 
-**Finding 4 — DESIGN.md accuracy after multiple review passes**
+**Finding 4 — DESIGN.md accuracy after multiple review passes (Dim 2)**
 
 DESIGN.md has been through 6 SO reviews, 1 SA review, and 5 other domain reviews. Could stale content have survived?
 
@@ -58,29 +70,27 @@ DESIGN.md has been through 6 SO reviews, 1 SA review, and 5 other domain reviews
 
 IAR logs serve double duty: recording adversarial findings AND documenting design rationale (through the Dismissed and Resolved entries). A new reviewer reading SO Review 3 Finding 2 learns why clap was removed from the spec — but only by reading through a review log, not a decisions index.
 
-**Classification:** Dismissed. This is the nature of the VDD-IAR process: the review log is the authoritative process record. DECISIONS.md would be supplementary. The issue is that decisions are findable in the logs — they are not lost. Finding 3 (deferred DECISIONS.md) addresses the discoverability concern. The dual-purpose of IAR logs is not a documentation failure; it is a structural feature.
+**Classification:** Dismissed. This is the nature of the VDD-IAR process: the review log is the authoritative process record. DECISIONS.md would be supplementary. The issue is that decisions are findable in the logs — they are not lost. Finding 3 (DECISIONS.md) addresses the discoverability concern. The dual-purpose of IAR logs is not a documentation failure; it is a structural feature.
 
 ---
 
-**Finding 6 — rustdoc coverage not yet applicable (Rust supplement)**
+### Hallucinated
 
-No source code exists. No `pub` items to document.
-
-**Classification:** Deferred. Rustdoc review will occur in Review 2 when source code exists. The `cargo doc --no-deps 2>&1 | grep "missing documentation"` check will be part of the Layer 1 gate for any public items in `lib.rs`.
+*(none)*
 
 ---
 
 ### Open
 
-*(none — all findings deferred)*
+*(none)*
 
 ---
 
 ### Summary
 
-Three deferred findings (README, CHANGELOG, DECISIONS.md) — all expected for a pre-implementation pass. Two dismissed. One deferred to code review. The documentation artifacts that exist (DESIGN.md, TODO.md, IAR logs) are thorough and accurate. The gap is the user-facing onboarding documentation, which must follow the implementation.
+One real finding resolved (DECISIONS.md created). Three deferred findings (README, CHANGELOG, rustdoc coverage) — all expected for a pre-implementation pass. Two dismissed. The documentation artifacts that exist (DESIGN.md, TODO.md, IAR logs) are thorough and accurate. The gap is the user-facing onboarding documentation, which must follow the implementation. README and CHANGELOG are required before the Layer 1 merge gate closes.
 
-**Key requirement:** README and CHANGELOG are required before the Layer 1 merge gate closes. DECISIONS.md is now created. Add README and CHANGELOG to the Layer 1 IAR checklist.
+**Coordination:** Add README and CHANGELOG to the Layer 1 IAR checklist.
 
 ---
 
@@ -94,31 +104,35 @@ Three deferred findings (README, CHANGELOG, DECISIONS.md) — all expected for a
 
 ---
 
+**Regression check:** Review 1 deferred Findings 1 (README), 2 (CHANGELOG), and 6 (rustdoc) to Layer 1. README and CHANGELOG are evaluated below; rustdoc deferred again to Review 4 below.
+
+---
+
 ### Resolved
 
-**Finding 1 (from Review 1) — README.md exists but was stale (Dim 1 — README completeness)**
+**Finding 1 — README.md exists but was stale (Dim 1 — README completeness) (regression check from Review 1 Finding 1)**
 
 Review 1 deferred README creation to Layer 1 gate. README.md exists and contains: project purpose, command reference, install/build/test instructions, storage explanation, and a status tracker.
 
 Finding: the Layer 1 status was showing as unchecked despite implementation being complete. Status line said "Spec complete. Implementation in progress."
 
-**Resolution:** Updated README.md: Layer 1 status checked; status line updated to "Layer 1 implementation complete. Layer 2 not started." (coordinated with SO Review 8 Finding 1).
+**Resolution:** Updated README.md: Layer 1 status checked; status line updated to "Layer 1 implementation complete. Layer 2 not started." Coordinated with [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) Review 8 Finding 1.
 
 ---
 
-**Finding 2 (from Review 1) — No CHANGELOG.md (Dim 8)**
+**Finding 2 — No CHANGELOG.md (Dim 8) (regression check from Review 1 Finding 2)**
 
-Review 1 deferred CHANGELOG creation to Layer 1 gate. CHANGELOG.md now exists with a spec-phase entry.
-
-Finding: no Layer 1 implementation entry was present.
+Review 1 deferred CHANGELOG creation to Layer 1 gate. CHANGELOG.md now exists with a spec-phase entry. No Layer 1 implementation entry was present.
 
 **Resolution:** Added a Layer 1 implementation entry to CHANGELOG.md: scope, added files, IAR findings and resolutions, test count.
 
 ---
 
-**Finding 3 (from Review 1) — DECISIONS.md** — Already resolved in Review 1 (the DECISIONS.md was created). Re-checking: DECISIONS.md exists and covers 12 key decisions. One gap: the storage format decision (top-level array) was missing. Coordinated with SO Review 8 Finding 2.
+**Finding 3 — DECISIONS.md storage format gap (Dim 4 — Decision rationale)**
 
-**Resolution:** SO Review 8 added the storage format entry. DECISIONS.md is now complete for spec-phase and Layer 1 decisions.
+DECISIONS.md exists and covers 12 key decisions, but the storage format decision (top-level array) was missing. A reader cannot find why `tracker.json` is a top-level array.
+
+**Resolution:** [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) Review 8 Finding 2 added the storage format entry. DECISIONS.md is now complete for spec-phase and Layer 1 decisions.
 
 ---
 
@@ -128,15 +142,21 @@ Finding: no Layer 1 implementation entry was present.
 
 `lib.rs` exports: `Issue`, `validate_title`, `next_id`, `current_timestamp`, `load_issues`, `save_issues`, `cmd_create`, `cmd_list`. None have `///` doc comments.
 
-**Classification:** Dismissed. Reaffirming QE Review 3 Finding 4 dismissal: this is a binary's internal library crate exposed for integration testing, not a library API for external consumers. The `pub` visibility is an implementation detail of the testing architecture, not a publication commitment. `cargo doc` would generate empty documentation for these items, which is appropriate — a consumer of this crate is the binary, not an external user. Rustdoc is relevant at Layer 7 if the public API surface is intended for external use; it is not at Layer 1.
+**Classification:** Dismissed. Reaffirming [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) Review 3 Finding 4 dismissal: this is a binary's internal library crate exposed for integration testing, not a library API for external consumers. The `pub` visibility is an implementation detail of the testing architecture, not a publication commitment. `cargo doc` would generate empty documentation for these items, which is appropriate — a consumer of this crate is the binary, not an external user. Rustdoc is relevant at Layer 7 if the public API surface is intended for external use; it is not at Layer 1.
 
 ---
 
-**Finding 5 — TODO.md Layer 1 checklist items for invalid domain values test**
+**Finding 5 — TODO.md Layer 1 checklist items for invalid domain values test (Dim 2)**
 
-The `invalid_domain_values_in_json_causes_error_exit` test was added in QE Review 4 but is not listed in TODO.md's Layer 1 Red Gate section.
+The `invalid_domain_values_in_json_causes_error_exit` test was added in [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) Review 4 but is not listed in TODO.md's Layer 1 Red Gate section.
 
-**Classification:** Dismissed. The test was added as a consequence of IAR (not a pre-planned Red Gate test) and is correctly classified as an IAR-driven addition rather than a pre-implementation Red Gate test. The Red Gate section in TODO.md documents the tests planned before implementation; additional tests discovered during IAR are recorded in the IAR log (QE Review 4). No update to TODO.md is required.
+**Classification:** Dismissed. The test was added as a consequence of IAR (not a pre-planned Red Gate test) and is correctly classified as an IAR-driven addition rather than a pre-implementation Red Gate test. The Red Gate section in TODO.md documents the tests planned before implementation; additional tests discovered during IAR are recorded in the IAR log. No update to TODO.md is required.
+
+---
+
+### Hallucinated
+
+*(none)*
 
 ---
 
@@ -148,7 +168,9 @@ The `invalid_domain_values_in_json_causes_error_exit` test was added in QE Revie
 
 ### Summary
 
-Three deferred findings from Review 1 now resolved: README.md updated (Layer 1 status correct); CHANGELOG.md Layer 1 entry added; DECISIONS.md storage format entry added. Two dismissed. Documentation is now current for Layer 1. The project is handoff-ready at this layer: a new reader can clone, build, run, and understand why key decisions were made.
+Three findings resolved: README.md updated (Layer 1 status correct); CHANGELOG.md Layer 1 entry added; DECISIONS.md storage format entry added. Two dismissed. Documentation is now current for Layer 1. The project is handoff-ready at this layer: a new reader can clone, build, run, and understand why key decisions were made.
+
+**Coordination:** Findings 1 and 3 coordinated with [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) Review 8.
 
 ---
 
@@ -164,7 +186,25 @@ Three deferred findings from Review 1 now resolved: README.md updated (Layer 1 s
 
 ### Dismissed
 
-TODO.md manual testing section all checked. Gate status note updated. IAR review logs current. CHANGELOG accurate. No documentation gaps. **No TW findings.** MVR reached for Layer 1.
+*(none)*
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+No TW findings. TODO.md manual testing section all checked. Gate status note updated. IAR review logs current. CHANGELOG accurate. No documentation gaps. MVR reached for Layer 1.
+
+**Coordination:** *(none)*
 
 ---
 
@@ -180,17 +220,35 @@ TODO.md manual testing section all checked. Gate status note updated. IAR review
 
 ### Resolved
 
-**Finding 6 — No rustdoc coverage on public `lib.rs` items (Rust TW Supplement — rustdoc coverage)**
+**Finding 1 — No rustdoc coverage on public `lib.rs` items (Rust supplement — rustdoc coverage)**
 
-All seven public functions and the `Issue` struct had zero `///` doc comments.
+All seven public functions and the `Issue` struct had zero `///` doc comments. This re-evaluates Review 1 Finding 6 (deferred to Layer 1).
 
 **Resolution:** Added `///` doc comments to all public items in `lib.rs`: `Issue` struct (struct-level doc + field semantics noted inline), `validate_title`, `next_id`, `current_timestamp`, `load_issues`, `save_issues`, `cmd_create`, `cmd_list`. `cargo doc --no-deps` produces no warnings. Comments are concise — they describe the contract, not the implementation.
+
+---
+
+### Dismissed
+
+*(none)*
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Open
+
+*(none)*
 
 ---
 
 ### Summary
 
 One finding resolved: rustdoc coverage added to all public `lib.rs` items. `cargo doc --no-deps` clean. MVR reached for Layer 1.
+
+**Coordination:** *(none)*
 
 ---
 
@@ -206,35 +264,35 @@ One finding resolved: rustdoc coverage added to all public `lib.rs` items. `carg
 
 ### Resolved
 
-**Finding 1 (from SO Review 10) — CHANGELOG.md missing Layer 2 entry (Dim 8 — CHANGELOG quality)**
+**Finding 1 — CHANGELOG.md missing Layer 2 entry (Dim 8 — CHANGELOG quality)**
 
-Resolved by SO Review 10 Finding 1. CHANGELOG.md now has a Layer 2 entry. TW confirms the entry is present and documents the scope, features, tests, and IAR findings. ✓
+Resolved by [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) Review 10 Finding 1. CHANGELOG.md now has a Layer 2 entry. TW confirms the entry is present and documents the scope, features, tests, and IAR findings.
 
-**Classification:** Resolved via SO Review 10.
-
----
-
-**Finding 2 (from SO Review 10) — README.md status stale (Dim 1 — README accuracy)**
-
-Resolved by SO Review 10 Finding 2. README status block updated, Layer 2 checked, status line current. ✓
-
-**Classification:** Resolved via SO Review 10.
+**Resolution:** Resolved via [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) Review 10.
 
 ---
 
-**Finding 3 — New public functions `parse_status` and `parse_id` have doc comments (Rust TW Supplement — rustdoc coverage)**
+**Finding 2 — README.md status stale (Dim 1 — README accuracy)**
+
+Resolved by [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) Review 10 Finding 2. README status block updated, Layer 2 checked, status line current.
+
+**Resolution:** Resolved via [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) Review 10.
+
+---
+
+### Dismissed
+
+**Finding 3 — New public functions `parse_status` and `parse_id` rustdoc coverage check (Rust supplement — rustdoc coverage)**
 
 `lib.rs` now exports `parse_status` and `parse_id`. Both have `///` doc comments:
 - `parse_status`: "Parses and normalizes a status string (case-insensitive)..."
 - `parse_id`: "Parses an issue ID from a string. Must be a positive integer (>= 1)."
 
-`cargo doc --no-deps` produces no warnings. ✓
+`cargo doc --no-deps` produces no warnings.
 
 **Classification:** Dismissed. Rustdoc coverage maintained.
 
 ---
-
-### Dismissed
 
 **Finding 4 — PROCESS.md developer reflection sections remain as placeholders (Dim 10 — Retrospective quality)**
 
@@ -245,11 +303,13 @@ PROCESS.md Layer 1 has:
 
 These sections require first-person developer input. TW cannot fill them in on behalf of the developer — they are a Portfolio Assessment concern, not a TW finding about documentation accuracy.
 
-**Classification:** Dismissed from TW. The sections are placeholders explicitly marked as developer-authored content. The structure is correct; the content is pending developer action. Cross-reference: Portfolio Assessment Review dim 4 (growth evidence) and dim 5 (failure honesty).
+**Classification:** Dismissed from TW. The sections are placeholders explicitly marked as developer-authored content. The structure is correct; the content is pending developer action. Cross-reference: [PORTFOLIO-ASSESSMENT-REVIEW.md](PORTFOLIO-ASSESSMENT-REVIEW.md) dim 4 (growth evidence) and dim 5 (failure honesty).
 
 ---
 
-**Finding 5 — `tests/layer2.rs` `tracker()` helper is undocumented (Rust TW Supplement)**
+### Hallucinated
+
+**Finding 5 — `tests/layer2.rs` `tracker()` helper is undocumented (Rust supplement)**
 
 The test helper is three lines and its purpose is self-evident. No doc comment is needed on a private test helper.
 
@@ -257,6 +317,14 @@ The test helper is three lines and its purpose is self-evident. No doc comment i
 
 ---
 
+### Open
+
+*(none)*
+
+---
+
 ### Summary
 
-Two deferred findings from prior reviews resolved (CHANGELOG, README). Rustdoc coverage maintained on new public functions. PROCESS.md placeholders flagged as requiring developer input — not a TW-actionable gap. **No outstanding TW findings.** MVR reached for Layer 2.
+Two findings resolved (CHANGELOG, README). Two dismissed. One hallucinated. Rustdoc coverage maintained on new public functions. PROCESS.md placeholders flagged as requiring developer input — not a TW-actionable gap. No outstanding TW findings. MVR reached for Layer 2.
+
+**Coordination:** Findings 1 and 2 resolved via [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) Review 10. Finding 4 cross-referenced with [PORTFOLIO-ASSESSMENT-REVIEW.md](PORTFOLIO-ASSESSMENT-REVIEW.md).

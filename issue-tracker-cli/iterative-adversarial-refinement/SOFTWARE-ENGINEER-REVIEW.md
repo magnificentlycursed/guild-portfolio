@@ -2,9 +2,13 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
 
-The purpose of this review is to evaluate implementation quality: correctness, error handling, naming, duplication, and complexity. At pre-implementation stage, the review evaluates DESIGN.md for specification clarity issues that would produce implementation defects.
+**Reviewer role: Software Engineer** (Software Engineer / Backend Engineer / Frontend Engineer)
+
+The purpose of this review is to evaluate implementation quality: correctness, error handling, naming, duplication, and complexity. The review evaluates source code against DESIGN.md, and at pre-implementation stage evaluates DESIGN.md itself for specification clarity issues that would produce implementation defects.
 
 **Language supplement applied:** `lang/rust.md` (SE section) + `lang/cli.md` (SE section).
+
+**Sycophancy check:** An agent that designed and implemented the code will find the implementation correct because it reflects its own intent. Push hardest on dim 1 (correctness) and dim 8 (defensive coding): these are the dimensions where implementation intent and spec requirement diverge most often. For every function, ask: "is this doing what was specified, or is it doing what was generated?" They are not the same thing. Flag any function where the implementation could be correct internally but wrong with respect to the spec without any test catching it.
 
 ---
 
@@ -30,7 +34,7 @@ SO Review 3 (Finding 2) removed all named crate references from the Technology s
 
 ### Dismissed
 
-**Finding 2 — `updated_at` mutation semantics at creation time are implicitly ambiguous**
+**Finding 2 — `updated_at` mutation semantics at creation time are implicitly ambiguous (Dim 1)**
 
 DESIGN.md Data Model: "`updated_at` is refreshed on every mutation (status change); equals `created_at` on a freshly created issue." The create operation is not described as a mutation, but `updated_at` must still be set at creation. An implementer reading only "refreshed on every mutation" might not initialize `updated_at` at create time.
 
@@ -38,7 +42,7 @@ DESIGN.md Data Model: "`updated_at` is refreshed on every mutation (status chang
 
 ---
 
-**Finding 3 — Description validation: trim-for-validation vs. store-verbatim tension**
+**Finding 3 — Description validation: trim-for-validation vs. store-verbatim tension (Dim 1)**
 
 DESIGN.md specifies: "Description is not trimmed; stored verbatim." AND "`--description \"\"` (empty or whitespace-only after trim) → Error: Description cannot be empty. → exit 1." These two together require: trim the input for validation only, then store the original untrimmed value if validation passes.
 
@@ -46,7 +50,7 @@ DESIGN.md specifies: "Description is not trimmed; stored verbatim." AND "`--desc
 
 ---
 
-**Finding 4 — `→` Unicode character in status confirmation message**
+**Finding 4 — `→` Unicode character in status confirmation message (Dim 1)**
 
 DESIGN.md: `stdout prints: "Issue #<id> status → <new_status>."` The right arrow `→` (U+2192) is non-ASCII. Implementations must ensure the output is UTF-8 encoded. On modern terminals this is standard. On legacy or non-UTF-8 terminals the character may render incorrectly.
 
@@ -64,7 +68,7 @@ DESIGN.md: `stdout prints: "Issue #<id> status → <new_status>."` The right arr
 
 One real finding resolved (stale library reference). Three dismissed with rationale. No open items. Pre-implementation SE review is limited in scope — the primary value will come in Layer 1 review when code exists.
 
-**Coordination:** Finding 2 (`updated_at` at creation) surfaced from QE Finding 4 — both note the `created_at` immutability invariant as an implementation concern. SE will verify in Review 2 that the status-change handler does not touch `created_at`.
+**Coordination:** Finding 2 (`updated_at` at creation) surfaced from [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) Review 1 Finding 4 — both note the `created_at` immutability invariant as an implementation concern. SE will verify in Review 2 that the status-change handler does not touch `created_at`.
 
 ---
 
@@ -128,9 +132,9 @@ The binary entry point is completely empty. Any invocation of the binary exits 0
 
 ### Summary
 
-Five dismissed findings, all hallucinated or style-level concerns. The stub structure is correct. Library/binary split is appropriate. Public API boundary is minimal and correct. `todo!()` is the right Red Gate mechanism. No real findings.
+Five dismissed findings, all hallucinated or style-level concerns. The stub structure is correct. Library/binary split is appropriate. Public API boundary is minimal and correct. `todo!()` is the right Red Gate mechanism. No real findings. Deferred to SE Review 3 (Layer 1 implementation): verify that the status-change handler does not touch `created_at` ([QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) Review 1 Finding 4 / SE Review 1 Finding 2 coordination note). This cannot be verified until implementation code exists.
 
-**Deferred to SE Review 3 (Layer 1 implementation):** Verify that the status-change handler does not touch `created_at` (QE Finding 4 / SE Review 1 Finding 2 coordination note). This cannot be verified until implementation code exists.
+**Coordination:** *(none)*
 
 ---
 
@@ -200,9 +204,9 @@ SE Review 1 coordinated with QE Review: verify at implementation time that the s
 
 ### Summary
 
-Five dismissed findings. No real defects. The implementation is correct and complete for Layer 1: all acceptance criteria are met by the code as written, the 17 Red Gate tests (13 integration + 4 unit) cover the specified behaviors, and no structural issues carry forward.
+Five dismissed findings. No real defects. The implementation is correct and complete for Layer 1: all acceptance criteria are met by the code as written, the 17 Red Gate tests (13 integration + 4 unit) cover the specified behaviors, and no structural issues carry forward. Deferred to SE Review 4 (Layer 2 implementation): verify that the status-change handler does not write to `created_at` ([QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) Review 1 Finding 4 coordination, SE Review 1 Finding 2, SE Review 3 Finding 5 discharge note).
 
-**Deferred to SE Review 4 (Layer 2 implementation):** Verify that the status-change handler does not write to `created_at` (QE Review coordination, SE Review 1 Finding 2, SE Review 3 Finding 5 discharge note).
+**Coordination:** *(none)*
 
 ---
 
@@ -266,17 +270,17 @@ Layer 1 has no status-change handler. No mutation path exists that could touch `
 
 ### Summary
 
-No real findings in the added validation code. The `CORRUPT_DATA_ERROR` constant deduplication is correct. The `VALID_STATUSES`/`VALID_PRIORITIES` constants are appropriately scoped for Layer 1. The `issue_fields_are_valid()` validation is correct and defensive. `created_at` immutability remains deferred to the Layer 2 status-change implementation. SE Review 5 takes that deferred item.
+No real findings in the added validation code. The `CORRUPT_DATA_ERROR` constant deduplication is correct. The `VALID_STATUSES`/`VALID_PRIORITIES` constants are appropriately scoped for Layer 1. The `issue_fields_are_valid()` validation is correct and defensive. `created_at` immutability remains deferred to the Layer 2 status-change implementation. SE Review 5 takes that deferred item: verify that the status-change handler does not write to `created_at`.
 
-**Deferred to SE Review 5 (Layer 2 implementation):** Verify that the status-change handler does not write to `created_at`.
-
----
+**Coordination:** *(none)*
 
 ---
 
-## Review 5 — 2026-04-30 00:00Z (general adversarial pass)
+---
 
-**Scope:** Layer 1 gate closure pass — no code changes since Review 4 except test assertion added (`(none)` in `list_shows_header_and_issues`). Reviewing test change and deferred item status.
+## Review 5 — 2026-04-30 00:00Z
+
+**Scope:** Layer 1 gate closure pass — general adversarial pass. No code changes since Review 4 except test assertion added (`(none)` in `list_shows_header_and_issues`). Reviewing test change and deferred item status.
 
 **Session note:** In-session with all other domain reviews. Acknowledged quality tradeoff.
 
@@ -284,11 +288,33 @@ No real findings in the added validation code. The `CORRUPT_DATA_ERROR` constant
 
 ### Dismissed
 
-**Test assertion added (`(none)` in Labels column)** — The assertion `assert!(out.contains("(none)"))` added to `list_shows_header_and_issues` is correct. `cmd_list` renders `"(none)"` when `issue.labels.is_empty()` (lib.rs:129–131). The assertion validates the correct branch.
+**Finding 1 — Test assertion added (`(none)` in Labels column) (Dim 1)**
 
-**Deferred item (`created_at` immutability)** — No status-change handler exists. Deferred item remains at SE Review 5 (Layer 2).
+The assertion `assert!(out.contains("(none)"))` added to `list_shows_header_and_issues` is correct. `cmd_list` renders `"(none)"` when `issue.labels.is_empty()` (lib.rs:129–131). The assertion validates the correct branch.
 
-**No SE findings.** MVR reached for Layer 1.
+**Classification:** Dismissed. No defect — test change is correct.
+
+---
+
+**Finding 2 — Deferred item (`created_at` immutability) (Dim 1)**
+
+No status-change handler exists at Layer 1. Deferred item remains at SE Review 5 (Layer 2).
+
+**Classification:** Dismissed at Layer 1; deferred to Layer 2 implementation.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+No SE findings. MVR reached for Layer 1.
+
+**Coordination:** *(none)*
 
 ---
 
@@ -304,7 +330,7 @@ No real findings in the added validation code. The `CORRUPT_DATA_ERROR` constant
 
 ### Resolved
 
-**Finding 5 — No `#![deny(clippy::unwrap_used)]` at crate level (Rust SE Supplement — Clippy lint configuration)**
+**Finding 1 — No `#![deny(clippy::unwrap_used)]` at crate level (Rust supplement — Clippy lint configuration)**
 
 The Rust SE supplement specifies the standard deny set includes `clippy::unwrap_used`. The CI runs `cargo clippy -- -D warnings` which denies all default-warning lints, but `clippy::unwrap_used` is not a default-warning lint — it requires explicit opt-in. The `.unwrap()` in `save_issues` (`lib.rs`) has its safety documented only in the IAR review logs, not at the call site. A future developer introducing a second `.unwrap()` on a user-facing path would face no CI enforcement.
 
@@ -314,9 +340,25 @@ The Rust SE supplement specifies the standard deny set includes `clippy::unwrap_
 
 ### Dismissed
 
-**`PRIORITY_ORDER` constant position (`lib.rs:90`)** — The constant is defined between `cmd_create` and `priority_rank`. In Rust, constant position does not affect visibility or compilation. This is a style preference, not a defect.
+**Finding 2 — `PRIORITY_ORDER` constant position (Dim 10)**
 
-**`truncate_with_ellipsis` underflow risk for `max_chars = 0`** — The function subtracts 1 from `max_chars` (usize), which would wrap to `usize::MAX` if `max_chars = 0`. However, the function is private and is only called with hardcoded constants `50` and `20`. The risk is hypothetical for the current call sites and unreachable in practice.
+The constant at `lib.rs:90` is defined between `cmd_create` and `priority_rank`. In Rust, constant position does not affect visibility or compilation.
+
+**Classification:** Dismissed. Style preference, not a defect.
+
+---
+
+**Finding 3 — `truncate_with_ellipsis` underflow risk for `max_chars = 0` (Dim 8)**
+
+The function subtracts 1 from `max_chars` (usize), which would wrap to `usize::MAX` if `max_chars = 0`. However, the function is private and is only called with hardcoded constants `50` and `20`.
+
+**Classification:** Dismissed. The risk is hypothetical for the current call sites and unreachable in practice.
+
+---
+
+### Open
+
+*(none)*
 
 ---
 
@@ -324,19 +366,17 @@ The Rust SE supplement specifies the standard deny set includes `clippy::unwrap_
 
 One finding resolved: `#![deny(clippy::unwrap_used)]` added to enforce inline safety documentation on any future `.unwrap()` use. The single existing `.unwrap()` is annotated with an inline safety rationale. All dismissed findings are structural observations with no defect implications.
 
+**Coordination:** *(none)*
+
 ---
 
 ---
 
 ## Review 7 — 2026-05-01 00:00Z
 
-**Scope:** Layer 2 implementation — `src/lib.rs`, `src/main.rs`. Evaluating correctness, naming, error handling, and structural quality of Layer 2 additions.
+**Scope:** Layer 2 implementation — `src/lib.rs`, `src/main.rs`. Evaluating correctness, naming, error handling, and structural quality of Layer 2 additions. Deferred item from SE Review 4/5: verify that the status-change handler does not write to `created_at`. Verified: `cmd_status` mutates only `issue.status` and `issue.updated_at`. `issue.created_at` is not referenced. Deferred item discharged.
 
 **Session note:** In-session with full Layer 2 IAR suite. Acknowledged quality tradeoff. Review-session primer applied.
-
-**Language supplement applied:** `lang/rust.md` (SE section) + `lang/cli.md` (SE section).
-
-**Deferred item from SE Review 4/5:** Verify that the status-change handler does not write to `created_at`. Verified: `cmd_status` mutates only `issue.status` and `issue.updated_at`. `issue.created_at` is not referenced. Deferred item discharged. ✓
 
 ---
 
@@ -439,3 +479,5 @@ This is idiomatic Rust for "parse → filter → convert to Result." An alternat
 ### Summary
 
 One real finding resolved: `cmd_status` refactored from `iter_mut().find()` to `iter().position()` — eliminates unnecessary `new_status.clone()` and the resulting borrow conflict. `new_status` is moved into `issues[idx].status`; `println!` reads `issues[idx].status`. Finding 2 discharged by the SA fix. `created_at` immutability deferred item fully discharged. No panic surface on user-facing paths. No new `.unwrap()` without safety documentation.
+
+**Coordination:** Finding 2 resolved by [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) Review 6 Finding 1 (deduplicated `parse_status` against `VALID_STATUSES`).

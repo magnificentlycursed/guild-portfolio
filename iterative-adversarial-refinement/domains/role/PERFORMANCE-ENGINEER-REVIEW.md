@@ -24,7 +24,7 @@ Regression check: verify that performance characteristics established in prior l
 
 **Sycophancy check:** An agent that generated the implementation will not have considered performance — it will have generated correct code without considering the cost of correctness at scale. The most common failure is not a slow algorithm — it is an algorithm that is fast at small scale and catastrophically slow at realistic scale, never tested with production-representative data. Flag any dimension where "works in tests" is the only evidence of performance adequacy.
 
-**Language and interface supplement:** Consult `../../lang/` for the supplement matching the project's primary language. Apply the **Performance Engineer** section from the relevant supplement file in addition to the standard dimensions below — supplements specify language-specific tooling for profiling, benchmarking, and performance measurement.
+**Language and interface supplement:** Consult `../../supplements/` for the supplement matching the project's primary language. Apply the **Performance Engineer** section from the relevant supplement file in addition to the standard dimensions below — supplements specify language-specific tooling for profiling, benchmarking, and performance measurement.
 
 ## Standard Evaluation Dimensions
 

@@ -2,9 +2,13 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](README.md) suite. See [README.md](README.md) for sequencing, scoped runs, and domain coordination.
 
-The purpose of this review is to evaluate the quality system: whether the testing strategy, coverage, tooling, and gates are structured to catch defects reliably. At this stage (pre-implementation), the review evaluates the test plans in `TODO.md` — their completeness, Red Gate compliance, and falsifiability.
+**Reviewer role: Quality Engineer** (Quality Engineer / QA Engineer / Test Engineer)
+
+The purpose of this review is to evaluate the quality system as a whole: whether the testing strategy, coverage, tooling, and gates are structured to catch defects reliably. A passing test suite that would not catch a broken implementation is a quality failure.
 
 **Language supplement applied:** `lang/rust.md` (QE section) + `lang/cli.md` (QE section).
+
+**Sycophancy check:** An agent that wrote both the tests and the implementation will find the tests adequate because they reflect its own interpretation of the spec, not the spec itself. The most dangerous failure mode in QE is not a missing test — it is a complete, passing test suite for the wrong behavior. Flag any case where the tests and implementation are internally consistent but could both be wrong. Flag any dimension where the answer is "tests exist and pass" without verifying that a broken implementation would actually fail them.
 
 ---
 
@@ -20,7 +24,7 @@ The purpose of this review is to evaluate the quality system: whether the testin
 
 ### Resolved
 
-**Finding 1 — No Red Gate test for `created_at == updated_at` on fresh issue**
+**Finding 1 — No Red Gate test for `created_at == updated_at` on fresh issue (Dim 1 — Acceptance criteria)**
 
 DESIGN.md states: "`created_at` and `updated_at` are equal on a freshly created issue." This is an acceptance criterion in Layer 1 (`TODO.md`) but no corresponding Red Gate integration test exists. A stub that sets `updated_at` to epoch or to a different timestamp would pass all existing Red Gate tests.
 
@@ -28,7 +32,7 @@ DESIGN.md states: "`created_at` and `updated_at` are equal on a freshly created 
 
 ---
 
-**Finding 2 — No Red Gate test for title 50-char truncation in list output**
+**Finding 2 — No Red Gate test for title 50-char truncation in list output (Dim 1 — Acceptance criteria)**
 
 Layer 1 acceptance criteria include: "Title truncates at 50 characters with `…` in list output." No corresponding Red Gate test exists. A stub that prints the full title would satisfy all existing Layer 1 tests.
 
@@ -36,7 +40,7 @@ Layer 1 acceptance criteria include: "Title truncates at 50 characters with `…
 
 ---
 
-**Finding 3 — No Red Gate test for `tracker list --status in-progress`**
+**Finding 3 — No Red Gate test for `tracker list --status in-progress` (Dim 1 — Acceptance criteria)**
 
 Layer 2 Red Gate names `list_status_filter_shows_done` for the done case but has no corresponding test for the `in-progress` case. A stub that only handles `open` and `done` status filters would pass all Layer 2 Red Gate integration tests.
 
@@ -44,7 +48,7 @@ Layer 2 Red Gate names `list_status_filter_shows_done` for the done case but has
 
 ---
 
-**Finding 4 — No Red Gate test for `created_at` immutability after status mutation**
+**Finding 4 — No Red Gate test for `created_at` immutability after status mutation (Dim 2 — Test falsifiability)**
 
 Layer 2 acceptance criteria include: "All other fields on the issue are unchanged [after status change]." The `status_change_leaves_other_fields_unchanged` test covers this, but `created_at` is not explicitly named. An implementation that updates `created_at` on mutation would pass the existing test if "other fields" is interpreted loosely. A distinct test that explicitly asserts `created_at` is unchanged removes the ambiguity.
 
@@ -52,7 +56,7 @@ Layer 2 acceptance criteria include: "All other fields on the issue are unchange
 
 ---
 
-**Finding 5 — No Red Gate test for label 20-char truncation in list output**
+**Finding 5 — No Red Gate test for label 20-char truncation in list output (Dim 1 — Acceptance criteria)**
 
 Layer 4 acceptance criteria include: "Labels column truncates at 20 characters with `…` if longer." No corresponding Red Gate integration test exists.
 
@@ -62,7 +66,7 @@ Layer 4 acceptance criteria include: "Labels column truncates at 20 characters w
 
 ### Dismissed
 
-**Finding 6 — Write-failure error paths have no Red Gate integration tests**
+**Finding 6 — Write-failure error paths have no Red Gate integration tests (Dim 1 — Acceptance criteria)**
 
 DESIGN.md Storage edge cases include: write fails (disk full, permissions) → stderr `Error: Could not save tracker data: <reason>.` → exit 1; `tracker.json` is a directory → treated as I/O failure. These are acceptance criteria but cannot be reliably automated in cross-platform integration tests (require OS-level setup: filling a disk, revoking file permissions, creating a directory at the expected path).
 
@@ -70,7 +74,7 @@ DESIGN.md Storage edge cases include: write fails (disk full, permissions) → s
 
 ---
 
-**Finding 7 — Layer 5 test plan has only 4 integration tests; compound filter permutations are sparse**
+**Finding 7 — Layer 5 test plan has only 4 integration tests; compound filter permutations are sparse (Dim 6 — Validation gaps)**
 
 `tracker list --status open --priority high`, `--status open --label bug`, `--priority high --label bug`, and all three together are listed. The case `--status done --priority high --label bug` (a three-filter combination with a non-default status) is not explicitly tested. A stub that only AND-combines when `--status open` is present would pass.
 
@@ -88,7 +92,7 @@ DESIGN.md Storage edge cases include: write fails (disk full, permissions) → s
 
 Five real findings, all resolved via `TODO.md` additions. Two dismissed with rationale. The test plan now covers all primary acceptance criteria with Red Gate tests. Write-failure paths are explicitly manual. No open items.
 
-**Coordination:** QE Finding 4 (created_at immutability) surfaces to SE as an implementation concern — the mutation path must never touch `created_at`. Logged in SE log.
+**Coordination:** Finding 4 (created_at immutability) surfaces to [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) as an implementation concern — the mutation path must never touch `created_at`.
 
 ---
 
@@ -125,9 +129,9 @@ Proposed resolution options for SO decision:
 1. Fix the tests to use `v["issues"][0]` — tests become spec-correct against the wrapped format.
 2. Simplify DESIGN.md to use a top-level array — tests are already correct, and a top-level array is simpler to deserialize in Rust (`serde_json::from_str::<Vec<Issue>>(&raw)` with no wrapper struct needed). Consistent with SA Review 1's complexity-budget principle.
 
-**Classification: Raised to SO Review 7.** DESIGN.md is a controlled spec document. QE does not apply changes to DESIGN.md. This finding and the proposed resolution are handed to SO for decision. See SO Review 7 Finding 1.
+**Classification:** Raised to SO. DESIGN.md is a controlled spec document. QE does not apply changes to DESIGN.md. This finding and the proposed resolution are handed to SO for decision. See [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) Review 7 Finding 1.
 
-**Cross-reference:** Data Engineer Review 2 Finding 1 (schema), SO Review 7 Finding 1 (resolution).
+**Cross-reference:** [DATA-ENGINEER-REVIEW.md](DATA-ENGINEER-REVIEW.md) Review 2 Finding 1 (schema); [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) Review 7 Finding 1 (resolution).
 
 ---
 
@@ -187,7 +191,7 @@ Red Gate compliance verified: all 17 tests (13 integration + 4 unit) fail agains
 
 ### Resolved
 
-**Finding 1 — `list_truncates_title_at_50_chars_with_ellipsis` does not assert the specific truncation point**
+**Finding 1 — `list_truncates_title_at_50_chars_with_ellipsis` does not assert the specific truncation point (Dim 2 — Test falsifiability)**
 
 The test creates a 60-char title and asserts:
 1. `out.contains('…')` — passes for any ellipsis in output
@@ -206,7 +210,7 @@ The full-title absence assertion is retained as a secondary check.
 
 ---
 
-**Finding 2 — `create_first_issue_unchanged_after_second_create` does not verify `labels`, `created_at`, or `updated_at`**
+**Finding 2 — `create_first_issue_unchanged_after_second_create` does not verify `labels`, `created_at`, or `updated_at` (Dim 1 — Acceptance criteria)**
 
 The acceptance criterion is: "first issue is unchanged." The test asserts `id`, `title`, `status`, `priority` — but not `labels`, `created_at`, or `updated_at`. An implementation that resets `labels` to `null` or regenerates timestamps on every write (re-serializing all issues with fresh timestamps) would pass all 17 Layer 1 tests. The `create_timestamps_equal_on_fresh_issue` test only checks timestamps for a single-create case — it does not verify timestamps survive a second create.
 
@@ -214,7 +218,7 @@ The acceptance criterion is: "first issue is unchanged." The test asserts `id`, 
 
 ---
 
-**Finding 3 — `malformed_json_causes_error_exit` asserts only a substring of the user-actionable error message**
+**Finding 3 — `malformed_json_causes_error_exit` asserts only a substring of the user-actionable error message (Dim 3 — Test selector and assertion strength)**
 
 The test checks `predicate::str::contains("Could not read tracker data")`. The acceptance criterion specifies the full message: `Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.`
 
@@ -230,7 +234,7 @@ The test triggers the JSON parse failure path but would also pass if the impleme
 
 ### Dismissed
 
-**Finding 4 — No doc tests on public API functions**
+**Finding 4 — No doc tests on public API functions (Dim 13 — Quality gates; Rust supplement — TW)**
 
 `lib.rs` exports `validate_title`, `next_id`, `current_timestamp`, `load_issues`, `save_issues`, `cmd_create`, `cmd_list`. None have `///` doc comments or doc test examples. The rust.md QE supplement lists "Doc tests compile and pass" as a dimension.
 
@@ -238,7 +242,7 @@ The test triggers the JSON parse failure path but would also pass if the impleme
 
 ---
 
-**Finding 5 — `save_issues` uses `.unwrap()` on `serde_json::to_string_pretty`**
+**Finding 5 — `save_issues` uses `.unwrap()` on `serde_json::to_string_pretty` (Dim 7 — Logic errors)**
 
 `serde_json::to_string_pretty(issues).unwrap()` in `save_issues` could panic if serialization fails.
 
@@ -256,7 +260,7 @@ The test triggers the JSON parse failure path but would also pass if the impleme
 
 Three real findings, all resolved via `tests/layer1.rs` changes: the truncation test now asserts the exact 49-char prefix; the "unchanged" test now covers `labels`, `created_at`, and `updated_at`; the malformed-JSON test now asserts the full user-actionable error suffix. Two dismissed with rationale. No open items.
 
-**Coordination:** Finding 5 (`save_issues` `.unwrap()`) noted for SE as an SE-domain observation — the panic path is unreachable given `Issue`'s field types, but SE should document this invariant if the field types ever expand.
+**Coordination:** Finding 5 (`save_issues` `.unwrap()`) noted for [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) as an SE-domain observation — the panic path is unreachable given `Issue`'s field types, but SE should document this invariant if the field types ever expand.
 
 **Cold-session gate:** This review satisfies the Layer 1 merge gate cold-session requirement for QE.
 
@@ -306,6 +310,8 @@ The test triggers validation via `"status": "flying"`. It does not exercise the 
 
 One finding resolved: test added for the post-deserialization domain validation path. 18 tests total, all passing. No open items. The test suite is now aligned with all acceptance criteria including the previously untested corrupt-domain-values case. Layer 1 test coverage is complete.
 
+**Coordination:** *(none)*
+
 ---
 
 ---
@@ -320,7 +326,7 @@ One finding resolved: test added for the post-deserialization domain validation 
 
 ### Resolved
 
-**Finding 10 — `list_shows_header_and_issues` does not assert `(none)` in Labels column (Dim 4 — Acceptance criteria coverage)**
+**Finding 1 — `list_shows_header_and_issues` does not assert `(none)` in Labels column (Dim 4 — Acceptance criteria coverage)**
 
 The spec requires that `tracker list` shows `(none)` in the Labels column for unlabeled issues (DESIGN.md Feature 2, Interface section). The test `list_shows_header_and_issues` creates an unlabeled issue and verifies the header columns and issue title appear in the output, but did not assert that `(none)` is present. A regression that rendered an empty string instead of `(none)` would not have been caught.
 
@@ -330,13 +336,21 @@ The spec requires that `tracker list` shows `(none)` in the Labels column for un
 
 ### Dismissed
 
-No additional gaps found. The 18-test suite covers: create (exit code, storage, trimming, error states, ID assignment, timestamps, first-issue-unchanged), list (empty state, header, truncation, after create), error paths (malformed JSON, invalid domain values).
+*(none)*
+
+---
+
+### Open
+
+*(none)*
 
 ---
 
 ### Summary
 
-One finding resolved: `(none)` label assertion added to `list_shows_header_and_issues`. 18 tests passing. No open items. MVR reached for Layer 1.
+One finding resolved: `(none)` label assertion added to `list_shows_header_and_issues`. 18 tests passing. No additional gaps found — the 18-test suite covers: create (exit code, storage, trimming, error states, ID assignment, timestamps, first-issue-unchanged), list (empty state, header, truncation, after create), error paths (malformed JSON, invalid domain values). MVR reached for Layer 1.
+
+**Coordination:** *(none)*
 
 ---
 
@@ -344,17 +358,15 @@ One finding resolved: `(none)` label assertion added to `list_shows_header_and_i
 
 ## Review 6 — 2026-04-30 00:00Z
 
-**Scope:** General adversarial review, pre-merge gate. Review-session primer loaded. Applying mutation analysis (dim 2) to the full test suite. This is a fresh adversarial pass with explicit obligation to the spec, not to prior review dismissals.
+**Scope:** General adversarial review, pre-merge gate. Review-session primer loaded. Applying mutation analysis (dim 2) to the full test suite — for each branch in `lib.rs`, enumerate a plausible one-line mutation and determine whether any test would fail. A mutation that survives the full suite is a coverage gap regardless of how many times the test suite has been run. Fresh adversarial pass with explicit obligation to the spec, not to prior review dismissals.
 
 **Session note:** In-session review. Acknowledged quality tradeoff.
-
-**Mutation analysis method:** For each branch in `lib.rs`, enumerate a plausible one-line mutation and determine whether any test would fail. A mutation that survives the full suite is a coverage gap regardless of how many times the test suite has been run.
 
 ---
 
 ### Resolved
 
-**Finding 11 — Sort direction mutation survives all tests (Dim 2 — Test falsifiability)**
+**Finding 1 — Sort direction mutation survives all tests (Dim 2 — Test falsifiability)**
 
 Mutation: swap `a.id.cmp(&b.id)` to `b.id.cmp(&a.id)` in `cmd_list` (`lib.rs:118–121`).
 
@@ -366,7 +378,7 @@ Cross-check against acceptance criterion #10 (TODO.md): "tracker list after two 
 
 ---
 
-**Finding 12 — `id > 0` validation branch independently removable (Dim 2 — Mutation testing)**
+**Finding 2 — `id > 0` validation branch independently removable (Dim 2 — Mutation testing)**
 
 `issue_fields_are_valid` (`lib.rs:42–47`) checks four conditions joined by `&&`: `issue.id > 0`, non-empty title, valid status, valid priority. The existing `invalid_domain_values_in_json_causes_error_exit` test exercises only the valid-status branch (`"status": "flying"`). Removing the `id > 0` clause produces zero test failures — no test writes `"id": 0` to `tracker.json`.
 
@@ -380,7 +392,17 @@ Note: Red Team Review 2 dismissed this as "the validation path is the same for a
 
 ### Dismissed
 
-**Empty-title-in-JSON mutation** — Same pattern as Finding 12: removing the `!issue.title.trim().is_empty()` clause from `issue_fields_are_valid` would also survive the test suite. However, the empty-title path through CLI input is thoroughly tested by `create_empty_title_exits_one_with_error_on_stderr` and `create_whitespace_title_exits_one`. An empty stored title can only arise from manual file editing, and the threat model is already bounded. With Finding 12 (zero-id) now tested, the principle of validation branch independence is established. Adding a third variant is diminishing returns at this layer. The existing `invalid_domain_values_in_json_causes_error_exit` test establishes that post-deser validation triggers correctly; zero-id tests a second branch independently. Dismissed at Layer 1 — revisit if the full post-deser validation function is refactored.
+**Finding 3 — Empty-title-in-JSON mutation (Dim 2 — Mutation testing)**
+
+Same pattern as Finding 2: removing the `!issue.title.trim().is_empty()` clause from `issue_fields_are_valid` would also survive the test suite. However, the empty-title path through CLI input is thoroughly tested by `create_empty_title_exits_one_with_error_on_stderr` and `create_whitespace_title_exits_one`. An empty stored title can only arise from manual file editing, and the threat model is already bounded. With Finding 2 (zero-id) now tested, the principle of validation branch independence is established. Adding a third variant is diminishing returns at this layer. The existing `invalid_domain_values_in_json_causes_error_exit` test establishes that post-deser validation triggers correctly; zero-id tests a second branch independently.
+
+**Classification:** Dismissed at Layer 1 — revisit if the full post-deser validation function is refactored.
+
+---
+
+### Open
+
+*(none)*
 
 ---
 
@@ -388,19 +410,17 @@ Note: Red Team Review 2 dismissed this as "the validation path is the same for a
 
 Two real findings resolved: sort direction mutation (`list_shows_multiple_issues_in_id_order`) and zero-id validation gap (`zero_id_in_json_causes_error_exit`). 20 tests total (16 integration + 4 unit), all passing. The sort algorithm, the two-create → list path, and the `id > 0` validation branch are now independently tested. Review-session adversarial posture applied; mutation analysis exhausted real gaps.
 
+**Coordination:** *(none)*
+
 ---
 
 ---
 
 ## Review 7 — 2026-05-01 00:00Z
 
-**Scope:** Layer 2 implementation — `tests/layer2.rs`, `src/lib.rs` unit tests, `TODO.md` Red Gate plan. Evaluating test correctness, Red Gate compliance, acceptance criteria coverage, and mutation analysis.
+**Scope:** Layer 2 implementation — `tests/layer2.rs`, `src/lib.rs` unit tests, `TODO.md` Red Gate plan. Evaluating test correctness, Red Gate compliance, acceptance criteria coverage, and mutation analysis. 17 integration tests in `tests/layer2.rs`, 3 unit tests added to `src/lib.rs` (`status_value_parsing_valid_cases`, `status_value_parsing_rejects_invalid`, `id_must_be_positive_integer`). Total suite: 37 tests (33 integration + 4 layer1 unit), all passing.
 
 **Session note:** In-session with full Layer 2 IAR suite. Acknowledged quality tradeoff. Review-session primer applied. Adversarial obligation is to the spec, not the developer.
-
-**Language supplement applied:** `lang/rust.md` (QE section) + `lang/cli.md` (QE section).
-
-**Test count:** 17 integration tests in `tests/layer2.rs`, 3 unit tests added to `src/lib.rs` (`status_value_parsing_valid_cases`, `status_value_parsing_rejects_invalid`, `id_must_be_positive_integer`). Total suite: 37 tests (33 integration + 4 layer1 unit), all passing.
 
 ---
 
@@ -446,19 +466,21 @@ The test verifies that `updated_at` advances after a status change. It sleeps 1 
 
 ---
 
-**Finding 4 — No integration test for `tracker status 1 IN-PROGRESS` (uppercase) end-to-end (Dim 1)**
-
-The acceptance criterion "`tracker status 1 IN-PROGRESS` (uppercase) exits 0; stored value is lowercase `in-progress`" is covered by the unit test `status_value_parsing_valid_cases` (tests `parse_status("IN-PROGRESS")`) and the integration test `status_is_case_insensitive_on_input` (tests "DONE" end-to-end). The integration path is: main.rs passes raw string → `cmd_status` → `parse_status`. The DONE integration test verifies the end-to-end path works for a case-insensitive value; the unit test verifies IN-PROGRESS parsing specifically.
-
-**Classification:** Hallucinated. The combination of the unit test (IN-PROGRESS) and the integration test (DONE end-to-end) provides sufficient coverage. An additional integration test for IN-PROGRESS would duplicate coverage with no additional falsifiability.
-
----
-
 **Finding 5 — `status_change_leaves_other_fields_unchanged` does not assert `description` field (Dim 1)**
 
 The test asserts `id`, `title`, `priority`, `labels`, `created_at` are unchanged after a status update. It does not assert the `description` field.
 
 **Classification:** Dismissed. Layer 2 has no `--description` flag — all created issues have `description: None`, which serializes as absent (no key). A status change cannot produce a description field where none existed. `description` is Layer 6 scope; asserting it in Layer 2 would assert on a field that doesn't exist in the JSON output yet. No gap.
+
+---
+
+### Hallucinated
+
+**Finding 4 — No integration test for `tracker status 1 IN-PROGRESS` (uppercase) end-to-end (Dim 1)**
+
+The acceptance criterion "`tracker status 1 IN-PROGRESS` (uppercase) exits 0; stored value is lowercase `in-progress`" is covered by the unit test `status_value_parsing_valid_cases` (tests `parse_status("IN-PROGRESS")`) and the integration test `status_is_case_insensitive_on_input` (tests "DONE" end-to-end). The integration path is: main.rs passes raw string → `cmd_status` → `parse_status`. The DONE integration test verifies the end-to-end path works for a case-insensitive value; the unit test verifies IN-PROGRESS parsing specifically.
+
+**Classification:** Hallucinated. The combination of the unit test (IN-PROGRESS) and the integration test (DONE end-to-end) provides sufficient coverage. An additional integration test for IN-PROGRESS would duplicate coverage with no additional falsifiability.
 
 ---
 
@@ -470,7 +492,9 @@ The test asserts `id`, `title`, `priority`, `labels`, `created_at` are unchanged
 
 ### Summary
 
-One real finding resolved: `list_nonempty_status_filter_with_no_match_shows_filter_message` added — the `is_open_view` mutation now fails. 38 tests total (34 integration + 4 unit), all passing. Mutation analysis exhausted real gaps in the Layer 2 test suite. The Red Gate sequence question (two extra tests) is escalated to VDD-IAR Alignment.
+One real finding resolved: `list_nonempty_status_filter_with_no_match_shows_filter_message` added — the `is_open_view` mutation now fails. 38 tests total (34 integration + 4 unit), all passing. Mutation analysis exhausted real gaps in the Layer 2 test suite. The Red Gate sequence question (two extra tests) is escalated to [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md).
+
+**Coordination:** Finding 2 (Red Gate sequence question) noted for [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md).
 
 ---
 
@@ -478,13 +502,9 @@ One real finding resolved: `list_nonempty_status_filter_with_no_match_shows_filt
 
 ## Review 8 — 2026-05-02 00:00Z
 
-**Scope:** Cold-session adversarial pass over the full Layer 2 implementation. Files read: `DESIGN.md`, `src/lib.rs`, `src/main.rs`, `tests/layer1.rs`, `tests/layer2.rs`, `Cargo.toml`, `TODO.md`. All prior QE review findings verified as closed. Applying fresh adversarial pressure with obligation to the spec, not to the prior reviewer's conclusions.
+**Scope:** Cold-session adversarial pass over the full Layer 2 implementation. Files read: `DESIGN.md`, `src/lib.rs`, `src/main.rs`, `tests/layer1.rs`, `tests/layer2.rs`, `Cargo.toml`, `TODO.md`. All prior QE review findings verified as closed. Applying fresh adversarial pressure with obligation to the spec, not to the prior reviewer's conclusions. Review 7 logged "38 tests (34 integration + 4 unit)." Actual count observed from `cargo test`: **41 tests** — 16 integration (layer1.rs) + 18 integration (layer2.rs) + 7 unit (lib.rs). The discrepancy of 3 is the layer2 unit tests (`status_value_parsing_valid_cases`, `status_value_parsing_rejects_invalid`, `id_must_be_positive_integer`) which were listed in Review 7's "Test count" note but excluded from the final tally. All 41 tests pass. Not a quality concern; the tests are correct.
 
 **Session note:** Cold session — reviewing code committed in prior sessions. Satisfies adversarial quality standard at the Layer 2 gate. No prior participation in implementation or in-session QE passes.
-
-**Test count correction:** Review 7 logged "38 tests (34 integration + 4 unit)." Actual count observed from `cargo test`: **41 tests** — 16 integration (layer1.rs) + 18 integration (layer2.rs) + 7 unit (lib.rs). The discrepancy of 3 is the layer2 unit tests (`status_value_parsing_valid_cases`, `status_value_parsing_rejects_invalid`, `id_must_be_positive_integer`) which were listed in Review 7's "Test count" note but excluded from the final tally. All 41 tests pass. Not a quality concern; the tests are correct.
-
-**Language supplement applied:** `lang/rust.md` (QE section) + `lang/cli.md` (QE section).
 
 **Assumption surfacing:** All library APIs verified: `serde_json::from_str::<Vec<Issue>>` for a top-level array (confirmed correct after SO Review 7 resolved the wrapped-vs-array question). `chrono::Utc::now()` is real-time UTC; `Option<String>` with `#[serde(skip_serializing_if = "Option::is_none")]` correctly omits absent fields. `Option<T>` deserialization in serde treats missing keys as `None` by default (no `#[serde(default)]` needed). No assumed-but-nonexistent APIs found.
 
@@ -556,27 +576,17 @@ This is a spec design choice, not an implementation bug. **Classification: Raise
 
 ### Dismissed
 
-**Dim 1 — Acceptance criteria:** All Layer 1 and Layer 2 acceptance criteria in `TODO.md` are marked complete. The implementation was verified against each: title trimming, ID assignment, timestamp equality, status defaults, sort ordering, status filter, error paths. No uncovered acceptance criterion found.
-
-**Dim 4 — Coverage meaningfulness:** Prior reviews did not measure coverage. No `cargo tarpaulin` or `cargo llvm-cov` is configured. The QE standard requires 80% minimum line coverage enforced in CI. However: (a) this project has no CI infrastructure; (b) the public API functions (`validate_title`, `next_id`, `parse_status`, `parse_id`, `load_issues`, `save_issues`, `cmd_create`, `cmd_list`, `cmd_status`) are all exercised by integration or unit tests; (c) the only unexercised paths are the write-permission-denied and `tracker.json`-is-a-directory I/O failures, which were explicitly dismissed in QE Review 1 Finding 6 as requiring OS-level setup. Coverage measurement is a valid gap but CI enforcement is a PE domain concern. **Dismissed from QE.** Escalated to Platform Engineer for CI configuration.
-
-**Dim 5 — Test architecture:** All integration tests use `TempDir` for isolation — each test gets its own temp directory, no shared file state, no ordering dependencies. The two timing-sensitive tests (`status_change_refreshes_updated_at`, `status_idempotent_same_value_succeeds`) use an explicit 1-second sleep, justified by the spec's second-precision timestamp contract and dismissed in Review 7 Finding 3. No flaky test patterns detected.
-
-**Dim 8 — Dead code:** All exported functions are reachable. `truncate_with_ellipsis` and `priority_rank` are private and called only from `cmd_list`. `issue_fields_are_valid` is private and called only from `load_issues`. No dead public exports.
-
-**Dim 9 — Unused dependencies:** `serde`, `serde_json`, `clap`, `chrono` all used. Dev dependencies `assert_cmd`, `predicates`, `tempfile` all used. None unused.
-
-**Dim 14 — TDD proxy indicators:** Tests call the implementation at its public interface (subcommand invocations via subprocess, or public function calls in unit tests). Test names are behavior-named. Red Gate compliance was verified in Reviews 2 and 7. No implementation coupling detected — the tests assert on outputs and stored JSON, not internal data structures.
+*(none)*
 
 ---
 
 ### Hallucinated
 
-**Finding — column order in header not tested (Dim 3)**
+**Finding 4 — Column order in header not tested (Dim 3)**
 
 A mutation swapping two columns in the header format string would produce incorrect column ordering, and the existing `list_shows_header_and_issues` test would not catch it (it only checks `contains("ID")`, `contains("Status")`, etc., not their order). This could be filed as a Dim 3 gap.
 
-**Hallucinated.** The column format string is a single `println!` macro with explicitly ordered fields (`ID`, `Status`, `Priority`, `Labels`, `Title`). The risk of a mutation scrambling column order while preserving all column names is theoretical — it cannot occur as an accidental off-by-one or logic mutation; it would require intentionally reordering named format arguments. The format string is visually auditable and unlikely to drift. Mutation testing is most valuable for logic paths, not static string ordering. The finding is out of proportion to the risk.
+**Classification:** Hallucinated. The column format string is a single `println!` macro with explicitly ordered fields (`ID`, `Status`, `Priority`, `Labels`, `Title`). The risk of a mutation scrambling column order while preserving all column names is theoretical — it cannot occur as an accidental off-by-one or logic mutation; it would require intentionally reordering named format arguments. The format string is visually auditable and unlikely to drift. Mutation testing is most valuable for logic paths, not static string ordering. The finding is out of proportion to the risk.
 
 ---
 
@@ -588,8 +598,16 @@ A mutation swapping two columns in the header format string would produce incorr
 
 ### Summary
 
-Two real findings resolved: (1) `list_truncates_title_at_50_chars_with_ellipsis` now catches the off-by-one mutation that produces 51 display chars; (2) `status_not_found_exits_one` now asserts the spec-mandated full message including the issue ID. One finding raised to SO (empty state messages on stdout vs. stderr — a spec design question, not an implementation bug). One finding dismissed to PE (coverage measurement). Test count corrected from 38 to 41; all pass.
+Two real findings resolved: (1) `list_truncates_title_at_50_chars_with_ellipsis` now catches the off-by-one mutation that produces 51 display chars; (2) `status_not_found_exits_one` now asserts the spec-mandated full message including the issue ID. One finding raised to SO (empty state messages on stdout vs. stderr — a spec design question, not an implementation bug). One finding hallucinated (column order). Test count corrected from 38 to 41; all pass.
+
+**Dimensions audited and cleared:**
+- **Dim 1 — Acceptance criteria:** All Layer 1 and Layer 2 acceptance criteria in `TODO.md` are marked complete. The implementation was verified against each: title trimming, ID assignment, timestamp equality, status defaults, sort ordering, status filter, error paths. No uncovered acceptance criterion found.
+- **Dim 4 — Coverage meaningfulness:** Prior reviews did not measure coverage. No `cargo tarpaulin` or `cargo llvm-cov` is configured. The QE standard requires 80% minimum line coverage enforced in CI. However: (a) this project has no CI infrastructure; (b) the public API functions (`validate_title`, `next_id`, `parse_status`, `parse_id`, `load_issues`, `save_issues`, `cmd_create`, `cmd_list`, `cmd_status`) are all exercised by integration or unit tests; (c) the only unexercised paths are the write-permission-denied and `tracker.json`-is-a-directory I/O failures, which were explicitly dismissed in QE Review 1 Finding 6 as requiring OS-level setup. Coverage measurement is a valid gap but CI enforcement is a PE domain concern. Escalated to Platform Engineer for CI configuration.
+- **Dim 5 — Test architecture:** All integration tests use `TempDir` for isolation — each test gets its own temp directory, no shared file state, no ordering dependencies. The two timing-sensitive tests (`status_change_refreshes_updated_at`, `status_idempotent_same_value_succeeds`) use an explicit 1-second sleep, justified by the spec's second-precision timestamp contract and dismissed in Review 7 Finding 3. No flaky test patterns detected.
+- **Dim 8 — Dead code:** All exported functions are reachable. `truncate_with_ellipsis` and `priority_rank` are private and called only from `cmd_list`. `issue_fields_are_valid` is private and called only from `load_issues`. No dead public exports.
+- **Dim 9 — Unused dependencies:** `serde`, `serde_json`, `clap`, `chrono` all used. Dev dependencies `assert_cmd`, `predicates`, `tempfile` all used. None unused.
+- **Dim 14 — TDD proxy indicators:** Tests call the implementation at its public interface (subcommand invocations via subprocess, or public function calls in unit tests). Test names are behavior-named. Red Gate compliance was verified in Reviews 2 and 7. No implementation coupling detected — the tests assert on outputs and stored JSON, not internal data structures.
 
 **Cold-session signal:** The two resolved findings were introduced by in-session reviewers who verified correctness within the implementation's frame of reference. Finding 1 was in a test specifically strengthened in QE Review 3 — the strengthening was real but incomplete. Cold-session pressure exposed the residual gap. This is the expected value of cold-session review.
 
-**Coordination:** Finding 3 (coverage measurement) noted for Platform Engineer review.
+**Coordination:** Finding 3 (coverage measurement) noted for [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md).

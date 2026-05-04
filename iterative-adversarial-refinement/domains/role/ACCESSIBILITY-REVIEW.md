@@ -24,7 +24,7 @@ Regression check: verify that all previously-addressed accessibility improvement
 
 **Sycophancy check:** Accessibility failures are the most commonly rationalized class of bug. "Users with disabilities aren't our target audience" is not a rationale — it is a scope decision that requires explicit justification and acceptance from the project owner. An agent reviewing its own accessibility implementation will frequently dismiss failures with "the semantic meaning is clear from context" or "screen reader users would understand this" without having tested with a screen reader. Every dismissed finding requires a specific, verifiable reason.
 
-**Language and interface supplement:** See the **UX** section of `../../lang/browser-app.md` for browser-specific accessibility dimensions (focus trap testing, contrast requirements, semantic HTML, reduced motion). Browser-app.md has no separate Accessibility section — the browser-specific accessibility content lives in its UX section. This domain goes deeper than those dimensions.
+**Language and interface supplement:** See the **UX** section of `../../supplements/browser-app.md` for browser-specific accessibility dimensions (focus trap testing, contrast requirements, semantic HTML, reduced motion). Browser-app.md has no separate Accessibility section — the browser-specific accessibility content lives in its UX section. This domain goes deeper than those dimensions.
 
 ## Standard Evaluation Dimensions
 

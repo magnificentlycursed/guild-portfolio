@@ -1,6 +1,6 @@
-# 2026-05-01 Meta-Reviews
+# 2026-05-01 Suite Reviews
 
-## Review 16 — 2026-05-01 00:00Z
+## Review 29 — 2026-05-01 00:00Z
 
 **Scope:** VDD-IAR and VSDD alignment review of all session primers in `prompts/`. Read: `suite-development.md` (governing standard), `spec-crystallization.md`, `decomposition.md`, `implementation.md`, `review-session.md`. Triggered by user request during Layer 2 implementation session.
 
@@ -72,13 +72,13 @@ The primer says "Paste it into a cold session" and contains `Active domains for 
 
 ---
 
-## Review 15 — 2026-04-27 09:00Z
+## Review 28 — 2026-04-27 09:00Z
 
-*Note: The date stamp in this entry is incorrect. Finding 6 (the follow-up) was added during the 2026-05-01 session; the entry is filed here with Review 16.*
+*Note: The date stamp in this entry is incorrect. Finding 6 (the follow-up) was added during the 2026-05-01 session; the entry is filed here with Review 29.*
 
 **Scope:** Generalist adversarial pass. Read: `suite-development.md`, `review-session.md`, `SOLUTION-ARCHITECT-REVIEW.md`, `SECURITY-REVIEW.md`, `README.md`. Triggered by user request.
 
-**Lens:** README Focus column accuracy and SA coordination link completeness. Previous passes had addressed classification schema gaps, domain format issues, and lang supplement additions — this pass checked whether the README domain table reflected the scope expansions made in Gap Analysis Runs 12 and 13.
+**Lens:** README Focus column accuracy and SA coordination link completeness. Previous passes had addressed classification schema gaps, domain format issues, and lang supplement additions — this pass checked whether the README domain table reflected the scope expansions made in Reviews 26 and 27.
 
 ---
 
@@ -86,13 +86,13 @@ The primer says "Paste it into a cold session" and contains `Active domains for 
 
 **Finding 1 — `README.md` Security Engineer Focus column omits dims 7 and 8.**
 
-Security dims 7 (Audit logging) and 8 (Data classification and control requirements) were added in Gap Analysis Run 12. The README core domain table Focus cell for Security Engineer still described only the pre-Run-12 scope: "Input handling, persistence data validation, dependency CVEs, secret handling, information exposure, authentication and authorization." A reviewer reading the README to select domains would not know audit logging or data classification coverage was present.
+Security dims 7 (Audit logging) and 8 (Data classification and control requirements) were added in Review 26. The README core domain table Focus cell for Security Engineer still described only the pre-Review-26 scope: "Input handling, persistence data validation, dependency CVEs, secret handling, information exposure, authentication and authorization." A reviewer reading the README to select domains would not know audit logging or data classification coverage was present.
 
 **Resolution:** Appended "audit logging, data classification and control requirements" to the Security Engineer Focus cell in the README core domain table.
 
 **Finding 2 — `README.md` Solution Architect Focus column omits external service integration.**
 
-The `### Extended: External Service Integration` section (dims 23–27) was added to SA in Gap Analysis Run 12. The README core domain table Focus cell for Solution Architect ended at "external interface contracts" — no mention of the new Extended section. A reviewer scanning the table would not know SA covers external service dependencies (inventory, failure handling, API drift, credential management, data transmission).
+The `### Extended: External Service Integration` section (dims 23–27) was added to SA in Review 26. The README core domain table Focus cell for Solution Architect ended at "external interface contracts" — no mention of the new Extended section. A reviewer scanning the table would not know SA covers external service dependencies (inventory, failure handling, API drift, credential management, data transmission).
 
 **Resolution:** Appended "external service integration" to the Solution Architect Focus cell in the README core domain table.
 

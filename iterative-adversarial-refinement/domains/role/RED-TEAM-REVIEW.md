@@ -26,7 +26,7 @@ Regression check: verify that previously-confirmed attack mitigations remain int
 
 **Sycophancy check:** An agent that built the application will rationalize its defenses as adequate because it believes in the controls it generated. The Red Team does not evaluate intent — it evaluates outcome. For every control, ask: "can this be bypassed by a caller who does not follow the happy path?" An application where every attack is dismissed as "not applicable" has not been red-teamed — it has been reassured.
 
-**Language and interface supplement:** Consult `../../lang/` for the supplement matching the project's primary language and interface type. Apply the **Red Team** section — attack tooling, injection patterns, and client-side exploit vectors are language- and framework-specific.
+**Language and interface supplement:** Consult `../../supplements/` for the supplement matching the project's primary language and interface type. Apply the **Red Team** section — attack tooling, injection patterns, and client-side exploit vectors are language- and framework-specific.
 
 ## Standard Evaluation Dimensions
 
