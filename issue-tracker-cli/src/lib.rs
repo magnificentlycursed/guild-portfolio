@@ -160,6 +160,18 @@ fn priority_rank(p: &str) -> usize {
         .unwrap_or(usize::MAX)
 }
 
+/// Parses and normalizes a priority string (case-insensitive).
+///
+/// Returns the canonical lowercase priority value, or an error describing the valid values.
+pub fn parse_priority(raw: &str) -> Result<String, String> {
+    todo!("Layer 3 Phase 2b: parse priority {:?}", raw)
+}
+
+/// Sorts issues by priority (high → medium → low) then by ID ascending.
+pub fn sort_issues(issues: &mut [Issue]) {
+    todo!("Layer 3 Phase 2b: sort {} issues", issues.len())
+}
+
 fn truncate_with_ellipsis(s: &str, max_chars: usize) -> String {
     let chars: Vec<char> = s.chars().collect();
     if chars.len() <= max_chars {
@@ -270,5 +282,60 @@ mod tests {
         assert!(parse_id("abc").is_err());
         assert_eq!(parse_id("1"), Ok(1));
         assert_eq!(parse_id("42"), Ok(42));
+    }
+
+    fn issue(id: u64, priority: &str) -> Issue {
+        Issue {
+            id,
+            title: "x".to_string(),
+            description: None,
+            status: "open".to_string(),
+            priority: priority.to_string(),
+            labels: Vec::new(),
+            created_at: "2026-01-01T00:00:00Z".to_string(),
+            updated_at: "2026-01-01T00:00:00Z".to_string(),
+        }
+    }
+
+    #[test]
+    fn priority_parsing_valid_cases() {
+        assert_eq!(parse_priority("low"), Ok("low".to_string()));
+        assert_eq!(parse_priority("medium"), Ok("medium".to_string()));
+        assert_eq!(parse_priority("high"), Ok("high".to_string()));
+        assert_eq!(parse_priority("LOW"), Ok("low".to_string()));
+        assert_eq!(parse_priority("MEDIUM"), Ok("medium".to_string()));
+        assert_eq!(parse_priority("HIGH"), Ok("high".to_string()));
+    }
+
+    #[test]
+    fn priority_parsing_rejects_invalid() {
+        assert!(parse_priority("critical").is_err());
+        assert!(parse_priority("urgent").is_err());
+        assert!(parse_priority("").is_err());
+    }
+
+    #[test]
+    fn priority_sort_order_is_correct() {
+        let mut issues = vec![
+            issue(1, "low"),
+            issue(2, "high"),
+            issue(3, "medium"),
+            issue(4, "high"),
+        ];
+        sort_issues(&mut issues);
+        let priorities: Vec<&str> = issues.iter().map(|i| i.priority.as_str()).collect();
+        assert_eq!(priorities, vec!["high", "high", "medium", "low"]);
+    }
+
+    #[test]
+    fn priority_sort_tie_breaking_by_id() {
+        let mut issues = vec![issue(2, "high"), issue(1, "high")];
+        sort_issues(&mut issues);
+        let ids: Vec<u64> = issues.iter().map(|i| i.id).collect();
+        assert_eq!(
+            ids,
+            vec![1, 2],
+            "lower ID should come first within the same priority tier"
+        );
     }
 }
