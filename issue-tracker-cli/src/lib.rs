@@ -85,12 +85,21 @@ pub fn save_issues(path: &Path, issues: &[Issue]) -> Result<(), String> {
     fs::write(path, contents).map_err(|e| format!("Could not save tracker data: {}.", e))
 }
 
-/// Implements `tracker create "<title>"`.
+/// Implements `tracker create "<title>" [--priority <p>]`.
 ///
-/// Validates the title, assigns the next ID, appends the new issue to storage,
-/// and prints `Created issue #<id>: <title>` to stdout.
-pub fn cmd_create(title_raw: &str, issues_path: &Path) -> Result<(), String> {
+/// Validates the title and optional priority, assigns the next ID, appends the
+/// new issue to storage, and prints `Created issue #<id>: <title>` to stdout.
+/// Priority defaults to `medium` when not supplied.
+pub fn cmd_create(
+    title_raw: &str,
+    priority_raw: Option<&str>,
+    issues_path: &Path,
+) -> Result<(), String> {
     let title = validate_title(title_raw)?;
+    let priority = match priority_raw {
+        Some(p) => parse_priority(p)?,
+        None => "medium".to_string(),
+    };
     let mut issues = load_issues(issues_path)?;
     let ids: Vec<u64> = issues.iter().map(|i| i.id).collect();
     let id = next_id(&ids);
@@ -100,7 +109,7 @@ pub fn cmd_create(title_raw: &str, issues_path: &Path) -> Result<(), String> {
         title: title.clone(),
         description: None,
         status: "open".to_string(),
-        priority: "medium".to_string(),
+        priority,
         labels: Vec::new(),
         created_at: now.clone(),
         updated_at: now,
@@ -164,12 +173,24 @@ fn priority_rank(p: &str) -> usize {
 ///
 /// Returns the canonical lowercase priority value, or an error describing the valid values.
 pub fn parse_priority(raw: &str) -> Result<String, String> {
-    todo!("Layer 3 Phase 2b: parse priority {:?}", raw)
+    let lower = raw.to_lowercase();
+    if VALID_PRIORITIES.contains(&lower.as_str()) {
+        Ok(lower)
+    } else {
+        Err(format!(
+            "Invalid priority '{}'. Expected: low, medium, or high.",
+            raw
+        ))
+    }
 }
 
 /// Sorts issues by priority (high → medium → low) then by ID ascending.
 pub fn sort_issues(issues: &mut [Issue]) {
-    todo!("Layer 3 Phase 2b: sort {} issues", issues.len())
+    issues.sort_by(|a, b| {
+        priority_rank(&a.priority)
+            .cmp(&priority_rank(&b.priority))
+            .then(a.id.cmp(&b.id))
+    });
 }
 
 fn truncate_with_ellipsis(s: &str, max_chars: usize) -> String {
@@ -182,20 +203,32 @@ fn truncate_with_ellipsis(s: &str, max_chars: usize) -> String {
     }
 }
 
-/// Implements `tracker list [--status <s>]`.
+/// Implements `tracker list [--status <s>] [--priority <p>]`.
 ///
 /// Without `--status`: shows only `open` issues; prints `No open issues. Nice work!` when empty.
 /// With `--status <s>`: validates and filters by that status; prints `No issues match the given
 /// filters.` when empty — unless the effective filter is `open`, which keeps the original message.
-pub fn cmd_list(status_filter: Option<&str>, issues_path: &Path) -> Result<(), String> {
+/// `--priority <p>` is AND-combined with the status filter when present.
+pub fn cmd_list(
+    status_filter: Option<&str>,
+    priority_filter: Option<&str>,
+    issues_path: &Path,
+) -> Result<(), String> {
     let effective_status = match status_filter {
         None => "open".to_string(),
         Some(s) => parse_status(s)?,
+    };
+    let effective_priority = match priority_filter {
+        Some(p) => Some(parse_priority(p)?),
+        None => None,
     };
     let is_open_view = effective_status == "open";
 
     let mut issues = load_issues(issues_path)?;
     issues.retain(|i| i.status == effective_status);
+    if let Some(p) = &effective_priority {
+        issues.retain(|i| &i.priority == p);
+    }
 
     if issues.is_empty() {
         if is_open_view {
@@ -206,11 +239,7 @@ pub fn cmd_list(status_filter: Option<&str>, issues_path: &Path) -> Result<(), S
         return Ok(());
     }
 
-    issues.sort_by(|a, b| {
-        priority_rank(&a.priority)
-            .cmp(&priority_rank(&b.priority))
-            .then(a.id.cmp(&b.id))
-    });
+    sort_issues(&mut issues);
 
     println!(
         "{:<4} {:<11} {:<8} {:<20} Title",

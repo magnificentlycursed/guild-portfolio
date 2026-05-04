@@ -14,12 +14,18 @@ enum Commands {
     Create {
         /// Issue title
         title: String,
+        /// Priority: low, medium, high (default: medium)
+        #[arg(long)]
+        priority: Option<String>,
     },
     /// List issues (default: open only)
     List {
         /// Filter by status: open, in-progress, done
         #[arg(long)]
         status: Option<String>,
+        /// Filter by priority: low, medium, high
+        #[arg(long)]
+        priority: Option<String>,
     },
     /// Change an issue's status
     Status {
@@ -35,8 +41,12 @@ fn main() {
     let path = Path::new("tracker.json");
 
     let result = match cli.command {
-        Commands::Create { title } => tracker::cmd_create(&title, path),
-        Commands::List { status } => tracker::cmd_list(status.as_deref(), path),
+        Commands::Create { title, priority } => {
+            tracker::cmd_create(&title, priority.as_deref(), path)
+        }
+        Commands::List { status, priority } => {
+            tracker::cmd_list(status.as_deref(), priority.as_deref(), path)
+        }
         Commands::Status { id, status } => tracker::cmd_status(&id, &status, path),
     };
 
