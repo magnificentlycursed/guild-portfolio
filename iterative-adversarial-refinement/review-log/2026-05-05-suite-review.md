@@ -81,3 +81,25 @@ The defect this catches: a CLI layer ships with a flag whose runtime behavior wo
 Considered and rejected: placing this rule in `supplements/cli.md` instead of `decomposition.md`. The supplement architecture is currently consumed by domain prompt files (review-time), not by session primers (authoring-time); routing a manual-testing-plan rule through the supplement would introduce a new cross-reference pattern between primers and supplements that no other primer uses. Inline in `decomposition.md` with a CLI-conditional clause keeps the supplement focused on review dimensions. If multiple interface types accumulate similar primer-time conditional clauses (CLI, browser, mobile), consolidate later — premature pattern.
 
 This refinement also remains within G-97's scope (manual-testing-checklist authoring quality, with CLI-specific authoring requirements as a sub-concern). No new gap registered.
+
+---
+
+**Finding 4 — Usage examples in `--help` for compound CLI flags were not captured anywhere (added 2026-05-05).**
+
+User direction after Layer 4 manual testing on `issue-tracker-cli`: "I like usage examples for cli commands covering common scenarios like filtering. If that's already in layer 7 it can wait. If it wasn't previously captured then add it to the decomp primer as appropriate."
+
+Triage of where this concern is currently captured:
+
+- **`issue-tracker-cli/TODO.md` Layer 7 acceptance criteria** — describes flags and valid values (line 354–358); does **not** require usage examples in help output.
+- **`issue-tracker-cli/DESIGN.md` `--help` flag section** (line 218) — "must accurately describe all flags and their valid values"; does **not** require usage examples.
+- **`supplements/cli.md` UX dim 1** — *partially* captured: "Does the top-level help include a usage example?" This is review-time guidance, scoped to *top-level* help only, and asks a yes/no question rather than mandating it. It does not extend to subcommand-level usage examples for compound flags.
+
+So the concern is unaddressed for subcommand-level help where compound flags exist. The defect this catches: a user who runs `<binary> list --help` against a layer with five filters sees five orthogonal flag descriptions and has to imagine which combinations make sense. They cannot tell from the flag list alone that `list --status open --priority high --label bug` is a sensible compound query. A short `Examples:` block answers the "how do I do the thing I came to do?" question that a flag list does not.
+
+**Resolution:** Added a seventh bullet to the **Required items per layer** list in `prompts/decomposition.md` — "Usage examples in `--help` (CLI projects with compound flags or filters)". The bullet directs the decomposing agent to identify the polish/help-finalization layer and add two acceptance criteria there: (1) the subcommand's `--help` includes 1–3 usage examples covering common scenarios (compound filtering for `list`-style commands; the most-frequent creation form for `create`-style commands); (2) the manual test plan for that layer verifies the examples appear in the help-output expected block. The bullet cross-references the existing `supplements/cli.md` UX dim 1 (review-time, top-level) and explicitly extends the expectation to subcommand-level for compound-flag cases.
+
+Considered and rejected: amending `supplements/cli.md` UX dim 1 to also assert subcommand-level coverage. The supplement is review-time guidance; primer-time authoring guidance is decomposition.md's job. Bumping the supplement would still leave the decomp output unimproved — a Layer 7 plan written without this primer guidance would still skip usage examples, and the supplement would only catch the gap during IAR review, after the implementation existed. Capturing at the primer level closes the gap before authoring, not just at review.
+
+Considered and rejected: amending `issue-tracker-cli/DESIGN.md` and Layer 7 acceptance criteria directly. That would only fix `issue-tracker-cli`'s case; future CLI portfolio projects would re-discover the gap. Primer-level capture applies to all future CLI decomp output.
+
+This refinement also remains within G-97's scope (manual-testing-checklist authoring quality, with CLI-specific authoring requirements as a sub-concern). No new gap registered. Note that this is a forward-only change for new CLI decomp output; `issue-tracker-cli`'s Layer 7 acceptance criteria are not amended retroactively, but the apprentice's reviewer can elect to add the usage-examples ACs to Layer 7 manually before that layer opens.
