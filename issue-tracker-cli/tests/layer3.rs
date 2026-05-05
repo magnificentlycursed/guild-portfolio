@@ -1,13 +1,9 @@
-use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs;
 use tempfile::TempDir;
 
-fn tracker(dir: &TempDir) -> Command {
-    let mut cmd = Command::cargo_bin("tracker").unwrap();
-    cmd.current_dir(dir.path());
-    cmd
-}
+mod common;
+use common::tracker;
 
 // --- create with --priority ---
 
@@ -36,13 +32,18 @@ fn create_without_priority_defaults_to_medium() {
 
 #[test]
 fn create_invalid_priority_exits_one() {
+    // DESIGN.md Feature 1: "Error: Invalid priority '<v>'. Expected: low, medium, or high."
+    // Literal spec assertion — substring `Invalid priority` could be satisfied by a regression
+    // that omitted the offending value or the actionable expected-list suffix.
     let dir = TempDir::new().unwrap();
     tracker(&dir)
         .args(["create", "Fix bug", "--priority", "critical"])
         .assert()
         .failure()
         .code(1)
-        .stderr(predicate::str::contains("Invalid priority"))
+        .stderr(predicate::str::contains(
+            "Error: Invalid priority 'critical'. Expected: low, medium, or high.",
+        ))
         .stdout("");
 }
 
@@ -165,12 +166,75 @@ fn list_priority_filter_shows_only_matching() {
 
 #[test]
 fn list_invalid_priority_filter_exits_one() {
+    // DESIGN.md Feature 2: "Error: Invalid priority '<v>'. Expected: low, medium, or high."
+    // Literal spec assertion — substring `Invalid priority` is too lax; the spec mandates the
+    // offending value and the expected-list to be reported.
     let dir = TempDir::new().unwrap();
     tracker(&dir)
         .args(["list", "--priority", "urgent"])
         .assert()
         .failure()
         .code(1)
-        .stderr(predicate::str::contains("Invalid priority"))
+        .stderr(predicate::str::contains(
+            "Error: Invalid priority 'urgent'. Expected: low, medium, or high.",
+        ))
         .stdout("");
+}
+
+#[test]
+fn list_priority_filter_no_match_shows_filter_message() {
+    let dir = TempDir::new().unwrap();
+    tracker(&dir)
+        .args(["create", "Low item", "--priority", "low"])
+        .assert()
+        .success();
+
+    // SO Review 13 F2: filter messages route to stderr; stdout stays empty so
+    // pipelines like `tracker list --priority high | wc -l` see 0, not 1.
+    tracker(&dir)
+        .args(["list", "--priority", "high"])
+        .assert()
+        .success()
+        .stdout("")
+        .stderr(predicate::str::contains(
+            "No issues match the given filters.",
+        ))
+        .stderr(predicate::str::contains("Nice work!").not());
+}
+
+// --- list output format: column separators (DESIGN.md "exactly 2 spaces") ---
+
+#[test]
+fn list_columns_use_exactly_two_space_separator() {
+    let dir = TempDir::new().unwrap();
+    // "in-progress" exactly fills the 11-char Status column; verifies the gap to
+    // the Priority column is the spec-required 2 spaces (not 1).
+    tracker(&dir)
+        .args(["create", "Working on it", "--priority", "medium"])
+        .assert()
+        .success();
+    tracker(&dir)
+        .args(["status", "1", "in-progress"])
+        .assert()
+        .success();
+
+    let output = tracker(&dir)
+        .args(["list", "--status", "in-progress"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let out = String::from_utf8(output).unwrap();
+
+    // Header: "ID" + 4 spaces + "Status" + 7 spaces + "Priority" + 2 spaces + "Labels"
+    assert!(
+        out.contains("ID    Status       Priority  Labels"),
+        "header column spacing must use 2-space separators:\n{out}"
+    );
+    // Row: "in-progress" exactly fills width-11; gap to "medium" must be 2 spaces.
+    assert!(
+        out.contains("in-progress  medium"),
+        "Status (when full-width) must be followed by exactly 2 spaces before Priority:\n{out}"
+    );
 }

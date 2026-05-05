@@ -1,5 +1,245 @@
 # Changelog
 
+## Layer 3 spec amendments (SO Review 13) — 2026-05-05 11:00Z
+
+**Scope:** Closes the four open spec questions surfaced by the cold-session
+parallel batch and carried forward through the prior resolution pass:
+title content sanitization (UX F2/F3, Red Team F1/F3); empty-state stream
+discipline (UX F4); forward-compat unknown-fields documentation (DE F3); SE
+Review 9 content ratification (VDD-IAR F1 content side). All four amendments
+are defect-fix-class or refinement-class — no new features, flags, or
+dependencies.
+
+### Changed
+
+- **`DESIGN.md` Feature 1 (preconditions + error states)** — added "`<title>`
+  contains no control characters (Unicode general category `Cc`)" precondition
+  and the corresponding `Error: Title cannot contain control characters.` error
+  state. Closes UX F2 / UX F3 / Red Team F1 / Red Team F3.
+- **`DESIGN.md` Feature 2 postconditions** — empty-state branch now states
+  "**stderr** prints ...; stdout is empty". Closes UX F4.
+- **`DESIGN.md` Interface stdout/stderr contracts** — rewritten to split *data*
+  (stdout: issue rows, show key-value blocks, one-line confirmations) from
+  *informational status* (stderr: error messages and empty-state messages).
+- **`DESIGN.md` Edge Cases / Title** — amended the existing shell-special
+  bullet; added a new bullet specifying the control-character rule and
+  rationale (newline/CR break the line-per-row contract; tab corrupts column
+  alignment; ESC enables terminal-escape injection).
+- **`DESIGN.md` Edge Cases / List** — each empty-state line now annotates
+  `to **stderr**; stdout is empty`; new closing bullet "Pipe consumers see
+  only data records on stdout".
+- **`DESIGN.md` Edge Cases / Storage** — forward-compat bullet expanded with
+  "They are NOT preserved across writes — any subsequent mutation rewrites
+  `tracker.json` with only the documented schema fields, dropping anything
+  else." (Closes DE F3.) Same bullet's invalid-domain enumeration extended
+  to include control-character titles, empty labels, malformed timestamps,
+  `updated_at < created_at`, and duplicate IDs (factually documents the
+  prior round's validator extensions).
+- **`DECISIONS.md`** — new section "Layer 3 spec amendments — SO Review 13"
+  with one entry per finding (control-char rejection, stderr empty state,
+  unknown-field non-preservation, SE-9 content ratification + process
+  violation split).
+- **`src/lib.rs` `validate_title`** — rejects any character with
+  `is_control()` after the empty-after-trim check; new error
+  `"Title cannot contain control characters."`.
+- **`src/lib.rs` `issue_fields_are_valid`** — extended with
+  `&& !issue.title.chars().any(char::is_control)` so stored data with a
+  control-character title is treated as corrupt (closes the
+  hand-edited-`tracker.json` bypass path).
+- **`src/lib.rs` `cmd_list`** — empty-state `println!` calls switched to
+  `eprintln!`; rustdoc updated to lead with the stderr routing and the
+  data-vs-status rationale.
+
+### Added (tests)
+
+- **`src/lib.rs` unit tests** — 6 new: `title_with_newline_is_rejected`,
+  `title_with_tab_is_rejected`, `title_with_escape_sequence_is_rejected`,
+  `title_with_nul_or_del_is_rejected`,
+  `title_with_printable_unicode_is_accepted`,
+  `issue_field_validation_rejects_control_char_in_title`. Unit total: 19 → 25.
+- **`tests/layer1.rs`** — 4 new integration tests:
+  `create_title_with_newline_exits_one`,
+  `create_title_with_ansi_escape_exits_one`,
+  `create_title_with_printable_unicode_succeeds`,
+  `control_char_title_in_json_causes_error_exit`.
+  `list_with_no_json_shows_empty_state` renamed to
+  `list_with_no_json_shows_empty_state_on_stderr` and switched to assert
+  `stdout("")` + `stderr(...)`. Layer1 total: 28 → 32.
+- **`tests/layer2.rs`** — `list_all_done_default_shows_empty_state` and
+  `list_nonempty_status_filter_with_no_match_shows_filter_message` switched
+  to `stdout("")` + `stderr(...)` assertions.
+- **`tests/layer3.rs`** — `list_priority_filter_no_match_shows_filter_message`
+  switched to `stdout("")` + `stderr(...)` assertions.
+
+### Verification
+
+- `cargo build --locked --all-targets` — clean.
+- `cargo test --all-targets --locked` — **84/84 pass** (25 unit + 32 layer1 +
+  18 layer2 + 9 layer3). Suite delta: 74 → 84.
+- `cargo clippy --all-targets --locked -- -D warnings` — clean.
+- `cargo fmt --check` — clean.
+
+### Open after this round
+
+- **Process / housekeeping unchanged from prior round:**
+  `tests/common/mod.rs` and `deny.toml` still untracked; full Layer 3 round-2
+  + this resolution pass remain uncommitted (VDD-IAR F3 + F4); SE Review 9
+  process violation remains an Open VDD-IAR finding (content side closed by
+  SO Review 13 Finding 4; process side stands).
+- **Platform deferred:** coverage measurement in CI (F3); CI-side secret
+  scanning (F7). SO has not adjudicated either yet.
+- **Developer-only:** PROCESS.md retrospective placeholders (TW F8 /
+  Portfolio Dim 4) remain.
+
+---
+
+## Layer 3 follow-up: Open finding resolution pass — 2026-05-04 16:00Z
+
+**Scope:** Closes Open findings from the cold-session parallel review batch that
+ran earlier in the day (SE-10, UX-5, Security-6, Platform-8, DE-6, Red-Team-5,
+TW-6 round). Eight domains had real implementation/CI findings; four were
+spec-pending (Raised to SO). This pass addresses the implementation/CI side and
+documents what remains.
+
+### Added
+
+- **`src/lib.rs`** — `parse_timestamp` helper (RFC 3339 / ISO 8601 parsing via
+  `chrono::DateTime::parse_from_rfc3339`); `issues_collection_invariants_hold`
+  (cross-record ID-uniqueness check separate from per-record validation).
+- **`src/lib.rs` unit tests** — 8 new tests: `id_assignment_at_u64_max_returns_error`,
+  `collection_invariants_reject_duplicate_ids`, `collection_invariants_accept_unique_ids`,
+  `issue_field_validation_rejects_empty_label`,
+  `issue_field_validation_rejects_empty_description`,
+  `issue_field_validation_rejects_malformed_timestamp`,
+  `issue_field_validation_rejects_updated_before_created`,
+  `issue_field_validation_accepts_equal_created_and_updated`. Unit total: 11 → 19.
+- **`tests/layer1.rs`** — 6 new integration tests covering the new validation
+  paths and the SIGPIPE fix: `duplicate_ids_in_json_causes_error_exit`,
+  `empty_label_in_json_causes_error_exit`,
+  `malformed_timestamp_in_json_causes_error_exit`,
+  `updated_before_created_in_json_causes_error_exit`,
+  `list_does_not_panic_on_broken_pipe` (cfg(unix); ~600-row tracker.json,
+  reader-end dropped before writer finishes; asserts no `panicked` on stderr
+  and exit code != 101), `u64_max_id_in_json_blocks_next_create_with_clean_error`.
+  Layer 1 total: 22 → 28. Suite total: 60 → 74.
+- **`deny.toml`** — All four supplement-required sections (`[advisories]`,
+  `[licenses]` with explicit allowlist, `[bans]`, `[sources]` restricted to
+  crates.io). Closes Security Review 6 Finding 4 / Platform Review 8 Finding 2.
+- **`Cargo.toml`** — `libc = "0.2"` under `[target.'cfg(unix)'.dependencies]`
+  for the SIGPIPE fix.
+
+### Changed
+
+- **`src/main.rs`** — Restore default SIGPIPE handler at process start
+  (`libc::signal(libc::SIGPIPE, libc::SIG_DFL)`, `cfg(unix)`, single unsafe
+  block with safety rationale). Without this, Rust's runtime ignores SIGPIPE
+  and `println!` panics with EPIPE when the reader closes the pipe;
+  `tracker list | head` exited 101 with a backtrace on stderr, violating
+  DESIGN.md `Error:` stderr contract and the exit-{0,1} set. Closes UX
+  Review 5 Finding 1 / Security Review 6 Finding 1.
+- **`src/lib.rs`** — `next_id` now returns `Result<u64, String>` and uses
+  `checked_add(1)`; defends against hand-edited `tracker.json` planting
+  `id: u64::MAX` (debug: panic; release: silent wrap to 0 → schema corruption,
+  bricks tracker). `cmd_create` propagates the error. Closes Security Review 6
+  Finding 2 / Red Team Review 5 Finding 2.
+- **`src/lib.rs` `issue_fields_are_valid`** — Extended with: non-empty labels
+  (after trim), non-empty description (after trim, when present;
+  forward-compat for Layer 6), parseable `created_at` and `updated_at`
+  timestamps, and `updated_at >= created_at`. Closes SE Review 10 Findings
+  2/3 and DE Review 6 Finding 1.
+- **`src/lib.rs` `load_issues`** — Now also calls
+  `issues_collection_invariants_hold` to enforce DESIGN.md "no two issues
+  share the same ID" at the collection level (per-record validation cannot
+  catch duplicates). Closes SE Review 10 Finding 1 / Security Review 6
+  Finding 3 / DE Review 6 Finding 2 / Red Team Review 5 Finding 4.
+- **`src/lib.rs`** — Crate-level `#![deny(...)]` extended with
+  `clippy::expect_used`, `clippy::panic`, `clippy::missing_errors_doc`. Every
+  public `Result`-returning function now has an explicit `# Errors` section in
+  its rustdoc. Closes Platform Review 8 Finding 4. (Skipped: `clippy::all`,
+  `clippy::pedantic`, `clippy::nursery`, `clippy::missing_panics_doc` — these
+  produce significant noise that isn't proportional to a Phase 1 portfolio
+  scope; revisit if a Layer 4+ refactor surfaces a relevant defect they
+  would have caught.)
+- **`src/lib.rs` `cmd_list` rustdoc** — Now describes the post-SO-Review-11
+  empty-state semantics (default-open view = no flags or `--status open`
+  alone with no other filter; filter view = any other combination). Closes
+  TW Review 6 Finding 9.
+- **`.github/workflows/issue-tracker-cli.yml`** — All third-party actions
+  pinned to commit SHA (`actions/checkout@34e1148...`,
+  `dtolnay/rust-toolchain@3c5f7ea...`, `Swatinem/rust-cache@e18b497...`),
+  trailing comments document the resolved tag and refresh procedure
+  (Platform F1). All cargo invocations gain `--locked` (Platform F5).
+  `cargo install` calls pin the tool version (`cargo-audit --version 0.22.1`,
+  new `cargo-deny --version 0.19.4`); Platform F6. New step
+  `cargo deny --locked check` runs after `cargo audit` (Platform F2).
+- **`.pre-commit-config.yaml`** (git root) — `cargo-fmt-check` hook
+  `cd "$(git rev-parse --show-toplevel)/issue-tracker-cli"` instead of
+  bare `cd issue-tracker-cli` — robust to invocation from any subdirectory.
+  Closes Platform Review 8 Finding 8.
+
+### Open after this round
+
+- **Spec-pending (Raised to SO; cannot proceed without DESIGN.md decisions):**
+  newline characters in titles breaking the one-issue-per-line list contract
+  (UX F2 / Red Team F3); ANSI/control-sequence injection in titles surviving
+  storage and being re-emitted by `list` (UX F3 / Red Team F1); empty-state
+  message currently on stdout polluting pipe consumers like `wc -l` (UX F4);
+  forward-compat unknown-fields silently dropped on rewrite — document the
+  constraint (DE F3).
+- **Platform deferred:** coverage measurement + threshold in CI (F3); CI-side
+  secret scanning to backstop bypassable pre-commit hooks (F7).
+- **Process / housekeeping:** `tests/common/mod.rs` and `deny.toml` are
+  untracked in git (VDD-IAR F3 expanded); the entire Layer 3 round-2 work
+  remains uncommitted (VDD-IAR F4); SE Review 9's DESIGN.md edits at
+  lines 218/220-225 still lack explicit SO approval (VDD-IAR F1);
+  `gates merge` closure protocol (VDD-IAR F2). PROCESS.md retrospective
+  placeholders (TW F8 / Portfolio Dim 4) remain developer-only — IAR rules
+  forbid an agent filling these on the developer's behalf.
+
+### Verification
+
+- `cargo build --locked --all-targets` — clean.
+- `cargo test --all-targets --locked` — 74/74 pass (19 unit + 28 layer1 +
+  18 layer2 + 9 layer3).
+- `cargo clippy --all-targets --locked -- -D warnings` — clean with the
+  strengthened deny set.
+- `cargo fmt --check` — clean.
+- `cargo deny check` — not validated locally (`cargo-deny` not installed
+  on the dev machine); will be validated on next CI run.
+
+---
+
+## Layer 3 — 2026-05-04 05:40Z
+
+**Scope:** VSDD Phase 2a (Red Gate) + Phase 2b (Implementation). `--priority` flag on `tracker create` and `tracker list`. All 11 Layer 3 acceptance criteria met; manual testing complete.
+
+### Added
+
+- **`src/lib.rs`** — `parse_priority`: parses and normalizes priority strings (case-insensitive; derives from `VALID_PRIORITIES` constant — single source of truth, mirrors `parse_status`). `priority_rank`: maps priority strings to sort order (`high`=0, `medium`=1, `low`=2; unknown→`usize::MAX` as defensive backstop, unreachable for stored data given post-deserialization validation). `sort_issues`: sorts by priority rank then ID ascending. `cmd_create` extended to accept `Option<&str>` priority; defaults to `"medium"`. `cmd_list` extended to accept `Option<&str>` priority filter; AND-combined with status filter.
+
+- **`src/main.rs`** — `Create` subcommand gains `--priority` flag (`Option<String>`). `List` subcommand gains `--priority` flag wired to `cmd_list`.
+
+- **`tests/layer3.rs`** — 9 integration tests covering all Layer 3 acceptance criteria: `--priority` on create (happy path, default to medium, invalid value), priority sort (high→medium→low, ID tie-breaking), `--priority` filter (matching only, invalid value, no-match regression for SO Review 11 fix), and `list_columns_use_exactly_two_space_separator` (locks DESIGN.md line 218 "exactly 2 spaces" column-separator contract). Total suite: 60 tests (49 integration + 11 unit), all passing.
+
+- **`src/lib.rs` unit tests** — 4 unit tests: `priority_parsing_valid_cases`, `priority_parsing_rejects_invalid`, `priority_sort_order_is_correct`, `priority_sort_tie_breaking_by_id`.
+
+### Changed
+
+- **`src/lib.rs` `cmd_list`** — `is_open_view` heuristic now requires no priority filter to be set (`effective_status == "open" && effective_priority.is_none()`). Previously, `tracker list --priority X` with no matches printed "No open issues. Nice work!" instead of "No issues match the given filters.", violating DESIGN.md edge case (line 308). SO Review 11 finding.
+
+- **`src/lib.rs` priority constants** — `VALID_PRIORITIES` removed; `PRIORITY_ORDER` is now the single source of truth for both priority validity (membership check in `issue_fields_are_valid`, `parse_priority`) and sort rank (index in `priority_rank`). Mirrors the `parse_status` / `VALID_STATUSES` unification from SA Review 6. SA Review 7 finding.
+
+### IAR — Layer 3 Reviews
+
+- **SO Review 11:** `is_open_view` empty-state heuristic fixed to consider priority filter (real bug introduced by Layer 3); CHANGELOG entry added; README status updated.
+- **SA Review 7:** Priority constants unified — `VALID_PRIORITIES` removed; `PRIORITY_ORDER` is the single source of truth for membership and sort rank.
+- **QE Review 9:** Regression test `list_priority_filter_no_match_shows_filter_message` added to lock in SO Review 11 fix; layer3.rs grew 7 → 8 tests at the time of that review (subsequent gate-closure work added the column-separator test, bringing layer3.rs to 9).
+- **SE Review 8:** `priority_rank` doc comment added explaining `usize::MAX` defensive fallback and unreachability invariant; `is_open_view` naming clarity raised as Open for human director (Layer 4 helper extraction may resolve).
+- **VDD-IAR Review 9:** Layer 3 round 1 process compliance audit. Three Open items gate Layer 3 merge: cold-session pass (only SO was cold-session; SA/QE/SE were same-session as orchestrator), MVR via second IAR pass (round 1 only; SA F2 + SE F2 still Open), and PROCESS.md retrospective backlog (Layer 2 overdue, Layer 3 pending).
+- **Gate-closure work (2026-05-04 06:10Z):** SA Review 7 Finding 2 Resolved — `tracker()` test helper extracted to `tests/common/mod.rs`; `tests/layer1.rs`, `tests/layer2.rs`, `tests/layer3.rs` now use `mod common; use common::tracker;`. PROCESS.md Layer 2 + Layer 3 retrospectives added (VDD-IAR Review 9 Finding 9 closed). SE Review 8 Finding 2 (`is_open_view` rename) and remaining MVR confirmation deferred to SE round 2 cold-session pass running in a separate session.
+
+---
+
 ## Layer 2 — 2026-05-01 00:00Z
 
 **Scope:** VSDD Phase 2a (Red Gate) + Phase 2b (Implementation). `tracker status` command and `--status` filter for `tracker list`. All 16 Layer 2 acceptance criteria met; manual testing complete.
@@ -10,7 +250,7 @@
 
 - **`src/main.rs`** — `Status` subcommand added with `id: String` and `status: String` positional arguments. `List` subcommand wired to pass `--status` flag value to `cmd_list`.
 
-- **`tests/layer2.rs`** — 18 integration tests covering all Layer 2 acceptance criteria: status change (happy path, JSON validation, timestamp refresh, field immutability, case-insensitive input, idempotent set), list status filtering (default excludes non-open, explicit status filter, open explicit == default, all-done empty state, no-match filter message), and all error paths (invalid ID string, zero ID, not found, invalid status value, invalid list filter). Total suite: 38 tests (34 integration + 4 unit), all passing.
+- **`tests/layer2.rs`** — 18 integration tests covering all Layer 2 acceptance criteria: status change (happy path, JSON validation, timestamp refresh, field immutability, case-insensitive input, idempotent set), list status filtering (default excludes non-open, explicit status filter, open explicit == default, all-done empty state, no-match filter message), and all error paths (invalid ID string, zero ID, not found, invalid status value, invalid list filter). Total suite at Layer 2 gate close: 41 tests (34 integration + 7 unit, including the 3 unit tests added below), all passing.
 
 - **`src/lib.rs` unit tests** — 3 unit tests: `status_value_parsing_valid_cases`, `status_value_parsing_rejects_invalid`, `id_must_be_positive_integer`.
 

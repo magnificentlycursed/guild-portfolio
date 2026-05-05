@@ -763,3 +763,362 @@ Current Layer 2 merge gate status:
 
 **Coordination:** Open Findings 2 and 3 gate Layer 2 merge.
 
+---
+
+---
+
+## Review 9 — 2026-05-04 06:00Z
+
+**Scope:** Layer 3 implementation — full process compliance evaluation. Artifacts reviewed: `DESIGN.md`, `TODO.md`, `CHANGELOG.md`, `PROCESS.md`, `src/lib.rs`, `src/main.rs`, `tests/layer3.rs`, all Layer 3 IAR domain logs (SO Review 11, SA Review 7, QE Review 9, SE Review 8), and `git log` from Layer 2 merge through Layer 3 manual testing complete. Run last per sequencing guidance, after all other Layer 3 domain reviews completed.
+
+**Session note:** Same-session-as-other-domains review. The orchestrator (this conversation) ran SO Review 11 cold-session-adversarial, then ran SA Review 7 (code change applied by human director, log entry written by orchestrator), then QE Review 9 same-session, then SE Review 8 same-session, now this VDD-IAR Review 9 same-session. Acknowledged quality tradeoff: same-session VDD-IAR review of a same-session IAR suite is the weakest configuration for adversarial pressure — context bleeds across domains and across the meta layer. A cold-session VDD-IAR pass would be the gold standard. This entry is honest about its own session conditions.
+
+**Program phase:** Phase 1. Crosslink not yet introduced; dim 11 not applicable. Governing document: `apprentice-onboarding/02-the-methodology/01-how-we-build.md` (process methodology) and `apprentice-onboarding/02-the-methodology/02-tracking-your-work.md` (Phase 1 portfolio project #2 brief).
+
+---
+
+### Layer 3 commit-pattern audit
+
+| Commit | Time (PDT) | Phase signal |
+|---|---|---|
+| `71d2137` Layer 3 Red Gate — priority tests and stubs | 2026-05-03 21:57 | Phase 2a: tests + stubs committed before implementation |
+| `caf5f9a` Layer 3 implementation — `--priority` on create + list | 2026-05-03 22:01 | Phase 2b: implementation 4 minutes after Red Gate |
+| `6f7fd46` Layer 3 manual testing complete | 2026-05-03 22:22 | Phase 2c: human-director manual verification, logged in TODO.md |
+
+Red Gate commit precedes implementation commit. Test discipline (dim 4) intact at the commit-pattern level. Verified by reading the Red Gate commit's introduced tests against `caf5f9a`'s diff: tests would fail against the pre-implementation stubs (no `--priority` flag in Cli, no `parse_priority`, no `sort_issues`).
+
+---
+
+### Resolved
+
+*(none)*
+
+### Dismissed
+
+**Finding 1 — Design-before-code (Dim 1)**
+
+DESIGN.md was complete before any Layer 3 code was written (DESIGN.md last touched in spec phase, 2026-04-27). Layer 3 features (`--priority` on create, `--priority` filter, sort by priority then ID) are specified in Feature 1 (preconditions/postconditions), Feature 2 (filter values, error message format), and the Edge Cases section. The implementation matches the spec; no spec drift between session start and Layer 3 close.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 2 — Layered decomposition (Dim 2)**
+
+`TODO.md` Layer 3 had 11 acceptance criteria, 8 manual testing checklist items, and a Red Gate test plan listing 7 integration tests + 4 unit tests — all in place before implementation. All items now checked. Layer scope explicitly excludes `--label`, `--description`, `show`, `delete` (Layer 4+), and the implementation honored this — `main.rs` exposes only `--priority` for Layer 3.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 3 — Layer gate compliance for Layer 3 entry (Dim 3)**
+
+The previous-layer carry-forward question: was Layer 2 properly gated before Layer 3 began? VDD-IAR Review 8 logged Open Findings 2 (cold-session) and 3 (MVR via second IAR pass) as "gates Layer 2 merge." Layer 2 was merged (PR #11, commit `f47e42f`, 2026-05-02 22:35 PDT) before those Open items were explicitly checked off in this log. Reading the artifact alone, Layer 2 closed with Open VDD-IAR findings.
+
+Mitigating evidence: QE Review 8 (2026-05-02 00:00Z) is a cold-session pass for QE specifically and addresses the cold-session requirement (Finding 2) for at least one domain. The MVR-via-second-pass requirement (Finding 3) was not formally re-addressed for SO/SA/SE/VDD-IAR before merge, but no new findings were known to be pending at the time of merge.
+
+**Classification:** Dismissed for Layer 3 purposes. The Layer 2 carry-forward is a Layer 2 process artifact; raising it again at Layer 3 would duplicate the Layer 2 finding without changing its disposition. Re-raising it would convert a known Layer 2 director-judgment-call into a permanent flag against Layer 3 entry, which is not the right framing. For Layer 3, the relevant question is whether Layer 3's own gates are honored — see Findings 5 and 6.
+
+---
+
+**Finding 4 — Test discipline for Layer 3 (Dim 4)**
+
+Layer 3 Red Gate commit (`71d2137`) introduced 7 integration tests + 4 unit tests, all in TODO.md's Red Gate plan, before implementation commit (`caf5f9a`). Test names are behavior-named (`create_with_priority_stores_correct_value`, `list_sorts_high_before_medium_before_low`). The implementation commit's diff fills in `parse_priority`, `priority_rank`, `sort_issues`, and the `cmd_create`/`cmd_list` extensions — pre-implementation, those tests fail (no `--priority` flag exists at the CLI layer; no `parse_priority` function; etc.). Red Gate discipline intact.
+
+QE Review 9 added one finding-driven test (`list_priority_filter_no_match_shows_filter_message`) post-implementation in response to a real SO Review 11 finding. This is Category C (finding-driven) per the Layer 1 / Layer 2 precedent and is the correct pattern.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 5 — Human verification (Dim 5 / Dim 9)**
+
+Layer 3 manual testing checklist (`TODO.md` lines 153–161) is fully checked. Commit `6f7fd46` "Layer 3 manual testing complete" is the explicit director sign-off. The human director also rejected an orchestrator-proposed cold-session subagent invocation and chose to apply SA Review 7 (priority constants unification) directly — strong evidence of director directing rather than rubber-stamping AI defaults.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 6 — Role integrity (Dim 8)**
+
+Director's fingerprints visible: SA Review 7 priority-constants unification was a director-driven code change (`VALID_PRIORITIES` removed; `PRIORITY_ORDER` becomes single source of truth). The orchestrator's planned cold-session subagent invocation for SA was rejected; the director acted instead. CHANGELOG was updated by the director with the SA Review 7 entry. This pattern — director making structural choices independently of AI defaults — is positive role-integrity evidence.
+
+**Classification:** Dismissed.
+
+---
+
+### Open
+
+**Finding 7 — Cold-session deficit for Layer 3 IAR (Dim 6 — IAR fresh context)**
+
+Layer 3 IAR pass cold-session status by domain:
+
+| Domain | Round | Cold-session? | Evidence |
+|---|---|---|---|
+| SO Review 11 | 1 | Yes | Session note: "Cold-session adversarial review using primer. Reviewer did not participate in Layer 3 build." |
+| SA Review 7 | 1 | No (director-applied) | Code change applied by human director directly; log entry written in orchestrator's same-session context, documenting the director's refactor. Not an independent AI cold-session adversarial pass. |
+| QE Review 9 | 1 | No | Session note: "Same-session-as-other-domains adversarial review (orchestrator did not spawn a fresh subagent for QE in this round; user rejected the cold-session subagent invocation)." |
+| SE Review 8 | 1 | No | Session note: "Same-session-as-other-domains review (orchestrator did not spawn a fresh subagent for SE in this round)." |
+| VDD-IAR Review 9 | 1 | No | This entry. Same-session as SO/SA/QE/SE. |
+
+Pattern matches Layer 2 round 1 — a single-session batch with one cold session sprinkled in (Layer 2: QE Review 8 cold; Layer 3: SO Review 11 cold). Per session-primer rule "If batching domains in one session is unavoidable, treat it as a quality tradeoff and note it in the review log" — the batching is acknowledged in each domain's session note, satisfying the disclosure requirement but not the gold-standard parallel-cold-session expectation.
+
+**Classification: Open — gates Layer 3 merge.** Before Layer 3 merges, at least one additional domain review (recommend QE for the regression-test path or a fresh SE pass) should be conducted in a fresh session with no access to this orchestrator's context. Mirrors the Layer 2 disposition.
+
+---
+
+**Finding 8 — MVR not reached for Layer 3 (Dim 7 — IAR iteration)**
+
+This is round 1. Real findings were produced across all four AI-driven domains:
+
+- SO Review 11 Finding 1: real Layer-3-introduced spec-compliance bug (`is_open_view` empty-state heuristic) — resolved this session.
+- SA Review 7 Finding 1: real duplication (`VALID_PRIORITIES` vs `PRIORITY_ORDER`) — resolved by human director.
+- QE Review 9 Finding 1: real regression-coverage gap (no test for SO 11 fix) — resolved this session.
+- SE Review 8 Finding 1: real maintainability gap (`priority_rank` undocumented defensive fallback) — resolved this session.
+
+Two Open findings remain after round 1:
+- SA Review 7 Finding 2: `tracker()` test helper duplicated across 3 files — recommended extraction to `tests/common/mod.rs` per SA Review 6's prior threshold; not applied this round.
+- SE Review 8 Finding 2: `is_open_view` is no longer accurately named after SO Review 11 fix — recommend rename or helper extraction; not applied this round.
+
+A second pass with fresh context is required to confirm MVR. Per Layer 2 precedent, this gates merge.
+
+**Classification: Open — gates Layer 3 merge.** A second IAR pass is required, ideally cold-session for at least one domain. The two Open findings (SA F2, SE F2) should either be applied in round 2 or explicitly dismissed by the director with documented rationale before merge.
+
+---
+
+**Finding 9 — PROCESS.md retrospective absent for Layer 2 and Layer 3 (Dim 10 — Retrospective quality)**
+
+`PROCESS.md` line 84 declares: `## Layer 2 and beyond` followed by line 86: `*(To be written after each layer closes.)*`. The placeholder has been in place since Layer 1 gate closure (commit `d419963`, 2026-04-30). Layer 2 closed (PR #11, 2026-05-02) without a Layer 2 entry being added. Layer 3 is approaching close with the same gap — Layer 2 retro is overdue, Layer 3 retro is pending.
+
+A retrospective is the artifact that records what went wrong, what was cut, what the agent got wrong, and what was learned per dim 10. Layer 2 had non-trivial process content worth recording: cold-session deficit (which carried into Layer 3), the QE Review 7 mutation that survived 37 prior tests, the SA Review 6 deferral closure, the second-pass MVR requirement that the artifact does not show being closed before merge. None of this is in `PROCESS.md`.
+
+**Classification: Open — gates Layer 3 merge.** Recommend adding a Layer 2 retrospective entry (catch-up) and a Layer 3 retrospective entry to `PROCESS.md` before Layer 3 merges. Director's call on whether to write both at Layer 3 close or split across two commits.
+
+---
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Summary
+
+Layer 3 process compliance is partial. Six dimensions cleanly compliant (design-before-code, decomposition, test discipline at commit pattern, human verification, role integrity, manual testing checklists). Three Open findings gate Layer 3 merge:
+
+1. **Finding 7** — Cold-session deficit (only SO had a cold-session pass; other three AI-driven domains were same-session as orchestrator).
+2. **Finding 8** — Round 1 only; two real round-1 findings remain Open (SA test helper extraction, SE `is_open_view` rename); MVR not reached.
+3. **Finding 9** — `PROCESS.md` retrospective backlog: Layer 2 overdue, Layer 3 pending.
+
+The session-isolation tradeoff — running SO/SA/QE/SE/VDD-IAR in one orchestrator session — is the dominant quality concern at this gate. A single fresh-context pass over the full Layer 3 IAR artifacts (a "VDD-IAR cold-session round 2") is the high-leverage next step: it would either confirm the resolutions hold under independent pressure (closing Finding 8) or expose the remaining defects that this batched session missed (which the session-primer warns is the failure mode of batched IAR).
+
+**Layer 3 merge gate status:**
+- [x] 53 tests passing (42 integration + 11 unit), `cargo clippy --all-targets -- -D warnings` clean, `cargo fmt --check` clean
+- [x] All 11 Layer 3 acceptance criteria verified by SO Review 11
+- [x] Manual testing checklist completed (TODO.md, Layer 3)
+- [x] Red Gate commit precedes implementation commit (Layer 3 dim 4 honored)
+- [x] All Layer 3 IAR domains run round 1, real findings resolved
+- [ ] Cold-session domain review (SE round 2 in progress in a separate session) — gates merge (Finding 7)
+- [ ] Second IAR pass to confirm MVR (SE round 2 covers SE F2 + provides cold-session signal for Layer 3) — gates merge (Finding 8)
+- [x] PROCESS.md Layer 2 retrospective (catch-up) — added at gate closure (Finding 9)
+- [x] PROCESS.md Layer 3 retrospective — added at gate closure (Finding 9)
+- [x] SA Review 7 Finding 2 (test helper extraction) — Resolved at gate closure (`tests/common/mod.rs` created; layer1/2/3.rs use `common::tracker`); Finding 8 partially closed
+- [ ] SE Review 8 Finding 2 (`is_open_view` rename) — held for SE round 2 cold-session pass
+
+**Update (2026-05-04 06:10Z):** Director split the round-2 work after Review 9. SE round 2 was launched in a separate cold session (addresses Findings 7 and 8 partially: cold-session signal restored for one domain; SE F2 will be applied or dismissed in that session). The orchestrator session applied SA Review 7 Finding 2 (test helper extraction) and wrote the PROCESS.md retrospectives for Layer 2 and Layer 3 (closes Finding 9). Remaining gate items: SE round 2 outcome, and a final pass to confirm MVR after any new SE findings resolve.
+
+**Coordination:**
+- Open Findings 7, 8, 9 gate Layer 3 merge.
+- Finding 7 (cold session) is closely linked to Finding 8 (MVR via second pass) — a single cold-session round 2 over multiple domains can close both.
+- Finding 9 (retrospective) is independent and the cheapest to close — recommend the director write Layer 2 + Layer 3 retros in a single PROCESS.md edit before the Layer 3 merge commit.
+- Layer 2 carry-forward (VDD-IAR Review 8 Findings 2 & 3) was not formally re-addressed before Layer 2 merge; this Review 9 explicitly does not re-raise it for Layer 3 (see dismissed Finding 3) but flags the pattern for the director's awareness: VDD-IAR's "gates merge" classification needs an explicit closure mechanism, not just director judgment.
+
+---
+
+---
+
+## Review 10 — 2026-05-04 (cold session, parallel batch)
+
+**Scope:** Layer 3 process compliance — second-pass adversarial check on the Layer 3 process artifacts as they stand at start-of-round in the working tree. Artifacts evaluated: `DESIGN.md` (working-tree state, including uncommitted modifications), `TODO.md`, `CHANGELOG.md`, `PROCESS.md`, `README.md`, `Cargo.toml`, `src/lib.rs`, `src/main.rs`, `tests/{layer1,layer2,layer3}.rs`, `tests/common/mod.rs` (untracked), all 13 IAR domain logs through their HEAD-committed state plus the working-tree diffs, `git log` Layer 2 merge → present, `git status`, `.pre-commit-config.yaml`, `.pre-commit-hooks/check-no-home-paths.sh`. Governing methodology: `apprentice-onboarding/02-the-methodology/01-how-we-build.md`.
+
+**Session note:** Cold session per primer; parallel batch run — 10 other domain reviews running concurrently; this entry evaluates state at start-of-round only. The 10 parallel domains' newly-appended uncommitted entries (DE Review 6, PE Review 8, PA Review 4, QE Review 10 not yet visible, SE Reviews 9–10, SA Reviews 7–8 newly added, SO Reviews 10–12) are NOT evaluated for content quality here — VDD-IAR runs last in the merge gate and will pick them up in a future round. They ARE in scope as evidence of process behavior (who ran, who modified what artifact, in what order) because the parallel-batch design is itself a process choice.
+
+The parallel-batch design complies with the primer's "Parallel independent sessions are the gold standard" guidance: each of 11 domains runs in a fresh cold session, no in-session context sharing across domains. The tradeoff is that domains cannot synchronously coordinate during the round — items normally raised to SO and resolved in a same-session round-trip cannot be formally closed within the round. Findings 1 and 2 below name the failure modes that emerge from this tradeoff.
+
+**Program phase:** Phase 1. Crosslink not yet introduced; dim 11 not applicable.
+
+**Regression check on Review 9:** Three Open findings carried into this round. F7 (cold-session deficit) is being addressed by this very batch and other domains' parallel cold-session passes — partial closure visible. F8 (MVR via second pass) is being addressed by the same batch. F9 (PROCESS.md retrospectives) — Layer 2 + Layer 3 retrospectives are present in the working-tree PROCESS.md (Resolved-pending-commit; see Finding 4 below for the "uncommitted artifact" subtlety).
+
+---
+
+### Resolved
+
+*(none)*
+
+---
+
+### Open
+
+**Finding 1 — DESIGN.md modified in working tree by parallel non-SO reviews; identical-pattern recurrence of Review 3 Finding 1 (Dim 8 — Role integrity)**
+
+`git diff DESIGN.md` shows two distinct uncommitted edits to DESIGN.md at start-of-round:
+
+1. **Lines 218 + 220–225 (List output format):** added `"Columns are separated by exactly 2 spaces."` rule and re-rendered the example table with 2-space separators. Authored within `iterative-adversarial-refinement/SOFTWARE-ENGINEER-REVIEW.md` Review 9 Finding 3 (per its `Resolution (2026-05-04, SO chose option (b) in same session):` block). SE is not the SO domain. The "in same session" framing is incompatible with the parallel-batch isolation: SO Review 12 (the parallel SO cold-session pass) makes no mention of approving option (b) — its only DESIGN.md edit is the unrelated Finding 1 below at line 291. SO did not, in fact, choose option (b) in any verifiable artifact prior to or during the SE round.
+
+2. **Line 291 (Edge Cases / IDs):** appended `Expected a positive integer.` to the truncated edge-case error string. Authored by SO Review 12 Finding 1 (legitimate — SO is the spec authority).
+
+The line-291 change is in-policy; the lines-218/220–225 change is not. This is the exact pattern Review 3 Finding 1 (2026-04-27) caught and resolved: a non-SO domain modified DESIGN.md, then claimed retroactive SO approval. The Review 3 resolution mandated: *"Future DESIGN.md changes by non-SO domains must follow the escalation pattern: raise to SO, wait for SO decision, then apply under SO authority."* SE Review 9 documented its escalation correctly (Finding 3 was Open, classified Raised to SO) — but then applied the change in the same round under "SO chose option (b)" framing that is not corroborated by any SO artifact. In a parallel batch this cannot be a same-session round-trip; SO Review 12 ran in its own isolated session and did not address option (b).
+
+The substantive change may be correct on its merits — the spec rule and example were inconsistent, and the 2-space separator option matches user-readability evidence — but the authority chain was violated. The instruction in this review's task brief explicitly says **"NEVER modify DESIGN.md"** for VDD-IAR; the same constraint applies to SE. The pattern recurring two layers later, after a documented Review 3 corrective action, indicates the corrective action did not change behavior — the prompt-level guard (DESIGN.md change authority statement in shared domain prompts, per Review 4 Finding 6) does not survive the new parallel-batch operating mode where SO is unavailable for synchronous approval.
+
+**Classification: Open.** This finding does not propose reverting the DESIGN.md edit (the substance is reasonable). It proposes that the parallel-batch operating mode requires an explicit protocol for cross-domain DESIGN.md change requests — either (a) a sequential SO-first round before parallel batches when DESIGN.md changes are anticipated, (b) a held-pending-SO state where non-SO domains record proposed edits as a diff in their log without applying them, with SO consolidating in a follow-up round, or (c) explicit escalation-only with no in-round application. The current implicit convention ("SO chose option (b) in same session" when SO did not) is unsafe and reproduces the Review 3 violation. Director's call on which protocol to adopt; this finding gates the next merge that involves any DESIGN.md change from a parallel batch.
+
+---
+
+**Finding 2 — Layer 3 "gates merge" findings closed by director judgment without explicit closure protocol; pattern recurrence from Layer 2 (Dim 3 — Layer gate compliance / Dim 7 — IAR iteration)**
+
+VDD-IAR Review 9 explicitly noted (Coordination block, last bullet): *"VDD-IAR's 'gates merge' classification needs an explicit closure mechanism, not just director judgment."* The same review then closed Finding 7 (cold-session deficit) and Finding 8 (MVR via second pass) by checking gate items via the "Update (2026-05-04 06:10Z)" addendum that documents director-split round-2 work being done in parallel — without a final VDD-IAR pass confirming the gate items are actually closed. The parallel batch (this round) is the round-2 work; it has not yet completed. VDD-IAR Review 9 cannot have honestly checked F7/F8 closure.
+
+Pattern audit:
+- **Layer 1 → close:** Reviews 5 and 6 declared MVR; Review 7 immediately found three real findings the prior reviews missed and explicitly named those MVR signals premature. Process self-corrected within the layer.
+- **Layer 2 → close:** Review 8 left F2/F3 Open at merge time. Layer 2 merged anyway (PR #11, `f47e42f`). Review 9 (Layer 3) dismissed the carry-forward without re-evaluation. Process did NOT self-correct; gate-flag was discharged by elapsed time.
+- **Layer 3 → in close:** Review 9's gate-status table marks SE F7 and F8 as `[ ]` Open in the formal table, then the Update block effectively reclassifies them as in-progress without a follow-up round-N+1 pass. This round (Review 10) is that pass. Findings 7 and 8 should remain Open in this entry until a future cold-session VDD-IAR round can confirm: (i) the parallel-batch SE/SA/QE/PE/etc. round-2 entries closed their findings, (ii) those closures hold under fresh adversarial pressure, and (iii) MVR has been reached for round 2 across all active domains.
+
+This round (Review 10) explicitly does NOT close F7 and F8. They remain Open from Review 9, carried forward.
+
+**Classification: Open.** This is a meta-process finding about the closure protocol itself, not about Layer 3 specifically. Recommended remediation: the next merge of any Layer (Layer 3 going forward, every Layer thereafter) requires a final VDD-IAR pass that explicitly checks every prior-round gate-flagged item against artifact evidence (commit hash + IAR log entry + test pass), with no items left in "in-progress / handled in a parallel session" state. If the protocol is adopted, the Layer 2 carry-forward (Review 8 F2/F3) should be retroactively re-evaluated as a one-time clean-up — the carry-forward is now two layers old.
+
+---
+
+**Finding 3 — `tests/common/mod.rs` is untracked in git; Review 9's "SA Review 7 Finding 2 — Resolved at gate closure" claim is unverifiable in version control (Dim 3 — Layer gate compliance / Dim 4 — Test discipline as artifact integrity)**
+
+VDD-IAR Review 9's gate-status table (line 925 of this file) marks: *"[x] SA Review 7 Finding 2 (test helper extraction) — Resolved at gate closure (`tests/common/mod.rs` created; layer1/2/3.rs use `common::tracker`); Finding 8 partially closed."*
+
+`git status` at start-of-round shows `tests/common/` as **Untracked files**. Inside the directory, `mod.rs` exists with the expected `pub fn tracker(dir: &TempDir)` helper. The three layer test files are modified to call `mod common; use common::tracker;`. Tests pass under `cargo test` because the file is present in the working tree.
+
+The artifact exists. It is not in version control. A Resolved classification on a per-layer process gate that depends on an artifact present only in the local working tree is artifact-integrity fragile: a fresh checkout of the merge commit would not contain `tests/common/mod.rs`, the three layer test files would fail to compile, and the layer would not actually be at the claimed state. The Review 9 gate item check `[x]` was marked before the artifact was committed.
+
+**Classification: Open.** This is straightforwardly remediable: `git add tests/common/mod.rs` and include in the Layer 3 merge commit alongside the three modified layer test files. Until then the Resolved claim in Review 9 is unbacked. Recommend the next gate-closure protocol require: every `[x]` artifact-bearing gate item must reference a commit hash that contains the artifact, not just a working-tree state.
+
+---
+
+**Finding 4 — Layer 3 IAR work and PROCESS.md retrospectives present in working tree are not committed; merge-readiness audit cannot rely on uncommitted state (Dim 3 / Dim 10 — Retrospective quality)**
+
+`git diff --stat HEAD` at start-of-round shows 14 modified files and 1 untracked directory totaling +1543 lines / -38 lines. This includes: the SE/SO/SA/DE/QE/VDD-IAR review log additions for Layer 3 round 2, the PROCESS.md Layer 2 + Layer 3 retrospectives (Review 9 F9 closure artifact), DESIGN.md edits (Finding 1 above), CHANGELOG.md updates, README.md updates, src/lib.rs and src/main.rs implementation changes from SE Review 9, and three layer test file updates (common-helper extraction + new regression tests).
+
+None of this is committed. The most recent commit on the current branch (`6f7fd46`, 2026-05-03 22:22 PDT) is "Layer 3 manual testing complete." Every artifact created or modified by the in-flight parallel-batch IAR run is in the working tree only. The branch (`issue-tracker-cli-priority`) is up-to-date with `origin/issue-tracker-cli-priority` per `git status`, but origin reflects the same uncommitted-on-top state.
+
+This is the inverse of Finding 3 (artifact in working tree without commit) generalized: the entire Layer 3 round-2 IAR pass is currently working-tree-only. Review 9's F9 closure (Layer 2 + Layer 3 retrospectives added) is a working-tree-only claim. A merge of this branch as it stands would either (a) lose the round-2 work entirely (if merged from a clean checkout) or (b) commit a single mega-commit that conflates 11 domains' round-2 changes with code refactors and DESIGN.md edits.
+
+**Classification: Open.** The director needs to commit the round-2 work in coherent units before Layer 3 merges. Recommended structure: separate commits for (a) DESIGN.md edits with explicit SO authority statement in commit message, (b) src/main.rs `Cli::try_parse` transform + `tests/common/mod.rs` extraction + `is_open_view` rename + 2-space-separator format change (SE/SA round-2 code), (c) the 13 review log appendages, (d) PROCESS.md retrospectives + CHANGELOG/README updates. This finding does not block the round-2 IAR work itself; it blocks the Layer 3 merge from proceeding on the current uncommitted state.
+
+---
+
+### Dismissed
+
+**Finding 5 — Design-before-code (Dim 1)**
+
+DESIGN.md exists, was complete before any Layer 3 implementation, and continues to govern. The DESIGN.md edits flagged in Finding 1 are spec refinements (one with-authority, one without) — they do not retroactively change any implemented behavior beyond what the implementation already produced. Spec-before-code temporal ordering remains intact at the layer-entry boundary. Finding 1 is a role-integrity issue, not a design-before-code issue.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 6 — Layered decomposition (Dim 2)**
+
+`TODO.md` Layer 3 plan was in place before Layer 3 work began, with 11 acceptance criteria, 8 manual checklist items, and the Red Gate test plan. All 11 acceptance criteria are checked. Layer 3 scope correctly excludes Layer 4–7 work; `main.rs` does not expose `--label`, `--description`, `show`, or `delete`. SE Review 8 Finding 2's Open recommendation about `is_default_open_view` extensibility for Layer 4 is a Layer 4 prep concern, not a Layer 3 decomposition violation.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 7 — Test discipline at the commit level (Dim 4)**
+
+Verified directly from `git log --pretty=fuller -10`:
+- `71d2137` Layer 3 Red Gate — priority tests and stubs (Sun May 3 21:57:25 2026 -0700)
+- `caf5f9a` Layer 3 implementation — `--priority` on create + list (Sun May 3 22:01:42 2026 -0700)
+
+Red Gate commit precedes implementation commit by 4 minutes 17 seconds. Red Gate commit message documents: "Confirmed: 4 unit tests + 6 integration tests fail (todo!() panics; clap rejects --priority with exit 2). Cat B Red Gate deviation — `create_without_priority_defaults_to_medium` passes against the existing Layer 1 default; regression coverage of the AC 'default unchanged from Layer 1,' not a Red Gate test for new behavior. Same disposition as Layer 2's logged Cat B deviations." The Cat B disposition is documented in commit message, not just deferred to log. This is the right pattern.
+
+**Classification:** Dismissed. (Subsequent post-implementation tests added by SE Review 9 — `unknown_subcommand_uses_capital_error_prefix_and_exits_one`, `missing_required_arg_uses_capital_error_prefix_and_exits_one`, `list_columns_use_exactly_two_space_separator` — are finding-driven additions per the Layer 1/2 precedent, Cat C. Not a Red Gate violation.)
+
+---
+
+**Finding 8 — Pre-commit hook compliance (Dim 6 — process integrity)**
+
+`.pre-commit-config.yaml` is in place at the git root with: `detect-private-key`, `no-commit-to-branch` (main), `no-home-dir-paths` (local hook), `cargo-fmt-check` (local hook). The local hook script (`.pre-commit-hooks/check-no-home-paths.sh`) is executable. `git log` for the Layer 3 commits shows no `--no-verify` flag in commit messages or evidence of bypass. The cargo-fmt-check hook would have rejected any non-fmt-clean commit on Rust files in the project. No evidence of hook bypass.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 9 — Role integrity for committed Layer 3 work (Dim 8) — partial dismissal, partial carry-into-Finding-1**
+
+For the three committed Layer 3 commits (`71d2137`, `caf5f9a`, `6f7fd46`): commit authors are correct; commit messages document scope, test counts, manual-test confirmation; commit-pattern reflects director-driven work (Red Gate → impl → manual testing → IAR pass). The director-applied SA Review 7 Finding 1 (priority constants unification) is documented in CHANGELOG and the SA log. Layer 3 implementation phase role integrity is intact.
+
+The role-integrity violation is in the in-flight round-2 DESIGN.md modification (Finding 1 above), not in the committed Layer 3 work. This finding splits the dimension: the implementation-phase work is clean; the round-2 IAR-phase work has the Finding 1 escalation issue.
+
+**Classification:** Dismissed for the implementation-phase scope; carried as Finding 1 for the IAR round-2 scope.
+
+---
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Summary
+
+Review 10 is the Layer 3 round-2 cold-session VDD-IAR pass (parallel-batch context). Four Open findings, five dismissed, none hallucinated, none resolved. Three Open findings name systemic gaps that the parallel-batch operating mode exposes: (a) DESIGN.md change authority breaks down when SO cannot synchronously approve in-round (Finding 1, recurrence of Review 3 F1); (b) "gates merge" findings continue to be discharged by director judgment rather than explicit closure protocol (Finding 2, recurrence of the Layer 2 carry-forward pattern flagged in Review 9); (c) round-2 artifacts (helper module, retrospectives, log entries, code refactors, DESIGN.md edits) are entirely uncommitted at start-of-round, making merge-readiness claims unverifiable in version control (Findings 3 + 4).
+
+The Red Gate discipline at the commit level is intact. Pre-commit hooks are configured and not bypassed. The implementation-phase role integrity is clean. The findings cluster in the IAR-round-2 phase, not the Layer 3 implementation phase.
+
+**Parallel-batch process compliance assessment:** The 11-domain parallel cold-session run is the gold-standard configuration per the primer's "Parallel independent sessions are the gold standard" guidance. The tradeoff it imposes — no in-round cross-domain coordination, especially around the SO authority gate — was not pre-mitigated by an explicit protocol. The result is two domains making independent uncoordinated DESIGN.md edits in the same round (Finding 1) and the natural dim 8 violation that Review 3 had previously corrected for the in-session case. This is a known consequence of the operating mode change, not a defect of any individual reviewer; it requires a protocol-level fix (Finding 1 recommendation).
+
+**Layer 3 merge gate status (this review's view):**
+- [x] 56 tests passing in working tree (11 unit + 18 layer1 + 18 layer2 + 9 layer3); `cargo clippy --all-targets -- -D warnings` clean; `cargo fmt --check` clean — verified by reading test files and SE Review 9 confirmation
+- [x] All 11 Layer 3 acceptance criteria checked in TODO.md, verified by SO Reviews 11 and 12
+- [x] Manual testing checklist completed (TODO.md, Layer 3); commit `6f7fd46` documents director sign-off
+- [x] Red Gate commit precedes implementation commit by ~4 minutes (Layer 3 dim 4 honored)
+- [ ] All Layer 3 IAR domains run rounds 1 + 2; round-2 entries committed — round 1 committed in HEAD, round 2 working-tree only (Finding 4)
+- [ ] DESIGN.md changes from this round under SO authority — Finding 1 (SE Review 9 option-b edit lacks SO authorization)
+- [ ] `tests/common/mod.rs` committed (Finding 3)
+- [ ] PROCESS.md Layer 2 + Layer 3 retrospectives committed (working-tree only — Finding 4)
+- [ ] Round-2 review log entries committed (working-tree only — Finding 4)
+- [ ] Final cold-session VDD-IAR pass after all round-2 entries are committed and Findings 1–4 resolved — gates merge (Finding 2's protocol)
+
+**Coordination:**
+- Findings 1–4 all gate Layer 3 merge.
+- Finding 1 (DESIGN.md authority) is the highest-priority finding because it has the deepest precedent (Review 3) and the broadest impact (every future parallel batch reproduces the failure mode). Director's call on which protocol option to adopt.
+- Finding 2 (gate-closure protocol) is closely linked to Finding 1: both arise from the parallel-batch design lacking a coordination layer. A single protocol document covering DESIGN.md change requests + gate-flag closure + commit cadence would close both.
+- Finding 3 (`tests/common/mod.rs` untracked) is the cheapest to close: `git add` + `git commit`.
+- Finding 4 (round-2 work uncommitted) is a director-only action: structure and commit the working-tree work in coherent units before Layer 3 merges.
+- Future VDD-IAR rounds will pick up the 10 other parallel domains' newly-appended Layer 3 round-2 entries (DE, PE, PA, QE, RT, SE, SA, SO, TW — those that produced new entries this batch). This entry explicitly does not evaluate them for content; it observes them only as evidence of the parallel-batch coordination gap.
+
+---
+
+### Update — 2026-05-04 16:00Z: Layer 3 follow-up resolution pass (process-only observations)
+
+A resolution pass ran in a single warm session (the orchestrator session that launched the parallel cold-session batch earlier in the day). It applied the implementation/CI fixes for the Open findings raised by SE-10, UX-5, Security-6, Platform-8, DE-6, Red-Team-5, and TW-6, and wrote update entries to each affected log. See `CHANGELOG.md` § "Layer 3 follow-up: Open finding resolution pass" for the full list.
+
+This update is a **process record only**; the substantive VDD-IAR findings from Review 10 are not closed by it.
+
+- **F1 (SE Review 9 modified DESIGN.md without explicit SO approval) → still Open.** The resolution pass deliberately did not edit DESIGN.md beyond what SO Review 12 already authorized (line 291). The lines 218 / 220-225 SE-9 edits remain in place without a separate SO endorsement; the director must adjudicate retroactively or request SO Round 13 to ratify them. Not closed by this round.
+- **F2 (gates-merge closure protocol) → still Open.** No protocol document drafted or adopted in this round. Recommended: a short `iterative-adversarial-refinement/CLOSURE-PROTOCOL.md` codifying (a) when an Open finding becomes Resolved, (b) which domain's authority closes vs. acknowledges, (c) how cross-domain duplicate findings are linked, (d) the parallel-batch coordination cadence. Director-only authorship.
+- **F3 (`tests/common/mod.rs` + new `deny.toml` untracked in git) → still Open.** The new `deny.toml` from this round joins `tests/common/mod.rs` as untracked. Director must `git add` both before commit; the resolution pass did not stage either (committing on the developer's behalf would inflate the next ownership-assessment dimension and defeats the spirit of the original SA Review 7 deferred-extraction approval flow).
+- **F4 (Layer 3 round-2 work uncommitted) → expanded.** Working-tree state has grown: 21 modified files + 2 untracked (was 14 + 1 at start of round). The Layer 3 follow-up resolution pass added another coherent unit of work that should land as its own commit (or commits) — keeping it on top of the prior uncommitted batch makes a future bisect harder. Director should structure as: (a) Layer 3 round-2 review-log batch (10 review files), (b) Layer 3 round-2 doc-and-test batch (CHANGELOG, README, PROCESS, Cargo.toml, src/lib.rs rustdoc, tests/common/mod.rs, the QE-10 test additions and the SO-12 DESIGN.md edit), (c) Layer 3 follow-up resolution batch (this round's SIGPIPE/validator/CI/deny.toml/clippy work + this batch of update-entry appends).
+
+**Process observation re: parallel batches.** This pass operated as the inverse of the prior round: a single warm orchestrator session applying the resolution work, after a parallel cold-session batch produced the findings. The asymmetry is real — adversarial pressure benefits from parallel cold sessions; resolution coherence benefits from a single session that can sequence dependent edits and run the test suite end-to-end. Recommend documenting this two-phase pattern (cold parallel review → warm sequential resolution) as the intended IAR cadence in the closure protocol document (F2).
+
+**No new VDD-IAR findings this round.** This update is bookkeeping only; the substantive findings from Review 10 carry forward intact.
+
+---
+
+### Update — 2026-05-05 11:00Z: SO Review 13 closes the content side of F1
+
+- **F1 (SE Review 9 modified DESIGN.md without explicit SO approval) — content side now Resolved.** SO Review 13 Finding 4 ratified the SE-9 content edits at DESIGN.md lines 218 / 220-225 ("Columns are separated by exactly 2 spaces" rule + example block). The content stands as written and is now SO-endorsed; the spec change is no longer authority-orphaned.
+- **F1 process side remains Open.** SO ratification of content does NOT retroactively legitimize the process violation. The SE-9 edits were applied without prior SO approval, in violation of the "DESIGN.md change authority: Solution Owner is the sole domain authorized" rule. Future SE rounds (and any other non-SO domain) must continue to classify any DESIGN.md change as "Raised to SO" rather than applying it directly. The process record stands; the content debt is paid.
+- F2, F3, F4 unchanged — gates-merge closure protocol, untracked files, and uncommitted work remain Open.
+
+

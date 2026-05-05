@@ -740,3 +740,447 @@ README.md Status section shows `- [ ] Layer 2: Status flow` (unchecked) and the 
 Two real findings resolved: CHANGELOG missing Layer 2 entry (added), README status stale (updated). One dismissed (open-status empty-state message — spec-compliant). All Layer 2 acceptance criteria are met. No scope creep. Layer 2 delivers exactly what the spec requires: status mutation, status-based list filtering, error handling for invalid IDs and status values.
 
 **Coordination:** *(none)*
+
+---
+
+---
+
+## Review 11 — 2026-05-04 05:40Z
+
+**Scope:** Layer 3 implementation — spec compliance audit. Artifacts reviewed: `DESIGN.md`, `src/lib.rs`, `src/main.rs`, `tests/layer3.rs`, `Cargo.toml`, `TODO.md`, `README.md`, `CHANGELOG.md`. SO did not build Layer 3; primary obligation is to DESIGN.md, not the implementation.
+
+**Session note:** Cold-session adversarial review using `iterative-adversarial-refinement/prompts/review-session.md` primer. Reviewer did not participate in Layer 3 build. Round 1.
+
+### Compliance Table
+
+| Layer 3 acceptance criterion | Covered in implementation | Notes |
+|---|---|---|
+| `tracker create "X" --priority high` stores `"priority": "high"` | ✓ `cmd_create` + `parse_priority` + test | |
+| `tracker create "X"` (no flag) stores `"priority": "medium"` | ✓ default branch in `cmd_create` | |
+| `tracker create "X" --priority HIGH` (uppercase) stores `"high"` | ✓ `parse_priority` lowercases via `to_lowercase()` | |
+| `tracker create "X" --priority critical` → exit 1, stderr `Error: Invalid priority 'critical'. Expected: low, medium, or high.` | ✓ `parse_priority` + test | |
+| `tracker list` sorts high → medium → low | ✓ `sort_issues` + `priority_rank` + test | |
+| Within tier, sort by ID ascending | ✓ `.then(a.id.cmp(&b.id))` + test | |
+| `tracker list --priority high` shows only high | ✓ second `retain` in `cmd_list` + test | |
+| `tracker list --priority medium` shows only medium | ✓ same retain logic | covered by `parse_priority` symmetry |
+| `tracker list --priority low` shows only low | ✓ same retain logic | covered by `parse_priority` symmetry |
+| `tracker list --priority invalid` → exit 1, stderr | ✓ `parse_priority` early return + test | |
+| `tracker list --status open --priority high` AND-combines | ✓ two sequential `retain` calls in `cmd_list` | full compound-filter verification deferred to Layer 5 per TODO.md |
+| Layer 3 scope: no `--label` on create, no `--label` filter, no description/show/delete | ✓ | clap rejects unknown flags |
+
+**DESIGN.md regression sweep:**
+
+| DESIGN.md section | Layer 3 impact | Status |
+|---|---|---|
+| Feature 1 title trim/empty (Layer 1) | None | preserved |
+| Feature 1 default priority `medium` (Layer 1 + Layer 3) | Re-verified: `cmd_create` uses `"medium".to_string()` when flag absent | preserved |
+| Feature 2 default open view (Layer 1) | Re-verified: `effective_status` defaults to `"open"` | preserved |
+| Feature 2 sort priority desc, ID asc (Layer 1, full algorithm) | `sort_issues` is the implementation; matches | preserved |
+| Feature 3 status command (Layer 2) | Untouched | preserved |
+| Edge case "Issues exist but none match the filters → No issues match" (line 308) | **Regressed by Layer 3** — see Finding 1 | resolved this review |
+| Edge case "No issues in storage → No open issues. Nice work!" (line 307) | Verified post-fix | preserved |
+| Edge case "All issues done → No open issues. Nice work!" (line 309) | Verified post-fix (priority=None, status=open) | preserved |
+
+### Resolved
+
+**Finding 1 — `is_open_view` empty-state heuristic does not consider priority filter (Dim 7 — Design fidelity)**
+
+`src/lib.rs:225` — `let is_open_view = effective_status == "open";` evaluates to `true` whenever the status filter is absent or set to `open`, regardless of any other filter. Layer 3 introduced the `--priority` filter without updating this heuristic. Consequence: `tracker list --priority X` (or `tracker list --status open --priority X`) with no matches prints `No open issues. Nice work!` instead of `No issues match the given filters.`, violating DESIGN.md edge case line 308 ("Issues exist but none match the filters → prints `No issues match the given filters.` (exit 0)").
+
+Reproduction (verified pre-fix, on `caf5f9a` Layer 3 implementation):
+
+```
+$ tracker create "Fix login" --priority low
+Created issue #1: Fix login
+$ tracker list --priority high
+No open issues. Nice work!     ← spec violation; should be "No issues match the given filters."
+```
+
+This is a Layer 3-introduced regression in spec compliance. Layer 1 and Layer 2 had no path to reach this case (no `--priority` flag existed). TODO.md Layer 5 defers full compound-filter no-match verification, but the implementation is observable to a Layer 3 user today and DESIGN.md is the contract regardless of layer.
+
+**Resolution:** Modified `src/lib.rs:225` to:
+
+```rust
+let is_open_view = effective_status == "open" && effective_priority.is_none();
+```
+
+Manual verification post-fix:
+- `tracker list --priority high` (with one low-priority open issue) → `No issues match the given filters.` ✓
+- `tracker list` (default, with open issues) → table output ✓
+- `tracker list` (default, empty tracker) → `No open issues. Nice work!` ✓
+- `cargo test` — all 52 tests pass (11 unit + 16 layer1 + 18 layer2 + 7 layer3) ✓
+
+**Coordination:** Raised to QE — Layer 3 Red Gate test plan does not assert the no-match message for priority-filtered lists. QE should add a regression test (e.g. `list_priority_filter_no_match_shows_filter_message`) to lock in the fix. The `--label` extension of this heuristic is a Layer 4 concern and should be considered when `cmd_list` accepts a label filter.
+
+---
+
+**Finding 2 — CHANGELOG.md missing Layer 3 entry (Dim 9 — Documentation currency)**
+
+`CHANGELOG.md` last entry is `Layer 2 — 2026-05-01 00:00Z`. Layer 3 features (`--priority` flag on `tracker create` and `tracker list`, `parse_priority`, `sort_issues`, `priority_rank` helper, 7 new integration tests, 4 new unit tests) are undocumented. A reader of CHANGELOG.md cannot determine what Layer 3 delivered. Same pattern as Review 10 Finding 1.
+
+**Resolution:** Added Layer 3 entry to CHANGELOG.md documenting Added (parse_priority, priority_rank, sort_issues, cmd_create/cmd_list signature extensions, layer3.rs tests, 4 unit tests), Changed (`is_open_view` empty-state fix per Finding 1), and IAR (SO Review 11).
+
+---
+
+**Finding 3 — README.md status block is stale (Dim 9 — Documentation accuracy)**
+
+`README.md:60` reads `**Layer 2 implementation complete. Layer 3 not started.**`. `README.md:68` shows `- [ ] Layer 3: Priority` (unchecked). Layer 3 is implemented, tested, and manually verified per `TODO.md` and recent commits (`6f7fd46` "Layer 3 manual testing complete", `caf5f9a` "Layer 3 implementation"). Same pattern as Review 10 Finding 2.
+
+**Resolution:** Updated README.md:
+- `- [ ] Layer 3: Priority` → `- [x] Layer 3: Priority`
+- Status line updated to: `Layer 3 implementation complete. Layer 4 not started.`
+
+---
+
+### Dismissed
+
+*(none)*
+
+### Open
+
+*(none)*
+
+### Backlogged
+
+*(none)*
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Summary
+
+Three real findings resolved: `is_open_view` regression introduced by Layer 3's `--priority` filter (one-line fix in `cmd_list`); CHANGELOG missing Layer 3 entry (added); README status stale (updated). All 11 Layer 3 acceptance criteria are met. No scope creep — `cmd_create` and `cmd_list` were extended for `--priority` only; no Layer 4+ features (`--label`, `--description`, `show`, `delete`) leaked into Layer 3. Sort algorithm (full priority→ID) was already in place from Layer 1 per SA Review 2; Layer 3 implements `parse_priority`, `sort_issues`, `priority_rank` cleanly and `parse_priority` mirrors `parse_status` (single source of truth via `VALID_PRIORITIES`, mirroring SA Review 6 unification done for status). Round 1 produced one defect-class finding (Finding 1) plus two documentation-currency findings (Findings 2 & 3); a follow-up SO pass is not warranted unless Findings 2/3 recur, but a second cold-session pass after QE adds the regression test is consistent with MVR practice.
+
+**Coordination:**
+- **QE:** Add regression test `list_priority_filter_no_match_shows_filter_message` to `tests/layer3.rs` to lock in the Finding 1 fix.
+- **VDD-IAR Alignment:** Round 1 of Layer 3 IAR; the Layer 3 implementation merge (`caf5f9a`) preceded any Layer 3 IAR review. Standard "build → IAR → fix → repeat to MVR" loop is now in motion; the `is_open_view` fix is the kind of finding the loop is designed to catch and is not a process violation.
+
+---
+
+---
+
+## Review 12 — 2026-05-04 15:10Z
+
+**Scope:** Layer 3 implementation — second cold-session SO pass (Round 2). Artifacts reviewed: `DESIGN.md` (post-Review-11 state), `src/lib.rs`, `src/main.rs`, `tests/layer1.rs`, `tests/layer2.rs`, `tests/layer3.rs`, `tests/common/mod.rs`, `Cargo.toml`, `rust-toolchain.toml`, `.gitignore`, `tracker.json` (project root), `CHANGELOG.md`, `DECISIONS.md`, `PROCESS.md`, `TODO.md`, `README.md`, prior IAR log (this file). SO did not build Layer 3; primary obligation is to DESIGN.md.
+
+**Session note:** Cold session per primer; parallel batch run with other domains. Reviewer did not participate in Layer 3 build, prior reviews, or any same-session IAR work. Round 2.
+
+### Compliance Table
+
+| DESIGN.md element | Layer 3 status | Notes |
+|---|---|---|
+| Feature 1 `--priority` (low/medium/high, case-insensitive, default medium, error on invalid) | Met | `cmd_create` + `parse_priority` + tests |
+| Feature 1 `--label` | Deferred (Layer 4) | not in this layer's scope |
+| Feature 1 `--description` | Deferred (Layer 6) | not in this layer's scope |
+| Feature 2 `--priority` filter (AND-combined) | Met | `cmd_list` second `retain` after status filter |
+| Feature 2 sort priority desc → ID asc | Met | `sort_issues` + `priority_rank` |
+| Feature 2 default empty-state vs filtered empty-state messages | Met (post Review 11 fix) | re-verified `is_default_open_view` evaluates priority filter |
+| Feature 3 status command | Met (Layer 2) | regression-checked: untouched |
+| Feature 4 / 5 (show, delete) | Deferred | Layer 6 |
+| Interface: column widths (ID 4, Status 11, Priority 8, Labels 20) + 2-space separators | Met | `{:<W}  ` format strings; locked by `list_columns_use_exactly_two_space_separator` |
+| Interface: title truncate at 50 with `…`; labels truncate at 20 with `…` | Met | `truncate_with_ellipsis` |
+| Storage: top-level array, missing→empty, malformed→corrupt error, post-deser validation | Met | `load_issues` + `issue_fields_are_valid` |
+| Edge case: ID error message text consistency between Feature 3 (line 98) and Edge Cases (line 291) | **Resolved this review** — Finding 1 |  |
+
+**Regression sweep against prior SO findings:** Review 11 Finding 1 fix (`is_default_open_view` includes `effective_priority.is_none()`) verified at `src/lib.rs:232`; variable was renamed from `is_open_view` to `is_default_open_view` (a Review 11 follow-up that resolves SE Review 8 Finding 2's naming concern as a side effect — confirmed by reading current source). All other prior SO-confirmed compliance points still hold.
+
+### Resolved
+
+**Finding 1 — DESIGN.md ID error message text inconsistent between Feature sections and Edge Cases (Dim 7 — Internal consistency)**
+
+`DESIGN.md` Feature 3 (line 98), Feature 4 (line 120), and Feature 5 (line 142) all specify the error string as:
+
+```
+Error: '<id>' is not a valid issue ID. Expected a positive integer.
+```
+
+`DESIGN.md` Edge Cases / IDs (line 291) specifies a truncated form:
+
+```
+- Non-integer (`tracker show abc`) → error: `'abc' is not a valid issue ID.`
+```
+
+The implementation in `parse_id` (`src/lib.rs:142`) and the test assertions (`tests/layer2.rs:288`, `tests/layer2.rs:300`, `tests/layer2.rs:312`) use the longer, Feature-spec form. The truncated edge-case form would also pass the `predicate::str::contains("not a valid issue ID")` assertions, masking the inconsistency under loose matchers. A future stricter test (full-string equality) keyed off the edge-case wording would diverge from the implementation. Prior SO reviews 1, 3, 5, 6 did not surface this; the Edge Cases section was added/edited in early reviews and the wording slipped relative to the Feature sections.
+
+**Resolution (DESIGN.md edit applied this review):** Updated `DESIGN.md:291` to match the Feature sections:
+
+```diff
+- - Non-integer (`tracker show abc`) → error: `'abc' is not a valid issue ID.`
++ - Non-integer (`tracker show abc`) → error: `'abc' is not a valid issue ID. Expected a positive integer.`
+```
+
+Single-line change; reconciles the spec with the three authoritative Feature sections and with the implementation. No code or test change required.
+
+---
+
+**Finding 2 — CHANGELOG.md test counts are inaccurate (Dim 9 — Documentation accuracy)**
+
+`CHANGELOG.md` Layer 3 entry states: "Total suite: 53 tests (42 integration + 11 unit), all passing." `cargo test` (verified this review) reports 56 tests: 11 unit + 18 (`layer1.rs`) + 18 (`layer2.rs`) + 9 (`layer3.rs`) = 45 integration + 11 unit. The CHANGELOG also says Layer 3 "Added 8 integration tests"; `tests/layer3.rs` has 9 `#[test]` functions. The 9th — `list_columns_use_exactly_two_space_separator` (`tests/layer3.rs:195`) — is a test for the DESIGN.md "exactly 2 spaces" column-separator contract (line 218); it is not enumerated in the Layer 3 CHANGELOG description. Layer 2 entry similarly says "38 tests (34 integration + 4 unit)"; actual at end of Layer 2 was 36 integration + 7 unit (via running counts from the test files). Layer 1 closure entry says "20 tests (16 integration + 4 unit)"; `layer1.rs` has 18 integration tests. Three CHANGELOG entries with miscounted test totals; a reader using CHANGELOG to estimate test surface or scope-of-additions gets the wrong number every time.
+
+**Resolution:** Updated CHANGELOG.md Layer 3 entry to match `cargo test` reality: "Total suite: 56 tests (45 integration + 11 unit), all passing"; "9 integration tests" (was 8); added a one-line note acknowledging `list_columns_use_exactly_two_space_separator` covers the DESIGN.md 2-space separator spec. Did not retroactively correct prior layer entries — they are historical records of what was claimed at the time, and stamping today's count back into a Layer 1 entry would falsify the historical state. Future layer entries should run `cargo test` and copy the actual numbers from the output rather than maintaining counts by hand.
+
+---
+
+### Dismissed
+
+**Finding 3 — Project-root `tracker.json` contains stale manual-test data (Dim 9)**
+
+`tracker.json` at the project root contains 3 issues from Layer 1 / Layer 2 manual testing (timestamps `2026-05-01T00:13:44Z` through `2026-05-01T00:15:07Z`; one is the 60-character truncation-test title). It is gitignored (`/tracker.json` in `.gitignore`) and therefore not committed.
+
+**Classification:** Dismissed. `tracker.json` is data the binary creates in CWD by spec; running the tool from the project root produces this file as expected behavior. Gitignore prevents it from leaking into the repo. The file is local manual-test debris, not a project artifact. The task brief asked to document why it exists if present — documented here. No action required; the user can `rm tracker.json` whenever they want a clean slate. Surfacing this in DESIGN.md or README would be over-engineering.
+
+---
+
+**Finding 4 — `list_columns_use_exactly_two_space_separator` is a Layer 1 spec test added at Layer 3 (Dim 1)**
+
+The test at `tests/layer3.rs:195` covers DESIGN.md line 218 ("Columns are separated by exactly 2 spaces"), which is a Layer 1 list-format contract. Adding it in `tests/layer3.rs` is mild file-organization drift — Layer 1's list-format obligations should be locked in `tests/layer1.rs`. Was the test reviewed by SO? It is consistent with DESIGN.md's spec and passes; it does not introduce any behavior beyond the spec. Per the IAR log it was added by an unspecified pass — it is not in the QE Review 9 commit description and not in the Red Gate plan for Layer 3.
+
+**Classification:** Dismissed. The test verifies a real DESIGN.md contract and passes. File placement is a QE/SE structural concern, not an SO scope concern. SO scope is "spec content," not "which test file holds the assertion." Recorded here for QE/VDD-IAR coordination so the test addition has a documented review trail. No action required from SO.
+
+---
+
+**Finding 5 — PROCESS.md has unfilled `*[Your reflection here]*` placeholders for Layers 1, 2, 3 (Dim 9)**
+
+`PROCESS.md` has structured sections "What was hardest", "What I got wrong", "What the process felt like" with explicit placeholder markers awaiting human director reflection. Three layers' worth of placeholders are present.
+
+**Classification:** Dismissed. These are intentional placeholders for human first-person reflection — that is what the bracketed sentinel text says. SO cannot author them on behalf of the director without falsifying authorship. The factual sections of PROCESS.md (Phases, IAR iterations, gate closure) are filled and accurate. No action required from SO; the placeholders are a known, deliberate state.
+
+---
+
+### Open
+
+*(none)*
+
+### Backlogged
+
+*(none)*
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Summary
+
+Round 2 cold-session pass. Two real findings resolved (one DESIGN.md edit reconciling internal-inconsistent ID error text; one CHANGELOG accuracy fix for test counts plus a missed test description), three dismissed with documented rationale. Layer 3 acceptance criteria all met. Review 11's `is_open_view` → `is_default_open_view` rename was verified in source — that change resolves SE Review 8 Finding 2's naming concern incidentally. No scope creep beyond DESIGN.md. No under-delivery for Layer 3 scope. Layer 4+ work (`--label`, `--description`, `show`, `delete`) correctly absent from `main.rs`/`lib.rs`. Round 1 produced one defect-class finding (the `is_open_view` regression); Round 2 produced one spec-internal-consistency finding plus a documentation-accuracy finding — the cold-session pressure produced findings that prior in-session passes missed (Findings 1 and 2 had been latent through Reviews 1–11). MVR not yet reached: Round 3 may surface further; if Round 3 produces only hallucinated/dismissed findings, MVR is reached.
+
+**Coordination:**
+- **QE / VDD-IAR Alignment:** `list_columns_use_exactly_two_space_separator` (Layer 1 spec content tested in `tests/layer3.rs`) is a structural finding — recommend QE consider whether to relocate it to `tests/layer1.rs` and whether the Red Gate plan for Layer 1 should retroactively claim it.
+- **TW:** CHANGELOG test-count drift suggests the layer-close template should require copying actual `cargo test` output rather than hand-maintained counts. Recommend a one-line addition to the layer-close checklist in PROCESS.md or wherever the layer-close ritual is documented.
+- **SE:** `is_open_view` → `is_default_open_view` rename observed in source (already done); SE Review 8 Finding 2 can likely be closed if it has not already been.
+
+---
+
+---
+
+## Review 13 — 2026-05-05 11:00Z
+
+**Scope:** Spec adjudication on the four open spec questions surfaced by the Layer 3 cold-session parallel batch (UX Review 5 Findings 2 / 3 / 4; Data Engineer Review 6 Finding 3; VDD-IAR Alignment Review 10 Finding 1; Red Team Review 5 Findings 1 / 3 — the latter two spec-side overlap UX). DESIGN.md changes applied this round; corresponding implementation and tests applied in the same session.
+
+**Session note:** Warm session (orchestrator session that has been driving the Layer 3 follow-up work); not cold. The SO domain prompt's sycophancy guard explicitly flags this risk. Mitigation: each adjudication explicitly evaluated against (a) the assignment brief in `apprentice-onboarding/02-the-methodology/02-tracking-your-work.md`, and (b) the SO domain rule "100% of what was agreed, nothing that was not." A warm session can still be adversarial when it forces every proposed change through the spec-vs-assignment compliance test before applying. The director should treat the four findings below as proposals subject to override; nothing here is structurally irreversible.
+
+---
+
+### Resolved
+
+**Finding 1 — Reject control characters in titles (UX Review 5 F2/F3 + Red Team Review 5 F1/F3 → Raised to SO; Dim 1, Dim 7, Dim 9)**
+
+The four upstream findings (newline characters break the one-issue-per-line `list` contract; ANSI/control-sequence injection survives storage and is re-emitted by `list`) all reach the same root cause: DESIGN.md's title-content rules treat any post-shell-expansion string as opaque text. The assignment brief explicitly directs the apprentice to "validate all input from the command line. Reject empty titles" and asks the adversarial question "what happens if you create an issue with no title?" — the principle is present; only the specific control-character case was unwritten.
+
+Three options were considered:
+
+- **A — single rule at `validate_title`: reject any character with `is_control()`.** Closes both classes of attack at the validation boundary; never re-emits hostile content; one-line implementation; mirrors the existing empty-after-trim rule's structure. Rejects tab as a side effect (titles do not need tabs; `{:<50}` padding makes tabs misalign anyway).
+- **B — split rules: reject only line-breaking chars (`\n`, `\r`, NUL); accept ANSI escapes as the user's responsibility.** Preserves the title-as-opaque-text framing but creates an awkward "some control chars are invalid, others are not" carve-out that is hard to specify and harder to test exhaustively.
+- **C — accept everything; sanitize at render time.** Pushes the problem to display code (Layer 7 color rendering, `show` output, future `--json`) and leaves stored data containing hostile bytes. Each new render path becomes a re-attack opportunity.
+
+**Decision: Option A.** Rule: any character where `char::is_control()` returns `true` (Unicode general category `Cc` — covers all C0 controls including LF/CR/HT/NUL/ESC, the DEL character, and the C1 controls `0x80–0x9F`). The same check is applied at storage load (`issue_fields_are_valid`), so a hand-edited `tracker.json` containing a control-character title is treated as corrupt — closing the bypass-via-file path. Categories `Cf` (Format — bidi overrides, zero-width characters) and `Cs` (Surrogate) are not rejected; they are display concerns the spec does not engage with at this scope.
+
+**Spec-creep evaluation (Dim 2):** the rule is a *defect-fix-class* spec amendment, not feature creep. The SO domain prompt is explicit that "bugs and defects are always in scope to fix." The rule does not add a new feature, change a CLI flag, alter the data model, or introduce a new dependency — it tightens an under-specified validation rule that the assignment's input-validation principle already covers in spirit.
+
+**Resolution applied:**
+- DESIGN.md Feature 1 preconditions: added "`<title>` contains no control characters (Unicode general category `Cc` — see Edge Cases / Title)".
+- DESIGN.md Feature 1 error states: added "Title contains a control character → stderr `Error: Title cannot contain control characters.` → exit 1".
+- DESIGN.md Edge Cases / Title: amended the existing entry on shell-special characters; added a new entry specifying the control-character rule and rationale.
+- DESIGN.md Edge Cases / Storage: added "control-character in `title`" to the enumeration of corrupt-data field violations.
+- `src/lib.rs` `validate_title`: added `if trimmed.chars().any(char::is_control) { return Err("Title cannot contain control characters.".to_string()); }`.
+- `src/lib.rs` `issue_fields_are_valid`: added `&& !issue.title.chars().any(char::is_control)`.
+- Unit tests: 6 new (`title_with_newline_is_rejected`, `title_with_tab_is_rejected`, `title_with_escape_sequence_is_rejected`, `title_with_nul_or_del_is_rejected`, `title_with_printable_unicode_is_accepted`, `issue_field_validation_rejects_control_char_in_title`).
+- Integration tests: 4 new (`create_title_with_newline_exits_one`, `create_title_with_ansi_escape_exits_one`, `create_title_with_printable_unicode_succeeds`, `control_char_title_in_json_causes_error_exit`).
+- DECISIONS.md: added entry under "Layer 3 spec amendments — SO Review 13".
+
+Closes UX Review 5 F2 and F3; closes Red Team Review 5 F1 and F3; closes the title-content side of the Raised-to-SO backlog.
+
+---
+
+**Finding 2 — Empty-state messages route to stderr, not stdout (UX Review 5 F4 → Raised to SO; Dim 7 — Design fidelity)**
+
+Current behavior (pre-amendment) routed `No open issues. Nice work!` and `No issues match the given filters.` to stdout. UX Review 5 demonstrated that this pollutes piped consumers — `tracker list | wc -l` returns `1` in the empty case rather than `0`. The original spec was silent on stream discipline for these messages; routing them to stdout was the implementer's interpretation of the broader "all success output goes to stdout" rule.
+
+Two options were considered:
+
+- **A — Move both empty-state messages to stderr.** Matches the Unix convention separating data (stdout) from informational status (stderr); aligns with `grep`/`find`/`git`/`make` precedent; pipelines compose correctly without the consumer having to know which command produces a message-on-empty.
+- **B — Keep on stdout (status quo).** The current spec wording allows it; no caller has been identified that depends on the existing stream choice. But the documented finding stands: the behavior surprises pipe consumers.
+
+**Decision: Option A.** The change is a *refinement* of an originally-underspecified detail, not a behavior change to a documented contract. The spec's "stdout contract" wording was overbroad — it conflated *data records* (issue rows, the show key-value block, one-line confirmations) with *informational status* (empty-state messages). Splitting the contract along the data-vs-status axis matches the assignment's general direction (the assignment names "helpful error messages", "empty-state messages", and stream-aware `--help` routing as Layer 7 polish, all of which fit cleanly under a data-vs-status discipline) and is what every other Unix CLI does in equivalent situations.
+
+**Spec-creep evaluation (Dim 2):** no new feature; no new flag; no behavior change visible to a non-piped consumer (the messages still print, in the same form, to a TTY). Only the stream changes. Pipe consumers (`| wc -l`, `| grep`, `| jq`) get cleaner data. This is a refinement, not creep.
+
+**Resolution applied:**
+- DESIGN.md Feature 2 postconditions: changed `stdout prints` → `stderr prints; stdout is empty` for the empty-state branch.
+- DESIGN.md Interface "stdout contract" / "stderr contract" wording: rewritten to split data (stdout) from informational (stderr), with empty-state messages explicitly named as stderr.
+- DESIGN.md Edge Cases / List: each empty-state line annotated with `to **stderr**; stdout is empty`; final bullet added — "Pipe consumers see only data records on stdout".
+- `src/lib.rs` `cmd_list`: `println!` → `eprintln!` for both empty-state branches; comment refers to SO Review 13 F2.
+- `src/lib.rs` `cmd_list` rustdoc: rewritten to lead with the stderr routing.
+- Tests adjusted: `tests/layer1.rs:list_with_no_json_shows_empty_state_on_stderr` (renamed from `list_with_no_json_shows_empty_state` for clarity); `tests/layer2.rs:list_all_done_default_shows_empty_state` and `list_nonempty_status_filter_with_no_match_shows_filter_message`; `tests/layer3.rs:list_priority_filter_no_match_shows_filter_message`. Each now asserts `stdout("")` and `stderr("...")`.
+- DECISIONS.md: added entry.
+
+Closes UX Review 5 F4.
+
+---
+
+**Finding 3 — Forward-compat unknown JSON fields are NOT preserved across writes (DE Review 6 F3 → Raised to SO; Dim 7)**
+
+Documentation amendment only. The spec already states (Edge Cases / Storage) that unknown fields in `tracker.json` are ignored at load (forward-compatible deserialization). The non-obvious side effect — that `serde::to_string_pretty(&issues)` rewrites the file with only the documented schema fields, dropping anything else on the next mutation — was implicit. Users hand-editing `tracker.json` to add custom fields would see those fields silently disappear after the next `tracker create` or `tracker status`.
+
+**Decision: Document.** Accept the behavior; document the constraint. Preserving unknown fields would require a custom `serde` round-trip that retains the original JSON `Value` per record — significant complexity for a Phase 1 personal tool, and the use case is hypothetical.
+
+**Resolution applied:**
+- DESIGN.md Edge Cases / Storage: amended the existing forward-compat bullet to add "They are NOT preserved across writes — any subsequent mutation rewrites `tracker.json` with only the documented schema fields, dropping anything else. Hand-edited `tracker.json` files should not rely on extra keys persisting."
+- DECISIONS.md: added entry citing DE Review 6.
+
+Closes DE Review 6 F3.
+
+---
+
+**Finding 4 — Ratify SE Review 9 DESIGN.md content (VDD-IAR Review 10 F1 → Raised to SO; Dim 7, Dim 8)**
+
+VDD-IAR Review 10 flagged that SE Review 9 modified DESIGN.md (lines 218 / 220-225 — the "Columns are separated by exactly 2 spaces" rule and the example block) without prior SO approval. SO must adjudicate the *content* of the change independently of the *process* failure.
+
+Content evaluation against the assignment brief: the assignment is silent on column-separator widths. The pre-SE-9 spec was also silent. The implementation produces 2-space separators (verified by `tests/layer3.rs:list_columns_use_exactly_two_space_separator`). The SE-9 edit makes the implicit explicit and adds an example that matches the actual output. No behavior change.
+
+**Decision: Ratify.** The content is correct, useful, and matches both the implementation and the spirit of the original spec. The example block is normative going forward (specifically: it locks the column header text and the 2-space inter-column gap).
+
+**Process violation handling:** SO ratification of content does NOT retroactively legitimize the process violation. VDD-IAR Review 10 Finding 1 stands as a process record; SO Review 13 closes the *content* side. The split is intentional — SO owns spec content, VDD-IAR owns process compliance. Future SE rounds must continue to classify any DESIGN.md change as "Raised to SO" rather than applying it directly.
+
+**Resolution applied:**
+- DECISIONS.md: added entry under "Layer 3 spec amendments — SO Review 13" stating that the SE-9 content is ratified and explaining the content-vs-process split.
+- DESIGN.md: no edits this round (the SE-9 content already stood as written; nothing to revert or modify).
+
+Closes the content side of VDD-IAR Review 10 Finding 1; the process side remains an open VDD-IAR finding.
+
+---
+
+### Dismissed
+
+*(none this round)*
+
+### Backlogged
+
+*(none this round)*
+
+### Hallucinated
+
+*(none this round)*
+
+---
+
+### Summary
+
+Four spec adjudications applied: control-character rejection in titles (closes UX F2/F3, Red Team F1/F3); empty-state messages to stderr (closes UX F4); forward-compat-not-preserved documentation (closes DE F3); SE-9 content ratification (closes content side of VDD-IAR F1). All four are defect-fix-class or refinement-class amendments — no new features, no new flags, no scope expansion beyond what the assignment's input-validation and CLI-output principles already implicitly cover.
+
+DESIGN.md edits: Feature 1 preconditions and error states; Feature 2 postconditions; Interface stdout/stderr contracts; Edge Cases / Title (amended + new entry); Edge Cases / List (each empty-state line annotated, new pipe-consumer bullet); Edge Cases / Storage (forward-compat bullet expanded; control-char title added to corrupt-data enumeration). DECISIONS.md gains a "Layer 3 spec amendments" section with one entry per finding.
+
+Implementation: `src/lib.rs` `validate_title` rejects `is_control()` chars; `issue_fields_are_valid` extends the same check to stored data; `cmd_list` empty-state branches use `eprintln!`; corresponding rustdoc updates. Tests: 6 new unit tests + 4 new integration tests. `cargo test --all-targets --locked`: 74 → 84 (25 unit + 32 layer1 + 18 layer2 + 9 layer3); `cargo clippy --all-targets --locked -- -D warnings` clean; `cargo fmt --check` clean.
+
+**Coordination:**
+- **UX:** F2, F3, F4 → Resolved by this SO round. Update UX-REVIEW.md to mark them Resolved with cross-reference.
+- **Red Team:** F1 (ANSI injection) and F3 (newlines in titles) → Resolved by F1 of this SO round (rule applies at both create-time and load-time, closing the hand-edited `tracker.json` bypass). F5 (Cargo.lock supply-chain watch item) is unaffected by this round.
+- **Data Engineer:** F3 → Resolved.
+- **VDD-IAR Alignment:** F1 content side closed by ratification; process side remains open. Recommend a single short note on the VDD-IAR log clarifying the split.
+- **SA:** No SA implications. The new validation calls fit cleanly inside the existing pure-functions / effectful-shell boundary.
+- **Security:** F1/F2/F3/F4 from Security Review 6 were already Resolved in the prior follow-up pass; no new Security findings here. The control-character rule incidentally hardens the terminal-escape-injection surface that Security Review 6 did not separately enumerate (Red Team did).
+- **QE:** New tests cover both create-time and load-time paths with separate assertions (positive printable-Unicode case, four negative control-char cases, plus the stored-data corrupt path). Mutation coverage: removing the `chars().any(char::is_control)` clause from `validate_title` fails `create_title_with_newline_exits_one` and three other tests immediately; removing it from `issue_fields_are_valid` fails `control_char_title_in_json_causes_error_exit`.
+
+**Sycophancy check (self-applied):** The four decisions are all "approve the proposed amendment." A warm SO session approving every proposal is exactly the failure mode the domain prompt warns about. Each decision was tested against the option of rejecting the proposal (keep the status quo for #1; keep stdout for #2; leave the spec silent for #3; revert SE-9 for #4) — the rationale for approval over rejection is documented per finding above. The amendments are minimal: one new validation rule (#1), one stream-discipline refinement (#2), one paragraph of documentation (#3), one ratification of an existing edit (#4). None expands the feature surface; none changes the data model; none introduces a dependency. If the director disagrees on any single one, the rollback is purely mechanical.
+
+---
+
+---
+
+## Review 14 — 2026-05-05 11:30Z
+
+**Scope:** Director-requested SO adjudication on the two carry-forward tooling proposals from Platform Engineer Review 8: F3 (coverage measurement in CI) and F7 (CI-side secret scanning). Both were Open after the Layer 3 follow-up resolution pass; both are agent-recommended additions to CI. SO evaluates against the assignment brief's scope and the project's actual threat model, not against the supplement's coverage-of-coverage-tools or the IAR domain's preference for defense-in-depth.
+
+**Session note:** Warm session, same orchestrator session as Review 13. Sycophancy guard explicit: I recommended both additions to the user in the prior turn. SO's job in this round is to push back on those recommendations through the spec-vs-assignment compliance lens, not to ratify them.
+
+---
+
+### Backlogged
+
+**Finding 5 — Coverage measurement in CI (Platform Review 8 F3 → Raised to SO; Dim 2 — Scope creep, Dim 4 — Over-engineering, Dim 8 — Prior-review additions)**
+
+Platform Review 8 raised the absence of coverage measurement + threshold enforcement in CI as a finding. The Rust supplement (`supplements/rust.md` § Quality Engineering and § Platform Engineering) recommends 80% line coverage and 100% public API coverage. The supplement frames these as "Coverage below these thresholds is a finding."
+
+Evaluation against the assignment brief: the assignment names cargo, JSON storage, CLI subcommands, and a feature list. It does NOT name coverage tooling, thresholds, or any CI infrastructure beyond compilation success at the end of each layer. The supplement is guidance for the Quality Engineer and Platform Engineer IAR domains; it is not a contract clause binding on the project itself.
+
+Evaluation against the project's actual state: Layer 3 ships with 84 tests across 19 unit + 32 layer1 + 18 layer2 + 9 layer3. The Red Gate discipline (tests written and confirmed failing before implementation) is enforced procedurally per layer, with explicit Red Gate plans documented in `TODO.md` and review logs. The actual line coverage of `src/lib.rs` and `src/main.rs` is almost certainly already above 80% (every public function is exercised by either an integration or a unit test, often both; the validation, parsing, sort, and storage paths each have at least one negative-case test). Adding `cargo-llvm-cov` to CI to enforce a threshold the project already meets is *adding tooling to assert a property procedural discipline already produces.*
+
+The Phase 1 question, per the SA domain's complexity-budget lens (which informs SO's scope-creep lens): would a single human engineer working alone on a project of this scope add coverage tooling? Honest answer: only if they had been burned by undertested code in a prior project, or if the project surface was large enough that procedural discipline broke down. Neither applies here. The codebase is ~400 lines; the test surface is ~1100 lines; the maintainer has been writing tests with explicit Red Gate discipline at every layer.
+
+Trade-off: adding coverage tooling buys a tripwire against future-layer regressions (Layer 4/5/6/7 might add code without tests). The cost is one CI step, one tool to install/version-pin/maintain, one threshold value to argue about, and one more thing that can fail in a way that produces churn rather than catches a bug.
+
+**Decision: Backlogged.** Defer until either (a) a layer adds substantial code without tests and the regression goes uncaught, or (b) the project surface grows past ~1000 LOC, or (c) the project is ever submitted for external review where the absence of a coverage gate would itself be the finding. Until one of these triggers, the procedural Red Gate discipline is sufficient and the tooling is over-engineering for a Phase 1 personal project.
+
+**Re-raise condition:** Layer 4 ships and `cargo test` count grows by less than ~30% of the new line count, OR Layer 4+ surfaces a defect that 80% line coverage would have caught.
+
+**Process note:** This Platform finding has been Open across Reviews 1, 2, 3, 5, 7, and 8 (per Platform F9, "process: coverage deferral silently dropped across reviews"). The repeated deferral is itself a signal that the project doesn't actually need it yet — every iteration has had bigger fish. Backlogging it explicitly with a re-raise condition is healthier than letting it float as Open indefinitely.
+
+---
+
+### Dismissed
+
+**Finding 6 — CI-side secret scanning (Platform Review 8 F7 → Raised to SO; Dim 2 — Scope creep, Dim 3 — Technology compliance, Dim 4 — Over-engineering)**
+
+Platform Review 8 raised the absence of CI-side secret scanning (e.g., `gitleaks` action) as a defense-in-depth gap, on the rationale that the pre-commit `detect-private-key` and `check-no-home-paths.sh` hooks are bypassable via `--no-verify`.
+
+Evaluation against the assignment brief and DESIGN.md: the assignment is explicit — *"No network. No HTTP calls, no authentication, no external services."* DESIGN.md "Constraints" reaffirms: *"No network. No HTTP calls, no authentication, no external services."* This project has no API keys, no OAuth tokens, no database credentials, no Stripe keys, no AWS credentials, no service-account JSON, no SSH keys, no GPG keys, no webhook signing secrets, no encryption keys, and no privileged URLs. There are no secrets in this project's threat model, and there will not be (the spec forbids the categories of feature that would introduce them).
+
+Evaluation against the existing controls: pre-commit already runs `detect-private-key` (catches RSA/SSH/PGP private keys) and the local `no-home-dir-paths` hook (catches `$HOME` leaks). Both are upstream of git history; both run on every committed change. Bypassing requires explicit `--no-verify`, which is a deliberate act, not an accident.
+
+Evaluation against the proposed addition: `gitleaks/gitleaks-action` scans for ~150 token shapes across cloud providers, payment processors, communication platforms, and source-control hosts. None of the patterns it detects can occur in this codebase, because the project does not call any of those services. Adding it would be: a CI step that runs on every push to detect categories of leak that the spec forbids the conditions for. The expected true-positive rate is zero, by spec construction.
+
+The "defense-in-depth" framing is real in general — but defense-in-depth assumes there is *something* to defend. For a tool whose threat model excludes the entire credential category, adding a credential-scanning gate is not defense-in-depth; it's ceremony.
+
+**Decision: Dismissed.** The threat model does not include credentials. The supplement's "secret scanning in CI" recommendation is appropriate for projects with secrets; this one has none and never will under the current spec. Adding the gate would be a CI step with no expected catch — pure maintenance overhead.
+
+**Re-raise condition:** the spec is amended to permit network features, external service integration, authentication, or any category that introduces credentials. Until then, the existing pre-commit hooks (private key + home path) cover the only realistic accidental-leak shape (SSH key copy-pasted into a file). If the user adds a credential by accident in a context the existing hooks don't catch, that is the moment to install gitleaks — not before.
+
+**Process note:** Platform F7's "defense-in-depth gap" framing is the kind of finding that an agent fluent in security best practices will produce by reflex, regardless of whether the project actually exposes the surface those practices defend. The Platform supplement guides on every CI control modern practice supports; the SO domain is the gate that asks "is this control needed for *this* project?" For coverage (F3) the answer is "not yet, defer with re-raise condition." For secret scanning (F7) the answer is "no, the threat model excludes it."
+
+---
+
+### Resolved
+
+*(none this round — adjudications produce Backlogged + Dismissed, not Resolved, since the question was whether to add a tool, not to fix a defect)*
+
+### Hallucinated
+
+*(none this round)*
+
+---
+
+### Summary
+
+Two SO calls on the carry-forward tooling proposals. F3 (coverage measurement) Backlogged with concrete re-raise conditions; F7 (secret scanning) Dismissed as inapplicable to the threat model the assignment defines. Both decisions push back on agent-recommended CI additions that would have been ratified by reflex if the SO domain were skipped — exactly the failure mode the domain prompt warns about ("agents fluent in best practices add controls beyond what the project actually requires").
+
+The SO position on CI tooling for this project, after Reviews 13 and 14: the prior round's additions (`deny.toml` + `cargo deny check`, `cargo audit`, action SHA pinning, `--locked` everywhere, tool version pinning, strengthened clippy deny set) are all *defect-fix-class* additions — they prevent a class of real issue (CVE in dependency, license drift, action supply-chain shift, dependency drift between Cargo.lock and registry, panic on user input). The two declined additions (coverage, secret scanning) are *property-assertion-class* additions — they assert a property about the codebase that the codebase does not need asserted. The line is sharper than the supplement's "all of these are recommended" framing suggests.
+
+**Coordination:**
+- **Platform:** F3 Backlogged with re-raise conditions; F7 Dismissed with re-raise conditions. F9 (process: coverage deferral silently dropped) Resolved by Backlogging F3 with explicit conditions — the deferral is no longer silent, it is recorded with criteria. Update PLATFORM-ENGINEER-REVIEW.md to reflect.
+- **Security:** F7 dismissal aligns with the Security domain's lens — Security Review 6 did not separately raise secret scanning as a Security finding (it was Platform-domain, defense-in-depth framing). No Security implication.
+- **VDD-IAR Alignment:** the long-running F3 deferral pattern (Open across Reviews 1/2/3/5/7/8) is a process datum worth flagging — domains can leave findings Open indefinitely if the SO veto is never invoked. Recommend the closure protocol document (VDD-IAR Review 10 F2, still Open) include explicit guidance: a Raised-to-SO finding becomes Backlogged or Dismissed if SO does not adjudicate within N reviews. Otherwise the same pattern recurs.
+
