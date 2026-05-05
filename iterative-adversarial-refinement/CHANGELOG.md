@@ -4,6 +4,23 @@ All notable changes to the IAR suite are recorded here. Entries are in reverse c
 
 ---
 
+## Unreleased — 2026-05-05 (Review 35: manual-testing-checklist runnable-step standard)
+
+### Changed
+- **`prompts/decomposition.md`** — `### Manual testing checklist` section rewritten. Replaced the five-bullet shorthand prompt (happy path / error states / empty state / persistence / edge cases) with a runnable-step standard requiring four properties per step: exact command, expected outcome (stdout/stderr/exit code/on-disk state), explicit clean-state setup when required, and binary install/uninstall/reinstall lifecycle when relevant. Added an "Audience" paragraph specifying that the tester is unfamiliar with the toolchain and the project. Inlined an "Example shape (one expanded step)" so the standard is anchored in a copyable form. The `**Manual Testing Checklist:**` block in the `## TODO.md format` example was reframed: items are now placeholders that expand into runnable step blocks, with an explicit "Step 0 — Update the installed binary" item when the layer changes runtime behavior. Addresses G-97.
+- **`prompts/decomposition.md`** — Follow-up refinement (Review 35 Finding 2): expected-outcome requirement (#2) tightened to require literal output blocks for invariant output, with prose descriptions reserved for variable output (timestamps, IDs, OS-chosen paths) anchored to a representative literal example. Help-command specificity sub-clause added to requirement #4 (`<binary> <subcommand> --help`, not `<binary> --help`, when help text is part of verification). Example shape updated to show literal expected-stderr / expected-stdout / on-disk-state blocks. Triggered by user-discovered defect in the rendered Layer 4 plan: the prose hint "expect: --label flag listed under create + list" named the wrong help command (top-level instead of subcommand) and the prose form was ambiguous enough that the error went undetected at authoring time.
+- **`prompts/decomposition.md`** — Second follow-up refinement (Review 35 Finding 3): added "Help-output verification (CLI projects)" as a sixth bullet in the **Required items per layer** list. Per binary and per changed subcommand, run `<binary> <subcommand> --help` and include a literal expected-output block. Anchored to "Step 0 — Update the installed binary" so a stale-binary problem fails fast. Carves out an explicit exception for layers that don't change the CLI surface. The defect this catches: a CLI layer ships with a flag whose runtime behavior works but whose `--help` description is missing, stale, or contradicts the actual flag — discoverability drift that integration tests do not catch. Considered and rejected: placing the rule in `supplements/cli.md`; supplements are currently review-time artifacts, not authoring-time; the cross-reference pattern would be novel.
+- **`GAP-ANALYSIS-LOG.md`** — G-97 added (status `Addressed`) — manual-testing-checklist format produced tester-familiarity-dependent items. Distinct from G-42 (which addressed *which domain evaluates* checklist completion); G-97 addresses *the format the checklist itself takes when produced by decomposition*. Refinement (literal blocks vs prose) recorded in Review 35 Finding 2 stays within G-97's scope.
+
+### Added
+- **`review-log/2026-05-05-suite-review.md`** — new file. Review 35 logged: one finding Resolved (decomposition-checklist format tightened); G-97 registered and immediately Addressed.
+- **`SUITE-REVIEW-INDEX.md`** — Review 35 row added to the Suite Reviews index.
+
+### Note
+Forward-only. Existing `TODO.md` files in projects under review are not retroactively rewritten; new layer plans (and re-decomposed layers) inherit the new standard. The change does not require domain-prompt updates: VDD-IAR Alignment dim 9 evaluates whether checklists exist and were completed, not their format quality, and format quality is owned implicitly by SO (spec coverage) and TW (documentation accuracy) when reading project TODO.md.
+
+---
+
 ## Unreleased — 2026-05-03 (Review 34: apply G-90 and G-94, register G-96)
 
 ### Changed
