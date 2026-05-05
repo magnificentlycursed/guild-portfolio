@@ -1,5 +1,56 @@
 # Changelog
 
+## Layer 3 IAR closure: VDD-IAR protocol — 2026-05-05 13:00Z
+
+**Scope:** Closes the two remaining VDD-IAR Review 10 findings (F1 process side
+and F2) by drafting `iterative-adversarial-refinement/CLOSURE-PROTOCOL.md`,
+a project-scoped document that codifies finding lifecycle, domain authority
+over project artifacts, the auto-Backlog rule for long-running findings, the
+cold-batch + warm-resolution cadence, and the explicit merge gate. Also
+references the protocol from the project IAR README's "Merging gate" section.
+
+### Added
+
+- **`iterative-adversarial-refinement/CLOSURE-PROTOCOL.md`** — new file. Seven
+  sections: (1) authority table mapping each project artifact to its modify-
+  authority domain (closes VDD-IAR F1 process side via documentation;
+  motivating case is the SE Review 9 incident); (2) finding lifecycle with
+  explicit transition rules; (3) auto-Backlog rule for findings Open across
+  three consecutive reviews of the originating domain (derived from SO Review
+  14 Coordination notes; closes the long-running-Open pattern Platform F3
+  exhibited across Reviews 1/2/3/5/7/8); (4) cross-domain duplicate handling
+  convention; (5) the cold-batch + warm-sequential-resolution cadence observed
+  effective during Layer 3; (6) explicit merge gate; (7) suite-adoption path
+  if the protocol proves useful beyond this project.
+- **`iterative-adversarial-refinement/README.md`** — appended one paragraph to
+  the "Merging gate" section pointing at CLOSURE-PROTOCOL.md.
+
+### Changed
+
+- **`iterative-adversarial-refinement/VDD-IAR-ALIGNMENT-REVIEW.md`** — Update
+  entry marking Review 10 Findings 1 (process side), 2, 3, and 4 all
+  Resolved. F3 + F4 closed by commit `87e41c6` (the Layer 3 IAR round-2
+  commit). F1 process side + F2 closed by the new closure protocol document.
+  No carry-forward Open findings; Review 10 reaches MVR with this update.
+
+### Open after this commit
+
+- **Developer-only:** PROCESS.md retrospective placeholders (TW F8 /
+  Portfolio Dim 4) — the empty `*[Your reflection here]*` blocks across
+  Layer 1/2/3 remain. Not blocking technical merge per CLOSURE-PROTOCOL
+  Section 6 item 7.
+- **Suite-level (optional):** the closure protocol is currently project-
+  scoped. Promotion to suite-level (per Section 7 of the protocol) would
+  require a separate suite-development pass and is not included in this
+  commit.
+
+### Verification
+
+- No code changes; no test changes. Build, test, clippy, fmt unchanged
+  from the prior commit (`87e41c6`).
+
+---
+
 ## Layer 3 spec amendments (SO Review 13) — 2026-05-05 11:00Z
 
 **Scope:** Closes the four open spec questions surfaced by the cold-session

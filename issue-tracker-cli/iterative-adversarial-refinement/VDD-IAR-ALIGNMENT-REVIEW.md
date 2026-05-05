@@ -1121,4 +1121,19 @@ This update is a **process record only**; the substantive VDD-IAR findings from 
 - **F1 process side remains Open.** SO ratification of content does NOT retroactively legitimize the process violation. The SE-9 edits were applied without prior SO approval, in violation of the "DESIGN.md change authority: Solution Owner is the sole domain authorized" rule. Future SE rounds (and any other non-SO domain) must continue to classify any DESIGN.md change as "Raised to SO" rather than applying it directly. The process record stands; the content debt is paid.
 - F2, F3, F4 unchanged — gates-merge closure protocol, untracked files, and uncommitted work remain Open.
 
+---
+
+### Update — 2026-05-05 13:00Z: Closure protocol drafted; F3 + F4 closed by commit `87e41c6`
+
+The four Review 10 findings now have terminal states.
+
+- **F1 (SE Review 9 process violation) → Resolved (process side).** Content side was already Resolved by SO Review 13 Finding 4 (ratification). Process side is now closed by `iterative-adversarial-refinement/CLOSURE-PROTOCOL.md` Section 1 ("Domain authority over project artifacts"), which makes the authority chain explicit: only SO may modify DESIGN.md; other domains classify proposed changes as "Raised to SO". The protocol notes the SE-9 incident as the motivating case and flags a future Platform-Engineer-class control (a pre-commit hook scanning DESIGN.md diffs for SO-authorship signal) as the next-level enforcement option, not implemented this round. The combination of (a) explicit authority documentation, (b) the SO-Review-13 ratification of the actual content, and (c) the protocol record itself is sufficient to close the process side — future SE rounds reading the README will be pointed at CLOSURE-PROTOCOL.md before they touch DESIGN.md.
+- **F2 (gates-merge closure protocol absent) → Resolved.** `iterative-adversarial-refinement/CLOSURE-PROTOCOL.md` codifies the finding lifecycle (Section 2), terminal-state criteria (Section 2 transition rules), the auto-Backlog rule for long-running Open findings (Section 3, derived from SO Review 14's coordination notes), cross-domain duplicate handling (Section 4), the cold-batch + warm-resolution cadence observed during Layer 3 (Section 5), and the explicit merge gate (Section 6). README now references the protocol from the "Merging gate" section.
+- **F3 (`tests/common/mod.rs` and `deny.toml` untracked) → Resolved by commit `87e41c6`.** Both files now tracked.
+- **F4 (Layer 3 round-2 work uncommitted) → Resolved by commit `87e41c6`.** All 28 changed files committed in a single coherent unit per the project's Layer-2-IAR commit precedent. The CHANGELOG entries inside the commit preserve the phase narrative (cold review → resolution → SO adjudication) for future bisecter context.
+
+**No carry-forward Open findings.** Review 10 reaches MVR with this update. The next VDD-IAR round (Round 11, presumably during Layer 4 IAR) will evaluate whether the closure protocol is honored in practice — the protocol is the prediction; Round 11 is the verification.
+
+**Coordination:** the closure protocol is project-scoped. If it proves useful here, Section 7 ("Suite adoption") describes the path to promotion to the suite-level IAR documentation. That decision is the director's, not VDD-IAR's. No new VDD-IAR findings this round.
+
 
