@@ -323,6 +323,35 @@ pub fn sort_issues(issues: &mut [Issue]) {
     });
 }
 
+/// Validates and trims a label. Returns the trimmed value, or an error if the
+/// label is empty after trimming.
+///
+/// # Errors
+/// Returns `Err("Label cannot be empty.")` when `raw` is empty or whitespace-only.
+pub fn parse_label(raw: &str) -> Result<String, String> {
+    todo!("Layer 4 Phase 2b: validate label {:?}", raw)
+}
+
+/// Returns `labels` with duplicates removed; first occurrence preserved.
+///
+/// Comparison is case-sensitive: `"bug"` and `"Bug"` are distinct labels.
+pub fn dedupe_labels(labels: &[String]) -> Vec<String> {
+    todo!("Layer 4 Phase 2b: dedupe {} labels", labels.len())
+}
+
+/// Returns `true` iff any element of `labels` equals `filter` (case-sensitive).
+///
+/// Used by `tracker list --label <l>` to filter by exact-match label. The match
+/// is case-sensitive per DESIGN.md Edge Cases / Labels: `--label Bug` does not
+/// match an issue with label `bug`.
+pub fn label_matches(labels: &[String], filter: &str) -> bool {
+    todo!(
+        "Layer 4 Phase 2b: case-sensitive match of {} labels against filter {:?}",
+        labels.len(),
+        filter
+    )
+}
+
 fn truncate_with_ellipsis(s: &str, max_chars: usize) -> String {
     let chars: Vec<char> = s.chars().collect();
     if chars.len() <= max_chars {
@@ -606,6 +635,47 @@ mod tests {
             ids,
             vec![1, 2],
             "lower ID should come first within the same priority tier"
+        );
+    }
+
+    // --- Layer 4: labels (Red Gate) ---
+
+    #[test]
+    fn label_empty_after_trim_rejected() {
+        assert!(parse_label("").is_err());
+        assert!(parse_label("  ").is_err());
+        assert!(parse_label("\t\n").is_err());
+    }
+
+    #[test]
+    fn label_deduplication_preserves_first_occurrence() {
+        let input = vec![
+            "bug".to_string(),
+            "bug".to_string(),
+            "auth".to_string(),
+            "bug".to_string(),
+        ];
+        assert_eq!(
+            dedupe_labels(&input),
+            vec!["bug".to_string(), "auth".to_string()],
+            "first occurrence is kept; later duplicates dropped"
+        );
+    }
+
+    #[test]
+    fn label_filter_case_sensitive_match() {
+        let labels = vec!["bug".to_string()];
+        assert!(
+            label_matches(&labels, "bug"),
+            "exact-case match should return true"
+        );
+        assert!(
+            !label_matches(&labels, "Bug"),
+            "different case should NOT match (case-sensitive filter)"
+        );
+        assert!(
+            !label_matches(&labels, "auth"),
+            "non-member label should not match"
         );
     }
 }
