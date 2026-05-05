@@ -10,7 +10,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Create a new issue
+    /// Create a new issue (with optional priority and labels)
     Create {
         /// Issue title
         title: String,
@@ -21,7 +21,7 @@ enum Commands {
         #[arg(long)]
         label: Vec<String>,
     },
-    /// List issues (default: open only)
+    /// List issues (default: open) with optional status / priority / label filters
     List {
         /// Filter by status: open, in-progress, done
         #[arg(long)]
