@@ -187,19 +187,22 @@ pub fn save_issues(path: &Path, issues: &[Issue]) -> Result<(), String> {
     fs::write(path, contents).map_err(|e| format!("Could not save tracker data: {}.", e))
 }
 
-/// Implements `tracker create "<title>" [--priority <p>]`.
+/// Implements `tracker create "<title>" [--priority <p>] [--label <l>]...`.
 ///
-/// Validates the title and optional priority, assigns the next ID, appends the
-/// new issue to storage, and prints `Created issue #<id>: <title>` to stdout.
-/// Priority defaults to `medium` when not supplied.
+/// Validates the title, optional priority, and each label; assigns the next ID;
+/// appends the new issue to storage; and prints `Created issue #<id>: <title>`
+/// to stdout. Priority defaults to `medium` when not supplied. Labels are
+/// trimmed individually and deduplicated (first occurrence preserved,
+/// case-sensitive).
 ///
 /// # Errors
 /// Returns `Err` if the title is empty/whitespace, the priority is invalid,
-/// stored data is unreadable or corrupt, the ID space is exhausted, or persisting
-/// the new issue fails.
+/// any label is empty after trim, stored data is unreadable or corrupt, the ID
+/// space is exhausted, or persisting the new issue fails.
 pub fn cmd_create(
     title_raw: &str,
     priority_raw: Option<&str>,
+    labels_raw: &[String],
     issues_path: &Path,
 ) -> Result<(), String> {
     let title = validate_title(title_raw)?;
@@ -207,6 +210,11 @@ pub fn cmd_create(
         Some(p) => parse_priority(p)?,
         None => "medium".to_string(),
     };
+    let parsed_labels: Vec<String> = labels_raw
+        .iter()
+        .map(|l| parse_label(l))
+        .collect::<Result<_, _>>()?;
+    let labels = dedupe_labels(&parsed_labels);
     let mut issues = load_issues(issues_path)?;
     let ids: Vec<u64> = issues.iter().map(|i| i.id).collect();
     let id = next_id(&ids)?;
@@ -217,7 +225,7 @@ pub fn cmd_create(
         description: None,
         status: "open".to_string(),
         priority,
-        labels: Vec::new(),
+        labels,
         created_at: now.clone(),
         updated_at: now,
     });
@@ -329,14 +337,26 @@ pub fn sort_issues(issues: &mut [Issue]) {
 /// # Errors
 /// Returns `Err("Label cannot be empty.")` when `raw` is empty or whitespace-only.
 pub fn parse_label(raw: &str) -> Result<String, String> {
-    todo!("Layer 4 Phase 2b: validate label {:?}", raw)
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        Err("Label cannot be empty.".to_string())
+    } else {
+        Ok(trimmed.to_string())
+    }
 }
 
 /// Returns `labels` with duplicates removed; first occurrence preserved.
 ///
 /// Comparison is case-sensitive: `"bug"` and `"Bug"` are distinct labels.
 pub fn dedupe_labels(labels: &[String]) -> Vec<String> {
-    todo!("Layer 4 Phase 2b: dedupe {} labels", labels.len())
+    let mut seen = HashSet::with_capacity(labels.len());
+    let mut out = Vec::with_capacity(labels.len());
+    for label in labels {
+        if seen.insert(label.as_str()) {
+            out.push(label.clone());
+        }
+    }
+    out
 }
 
 /// Returns `true` iff any element of `labels` equals `filter` (case-sensitive).
@@ -345,11 +365,7 @@ pub fn dedupe_labels(labels: &[String]) -> Vec<String> {
 /// is case-sensitive per DESIGN.md Edge Cases / Labels: `--label Bug` does not
 /// match an issue with label `bug`.
 pub fn label_matches(labels: &[String], filter: &str) -> bool {
-    todo!(
-        "Layer 4 Phase 2b: case-sensitive match of {} labels against filter {:?}",
-        labels.len(),
-        filter
-    )
+    labels.iter().any(|l| l == filter)
 }
 
 fn truncate_with_ellipsis(s: &str, max_chars: usize) -> String {
@@ -362,16 +378,17 @@ fn truncate_with_ellipsis(s: &str, max_chars: usize) -> String {
     }
 }
 
-/// Implements `tracker list [--status <s>] [--priority <p>]`.
+/// Implements `tracker list [--status <s>] [--priority <p>] [--label <l>]`.
 ///
 /// With no flags (the *default open view*): shows only `open` issues; prints
 /// `No open issues. Nice work!` to **stderr** when there are none.
 ///
-/// With any of `--status <s>` or `--priority <p>` (the *filter view*): validates
-/// each provided value, AND-combines the filters, and prints
+/// With any of `--status <s>`, `--priority <p>`, or `--label <l>` (the *filter
+/// view*): validates each provided value, AND-combines the filters, and prints
 /// `No issues match the given filters.` to **stderr** when none match. Note: an
 /// explicit `--status open` (with no other filter) still shows the default-view
 /// empty message, since the effective filter set is identical to the default.
+/// `--label` matches case-sensitively per DESIGN.md Edge Cases / Labels.
 ///
 /// Empty-state messages are informational (not data) per DESIGN.md "stderr
 /// contract" — routing them to stderr keeps stdout clean for piped consumers
@@ -383,6 +400,7 @@ fn truncate_with_ellipsis(s: &str, max_chars: usize) -> String {
 pub fn cmd_list(
     status_filter: Option<&str>,
     priority_filter: Option<&str>,
+    label_filter: Option<&str>,
     issues_path: &Path,
 ) -> Result<(), String> {
     let effective_status = match status_filter {
@@ -393,12 +411,16 @@ pub fn cmd_list(
         Some(p) => Some(parse_priority(p)?),
         None => None,
     };
-    let is_default_open_view = effective_status == "open" && effective_priority.is_none();
+    let is_default_open_view =
+        effective_status == "open" && effective_priority.is_none() && label_filter.is_none();
 
     let mut issues = load_issues(issues_path)?;
     issues.retain(|i| i.status == effective_status);
     if let Some(p) = &effective_priority {
         issues.retain(|i| &i.priority == p);
+    }
+    if let Some(l) = label_filter {
+        issues.retain(|i| label_matches(&i.labels, l));
     }
 
     if issues.is_empty() {

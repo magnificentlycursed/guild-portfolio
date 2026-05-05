@@ -17,6 +17,9 @@ enum Commands {
         /// Priority: low, medium, high (default: medium)
         #[arg(long)]
         priority: Option<String>,
+        /// Label (repeatable; deduplicated; case-preserved)
+        #[arg(long)]
+        label: Vec<String>,
     },
     /// List issues (default: open only)
     List {
@@ -26,6 +29,9 @@ enum Commands {
         /// Filter by priority: low, medium, high
         #[arg(long)]
         priority: Option<String>,
+        /// Filter by label (case-sensitive exact match; single value only)
+        #[arg(long)]
+        label: Option<String>,
     },
     /// Change an issue's status
     Status {
@@ -65,12 +71,21 @@ fn main() {
     let path = Path::new("tracker.json");
 
     let result = match cli.command {
-        Commands::Create { title, priority } => {
-            tracker::cmd_create(&title, priority.as_deref(), path)
-        }
-        Commands::List { status, priority } => {
-            tracker::cmd_list(status.as_deref(), priority.as_deref(), path)
-        }
+        Commands::Create {
+            title,
+            priority,
+            label,
+        } => tracker::cmd_create(&title, priority.as_deref(), &label, path),
+        Commands::List {
+            status,
+            priority,
+            label,
+        } => tracker::cmd_list(
+            status.as_deref(),
+            priority.as_deref(),
+            label.as_deref(),
+            path,
+        ),
         Commands::Status { id, status } => tracker::cmd_status(&id, &status, path),
     };
 
