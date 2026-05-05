@@ -71,12 +71,52 @@ For each layer, before writing any code, ask:
 
 ### Manual testing checklist
 
-For each layer, enumerate:
-- The happy path (step by step)
-- The error states (what does the user see?)
-- The empty state (what does the user see before any data exists?)
-- The persistence check (what survives a reload?)
-- The edge cases identified in DESIGN.md for this layer's features
+For each layer, enumerate the test items as **runnable steps** — not one-line checklist entries. A checklist item that says "verify it works" cannot be executed by a tester who is not the author. The plan must be executable top-to-bottom from a clean checkout without consulting the developer or an AI.
+
+**Each step must include:**
+
+1. **The exact command.** Not `cargo install`, but `cargo install --path . --locked --force` from the project directory. Spell out working directory, paths, and shell idioms.
+2. **The expected outcome — shown as a literal block when the output is invariant.** For deterministic output (help text, error messages, fixed-shape success messages, exit codes captured by `echo "exit: $?"`), include the exact bytes the tester should see in a fenced code block. Tag the stream where ambiguous (`Expected stdout`, `Expected stderr`). For variable output (timestamps, generated IDs, OS-chosen paths), pin the invariant parts in prose with a representative literal example. Prose like "expect the help text to list `--label`" is not testable — the tester cannot tell whether the right help (e.g., subcommand-level help) was consulted. A literal block can be diff-compared; a prose description cannot.
+3. **Explicit clean-state setup when required.** If the test depends on a fresh state, the step starts with the cleanup command (`rm -f tracker.json`, `rm -rf .cache`, etc.). Do not assume the tester remembers state from earlier tests.
+4. **The binary lifecycle, where relevant.** Source changes do not automatically reach the installed binary (`~/.cargo/bin/<name>`, `/usr/local/bin/<name>`, etc.). A test plan that exercises a layer with new runtime behavior opens with an explicit "update the installed binary" step. The persistence test exercises uninstall + reinstall (not just process restart) to verify data survives a binary swap. When help text is part of the verification, the test names the specific help command (`<binary> <subcommand> --help`, not `<binary> --help`) — top-level help typically lists subcommands only, not their flags.
+
+**Required items per layer:**
+- The happy path — full command sequence with expected output
+- Each error state — the input that triggers it + the exact stderr line + the exit code
+- The empty state — what the user sees before any data exists, including pipe-consumer behavior if the layer affects stdout/stderr discipline
+- The persistence check — install → create data → uninstall → reinstall → verify data survives
+- Each edge case in DESIGN.md — phrased as a runnable step with expected output
+- **Help-output verification (CLI projects).** For the binary and each subcommand whose surface changed at this layer, run `<binary> <subcommand> --help` and verify the literal output (a fenced expected-output block per subcommand). Top-level `<binary> --help` is not sufficient — most CLI frameworks list subcommand names there but not their flags, so a stale install or a missing flag is invisible at the top level. The verification typically belongs in the layer's "Step 0 — Update the installed binary" so a stale-binary problem fails fast before any behavior tests run. New layers that don't change the CLI surface (e.g., a polish layer that only adjusts internals) can omit this; layers that add, remove, or change a flag, subcommand, argument, or `--help` description must include it.
+
+**Audience.** Assume the tester is unfamiliar with the toolchain and with the project. The shorthand "verify it persists" is meaningful to the developer who wrote the layer; it is not meaningful to a reviewer running the plan two months later, or to an AI agent picking up the work in a new session, or to the apprentice's reviewer running it for the first time. The cost of an over-explicit plan is words on a page; the cost of a too-terse plan is a test session that becomes a debugging session because the tester cannot tell whether they are verifying behavior or fighting environmental drift.
+
+**Example shape (one expanded step with a literal expected-output block):**
+
+````markdown
+### Step 3 — Empty title rejected
+
+```sh
+rm -f tracker.json
+tracker create ""
+echo "exit: $?"
+```
+
+Expected stderr (literal):
+
+```
+Error: Title cannot be empty.
+```
+
+Expected stdout (literal — `echo` line only; the error went to stderr):
+
+```
+exit: 1
+```
+
+Expected on-disk state: `tracker.json` is not created.
+````
+
+A flat one-line bullet ("Happy path: create issue with `--label bug --label auth` → list shows `bug, auth`") is a draft, not a test plan. The decomposition is not complete until each bullet is expanded into a runnable step with literal expected output where the output is invariant.
 
 ---
 
@@ -138,11 +178,15 @@ The decomposition produces a `TODO.md` with this structure:
 ...
 
 **Manual Testing Checklist:**
-- [ ] Happy path: [step by step]
-- [ ] Error state: [what to observe]
-- [ ] Empty state: [what to observe]
-- [ ] Persistence: [reload and verify]
-- [ ] [Edge case from DESIGN.md]
+
+(Each item below is a placeholder for a runnable step block — full command + expected output + explicit clean-state and binary-lifecycle steps. See `### Manual testing checklist` above for the standard.)
+
+- [ ] Step 0 — Update the installed binary (when the layer changes runtime behavior)
+- [ ] Happy path
+- [ ] Each error state
+- [ ] Empty state (with pipe-consumer behavior if relevant)
+- [ ] Persistence: install → create → uninstall → reinstall → verify
+- [ ] Each edge case from DESIGN.md
 ...
 
 **Red Gate — tests to write first:**
