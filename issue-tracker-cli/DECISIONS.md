@@ -85,3 +85,23 @@ Key decisions made during the spec phase, with rationale. Source: IAR review log
 **No atomic writes** — deferred, not ruled out permanently.
 - SA Review 1, Finding 1
 - Why: implementation cost exceeds failure risk for a single-user local tool. If the tool is ever used with multiple concurrent writers or in a high-availability context, this decision should be revisited.
+
+---
+
+## Layer 3 spec amendments — SO Review 13
+
+**Reject control characters in titles** — `validate_title` rejects any character with `is_control()` (Unicode category `Cc`). Same rejection applies at load time via `issue_fields_are_valid` (stored data with a control-character title is corrupt).
+- UX Review 5 Findings 2 and 3 / Red Team Review 5 Findings 1 and 3 / SO Review 13 Finding 1
+- Why: control characters in titles break the spec's one-issue-per-line `list` contract (newline / CR), corrupt column alignment (tab), and enable terminal-escape injection in any tool that displays the title (ESC, C1 controls). The assignment's "validate all input from the command line" principle covers this case; the rule closes both UX exploits and a Red Team attack surface in a single defect-fix-class spec amendment.
+
+**Empty-state messages route to stderr, not stdout** — `No open issues. Nice work!` and `No issues match the given filters.` print to stderr. stdout is empty when no records match.
+- UX Review 5 Finding 4 / SO Review 13 Finding 2
+- Why: empty-state messages are informational, not data. The original spec routed them to stdout, which polluted piped consumers (`tracker list | wc -l` returned 1 in the empty case). The Unix convention separates data (stdout) from status / informational text (stderr) precisely so pipelines compose correctly. The change is a refinement of an originally underspecified detail; no caller depends on the prior stream choice.
+
+**Unknown JSON fields are NOT preserved across writes** — documentation amendment to `Edge Cases / Storage`.
+- DE Review 6 Finding 3 / SO Review 13 Finding 3
+- Why: the spec already says unknown fields are ignored on read (forward-compatible deserialization). The non-obvious side effect — that any subsequent mutation rewrites `tracker.json` with only the documented schema, dropping unknown fields — was implicit. Users hand-editing `tracker.json` should know.
+
+**SE Review 9 DESIGN.md content (lines 218 / 220-225) ratified** — the "exactly 2 spaces" column-separator rule and the example block stand as written.
+- VDD-IAR Review 10 Finding 1 / SO Review 13 Finding 4
+- Why: the content of the SE-9 edits is correct and useful — it specifies the format precisely and the example matches actual implementation output. Process integrity (the SE-9 edits were applied without prior SO approval) remains a separate VDD-IAR finding; SO ratification of the content does not retroactively legitimize the process. The split is intentional: SO owns spec content, VDD-IAR owns process compliance.

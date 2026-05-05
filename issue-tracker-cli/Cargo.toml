@@ -2,6 +2,12 @@
 name = "tracker"
 version = "0.1.0"
 edition = "2021"
+description = "A personal command-line issue tracker. Single user, no network; issues stored in a local JSON file. Portfolio project."
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+publish = false
+# TODO(SO): set `repository` URL before any external distribution. `publish = false`
+# blocks accidental crates.io upload in the meantime. Raised by TW Review 6.
 
 [[bin]]
 name = "tracker"
@@ -16,6 +22,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 clap = { version = "4", features = ["derive"] }
 chrono = "0.4"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
 
 [dev-dependencies]
 assert_cmd = "2"

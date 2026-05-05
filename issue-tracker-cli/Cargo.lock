@@ -615,6 +615,7 @@ dependencies = [
  "assert_cmd",
  "chrono",
  "clap",
+ "libc",
  "predicates",
  "serde",
  "serde_json",

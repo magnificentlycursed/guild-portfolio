@@ -79,3 +79,5 @@ Before a layer may be merged:
 3. Every finding is **resolved**, **dismissed**, or **deferred** (with a specific future layer named)
 4. VDD-IAR Alignment has run as the final gate step
 5. Round numbers and session context are logged in respective domain files
+
+For the full closure mechanics — finding lifecycle, domain authority over project artifacts, the auto-Backlog rule for long-running findings, the cold-batch + warm-resolution cadence, and the explicit merge gate — see [CLOSURE-PROTOCOL.md](CLOSURE-PROTOCOL.md).

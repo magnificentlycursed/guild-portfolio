@@ -611,3 +611,286 @@ Two real findings resolved: (1) `list_truncates_title_at_50_chars_with_ellipsis`
 **Cold-session signal:** The two resolved findings were introduced by in-session reviewers who verified correctness within the implementation's frame of reference. Finding 1 was in a test specifically strengthened in QE Review 3 — the strengthening was real but incomplete. Cold-session pressure exposed the residual gap. This is the expected value of cold-session review.
 
 **Coordination:** Finding 3 (coverage measurement) noted for [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md).
+
+---
+
+---
+
+## Review 9 — 2026-05-04 05:50Z
+
+**Scope:** Layer 3 implementation — `tests/layer3.rs` (7 integration tests pre-review), 4 unit tests added in `src/lib.rs`, the `cmd_list` empty-state heuristic fix from SO Review 11, and the priority-constants unification from SA Review 7. Files read: `DESIGN.md`, `TODO.md`, `src/lib.rs`, `src/main.rs`, `tests/layer1.rs`, `tests/layer2.rs`, `tests/layer3.rs`, `Cargo.toml`. All Layer 1 and Layer 2 acceptance criteria re-traced — no regression detected.
+
+**Session note:** Same-session-as-other-domains adversarial review (orchestrator did not spawn a fresh subagent for QE in this round; user rejected the cold-session subagent invocation). Acknowledged quality tradeoff per session-primer guidance: a same-session reviewer shares context with prior domains in this round (SO Review 11, SA Review 7) and is more likely to confirm their findings than to find new ones. Round 1 of Layer 3 QE — recommend a follow-up cold-session pass before the layer gate closes.
+
+**Assumption surfacing:** All test-crate APIs in `tests/layer3.rs` verified against current versions: `assert_cmd::Command::cargo_bin`, `Command::current_dir`, `assert::success/failure().code(1).stderr(predicate::str::contains).stdout(predicate::str::contains.not())`, `tempfile::TempDir`, `serde_json::Value` indexing with `["priority"]`. No hallucinated APIs. `predicate::str::contains(...).not()` used correctly (prefix-form) in the new regression test.
+
+### Layer 3 acceptance criteria → test trace
+
+| Criterion (TODO.md Layer 3) | Test(s) covering it | Verdict |
+|---|---|---|
+| `--priority high` stores `"high"` | `create_with_priority_stores_correct_value` | ✓ |
+| no flag → `"medium"` default | `create_without_priority_defaults_to_medium` | ✓ |
+| `--priority HIGH` (uppercase) → stored `"high"` | `priority_parsing_valid_cases` (unit) — covers `to_lowercase` | ✓ via unit (mirrors Layer 2 status case-insensitivity test pattern) |
+| `--priority critical` → exit 1, stderr | `create_invalid_priority_exits_one` | ✓ |
+| sort high → medium → low | `list_sorts_high_before_medium_before_low` (integration) + `priority_sort_order_is_correct` (unit) | ✓ |
+| within-tier ID ascending | `priority_sort_tie_breaking_by_id` (unit, with reverse-order input that exercises tie-breaker) + `list_within_tier_sorted_by_id_ascending` (integration, weak — see Finding 2) | ✓ via unit |
+| `--priority high` shows only high | `list_priority_filter_shows_only_matching` | ✓ |
+| `--priority medium` shows only medium | `priority_parsing_valid_cases` (parse) — retain logic shared with `high` | ✓ via shared code path (see Finding 3) |
+| `--priority low` shows only low | same | ✓ via shared code path |
+| `--priority invalid` → exit 1 | `list_invalid_priority_filter_exits_one` | ✓ |
+| `--status open --priority high` AND-combined | TODO defers full compound-filter verification to Layer 5 | ✓ (deferral honored; positive case implicit from `list_priority_filter_shows_only_matching` with default-open status) |
+
+---
+
+### Resolved
+
+**Finding 1 — Missing regression test for `is_open_view` empty-state heuristic with `--priority` filter (Dim 12 — Regression coverage)**
+
+SO Review 11 fixed `cmd_list` to print `No issues match the given filters.` instead of `No open issues. Nice work!` when `--priority X` is passed and no matching issues exist. The fix is in `src/lib.rs:225`:
+
+```rust
+let is_open_view = effective_status == "open" && effective_priority.is_none();
+```
+
+No test currently asserts this behavior. The pre-fix bug (`is_open_view = effective_status == "open"`) passes all 52 prior tests. A future change reverting the fix — accidentally or intentionally — would not be caught by the test suite. Per QE prompt dim 12 ("Does every bug logged in the review log have an identifiable regression test?"), this is a regression coverage gap.
+
+Mutation evaluation: removing `&& effective_priority.is_none()` (reverting the SO fix) on a tracker containing one open low-priority issue, then running `tracker list --priority high`:
+- Pre-fix output: `"No open issues. Nice work!\n"`
+- Post-fix output: `"No issues match the given filters.\n"`
+
+The regression test must assert both the positive (post-fix message present) and the negative (pre-fix message absent) so the bug cannot pass either assertion alone.
+
+**Resolution:** Added `list_priority_filter_no_match_shows_filter_message` to `tests/layer3.rs`:
+
+```rust
+#[test]
+fn list_priority_filter_no_match_shows_filter_message() {
+    let dir = TempDir::new().unwrap();
+    tracker(&dir)
+        .args(["create", "Low item", "--priority", "low"])
+        .assert()
+        .success();
+
+    tracker(&dir)
+        .args(["list", "--priority", "high"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "No issues match the given filters.",
+        ))
+        .stdout(predicate::str::contains("Nice work!").not());
+}
+```
+
+Both assertions kill the SO Review 11 mutation:
+- Positive assertion fails: pre-fix output is `Nice work!`, not `No issues match`.
+- Negative assertion fails: pre-fix output contains `Nice work!`.
+
+Test count: layer3.rs grows from 7 → 8 integration tests. Suite total: 53 (11 unit + 16 layer1 + 18 layer2 + 8 layer3). All passing. `cargo clippy -- -D warnings` clean.
+
+This finding mirrors QE Review 7 Finding 3 (`list_nonempty_status_filter_with_no_match_shows_filter_message` for the Layer 2 equivalent of this same heuristic), and applies the same regression-coverage discipline to the new `--priority` path.
+
+---
+
+### Dismissed
+
+**Finding 2 — `list_within_tier_sorted_by_id_ascending` does not exercise the tie-breaker (Dim 2 — Test falsifiability / mutation testing)**
+
+The integration test creates "First high" (id=1) then "Second high" (id=2). Storage order matches sorted order. A mutation that removes the `.then(a.id.cmp(&b.id))` clause from `sort_issues` produces stable sort (preserving original order) — the test still passes because original order already matches the asserted output order.
+
+To kill this mutation at the integration layer, the test would need to insert in reverse ID order, but the CLI assigns IDs sequentially — there is no way to make issue id=2 appear before issue id=1 in storage via the public CLI surface. The mutation is unkillable via integration tests with the current ID assignment contract.
+
+**Classification:** Dismissed. The unit test `priority_sort_tie_breaking_by_id` constructs `vec![issue(2, "high"), issue(1, "high")]` directly and verifies `sort_issues` returns `[1, 2]` — this kills the mutation at the unit level. The integration test serves a different purpose: end-to-end verification that creation order does not corrupt sort order through the full CLI pipeline. Both tests have value; neither makes the other redundant.
+
+---
+
+**Finding 3 — `--priority medium` and `--priority low` filter cases not covered by integration tests (Dim 4 — Coverage meaningfulness)**
+
+Layer 3 acceptance criteria 8 and 9 explicitly enumerate `tracker list --priority medium` and `tracker list --priority low`. Only `--priority high` has an integration test covering the filter path.
+
+**Classification:** Dismissed. The retain logic in `cmd_list` (`src/lib.rs`) is `issues.retain(|i| &i.priority == p)` — pure string equality with no special-casing of priority values. The `list_priority_filter_shows_only_matching` test exercises this code path with `--priority high`. The `parse_priority` unit test (`priority_parsing_valid_cases`) covers all three priority strings — `low`, `medium`, `high` — through the parser. Adding `--priority medium` and `--priority low` integration tests would be tautological: they would exercise the same retain branch with three different equality comparisons, killing no additional mutations beyond the symmetry already established by the parser unit tests. Test economy preferred.
+
+If the implementation ever introduced priority-value-specific branches (e.g., a special filter for `--priority urgent` that mapped to multiple stored values), the symmetry assumption would break and explicit tests for each value would become necessary. The current code does not justify that overhead.
+
+---
+
+**Finding 4 — `--priority HIGH` (uppercase, integration-level) not tested at the CLI surface (Dim 4)**
+
+Layer 3 acceptance criterion 3 requires that `tracker create "X" --priority HIGH` stores `"high"` in JSON. The unit test `priority_parsing_valid_cases` covers `parse_priority("HIGH") == Ok("high")`, but no integration test invokes the CLI with `--priority HIGH`.
+
+**Classification:** Dismissed. Mirrors the Layer 2 status case-insensitivity test pattern (Layer 2 also covers uppercase status via `parse_status` unit test rather than a CLI integration test). The CLI value flows directly from clap into `parse_priority` with no intermediate transformation; the parser unit test is the right level of test for this transform. Adding a CLI integration test would exercise additional plumbing (clap → cmd_create → parse_priority → JSON write) but the failure modes covered are already addressed by `create_with_priority_stores_correct_value` (CLI-to-JSON for `high`) and `priority_parsing_valid_cases` (case-insensitivity for `HIGH` in parser).
+
+---
+
+### Hallucinated
+
+*(none)*
+
+### Open
+
+*(none)*
+
+### Raised to SO
+
+*(none)*
+
+---
+
+### Summary
+
+One real finding resolved: regression test added for the SO Review 11 `is_open_view` fix, closing the regression-coverage gap. Three dismissed: integration tie-breaker test gap (covered by unit test); medium/low filter symmetry (covered by shared retain code path + parser unit test); uppercase `--priority HIGH` integration (covered by parser unit test, mirroring Layer 2 pattern).
+
+**Layer 3 test architecture verdict:** Sound. Total: 53 tests (11 unit + 42 integration). All pass. No flakiness, no shared state, no ordering dependencies. `tempfile::TempDir` per-test isolation preserved. Layer 3 introduced 11 new tests (7 integration + 4 unit) before this review; QE Review 9 added one more for regression coverage.
+
+**Dimensions audited and cleared:**
+- **Dim 1 — Acceptance criteria:** All Layer 3 acceptance criteria traced to tests (see table above). No uncovered criterion found.
+- **Dim 2 — Test falsifiability:** Mutation analysis on each Layer 3 test (priority parsing, sort, filter, regression) — all relevant mutations either caught or shown unkillable via integration surface (with unit test backstop).
+- **Dim 5 — Test architecture:** No flakiness, no order-dependence; `TempDir` isolation maintained.
+- **Dim 7 — Logic errors:** SO Review 11 caught and fixed the only logic error (`is_open_view`); no others detected on this pass.
+- **Dim 8 — Dead code:** `priority_rank` is private, called only from `sort_issues` (called from `cmd_list`). `PRIORITY_ORDER` is now used in 3 places (post-SA-7 unification). No dead code.
+- **Dim 9 — Unused dependencies:** No new dependencies in Layer 3. Existing `serde`, `serde_json`, `clap`, `chrono` all used.
+- **Dim 14 — TDD proxy indicators:** Layer 3 Red Gate test names are behavior-named (`create_with_priority_stores_correct_value`, `list_sorts_high_before_medium_before_low`); they call the public CLI surface; assertions are tight on stdout content and JSON structure. Red Gate commit (`71d2137`) precedes implementation commit (`caf5f9a`) — TDD discipline preserved at the commit level.
+
+**Coordination:**
+- **SE:** No new SE-owned findings — SO Review 11 already addressed the only logic error in Layer 3.
+- **SA:** No structural test-architecture findings beyond the test-helper extraction already raised in SA Review 7 Finding 2 (Open).
+- **VDD-IAR Alignment:** Same-session quality tradeoff noted; recommend a follow-up cold-session QE pass before the Layer 3 gate closes if MVR rigor is required.
+- **Cargo.lock / coverage CI:** Same status as QE Review 8 Dim 4 carve-out — coverage tooling is a Platform Engineer concern; no Platform Engineer review is scheduled for Layer 3 per `TODO.md`. No new escalation.
+
+---
+
+---
+
+## Review 10 — 2026-05-04 16:00Z
+
+**Scope:** Layer 3 cold-session adversarial pass. Files read: `DESIGN.md`, prior `QUALITY-ENGINEER-REVIEW.md` (Reviews 1–9), `src/lib.rs`, `src/main.rs`, `tests/{common/mod.rs,layer1.rs,layer2.rs,layer3.rs}`, `Cargo.toml`, `Cargo.lock`. `cargo test --all-targets` and `cargo clippy --all-targets -- -D warnings` both run pre-review (54 tests passing, no clippy warnings) and post-review (60 tests passing, no clippy warnings). Mutation-testing thought experiment applied per primer; spec-mandated literal-string assertions audited.
+
+**Session note:** Cold session per primer; parallel batch run with other domains. No prior participation in Layer 1–3 implementation or in-session reviews. Adversarial obligation is to the spec, not the developer or prior reviewers' conclusions.
+
+**Assumption surfacing:** `assert_cmd::Command::cargo_bin`, `predicates::str::{contains, starts_with}`, `tempfile::TempDir`, `serde_json::Value` indexing, `std::fs::create_dir`, `clap::Parser::try_parse` all verified against the versions resolved in `Cargo.lock`. No hallucinated APIs in the new test code.
+
+---
+
+### Resolved
+
+**Finding 1 — `Created issue #<id>: <title>` stdout never tested with a title that requires trimming (Dim 2 — Test falsifiability)**
+
+DESIGN.md Feature 1 postcondition: "stdout prints exactly: `Created issue #<id>: <title>` (trimmed title)". The two existing tests that reach the stdout-print path are `create_valid_title_exits_zero_and_prints_confirmation` (exact stdout assertion, but title `"Fix bug"` requires no trimming) and `create_trims_title` (asserts the JSON file, not stdout). A mutation in `cmd_create` substituting `title_raw` for the locally-bound `title` (post-validate) in the `println!` call survives both: JSON would still hold the trimmed title (because `validate_title`'s return value is what gets pushed into the `Issue`), while stdout would print `"Created issue #1:   Fix bug  "`. Zero existing tests catch this.
+
+**Resolution:** Added `create_stdout_uses_trimmed_title_not_raw` (`tests/layer1.rs`) — runs `tracker create "  Fix bug  "` and asserts stdout is exactly `"Created issue #1: Fix bug\n"` (and stderr empty). Fails on the `title_raw` mutation; passes on the correct implementation.
+
+---
+
+**Finding 2 — `tracker.json` is a directory: DESIGN.md edge case has no automated test (Dim 1 — Acceptance criteria; Dim 6 — Validation gaps)**
+
+DESIGN.md Edge Cases > Storage explicitly enumerates: "`tracker.json` is a directory → read error, treated as I/O failure → exit 1." This is a spec-listed acceptance criterion. QE Review 1 Finding 6 dismissed write-failure paths as manual-only because they require OS-level setup (filling a disk, revoking permissions). The directory-at-tracker.json case is **not** OS-privileged — it requires only `std::fs::create_dir`, which works in any `TempDir` on every OS the project supports. The dismissal in Review 1 conflated this case with the genuinely manual-only ones. Verified manually: `mkdir tracker.json && tracker list` exits 1 with `Error: Could not read tracker data: Is a directory (os error 21).` — current implementation handles it correctly. Without an automated test, a future regression that panicked on `EISDIR` (e.g., reintroducing `.unwrap()` on `fs::read_to_string`) would survive the suite.
+
+**Resolution:** Added `tracker_json_is_a_directory_causes_io_error_exit` (`tests/layer1.rs`) — creates a directory at `tracker.json`, runs `tracker list`, asserts exit 1, stderr starts with `"Error: Could not read tracker data"`, stdout empty. The assertion uses `starts_with` rather than full equality because the OS error suffix (`Is a directory (os error 21)` vs. equivalent on other Unixes / Windows) is platform-dependent — but the spec-mandated `Error: Could not read tracker data` prefix is the falsifiable contract.
+
+---
+
+**Finding 3 — `--help` exit-code-0 contract has no test (Dim 1; CLI supplement Testing Methodology)**
+
+DESIGN.md Interface: "`--help` is supported for the binary and each subcommand. The output must accurately describe all flags and their valid values." The CLI supplement Testing Methodology calls out: "`--help` output: verify it does not crash and exits 0." `main.rs` routes clap errors through a custom branch — `Err(e) if e.use_stderr() => exit(1)` for usage errors; `else => exit(0)` for `--help`/`--version`. This routing is exactly the kind of clap-quirk handler that silently breaks under a clap upgrade or a refactor. Zero existing tests exercise either branch's `exit(0)` path.
+
+**Resolution:** Added two tests (`tests/layer1.rs`):
+- `help_flag_exits_zero_and_lists_subcommands` — `tracker --help` exits 0 with stdout containing `create`, `list`, `status` (the registered subcommands).
+- `subcommand_help_flag_exits_zero` — `tracker create --help` exits 0 with stdout containing `--priority` (a documented flag).
+
+Either test fails if `--help` ever routes through the error branch (exit 1 with usage error on stderr instead of help text on stdout).
+
+---
+
+**Finding 4 — Spec-literal stderr assertions reduced to substring checks across 6 error-path tests (Dim 3 — Assertion strength; primer literal-string mandate)**
+
+The primer mandates: "Spec-mandated assertions should be tested literally (full message, not substring)." DESIGN.md specifies the full text for each error message; the existing tests assert only loose substrings. Affected tests and the spec-vs-test gap:
+
+| Test | Existing assertion | Spec-mandated full text |
+|---|---|---|
+| `status_invalid_id_string_exits_one` | `contains("not a valid issue ID")` | `Error: 'abc' is not a valid issue ID. Expected a positive integer.` |
+| `status_zero_id_exits_one` | `contains("not a valid issue ID")` | `Error: '0' is not a valid issue ID. Expected a positive integer.` |
+| `status_invalid_value_exits_one` | `contains("Invalid status")` | `Error: Invalid status 'flying'. Expected: open, in-progress, or done.` |
+| `list_invalid_status_filter_exits_one` | `contains("Invalid status")` | `Error: Invalid status 'flying'. Expected: open, in-progress, or done.` |
+| `create_invalid_priority_exits_one` | `contains("Invalid priority")` | `Error: Invalid priority 'critical'. Expected: low, medium, or high.` |
+| `list_invalid_priority_filter_exits_one` | `contains("Invalid priority")` | `Error: Invalid priority 'urgent'. Expected: low, medium, or high.` |
+
+Mutations that survive `contains("Invalid status")` include: dropping the offending value (regression to a static string `"Invalid status."`), dropping the actionable expected-list suffix, or accidentally reusing the priority error template for status validation (or vice versa). The spec wrote these as user-actionable contracts; the tests treat them as opaque "an error occurred" labels.
+
+**Resolution:** Updated all six tests to assert the full spec-mandated stderr text via `predicate::str::contains("Error: <full message>")`. The leading `Error: ` prefix is included so the assertion would also catch a regression that bypassed the `eprintln!("Error: {}", e)` wrapping in `main.rs`. All 60 tests pass.
+
+---
+
+**Finding 5 — `status_is_case_insensitive_on_input` verifies stored value but not stdout normalization (Dim 2 — Test falsifiability)**
+
+The test runs `tracker status 1 DONE`, then asserts `v[0]["status"] == "done"` in JSON. It does not assert stdout. `cmd_status` prints the stored (lowercase) status via `issues[idx].status`. A mutation substituting `status_raw` for `issues[idx].status` in the `println!` would print `"Issue #1 status → DONE.\n"` while still writing `"done"` to JSON. The test passes on the mutated implementation — the case-insensitivity contract is asserted only at the storage boundary, not at the user-visible stdout boundary.
+
+**Resolution:** Added `.stdout("Issue #1 status \u{2192} done.\n")` to the existing assertion chain. The test now verifies that both the stored value and the printed confirmation reflect the normalized lowercase form. All 60 tests pass.
+
+---
+
+### Dismissed
+
+**Finding 6 — `list_default_excludes_done_issues` does not specifically assert the empty-state message (Dim 3)**
+
+The test creates one issue, marks it done, runs `tracker list`, and asserts `contains("Fix bug").not()`. The actual stdout in this case is `"No open issues. Nice work!\n"` (the only open-tracker-empty path). A mutation that changed the empty-state message (e.g., swapped `"Nice work!"` for `"All clean!"`) would survive this test.
+
+**Classification:** Dismissed. The empty-state message under exactly this scenario (all issues done → default list view) is the explicit contract of `list_all_done_default_shows_empty_state` (`tests/layer2.rs`), which uses an exact-stdout assertion. `list_default_excludes_done_issues` has a different, narrow purpose: verifying that a done issue is not shown in the default view. Loading it with the empty-state message assertion would create a test with two unrelated falsifiability claims; cleanly separated tests are preferable.
+
+---
+
+**Finding 7 — No integration test for `--priority HIGH` (uppercase) end-to-end CLI path (Dim 4)**
+
+QE Review 9 Finding 4 was dismissed on the grounds that `parse_priority("HIGH")` is unit-tested and the CLI surface is "thin plumbing." On cold-session re-examination: the dismissal is defensible because (a) `cmd_create` calls `parse_priority` directly with the clap-supplied string — no intermediate transformation; (b) the `create_with_priority_stores_correct_value` test exercises the CLI-to-JSON path for `"high"`; (c) a regression that broke uppercase normalization would fail `priority_parsing_valid_cases`. Adding a CLI-level uppercase test would duplicate coverage with no additional mutation-killing power.
+
+**Classification:** Dismissed (consistent with QE Review 9 Finding 4).
+
+---
+
+**Finding 8 — Coverage measurement infrastructure absent (Dim 13; Rust supplement Coverage thresholds)**
+
+`cargo tarpaulin`, `cargo llvm-cov`, and `cargo mutants` are not installed; no coverage gate is configured in the repo. The Rust supplement specifies 80% line coverage minimum, 100% public API coverage, both enforced in CI.
+
+**Classification:** Dismissed from QE — already escalated to Platform Engineer in QE Review 8 Dim 4 carve-out. No new action.
+
+---
+
+### Hallucinated
+
+*(none — every finding was verified against the running code or executed manually.)*
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Summary
+
+Five real findings, all resolved this session via test additions/strengthening (+4 tests in layer1.rs, in-place strengthening of 6 assertions in layer2.rs/layer3.rs, in-place strengthening of `status_is_case_insensitive_on_input`). Three dismissed with rationale. Test count: 54 → 60. `cargo test --all-targets` green; `cargo clippy --all-targets -- -D warnings` green.
+
+**The two cold-session-specific findings:**
+- Finding 2 (directory-at-tracker.json) was a long-standing acceptance-criterion gap dismissed in QE Review 1 Finding 6 under the conflated "I/O failure" umbrella. Cold-session re-examination separated the cross-platform-testable directory case from the genuinely manual-only permission/disk-full cases. This is the kind of dismissal-without-rationale-recheck the primer flags as cold-session value.
+- Finding 4 (substring assertions across six error-path tests) reflects the primer's explicit literal-string mandate. Each affected test was authored and reviewed in prior in-session passes; cold-session adversarial pressure was required to force the literal-vs-substring framing.
+
+**Dimensions audited and cleared:**
+- **Dim 1 — Acceptance criteria:** All Layer 1–3 acceptance criteria traced to tests post-additions. Directory-at-tracker.json case now covered.
+- **Dim 2 — Test falsifiability:** Mutation thought experiment applied to `cmd_create` (title-raw vs. trimmed), `cmd_status` (status-raw vs. normalized), `is_default_open_view`, `truncate_with_ellipsis`, `priority_rank`, `sort_issues`. All identified surviving mutations now caught.
+- **Dim 3 — Test selector and assertion strength:** Six substring-only assertions tightened to spec-literal text.
+- **Dim 5 — Test architecture:** TempDir per-test isolation maintained; new tests follow the established `mod common; use common::tracker;` pattern. No flakiness.
+- **Dim 7 — Logic errors:** No new logic errors found; SO Review 11's `is_default_open_view` fix verified untouched and now regression-tested via QE Review 9 Finding 1.
+- **Dim 8 — Dead code:** `priority_rank`, `truncate_with_ellipsis`, `issue_fields_are_valid` private and reachable via `cmd_list` / `load_issues`. No dead exports.
+- **Dim 9 — Unused dependencies:** All four runtime deps (`serde`, `serde_json`, `clap`, `chrono`) and three dev deps (`assert_cmd`, `predicates`, `tempfile`) used.
+- **Dim 12 — Regression coverage:** Every prior-review-logged bug now has an identifiable regression test (most recently QE Review 9 Finding 1's regression for SO Review 11).
+- **Dim 14 — TDD proxy indicators:** Tests are behavior-named, call public CLI surface, assert tight contracts. No implementation coupling.
+
+**Files modified:**
+- `tests/layer1.rs` — added 4 tests (`create_stdout_uses_trimmed_title_not_raw`, `tracker_json_is_a_directory_causes_io_error_exit`, `help_flag_exits_zero_and_lists_subcommands`, `subcommand_help_flag_exits_zero`).
+- `tests/layer2.rs` — strengthened 4 tests (`status_invalid_id_string_exits_one`, `status_zero_id_exits_one`, `status_invalid_value_exits_one`, `list_invalid_status_filter_exits_one`, `status_is_case_insensitive_on_input`).
+- `tests/layer3.rs` — strengthened 2 tests (`create_invalid_priority_exits_one`, `list_invalid_priority_filter_exits_one`).
+
+**Coordination:**
+- **SO:** Empty-state messages on stdout (QE Review 8 Finding 3) remain Raised to SO — not re-raised but noted as still pending.
+- **PE:** Coverage tooling absence remains escalated (QE Review 8 Coordination) — no new escalation.
+- **No new domain coordination required.**

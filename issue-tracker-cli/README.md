@@ -8,15 +8,24 @@ This is portfolio project #2 from the Phase 1 apprentice program — the first R
 
 ## Commands
 
+Available now (Layer 3):
+
 ```
-tracker create "Fix the login bug" [--priority high] [--label bug] [--description "..."]
-tracker list [--status open|in-progress|done] [--priority low|medium|high] [--label <l>]
+tracker create "Fix the login bug" [--priority low|medium|high]
+tracker list [--status open|in-progress|done] [--priority low|medium|high]
 tracker status <id> open|in-progress|done
-tracker show <id>
-tracker delete <id>
 ```
 
-`tracker list` defaults to open issues, sorted by priority (high → medium → low) then ID ascending. Run `tracker --help` or `tracker <subcommand> --help` for full flag reference.
+Planned (not yet implemented — see Status):
+
+```
+tracker create ... [--label <l>]... [--description "..."]   # Layer 4 / Layer 6
+tracker list [--label <l>]                                  # Layer 4
+tracker show <id>                                           # Layer 6
+tracker delete <id>                                         # Layer 6
+```
+
+`tracker list` defaults to open issues, sorted by priority (high → medium → low) then ID ascending. Run `tracker --help` or `tracker <subcommand> --help` for the full flag reference of currently-implemented commands.
 
 ---
 
@@ -43,7 +52,7 @@ cargo build --release
 cargo test
 ```
 
-Integration tests invoke the compiled binary as a subprocess and assert on stdout, stderr, and exit code. Unit tests cover validation logic, filtering, and sorting.
+Integration tests invoke the compiled binary as a subprocess and assert on stdout, stderr, and exit code. Unit tests cover validation, ID assignment, status/priority/ID parsing, and sort ordering.
 
 ---
 
@@ -57,7 +66,7 @@ Issues are stored in `tracker.json` in the directory where you run the command. 
 
 ## Status
 
-**Layer 2 implementation complete. Layer 3 not started.**
+**Layer 3 implementation complete. Layer 4 not started.**
 
 - [x] DESIGN.md — full behavioral specification
 - [x] TODO.md — 7-layer development plan with Red Gate test plans
@@ -65,7 +74,7 @@ Issues are stored in `tracker.json` in the directory where you run the command. 
 - [x] IAR suite — 10 domains reviewed
 - [x] Layer 1: Core create + list
 - [x] Layer 2: Status flow
-- [ ] Layer 3: Priority
+- [x] Layer 3: Priority
 - [ ] Layer 4: Labels
 - [ ] Layer 5: Compound filtering
 - [ ] Layer 6: Description, show, delete

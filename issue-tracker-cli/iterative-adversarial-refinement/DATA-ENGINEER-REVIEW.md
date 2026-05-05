@@ -326,3 +326,140 @@ No Data Engineer findings. Schema correct, validation in place, serialization sp
 No data engineering findings. Schema unchanged. Status mutation is correctly validated and stored. Timestamp consistency maintained. Single source of truth for valid status values restored by [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) Review 6. MVR reached for Layer 2.
 
 **Coordination:** *(none)*
+
+---
+
+---
+
+## Review 6 — 2026-05-04
+
+**Scope:** Layer 3 implementation cold-session pass — `src/lib.rs`, `src/main.rs`, `tests/layer1.rs`, `tests/layer2.rs`, `tests/layer3.rs`, `tracker.json`. Evaluating data model invariants enforced at load time, schema evolution behavior across read-modify-write cycles, and timestamp data integrity.
+
+**Session note:** Cold session per primer; parallel batch run with other domains. Reviewer did not build the project. Adversarial posture: stored data is untrusted; `tracker.json` could have been hand-edited.
+
+---
+
+### Open
+
+**Finding 1 — `issue_fields_are_valid` does not validate timestamp format or the `updated_at >= created_at` invariant (Dim 4 — Data integrity invariants)**
+
+`src/lib.rs:57-62` validates `id > 0`, non-empty title, status membership, priority membership. It does not validate the `created_at` / `updated_at` fields at all. They are typed `String` and accepted as-is on load.
+
+DESIGN.md Data Model field invariants explicitly state:
+- `created_at` ISO 8601 UTC, second precision, e.g. `"2026-04-27T14:00:00Z"`
+- `updated_at` ISO 8601 UTC, second precision; **always >= `created_at`**
+
+A hand-edited `tracker.json` with `"created_at": "yesterday"`, `"updated_at": ""`, or `"updated_at": "2025-01-01T00:00:00Z"` against `"created_at": "2026-05-01T00:00:00Z"` deserializes successfully and passes `issue_fields_are_valid`. The data layer silently accepts data that violates a documented invariant. Downstream code (`show` in Layer 6) will print whatever string is there; sort-by-timestamp functionality (not currently implemented but plausibly future) would behave incorrectly.
+
+DESIGN.md Edge Cases / Storage lists `"id": 0`, `"title": ""`, `"status": "flying"`, `"priority": ""` as triggering the corrupt-data error. By parallel reasoning, a non-ISO-8601 timestamp string or a `updated_at < created_at` violation should trigger the same path — but the spec does not list timestamps in the corrupt-data examples. This is partially a spec gap and partially an implementation gap: even under the conservative reading of DESIGN.md, a `String` value documented as "ISO 8601 UTC, second precision" needs format validation to honor the contract.
+
+Recommendation: extend `issue_fields_are_valid` to (a) parse both timestamps with `chrono` (e.g., `DateTime::parse_from_rfc3339` with a UTC `Z` suffix check) and (b) verify `updated_at >= created_at`. If timestamp validation is judged out-of-scope for the implementation, raise the question to SO to either (1) add timestamp-format and ordering examples to the corrupt-data Edge Cases list, or (2) explicitly weaken the field invariant to "best effort, format not enforced on load." Either resolution makes the contract explicit. The current state is a silent invariant violation.
+
+**Classification:** Open. Cross-reference [SECURITY-REVIEW.md](SECURITY-REVIEW.md) (untrusted-input boundary) and [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) (DESIGN.md amendment to clarify corrupt-data scope for timestamps).
+
+---
+
+**Finding 2 — `issue_fields_are_valid` does not enforce ID uniqueness on load (Dim 4 — Data integrity invariants)**
+
+DESIGN.md Field invariants: "`id` is unique across all issues and never reused." `load_issues` (`src/lib.rs:69-81`) calls `issue_fields_are_valid` per-issue but performs no cross-issue checks.
+
+A hand-edited `tracker.json`:
+
+```json
+[
+  {"id":1,"title":"A","status":"open","priority":"medium","labels":[],"created_at":"2026-05-01T00:00:00Z","updated_at":"2026-05-01T00:00:00Z"},
+  {"id":1,"title":"B","status":"open","priority":"medium","labels":[],"created_at":"2026-05-01T00:00:00Z","updated_at":"2026-05-01T00:00:00Z"}
+]
+```
+
+loads without error. Then `tracker status 1 done` calls `issues.iter().position(|i| i.id == id)` (`src/lib.rs:155-158`) — finds only the first match and silently leaves the duplicate untouched. The user sees one issue change status; the second copy retains the old status invisibly. `tracker create "C"` then computes `next_id = max(1,1)+1 = 2`, assigning ID 2 — the duplicate is now permanent and invisible to the user.
+
+This is the exact failure mode the IAR primer warns about: "the most dangerous data bug is not a validation gap — it is a schema that encodes the wrong model of the domain and silently corrupts every downstream operation." A duplicate-ID violation downstream-corrupts every command that locates an issue by ID.
+
+Recommendation: in `load_issues`, after the per-issue validation pass, verify `issues.iter().map(|i| i.id).collect::<HashSet<_>>().len() == issues.len()`. Treat duplicates as corrupt data (same error path). Cost: ~3 lines.
+
+**Classification:** Open. Cross-reference [SECURITY-REVIEW.md](SECURITY-REVIEW.md) and [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) (the uniqueness invariant is structural, not just a runtime concern).
+
+---
+
+**Finding 3 — Forward-compat unknown fields are silently dropped on rewrite (Dim 3 — Schema evolution)**
+
+`Issue` struct (`src/lib.rs:12-23`) has no `#[serde(other)]` catch-all and no flatten-extra mechanism. DESIGN.md Edge Cases / Storage states: "valid JSON but unknown fields → unknown fields are ignored (forward-compatible deserialization)." This is honored on read.
+
+But the read-modify-write cycle is destructive: if a future version of the tool adds an `assignee` field, then a user runs an older binary, the older binary loads the JSON (silently dropping `assignee`), serializes back without it, and overwrites `tracker.json`. The forward-compat data is permanently lost on the next mutation.
+
+For a single-user tool with a single binary version installed at a time, this risk is low. But the user is encouraged by DESIGN.md to hand-edit `tracker.json` ("verify it in a text editor"), and the tool is part of a portfolio meant to demonstrate engineering practice. A hand-added comment-style field (`"_note": "remember to refactor"`) would silently disappear on the next `tracker status` command.
+
+Recommendation: either (a) document this as an explicit non-goal (in DECISIONS.md or DESIGN.md Out of Scope: "Hand-added unknown fields are not preserved across mutations"), or (b) implement field preservation via `#[serde(flatten)] extra: HashMap<String, Value>`. Option (a) is the right call for portfolio scope; it's the absence of the documentation that makes this a finding rather than a deliberate trade-off.
+
+**Classification:** Raised to SO. The Solution Owner controls DESIGN.md; the proposed amendment is to add to "Out of Scope" or DECISIONS.md a documented statement that the read-modify-write cycle does not preserve unknown fields, despite their being ignored on read. No implementation change required if SO accepts the documentation-only resolution.
+
+---
+
+### Dismissed
+
+**Finding 4 — `description: Option<String>` deserializes missing key as `None` without `#[serde(default)]` (Dim 3 — `serde` schema evolution)**
+
+The Rust supplement Data Engineering section flags `#[serde(default)]` on new optional fields as a forward-compat concern. `description` lacks the attribute.
+
+**Classification:** Dismissed. `Option<T>` has implicit serde behavior: a missing key deserializes to `None` regardless of `#[serde(default)]`. Verified by Layer 1 tests (`create_first_issue_unchanged_after_second_create` reads `tracker.json` containing no `description` key and never fails deserialization). The attribute is redundant for `Option<T>`. No defect; no change required.
+
+**Finding 5 — `next_id` overflow at `u64::MAX` not handled (Rust supplement — integer overflow)**
+
+`src/lib.rs:39-41` uses `+ 1` without `checked_add`.
+
+**Classification:** Dismissed. Already raised and accepted as risk in [RED-TEAM-REVIEW.md](RED-TEAM-REVIEW.md) Review 1 Finding 2. Re-raising would not add signal.
+
+**Finding 6 — Description data not validated on load — empty/whitespace `description` accepted (Dim 4)**
+
+`issue_fields_are_valid` does not check description content. A hand-edited `"description": ""` or `"description": "   "` would load without error, contradicting the create-time validation that rejects these.
+
+**Classification:** Deferred. Description is Layer 6 scope (TODO.md confirms). Raise concretely under DE Review 7+ when Layer 6 lands. Adding the check now would test code that does not exist yet. Tracking note: when Layer 6 implements `--description`, `issue_fields_are_valid` must extend to: `description.as_ref().is_none_or(|d| !d.trim().is_empty())`.
+
+---
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Summary
+
+Three real findings on data integrity invariants enforced at the data-layer boundary. The implementation correctly resolved Reviews 1-5 findings (post-deserialization domain validation, top-level array, `description` skip-if-none, status canonicalization). What remains untested at the load boundary is the **trans-issue and intra-record invariant set**: timestamp format and ordering (Finding 1), ID uniqueness across the array (Finding 2), and the documentation gap around unknown-field preservation across read-modify-write (Finding 3).
+
+The first two findings are the classic adversarial failure mode the primer warns about — the data layer trusts the file enough to accept duplicate IDs and malformed timestamps. The third is a forward-compat documentation gap, not an implementation gap. Two findings dismissed (one on serde semantics, one already-handled by Red Team), one deferred to Layer 6.
+
+The MVR signal for this domain is not yet reached: real findings remain. Re-evaluate after Findings 1-2 are addressed.
+
+**Coordination:**
+- Finding 1 → [SECURITY-REVIEW.md](SECURITY-REVIEW.md) (untrusted-input boundary), [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) (DESIGN.md amendment for corrupt-data scope of timestamps)
+- Finding 2 → [SECURITY-REVIEW.md](SECURITY-REVIEW.md), [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md)
+- Finding 3 → [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) (Raised to SO; documentation amendment)
+
+**Files modified:** This review log only.
+
+---
+
+### Update — 2026-05-04 16:00Z: Layer 3 follow-up resolution pass
+
+Both implementation Open findings closed; the Raised-to-SO finding remains pending SO action.
+
+- **F1 (timestamp ISO 8601 format + `updated_at >= created_at`) → Resolved.** New helper `parse_timestamp` (`src/lib.rs`) wraps `chrono::DateTime::parse_from_rfc3339`. `issue_fields_are_valid` extended with `parse_timestamp(&issue.created_at).is_some() && parse_timestamp(&issue.updated_at).is_some() && issue.updated_at >= issue.created_at`. ISO 8601 second-precision UTC strings are lex-comparable, so the `>=` comparison is correct without parsing into `DateTime` for the relational check (parsing handles only the format check). Regression locked by `tests/layer1.rs:{malformed_timestamp_in_json_causes_error_exit, updated_before_created_in_json_causes_error_exit}` and unit tests `issue_field_validation_rejects_{malformed_timestamp, updated_before_created}` / `issue_field_validation_accepts_equal_created_and_updated`.
+- **F2 (ID uniqueness across collection) → Resolved.** `issues_collection_invariants_hold` (HashSet membership walk) added; `load_issues` now calls both per-record and cross-record validators. Stored data with duplicate IDs triggers `CORRUPT_DATA_ERROR`. Regression locked by `tests/layer1.rs:duplicate_ids_in_json_causes_error_exit` and unit tests `collection_invariants_{reject_duplicate_ids, accept_unique_ids}`.
+- **F3 (forward-compat unknown fields silently dropped on rewrite) → still Raised to SO.** Documentation amendment to DESIGN.md / DECISIONS.md not applied (SO authority). Recommend SO add an explicit note in DESIGN.md "Storage / Edge Cases" — unknown fields in stored JSON are accepted at load (`serde` default behavior, intentional for forward compatibility) but are NOT preserved across writes (any subsequent mutation drops them). This is the implicit current behavior; users editing `tracker.json` directly should know.
+
+**Forward-compat side-benefit (not a separately raised finding):** the new validator also rejects empty/whitespace `description` content in stored data, paving the way for Layer 6 (`--description`) without a follow-up validator pass.
+
+---
+
+### Update — 2026-05-05 11:00Z: SO Review 13 spec adjudication
+
+- **F3 (forward-compat unknown fields silently dropped on rewrite) → Resolved by SO Review 13 Finding 3.** DESIGN.md Edge Cases / Storage now states explicitly: "Unknown fields in stored JSON load successfully (forward-compatible deserialization). They are NOT preserved across writes — any subsequent mutation rewrites `tracker.json` with only the documented schema fields, dropping anything else. Hand-edited `tracker.json` files should not rely on extra keys persisting." DECISIONS.md gains a corresponding entry citing this DE finding.
+
+The behavior was unchanged — the spec gap was only that the side-effect was undocumented. Users hand-editing `tracker.json` to add custom keys will now find an explicit warning in DESIGN.md before discovering the loss empirically.
+
+**Cross-cut from SO Review 13 Finding 1 (control-char title rejection):** `issue_fields_are_valid` was extended in the same round to add `&& !issue.title.chars().any(char::is_control)` — closes a related stored-data integrity gap that DE round 6 had not separately raised but is consistent with the same "stored data is untrusted" posture. The DE-domain logic for the new check follows the existing per-record validation pattern.
+
+**No new DE findings this round.**
+

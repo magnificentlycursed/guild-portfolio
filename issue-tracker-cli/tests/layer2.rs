@@ -1,13 +1,9 @@
-use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs;
 use tempfile::TempDir;
 
-fn tracker(dir: &TempDir) -> Command {
-    let mut cmd = Command::cargo_bin("tracker").unwrap();
-    cmd.current_dir(dir.path());
-    cmd
-}
+mod common;
+use common::tracker;
 
 // --- status: happy path ---
 
@@ -91,12 +87,16 @@ fn status_change_leaves_other_fields_unchanged() {
 
 #[test]
 fn status_is_case_insensitive_on_input() {
+    // DESIGN.md Feature 3 + Edge Cases: input is case-insensitive; stored value is lowercase.
+    // Stdout must also reflect the normalized lowercase value — a mutation that printed
+    // status_raw ("DONE") instead of issues[idx].status ("done") would survive a JSON-only check.
     let dir = TempDir::new().unwrap();
     tracker(&dir).args(["create", "Fix bug"]).assert().success();
     tracker(&dir)
         .args(["status", "1", "DONE"])
         .assert()
-        .success();
+        .success()
+        .stdout("Issue #1 status \u{2192} done.\n");
 
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
@@ -276,20 +276,26 @@ fn list_all_done_default_shows_empty_state() {
         .args(["list"])
         .assert()
         .success()
-        .stdout("No open issues. Nice work!\n");
+        .stdout("")
+        .stderr("No open issues. Nice work!\n");
 }
 
 // --- status: error paths ---
 
 #[test]
 fn status_invalid_id_string_exits_one() {
+    // DESIGN.md Feature 3: "Error: '<id>' is not a valid issue ID. Expected a positive integer."
+    // Literal spec assertion (not substring) — a mutation that drops the actionable suffix
+    // ("Expected a positive integer.") or the offending ID (`'abc'`) would otherwise survive.
     let dir = TempDir::new().unwrap();
     tracker(&dir)
         .args(["status", "abc", "open"])
         .assert()
         .failure()
         .code(1)
-        .stderr(predicate::str::contains("not a valid issue ID"))
+        .stderr(predicate::str::contains(
+            "Error: 'abc' is not a valid issue ID. Expected a positive integer.",
+        ))
         .stdout("");
 }
 
@@ -301,7 +307,9 @@ fn status_zero_id_exits_one() {
         .assert()
         .failure()
         .code(1)
-        .stderr(predicate::str::contains("not a valid issue ID"))
+        .stderr(predicate::str::contains(
+            "Error: '0' is not a valid issue ID. Expected a positive integer.",
+        ))
         .stdout("");
 }
 
@@ -319,6 +327,9 @@ fn status_not_found_exits_one() {
 
 #[test]
 fn status_invalid_value_exits_one() {
+    // DESIGN.md Feature 3: "Error: Invalid status '<v>'. Expected: open, in-progress, or done."
+    // Literal spec assertion — a mutation that dropped the expected-values list, the offending
+    // value, or routed to a Layer-3 priority error message would otherwise survive.
     let dir = TempDir::new().unwrap();
     tracker(&dir).args(["create", "Fix bug"]).assert().success();
     tracker(&dir)
@@ -326,7 +337,9 @@ fn status_invalid_value_exits_one() {
         .assert()
         .failure()
         .code(1)
-        .stderr(predicate::str::contains("Invalid status"))
+        .stderr(predicate::str::contains(
+            "Error: Invalid status 'flying'. Expected: open, in-progress, or done.",
+        ))
         .stdout("");
 }
 
@@ -338,7 +351,9 @@ fn list_invalid_status_filter_exits_one() {
         .assert()
         .failure()
         .code(1)
-        .stderr(predicate::str::contains("Invalid status"))
+        .stderr(predicate::str::contains(
+            "Error: Invalid status 'flying'. Expected: open, in-progress, or done.",
+        ))
         .stdout("");
 }
 
@@ -346,10 +361,12 @@ fn list_invalid_status_filter_exits_one() {
 fn list_nonempty_status_filter_with_no_match_shows_filter_message() {
     let dir = TempDir::new().unwrap();
     tracker(&dir).args(["create", "Fix bug"]).assert().success();
-    // Issue is open; listing --status done should find nothing and print the filter message
+    // Issue is open; listing --status done should find nothing and print the
+    // filter message to stderr (data-vs-status discipline; SO Review 13 F2).
     tracker(&dir)
         .args(["list", "--status", "done"])
         .assert()
         .success()
-        .stdout("No issues match the given filters.\n");
+        .stdout("")
+        .stderr("No issues match the given filters.\n");
 }

@@ -273,3 +273,156 @@ Accurate. The subcommand's top-level doc ("List issues (default: open only)") co
 No UX findings. Layer 2 error messages are specific and actionable. Help text is accurate for current scope. Deferred Layer 7 items (color output, full help accuracy for all flags) remain deferred. MVR reached for Layer 2.
 
 **Coordination:** *(none)*
+
+---
+
+---
+
+## Review 5 — 2026-05-04 22:00Z
+
+**Scope:** Layer 3 implementation — actual binary execution against the spec. CLI supplement (replacement) dimensions 1–11 applied. Build verified (`cargo build` clean) and binary exercised in a scratch directory under `/tmp` with a fresh `tracker.json` for each scenario. Reviewer ran every subcommand, every error path that exists at this layer, and pipe / redirect scenarios.
+
+**Session note:** Cold session per primer; parallel batch run with other domains.
+
+---
+
+### Open
+
+**Finding 1 — Writing to a closed pipe panics with backtrace and exit 101 (CLI Dim 4 — stdout/stderr discipline; CLI Dim 5 — Exit codes)**
+
+Reproduction: with ≥ a few open issues in storage, run `tracker list 2>&1 | head -2`. Observed:
+
+```
+ID    Status       Priority  Labels                Title
+2     open         medium    (none)                Add feature
+thread 'main' (16977353) panicked at .../io/stdio.rs:1165:9:
+failed printing to stdout: Broken pipe (os error 32)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+```
+
+Verified via `bash -c '... | head -2; echo ${PIPESTATUS[0]}'` → tracker exit code = **101** (Rust panic), not 0 or 1. Three independent UX problems collide here: (a) the `Error:` stderr contract is violated — the user sees an internal panic message and a backtrace hint instead of `Error: ...`; (b) the spec says exit 0 on success and 1 on failure (DESIGN.md Interface > Exit codes), but a SIGPIPE produces 101; (c) the contract leaks Rust internals (`thread 'main'`, source path, `RUST_BACKTRACE`) to a user who simply piped output to `head`, `less`, or `grep -m1`. This is the most common interactive shell pattern for browsing a long list and the tool fails it loudly.
+
+Root cause: `main.rs` uses `println!` everywhere; the Rust standard library converts `EPIPE` into a panic in the default print macros. Fix is conventional (install a SIGPIPE handler with `signal(SIGPIPE, SIG_DFL)`, or write through a `Write` trait and treat `ErrorKind::BrokenPipe` as silent exit 0).
+
+**Classification:** Open. Real defect against CLI Dims 4 and 5 and against DESIGN.md's exit-code contract. Spec does not need to change — exit codes 0/1 already cover the intended behavior; the implementation is producing a third undocumented code via panic. Recommend Layer 4 fix.
+
+---
+
+**Finding 2 — Title containing a literal newline corrupts the list table (CLI Dim 3 — output scannability)**
+
+Reproduction: `tracker create $'Title with\nactual newline'` → succeeds, exit 0. Subsequent `tracker list` renders:
+
+```
+4     open         medium    (none)                Title with
+actual newline
+```
+
+The "one issue per line" tabular contract (DESIGN.md `**List output format:**`) is silently broken: the issue spans two lines, the second line has no leading columns, and any downstream tool that splits on `\n` sees a phantom row. Tab characters in a title produce the same class of corruption (`\t` fed through `{:<50}` defeats the column alignment).
+
+DESIGN.md Edge Cases > Title says "the binary receives the raw string after shell expansion and treats it as opaque text" — true at the storage layer, but the output formatter has no defense for control characters. Either the formatter should escape/replace control characters when rendering rows (typical: render `\n` as literal `\n` or `␤`, drop ANSI escapes, etc.), or `validate_title` should reject newlines/tabs at creation time. The spec is silent on which.
+
+**Classification:** Raised to SO. The user-visible behavior — a list view that can be silently broken by a title that the spec accepts — is a real UX defect, but the resolution touches the spec (validation rules vs. display sanitization) and DESIGN.md is the SO's authority. Proposed change: add to DESIGN.md Edge Cases > Title either (a) "Titles containing ASCII control characters (newline, tab, carriage return) are rejected at creation: `Error: Title cannot contain control characters.`", or (b) "The list formatter renders control characters as escape sequences (`\n`, `\t`) so each issue remains on a single line."
+
+---
+
+**Finding 3 — ANSI escape sequences in titles are echoed verbatim into terminal output (CLI Dim 3 — output scannability; cross-ref Security)**
+
+Reproduction: `tracker create $'\x1b[31mRed\x1b[0m'` → stored and round-tripped to `tracker list`. The terminal interprets the escapes; the title appears in red and the surrounding columns inherit the SGR state. A title with a longer escape sequence (e.g. cursor manipulation, screen clear, hyperlink OSC 8) can move the cursor, hide subsequent rows, or overwrite the header.
+
+Output sanitization for terminal escapes is a well-known CLI defense (`git log --format`, `gh issue list`, `ls --color=auto`, etc., all sanitize or use `LC_CTYPE`-aware escape handling). The spec is silent on this.
+
+**Classification:** Raised to SO with Security cross-ref. Coordinate with [SECURITY-REVIEW.md](SECURITY-REVIEW.md) — a single-user local tool has limited threat surface, but the same write-then-display path exists if a user ever copy-pastes a title from external content (a GitHub issue title, a chat message). Proposed DESIGN.md addition: "List and (Layer 4+) show output escape or strip ASCII control sequences and ANSI escape sequences from stored values before printing to a terminal."
+
+---
+
+**Finding 4 — Empty-state message routes to stdout even when stdout is piped, while the prior dismissal rationale rested on stdout being a TTY (CLI Dim 6)**
+
+Verified: `tracker list 2>/dev/null > /dev/null; echo $?` → exit 0 with the message swallowed; but `tracker list | wc -l` returns `1` for a tracker with no open issues — the empty-state line is counted. Review 1 Finding 1 dismissed this with the rationale "no scripted caller is in scope," but the spec ships a list command whose output is exactly the kind of thing a user pipes into `wc`, `grep -c`, `awk`, or `xargs` even in interactive use. The dismissal also did not anticipate Finding 1 above (panic on broken pipe) — together, the two make `tracker list | head` actively hostile.
+
+The previous reasoning is internally consistent for the interactive-only stance, but the consequence is concrete: `tracker list | wc -l` is wrong by exactly the empty-state line in the empty case. Re-raising for explicit re-confirmation now that a binary exists to demonstrate the behavior.
+
+**Classification:** Raised to SO. Defer to SO whether the prior dismissal still holds given live behavior. Proposed minimal fix that preserves interactive UX: detect `IsTerminal` on stdout and route the empty-state message to stderr only when stdout is not a TTY (parallel to the Layer 7 color suppression rule already in DESIGN.md).
+
+---
+
+### Dismissed
+
+**Finding 5 — `--help` text omits a usage example for the binary (CLI Dim 1)**
+
+Verified: `tracker --help` lists subcommands but contains no inline usage example (e.g., a sample `tracker create "Fix bug" --priority high`). CLI Dim 1 explicitly asks "Does the top-level help include a usage example?" Modern clap convention is to add `#[command(after_help = "...")]` with one or two example invocations.
+
+**Classification:** Dismissed. DESIGN.md does not require a usage example in `--help` output — only that `--help` "accurately describe all flags and their valid values," which is satisfied. Adding examples is a quality-of-life improvement and may be worth a backlog ticket but is not a defect against the contract.
+
+---
+
+**Finding 6 — `--version` is rejected with `Error: unexpected argument '--version' found` (CLI Dim 1)**
+
+Verified: `tracker --version` exits 1 with a clap "unexpected argument" error. Most CLI tools expose `--version`. The spec does not require it.
+
+**Classification:** Dismissed. Out of contract — DESIGN.md does not mention `--version`. The current behavior (reject with the project's `Error:`-prefixed format and exit 1) is consistent with the unknown-flag contract. No spec violation.
+
+---
+
+**Finding 7 — No short-flag aliases (`-p`, `-s`) for `--priority` / `--status` (CLI Dim 2)**
+
+Verified: `tracker create "Test" -p high` produces `Error: unexpected argument '-p' found`. Short flags are common but the spec only specifies long forms.
+
+**Classification:** Dismissed. The spec lists only long forms in the subcommand table; long-only is consistent and unambiguous. A future "ergonomics" backlog item, not a current defect.
+
+---
+
+**Finding 8 — Negative IDs hit a clap "unexpected argument" error rather than the spec's "not a valid issue ID" message (CLI Dim 8 — error message quality)**
+
+Verified: `tracker status -1 done` → `Error: unexpected argument '-1' found / tip: to pass '-1' as a value, use '-- -1'`. DESIGN.md Edge Cases > IDs explicitly anticipates this: "Negative number (`tracker delete -1`) → the CLI parser treats `-1` as a flag and produces a usage error; the command exits 1." Behavior matches the spec.
+
+**Classification:** Dismissed. Spec-anticipated. The clap "tip" line ("to pass '-1' as a value, use '-- -1'`") is actually helpful in the rare case the user really meant a literal dash-prefixed value.
+
+---
+
+### Hallucinated
+
+**Finding 9 — Title in tabular row should be quoted to disambiguate trailing whitespace (CLI Dim 3)**
+
+Initial concern: a title like `"Fix bug   "` (trailing spaces) would be visually indistinguishable in the rightmost column from one without trailing spaces.
+
+**Classification:** Hallucinated. `validate_title` trims at creation; trailing whitespace in stored titles is impossible by the spec invariant. The code path that would produce this defect is unreachable.
+
+---
+
+### Summary
+
+Round 5 finds 4 open / Raised-to-SO findings, 4 dismissed, 1 hallucinated. The signal moved up sharply versus prior rounds because Round 5 is the first review to actually execute the binary instead of inferring behavior from tests and source.
+
+The most consequential finding is **#1 (SIGPIPE → panic with exit 101)**: violates DESIGN.md's `Error:` stderr contract, the documented exit-code set {0,1}, and the most common interactive shell pattern (`| head`, `| less`). It is a pure implementation fix — no spec change.
+
+Findings 2 and 3 (newlines, ANSI escapes in titles) expose a contract gap in DESIGN.md: the storage layer treats titles as opaque, but the display layer has no corresponding guidance. The SO needs to choose between input validation and output sanitization.
+
+Finding 4 re-raises an earlier dismissal now that it can be observed concretely; the SO may re-dismiss with the same rationale, but the dismissal should be re-affirmed against live behavior, not against the spec alone.
+
+**Coordination:**
+- **Finding 1** → cross-reference [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md): no test in `tests/layer1.rs|layer2.rs|layer3.rs` exercises a piped-stdout scenario; an integration test that pipes `tracker list | head -1` would have caught this. Suggested QE addition: "broken pipe / SIGPIPE behavior" to the test plan.
+- **Finding 1** → cross-reference [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md): `println!` is used directly in command handlers (`lib.rs`); routing all output through a `Write` handle (passed in by `main.rs`) would localize SIGPIPE handling and incidentally make output testable without subprocess invocation.
+- **Finding 3** → cross-reference [SECURITY-REVIEW.md](SECURITY-REVIEW.md): terminal escape injection is a well-known CLI security primitive even in single-user tools.
+- **Findings 2, 3, 4** → all Raised to SO; cross-reference [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) for spec adjudication.
+
+---
+
+### Update — 2026-05-04 16:00Z: Layer 3 follow-up resolution pass
+
+- **F1 (SIGPIPE panic on `tracker list | head`) → Resolved.** `src/main.rs` now restores the default SIGPIPE handler at process start (`#[cfg(unix)] libc::signal(libc::SIGPIPE, libc::SIG_DFL)`). `tracker list` piped to a reader that closes early now exits cleanly via signal termination instead of panicking with a backtrace and exit 101. Regression locked by `tests/layer1.rs:list_does_not_panic_on_broken_pipe` (cfg(unix); ~600-row stored data, reader-end dropped before writer finishes; asserts no `panicked` on stderr and exit code != 101). Closes the corresponding Security Review 6 Finding 1 in lockstep.
+- **F2 (newlines in titles), F3 (ANSI/control-sequence injection), F4 (empty-state on stdout pollutes pipes) → still Raised to SO.** Spec-level decisions; no implementation change in this round. SO has not adjudicated yet.
+
+---
+
+### Update — 2026-05-05 11:00Z: SO Review 13 spec adjudication
+
+All three Raised-to-SO findings closed by SO Review 13 (`iterative-adversarial-refinement/SOLUTION-OWNER-REVIEW.md`).
+
+- **F2 (newline characters break list contract) → Resolved by SO Review 13 Finding 1.** A single rule — "reject any character with `is_control()` at `validate_title`" — closes both F2 and F3 at the validation boundary. The same check applies at storage load (`issue_fields_are_valid`) so a hand-edited `tracker.json` with a control-character title triggers the corrupt-data path. Regression locked by `tests/layer1.rs:create_title_with_newline_exits_one` and unit test `title_with_newline_is_rejected`.
+- **F3 (ANSI/control-sequence injection) → Resolved by SO Review 13 Finding 1.** Same rule. ESC (`0x1B`) is a control character; `\u{1B}[2J` and OSC 8 sequences are rejected. Regression locked by `tests/layer1.rs:create_title_with_ansi_escape_exits_one` and unit tests `title_with_escape_sequence_is_rejected`, `title_with_nul_or_del_is_rejected`. Hostile content can never be re-emitted because it cannot be stored.
+- **F4 (empty-state messages on stdout pollute pipes) → Resolved by SO Review 13 Finding 2.** Both empty-state messages (`No open issues. Nice work!` and `No issues match the given filters.`) now route to stderr; stdout is empty when no records match. `tracker list | wc -l` now returns `0` in the empty case, not `1`. Regression locked by `tests/layer1.rs:list_with_no_json_shows_empty_state_on_stderr`, `tests/layer2.rs:list_all_done_default_shows_empty_state` + `list_nonempty_status_filter_with_no_match_shows_filter_message`, and `tests/layer3.rs:list_priority_filter_no_match_shows_filter_message`.
+
+The companion fact (printable Unicode including emoji and CJK is still accepted): regression-locked by `tests/layer1.rs:create_title_with_printable_unicode_succeeds` and unit test `title_with_printable_unicode_is_accepted` — guards against a future over-tightening of the rule that might accidentally ban legitimate non-ASCII content.
+
+**No new UX findings this round.** Suite: 74 → 84 tests; `cargo test --all-targets --locked`, `cargo clippy --all-targets --locked -- -D warnings`, `cargo fmt --check` all clean.
+

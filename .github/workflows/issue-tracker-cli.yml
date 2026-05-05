@@ -21,34 +21,51 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Actions pinned to commit SHA (Platform Engineer Review 8 Finding 1):
+      # tags can be moved; SHAs cannot. Refresh with:
+      #   gh api repos/<owner>/<repo>/commits/<tag> --jq '.sha'
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # master at 2026-05-04
         with:
           toolchain: 1.94.1
           components: clippy, rustfmt
 
       - name: Cache Rust build artifacts
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32  # v2
         with:
           workspaces: issue-tracker-cli
 
+      # `--locked` (Platform Review 8 Finding 5): require Cargo.lock to match
+      # Cargo.toml's resolved versions. Without it, CI silently allows the
+      # registry to dictate dependency versions, defeating Cargo.lock pinning.
       - name: Build
-        run: cargo build --release
+        run: cargo build --release --locked
 
       - name: Test
-        run: cargo test
+        run: cargo test --all-targets --locked
 
       - name: Clippy
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --all-targets --locked -- -D warnings
 
       - name: Format check
         run: cargo fmt --check
 
+      # Tools pinned to exact versions (Platform Review 8 Finding 6); refresh
+      # via `cargo search <name>` and bump in lockstep across CI runs.
       - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
+        run: cargo install cargo-audit --locked --version 0.22.1
 
       - name: Dependency audit
         run: cargo audit
+
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --locked --version 0.19.4
+
+      # Closes Security Review 6 Finding 4 / Platform Review 8 Finding 2:
+      # `cargo audit` covers `[advisories]` only; `cargo deny check` also
+      # gates licenses, banned/duplicate crates, and disallowed sources.
+      - name: cargo deny check
+        run: cargo deny --locked check

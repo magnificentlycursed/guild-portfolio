@@ -17,6 +17,7 @@ This is portfolio project #2, per the Phase 1 apprentice program assignment in `
 **Preconditions:**
 - `<title>` argument is present
 - `<title>` after trimming leading/trailing whitespace is non-empty
+- `<title>` contains no control characters (Unicode general category `Cc` — see Edge Cases / Title)
 - If `--priority` is present, its value is one of: `low`, `medium`, `high` (case-insensitive)
 - If `--label` is present, each label value is non-empty after trimming
 
@@ -33,6 +34,7 @@ This is portfolio project #2, per the Phase 1 apprentice program assignment in `
 
 **Error states:**
 - Title is absent or empty after trim → stderr `Error: Title cannot be empty.` → exit 1
+- Title contains a control character → stderr `Error: Title cannot contain control characters.` → exit 1
 - `--description` value is empty or whitespace-only after trim → stderr `Error: Description cannot be empty.` → exit 1
 - Invalid priority value → stderr `Error: Invalid priority '<v>'. Expected: low, medium, or high.` → exit 1
 - Empty label after trim → stderr `Error: Label cannot be empty.` → exit 1
@@ -64,7 +66,7 @@ This is portfolio project #2, per the Phase 1 apprentice program assignment in `
 - stdout shows matching issues in tabular format, one issue per line
 - Columns: `ID`, `Status`, `Priority`, `Labels`, `Title`
 - Sorting: priority descending (high → medium → low), then ID ascending within each priority tier
-- If no issues match: stdout prints `No issues match the given filters.` (or `No open issues. Nice work!` when default view and tracker is empty)
+- If no issues match: **stderr** prints `No issues match the given filters.` (or `No open issues. Nice work!` when default view and tracker is empty); stdout is empty
 - Exit code 0 in all cases (no matching results is not an error)
 
 **Error states:**
@@ -205,9 +207,9 @@ This is portfolio project #2, per the Phase 1 apprentice program assignment in `
 | `show` | `tracker show <id>` |
 | `delete` | `tracker delete <id>` |
 
-**stdout contract:** all success output goes to stdout. Each command produces exactly one line of output on success (create, status, delete) or a structured multi-line output (list, show).
+**stdout contract:** all *data* output goes to stdout — issue rows from `list`, the labelled key-value block from `show`, and the one-line confirmations from `create` / `status` / `delete`. A consumer that pipes stdout (`tracker list | wc -l`, `tracker show <id> | grep ...`) sees only data records.
 
-**stderr contract:** all error messages go to stderr. Error messages begin with `Error:` and are followed by a human-readable description. No stack traces or internal detail are exposed to the user.
+**stderr contract:** all error messages and informational status messages go to stderr. Error messages begin with `Error:` and are followed by a human-readable description; no stack traces or internal detail are exposed to the user. Empty-state messages from `list` (`No open issues. Nice work!` and `No issues match the given filters.`) are informational, not data — they go to stderr so a piped consumer sees an empty stdout when no issues match.
 
 **Exit codes:**
 - `0` — success
@@ -215,13 +217,13 @@ This is portfolio project #2, per the Phase 1 apprentice program assignment in `
 
 **`--help` flag:** `--help` is supported for the binary and each subcommand. The output must accurately describe all flags and their valid values.
 
-**List output format:** tabular, fixed-width columns, header row. Column widths are fixed minimums: `ID` 4 chars, `Status` 11 chars, `Priority` 8 chars, `Labels` 20 chars, `Title` consuming the remainder up to 50 characters. `Labels` renders all labels comma-separated and truncates at 20 characters with `…` if longer. `Title` truncates at 50 characters with `…` if longer. `show` always displays the full, untruncated values. Example:
+**List output format:** tabular, fixed-width columns, header row. Column widths are fixed minimums: `ID` 4 chars, `Status` 11 chars, `Priority` 8 chars, `Labels` 20 chars, `Title` consuming the remainder up to 50 characters. Columns are separated by exactly 2 spaces. `Labels` renders all labels comma-separated and truncates at 20 characters with `…` if longer. `Title` truncates at 50 characters with `…` if longer. `show` always displays the full, untruncated values. Example:
 
 ```
-ID   Status       Priority  Labels               Title
-1    open         high      bug, auth            Fix the login bug
-2    in-progress  medium    feature              Add search bar
-3    open         low       (none)               Update README
+ID    Status       Priority  Labels                Title
+1     open         high      bug, auth             Fix the login bug
+2     in-progress  medium    feature               Add search bar
+3     open         low       (none)                Update README
 ```
 
 **Color output (polish layer — Layer 7):** Priority and status values are colored in list and show output when stdout is a TTY. Color is suppressed when stdout is piped or redirected (detect with `std::io::IsTerminal`).
@@ -284,11 +286,12 @@ Updated:     2026-04-27T15:00:00Z
 - Empty string (`tracker create ""`) → error: `Title cannot be empty.`
 - Whitespace-only string (`tracker create "   "`) → error: `Title cannot be empty.` (checked after trim)
 - Leading/trailing whitespace (`tracker create "  Fix bug  "`) → stored as `"Fix bug"` (trimmed)
-- Title containing quotes or special shell characters → shell responsibility; the binary receives the raw string after shell expansion and treats it as opaque text
+- Title containing quotes or other shell-special characters (`$`, `&`, `*`, etc.) → shell responsibility; the binary receives the raw string after shell expansion and treats it as opaque text. Printable Unicode is accepted regardless of script (e.g., emoji, CJK).
+- Title containing a control character (Unicode general category `Cc` — includes newline, carriage return, tab, NUL, ESC `0x1B`, DEL `0x7F`, the C1 controls, and all other ASCII < 0x20) → error: `Title cannot contain control characters.`. Rationale: control characters break the one-issue-per-line contract of `list` output (newline/CR), corrupt column alignment (tab), and enable terminal-escape injection in any tool that displays the title (ESC). Stored data containing a control-character title is treated as corrupt (same error path as other invalid stored fields).
 
 ### IDs
 
-- Non-integer (`tracker show abc`) → error: `'abc' is not a valid issue ID.`
+- Non-integer (`tracker show abc`) → error: `'abc' is not a valid issue ID. Expected a positive integer.`
 - Zero (`tracker status 0 done`) → error: zero is not a positive integer
 - Negative number (`tracker delete -1`) → the CLI parser treats `-1` as a flag and produces a usage error; the command exits 1
 - ID of a deleted issue (e.g., issue #3 was deleted; `tracker show 3`) → error: `Issue #3 not found.`
@@ -304,10 +307,11 @@ Updated:     2026-04-27T15:00:00Z
 
 ### List
 
-- No issues in storage → `tracker list` prints `No open issues. Nice work!` (exit 0)
-- Issues exist but none match the filters → prints `No issues match the given filters.` (exit 0)
-- All issues are done → `tracker list` (default open filter) → `No open issues. Nice work!`
+- No issues in storage → `tracker list` prints `No open issues. Nice work!` to **stderr**; stdout is empty; exit 0
+- Issues exist but none match the filters → prints `No issues match the given filters.` to **stderr**; stdout is empty; exit 0
+- All issues are done → `tracker list` (default open filter) → `No open issues. Nice work!` to **stderr**
 - Multiple filters combined: `tracker list --status open --priority high --label bug` → AND-logic; only issues matching all three
+- Pipe consumers see only data records on stdout; the empty-state messages do not pollute pipelines like `tracker list | wc -l`
 
 ### Status transitions
 
@@ -317,8 +321,8 @@ Updated:     2026-04-27T15:00:00Z
 ### Storage
 
 - `tracker.json` does not exist → treated as empty tracker; first `create` produces `tracker.json`
-- `tracker.json` contains valid JSON but unknown fields → unknown fields are ignored (forward-compatible deserialization)
-- `tracker.json` contains valid JSON but invalid domain values (e.g., `"status": "flying"`, `"priority": ""`, `"id": 0`, `"title": ""`) → stderr `Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.` → exit 1
+- `tracker.json` contains valid JSON but unknown fields → unknown fields are ignored at load (forward-compatible deserialization). They are NOT preserved across writes — any subsequent mutation rewrites `tracker.json` with only the documented schema fields, dropping anything else. Hand-edited `tracker.json` files should not rely on extra keys persisting.
+- `tracker.json` contains valid JSON but invalid domain values (e.g., `"status": "flying"`, `"priority": ""`, `"id": 0`, `"title": ""`, a control-character in `title`, an empty `label`, a malformed `created_at` / `updated_at`, `updated_at < created_at`, or duplicate `id` across records) → stderr `Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.` → exit 1
 - `tracker.json` contains malformed JSON → stderr `Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.` → exit 1
 - `tracker.json` exists but is not readable (permissions) → stderr `Error: Could not read tracker data: permission denied.` → exit 1
 - Write fails (disk full, permissions) → stderr `Error: Could not save tracker data: <reason>.` → exit 1

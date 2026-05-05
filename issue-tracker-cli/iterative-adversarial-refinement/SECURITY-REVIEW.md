@@ -356,3 +356,205 @@ Layer 2 adds status mutation but does not change the storage model.
 No new security findings. Layer 2 adds two entry points; both are fully validated at the boundary. No panic surface. No new dependencies. Attack surface unchanged from Layer 1. MVR reached for Layer 2.
 
 **Coordination:** *(none)*
+
+---
+
+---
+
+## Review 6 — 2026-05-04
+
+**Scope:** Layer 3 implementation — `tracker create --priority`, `tracker list --priority`. Whole-application regression sweep. Cold-session adversarial pass against all source, tests, dependency lock, CI, pre-commit, and toolchain configuration.
+
+**Session note:** Cold session per primer; parallel batch run with other domains; Red Team running concurrently in separate session.
+
+**Posture:** Adversarial. Re-evaluating prior dismissals and looking for vulnerability classes the warm-session reviews never considered. Specific focus on: panic-as-DoS, integer overflow in release mode, post-deserialization invariant gaps beyond field-level validity, supply-chain hygiene, and CI workflow pinning.
+
+---
+
+### Open
+
+**Finding 1 — Panic on broken pipe is a DoS and violates the stderr contract (Dim 5 — Information exposure; Rust supplement — Panic surface; Red Team — Panic-as-DoS)**
+
+Demonstrated reproducer (release build):
+
+```
+$ for i in $(seq 1 100); do tracker create "test issue $i" >/dev/null; done
+$ tracker list | head -1
+ID    Status       Priority  Labels                Title
+
+thread 'main' (16992335) panicked at /rustc/e408947bfd200af42db322daf0fadfe7e26d3bd1/library/std/src/io/stdio.rs:1165:9:
+failed printing to stdout: Broken pipe (os error 32)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+```
+
+Two distinct security violations from one root cause:
+
+1. **Panic-as-DoS.** `cmd_list` uses `println!` in a loop (`src/lib.rs:264`). When stdout is closed mid-write (any pipe to `head`, `less` exited early, etc.), the next `println!` panics. Rust's default SIGPIPE handler is `SIG_IGN`, so writes return `EPIPE` rather than terminating the process; `println!`'s internal `expect("failed printing to stdout")` then panics. This is a `.expect()` on a value derived from external state (the pipe consumer) — the exact pattern the Rust supplement Red Team section names as panic-as-DoS. It is not crafted-input dependent: it fires for any list output piped to a short consumer.
+
+2. **Stderr-contract violation / information exposure.** `DESIGN.md` Interface section states "stderr contract: ... No stack traces or internal detail are exposed to the user." The panic emits the rustc commit hash (`e408947bfd200af42db322daf0fadfe7e26d3bd1`), the absolute path to a file inside the Rust standard library source tree (`/rustc/.../library/std/src/io/stdio.rs:1165:9`), the Rust thread model wording, and a `RUST_BACKTRACE` hint. This is exactly the "stack traces or internal detail" the spec forbids. It reaches stderr without the `Error:` prefix and does not exit 1 in a controlled manner — the process aborts with SIGABRT-equivalent semantics.
+
+The `tracker list` use case "pipe to grep / head / less to navigate large issue lists" is a routine CLI usage pattern, not an adversarial input. Once Layer 4 adds labels and Layer 6 adds `tracker show` with multi-line descriptions, the surface widens.
+
+This finding was not raised in any prior Security review. Reviews 1–5 examined `.unwrap()` on user-derived values and dismissed the panic surface based on "no `.unwrap()` on user-facing paths." `println!` is the implicit `.expect()` inside the standard library — the warm sessions did not consider that `println!` itself is a panic site when piped output is interrupted. This is the sycophancy failure mode the primer warns about: passing a dimension because no counterexample came to mind, rather than verifying the control holds.
+
+**Recommended remediation:**
+- Install a SIGPIPE handler that resets to `SIG_DFL` early in `main()` (the conventional Unix CLI fix: `unsafe { libc::signal(libc::SIGPIPE, libc::SIG_DFL); }` — requires `libc` crate, two lines), or
+- Replace `println!` in `cmd_list` with explicit `writeln!(io::stdout(), ...)` and propagate `io::Error` through the existing `Result<(), String>` error path, treating broken-pipe specifically as a clean exit-0.
+
+The `signal(SIGPIPE, SIG_DFL)` approach is the smaller change and the standard fix for Rust CLIs; it produces a clean exit-141 on pipe closure with no panic, no stack trace, and no stderr noise.
+
+**Classification:** **Open.** Recommendation provided; defer fix selection to the human director. Cannot be dismissed: the spec contract is violated and a routine pipe usage triggers a panic.
+
+Cross-reference: [RED-TEAM-REVIEW.md](RED-TEAM-REVIEW.md) (running in parallel — likely to surface independently as a panic exploit vector).
+
+---
+
+**Finding 2 — `next_id` integer overflow on crafted `tracker.json` (Dim 1, Dim 2 — Persistence data validation; Rust supplement Red Team — integer overflow in release builds)**
+
+`src/lib.rs:39-41`:
+
+```rust
+pub fn next_id(existing_ids: &[u64]) -> u64 {
+    existing_ids.iter().max().copied().unwrap_or(0) + 1
+}
+```
+
+A crafted `tracker.json` containing an issue with `"id": 18446744073709551615` (`u64::MAX`) deserializes successfully. `issue_fields_are_valid` accepts it (only checks `id > 0`). `cmd_create` then calls `next_id`, which computes `u64::MAX + 1`:
+
+- **Debug builds** (including `cargo test`): plain `+` panics with "attempt to add with overflow." Panic-as-DoS, same severity class as Finding 1. The DESIGN.md spec describes IDs as "ID larger than any existing issue but within u64 range → error" — the spec does not contemplate IDs at the boundary.
+- **Release builds**: silently wraps to `0`. The new issue is created with `id=0`, immediately violating the `id > 0` field invariant. The next time `load_issues` runs, the file fails `issue_fields_are_valid` and the user sees `Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.` — silent corruption that bricks the tracker until manual deletion.
+
+Threat model fit: "malicious file content (someone hands the user a malformed tracker.json)" is explicitly named in the task brief. A `tracker.json` containing `id: u64::MAX` is malformed in a way the post-deserialization validator does not catch.
+
+**Recommended remediation:** In `next_id`, use `existing_ids.iter().max().copied().unwrap_or(0).checked_add(1)` and return `Result<u64, String>`, surfacing an "Issue ID space exhausted" error to the user. Alternatively, add a max-ID ceiling check in `issue_fields_are_valid` (e.g., reject any `id > i64::MAX` or any `id == u64::MAX`).
+
+**Classification:** **Open.** Recommendation provided. Real failure mode demonstrated by inspection; not yet exploited in an integration test, but the arithmetic is unambiguous.
+
+Cross-reference: [DATA-ENGINEER-REVIEW.md](DATA-ENGINEER-REVIEW.md) (boundary validation), [RED-TEAM-REVIEW.md](RED-TEAM-REVIEW.md) (crafted-file attack).
+
+---
+
+**Finding 3 — Duplicate IDs in `tracker.json` are not rejected (Dim 2 — Persistence data validation)**
+
+`issue_fields_are_valid` validates each issue independently. A crafted `tracker.json` with two issues sharing the same ID deserializes successfully and passes domain validation. `DESIGN.md` Field invariants: "`id` is unique across all issues and never reused" — a Storage invariant the loader does not enforce.
+
+Behavior on duplicate IDs:
+- `cmd_status <dup_id> done`: `position` finds and mutates the first matching issue; the second remains untouched. The user thinks they updated "issue #N" but only one of the two records changed.
+- `cmd_create`: `next_id` returns `max + 1`, so create still produces a unique ID — but the duplicates persist.
+- Layer 4+ `tracker show <dup_id>` and `tracker delete <dup_id>` will exhibit the same first-match-only behavior, deleting only one of two duplicates and leaving the user with a corrupted file they cannot diagnose without opening it manually.
+
+This is the same vulnerability class as Review 1 Finding 1 (post-deserialization domain validation): the warm sessions caught field-level invariants but missed cross-record invariants. The spec explicitly names ID uniqueness as a load-time guarantee; the implementation does not enforce it.
+
+**Recommended remediation:** Add a uniqueness check in `load_issues` after `issue_fields_are_valid`: collect IDs into a `HashSet`; if `set.len() != issues.len()`, return `Err(CORRUPT_DATA_ERROR)`.
+
+**Classification:** **Open.** Recommendation provided. Demonstrable by file inspection; satisfies the threat model's "crafted tracker.json" actor.
+
+Cross-reference: [DATA-ENGINEER-REVIEW.md](DATA-ENGINEER-REVIEW.md).
+
+---
+
+**Finding 4 — No `deny.toml`; `cargo deny` not configured (Rust supplement — cargo-deny)**
+
+The Rust supplement Security section: "Is `cargo deny check` configured with a `deny.toml`? A complete `deny.toml` configures four sections: `[advisories]`, `[licenses]`, `[bans]`, `[sources]`. Missing or incomplete `deny.toml` is a finding."
+
+No `deny.toml` exists at the project root or anywhere in the `guild-portfolio` tree. CI runs `cargo audit` only, which gates on `[advisories]` (CVEs) but provides no license policy, no banned-crate policy, and no allowed-sources policy. A typosquatted dependency (e.g., a future contributor adds `serdde` instead of `serde`), a GPL-licensed transitive that conflicts with portfolio licensing intent, or a duplicate-version proliferation cannot be detected by the current pipeline.
+
+The Rust supplement Platform Engineering section is explicit: "`cargo audit` alone is insufficient if `cargo deny` is not also present."
+
+This is a regression check that the prior Security reviews did not perform. Reviews 1–5 evaluated `cargo audit` alone and dismissed dependency security based on "0 advisories." That dismissal addresses the `[advisories]` section only.
+
+The single-user portfolio context does not dismiss this control: license policy and banned-source policy apply regardless of user count. The supplement explicitly notes `cargo-vet` may be deferred for portfolio projects, but does not extend that deferral to `cargo-deny`.
+
+**Recommended remediation:** Create `issue-tracker-cli/deny.toml` with all four sections populated: `[advisories]` mirroring `cargo audit` policy, `[licenses]` enumerating allowed SPDX identifiers (MIT, Apache-2.0, BSD-3-Clause, etc.) and explicitly denying GPL, AGPL, etc., `[bans]` with `multiple-versions = "warn"` and any explicit denylist, `[sources]` with `unknown-registry = "deny"` and `allow-registry = ["https://github.com/rust-lang/crates.io-index"]`. Add `cargo install cargo-deny --locked` and `cargo deny check` to the CI pipeline (Platform Engineer cross-reference).
+
+**Classification:** **Open.** Recommendation provided. Cross-reference: [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md) for CI integration.
+
+---
+
+### Accepted Risk
+
+**Finding 5 — Plaintext storage (regression check from Review 1) (Dim 8)**
+
+Layer 3 adds `--priority` to `create` and `list`. Storage model unchanged. Issue titles, descriptions, priorities, and labels remain plaintext JSON in the working directory.
+
+**Classification:** Accepted Risk. Carried forward from Review 1 Finding 2. Risk owner: the user/developer.
+
+---
+
+### Dismissed
+
+**Finding 6 — `cargo audit` against current `Cargo.lock` (Dim 3 — Dependency audit)**
+
+`cargo audit` run against `Cargo.lock` (100 crate dependencies) on 2026-05-04: **0 vulnerabilities found**. Advisory database loaded fresh from `RustSec/advisory-db`. CI pipeline still enforces this on every push.
+
+**Classification:** Dismissed. The CVE surface is clean as of this review date. Note: this only covers `[advisories]`; see Finding 4 for the broader supply-chain hygiene gap.
+
+---
+
+**Finding 7 — `unsafe` code (Rust supplement — Unsafe usage)**
+
+`grep "unsafe" src/*.rs` returns zero matches. The crate uses no `unsafe` blocks. Standard library `unsafe` is outside scope of this review.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 8 — `parse_priority` and `--priority` filter validation (Dim 1 — Input handling)**
+
+The Layer 3 additions validate priority at the CLI boundary via `parse_priority` (`src/lib.rs:182-192`), called in both `cmd_create` and `cmd_list`. Case-insensitive normalization to canonical lowercase. Rejects all values outside `{"low", "medium", "high"}`. No `.unwrap()` on the user-supplied string; `?` propagation throughout. Tested at `tests/layer3.rs:34-43` and `tests/layer3.rs:163-172`.
+
+**Classification:** Dismissed. Validation is correct and tested at the boundary.
+
+---
+
+### Hallucinated
+
+**Finding 9 — `priority_rank` returning `usize::MAX` for unknown priority is a sort-order injection vector**
+
+A crafted issue with `priority: "xyzzy"` would sort to the bottom (rank `usize::MAX`) rather than producing an error.
+
+**Classification:** Hallucinated. `issue_fields_are_valid` rejects any priority outside `PRIORITY_ORDER` at load time, so the unknown-priority code path is unreachable from external input. The `unwrap_or(usize::MAX)` is documented at `src/lib.rs:166-171` as a defensive fallback for an internal-only path, and the Software Engineer review presumably verified the dead-code branch. Confirmed unreachable from the external interface.
+
+---
+
+**Finding 10 — `dtolnay/rust-toolchain@master` in CI is a supply-chain risk**
+
+The CI workflow at `.github/workflows/issue-tracker-cli.yml:28` references `dtolnay/rust-toolchain@master`, a mutable git ref. A compromised maintainer account could replace the action's behavior between CI runs.
+
+**Classification:** Hallucinated *for this Security domain* — properly belongs to [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md). The Security supplement scopes Security/Red Team dimensions to crates.io supply chain (`cargo-deny check` for sources). GitHub Actions pinning is a Platform CI concern, not a Rust-language Security concern. Routing rather than dismissing: flag for Platform Engineer review at Layer 4 — recommend pinning `dtolnay/rust-toolchain` to a commit SHA or a fixed tag.
+
+---
+
+### Summary
+
+Round **6** logged. Cold-session sweep produced **four Open findings**, **one Accepted Risk** (carried forward), **three Dismissed**, **two Hallucinated** (one routed to Platform Engineer).
+
+The four Open findings represent vulnerability classes the warm-session reviews 1–5 did not consider:
+- **Finding 1** (panic-on-broken-pipe): the warm reviews dismissed panic surface based on absence of explicit `.unwrap()`, missing that `println!` is itself a panic site. Demonstrated reproducer; violates DESIGN.md stderr contract.
+- **Finding 2** (`next_id` overflow on `u64::MAX`): integer overflow on crafted file content; debug panic / release silent corruption.
+- **Finding 3** (duplicate IDs not validated on load): cross-record invariant the loader does not enforce despite the spec naming it.
+- **Finding 4** (no `deny.toml`): supplement-mandated control absent; `cargo audit` alone covers only the `[advisories]` slice.
+
+Findings 1–3 share a common origin: the prior reviews validated controls field-by-field and command-by-command but did not consider system-level invariants (pipe interruption, arithmetic boundaries, cross-record uniqueness). Finding 4 is a tooling gap that was never raised at all.
+
+No re-raise of resolved findings (Review 1 Finding 1 / Review 3 Finding 1 — post-deserialization field validation — verified intact at `src/lib.rs:57-62, 77-79`).
+
+**Coordination:**
+- [RED-TEAM-REVIEW.md](RED-TEAM-REVIEW.md) — Findings 1, 2, 3 are likely to surface independently as exploit demonstrations in the parallel Red Team session.
+- [DATA-ENGINEER-REVIEW.md](DATA-ENGINEER-REVIEW.md) — Findings 2 and 3 are post-deserialization domain validation gaps in the same family as the existing Data Engineer schema review.
+- [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md) — Finding 4 requires CI integration of `cargo-deny`; Hallucinated Finding 10 (action pinning) routed for separate evaluation.
+
+**Files modified:** Only this review log appended; no source or configuration changes applied (Open findings + recommendations per Security domain prompt).
+
+---
+
+### Update — 2026-05-04 16:00Z: Layer 3 follow-up resolution pass
+
+All four Open findings from Review 6 closed in the parallel-batch resolution pass. See `CHANGELOG.md` § "Layer 3 follow-up: Open finding resolution pass" for the consolidated diff.
+
+- **F1 (SIGPIPE panic on broken pipe) → Resolved.** `src/main.rs` restores default SIGPIPE handling (`#[cfg(unix)] libc::signal(libc::SIGPIPE, libc::SIG_DFL)`); panic-on-EPIPE no longer occurs. Regression locked by `tests/layer1.rs:list_does_not_panic_on_broken_pipe`. Closes the stack-trace-on-stderr information-disclosure path and the panic-as-DoS path simultaneously.
+- **F2 (`next_id` integer overflow) → Resolved.** `next_id` signature changed to `Result<u64, String>`; uses `checked_add(1)` and returns `"Cannot assign new issue ID: maximum ID reached."` on overflow. `cmd_create` propagates with `?`. Regression locked by `tests/layer1.rs:u64_max_id_in_json_blocks_next_create_with_clean_error` and unit test `id_assignment_at_u64_max_returns_error`.
+- **F3 (duplicate-ID rejection at load) → Resolved.** `issues_collection_invariants_hold` (HashSet membership walk) added and called from `load_issues`. The `cmd_status` "first match only" silent corruption path is no longer reachable from valid stored data. Regression locked by `tests/layer1.rs:duplicate_ids_in_json_causes_error_exit`.
+- **F4 (no `deny.toml` / `cargo-deny`) → Resolved.** `deny.toml` added at the project root with all four supplement-required sections (`[advisories]`, `[licenses]` with explicit allowlist, `[bans]`, `[sources]` restricted to crates.io). New CI step `cargo deny --locked check` runs after `cargo audit` (`.github/workflows/issue-tracker-cli.yml`). The `[sources]` allowlist is `https://github.com/rust-lang/crates.io-index` only — partially mitigates Red Team Review 5 Finding 5 (Cargo.lock supply-chain watch item) by gating any unknown registry/git source.
+
+**Carry-forward Open** (cross-domain, surfaced through Platform-8 in this batch): coverage measurement in CI (Platform F3); pre-commit bypass / CI-side secret scanning (Platform F7) — defense-in-depth gaps that backstop Security but not Security-owned. No new Security findings this round.

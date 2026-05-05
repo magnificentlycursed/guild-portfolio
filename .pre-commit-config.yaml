@@ -18,6 +18,10 @@ repos:
       - id: cargo-fmt-check
         name: cargo fmt (issue-tracker-cli)
         language: system
-        entry: bash -c 'cd issue-tracker-cli && cargo fmt --check'
+        # `git rev-parse --show-toplevel` resolves to the repo root regardless
+        # of where pre-commit was invoked from; fixes Platform Engineer
+        # Review 8 Finding 8 (the prior `cd issue-tracker-cli` was relative
+        # and broke if pre-commit ran from a subdir).
+        entry: bash -c 'cd "$(git rev-parse --show-toplevel)/issue-tracker-cli" && cargo fmt --check'
         pass_filenames: false
         files: ^issue-tracker-cli/.*\.rs$

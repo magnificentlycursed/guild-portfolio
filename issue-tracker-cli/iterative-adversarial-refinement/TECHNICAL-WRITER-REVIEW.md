@@ -328,3 +328,135 @@ The test helper is three lines and its purpose is self-evident. No doc comment i
 Two findings resolved (CHANGELOG, README). Two dismissed. One hallucinated. Rustdoc coverage maintained on new public functions. PROCESS.md placeholders flagged as requiring developer input — not a TW-actionable gap. No outstanding TW findings. MVR reached for Layer 2.
 
 **Coordination:** Findings 1 and 2 resolved via [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) Review 10. Finding 4 cross-referenced with [PORTFOLIO-ASSESSMENT-REVIEW.md](PORTFOLIO-ASSESSMENT-REVIEW.md).
+
+---
+
+---
+
+## Review 6 — 2026-05-04
+
+**Scope:** Layer 3 cold-session adversarial pass. All documentation artifacts: `README.md`, `CHANGELOG.md`, `DECISIONS.md`, `PROCESS.md`, `TODO.md`, `Cargo.toml` crate metadata, inline rustdoc on `src/lib.rs` public items, `cargo doc --no-deps` (and the stricter `RUSTDOCFLAGS="-D missing_docs"` variant), `cargo test --doc`. Rust supplement Technical Writer section applied.
+
+**Session note:** Cold session per primer; parallel batch run with other domains. Reviewer did not participate in any prior build session.
+
+---
+
+**Regression check:** Reviews 1–5 closed all prior TW findings. Review 4 reported `cargo doc --no-deps` clean and treated that as full rustdoc coverage; this review re-tests with `RUSTDOCFLAGS="-D missing_docs"` (the stricter check the supplement actually requires) and finds documentation gaps that the looser check did not surface — see Finding 4.
+
+---
+
+### Resolved
+
+**Finding 1 — README "Commands" block advertises commands and flags that do not exist (Dim 1, Dim 2)**
+
+`README.md` "Commands" section listed `tracker show <id>`, `tracker delete <id>`, `--label`, and `--description` as if they were currently usable. They are not — only Layer 1–3 commands (`create`, `list`, `status` plus `--priority` and `--status`) are implemented. A reader copy-pasting any of the unimplemented commands gets `error: unrecognized subcommand` from clap. The Status block lower in the README (correctly) showed Layer 4 not started, but the Commands block above contradicted it. The README also told the user to "Run `tracker --help`...for full flag reference" — `tracker --help` lists three subcommands and does not mention show, delete, `--label`, or `--description`, directly contradicting the README's own command listing.
+
+**Resolution:** Split the README "Commands" block into "Available now (Layer 3)" and "Planned (not yet implemented — see Status)" with each planned command annotated with its target layer. Help-text caveat reworded to refer to "currently-implemented commands."
+
+---
+
+**Finding 2 — CHANGELOG Layer 3 reports wrong total test count (Dim 8, Dim 2)**
+
+CHANGELOG Layer 3 entry said "Total suite: 53 tests (42 integration + 11 unit), all passing." Actual current state: `cargo test` reports 11 unit + 22 (`layer1.rs`) + 18 (`layer2.rs`) + 9 (`layer3.rs`) = **60 tests (49 integration + 11 unit)**. The "8 integration tests" claim for `layer3.rs` was also wrong — it has 9. A parallel reviewer had already started fixing the test-count line (it now read 56/45/11) but the math was still off by 4 integration tests. The "layer3.rs grows 7 → 8 tests" sub-bullet was also stale — the file is at 9.
+
+**Resolution:** Corrected total to "60 tests (49 integration + 11 unit)" and added qualifier on the 7→8 transition explaining that gate-closure work added a ninth (`list_columns_use_exactly_two_space_separator`).
+
+---
+
+**Finding 3 — CHANGELOG Layer 2 reports wrong unit test count (Dim 8)**
+
+CHANGELOG Layer 2 entry said "Total suite: 38 tests (34 integration + 4 unit), all passing." This is internally inconsistent: the same entry's "Added" section explicitly lists 3 new unit tests (`status_value_parsing_valid_cases`, `status_value_parsing_rejects_invalid`, `id_must_be_positive_integer`), which when added to Layer 1's 4 unit tests gives 7, not 4. The total should have been 41, not 38.
+
+**Resolution:** Corrected to "41 tests (34 integration + 7 unit, including the 3 unit tests added below)".
+
+---
+
+**Finding 4 — `Issue` struct fields and `lib.rs` crate root are undocumented; `cargo doc --no-deps` does not enforce this by default (Rust supplement — rustdoc coverage; module-level docs)**
+
+Review 4 reported that `cargo doc --no-deps` produced no warnings and treated this as full rustdoc coverage. That command does not enable `missing_docs` by default. Re-running with `RUSTDOCFLAGS="-D missing_docs" cargo doc --no-deps` produces 9 errors:
+- `missing documentation for the crate` (no `//!` inner doc on `lib.rs`)
+- 8 × `missing documentation for a struct field` on `Issue` (`id`, `title`, `description`, `status`, `priority`, `labels`, `created_at`, `updated_at`)
+
+The supplement explicitly requires both module-level `//!` docs and field-level docs on public structs. The struct-level doc on `Issue` says only "All fields except `description` are required" — it does not document the valid status/priority value sets, the ISO 8601 timestamp format, the deduplication or case-preservation contract on labels, or the `created_at` immutability invariant. A maintainer hitting `cargo doc` and reading `Issue` learns nothing about the field semantics that DESIGN.md spends most of its data-model section specifying.
+
+**Resolution:** Added crate-level `//!` doc to `lib.rs` describing the public surface, the binary/integration-test relationship, and the `Result<T, String>` error convention. Added field-level `///` docs to all 8 `Issue` fields summarizing the DESIGN.md contract (canonical value sets, ISO 8601 format, immutability and ordering invariants). `RUSTDOCFLAGS="-D missing_docs" cargo doc --no-deps` now passes clean.
+
+---
+
+**Finding 5 — `cmd_status` rustdoc is a one-liner; missing contract description (Dim 6 — API documentation)**
+
+The doc comment on `cmd_status` was `/// Implements `tracker status <id> <status>`.` and nothing else. Compare to `cmd_create` and `cmd_list`, both of which document inputs, side effects, output, error conditions, and behavioral nuances (e.g. the empty-state messaging branch in `cmd_list`, the priority default in `cmd_create`). `cmd_status` left undocumented: the idempotent-set contract, the `updated_at` refresh, the four distinct `Err` paths (id parse, issue lookup, status parse, save I/O), and the stdout format. For a `pub` function, this is below the bar the rest of the file sets.
+
+**Resolution:** Expanded `cmd_status` rustdoc to describe the validation, the storage mutation, the stdout line, the idempotent-set behavior, and an `# Errors` section enumerating the failure modes.
+
+---
+
+**Finding 6 — `Cargo.toml` missing crate metadata: `description`, `license`, `repository`, `readme` (Crate metadata — supplement-adjacent; required reading item)**
+
+The review prompt explicitly directed me to evaluate `Cargo.toml` for `description`, `repository`, and `license`. None of the four standard discoverability/metadata fields were present:
+- No `description` — `cargo metadata` and any future crates.io upload would have nothing to display
+- No `readme` — README is not associated with the crate manifest
+- No `license` — for a portfolio project intended for handoff or external review, the absence of a license is a substantive gap; without a declared license, others cannot legally know whether they may reuse the code
+- No `repository` — standard discoverability field is empty
+
+**Resolution:** Added `description` and `readme = "README.md"` directly. Added `publish = false` to block accidental crates.io upload while metadata is incomplete. Left `license` and `repository` for SO authority — picking a license without explicit owner consent is outside TW scope, and fabricating a repository URL would be worse than absence. Added a `TODO(SO)` comment in `Cargo.toml` capturing the open items and citing this finding.
+
+**Open sub-item raised to SO:** Set `license` (suggested: standard Rust ecosystem `"MIT OR Apache-2.0"`) and `repository` (likely the `guild-portfolio` GitHub URL pointing at the `issue-tracker-cli` subdirectory) before any external distribution or portfolio handoff.
+
+---
+
+### Dismissed
+
+**Finding 7 — README "Test" section says "Unit tests cover validation logic, filtering, and sorting" — but no unit test exercises filtering (Dim 1, Dim 2)**
+
+The unit tests in `lib.rs` cover validation (`title`), ID assignment, status parsing, priority parsing, ID parsing, and sort order. There are no unit tests for filtering — `cmd_list`'s status/priority filtering is exercised only via integration tests. Strictly inaccurate. Edited to "validation, ID assignment, status/priority/ID parsing, and sort ordering" — the same edit pass as Finding 1.
+
+**Classification:** Resolved as part of Finding 1's README edit pass, but logged separately because it was a distinct factual claim about test coverage shape, not about command surface. Promoting from Dismissed to Resolved is more accurate — adjusting in summary.
+
+---
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Open
+
+**Finding 8 — PROCESS.md "What was hardest" / "What the process felt like" placeholders unfilled across all three layers (Dim 10 — AI session independence; cross-domain)**
+
+Layer 1, Layer 2, and Layer 3 all have placeholder text (`*[Your reflection here...]*`, `*[First-person reflection...]*`) in the "What was hardest" and "What the process felt like" sections. Three layers in, the retrospective remains a structural skeleton with developer-authored sections empty. Review 5 (Layer 2) classified this as a Portfolio Assessment concern rather than a TW finding and dismissed. With three layers now complete, the pattern is durable enough to be a standalone TW-side observation: a process retrospective whose first-person sections are placeholders three iterations in is not yet a process retrospective — it is a process retrospective template. A reader trying to learn what working this way *felt like* (a stated purpose of the file's preamble) gets nothing.
+
+**Classification:** Open. Held for human director — TW cannot author first-person developer reflection. Cross-reference: [PORTFOLIO-ASSESSMENT-REVIEW.md](PORTFOLIO-ASSESSMENT-REVIEW.md). Recommended action before Layer 4 close: either fill the Layer 1–3 first-person sections, or remove the placeholder structure and replace with a single note acknowledging the omission.
+
+---
+
+**Finding 9 — `cmd_list` rustdoc statement about empty-state messaging is subtly misleading (Dim 2)**
+
+The `cmd_list` doc comment says: "With `--status <s>`: validates and filters by that status; prints `No issues match the given filters.` when empty — unless the effective filter is `open`, which keeps the original message." Reading the implementation, `is_default_open_view` is true only when both `effective_status == "open"` AND `effective_priority.is_none()`. So `tracker list --status open --priority high` with no matches prints `No issues match the given filters.` — *not* "the original message" as the doc implies. The doc skips the priority-filter half of the condition, which was the entire substance of SO Review 11's fix (and is documented correctly in CHANGELOG and DECISIONS). The doc on the function that *was changed* by SO Review 11 still describes the pre-fix behavior almost verbatim.
+
+**Classification:** Open. Proposed replacement (TW would apply with one more review pass): "When the effective view is the default (`--status open` with no `--priority` filter), an empty result prints `No open issues. Nice work!`. Any other effective filter prints `No issues match the given filters.` when empty." Holding rather than applying because this is the kind of subtle doc-vs-implementation drift the adversarial process is designed to surface for human verification — flagging is more valuable than silent fix.
+
+---
+
+### Summary
+
+Six findings resolved (README command-block accuracy, CHANGELOG Layer 3 test count, CHANGELOG Layer 2 unit count, rustdoc field+module coverage, `cmd_status` API doc, Cargo.toml metadata gaps). One promoted from Dismissed to Resolved (README test-coverage description). Two Open (PROCESS.md placeholder retrospectives across three layers; `cmd_list` rustdoc that describes pre-SO-Review-11 behavior). Zero Hallucinated.
+
+The most important finding is the rustdoc-coverage gap (Finding 4): the prior pass declared rustdoc clean based on `cargo doc --no-deps`, which does not enforce `missing_docs`. Public struct fields and the crate root were undocumented for three layers without anyone catching it because the verification command did not test what it claimed to test. The supplement-recommended check is `cargo doc --no-deps 2>&1 | grep "missing documentation"`, which only sees output if `missing_docs` lints are active — the same blind spot. Future TW reviews should run `RUSTDOCFLAGS="-D missing_docs" cargo doc --no-deps` and treat any output as a finding.
+
+The CHANGELOG test-count drift (Findings 2 + 3) is symptomatic of the project's recurring documentation-currency pattern that PROCESS.md Layer 3 reflection itself flags ("the recurrence of the documentation-currency pattern (CHANGELOG/README stale at every layer close — could a hook catch this?)"). A pre-commit hook that re-extracts test counts from `cargo test` output and fails the commit on CHANGELOG mismatch would convert this from a recurring TW-catch into a build-time check.
+
+**Coordination:**
+- Finding 6 (Cargo.toml `license` and `repository`) raised to SO — TW added a `TODO(SO)` in `Cargo.toml`; pick up in the next SO review or before any external publication.
+- Finding 8 (PROCESS.md placeholders) cross-references [PORTFOLIO-ASSESSMENT-REVIEW.md](PORTFOLIO-ASSESSMENT-REVIEW.md) and is held for the human director.
+- Finding 4 (rustdoc verification command) — recommend updating `iterative-adversarial-refinement/supplements/rust.md` Technical Writer section to specify `RUSTDOCFLAGS="-D missing_docs"` rather than relying on `grep "missing documentation"` of default output. Cross-domain note for the IAR suite reviewer.
+
+---
+
+### Update — 2026-05-04 16:00Z: Layer 3 follow-up resolution pass
+
+- **F9 (`cmd_list` rustdoc describes pre-SO-Review-11 empty-state behavior) → Resolved.** Doc comment for `cmd_list` (`src/lib.rs`) rewritten to describe the actual current behavior: default-open view triggers when no flags are set or `--status open` alone with no other filter; filter view triggers in any other combination. The prior "unless the effective filter is `open`, which keeps the original message" wording was technically correct but misleading; the new text leads with the user-observable behavior and notes the `--status open` equivalence as a clarification rather than the primary description. Same pass added `# Errors` sections to every public `Result`-returning function (Platform Review 8 Finding 4 partial close — moves clippy `missing_errors_doc` to deny status without warnings).
+- **F8 (PROCESS.md retrospective placeholders) → still Open.** Per IAR rules (Portfolio Assessment Review 4 explicitly forbids agent fill-in here), the developer-voice retrospectives must be written by the developer; an agent producing them defeats the assessment dimension. Carries over.
+
+**Side-benefit not separately raised:** the next CHANGELOG entry includes a "Verification" subsection with the literal `cargo test --all-targets --locked` test count (74) and the suite breakdown (19 + 28 + 18 + 9). If this convention sticks across future layers, it operationalizes the pre-commit-hook idea floated in the Review 6 summary — a future hook can grep this section's count against `cargo test` output and fail on drift.
