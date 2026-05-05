@@ -1,5 +1,60 @@
 # Changelog
 
+## CI hotfix: self-crate license — 2026-05-05 18:30Z
+
+**Scope:** Restores green CI after `cargo deny --locked check` (added in the
+Layer 3 follow-up resolution pass) flagged `error[unlicensed]: tracker = 0.1.0
+is unlicensed`. The `Cargo.toml` `license` field was the unresolved half of TW
+Review 6 Finding 6, which had been Raised-to-SO without adjudication across
+SO Reviews 10–14. The new `cargo deny` step surfaced the latent gap on its
+first run.
+
+### Changed
+
+- **`Cargo.toml`** — added `license = "MIT OR Apache-2.0"` to `[package]`. The
+  choice matches the Rust ecosystem norm, `deny.toml`'s existing `[licenses]`
+  allowlist, and TW Review 6 Finding 6's own proposal text. The
+  `TODO(SO)` comment was trimmed: the `license` reference removed, the
+  `repository` reference retained (still pending — not CI-blocking).
+
+### IAR
+
+- **SO Review 15** — adjudicates the license sub-item of TW Review 6 Finding
+  6 as Resolved. The `repository` sub-item carries forward as Open with the
+  auto-Backlog clock now started (CLOSURE-PROTOCOL Section 3). Notes the
+  process datum that pre-protocol Open findings need either a one-time
+  backfill sweep against the 3-review rule or explicit guidance that the
+  protocol applies only to findings raised after its adoption date.
+- **Platform Engineer Review 8 Update** — records the diagnostic detail
+  (cargo-deny licenses gate fires on the workspace crate itself, not just
+  the dependency graph; F2's enforcement made the previously-latent gap
+  CI-visible — working as designed). Notes the `license-not-encountered`
+  warnings on broader allowlist entries are informational and intentionally
+  not narrowed.
+
+### Open after this commit
+
+- **`Cargo.toml` `repository` field** — still Raised-to-SO; not CI-blocking;
+  re-raise on external-distribution trigger or Layer 4+ explicit director
+  call.
+- **Distribution-readiness:** if external distribution is ever planned, the
+  matching `LICENSE-MIT` and `LICENSE-APACHE` text files must be added — the
+  SPDX field declares the offer, but the licenses' attribution clauses
+  require the texts to be present at distribution time. Not blocking; flagged
+  in SO Review 15 so it isn't lost.
+
+### Verification
+
+- `cargo build --locked --quiet` — clean.
+- `cargo test --locked --quiet` — **84/84 pass** (unchanged from prior
+  commit; license metadata does not affect codegen).
+- `cargo deny check` — not installed on the dev machine; next CI run is the
+  validation point. The targeted error
+  (`error[unlicensed]: tracker = 0.1.0 is unlicensed`) is directly addressed
+  by the SPDX field.
+
+---
+
 ## Layer 3 IAR closure: VDD-IAR protocol — 2026-05-05 13:00Z
 
 **Scope:** Closes the two remaining VDD-IAR Review 10 findings (F1 process side

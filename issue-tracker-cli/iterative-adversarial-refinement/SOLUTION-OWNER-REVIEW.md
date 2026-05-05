@@ -1184,3 +1184,66 @@ The SO position on CI tooling for this project, after Reviews 13 and 14: the pri
 - **Security:** F7 dismissal aligns with the Security domain's lens — Security Review 6 did not separately raise secret scanning as a Security finding (it was Platform-domain, defense-in-depth framing). No Security implication.
 - **VDD-IAR Alignment:** the long-running F3 deferral pattern (Open across Reviews 1/2/3/5/7/8) is a process datum worth flagging — domains can leave findings Open indefinitely if the SO veto is never invoked. Recommend the closure protocol document (VDD-IAR Review 10 F2, still Open) include explicit guidance: a Raised-to-SO finding becomes Backlogged or Dismissed if SO does not adjudicate within N reviews. Otherwise the same pattern recurs.
 
+---
+
+---
+
+## Review 15 — 2026-05-05 18:30Z
+
+**Scope:** Director-requested SO adjudication on the `Cargo.toml` `license` sub-item from TW Review 6 Finding 6. The decision was forced by a CI failure: `cargo deny --locked check` flagged `error[unlicensed]: tracker = 0.1.0 is unlicensed`. The other half of TW F6 — the `repository` URL — is unaffected by CI and remains unresolved.
+
+**Session note:** Warm session. The TW finding was raised on 2026-05-04 and has been Raised-to-SO across SO Reviews 10, 11, 12, 13, and 14 without adjudication — five consecutive reviews. Per the auto-Backlog rule in `CLOSURE-PROTOCOL.md` Section 3 (three consecutive reviews → auto-Backlog), this finding should have been auto-Backlogged at SO Review 13 at the latest. CI forcing the adjudication is the dual of that failure mode: the protocol's auto-Backlog rule prevents indefinite-Open on the project's calendar, but external pressure (a failing CI gate) can force adjudication earlier and more sharply than scheduled review cadence would. Both pressures are healthy; neither requires the other.
+
+---
+
+### Resolved
+
+**Finding 7 — `Cargo.toml` `license` field absent (TW Review 6 Finding 6 sub-item → Raised to SO; Dim 1 — Spec coverage / Dim 9 — Assignment compliance)**
+
+TW Review 6 Finding 6 (2026-05-04) flagged `Cargo.toml` as missing four metadata fields. TW resolved `description` and `readme` directly within their authority, and raised the remaining two (`license`, `repository`) to SO with the proposal text: *"set `license` (suggested: standard Rust ecosystem `\"MIT OR Apache-2.0\"`) and `repository` (likely the `guild-portfolio` GitHub URL pointing at the `issue-tracker-cli` subdirectory) before any external distribution or portfolio handoff."*
+
+The license sub-item became CI-blocking on 2026-05-05 when the new `cargo deny --locked check` step (added in the Layer 3 follow-up resolution pass per Platform F2) ran in CI for the first time on a workflow that included `[licenses]` enforcement. The check correctly identified the self-crate as unlicensed because no `license` or `license-file` field was set on `[package]`. `publish = false` blocks crates.io upload but does not satisfy `cargo deny`'s allowlist gate.
+
+Decision criteria:
+- **Assignment compliance.** The Phase 1 assignment does not mandate any specific license. Any choice the SO makes is in scope; absence is not (CI confirms).
+- **Rust ecosystem norm.** `MIT OR Apache-2.0` is the standard for Rust crates: permissive, dual-licensed, compatible with both ends of the open-source community, and matched by `deny.toml`'s existing allowlist (lines 39–40).
+- **TW's own proposal.** The TODO comment in `Cargo.toml` named `"MIT OR Apache-2.0"` as the example, and TW Review 6 Finding 6's resolution prose suggested the same value. The director's adjudication aligns with the originating domain's recommendation rather than overriding it — this is the cheap call.
+- **No external distribution yet.** `publish = false` remains. The license is declared for tooling-correctness; the matching `LICENSE-MIT` and `LICENSE-APACHE` files (which the licenses' attribution clauses require at distribution time) are deferred until external distribution is planned. Setting only the SPDX identifier resolves CI without committing to distribution-readiness.
+
+**Resolution:** Director applied `license = "MIT OR Apache-2.0"` to `[package]` in `Cargo.toml`. The TODO comment was trimmed: the `license` reference removed, the `repository` reference kept (still pending). `cargo build --locked --quiet` and `cargo test --locked --quiet` (84/84 pass) verified locally; `cargo deny` not installed on the dev machine, so CI is the validation point — the targeted error is `error[unlicensed]: tracker = 0.1.0 is unlicensed`, which the SPDX field directly addresses per `cargo-deny`'s license-graph synthesis.
+
+**Carry-forward — `repository` URL.** The TW F6 sub-item for `repository` is not blocking CI and is not adjudicated this round. It remains Raised-to-SO under TW Review 6 Finding 6. Per the auto-Backlog rule (CLOSURE-PROTOCOL Section 3), this is the first adjudication of the broader TW F6 cluster — the `repository` half resets to "Open in SO docket" and gets two more SO reviews of grace before auto-Backlog should fire. Recommended trigger for adjudication: when the project gets a public repository URL (likely the `guild-portfolio` repo's `issue-tracker-cli/` subdirectory path), or when external handoff is planned. Until either condition triggers, no harm in leaving the field empty — `cargo build` and `cargo deny` both ignore missing `repository`.
+
+**Distribution-readiness deferral.** If external distribution is ever planned (publish to crates.io, submit for portfolio review where reuse rights matter, transfer to another developer), the matching pair of license files (`LICENSE-MIT` and `LICENSE-APACHE`, content from https://choosealicense.com or the Rust API guidelines) must be added to the project root. The SPDX field declares the offer; the license texts are required for the offer to be legally effective at distribution. Not done this round; not blocking; flagged so it isn't lost.
+
+---
+
+### Dismissed
+
+*(none this round)*
+
+### Hallucinated
+
+*(none this round)*
+
+### Open
+
+**Finding 8 — `Cargo.toml` `repository` field still absent (carry-forward from TW Review 6 Finding 6)**
+
+The other half of TW F6 remains Raised-to-SO. Not blocking CI, not blocking the layer gate, and the project has no canonical repository URL distinct from the parent monorepo path. The auto-Backlog clock starts now: this Review (15) is the first SO touch of the broader TW F6 cluster — at SO Reviews 17 or 18, if still un-adjudicated, the originating domain (TW) should auto-Backlog per CLOSURE-PROTOCOL Section 3.
+
+**Classification:** Open — pending external-distribution trigger or explicit director call.
+
+---
+
+### Summary
+
+One real finding resolved: `Cargo.toml` `license` set to `"MIT OR Apache-2.0"` per TW's own proposal, restoring CI green after `cargo deny`'s licenses check correctly flagged the self-crate as unlicensed. The repository sub-item carries forward, with the auto-Backlog clock now started.
+
+The process datum for VDD-IAR: the same long-running-Open pattern flagged in SO Review 14's Coordination section (and that motivated CLOSURE-PROTOCOL.md Section 3) is visible here too. TW F6 was Open across SO 10/11/12/13/14 without adjudication — five reviews, beyond the three-review auto-Backlog threshold. The protocol existed by Review 14's close but was not retroactively applied, and Review 15 was forced by CI rather than triggered by the auto-Backlog rule. This is consistent with CLOSURE-PROTOCOL.md being a forward-looking document; existing carry-forward Open findings did not get a sweep-and-classify pass when the protocol was adopted. A one-time sweep of pre-protocol Open findings against the 3-review rule is a candidate Platform/Process action — flagged as a coordination item for VDD-IAR, not a finding for this review.
+
+**Coordination:**
+- **Platform:** Platform Engineer log should record the CI fix (the SO adjudication is the action; Platform owns the CI gate visibility). Append an Update under Review 8 with the diagnostic detail and the resolution path.
+- **Technical Writer:** TW Review 6 Finding 6 is now half-resolved (license closed; repository still Raised-to-SO). TW does not need a new review pass to record this — the SO log is the canonical resolution record, and TW's next review (when it runs) can note the closure in passing.
+- **VDD-IAR Alignment:** flag the missed auto-Backlog application across SO 13/14 as a process datum — CLOSURE-PROTOCOL.md was published mid-stream, and pre-protocol Open findings need either (a) a one-time backfill sweep or (b) explicit guidance that the protocol applies only to findings raised after its adoption date. Not a finding against this review; an input for the next VDD-IAR pass.
+- **Distribution-readiness:** if/when this project is prepared for external distribution, the LICENSE-MIT and LICENSE-APACHE text files must be added. Not blocking now, but deferred-not-forgotten.

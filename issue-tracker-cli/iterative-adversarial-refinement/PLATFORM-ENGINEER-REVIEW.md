@@ -651,3 +651,29 @@ The two carry-forward Open findings have been adjudicated by SO Review 14 (`iter
 
 **Cross-domain coordination (from SO Review 14 Coordination section):** the recurring pattern of long-running Open findings across many reviews (F3 was Open across Reviews 1/2/3/5/7/8 before SO adjudicated) is a process datum. Recommend the closure protocol document include explicit guidance: a Raised-to-SO finding becomes Backlogged or Dismissed if SO does not adjudicate within N reviews. Otherwise the same indefinite-Open pattern recurs for the next agent-recommended-but-out-of-scope addition.
 
+---
+
+### Update — 2026-05-05 18:30Z: CI hotfix for self-crate license
+
+**Context:** The first CI run after the Layer 3 follow-up resolution pass (which added `cargo deny --locked check`, F2) failed at the licenses step:
+
+```
+error[unlicensed]: tracker = 0.1.0 is unlicensed
+ ├ tracker v0.1.0
+```
+
+`cargo deny`'s `[licenses]` allowlist (lines 39–50 of `deny.toml`) gates all crates in the dependency graph including the workspace crate itself. `Cargo.toml` had `description`, `readme`, and `publish = false` per TW Review 6 Finding 6, but no `license` or `license-file` — TW had explicitly raised that sub-item to SO and left a `TODO(SO)` comment in the manifest. The TW finding then sat Raised-to-SO across SO Reviews 10–14 without adjudication, and the new `cargo deny check` step surfaced it the moment it ran.
+
+**Diagnostic note:** This was not introduced by Platform F2's resolution — F2 was the right addition. The latent gap was the missing `license` field; F2 simply gave it a CI-visible enforcement point. From a Platform-domain lens, this is the intended behavior of `cargo deny`: previously-invisible metadata holes become CI-blocking. Working as designed.
+
+**Resolution (cross-domain):** SO Review 15 adjudicated the license decision, applying `license = "MIT OR Apache-2.0"` to `Cargo.toml`'s `[package]` section. The choice matches `deny.toml`'s existing allowlist, the Rust ecosystem norm, and TW Review 6 Finding 6's own proposal text. CI is expected green on the next push; `cargo-deny` is not installed on the dev machine, so the next CI run is the validation point.
+
+**Other deny.toml notes from the failing run:**
+
+- `warning[license-not-encountered]` for several allowlisted licenses (`Apache-2.0 WITH LLVM-exception`, `BSD-2-Clause`, `BSD-3-Clause`, `CC0-1.0`, `ISC`, `MPL-2.0`, `Unicode-DFS-2016`, `Zlib`) — informational. The current dependency tree does not pull any crate under these licenses. Not a finding: `deny.toml`'s allowlist is intentionally broader than the current need so a future dependency under one of these licenses does not produce a CI failure that requires an unrelated `deny.toml` edit. Tightening the allowlist to only currently-encountered licenses is a hygiene action available later if the warnings become noisy; not pursued this round.
+- `confidence-threshold = 0.93` (line 51) — unchanged. The license-not-encountered warnings do not interact with this setting.
+
+**Distribution-readiness flag (carry-forward, not Platform-owned):** the SPDX field declares the offer; the matching `LICENSE-MIT` and `LICENSE-APACHE` text files (required by both licenses' attribution clauses at distribution time) are not present. Not blocking, not pursued, flagged in SO Review 15 for revisit if external distribution is ever planned. SO and TW jointly own that decision; Platform notes it for completeness.
+
+**Net Platform posture after this update:** unchanged from the post-Review-14 state — six prior F-numbers Resolved (F1, F2, F4, F5, F6, F8), F3 Backlogged, F7 Dismissed, F9 Resolved. The license fix is not a new Platform finding; it is an SO adjudication that closes a TW Open item that was CI-relevant once F2 landed. No carry-forward Platform findings remain.
+
