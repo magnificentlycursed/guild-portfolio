@@ -8,24 +8,23 @@ This is portfolio project #2 from the Phase 1 apprentice program — the first R
 
 ## Commands
 
-Available now (Layer 3):
+Available now (Layer 4):
 
 ```
-tracker create "Fix the login bug" [--priority low|medium|high]
-tracker list [--status open|in-progress|done] [--priority low|medium|high]
+tracker create "Fix the login bug" [--priority low|medium|high] [--label <l>]...
+tracker list [--status open|in-progress|done] [--priority low|medium|high] [--label <l>]
 tracker status <id> open|in-progress|done
 ```
 
 Planned (not yet implemented — see Status):
 
 ```
-tracker create ... [--label <l>]... [--description "..."]   # Layer 4 / Layer 6
-tracker list [--label <l>]                                  # Layer 4
-tracker show <id>                                           # Layer 6
-tracker delete <id>                                         # Layer 6
+tracker create ... [--description "..."]   # Layer 6
+tracker show <id>                          # Layer 6
+tracker delete <id>                        # Layer 6
 ```
 
-`tracker list` defaults to open issues, sorted by priority (high → medium → low) then ID ascending. Run `tracker --help` or `tracker <subcommand> --help` for the full flag reference of currently-implemented commands.
+`tracker list` defaults to open issues, sorted by priority (high → medium → low) then ID ascending. The `--label` filter on `list` accepts a single value and matches case-sensitively; on `create` it is repeatable and labels are deduplicated (case-preserved). Run `tracker --help` or `tracker <subcommand> --help` for the full flag reference of currently-implemented commands.
 
 ---
 
@@ -52,7 +51,7 @@ cargo build --release
 cargo test
 ```
 
-Integration tests invoke the compiled binary as a subprocess and assert on stdout, stderr, and exit code. Unit tests cover validation, ID assignment, status/priority/ID parsing, and sort ordering.
+Integration tests invoke the compiled binary as a subprocess and assert on stdout, stderr, and exit code. Unit tests cover validation (title, label), ID assignment, status/priority/ID parsing, sort ordering, label deduplication, and case-sensitive label matching.
 
 ---
 
@@ -66,7 +65,7 @@ Issues are stored in `tracker.json` in the directory where you run the command. 
 
 ## Status
 
-**Layer 3 implementation complete. Layer 4 not started.**
+**Layer 4 implementation complete. Layer 5 not started.**
 
 - [x] DESIGN.md — full behavioral specification
 - [x] TODO.md — 7-layer development plan with Red Gate test plans
@@ -75,7 +74,7 @@ Issues are stored in `tracker.json` in the directory where you run the command. 
 - [x] Layer 1: Core create + list
 - [x] Layer 2: Status flow
 - [x] Layer 3: Priority
-- [ ] Layer 4: Labels
+- [x] Layer 4: Labels
 - [ ] Layer 5: Compound filtering
 - [ ] Layer 6: Description, show, delete
 - [ ] Layer 7: Polish (color, `--help`, error messages)

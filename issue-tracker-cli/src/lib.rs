@@ -411,8 +411,15 @@ pub fn cmd_list(
         Some(p) => Some(parse_priority(p)?),
         None => None,
     };
-    let is_default_open_view =
-        effective_status == "open" && effective_priority.is_none() && label_filter.is_none();
+    // Disjunction over non-default filters: any future filter (e.g. Layer 6's
+    // `--description-contains`) must extend `extra_filter_active` here — a single
+    // location — rather than appending another `&& *_filter.is_none()` conjunct
+    // to the empty-state predicate. Reduces the SO Review 11 regression hazard:
+    // the structural fragility of the positive-enumeration form is what made the
+    // earlier empty-state heuristic break when `--priority` was added in Layer 3
+    // and again when `--label` was added in Layer 4. SA Review 9 Finding 2.
+    let extra_filter_active = effective_priority.is_some() || label_filter.is_some();
+    let is_default_open_view = effective_status == "open" && !extra_filter_active;
 
     let mut issues = load_issues(issues_path)?;
     issues.retain(|i| i.status == effective_status);

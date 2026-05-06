@@ -1247,3 +1247,200 @@ The process datum for VDD-IAR: the same long-running-Open pattern flagged in SO 
 - **Technical Writer:** TW Review 6 Finding 6 is now half-resolved (license closed; repository still Raised-to-SO). TW does not need a new review pass to record this — the SO log is the canonical resolution record, and TW's next review (when it runs) can note the closure in passing.
 - **VDD-IAR Alignment:** flag the missed auto-Backlog application across SO 13/14 as a process datum — CLOSURE-PROTOCOL.md was published mid-stream, and pre-protocol Open findings need either (a) a one-time backfill sweep or (b) explicit guidance that the protocol applies only to findings raised after its adoption date. Not a finding against this review; an input for the next VDD-IAR pass.
 - **Distribution-readiness:** if/when this project is prepared for external distribution, the LICENSE-MIT and LICENSE-APACHE text files must be added. Not blocking now, but deferred-not-forgotten.
+
+---
+
+---
+
+## Review 16 — 2026-05-05 21:30Z
+
+**Round:** SO Review 16
+**Scope:** Layer 4 (labels) primary — `--label` on create, label dedup, `--label` filter on list, multiple-`--label` on list rejected. Secondary: full DESIGN.md regression check across prior layers.
+**Session context:** Fresh subagent; cold session; no prior conversation. Part of a full-suite IAR run on branch `issue-tracker-cli-labels`. The director provided the SO domain prompt and the read-order; this session has not participated in scoping or implementing Layer 4.
+
+---
+
+### Compliance table (delta — Layer 4 features and regression spot-check)
+
+| Requirement (DESIGN.md) | Status | Notes |
+|---|---|---|
+| Feature 1: `--label <l>...` (repeatable on create) | Met | `main.rs:21-22` `#[arg(long)] label: Vec<String>`; `cmd_create` consumes `&[String]`. |
+| Feature 1 precondition: each label non-empty after trim | Met | `lib.rs:339-346` `parse_label` trims, errors on empty. |
+| Feature 1 postcondition: `labels` deduplicated, order preserved, case preserved | Met (with caveat — see Finding 1) | `lib.rs:351-360` `dedupe_labels` first-occurrence, case-sensitive. Operates on **trimmed** values; spec is ambiguous on store-as-trimmed vs. store-as-provided. |
+| Feature 1 error: empty label → `Error: Label cannot be empty.` | Met | `tests/layer4.rs:60-83`; verified via `parse_label`. |
+| Feature 2: `--label <l>` filter (single, case-sensitive, exact-match) | Met | `lib.rs:367-369` `label_matches` uses `==`; `tests/layer4.rs:218-235`. |
+| Feature 2: multiple `--label` flags on `list` → usage error, exit 1 | Met | clap `Option<String>` rejects second flag; binary transforms `error:` → `Error:` in `main.rs:62`; verified by `tests/layer4.rs:238-257` and runtime smoke test. |
+| Feature 2 / Edge Cases: `--label bug` excludes unlabeled issues | Met | `tests/layer4.rs:211-214`. |
+| Feature 2 / Edge Cases: `--label Bug` does not match issue labeled `bug` | Met | `tests/layer4.rs:218-235`. |
+| List output: `Labels` column 20 chars min, comma-separated, truncate at 20 with `…` | Met | `lib.rs:441-457` `{:<20}` + `truncate_with_ellipsis`; matches DESIGN.md example exactly (verified by smoke test). |
+| List output: `(none)` for empty labels | Met | `lib.rs:447-451`. |
+| `tracker.json` Issue.labels round-trip | Met | `Issue` struct unchanged from Layer 1; serde `Vec<String>`. |
+| Regression: empty-state messages still on stderr (SO 13 F2) | Met | `lib.rs:432, 434` `eprintln!`; smoke test confirms stdout empty, stderr message. |
+| Regression: control-character title rejection (SO 13 F1) | Met | unit tests still pass; `validate_title` and `issue_fields_are_valid` both check `is_control()`. |
+| Regression: priority sort + ID tie-break (Layer 3) | Met | `sort_issues` unchanged; `priority_sort_*` unit tests pass. |
+| Regression: status idempotency, refresh `updated_at` (Layer 2) | Met | `cmd_status` unchanged in Layer 4. |
+| Out-of-scope (Layer 4): `--description`, `show`, `delete` not present | Met (Deferred) | `main.rs` defines only `Create`, `List`, `Status` subcommands; no Layer 5+ leak. |
+| Layer 4 acceptance criteria (TODO.md, 11 items) | Met | All 11 ACs map to passing tests in `tests/layer4.rs` + unit tests in `lib.rs`. |
+| Manual testing checklist (Layer 4, TODO.md lines 203-212) | Unverified | All 9 manual items still `[ ]` unchecked in TODO.md. May reflect "not yet executed" rather than "skipped"; flagged as observation, not finding (Layer 4 gate not closed). |
+
+---
+
+### Findings
+
+#### Finding 1: Label trim-on-store vs. store-as-provided is implementer's choice; DESIGN.md is ambiguous
+
+- **Dimension:** Dim 7 (Design fidelity), Dim 1 (Spec coverage — under-specification surfaced by Layer 4)
+- **Severity:** Low
+- **Evidence:**
+  - DESIGN.md Feature 1 postcondition (line 28): "`labels` is the deduplicated list of `--label` values; order is preserved, case is preserved as provided".
+  - DESIGN.md Feature 1 precondition (line 22): "If `--label` is present, each label value is non-empty after trimming".
+  - DESIGN.md Edge Cases / Labels (line 304): "Whitespace-only label (`--label "  "`) → error: `Label cannot be empty.` (checked after trim)".
+  - `src/lib.rs:339-346` `parse_label` trims and returns the trimmed value. `cmd_create` (line 213-217) collects parsed (i.e., trimmed) labels and passes them through `dedupe_labels`. Net: stored labels are trimmed.
+  - Runtime smoke test: `tracker create "T" --label "bug " --label "bug"` → `tracker.json` contains `labels: ["bug"]` (trimmed and deduped).
+- **Rationale:** The spec is genuinely ambiguous. "Case is preserved as provided" reads as "store as the user provided" and could plausibly extend to whitespace. "Each label value is non-empty after trimming" and "(checked after trim)" both frame trimming as a *validation* step, not necessarily a *storage normalization* step. The implementation's chosen interpretation (trim-on-store) is reasonable, user-friendly, and consistent with title handling — but DESIGN.md does not say so. A reviewer reading the spec literally and an implementer reading the spec liberally will produce different behavior, which is the same defect class SO Review 1 Finding 2 caught for `tracker list --label` with multiple flags.
+- **Classification:** Open — Raised to SO (this round) for spec clarification.
+- **Proposed action:** Amend DESIGN.md Feature 1 postcondition to explicitly state the storage normalization. Suggested text: "`labels` is the deduplicated list of `--label` values, with each value trimmed of leading/trailing whitespace; order is preserved (first occurrence wins), case is preserved as provided after trimming; empty if no `--label` flags given." Optionally amend the Edge Cases / Labels section to add a bullet: "Leading/trailing whitespace on a label (`--label '  bug  '`) → stored as `'bug'` (trimmed); deduplication is performed against trimmed values."
+- **Spec-creep evaluation:** This is a *clarification of an existing under-specification*, not a new feature or behavior change. The implementation's behavior would be unchanged; the spec would simply describe what the implementation already does. This is a defect-fix-class amendment in the same family as SO Review 13 Finding 2 (empty-state stream discipline).
+
+---
+
+#### Finding 2: List `--label` filter does not validate empty/whitespace-only filter values; behavior diverges from create-side validation
+
+- **Dimension:** Dim 1 (Spec coverage — under-specification), Dim 7 (Design fidelity — symmetry with create-side rule)
+- **Severity:** Low
+- **Evidence:**
+  - DESIGN.md Feature 2 error states (lines 73-74) enumerate only invalid `--status` and `--priority` values. Empty/whitespace `--label` filter is not addressed.
+  - `src/lib.rs:400-424` `cmd_list` accepts `label_filter: Option<&str>` and passes it directly to `label_matches` without validation.
+  - Runtime smoke test: `tracker list --label ""` → exits 0, prints `No issues match the given filters.` to stderr. Same for `tracker list --label "  "`.
+  - Compare: `tracker create "T" --label ""` → exits 1, prints `Error: Label cannot be empty.` to stderr (per `parse_label`).
+- **Rationale:** The spec is silent on the case, so the implementation is not strictly out of compliance. But the asymmetry is observable and surprising: a user who knows `--label ""` is invalid on create may reasonably expect symmetric rejection on list. The current behavior — silent acceptance, "no match" message — could mask a typo (e.g., shell-stripped quotes producing an empty argument) and lead the user to conclude their data is missing. The principle behind the create-side rule (validate-at-the-boundary, DESIGN.md Constraints line 278) arguably extends to filter values too.
+- **Classification:** Open — Raised to SO (this round) for spec clarification, OR Hallucinated if the director takes the position that "exact-match against an empty filter naturally returns no matches" is the intended behavior. The decision is a real spec call.
+- **Proposed action (option A — tighten spec):** Amend DESIGN.md Feature 2 error states to add: "Empty or whitespace-only `--label` filter → stderr `Error: Label cannot be empty.` → exit 1." Amend `cmd_list` to call `parse_label` on `label_filter` before applying. One unit test + one integration test required.
+- **Proposed action (option B — document silent behavior):** Amend DESIGN.md Edge Cases / Labels to add: "Empty or whitespace-only `--label` filter on `tracker list` → no match (exits 0 with `No issues match the given filters.`); not validated as an error since stored labels are guaranteed non-empty by the create-time rule, so an empty filter is well-defined as 'no possible match.'" No code change required.
+- **Spec-creep evaluation:** Either option is a *clarification of an under-specification*, not a new feature. Option A adds one validation point that mirrors an existing one; option B documents the existing behavior. Neither expands the feature surface.
+
+---
+
+#### Finding 3: Layer 4 manual testing checklist not visibly executed in TODO.md
+
+- **Dimension:** Dim 1 (Spec coverage — DESIGN.md Testing Methodology requires manual testing per layer)
+- **Severity:** Low (process observation; coordination item)
+- **Evidence:**
+  - DESIGN.md Testing Methodology / Manual testing checklist (line 367): "Each layer must be manually tested before the layer gate closes".
+  - `TODO.md:203-212` lists 9 Layer 4 manual testing items, each rendered as `- [ ]` (unchecked). Compare Layer 3's checklist (`TODO.md:153-161`) which is fully `- [x]`.
+  - Branch is `issue-tracker-cli-labels` and Layer 4 IAR is in progress (this review is part of it), suggesting the layer gate has not closed.
+- **Rationale:** This is consistent with Layer 4 being mid-flight rather than gate-closed. Not a deviation if the gate is genuinely open. But the checklist must be executed and ticked before Layer 4 closes per DESIGN.md. Recording it here so the director and the next-tier reviewers (UX, VDD-IAR) know the status.
+- **Classification:** Open — observation, pending Layer 4 gate. Not a defect against the implementation; a process tracking note. Coordination: VDD-IAR Alignment domain owns process compliance and should pick this up.
+- **Proposed action:** Before Layer 4 gate closure, the director executes the 9 manual checks (or has the implementing agent execute them) and ticks each box in TODO.md. No DESIGN.md or source code change.
+
+---
+
+### Spec-creep audit (Dim 2 — additions not in DESIGN.md)
+
+Walked the Layer 4 diff (current branch vs. `main`) for additions not described in DESIGN.md:
+
+- **`parse_label`, `dedupe_labels`, `label_matches`** in `src/lib.rs` — directly required by Feature 1 postcondition (dedup) and Feature 2 (filter). Not creep.
+- **`Vec<String>` arg parsing on `Create::label`** in `src/main.rs` — directly required by Feature 1 synopsis (repeatable). Not creep.
+- **`Option<String>` arg parsing on `List::label`** in `src/main.rs` — directly required by Feature 2 synopsis (single value); the `Option` (rather than `Vec`) is what enforces the "single value" constraint, producing the multiple-flags error. Not creep.
+- **No new dependencies in `Cargo.toml`** — confirmed; `serde`, `serde_json`, `clap`, `chrono`, `libc` (unix) unchanged from Layer 3.
+- **No Layer 5+ subcommands** — `main.rs` enum still `Create | List | Status`. No `show`, no `delete`. No `--description` flag. Correct phase alignment.
+
+No scope creep detected in Layer 4. The implementation adheres to the layer scope boundary.
+
+---
+
+### Dim 9 — Assignment compliance check
+
+The assignment brief at `apprentice-onboarding/02-the-methodology/02-tracking-your-work.md` is referenced in DESIGN.md (line 7) and prior SO reviews (esp. Review 13 Finding 1). The brief is not present in this session's working tree (subdirectory `apprentice-onboarding/` does not exist locally), so I cannot independently re-evaluate Dim 9 against the source. Prior SO reviews (1-15) have done this audit and concluded DESIGN.md faithfully represents the assignment for the spec-defined feature surface. No new assignment-compliance concern surfaced by Layer 4 — labels are an explicit assignment feature ("Add labels to issues"), and the Layer 4 implementation matches DESIGN.md's interpretation of that feature.
+
+If the director wants a fresh Dim 9 pass with the brief in scope, schedule it once the file is reachable in this branch's tree.
+
+---
+
+### Hallucinated
+
+*(none this round)*
+
+### Backlogged
+
+*(none this round)*
+
+### Dismissed
+
+*(none this round)*
+
+---
+
+### Summary
+
+4 findings: 4 Open, 0 Resolved, 0 Hallucinated, 0 Dismissed, 0 Backlogged. (Updated by the Dim 9 addendum below — F4 added 2026-05-05 21:38Z.)
+
+F1, F2, and F3 are low-severity (see analysis below). F4, added by the Dim 9 addendum, is Medium-severity: DESIGN.md "Out of Scope" item line 394 unilaterally reclassifies the assignment's Layer 6 "delete with confirmation" as advisory and waives it; the assignment text does not authorize that reclassification. F1 and F2 are spec-clarification candidates surfaced by Layer 4 — the implementation made defensible choices in spec-ambiguous areas (label trim-on-store; empty-filter silent-no-match) that should be either ratified into DESIGN.md or amended. F3 is a process observation about Layer 4 manual testing being unexecuted, which is normal for an open layer and is recorded as a coordination input for VDD-IAR.
+
+The Layer 4 implementation itself is in spec compliance: 11/11 acceptance criteria covered by passing tests; no new dependencies; no scope creep into Layer 5+ features; regression of prior-layer compliance (empty-state stderr routing, control-character rejection, priority sort, status idempotency) holds. The compliance table delta is clean.
+
+**Sycophancy check (self-applied):** A clean Layer 4 review is exactly the failure mode the domain prompt warns about. I tested whether the three findings are real by trying to dismiss each one:
+- F1 (label trim-on-store): could the spec text already cover this? No — "case is preserved as provided" and "checked after trim" pull in different directions; the implementer chose one resolution; the spec doesn't ratify it. Real finding.
+- F2 (empty filter silent-no-match): could "exact match" be construed to inherently allow empty filter? Yes, that's a defensible reading — which is why the finding is classified as a spec-clarification call rather than a defect. Real but soft.
+- F3 (manual checklist unchecked): could this be normal for an in-progress layer? Yes, and the finding records it as such — this is a coordination note, not an accusation.
+
+Each finding survived the dismissal test. The clean compliance table is genuine; the three findings are the residue.
+
+**Coordination:**
+- **Software Engineer:** F1 has a code-side option (do nothing, since the implementation already trims-on-store; the change would only be to DESIGN.md). F2 has either a code-side option (call `parse_label` on the list filter — one line in `cmd_list`) OR a doc-only option. SE should not act unilaterally; SO must adjudicate the spec call first.
+- **Quality Engineer:** if SO chooses Option A on F2, QE should add `list_empty_label_filter_exits_one` and `list_whitespace_label_filter_exits_one` integration tests. If Option B, QE may add a positive-coverage test asserting the silent-no-match behavior to lock it in.
+- **VDD-IAR Alignment:** F3 (manual testing checklist status) is a process observation in VDD-IAR's wheelhouse. Recommend VDD-IAR's next pass verify the Layer 4 manual checklist is executed before gate closure, consistent with prior layers.
+- **UX:** the empty-filter silent-no-match behavior (F2) is a UX surface — UX domain may have an opinion on whether the silent behavior surprises pipe consumers or interactive users. Flag for UX awareness.
+- **Security / Red Team:** Layer 4 introduces no new attack surface beyond what was hardened in Layer 3 (control-character rejection extends to titles, not labels — labels are validated only as non-empty after trim). If labels become a render path that emits to a TTY (Layer 7 color, or future `show`), Red Team should evaluate label-content escape injection at that point. Out of scope for this round.
+
+---
+
+### Dim 9 — Assignment compliance addendum (2026-05-05 21:38Z)
+
+**Source:** Canonical assignment fetched from https://github.com/Navigators-Guild/apprentice-onboarding/blob/main/02-the-methodology/02-tracking-your-work.md
+
+The original Review 16 Dim 9 section (above) deferred the audit because the assignment file was not present in this branch's working tree. The director has since retrieved the canonical text from GitHub. This addendum re-runs the audit against the canonical source.
+
+**Audit summary:**
+
+- **Technology:** Match. Assignment specifies Rust + JSON file in project directory + git-style CLI subcommands. DESIGN.md (lines 5, 198, 276) matches all three.
+- **Required fields:** Match. Assignment lists ID, Title (required), Description (optional), Status, Priority, Labels (list), Timestamps. DESIGN.md Data Model (lines 158-168) covers all seven.
+- **Required commands and flag syntax:** Match. `tracker create "<title>" --priority <p> --label <l>`, `tracker list [--status <s>] [--label <l>]`, `tracker status <id> in-progress|done`, `tracker show <id>`, `tracker delete <id>`, compound `tracker list --status open --priority high --label bug` — all present in DESIGN.md Interface table (lines 200-208).
+- **Layered build sequence:** Match. Assignment's 7-layer sequence (Core → Status → Priority → Labels → Compound filter → Detail & delete → Polish) maps 1:1 to TODO.md Layers 1-7 (lines 9, 70, 134, 184, 239, 279, 349). Phase alignment intact: branch is on Layer 4, Layers 5-7 are pre-decomposed but not implemented — correct, not a finding.
+- **Out-of-scope items:** Match. DESIGN.md "Out of Scope" includes the four assignment-stated out-of-scope items (multiple users, due dates, subissues/hierarchy, time tracking) plus several implementation-class deferrals (editing after creation, undo, archiving, atomic writes, etc.) that are not in the assignment as out-of-scope but are reasonable implementation deferrals consistent with the assignment's silence on them.
+- **State terminology ("closed" vs. "done"):** Equivalent. The assignment itself states "closed (done)" and uses `tracker status <id> done` in its example command — the assignment treats the terms as synonyms. DESIGN.md picking `done` for the stored value matches the assignment's own command syntax. Not a finding.
+- **Default sort tie-break (priority then ID ascending):** The assignment specifies "sorted by priority" but is silent on tie-break. DESIGN.md adds tie-break by ID ascending (line 53). This is a clarification of an under-specification needed for deterministic output, not scope creep. Not a finding.
+- **Label filter case-sensitivity:** Assignment is silent. DESIGN.md (line 305) specifies case-sensitive exact match. Reasonable disambiguation; not a Dim 9 violation.
+- **Control-character title rejection:** Assignment says "Reject empty titles" and "Validate all input from the command line." DESIGN.md (lines 22, 290) extends to control-character rejection. The extension is consistent with the assignment's general validation guidance and the "no-crash" requirement (a newline in a title would corrupt list output). Reasonable defensive interpretation; not a Dim 9 violation.
+- **List `--label` single-filter restriction:** Assignment shows `--label bug` (single) in all examples and is silent on multiplicity. DESIGN.md Feature 2 (line 59) restricts `list` to one `--label` per invocation and errors on multiple. The compound-filter assignment example also uses a single `--label`. This is a faithful clarification of an under-specified case (not a scope narrowing) consistent with all assignment examples. Not a Dim 9 violation. (Already audited as F1/F2 of Review 16 from a different angle — spec-internal ambiguity, not assignment compliance.)
+
+**Audit findings:**
+
+#### Finding 4: DESIGN.md unilaterally reclassifies the assignment's Layer 6 "delete with confirmation" requirement as advisory and waives it
+
+- **Dimension:** Dim 9 (Assignment compliance), Dim 1 (Spec coverage)
+- **Severity:** Medium
+- **Evidence:**
+  - Canonical assignment, Build layer sequence, Layer 6: "Detail & delete: show full details; delete with confirmation". The phrase "delete with confirmation" appears explicitly in the assignment's required build sequence.
+  - Canonical assignment, Quality/security: "Validate all input from the command line." and the assignment lists `tracker delete <id>` in the same paragraph as confirmation. There is no language in the canonical text designating the build layers as "advisory" or non-binding.
+  - Canonical assignment, Success criteria: "all 7 layers compile + pass adversarial testing; commands match specified syntax". The 7-layer sequence is named as success criteria, not advice.
+  - DESIGN.md "Out of Scope" line 394: "**Interactive mode** — the tool is non-interactive; it reads arguments from the command line and exits; no TUI or REPL. The assignment's Layer 6 build guidance mentions `tracker delete <id>` with confirmation, but the authoritative interface section lists `tracker delete <id>` with no confirmation signal, and build layers are explicitly advisory." (Emphasis added.)
+  - Searched the canonical assignment text for "advisory", "advice", "guidance", "optional", "non-binding" applied to the build layers. None found. The phrase "build layers are explicitly advisory" in DESIGN.md does not have a textual referent in the assignment.
+  - The assignment has only one layer of authority — the assignment itself. DESIGN.md's appeal to its own "authoritative interface section" to override the assignment's Layer 6 text is circular: the interface section's authority derives from DESIGN.md, and DESIGN.md is meant to faithfully represent the assignment.
+- **Rationale:** This is the textbook Dim 9 pattern — DESIGN.md narrows an assignment-stated requirement and rationalizes the narrowing by appeal to a self-declared authority hierarchy that the assignment itself does not establish. The implementation choice (delete-without-confirmation) may be defensible on UX or CLI-convention grounds, but those grounds belong in a deviation log with explicit stakeholder approval, not in an "Out of Scope" bullet that minimizes the assignment text. The closest legitimate path would be a documented "Approved deviation" per CLOSURE-PROTOCOL.md, with the SO domain explicitly approving the deviation and recording the rationale and approver — not an unattributed declaration in DESIGN.md.
+  - Adversarial-posture self-check: could "delete with confirmation" plausibly be ambiguous in the assignment (e.g., satisfied by some non-interactive mechanism like a `--yes` flag)? The canonical phrase is "delete with confirmation" without further qualification; the most natural reading is interactive-prompt-style confirmation, but a `--confirm` / `--yes` flag would also be a faithful interpretation. Either is a confirmation step; the current implementation has neither. The finding survives the dismissal test.
+  - Sycophancy check: I am tempted to soften this to "documentation gap" because the implementation choice is sensible. The adversarial mandate is to log the finding against the spec contract; the spec contract here is the assignment, and the assignment text does not authorize the waiver. Logging at Medium.
+- **Classification:** Open — Raised to SO (this round) for adjudication.
+- **Proposed action (option A — implement confirmation):** Add a `--yes` flag (or interactive `[y/N]` prompt) on `tracker delete <id>` in Layer 6, and amend DESIGN.md Feature 5 (lines 129-150) to specify the confirmation contract (default behavior, `--yes` bypass, exit code on cancellation). Remove the "Out of Scope" bullet at line 394. This is the assignment-faithful path.
+- **Proposed action (option B — formalize the deviation):** Move the Layer 6 confirmation waiver out of "Out of Scope" and into a new "Approved Deviations from Assignment" section in DESIGN.md (or a separate `DEVIATIONS.md`), with explicit director-as-stakeholder approval, the date approved, and a rationale that does not rely on calling the assignment's build layers "advisory". This preserves the current implementation choice but makes the deviation visible and auditable per CLOSURE-PROTOCOL.md.
+- **Proposed action (option C — evidence the "advisory" claim):** If the director has out-of-band evidence from the assignment author or guild process documentation that build layers are non-binding, cite it in DESIGN.md (link, quote). Without that citation the current text reads as a self-serving narrowing.
+- **Spec-creep evaluation (inverse direction):** This is *spec-narrowing*, not spec-creep. DESIGN.md is removing a behavior the assignment requires. Per the SO domain prompt, the spec contract is the assignment for Dim 9 purposes; narrowing it without explicit deviation approval is the failure mode this dimension exists to catch.
+- **Per CLOSURE-PROTOCOL.md:** SO is the only domain authorized to modify DESIGN.md. This finding proposes DESIGN.md changes (under any of A/B/C) and is logged for SO adjudication. No DESIGN.md edit performed by this addendum.
+
+---
+
+**Addendum coordination notes:**
+- **Solution Owner (director):** F4 is yours to adjudicate. Option B is the lowest-cost path that satisfies the audit; Option A is the highest-fidelity path; Option C is only viable if the "advisory" claim has an actual referent that can be cited.
+- **Software Engineer:** No action until SO adjudicates. Option A would add a Layer 6 sub-task; B and C are doc-only.
+- **Quality Engineer:** If Option A, QE adds tests for the `--yes` bypass, the cancellation exit code, and the confirmation-prompt behavior. If B or C, no test changes.
+- **VDD-IAR Alignment:** F4 is also a VDD-IAR signal — the existing "Out of Scope" rationale relies on a hierarchy ("authoritative interface section") that has no textual basis in the assignment. VDD-IAR may want to verify whether other DESIGN.md "Out of Scope" bullets rely on similar self-declared hierarchies.

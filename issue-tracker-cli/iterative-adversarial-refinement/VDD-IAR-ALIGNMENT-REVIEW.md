@@ -1136,4 +1136,216 @@ The four Review 10 findings now have terminal states.
 
 **Coordination:** the closure protocol is project-scoped. If it proves useful here, Section 7 ("Suite adoption") describes the path to promotion to the suite-level IAR documentation. That decision is the director's, not VDD-IAR's. No new VDD-IAR findings this round.
 
+---
+
+---
+
+## Review 11 — 2026-05-05 23:00Z
+
+**Scope:** Layer 4 (`issue-tracker-cli-labels` branch) full-suite IAR pass. Verification of the CLOSURE-PROTOCOL.md predicted by Review 10 — does the protocol survive contact with Layer 4? Inputs: SO Review 16 (with Dim 9 addendum F4), SA Review 9, Security Review 7, SE Review 11 (inline-fix discharging SA9 F2), QE Review 11, UX Review 6, PE Review 9 (zero-findings regression-only), DE Review 7, TW Review 7, RT Review 6. Process artifacts: `git log` (Layer 3 merge → present), `git status`, `git diff origin/main...HEAD --stat`, `PROCESS.md`, `TODO.md`, `DESIGN.md`, `CLOSURE-PROTOCOL.md`, prior VDD-IAR Reviews 9-10.
+
+**Session note:** This reviewer is a fresh subagent invoked by the directing agent; not the directing agent itself. Cold session per `prompts/review-session.md` primer. Adversarial framing intact. The directing agent coordinated the parallel batch but did not author any of the 10 newly-appended domain reviews — each ran in its own fresh subagent context per the cadence in `CLOSURE-PROTOCOL.md` Section 5. This VDD-IAR pass evaluates the artifact set as it stands at start-of-round; running last per the merge-gate sequencing in `prompts/review-session.md`.
+
+**Program phase:** Phase 1. Crosslink not yet introduced; dim 11 N/A. Governing methodology: `apprentice-onboarding/02-the-methodology/01-how-we-build.md` (process); `apprentice-onboarding/02-the-methodology/02-tracking-your-work.md` (assignment).
+
+**Regression check on Review 10:** Closure protocol exists at `iterative-adversarial-refinement/CLOSURE-PROTOCOL.md` (Layer 3 close commit `725631d`). Section 1 authority table is in place; Section 5 cadence (cold parallel review → warm sequential resolution) is the operating mode this round used. Verifying compliance with each row.
+
+---
+
+### Layer 4 commit-pattern audit
+
+| Commit | Time (PDT) | Phase signal |
+|---|---|---|
+| `14bd219` Layer 4 Red Gate — labels tests and stubs | 2026-05-05 11:19 | Phase 2a: 12 integration + 3 unit tests + `todo!()` stubs committed; Cat B deviations explicitly named in commit message |
+| `ec5c966` Layer 4 implementation — `--label` on create + list | 2026-05-05 11:26 | Phase 2b: implementation 7 minutes after Red Gate |
+| `f036d8d` IAR Review 35: manual-testing-checklist runnable-step standard | 2026-05-05 (later) | Suite-level IAR change (out-of-band) |
+| `5b95911` IAR Review 35 Finding 4: usage examples in --help | 2026-05-05 | Suite-level IAR change |
+| `0ad83de` issue-tracker-cli: surface --priority / --label in top-level --help | 2026-05-05 | Layer 4 polish — pulled forward from Layer 7 |
+
+Red Gate commit precedes implementation commit by 7 minutes. Test discipline at the commit-pattern level is intact (dim 4). `prompts/implementation.md` "Red Gate before Phase 2b" requirement is honored. Sycophancy guard: I verified by re-reading `tests/layer4.rs` against commit `14bd219` content — at Red Gate time `parse_label`, `dedupe_labels`, `label_matches` were `todo!()`; clap rejected `--label` as unknown; the 12 integration tests would have failed (10 by clap, 3 by `todo!()` panic; 2 Cat B deviations explicitly disclosed). This is the right pattern.
+
+---
+
+### Resolved
+
+*(none — this domain owns its own log and `CLOSURE-PROTOCOL.md`; no process-change artifact was applied this session)*
+
+---
+
+### Open
+
+**Finding 1 — `tests/layer4.rs` and `src/lib.rs` Layer 4 round-2 work (SE-11 inline fix; QE-11 +1 test +2 strengthened assertions; TW-7 README inline edits) are uncommitted at start-of-round; Review 10 F3/F4 pattern recurrence one layer later (Dim 3 — Layer gate compliance / Regression of prior closed finding)**
+
+`git status` at start-of-round shows 13 modified files: `README.md`, `src/lib.rs`, `tests/layer4.rs`, plus all 10 domain review logs. None are committed. This reproduces the Review 10 F3/F4 pattern: `CLOSURE-PROTOCOL.md` Section 6 merge-gate item 4 ("CHANGELOG accurately describes what changed") and the Review-10-resolution precedent (commit `87e41c6` bundling all round-2 artifacts before merge) require coherent commit units before the layer merges. The protocol predicts this; Layer 4 reproduces it.
+
+The substantive content is sound:
+- SE-11 inline fix at `src/lib.rs:413-422` (extra_filter_active disjunction) is in-authority per CLOSURE-PROTOCOL.md row "src/**/*.rs → SE primary" — SE applying its own SE-domain finding is correct.
+- QE-11 test additions to `tests/layer4.rs` are in-authority per CLOSURE-PROTOCOL.md row "tests/**/*.rs → QE primary".
+- TW-7 README inline edits are in-authority per row "README.md → TW; any domain (for accuracy fixes)".
+
+The authority chain is clean for the content. The process gap is purely the commit-cadence one Review 10 named.
+
+**Classification: Open — Raised to director.** This finding does not block the round-2 IAR work. It blocks the Layer 4 merge from proceeding on the current uncommitted state. Recommended remediation: replicate the Review 10 closure precedent — a single coherent commit (or split per Section 5 cadence) staging all round-2 artifacts (review logs + SE-11 src fix + QE-11 test additions + README updates) before the merge commit. CHANGELOG entry per TW-7 F2's request to SO must land in the same set.
+
+---
+
+**Finding 2 — Layer 4 manual-testing checklist is fully unchecked at the moment a Tier-1 SO review and Tier-3 UX/QE reviews ran against the implementation; merge gate cannot close per CLOSURE-PROTOCOL.md Section 6 item 7 (Dim 5 — Human verification / Dim 9 — Manual testing checklists)**
+
+`TODO.md:203-212` shows all 9 Layer 4 manual checklist items as `- [ ]` (unchecked). SO Review 16 Finding 3 explicitly flagged this and routed coordination to VDD-IAR. The Layer 3 precedent (commit `6f7fd46` — explicit "Layer 3 manual testing complete" sign-off commit before IAR pass) was not followed for Layer 4: the IAR pass ran against an implementation the human director had not run interactively against the documented manual checklist.
+
+CLOSURE-PROTOCOL.md Section 6 item 7 names PROCESS.md retrospective placeholders as a portfolio-assessment-only block, not a technical-merge block — but the manual testing checklist is a **technical** verification artifact (DESIGN.md Testing Methodology line 367: "Each layer must be manually tested before the layer gate closes"). The dim-9 standard for VDD-IAR Alignment is unambiguous: "Absence of a manual checklist is a finding regardless of automated test coverage." Layer 4 has the checklist; it has not been executed.
+
+Sycophancy guard: could the absence be excused because the layer is mid-flight? SO Review 16 Finding 3 already framed it that way ("consistent with Layer 4 being mid-flight") and routed to VDD-IAR. The VDD-IAR-Alignment standard, per dim 9 of the domain prompt, does not soften based on "in-progress" framing — at merge gate, the checklist must be checked, full stop. This is the same pattern Layer 2 had at merge (Review 8 carry-forward) which Review 9 dismissed by elapsed time and Review 10 retroactively flagged as a process self-correction failure. Repeating it here would close the same loop a third time.
+
+**Classification: Open — Raised to director.** Per `CLOSURE-PROTOCOL.md` Section 6 item 7 (manual testing implicit in "Cargo build, test, clippy, and fmt are green" plus DESIGN.md Testing Methodology), Layer 4 cannot merge until the 9 checklist items are executed and ticked. Recommended remediation: director runs the binary against the 9 checklist items and ticks each in `TODO.md`, with a dedicated commit "Layer 4 manual testing complete" mirroring `6f7fd46`.
+
+---
+
+**Finding 3 — MVR not reached for Layer 4: this is round 1 of Tier-3 IAR, and three real Open findings (Security R7 F1 / RT R6 F1, F2, F3) plus two architectural Open findings (SA R9 F1, SE R11 F2) plus four spec-clarification Open findings (SO R16 F1/F2/F4, UX R6 F1/F4, TW R7 F4/F7, DE R7 F2) require a second pass after fixes (Dim 7 — IAR iteration and feedback routing)**
+
+The merge-gate criterion in `CLOSURE-PROTOCOL.md` Section 6 item 3 is "No finding remains in **Open** state. Every finding is in one of the terminal states." Counting Open findings across the parallel-batch entries:
+
+| Domain | Open count | Notable Open findings |
+|---|---|---|
+| SO Review 16 | 4 | F1 (label trim-on-store), F2 (empty filter), F3 (manual checklist), F4 (Dim 9 — delete-with-confirmation reclassified as "advisory" without textual basis) |
+| SA Review 9 | 1 (F2 was Resolved by SE-11 inline) | F1 (cmd_list extraction) |
+| Security Review 7 | 1 | F1 (label control-character injection) |
+| SE Review 11 | 2 | F2 (cmd_list extraction — concur with SA F1), F3 (label control-char defense — concur with Security 7 F1) |
+| QE Review 11 | 2 | F4 (label control-char tests pending SE/SO), F5 (compound-filter test deferred to Layer 5) |
+| UX Review 6 | 4 | F1 (trim-asymmetry round-trip bug), F2 (clap-voice multi-label error), F3 (no `--help` examples), F4 (comma-in-label rendering ambiguous) |
+| PE Review 9 | 0 | regression-only, clean |
+| DE Review 7 | 2 | F1 (label control-chars — concur with Security/RT/SE), F2 (filter trim symmetry — concur with UX F1) |
+| TW Review 7 | 4 | F2 (CHANGELOG missing Layer 4 entry — Raised to SO), F4 (Cargo.toml `repository` field), F5 (PROCESS.md retrospective placeholders), F6 (`--help` valid-value asymmetry), F7 (DESIGN.md label-trimming silent-implementation gap) — TW notes F5 has hit the auto-Backlog clock (3 consecutive reviews Open) per CLOSURE-PROTOCOL.md Section 3 |
+| Red Team Review 6 | 3 | F1 (confirmed Security 7 F1 + load path + OSC 8), F2 (error-message reflection of raw bytes), F3 (Trojan-Source bidi/zero-width bypass) |
+
+That's **23 Open findings across 9 domains** at the close of round 1. Cross-domain duplicates collapse some: F1 of Security/RT and F3 of SE and F1 of DE are the same root cause (label control-char defense) — a single resolution closes all four per Section 4. Similarly UX F1, DE F2, SO F1 all touch the trim-asymmetry/spec-ambiguity cluster. After collapsing, ~10-12 distinct work items remain.
+
+Per `prompts/review-session.md` and `CLOSURE-PROTOCOL.md` Section 5, MVR requires that the cold-batch + warm-resolution + SO-adjudication + VDD-IAR-closure cadence ran at least once **and** that all findings are in terminal states. The cold-batch ran (this round). The warm-resolution has NOT run. The SO-adjudication round has NOT run for SO R16 F1/F2/F4 (F4 in particular needs adjudication — the Dim 9 finding alleging DESIGN.md unilaterally narrowed an assignment requirement is a Medium-severity assignment-compliance issue that cannot remain Open at merge). VDD-IAR-closure (this round) is the meta domain noting that the prior steps haven't fully run.
+
+**Sycophancy guard:** could "many Open findings" be benign if the findings are largely cross-domain duplicates of one well-understood issue? Yes for the label control-char cluster (one fix closes 4 findings). No for the cluster as a whole: at minimum SO R16 F4 (assignment compliance), TW R7 F2 (CHANGELOG missing), and Finding 2 above (manual testing) are independent and individually merge-gating. The adversarial honest answer is that the cold-batch produced **substantial real findings** (per `README.md` MVR rule, "a single IAR pass that produced real findings followed immediately by merge is a process failure") and a second pass with fresh context is required after fixes.
+
+**Classification: Open — Raised to director.** Recommended cadence per CLOSURE-PROTOCOL.md Section 5: (1) warm sequential resolution pass for the label control-char cluster + the other Open findings the director chooses to action; (2) SO-adjudication round for SO R16 F1/F2/F4 + UX R6 F1 + DE R7 F2 + TW R7 F7 (DESIGN.md spec-clarity edits); (3) round-2 cold-batch pass over affected domains (Security, SA, SE, QE, UX, DE, TW, RT) to verify resolutions hold under fresh adversarial pressure; (4) final VDD-IAR closure round. This finding gates Layer 4 merge.
+
+---
+
+**Finding 4 — Cross-domain finding handling: SE Review 11 inline fix discharging SA9 F2 is in-authority and correctly recorded; SE Review 11 declined to apply SA9 F1 inline because the refactor is non-trivial. Both classifications are correct per CLOSURE-PROTOCOL.md (Dim 7 — Feedback routing fidelity)**
+
+This is a positive process observation, not a defect. CLOSURE-PROTOCOL.md predicts (a) "Raised to" classification for cross-authority changes, (b) the receiving domain adjudicates in its next review, (c) the finding remains tracked in BOTH logs until adjudicated. Verifying:
+
+- **SA Review 9 F2 → SE Review 11 F1 (Resolved inline).** Authority: SA proposed a `src/**/*.rs` change; per the protocol, only SE may modify src/. SA correctly classified the finding as "Open — raised to SE." SE Review 11 adjudicated and resolved inline at `src/lib.rs:413-422`. The cross-reference is recorded in both logs ("Discharges SA Review 9 Finding 2"). Authority chain clean.
+- **SA Review 9 F1 → SE Review 11 F2 (Open, deferred to focused PR).** SE concurred with the SA finding but declined the inline fix on size grounds. Recorded in both logs as Open. Cross-reference established. This is in-policy: SE can leave a finding Open if applying it inline would conflate concerns; the protocol does not require all incoming "Raised to" findings to resolve in the next round. Authority chain clean.
+- **Security Review 7 F1 → SE Review 11 F3 (Open, gated on SO authority).** SE correctly notes the fix requires DESIGN.md amendment first (SO authority) before the validator extension can be applied without spec-divergence. SE recorded the finding as Open and Raised to SO+SE+QE. RT Review 6 F1 then independently confirmed the same vulnerability with extended reproducers. The three logs cross-reference each other correctly. Authority chain clean.
+- **SE Review 11 inline fix touched only `src/lib.rs:413-422`.** Did not touch DESIGN.md, did not touch tests directly (the existing tests covered the no-observable-change refactor), did not touch other domain logs except its own. Authority bounds respected.
+
+**Classification: Dismissed.** This is the protocol working as designed. Recording the positive observation here is the regression-check evidence that the Review-10-installed protocol survived contact with Layer 4 at the cross-domain handoff layer.
+
+---
+
+**Finding 5 — No Deferred classifications were used for Security R7, RT R6, or this VDD-IAR round; QE R11 F5 used "Open / Deferred to Layer 5" but the substantive classification is Open (Dim 7 — IAR iteration / Process integrity)**
+
+Per `CLOSURE-PROTOCOL.md` Section 2 and the IAR README, **Deferred is not a valid terminal state for Security, Red Team, or VDD-IAR Alignment**. Verifying:
+
+- Security Review 7: 1 Open, 1 Accepted Risk, 8 Dismissed, 2 Hallucinated. **No Deferred.** Compliant.
+- Red Team Review 6: 3 Open, 4 Dismissed, 2 Hallucinated, 1 Accepted Risk. **No Deferred.** Compliant.
+- This VDD-IAR Review 11: Open / Dismissed / Hallucinated / Resolved categories used. **No Deferred.** Compliant.
+- QE Review 11 Finding 5 uses the dual classification "Open / Deferred to Layer 5" — the substance is Open (the test gap is real now) with a deferral to Layer 5 with a named marker (the Layer 5 Red Gate must enumerate the test). QE is permitted Deferred per the IAR README. The dual framing is unusual but the substantive classification (Open with a Layer 5 trigger) is in-policy. Authority chain clean.
+
+**Classification: Dismissed.** The "no Deferred for Security/RT/VDD-IAR" rule held. This is the regression-check that the protocol's per-domain classification rules are honored.
+
+---
+
+### Dismissed
+
+**Finding 6 — Design-before-code (Dim 1)**
+
+DESIGN.md was complete for Layer 4 features before any Layer 4 implementation began (DESIGN.md Feature 1 lists `--label`, Feature 2 lists `--label` filter, Edge Cases enumerate dedup/case-sensitivity/empty-rejection/multi-flag rejection). Layer 4 implementation matches these specs. The DESIGN.md edits proposed by SO R16 F1/F2/F4, UX R6 F1, DE R7 F2, TW R7 F7 are spec-clarification candidates surfaced *by* Layer 4 — they are findings against the spec's completeness, not against design-before-code temporal ordering. Spec-before-code temporal ordering is intact.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 7 — Layered decomposition (Dim 2)**
+
+`TODO.md` Layer 4 section had 11 acceptance criteria (line 188-200), 9 manual testing checklist items, and a Red Gate test plan listing 12 integration + 3 unit tests — all in place before Layer 4 implementation. All 11 acceptance criteria are checked at HEAD `f14c296`. Layer scope correctly excludes Layer 5–7 work; `main.rs` does not expose `--description`, `show`, `delete`. SE R11 F2 (cmd_list extraction) is a Layer 7 prep concern, not a Layer 4 decomposition violation.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 8 — Test discipline / Red Gate (Dim 4)**
+
+Red Gate commit `14bd219` precedes implementation commit `ec5c966` by 7 minutes. Red Gate commit message documents 10 integration failures (clap unknown-arg) + 3 unit failures (`todo!()` panics) + 2 explicit Cat B deviations (`create_without_labels_stores_empty_array`, `list_shows_none_for_no_labels` — testing pre-existing Layer 1 defaults). QE Review 11's Red Gate verdict ("Compliant at the commit-pattern level") corroborates. `prompts/implementation.md` "Red Gate commit before Phase 2b" rule honored. The Cat B disposition is the right pattern (matches Layer 3's precedent for `create_without_priority_defaults_to_medium`).
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 9 — Authority chain compliance for Layer 4 round-1 artifacts (Dim 8 — Role integrity)**
+
+Walked the diff for authority violations:
+- **DESIGN.md:** No edits in this round. (SO R16 F1/F2/F4, UX F1, DE F2, TW F7, Security F1 propose edits but none applied — all classified "Raised to SO" per protocol.) Authority clean.
+- **src/lib.rs:** SE-domain edit at lines 413-422 (SE Review 11 inline fix). SE is the authorized domain. Authority clean.
+- **tests/layer4.rs:** QE-domain edits (QE Review 11 — 1 new test + 2 strengthened assertions). QE is the authorized domain. Authority clean.
+- **README.md:** TW-domain edits (TW Review 7 F1/F3 inline resolutions). TW is the authorized domain per CLOSURE-PROTOCOL.md row "README.md → Technical Writer; any domain (for accuracy fixes)". Authority clean.
+- **CHANGELOG.md:** No edits in this round. TW R7 F2 raises the gap to SO (correct authority routing — CHANGELOG entries for layer-shipping work are SO authority per the protocol row). Authority clean.
+- **`iterative-adversarial-refinement/<DOMAIN>-REVIEW.md`:** Each of 10 domain logs received an entry from its own domain only. Authority clean.
+- **CLOSURE-PROTOCOL.md:** No edits this round. Authority clean.
+
+The Layer 4 round-1 cross-domain authority chain is the cleanest of any layer to date. CLOSURE-PROTOCOL.md Section 1's authority table held under the parallel-batch operating mode. This is Review 10 F1's predicted outcome (the protocol would catch the SE-9-class violation by raising visibility) verified.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 10 — IAR fresh context and session isolation (Dim 6)**
+
+Each of the 10 domain logs in this round contains a "Session note" attesting to cold-session execution per `prompts/review-session.md`. The directing agent that coordinated this batch is not one of the reviewing agents (this VDD-IAR Review 11 is also a fresh subagent invocation). Parallel independent sessions per the primer's gold standard. The cadence in `CLOSURE-PROTOCOL.md` Section 5 ("Cold-session parallel review batch") matches what ran. Layer 3's cold-session deficit (Review 9 F7) does not recur at Layer 4: every domain ran cold this round.
+
+**Classification:** Dismissed.
+
+---
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Summary
+
+Layer 4 round 1 process compliance is **partial**. The IAR cadence per `CLOSURE-PROTOCOL.md` Section 5 ran cleanly through step 1 (cold-session parallel review batch). The Review-10 protocol prediction that the authority chain would be honored under parallel batching is verified — Finding 9 records the regression-check evidence. Cross-domain handoff (SE adjudicating SA findings, SE noting Security findings as gated on SO) followed the protocol exactly (Finding 4). Red Gate discipline at the commit level is intact (Finding 8). Each domain ran cold-session per the primer (Finding 10).
+
+Three Open findings gate the Layer 4 merge:
+
+1. **Finding 1** — Round-2 IAR work uncommitted at start-of-round (13 modified files including the SE-11 inline fix, QE-11 test additions, TW-7 README edits, all 10 domain reviews). Repeats Review 10 F3/F4 pattern; the protocol-installed precedent (commit `87e41c6`) is the resolution model.
+2. **Finding 2** — Layer 4 manual testing checklist fully unchecked. SO R16 F3 routed this here; per dim 9 standard, manual checklist absence at merge is a finding regardless of automated coverage. Director must execute the 9 checklist items and tick them.
+3. **Finding 3** — MVR not reached for Layer 4: 23 Open findings across 9 domains after cold-batch round 1; cross-domain collapse leaves ~10-12 distinct work items. Warm-resolution + SO-adjudication + round-2 cold-batch + final VDD-IAR closure all required per CLOSURE-PROTOCOL.md Section 5 + Section 6.
+
+Two findings dismissed-but-recorded as positive process observations: Finding 4 (cross-domain handoff worked exactly as the protocol predicted) and Finding 5 (no Deferred classifications used for Security/RT/VDD-IAR; QE's dual framing is in-policy).
+
+**Sycophancy guard self-applied:** Could the merge gate close on the rationale that 8 of 11 findings (4 + 5 + 6 + 7 + 8 + 9 + 10) are Dismissed, and the 3 Open findings are "process bookkeeping" rather than substantive defects? No. Findings 1-3 are not bookkeeping — Finding 1 reproduces a Review 10 pattern the protocol exists to prevent, Finding 2 is an explicit dim-9 violation at gate, and Finding 3 is the same MVR-not-reached pattern the README's "single pass that produced real findings followed by merge" rule names as a process failure. Dismissing them would be the failure mode the primer warns about.
+
+**Layer 4 merge-gate verdict: NO-GO-PENDING-ROUND-2.**
+
+Specifically required before the gate can close:
+
+- [ ] Director executes the 9 Layer 4 manual testing checklist items in TODO.md and ticks each (Finding 2). Recommend a dedicated commit "Layer 4 manual testing complete" mirroring `6f7fd46`.
+- [ ] Warm-resolution pass per `CLOSURE-PROTOCOL.md` Section 5 step 2: a single orchestrator session reads the 23 Open findings, identifies cross-domain duplicates (label control-char cluster: Security R7 F1 + SE R11 F3 + DE R7 F1 + RT R6 F1 + QE R11 F4; trim-asymmetry cluster: SO R16 F1/F2 + UX R6 F1 + DE R7 F2 + TW R7 F7), applies fixes coherently, runs the test suite, and writes Update entries to each affected log.
+- [ ] SO-adjudication round per Section 5 step 3: SO Review 17 (or equivalent) processes SO R16 F1, F2, F4 (Dim 9 medium-severity) + the cross-domain spec-clarification cluster + TW R7 F2 (CHANGELOG Layer 4 entry) + TW R7 F4 (Cargo.toml `repository` field). F4's three options (implement confirmation / formalize the deviation / cite the "advisory" claim) require an explicit director call.
+- [ ] Round-2 cold-batch pass over affected domains (Security, SA, SE, QE, UX, DE, TW, RT) to verify resolutions hold under fresh adversarial pressure (Finding 3).
+- [ ] Round-2 commit cadence: round-2 artifacts committed in coherent units before the merge commit (Finding 1).
+- [ ] Final VDD-IAR closure round (Review 12) verifies all gate items in `CLOSURE-PROTOCOL.md` Section 6 and the items above are checked.
+- [ ] Open Security and Red Team findings (Security R7 F1; RT R6 F1, F2, F3) MUST close before merge — security findings cannot be Deferred per CLOSURE-PROTOCOL.md Section 2.
+
+**Coordination:**
+- Findings 1, 2, 3 all gate Layer 4 merge.
+- Finding 1 (uncommitted round-2 work) is the cheapest to close: structure and commit per the Review-10 precedent.
+- Finding 2 (manual testing) is director-only: the human runs the binary against the 9 checklist items.
+- Finding 3 (MVR) requires the full Section 5 cadence to complete, with the label control-char cluster as the highest-priority sub-thread (Security + Red Team agreement on a Medium-High vulnerability that the existing title defense pattern covers nearly verbatim).
+- Open SO R16 F4 (Dim 9 — delete-with-confirmation) is independently gating: a Medium-severity assignment-compliance finding alleging DESIGN.md narrowed an assignment requirement without textual basis cannot stand at merge without an Approved-deviation record per CLOSURE-PROTOCOL.md.
+- TW R7 F5 (PROCESS.md retrospectives) has reached the auto-Backlog clock per CLOSURE-PROTOCOL.md Section 3 — the director must adjudicate (fill the placeholders, or remove the structure) before Layer 4 merges. This was prefigured by Review 9 F9 and remains unaddressed for Layer 4.
+
+**Files modified:** Only this VDD-IAR review log appended. No code, tests, DESIGN.md, or other domain logs touched per VDD-IAR-Alignment authority bounds (CLOSURE-PROTOCOL.md Section 1 — VDD-IAR owns its own log + may amend CLOSURE-PROTOCOL.md for process changes).
+
+---
 

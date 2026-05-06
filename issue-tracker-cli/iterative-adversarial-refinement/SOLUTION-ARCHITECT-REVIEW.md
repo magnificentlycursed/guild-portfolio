@@ -611,3 +611,155 @@ Two findings dismissed with explicit re-raise conditions (lib.rs module decompos
 
 **Coordination:** Finding 1 is the architectural prerequisite for Layer 7 color introduction; cross-reference with [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) (CLI supplement § Software Engineering — output formatting separation, user-visible strings centralized, structured result types before formatting). Finding 2 closes the structural-fragility side of the SE Review 8 Finding 2 thread (which addressed naming via the `is_open_view` → `is_default_open_view` rename); the rename did not solve the underlying composition fragility and the two findings are complementary, not duplicative. No new domain referrals.
 
+---
+
+---
+
+## Review 9 — 2026-05-05 00:00Z
+
+**Scope:** Cold-session adversarial SA review of the Layer 4 implementation on branch `issue-tracker-cli-labels`. Layer 4 adds `--label` to `tracker create` (repeatable, deduplicated, case-preserved) and `--label` to `tracker list` (single value, case-sensitive AND-combined filter). Reviewer did not participate in any prior layer build, IAR review, or spec authorship. Code under review: `src/lib.rs` (703 lines), `src/main.rs` (96 lines), `tests/layer4.rs`, `tests/common/mod.rs`, `Cargo.toml`. Primary lens: dim 1 (separation of concerns), dim 2 (cohesion), dim 3 (data model integrity for labels), dim 7 (extensibility — Layer 6/7 prep), dim 9 (complexity budget for a single-maintainer Phase 1 portfolio project), dim 12 (purity boundary regression). Sycophancy guard: every prior Open finding from SA Review 8 was specifically checked for compliance against its own recommended Layer 4 timing, and every dismissed-with-re-raise-condition was checked against its named re-raise threshold.
+
+**Session note:** Cold session per `prompts/review-session.md` primer. Adversarial framing intact. Two prior Open findings from SA Review 8 explicitly recommended landing during Layer 4 (Finding 1 — `cmd_list` extraction; Finding 2 — invert `is_default_open_view` polarity). Both deserve regression-style re-evaluation: was the Layer 4 work done in a way that honored or contradicted those recommendations?
+
+---
+
+### Open
+
+**Finding 1 — SA Review 8 Finding 1 (cmd_list pure/effectful split + column-width constants) recommended for Layer 4 was NOT applied; Layer 4 instead extended the entangled `cmd_list` body with another inline `retain` for `--label`, compounding the very debt the prior finding warned about (Dim 1 — Separation of concerns / Dim 12 — Purity boundary / Regression of prior Open finding)**
+
+`src/lib.rs:400-461`. SA Review 8 Finding 1 raised an Open architectural finding that `cmd_list` mixes pure filter+sort with effectful rendering, that column widths are scattered across three call sites as bare literals, and that the recommended fix was to extract `filter_issues`, `format_header_row`, `format_issue_row`, and module-level width constants (`ID_WIDTH`, `STATUS_WIDTH`, etc.) **during Layer 4** so that Layer 7 (color) does not conflate two changes. The recommendation was specific in both content and timing.
+
+Layer 4 has now landed. The current `cmd_list` body adds the `--label` filter as a third inline `retain` (line 422-424):
+
+```rust
+issues.retain(|i| i.status == effective_status);
+if let Some(p) = &effective_priority {
+    issues.retain(|i| &i.priority == p);
+}
+if let Some(l) = label_filter {
+    issues.retain(|i| label_matches(&i.labels, l));
+}
+```
+
+The structure is unchanged from Layer 3: filter logic remains inline closures, the rendering remains inline `println!` calls (lines 441-457), and the column-width literals remain duplicated across the header format string (line 442: `"{:<4}  {:<11}  {:<8}  {:<20}  Title"`), the row format string (line 455: `"{:<4}  {:<11}  {:<8}  {:<20}  {}"`), the labels truncation (line 452: `truncate_with_ellipsis(&labels_raw, 20)`), and the title truncation (line 453: `truncate_with_ellipsis(&issue.title, 50)`). Four unsynchronized literal occurrences of the column widths now exist, up from three at Layer 3.
+
+Layer 4 added a new pure helper (`label_matches`, lines 367-369) and a new pure helper (`dedupe_labels`, lines 351-360), both with unit tests — which is good. But the `cmd_list` body itself is now carrying **three** filter retain closures plus the rendering plus the load-from-disk effect, in a single function whose pure logic is still not testable in isolation at the unit level. Filter behavior for `--label` is exercised only by `tests/layer4.rs` integration tests via subprocess.
+
+The Layer 7 collision argument from SA Review 8 stands unchanged and now has one additional layer of debt: ANSI-escape-coded priority/status values must still meet `{:<11}` and `{:<8}` padding, and the rewrite Layer 7 will need to do now spans more inline literals than it did at Layer 3.
+
+**Classification:** Open — raised to SE. The recommended structure from SA Review 8 Finding 1 is unchanged. The case for landing it before Layer 7 is strengthened, not weakened, by Layer 4. Proposed text for the SE referral:
+
+> Extract `filter_issues(issues, status, priority, label) -> Vec<Issue>` as a pure function with unit tests; extract `format_header_row()` and `format_issue_row(&Issue)` as pure formatters; introduce module-level `const ID_WIDTH: usize = 4; const STATUS_WIDTH: usize = 11; const PRIORITY_WIDTH: usize = 8; const LABELS_WIDTH: usize = 20; const TITLE_WIDTH: usize = 50;` and use them in both the format strings (via `format!` with `:<{width}`) and `truncate_with_ellipsis` calls. `cmd_list` becomes a thin effectful wrapper: load → filter → empty-state branch → sort → format → println.
+
+**Coordination:** Cross-reference with [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) (CLI supplement § Software Engineering — output formatting separation, user-visible strings centralized, structured result types before formatting). Re-raise the prior coordination thread; this is the same finding with one more layer of evidence behind it.
+
+---
+
+**Finding 2 — SA Review 8 Finding 2 (invert `is_default_open_view` polarity) recommended for Layer 4 was applied PARTIALLY: the new conjunct was added correctly, but the polarity was NOT inverted, leaving the regression hazard intact for Layer 5+ (Dim 7 — Extensibility / Regression of prior Open finding)**
+
+`src/lib.rs:414-415`:
+
+```rust
+let is_default_open_view =
+    effective_status == "open" && effective_priority.is_none() && label_filter.is_none();
+```
+
+SA Review 8 Finding 2 explicitly raised the *structural* fragility of the positive-enumeration form — that every new filter dimension forces the developer to remember to extend the conjunction, and that the SO Review 11 regression came from exactly this pattern. The recommended fix was:
+
+```rust
+let any_extra_filter_active = status_filter.is_some() || priority_filter.is_some() || label_filter.is_some();
+let is_default_open_view = !any_extra_filter_active;
+```
+
+Layer 4 added `&& label_filter.is_none()` to the existing conjunction (the Layer 4 author *did* remember to update it — credit where due), but did not invert the polarity as recommended. The regression hazard the prior finding warned about is therefore unchanged: a future filter (say, a hypothetical `--created-since` in a Layer 8 polish round, or a `--description-contains`) will once again require the developer to remember to extend the conjunction, with no compile-time check that they did. Each new filter is another opportunity for a third instance of the SO Review 11 pattern.
+
+The SA Review 8 finding was specific that the rename (`is_open_view` → `is_default_open_view`) was not a substitute for the structural fix. Layer 4 honored the rename and even extended it correctly for `--label`, but the *structural* fragility remains. The defense in depth that comes from inverting the polarity (a developer adding a new filter only has to add it to the disjunction; the empty-state branch then "self-corrects") was the entire point of the prior finding.
+
+A subtlety: the existing conjunction reads `effective_status == "open"` rather than `status_filter.is_none()`. The two are not equivalent — the former is true both for the no-flag default and for an explicit `--status open`, while the latter is true only for the no-flag default. The current code chooses the former intentionally (an explicit `--status open` with no other filters takes the default-view empty-state message, matching `tests/layer2.rs::list_explicit_open_filter_matches_default`). The proposed inversion must preserve this semantics — so the disjunction should be `status_filter.is_some() || priority_filter.is_some() || label_filter.is_some()` operating on raw flags, *plus* a check that if `status_filter.is_some()` we treat it as not-default unless the resolved status is also `open` and the other filters are absent. Re-reading the SA Review 8 proposed form, it operated on raw flag presence — which has a behavioral difference from the current code at `tracker list --status open`. The QE Review 9 test `list_explicit_open_filter_matches_default` would catch this regression.
+
+The minimum-correct fix that preserves current semantics:
+
+```rust
+let any_filter_flag_set = priority_filter.is_some() || label_filter.is_some()
+    || status_filter.is_some_and(|s| s != "open");
+let is_default_open_view = !any_filter_flag_set;
+```
+
+Or, since `effective_status == "open"` already captures the "status is at default OR equivalent to default" check, retain that and only invert the *new-filter* portion:
+
+```rust
+let no_extra_filter = effective_priority.is_none() && label_filter.is_none();
+let is_default_open_view = effective_status == "open" && no_extra_filter;
+```
+
+The second form is essentially what's in the code today, just named differently — so the actual structural improvement is to extract the disjunction into a named variable that future filters extend, even if the polarity is preserved. Either of these is acceptable; the current code is not.
+
+**Classification:** Open — raised to SE. Proposed text for the SE referral:
+
+> Refactor the `is_default_open_view` derivation in `cmd_list` to extract the "any non-default filter active" disjunction into a named helper or local variable, so adding a future filter requires touching one location (the disjunction) rather than adding a conjunct to `is_default_open_view`. Preserve current semantics: `tracker list --status open` continues to use the default-view empty-state message. Existing test `list_explicit_open_filter_matches_default` is the regression check.
+
+**Coordination:** Re-raise of SA Review 8 Finding 2. Cross-reference with QE for the regression-check test that already exists (`list_explicit_open_filter_matches_default`).
+
+---
+
+### Dismissed
+
+**Finding 3 — `lib.rs` is now 703 lines, exceeding the 500-line re-raise threshold from SA Review 8 Finding 3 (Dim 2 — Cohesion / Re-raise condition triggered)**
+
+SA Review 8 Finding 3 dismissed module decomposition as deferred to Layer 6, with an explicit re-raise condition: "If Layer 4 pushes `lib.rs` past ~500 lines, or if Layer 4's label-handling code sits awkwardly alongside the existing flat structure (e.g., a new `validate_label` and a new `dedupe_labels` would both fit cleanly into a `validate.rs` module that does not yet exist), revisit then rather than at Layer 6."
+
+`lib.rs` is 703 lines. The re-raise threshold has been exceeded. The Layer 4 additions (`parse_label`, `dedupe_labels`, `label_matches`, plus extended tests) do fit cleanly into a hypothetical `validate.rs` / `labels.rs`. By the prior finding's own re-raise rule, this should be re-evaluated.
+
+**Classification:** Dismissed (with re-raise acknowledgment). Re-evaluating: 703 lines includes ~240 lines of `#[cfg(test)]` unit tests that compile out of the binary. The non-test code is ~460 lines, still under the 500 threshold the prior re-raise rule was concerned about (the prior finding measured "the file" without distinguishing test from non-test, but the cohesion concern is properly about non-test code — tests are inherently a separate concern that's already isolated by the cfg gate). With Layer 6 adding `cmd_show` and `cmd_delete` plus description rendering, the non-test code will likely cross 500 lines at that point. Holding to Layer 6 timing is consistent with the *intent* of the SA Review 8 re-raise rule, even though the literal line count has crossed it.
+
+**Re-raise condition (revised):** If Layer 5 or Layer 6 adds non-test code (i.e., excluding the `#[cfg(test)]` block at `lib.rs:463-703`) past 500 lines, the decomposition into `lib/storage.rs`, `lib/validate.rs`, `lib/commands.rs` is due. The prior dismissal's intent stands; the trigger is on production code, not test code. SE / SO note this in their reviews.
+
+---
+
+**Finding 4 — `cmd_create` has grown to 4 parameters; SA Review 7 Finding 4's "5 parameter" re-raise threshold is approaching for Layer 6 (Dim 2 — Coupling / Re-raise watch)**
+
+SA Review 7 Finding 4 dismissed signature growth as "Phase 1 simplicity preferred over premature parameter-object abstraction" with re-raise at >5 parameters. Current `cmd_create` (lib.rs:202-207) takes `(title_raw, priority_raw, labels_raw, issues_path)` = 4 parameters. Layer 6 adds `--description` → 5. Layer 7 adds nothing to create. The threshold is reached at Layer 6 exactly.
+
+**Classification:** Dismissed (Layer 4 is below threshold). No structural change required at Layer 4. The dismissal from SA Review 7 holds.
+
+**Re-raise condition:** Layer 6's `--description` addition pushes `cmd_create` to 5 parameters. At that point, introduce `CreateArgs { title, priority, labels, description }` and pass `(args, path)`. SE should preempt this when scoping Layer 6 to avoid a separate refactor pass.
+
+---
+
+### Hallucinated
+
+**Finding 5 — `dedupe_labels` allocates a new `Vec` and `HashSet` on every `cmd_create`; for a CLI that processes a typical `--label`-list of length ≤5, this is over-engineering relative to a simple `Vec` with a linear `contains` check (Dim 9 — Complexity budget for single-maintainer Phase 1)**
+
+Initial concern: `src/lib.rs:351-360` uses a `HashSet<&str>` to dedupe a slice of labels. For typical CLI input (1-5 labels), a `Vec::contains` would be simpler, has the same asymptotic order at this scale, and avoids the hash allocation. The `HashSet` is a team-scale-engineering default — a human engineer working alone on a Phase 1 portfolio project would likely write the `Vec::contains` form.
+
+**Classification:** Hallucinated. Demonstration that the control holds:
+
+1. **The `HashSet` form is also what a careful human engineer would write** — `Vec::contains` on `&String` requires either `.iter().any(|x| x == label)` (clear but verbose) or `Vec::contains(&label.clone())` (allocates per-comparison). The `HashSet` form is actually shorter and clearer at the call site than the equivalent linear-scan form once you account for the `&String` vs `&str` borrow gymnastics. Allocation count: one `HashSet` and one `Vec::with_capacity` per call, both pre-sized — this is a single allocation pair, not "over-engineering."
+
+2. **The pattern is consistent with `issues_collection_invariants_hold`** (lib.rs:146-149), which uses `HashSet::with_capacity` for ID uniqueness checking — the same shape, established earlier in the codebase, reviewed and accepted by prior IAR rounds. Using a different shape for label dedup would be inconsistent; using the same shape is consistent.
+
+3. **The "team-scale default" sycophancy guard does not apply here.** The complaint pattern says: AI agents reach for `HashSet`/`HashMap` where a `Vec` would do. But the use here is correct — dedup with O(n) expected time and clear intent. The alternative (`Vec::contains` with linear scan) is O(n²) and only better when n is small *and* the comparison is cheap. For string labels, hash comparison is faster per-iteration than full string equality once n exceeds ~3. The `HashSet` is the right primitive.
+
+The control holds: this is not over-engineering. Marking the finding hallucinated requires demonstrating the alternative would be worse, and the demonstration is above. The `HashSet` form is the minimum-correct implementation, not a team-scale default.
+
+---
+
+### Summary
+
+Two real findings, both regression checks on prior Open findings that were explicitly scoped to Layer 4:
+
+1. **Finding 1 (re-raise of SA Review 8 Finding 1)** — `cmd_list` extraction recommended for Layer 4 was not applied; Layer 4 instead added a third inline `retain` and a fourth column-width literal occurrence, compounding the debt the prior finding warned about. Layer 7 (color) prep is now further behind, not at-pace.
+2. **Finding 2 (partial re-raise of SA Review 8 Finding 2)** — the new `&& label_filter.is_none()` conjunct was added correctly (no functional regression), but the polarity inversion was not done. The regression hazard for Layer 5+ filter additions is unchanged.
+
+Two findings dismissed with explicit re-raise conditions (lib.rs decomposition: re-raise rule revised to "non-test code past 500 lines" — currently ~460, due at Layer 5/6; cmd_create signature growth: 4 parameters now, threshold at 5, due at Layer 6's `--description`). One finding hallucinated and demonstrated as such (`HashSet` for label dedup is correct, not over-engineered).
+
+**Regression check on prior architectural decisions:** Library/binary split intact (`Cargo.toml:11-18`). Single-source-of-truth pattern intact for status (`VALID_STATUSES`, lib.rs:102) and priority (`PRIORITY_ORDER`, lib.rs:106). Post-deserialization validation extended correctly to labels (`issue_fields_are_valid` checks `labels.iter().all(|l| !l.trim().is_empty())` at lib.rs:131 — invariant for stored data is enforced). Description-field absent-not-null serialization preserved (lib.rs:39). `description` field is reserved at `None` in `cmd_create` (lib.rs:225) — Layer 6 will populate it. Exit code 0/1 contract preserved (main.rs:65, 68, 94). Empty-state stderr routing preserved (lib.rs:432, 434). The `clippy::unwrap_used` deny set is preserved with the single sanctioned `#[allow]` documented inline (lib.rs:184-185). The label data model is sound: `Vec<String>` with case-preserved, dedup-at-creation, case-sensitive match semantics align with DESIGN.md Feature 1, Feature 2, and Edge Cases / Labels. The asymmetry in `--label` semantics (repeatable on `create`, single-value on `list`) is correctly enforced by clap's argument types: `Vec<String>` on create accepts repetition, `Option<String>` on list rejects it via clap's default behavior, with the resulting error transformed to the spec's `Error:` prefix in `main.rs:62-65`.
+
+**Coordination:**
+- **Raised to SE (Finding 1):** Apply the `cmd_list` pure/effectful split with module-level column-width constants. Recommended ahead of Layer 7. Same proposal text as SA Review 8 Finding 1 with one additional layer of evidence (now four width-literal occurrences, three filter retains). Cross-reference with [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) CLI supplement.
+- **Raised to SE (Finding 2):** Refactor the `is_default_open_view` derivation to extract the new-filter disjunction into a named local variable that future filters extend at one site, preserving current semantics. Existing test `list_explicit_open_filter_matches_default` (`tests/layer2.rs`) is the regression check.
+- **For QE (informational, not a mandate):** Layer 4 Red Gate adequately covers `--label` filtering (`tests/layer4.rs:180-235`). No specific test gap to flag from SA's lens; QE will have its own dimensions for label filter coverage.
+- **For SO (informational):** No DESIGN.md changes proposed. The label data model and asymmetric `--label` semantics on create vs. list are coherent with the spec as written.
+
+**Architectural concerns next-tier reviewers should know about:** SE will receive both Open findings; the `cmd_list` extraction is the higher-value fix (it's the architectural prerequisite for Layer 7 color and reduces inline literal sprawl now). QE may want to verify the `list --label X --label Y` rejection error text matches the spec's "usage error" intent — clap's default rejection produces clap's standard message format ("the argument '--label <label>' cannot be used multiple times"), which is then transformed by `main.rs` to begin with `Error:`. DESIGN.md does not specify the exact wording for the multiple-label-on-list rejection, so this is acceptable, but a QE round may flag the message quality. Software Engineer should also note that `truncate_with_ellipsis` is now used for both label and title columns — the function is fine as-is, but the magic number `20` for labels duplicates the format-string `:<20}` width and should land alongside the Finding 1 column-width constant extraction.
+

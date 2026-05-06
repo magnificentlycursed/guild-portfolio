@@ -460,3 +460,157 @@ The CHANGELOG test-count drift (Findings 2 + 3) is symptomatic of the project's 
 - **F8 (PROCESS.md retrospective placeholders) → still Open.** Per IAR rules (Portfolio Assessment Review 4 explicitly forbids agent fill-in here), the developer-voice retrospectives must be written by the developer; an agent producing them defeats the assessment dimension. Carries over.
 
 **Side-benefit not separately raised:** the next CHANGELOG entry includes a "Verification" subsection with the literal `cargo test --all-targets --locked` test count (74) and the suite breakdown (19 + 28 + 18 + 9). If this convention sticks across future layers, it operationalizes the pre-commit-hook idea floated in the Review 6 summary — a future hook can grep this section's count against `cargo test` output and fail on drift.
+
+---
+
+---
+
+## Review 7 — 2026-05-05 19:30Z
+
+**Scope:** Layer 4 (labels) full-suite IAR cold-session pass on `issue-tracker-cli-labels` branch. Primary focus: README, CHANGELOG, and `--help` text accuracy with respect to Layer 4 (label support) implementation. Secondary: portfolio-handoff readiness for an external reviewer arriving cold.
+
+**Session note:** Cold session per primer; reviewer did not participate in Layer 4 build. Inputs: README, DESIGN.md, CHANGELOG.md, PROCESS.md, DECISIONS.md, TODO.md, IAR README, `src/lib.rs` rustdoc, `src/main.rs` clap derive macros, prior TW Reviews 1–6. Built `cargo build --release` and exercised `tracker --help`, `tracker create --help`, `tracker list --help`, `tracker status --help` to verify clap-rendered output against documentation claims.
+
+---
+
+**Regression check:** Reviews 1–6 closed all prior TW findings except F8 (PROCESS.md retrospective placeholders) which remains developer-only and is re-noted below as still-Open. Review 6 Finding 6 sub-item (`Cargo.toml` `license`) was closed by the 2026-05-05 18:30Z CI hotfix entry; the `repository` sub-item remains Open per CHANGELOG.
+
+The dominant theme of Review 6 was that prior reviews missed real documentation drift because they verified with the wrong tools (`cargo doc --no-deps` not enforcing `missing_docs`; nobody re-running `cargo test` and reading the count back into CHANGELOG). The same theme recurs at Layer 4: README and CHANGELOG were both stale at the moment a cold reviewer opened them. Review 6 even predicted this — "documentation-currency pattern (CHANGELOG/README stale at every layer close)" — and it happened again.
+
+---
+
+### Resolved
+
+**Finding 1 — README "Commands" block and Status block both stale: Layer 4 ships labels but the README still announces it as not started (Dim 1, Dim 2 — README accuracy, regression of Review 6 Finding 1)**
+
+`README.md` line 11 said "Available now (Layer 3)" and the command synopses listed `--priority` only — no `--label`. Lines 22–23 listed `--label` in the "Planned (not yet implemented)" block citing Layer 4. Lines 69 and 78 said "Layer 3 implementation complete. Layer 4 not started." and the Layer 4 checkbox was unchecked.
+
+This is factually wrong. The `issue-tracker-cli-labels` branch contains commits `14bd219` (Layer 4 Red Gate, 2026-05-05), `ec5c966` (Layer 4 implementation — `--label` on create + list), `f036d8d` (IAR Review 35: manual-testing-checklist standard), and `5b95911` (top-level `--help` updated for `--priority` / `--label`). `cargo test` returns 99/99 passing, including the 12 layer4 integration tests and 3 new unit tests for label dedup, empty-label rejection, and case-sensitive label matching. `tracker create --label bug` and `tracker list --label bug` both work today. A user reading the README and copy-pasting the "Planned" block as a check would be misled into thinking they cannot use a feature they can use.
+
+This is the same regression class as Review 6 Finding 1 (Layer 3 README claimed `tracker show` / `tracker delete` / `--label` / `--description` were available when only Layer 1–3 were implemented), with the polarity reversed: now the README *under*-claims the implemented surface.
+
+**Resolution:** Updated `README.md` "Commands" block: heading reads "Available now (Layer 4)"; create synopsis shows `[--priority ...] [--label <l>]...`; list synopsis shows `[--status ...] [--priority ...] [--label <l>]`; "Planned" block reduced to `--description`, `show`, `delete` (all Layer 6); added a sentence explaining `--label` repeatable-on-create vs. single-on-list and case-sensitivity per DESIGN.md. Updated Status block: status line now reads "Layer 4 implementation complete. Layer 5 not started." and the Layer 4 checkbox is checked.
+
+---
+
+**Finding 2 — CHANGELOG.md has no Layer 4 entry; the most recent layer entry is the Layer 3 follow-up of 2026-05-05 13:00Z, the next entry is the 2026-05-05 18:30Z CI hotfix, and Layer 4 is invisible between them (Dim 8 — CHANGELOG quality)**
+
+Three Layer 4 commits sit in the git log between the Layer 3 closure entry and the CI hotfix entry — `14bd219` (Layer 4 Red Gate), `ec5c966` (Layer 4 implementation), and `0ad83de` (top-level `--help` discoverability) — plus the IAR Review 35 commits `f036d8d` and `5b95911`. None of this appears in `CHANGELOG.md`. A reader scanning CHANGELOG to see what Layer 4 delivered, what tests it added, what IAR findings drove it, and what was deferred sees nothing. The CHANGELOG asserts "Layer 3 follow-up" → "CI hotfix" with no layer-shipped entry in between. Per CHANGELOG quality dim 8, "entries are dated; entries distinguish features, fixes, and breaking changes; entries reference the IAR rounds that drove them" — the Layer 4 entry is simply absent.
+
+CHANGELOG ownership belongs to SO per CLOSURE-PROTOCOL.md (CHANGELOG entries owned by other domains may not be modified by TW). TW raises this finding for SO authorship rather than applying inline.
+
+**Classification:** Raised to SO. Proposed entry must include: scope (Layer 4 — labels: `--label` on create with dedup/case-preservation; `--label` on list with single-value/case-sensitive match; usage error on multiple list `--label` flags); files added (`tests/layer4.rs` — 12 integration tests); functions added in `src/lib.rs` (`parse_label`, `dedupe_labels`, `label_matches` — all `pub` with rustdoc); test count (28 unit + 32 layer1 + 18 layer2 + 9 layer3 + 12 layer4 = 99 total); IAR coverage; the side-pass `0ad83de` doc-comment update on `Create` / `List` clap variants (top-level `--help` discoverability — Layer 7 work pulled forward). Without this entry the CHANGELOG fails the "first place a maintainer looks" handoff function for the most recent layer — exactly the failure mode CHANGELOG is supposed to prevent.
+
+---
+
+**Finding 3 — README "Test" section claim is narrower than current unit-test coverage (Dim 1, Dim 2)**
+
+`README.md` line 54 said "Unit tests cover validation, ID assignment, status/priority/ID parsing, and sort ordering." `src/lib.rs` `tests` module now contains, in addition to the listed coverage: `label_empty_after_trim_rejected`, `label_deduplication_preserves_first_occurrence`, `label_filter_case_sensitive_match`, plus collection-invariant tests (`collection_invariants_reject_duplicate_ids`, `collection_invariants_accept_unique_ids`), control-character title rejection (six tests), description and timestamp validation, `next_id` overflow, and `issue_field_validation_rejects_*` variants. The list as written is a Layer 1–3 description; current coverage is broader.
+
+**Resolution:** Updated the sentence to "Unit tests cover validation (title, label), ID assignment, status/priority/ID parsing, sort ordering, label deduplication, and case-sensitive label matching." Stops short of enumerating every test — a high-level description that matches the Layer 4 reality without becoming a test catalog that drifts at the next layer.
+
+---
+
+### Open
+
+**Finding 4 — `Cargo.toml` `repository` field still absent and TODO(SO) comment still in tree (Dim 4 / Dim 7 — discoverability metadata; carries over from Review 6 Finding 6 sub-item)**
+
+The 2026-05-05 18:30Z CI hotfix CHANGELOG entry resolves the `license` half of Review 6 Finding 6 but leaves `repository` Raised-to-SO. `Cargo.toml` currently contains:
+
+```
+# TODO(SO): set `repository` URL before any external distribution. `publish = false`
+# blocks accidental crates.io upload in the meantime. Raised by TW Review 6.
+```
+
+For a portfolio project whose stated purpose (DESIGN.md, README, IAR README "Activation rationale" for Technical Writer) is "intended for handoff and external review," the absence of a discoverability `repository` field is a substantive gap. The CHANGELOG hotfix entry acknowledges this and says "re-raise on external-distribution trigger or Layer 4+ explicit director call." Layer 4 has now landed; this is the trigger.
+
+**Classification:** Open. Re-raised to SO. Proposed value: the `magnificentlycursed/guild-portfolio` GitHub URL pointing at the `issue-tracker-cli` subdirectory (consistent with the directory layout the Apprentice Phase 1 program uses). TW will not pick a URL without explicit SO confirmation — fabricating a repository URL would be worse than absence.
+
+---
+
+**Finding 5 — PROCESS.md retrospective placeholders unfilled across four layers; Layer 4 reflection block does not exist at all (Dim 10 — AI session independence; cross-domain; carries over from Review 6 Finding 8)**
+
+`PROCESS.md` Layer 1, Layer 2, and Layer 3 still have `*[Your reflection here...]*` and `*[First-person reflection...]*` placeholders in "What was hardest" and "What the process felt like" sections. Layer 4 has no PROCESS.md section at all — neither phases nor placeholders. Four layers in (counting Layer 4), the developer-voice retrospective remains a structural skeleton with no first-person content. Review 6 noted "with three layers now complete, the pattern is durable enough to be a standalone TW-side observation." That observation is now older and stronger: a process retrospective whose first-person sections are placeholders four iterations in is a process retrospective template, not a process retrospective.
+
+**Classification:** Open. Held for human director per IAR rules — TW (and any agent) may not author first-person developer reflection because doing so defeats the dimension's purpose. Recommended action before Layer 4 merges or before Layer 5 begins: either (a) fill the Layer 1–3 first-person sections and add a Layer 4 phases-and-reflection section, or (b) remove the placeholder structure suite-wide and replace with a single "Developer reflection deferred — see PORTFOLIO-ASSESSMENT-REVIEW.md" pointer so the file stops advertising content it does not contain.
+
+---
+
+**Finding 6 — `tracker create --help` output does not document the spec-mandated control-character rejection on `--label`-adjacent input or on `<TITLE>` (Dim 6 — API/interface documentation; Dim 2 — accuracy of public-facing prose)**
+
+`tracker create --help` documents `--priority` valid values inline ("Priority: low, medium, high (default: medium)") but the title argument is described only as "Issue title" with no mention that titles cannot contain control characters (a spec-level rejection rule with a user-visible error message: `Error: Title cannot contain control characters.`). A user typing `tracker create $'Fix\nbug'` and getting an error has nothing in `--help` to explain why. Similarly `--label` is described as "Label (repeatable; deduplicated; case-preserved)" — the empty-after-trim rejection is implementation-visible (`Error: Label cannot be empty.`) but undocumented at the help-text surface.
+
+This is a defensible choice — `--help` is a usage summary, not an error-states catalog — but it diverges from the level of valid-value documentation that `--priority` and `--status` have. The asymmetry (some flags document their domain; others don't) is the finding, not the absence of documentation per se.
+
+**Classification:** Open. Raised to SE for the help-text strings on `Create.title` and `Create.label` clap doc-comments, with optional input from SO on whether `--help` should document rejection rules at all. TW recommendation: add ", non-empty after trim" to the `--label` doc comment (mirrors existing `--priority` valid-value style) and let title rejection rules remain in DESIGN.md only. Not blocking Layer 4 merge; surface for Layer 7 polish at latest.
+
+---
+
+**Finding 7 — DESIGN.md Feature 1 Postconditions claim "labels is the deduplicated list of `--label` values" but `cmd_create` deduplicates *after* per-label validation; documented order does not match observable order in one edge case (Dim 2 — accuracy with respect to current code)**
+
+`DESIGN.md` Feature 1 Postconditions say:
+
+> `labels` is the deduplicated list of `--label` values; order is preserved, case is preserved as provided; empty if no `--label` flags given
+
+`src/lib.rs` `cmd_create` (lines 213–217):
+
+```
+let parsed_labels: Vec<String> = labels_raw
+    .iter()
+    .map(|l| parse_label(l))
+    .collect::<Result<_, _>>()?;
+let labels = dedupe_labels(&parsed_labels);
+```
+
+`parse_label` trims its input. So `--label "  bug  " --label bug` produces `parsed_labels = ["bug", "bug"]` (both trimmed) → `dedupe_labels` returns `["bug"]`. The user's first occurrence was the whitespace-padded form; the stored value is the trimmed form. Per the spec wording "case is preserved as provided" plus "order is preserved," a strict reader would expect "bug" (the first occurrence as-provided) to be stored; the implementation effectively stores the trimmed form, which is the same string here but a different question of what "as provided" means. More importantly, the spec does not say labels are *trimmed* — only that they cannot be empty *after trim*. The implementation actually trims them silently before storage.
+
+This is a documentation finding, not an implementation finding: the implementation is sensible (trimming is consistent with title behavior), but DESIGN.md does not say the labels are trimmed. Either the spec needs to say labels are trimmed before storage, or the implementation needs to preserve the user's exact whitespace.
+
+**Classification:** Raised to SO. Proposed spec amendment to DESIGN.md Feature 1 Postconditions: "`labels` is the deduplicated list of `--label` values, each trimmed of leading/trailing whitespace; order is preserved (first occurrence retained); case is preserved as provided after trimming." Add a parallel bullet under Edge Cases / Labels: "Leading/trailing whitespace on a label is trimmed before storage; `--label '  bug  '` stores `bug`." TW does not modify DESIGN.md per CLOSURE-PROTOCOL — SO authority.
+
+---
+
+### Dismissed
+
+**Finding 8 — `tracker list` example table in DESIGN.md still shows comma-separated multi-label rendering with `bug, auth` and `feature` (Dim 2 — accuracy)**
+
+Suspected this might be stale. Verified against `src/lib.rs` line 450: `issue.labels.join(", ")`. Comma-space separation is correct. The DESIGN.md example table is accurate.
+
+**Classification:** Dismissed. The control verified.
+
+---
+
+**Finding 9 — `parse_label`, `dedupe_labels`, `label_matches` rustdoc check (Rust supplement — rustdoc coverage for new public items)**
+
+Three new `pub` functions added in Layer 4. Verified each has `///` doc comments; all three have `# Errors` sections where applicable (`parse_label` does; `dedupe_labels` and `label_matches` are infallible and correctly omit). `RUSTDOCFLAGS="-D missing_docs" cargo doc --no-deps` would still pass with these additions (the field-level coverage from Review 6 covers `Issue`; the new functions are documented).
+
+**Classification:** Dismissed. Rust supplement Technical Writer requirements satisfied for the new Layer 4 public surface.
+
+---
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Summary
+
+Two findings resolved inline (README "Commands" block + Status block updated for Layer 4; README "Test" sentence broadened to current coverage). One Raised to SO (CHANGELOG Layer 4 entry — TW does not own CHANGELOG entries belonging to other domains per CLOSURE-PROTOCOL). Four Open: `Cargo.toml` `repository` field carry-over from Review 6, PROCESS.md retrospective placeholders carry-over from Review 6 (Layer 4 now also missing entirely), `--help` valid-value documentation asymmetry, DESIGN.md label-trimming silent-implementation-vs-spec gap. Two Dismissed (DESIGN.md example table verified accurate; Layer 4 rustdoc coverage verified).
+
+Top portfolio-handoff issues an external reviewer arriving cold would hit:
+
+1. **CHANGELOG missing Layer 4 entry (F2)** — the single highest-value handoff document fails the cold reader on the most recent layer. Same recurring documentation-currency pattern PROCESS.md Layer 3 reflection itself flagged ("could a hook catch this?"). The CHANGELOG was stale at every layer close so far; a pre-commit or CI-side check that fails the build when CHANGELOG lacks an entry referencing the latest layer-shipping commit would catch this before the cold review does. Review 6 noted the same hook idea; Layer 4 is now the third layer where the hook would have fired.
+2. **README out of date at the moment Layer 4 work was committed (F1, now resolved)** — Layer 4 implementation landed in `ec5c966`; the README updates landed in this review. The implementation-vs-documentation gap was open through the entire Layer 4 manual testing window. Same hook proposal applies.
+3. **PROCESS.md retrospectives empty across four layers (F5)** — held for human director.
+
+The recurring meta-finding from Review 6 ("verification commands that don't actually verify what they claim") repeats here as "documentation that ships behind the implementation." The two are the same defect class with different surfaces. A future TW review should run, as a precommit-class check: (a) `cargo test` count vs. the most recent CHANGELOG entry's "Verification" subsection; (b) README "Commands / Available now" block's layer number vs. the most recent CHANGELOG layer-shipped entry's layer number; (c) Status block checkboxes vs. CHANGELOG layer-shipped entries.
+
+**Coordination:**
+- **Finding 2 (CHANGELOG Layer 4 entry)** — Raised to SO. Authoring CHANGELOG entries belonging to layer-shipping commits is SO authority per CLOSURE-PROTOCOL Section 1.
+- **Finding 4 (`Cargo.toml` `repository`)** — re-raised to SO; trigger from CHANGELOG hotfix entry's "Layer 4+ explicit director call" condition is now met.
+- **Finding 5 (PROCESS.md retrospectives)** — cross-references PORTFOLIO-ASSESSMENT-REVIEW.md; held for human director.
+- **Finding 6 (`--help` valid-value asymmetry)** — Raised to SE for `Create.label` clap doc-comment; optional SO input on whether `--help` should document rejection rules.
+- **Finding 7 (DESIGN.md label trimming gap)** — Raised to SO; spec amendment proposal documented above. TW will not edit DESIGN.md.
+
+Three Open findings carry forward to the next TW review. Per CLOSURE-PROTOCOL Section 3 auto-Backlog rule (Open across three consecutive reviews of originating domain), F4 (`Cargo.toml` `repository`) is now on the carry-forward count starting from Review 6 — if it remains Open through Review 8 without explicit SO adjudication, the auto-Backlog clock applies. F5 (PROCESS.md placeholders) has been Open across Reviews 5/6/7 — that's three consecutive reviews and the auto-Backlog clock has already fired for it; SO or human-director adjudication required before Layer 4 merge.

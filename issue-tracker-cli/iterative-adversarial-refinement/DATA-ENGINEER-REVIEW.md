@@ -463,3 +463,133 @@ The behavior was unchanged — the spec gap was only that the side-effect was un
 
 **No new DE findings this round.**
 
+---
+
+---
+
+## Review 7 — 2026-05-05 21:45Z
+
+**Scope:** Layer 4 cold-session pass — `labels: Vec<String>` field added to `Issue`. Audit of round-trip serialization for empty / single / multi / special-char labels, forward-compat behavior on label-bearing JSON, field invariants (dedup-at-creation, case-preserved, never-empty-after-trim), and stored-data corruption detection per DESIGN.md "Edge Cases / Storage". Files reviewed: `DESIGN.md`, `Cargo.toml`, `src/lib.rs`, `src/main.rs`, `tests/layer4.rs`, `tracker.json`.
+
+**Session note:** Cold session per primer. Reviewer did not build the project. Adversarial posture: stored data and CLI input are both untrusted. Live experiments performed via the compiled `tracker` binary against scratch directories under `/tmp/de-test*`.
+
+---
+
+### Round-trip serialization — verified working
+
+Empty labels (`labels: []`), single label, multi-label preserving order, leading/trailing whitespace trimmed at create, internal spaces preserved (`"with space"`), non-ASCII (`"ünicode-é"`), and emoji (`"emoji 🚀"`) all round-trip correctly through `cmd_create` → `save_issues` → `load_issues`. `dedupe_labels` correctly preserves first occurrence and is case-sensitive (`"bug"`, `"Bug"`, `"BUG"` all stored). Empty `[]` serializes as `[]`, not omitted — matches DE Review 3 Finding 4 dismissal.
+
+Stored-data corruption detection at load time:
+- `"labels": [""]` → corrupt-data error, exit 1 ✓
+- `"labels": ["  "]` → corrupt-data error, exit 1 ✓ (validator uses `trim().is_empty()`)
+
+These satisfy the DESIGN.md "Edge Cases / Storage" enumeration that includes "an empty `label`" as a corruption trigger.
+
+---
+
+### Open
+
+**Finding 1 — Labels are not validated for control characters at create time or at load time (Dim 2 — Validation and normalization, Dim 4 — Data integrity invariants)**
+
+`src/lib.rs:339-346` (`parse_label`) only trims and rejects empty-after-trim. `src/lib.rs:131` (`issue_fields_are_valid`) only checks `!l.trim().is_empty()`. Neither path applies the `char::is_control` rejection that title fields receive (`src/lib.rs:73`, `src/lib.rs:128`).
+
+Empirical reproduction (`/tmp/de-test2`, `/tmp/de-test3`):
+
+```
+$ tracker create "Test" --label $'bug\nbreak'
+Created issue #1: Test
+$ tracker list
+ID    Status       Priority  Labels                Title
+1     open         medium    bug
+break             Test
+```
+
+The newline embedded in the stored label splits a single issue's row across two physical lines on `list` output, breaking the spec's one-issue-per-line contract. The same input path with an ANSI escape sequence (`$'\x1b[31mEvil\x1b[0m'`) stores the literal `0x1B` byte and emits it on `list`, enabling terminal-escape injection — exactly the attack vector that DESIGN.md "Edge Cases / Title" enumerates as the rationale for control-char title rejection ("ESC, C1 controls", "terminal-escape injection in any tool that displays the title"). Labels are displayed in the same `list` output and the same `show` output (Layer 6 scope) and so share the threat model.
+
+Stored-data variant (`/tmp/de-test5`): a hand-edited `tracker.json` with `"labels": ["bug\nbreak"]` loads successfully and breaks `list` output the same way. The validator does not enforce label hygiene that the spec implicitly requires by parallel reasoning to title hygiene.
+
+This is the exact failure mode DE Review 6 Finding 1 / 2 fixed for timestamps and IDs and the SO Review 13 Finding 1 cross-cut fixed for stored titles. The labels field is the remaining `String`-bearing field in the schema where the same untrusted-input invariant has not been applied symmetrically.
+
+**Recommendation:**
+- **SE:** Extend `parse_label` to reject control characters at create-time with `Err("Label cannot contain control characters.")`, mirroring `validate_title`. Extend `issue_fields_are_valid` (`src/lib.rs:131`) with `&& issue.labels.iter().all(|l| !l.chars().any(char::is_control))` — same shape as the title check on line 128.
+- **SO:** DESIGN.md "Edge Cases / Labels" currently enumerates only empty / whitespace-only / case-sensitivity. Extend to add a "Label containing a control character" bullet pointing to the same rationale as Title (display contract, escape-injection). Extend "Edge Cases / Storage" to include "an empty or control-character `label`" in the corruption-trigger list (the line currently reads `"an empty 'label'"`).
+- **QE:** Add unit test `parse_label("bug\nbreak").is_err()` and integration test asserting create with `--label $'bug\nbreak'` exits 1 with `Error: Label cannot contain control characters.`. Add `tests/layer4.rs` integration test asserting that a stored `tracker.json` with a control-char-bearing label triggers the corrupt-data error path on load.
+
+**Classification:** Raised to SE (validator extension), Raised to SO (DESIGN.md edge-case enumeration), Raised to QE (regression coverage). The scope is symmetric to DE Review 6 Finding 1 / SO Review 13 Finding 1 — the same untrusted-input boundary control, applied to the new field.
+
+Cross-reference: [SECURITY-REVIEW.md](SECURITY-REVIEW.md) (escape-injection vector via labels), [RED-TEAM-REVIEW.md](RED-TEAM-REVIEW.md) (terminal-injection through stored data), [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) (DESIGN.md amendment), [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) (test coverage gap).
+
+---
+
+**Finding 2 — Label filter input is not normalized symmetric with create-time normalization (Dim 2 — Validation and normalization)**
+
+`src/lib.rs:422-424` passes the raw `label_filter` straight to `label_matches` without trimming. `parse_label` trims at create time. This produces an asymmetry that surprises users:
+
+Empirical reproduction (`/tmp/de-test9`): a stored label `"  bug  "` (untrimmed because hand-edited or written by an older version) cannot be matched by `--label "bug"` (filter not trimmed in storage) and CAN be matched by `--label "  bug  "`. Conversely, an issue created with `--label "bug"` (stored as `"bug"`) can be filtered by `tracker list --label "  bug  "` only by accident — actually that's a no-match because the filter side is also not trimmed.
+
+DESIGN.md is silent on whether `list --label` should trim its input. The contract says "exact match, case-sensitive" — read literally, the current behavior is correct. But the create side trims, which creates asymmetric user expectations: "I created with `bug` (with spaces); why does `--label bug` not find it?" The minor user-facing harm is mitigated by `parse_label`'s trim at create time guaranteeing stored labels never have leading/trailing whitespace (under organic flow); the asymmetry is exposed only via hand-edited storage.
+
+**Recommendation:**
+- **SO:** Clarify in DESIGN.md "Feature 2 / List" or "Edge Cases / Labels" whether `--label` filter input is trimmed before comparison. Either choice is defensible; the spec needs to pick one. Recommended: trim filter input symmetrically with create input, so the filter and create normalize the same way and a hand-edited untrimmed stored label is unreachable by filter (which is a feature, not a bug — that label is corrupt by the create-time contract anyway).
+- **SE:** Whatever SO decides, apply the same `trim()` policy on both sides of the boundary.
+
+**Classification:** Raised to SO. Spec-clarity finding; implementation matches the literal text of "exact match, case-sensitive", so there is no implementation defect against the current spec.
+
+Cross-reference: [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) (DESIGN.md amendment).
+
+---
+
+### Dismissed
+
+**Finding 3 — `labels` field on `Issue` lacks `#[serde(default)]` for backward-compat with pre-Layer-4 stored data (Dim 3 — Schema evolution; Rust supplement — `#[serde(default)]` for schema evolution)**
+
+`src/lib.rs:47` declares `pub labels: Vec<String>` with no `#[serde(default)]`. A `tracker.json` written by a Layer 1-3 binary would have no `labels` key. A Layer 4 binary loading that file would fail deserialization with "missing field `labels`".
+
+**Classification:** Dismissed (with caveat). Empirically tested: a `tracker.json` from the existing project root has `"labels": []` already (Layer 1's `cmd_create` always writes `Vec::new()`, which serializes to `[]`). DESIGN.md DE Review 3 Finding 4 confirms the empty array has been written from Layer 1 onward; there is no real-world stored data without the key. The Rust supplement's `#[serde(default)]` guidance applies to *new* optional fields added after the field has been deployed without serialization support. Here, the field has been *present* in serialized form (as `[]`) since Layer 1; only the *write code path* and *display code path* have changed in Layer 4. No backward-compat hazard exists in this project's actual storage history.
+
+Caveat: a future field addition that adds `Vec<X>` *for the first time* would need `#[serde(default)]` (or `Option<Vec<X>>`) for files written before that field existed. Current implementation does not establish a pattern for that case. Tracking note for whoever adds the next collection-typed field.
+
+---
+
+**Finding 4 — `dedupe_labels` allocates a new `String` per label via `.clone()` (Dim 6 — Access patterns, supplement: Lifetimes and cloning)**
+
+`src/lib.rs:351-360` clones each kept label into the output vector even though the input slice could be consumed by value or returned with refs.
+
+**Classification:** Dismissed. Performance is irrelevant at this scale (single-digit labels per issue, micro-cost). The cloning pattern matches the function's `&[String] -> Vec<String>` signature, which is the right ergonomic shape for the call site. No defect.
+
+---
+
+**Finding 5 — `Vec<String>` for labels does not enforce uniqueness at the type level (Dim 1 — Data model correctness)**
+
+DESIGN.md states labels are "deduplicated at creation". A `BTreeSet<String>` or `IndexSet<String>` would encode this in the type. As `Vec<String>`, uniqueness is a runtime invariant enforced only by `dedupe_labels` at create time.
+
+**Classification:** Dismissed. The field invariant requires *order preservation* ("order is preserved") in addition to dedup. `BTreeSet` violates insertion order. `IndexSet` would require a non-stdlib dep; `serde` would still serialize as a JSON array regardless. The current `Vec<String>` + dedup-at-creation is the correct trade-off given the spec requires both ordered and deduped. Stored-data uniqueness across reads is NOT validated, but a stored `["bug", "bug"]` is harmless to downstream operations (display shows `bug, bug` — cosmetically odd but not corrupt) — not a real defect worth raising as Open.
+
+---
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Summary
+
+Two real findings, both rooted in the same principle: the labels field is the new `String`-bearing data in Layer 4, and it has not received the same untrusted-input hygiene treatment that titles received in Layer 1 / SO Review 13. Finding 1 is the strongest — it exposes the same control-character / escape-injection failure mode that DESIGN.md explicitly enumerates as the rationale for title control-char rejection, and the implementation already has the validation pattern to apply (`!s.chars().any(char::is_control)` is on line 73 of lib.rs). The fix is symmetric and ~2 lines. Finding 2 is a minor spec/implementation symmetry gap.
+
+Round-trip serialization is otherwise clean: empty / single / multi / unicode / emoji labels round-trip correctly. Stored empty/whitespace labels are correctly caught as corrupt data. Forward-compat behavior on unknown fields is correct per DESIGN.md (load tolerates, write drops — documented after SO Review 13 Finding 3).
+
+The MVR signal for this domain is not yet reached for Layer 4: Finding 1 is a real defect with a clear spec parallel and a small fix. Finding 2 is a real ambiguity. Re-evaluate after Finding 1 is addressed (SE + SO + QE) and SO clarifies Finding 2.
+
+**Concerns for the merge gate:**
+1. **Block on Finding 1.** Layer 4 ships the labels feature; allowing newline / ESC in stored labels reproduces the exact threat model that the title control-char check exists to prevent. The fix is symmetric to existing code — the cost of doing it now is far below the cost of finding it later in production via a corrupted display.
+2. Finding 2 should land before Layer 5 to avoid documenting two contradictory normalization policies (create vs. filter) at the schema-stability layer.
+
+**Coordination:**
+- Finding 1 → [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) (validator extension, ~2 lines), [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) (DESIGN.md edge-case enumeration), [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) (regression test), [SECURITY-REVIEW.md](SECURITY-REVIEW.md) / [RED-TEAM-REVIEW.md](RED-TEAM-REVIEW.md) (escape-injection vector).
+- Finding 2 → [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) (spec-clarity), [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) (apply chosen policy on filter side).
+
+**Files modified:** This review log only.
+
+---
+

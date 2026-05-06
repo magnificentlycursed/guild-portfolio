@@ -224,6 +224,10 @@ fn list_label_filter_is_case_sensitive() {
 
     // DESIGN.md Edge Cases / Labels: `--label Bug` does NOT match an issue
     // with label `bug`. Spec contract is exact, case-sensitive equality.
+    // Negative `Nice work!` assertion mirrors `list_priority_filter_no_match_shows_filter_message`
+    // (QE Review 9 F1): kills any mutation that drops `label_filter.is_none()` from the
+    // `is_default_open_view` heuristic in `cmd_list` — without it, `tracker list --label X`
+    // with no matches would print "No open issues. Nice work!" instead of the filter message.
     tracker(&dir)
         .args(["list", "--label", "Bug"])
         .assert()
@@ -231,7 +235,33 @@ fn list_label_filter_is_case_sensitive() {
         .stdout("")
         .stderr(predicate::str::contains(
             "No issues match the given filters.",
-        ));
+        ))
+        .stderr(predicate::str::contains("Nice work!").not());
+}
+
+#[test]
+fn create_preserves_label_case_at_storage() {
+    // DESIGN.md Feature 1 postcondition (line 28): "labels is the deduplicated list of
+    // --label values; order is preserved, case is preserved as provided".
+    // A mutation in `parse_label` that lowercased its input (e.g., `trimmed.to_lowercase()`)
+    // would survive every other Layer 4 test — `create_with_label_stores_label` and the
+    // multi-label / dedup tests all use lowercase inputs; `list_label_filter_is_case_sensitive`
+    // checks the filter side. Case preservation at storage was untested.
+    let dir = TempDir::new().unwrap();
+    tracker(&dir)
+        .args([
+            "create", "x", "--label", "Bug", "--label", "BUG", "--label", "bug",
+        ])
+        .assert()
+        .success();
+
+    let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
+    let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(
+        v[0]["labels"],
+        serde_json::json!(["Bug", "BUG", "bug"]),
+        "case must be preserved as provided; case-distinct labels are not deduplicated"
+    );
 }
 
 #[test]
@@ -247,11 +277,17 @@ fn list_multiple_label_flags_exits_one() {
         .assert()
         .success();
 
+    // Strengthened from `contains("Error:")` (so loose any failure path satisfied it) to
+    // assert the actual clap error message. Kills mutations that route to a different
+    // error sink (e.g., a generic "Error: invalid argument") and verifies the offending
+    // flag name appears in the message — user-actionable diagnostic per CLI supplement Dim 8.
     tracker(&dir)
         .args(["list", "--label", "bug", "--label", "auth"])
         .assert()
         .failure()
         .code(1)
-        .stderr(predicate::str::contains("Error:"))
+        .stderr(predicate::str::contains(
+            "Error: the argument '--label <LABEL>' cannot be used multiple times",
+        ))
         .stdout("");
 }

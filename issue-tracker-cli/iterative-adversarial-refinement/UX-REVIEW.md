@@ -426,3 +426,169 @@ The companion fact (printable Unicode including emoji and CJK is still accepted)
 
 **No new UX findings this round.** Suite: 74 → 84 tests; `cargo test --all-targets --locked`, `cargo clippy --all-targets --locked -- -D warnings`, `cargo fmt --check` all clean.
 
+---
+
+---
+
+## Review 6 — 2026-05-05 21:50Z
+
+**Scope:** Layer 4 (`issue-tracker-cli-labels` branch) — `--label` on `create` and `list`. CLI supplement (replacement) dimensions 1–11 applied. `cargo build --release` ran clean. Binary exercised in `/tmp/ux-review-l4` from a fresh state per scenario; stdout and stderr separated with `1>/dev/null` / `2>/dev/null`; exit codes captured. Regression spot-check on Review 5 SIGPIPE / empty-state-routing fixes preserved through Layer 4.
+
+**Session note:** Cold session per primer. Parallel batch with other domain reviews; quality tradeoff acknowledged.
+
+**Cross-domain input considered:** SO Review 16 Open finding on `tracker list --label ""` / `--label "  "` exiting 0 with the "no match" message while the create-side rejects the same input as `Error: Label cannot be empty.`.
+
+---
+
+### Open
+
+**Finding 1 — `tracker list --label "<padded>"` does not trim, but `tracker create --label "<padded>"` does, so the same string round-trips into a "no match" (CLI Dim 8 — error message quality; CLI Dim 4 — stdout/stderr discipline)**
+
+Reproduction (fresh `/tmp/ux-review-l4`):
+
+```
+$ tracker create "X" --label "  spaced  "
+Created issue #1: X
+
+$ cat tracker.json | jq '.[0].labels'
+[ "spaced" ]                                 # CREATE TRIMMED to "spaced"
+
+$ tracker list --label "  spaced  "
+No issues match the given filters.           # FILTER NOT TRIMMED → silent "no match"
+exit=0
+
+$ tracker list --label "spaced"
+ID    Status       Priority  Labels                Title
+1     open         medium    spaced                X
+```
+
+This is a strictly stronger version of the SO Review 16 asymmetry. It is not just an aesthetic mismatch between create-rejection and list-silence: the user typed *the same literal string* for both invocations, and the second one — with stored data that obviously matches the user's intent — silently returned zero rows with exit 0 and a generic "no match" message that masks the real cause (filter input had whitespace the storage path quietly stripped). A user investigating "why didn't my label match?" gets no signal pointing at the trimming asymmetry; they see a successful command with no results.
+
+The library (`src/lib.rs`) already exposes `parse_label`, which is exactly the right validator for filter input too — it trims and rejects empty/whitespace-only — but `cmd_list` calls `label_matches` directly on the raw `--label` value (`src/lib.rs:422`). Two principled fixes exist: (a) apply `parse_label` to the filter as well so `list --label "  bug  "` matches a stored `"bug"` and `list --label ""` produces the same `Error: Label cannot be empty.` as create; or (b) leave equality strict but reject empty/whitespace-only filters explicitly with an error message so the user is told they typed nothing.
+
+**Classification:** Raised to SO. The DESIGN.md spec is silent on whether `--label` filter input is trimmed and on whether empty filter values are an error or a silent no-match. The spec ambiguity is upstream of the implementation, so the SO needs to adjudicate. Proposed DESIGN.md addition under Edge Cases > Labels: "On `tracker list --label <l>`, the `<l>` argument is trimmed before comparison, and an empty or whitespace-only `<l>` produces `Error: Label cannot be empty.` exit 1 — symmetric with `tracker create --label`." Independent assessment of SO Review 16 below confirms the silent-no-match is not acceptable UX.
+
+---
+
+**Finding 2 — Multi-`--label` rejection on `list` uses clap's lowercase generic message, breaking the spec's `Error:` prefix and bypassing the project's user-facing voice (CLI Dim 8 — error message quality)**
+
+Reproduction:
+
+```
+$ tracker list --label bug --label auth
+Error: the argument '--label <LABEL>' cannot be used multiple times
+
+Usage: tracker list [OPTIONS]
+
+For more information, try '--help'.
+exit=1
+```
+
+DESIGN.md Feature 2 says: "If `--label` is provided more than once to `list`, a usage error is produced on stderr and the command exits 1." The exit code is correct, but the message is clap's stock string, not a project-style message. Compare the project's hand-authored phrasing for the same class of mistake — `Error: Invalid status 'closed'. Expected: open, in-progress, or done.` — which (a) is one line, (b) names the offending argument, (c) tells the user what the valid alternative is. The list-multi-label path leaks clap's three-line block (including a `Usage: ...` reprint and `For more information, try '--help'.`), and it does not name *which* label values were rejected. A user with `--label bug --label auth` gets no hint that "list takes only one label" — they have to infer that from "cannot be used multiple times."
+
+The repaint to `Error:` (uppercase) is in place from `main.rs:62` (`replacen("error:", "Error:", 1)`), so the prefix is correct, but everything after the prefix is generic. Recommend a list-specific override (e.g., clap's `ArgAction::Set` with a custom error, or a manual count check after `try_parse`) producing something like `Error: --label may be specified only once on 'list'. Multiple labels per filter are not supported.` This is the only remaining error path in the binary that uses clap's stock voice for a spec-anticipated condition.
+
+**Classification:** Raised to SE. DESIGN.md does not prescribe the exact text — the contract says only "usage error on stderr, exit 1" — so this is implementation polish, not a spec change. Symmetry with the project's other error messages is the case for changing it.
+
+---
+
+**Finding 3 — Top-level `tracker --help` still has no usage example for compound flag invocations, despite the project newly committing to that standard (CLI Dim 1 — command discoverability)**
+
+Reproduction:
+
+```
+$ tracker --help
+Personal issue tracker
+
+Usage: tracker <COMMAND>
+
+Commands:
+  create  Create a new issue (with optional priority and labels)
+  list    List issues (default: open) with optional status / priority / label filters
+  status  Change an issue's status
+  help    Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+```
+
+Commit `5b95911` ("IAR Review 35 Finding 4: usage examples in --help for compound CLI flags") added a *suite-wide* prompt rule that decomposing agents must include usage-example acceptance criteria in the polish/help-finalization layer for CLI projects with compound flags. Layer 4 is a CLI project with compound flags (`--label` is repeatable on `create`, `--label` + `--status` + `--priority` AND-combine on `list`). The user-facing help still does not show a single example. `tracker create --help` likewise has no `EXAMPLES:` block — a new user reading `--label <LABEL>  Label (repeatable; deduplicated; case-preserved)` cannot tell from the description alone that you say `--label bug --label auth` (two flags) rather than `--label "bug,auth"` or `--label bug auth`.
+
+This was raised in Review 5 Finding 5 and dismissed on the rationale that the spec only requires `--help` to "accurately describe all flags and their valid values." That dismissal pre-dates the suite-level commitment in `5b95911`. The new posture is that compound-flag CLI projects *should* carry usage examples by the polish/help-finalization layer. The polish layer for this project is Layer 7; the spec does not yet name this requirement; raising for SO consideration so the Layer 7 acceptance criteria pick it up.
+
+**Classification:** Raised to SO. Proposed DESIGN.md addition under "**`--help` flag:**": "Subcommands with compound flag interactions (multiple repeatable flags, AND-combined filters) include at least one usage example in their `--help` output." Defers actual implementation to Layer 7 polish.
+
+---
+
+**Finding 4 — `list` rendering of labels containing a comma is ambiguous (CLI Dim 3 — output scannability)**
+
+Reproduction:
+
+```
+$ tracker create "X" --label "a,b" --label "c"
+Created issue #1: X
+
+$ tracker list
+ID    Status       Priority  Labels                Title
+1     open         medium    a,b, c                X
+```
+
+The Labels column renders `["a,b", "c"]` as `a,b, c` — a human reading the row cannot recover whether this issue has two labels (`a,b`, `c`) or three (`a`, `b`, `c`). DESIGN.md Edge Cases > Labels does not forbid commas in stored labels; the validation is only "non-empty after trim." DESIGN.md "List output format" says "`Labels` renders all labels comma-separated" — which is the source of the ambiguity, since labels are themselves allowed to contain the comma separator.
+
+Two sane resolutions: (a) reject commas in labels at `parse_label` (and at `issue_fields_are_valid` for stored data), narrowing the storage spec to match the display contract; or (b) change the display delimiter to one that cannot appear in a label (e.g., `|` or a Unicode separator), or quote each label with a single character that can't appear inside (e.g., `"a,b" "c"`). Option (a) is the cheaper fix; the comma-in-label use case is a cosmetic edge that no plausible user workflow needs.
+
+**Classification:** Raised to SO. The fix touches a validation rule (option a) or a display-format spec line (option b); both are DESIGN.md territory. Proposed minimum DESIGN.md addition under Edge Cases > Labels: "Labels may not contain `,` (the list-display separator); `--label "a,b"` produces `Error: Label cannot contain a comma.` exit 1."
+
+---
+
+### Dismissed
+
+**Finding 5 — `--label` filter is case-sensitive and silently returns no match for case-mismatched input (CLI Dim 8)**
+
+Verified: `tracker list --label Bug` against a stored `bug` label produces `No issues match the given filters.` on stderr, exit 0. The user has no hint that case is the reason. *However*, DESIGN.md Edge Cases > Labels explicitly anchors this behavior: `--label Bug` does not match an issue with label `bug`. The spec is intentional, the test (`tests/layer4.rs:list_label_filter_is_case_sensitive`) locks it, and changing it would be an SO-driven spec decision, not a defect against the current contract.
+
+**Classification:** Dismissed. Spec-anticipated and test-locked. A "case-sensitive — try `--label bug`" hint would be a UX win, but it requires inspecting stored labels for a near-match and is out of contract. Note for SO: if you ever revisit this, a "did you mean?" hint is a documented CLI ergonomics pattern.
+
+---
+
+**Finding 6 — `tracker list --label bug` shows the labels column truncated mid-label without indicating the row matched the filter (CLI Dim 3)**
+
+Initial concern: when a label list is wider than 20 chars and gets truncated to `…`, a user filtering by `--label foo` sees `bug, auth, perf, …` but cannot tell whether `foo` is in the truncated tail.
+
+**Classification:** Dismissed. The issue *did* match the filter — that's why it appears in the list at all. The user knows from the act of filtering that the row contains the label. Truncation hides which other labels exist alongside the match, but `tracker show <id>` (Layer 5) is the documented escape hatch for full values per DESIGN.md (`show always displays the full, untruncated values`). Not a defect at Layer 4.
+
+---
+
+### Hallucinated
+
+**Finding 7 — `tracker list --label ""` should exit 1 because empty filters are conceptually wrong**
+
+Initial impulse: the empty-string filter is meaningless, so the binary should refuse it.
+
+**Classification:** Hallucinated *as stated*. Whether `--label ""` should be an error vs. a silent-no-match is a real UX question, but framing it as "empty filters are conceptually wrong" begs the question — the SO has not committed to that position. The substantive concern is captured in Finding 1 (asymmetry with create-side rejection plus the trimming round-trip bug). This standalone framing without the round-trip evidence would have been hand-waving.
+
+---
+
+### Summary
+
+Round 6 finds 4 open / Raised findings, 2 dismissed, 1 hallucinated. The Layer 4 surface area (`--label` on create + list, label rendering in the table) is *mostly* clean — error messages are specific where the project authored them, empty-state routing to stderr is preserved, multi-label rejection on list happens at exit 1 — but four edges remain.
+
+The most consequential finding is **#1**: the create-trim / list-no-trim asymmetry is not a curiosity; it makes a literal round-trip of the same user input fail silently with an unhelpful "no match" message. This subsumes and strengthens the SO Review 16 finding (see UX position below) — the trimming behavior gives the bug a concrete failure case beyond the conceptual asymmetry.
+
+Findings #2 (clap-voice multi-label error) and #3 (no usage examples in `--help`) are polish items that the project has effectively committed to fixing by Layer 7. Finding #4 (comma-in-label rendering) is a real defect against scannability that DESIGN.md does not yet anticipate.
+
+**UX position on SO Review 16 silent-no-match asymmetry (independent assessment):** The silent-no-match is *not* acceptable UX, and the asymmetry should be closed in favor of the create-side behavior (reject the empty/whitespace filter with `Error: Label cannot be empty.`, exit 1). Two reasons:
+
+1. The "no match" message is technically true but communicatively misleading: the user provided input that *cannot* match anything in storage by spec invariant, regardless of what's stored. Telling them "no issues match the given filters" implies "your filter is well-formed but happens to match nothing yet" — which suggests creating a matching issue would help. Erroring out tells them "your filter is malformed" — which is the actual situation.
+
+2. Finding #1 above demonstrates the concrete harm: combined with the trimming asymmetry, the silent-no-match path masks a real input-vs-storage mismatch. Even if the SO decides to *not* trim filter input (option (b) in Finding #1), explicitly erroring on empty filters means the user types `--label ""` once, gets `Error: Label cannot be empty.`, and immediately realizes their shell expansion went wrong — instead of seeing an empty filter result and concluding their tracker is empty.
+
+Recommend the SO accept the asymmetry as a genuine defect (not "by design") and adopt the symmetric-rejection rule.
+
+**Coordination:**
+- **Finding 1** → cross-reference [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md): spec adjudication required for trimming + empty-filter rule. Independent re-raise of SO Review 16.
+- **Finding 1** → cross-reference [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md): once SO decides, regression test for `list --label "  bug  "` matching a stored `"bug"` (or rejecting the padded filter).
+- **Finding 2** → cross-reference [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md): replace clap's stock multi-occurrence error with a project-voice message for `list --label`.
+- **Finding 3** → cross-reference [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md): pick up the `5b95911` suite-level commitment in DESIGN.md's `--help` contract; route to Layer 7 polish.
+- **Finding 4** → cross-reference [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md): comma-in-label storage rule vs. display-delimiter change.
+
