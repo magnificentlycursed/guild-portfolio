@@ -524,7 +524,7 @@ The 2026-05-05 18:30Z CI hotfix CHANGELOG entry resolves the `license` half of R
 
 For a portfolio project whose stated purpose (DESIGN.md, README, IAR README "Activation rationale" for Technical Writer) is "intended for handoff and external review," the absence of a discoverability `repository` field is a substantive gap. The CHANGELOG hotfix entry acknowledges this and says "re-raise on external-distribution trigger or Layer 4+ explicit director call." Layer 4 has now landed; this is the trigger.
 
-**Classification:** Open. Re-raised to SO. Proposed value: the `magnificentlycursed/guild-portfolio` GitHub URL pointing at the `issue-tracker-cli` subdirectory (consistent with the directory layout the Apprentice Phase 1 program uses). TW will not pick a URL without explicit SO confirmation — fabricating a repository URL would be worse than absence.
+**Classification:** Open. Re-raised to SO. Proposed value: the `https://github.com/<user>/guild-portfolio` URL pointing at the `issue-tracker-cli` subdirectory (consistent with the directory layout the Apprentice Phase 1 program uses). TW will not pick a URL without explicit SO confirmation — fabricating a repository URL would be worse than absence.
 
 ---
 

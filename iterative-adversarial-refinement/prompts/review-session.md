@@ -26,6 +26,16 @@ A finding that is real but uncomfortable is more valuable than a clean pass that
 
 ---
 
+## Confidentiality-aware citation
+
+Review logs are publishable artifacts. When you cite concrete evidence — command transcripts, file paths, hook configurations, secrets-management details, environment values, git-history excerpts — ask before committing the log entry: **does this transcript contain identity-revealing or sensitive data that the project itself attempts to keep out?** Common signals that the project is opt-in anonymized: a `block local home directory paths` pre-commit hook, a `.gitconfig` with a noreply email, a `Cargo.toml`/equivalent that has been scrubbed of `repository`/`author` fields, or a CHANGELOG with explicit anonymization entries. If the project signals "scrub me," the review log must scrub itself the same way.
+
+The principle: **an example illustrating what-not-to-do should never instantiate what-not-to-do.** A review log demonstrating an anonymization defect by quoting the actually-leaked username has reproduced the leak. A review log demonstrating a secrets-management gap by quoting the actual key has reproduced the gap. Abstract the concrete value to a placeholder (`<user>`, `<repo>`, `<email>`, `<key>`, `<path>`) before committing. Keep the *shape* of the evidence (length, position in the line, surrounding bytes) so the finding remains reproducible against the project state, but the *content* is rendered safe to publish.
+
+Suite-level controls help but do not substitute for reviewer judgement: `iterative-adversarial-refinement/hooks/check-review-log-anonymization.sh` scans review-log markdown for the local user's `$HOME`, `git config user.name`, and `git config user.email`. The hook runs on commit; passing the hook does not mean the review log is fully anonymized — only that the most common patterns are absent. Reviewer judgement covers the rest.
+
+---
+
 ## Before starting a domain review
 
 **If DESIGN.md does not exist:** Stop. The absence of a design document is itself a finding for VDD-IAR Alignment dim 1. Do not proceed with other domain reviews — there is no spec to evaluate against. Log the absence and wait for the spec to exist.

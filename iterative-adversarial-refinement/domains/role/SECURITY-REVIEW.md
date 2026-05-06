@@ -69,4 +69,8 @@ Record the threat model as a **preamble in the review log**, before any numbered
 
 ---
 
+**Confidentiality-aware citation (Security-domain reminder).** Information-exposure findings, identity-disclosure findings, and secrets-management findings are this domain's typical surface — and the worked examples that illustrate them tend to instantiate the disclosure. When citing leaked credentials, hardcoded paths revealing developer identity, or environment values: abstract the concrete value to a placeholder (`<token>`, `<user>`, `<path>`) before committing the review log. The specific control here is the primer rule (`prompts/review-session.md` § Confidentiality-aware citation) and the `iterative-adversarial-refinement/hooks/check-review-log-anonymization.sh` hook. Apply both. Demonstrating a disclosure by quoting the actually-disclosed value reproduces the disclosure inside the very review meant to close it.
+
+---
+
 Review entries are logged in `iterative-adversarial-refinement/SECURITY-REVIEW.md` inside the project being reviewed.

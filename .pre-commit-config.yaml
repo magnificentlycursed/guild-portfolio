@@ -15,6 +15,19 @@ repos:
         pass_filenames: true
         types: [text]
 
+      - id: review-log-anonymization
+        name: review-log anonymization (IAR suite hook)
+        language: script
+        # Suite-level hook: lives at iterative-adversarial-refinement/hooks/
+        # so it carries with the suite if the suite is forked into a separate
+        # repo. Scoped to IAR review-log markdown only — the source-code
+        # no-home-dir-paths hook above covers everything else. Allows public
+        # URL contexts (github.com/, gitlab.com/, bitbucket.org/, noreply.*).
+        # Registered as G-98 in iterative-adversarial-refinement/GAP-ANALYSIS-LOG.md.
+        entry: iterative-adversarial-refinement/hooks/check-review-log-anonymization.sh
+        pass_filenames: true
+        files: ^(iterative-adversarial-refinement/.*\.md|.*/iterative-adversarial-refinement/.*\.md)$
+
       - id: cargo-fmt-check
         name: cargo fmt (issue-tracker-cli)
         language: system
