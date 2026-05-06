@@ -5,9 +5,8 @@ edition = "2021"
 description = "A personal command-line issue tracker. Single user, no network; issues stored in a local JSON file. Portfolio project."
 readme = "README.md"
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/magnificentlycursed/guild-portfolio"
 publish = false
-# TODO(SO): set `repository` URL before any external distribution. `publish = false`
-# blocks accidental crates.io upload in the meantime. Raised by TW Review 6.
 
 [[bin]]
 name = "tracker"

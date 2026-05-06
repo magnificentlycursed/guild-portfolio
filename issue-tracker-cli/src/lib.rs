@@ -128,7 +128,7 @@ fn issue_fields_are_valid(issue: &Issue) -> bool {
         && !issue.title.chars().any(char::is_control)
         && VALID_STATUSES.contains(&issue.status.as_str())
         && PRIORITY_ORDER.contains(&issue.priority.as_str())
-        && issue.labels.iter().all(|l| !l.trim().is_empty())
+        && issue.labels.iter().all(|l| label_is_valid(l))
         && issue
             .description
             .as_ref()
@@ -136,6 +136,33 @@ fn issue_fields_are_valid(issue: &Issue) -> bool {
         && parse_timestamp(&issue.created_at).is_some()
         && parse_timestamp(&issue.updated_at).is_some()
         && issue.updated_at >= issue.created_at
+}
+
+/// Stored-label hygiene predicate. Stored labels are post-trim; this predicate
+/// checks the same hygiene rules `parse_label` enforces at the input boundary,
+/// so a hand-edited `tracker.json` with a label that bypassed `parse_label`
+/// (control character, comma, or whitespace-only) is rejected at load.
+fn label_is_valid(label: &str) -> bool {
+    !label.trim().is_empty() && !label.chars().any(char::is_control) && !label.contains(',')
+}
+
+/// Renders user-supplied input safe for interpolation into stderr error messages.
+///
+/// Escapes control characters (Unicode general category `Cc` — newline, CR, tab,
+/// NUL, ESC, DEL, C1 controls) as `\u{XX}` so a pasted ANSI escape sequence or
+/// embedded newline cannot cross the stderr → terminal boundary as raw bytes.
+/// Non-control characters (including printable Unicode, emoji, CJK) pass through
+/// unchanged. See DESIGN.md "stderr contract".
+fn display_safe(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        if c.is_control() {
+            out.push_str(&format!("\\u{{{:X}}}", c as u32));
+        } else {
+            out.push(c);
+        }
+    }
+    out
 }
 
 /// Cross-record invariants: every ID is unique across the collection.
@@ -247,7 +274,7 @@ pub fn parse_status(raw: &str) -> Result<String, String> {
     } else {
         Err(format!(
             "Invalid status '{}'. Expected: open, in-progress, or done.",
-            raw
+            display_safe(raw)
         ))
     }
 }
@@ -260,7 +287,7 @@ pub fn parse_id(raw: &str) -> Result<u64, String> {
     raw.parse::<u64>().ok().filter(|&n| n > 0).ok_or_else(|| {
         format!(
             "'{}' is not a valid issue ID. Expected a positive integer.",
-            raw
+            display_safe(raw)
         )
     })
 }
@@ -317,7 +344,7 @@ pub fn parse_priority(raw: &str) -> Result<String, String> {
     } else {
         Err(format!(
             "Invalid priority '{}'. Expected: low, medium, or high.",
-            raw
+            display_safe(raw)
         ))
     }
 }
@@ -332,17 +359,35 @@ pub fn sort_issues(issues: &mut [Issue]) {
 }
 
 /// Validates and trims a label. Returns the trimmed value, or an error if the
-/// label is empty after trimming.
+/// label fails any of the input-hygiene rules.
+///
+/// Hygiene rules (matching DESIGN.md "Edge Cases / Labels"):
+/// - non-empty after trim
+/// - no control characters (Unicode general category `Cc`)
+/// - no comma `,` (the `Labels` column display separator)
+///
+/// The control-char rule mirrors `validate_title`: labels flow into the same
+/// `list` rendering pipeline as titles, so the same one-issue-per-line and
+/// terminal-escape-injection rationale applies.
 ///
 /// # Errors
 /// Returns `Err("Label cannot be empty.")` when `raw` is empty or whitespace-only.
+/// Returns `Err("Label cannot contain control characters.")` when the trimmed
+/// label contains any character where `char::is_control()` returns `true`.
+/// Returns `Err("Label cannot contain a comma.")` when the trimmed label
+/// contains the character `,`.
 pub fn parse_label(raw: &str) -> Result<String, String> {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
-        Err("Label cannot be empty.".to_string())
-    } else {
-        Ok(trimmed.to_string())
+        return Err("Label cannot be empty.".to_string());
     }
+    if trimmed.chars().any(char::is_control) {
+        return Err("Label cannot contain control characters.".to_string());
+    }
+    if trimmed.contains(',') {
+        return Err("Label cannot contain a comma.".to_string());
+    }
+    Ok(trimmed.to_string())
 }
 
 /// Returns `labels` with duplicates removed; first occurrence preserved.
@@ -411,6 +456,16 @@ pub fn cmd_list(
         Some(p) => Some(parse_priority(p)?),
         None => None,
     };
+    // Validate and trim the label filter symmetrically with create-time
+    // `parse_label`. Without this, `tracker list --label "  bug  "` silently
+    // returned no-match against a stored `bug`, and `tracker list --label ""`
+    // silently no-matched while `tracker create --label ""` errored — the
+    // round-trip asymmetry UX Review 6 / SO Review 16 surfaced. DESIGN.md
+    // Feature 2 now specifies: filter is trimmed; empty-after-trim is rejected.
+    let effective_label = match label_filter {
+        Some(l) => Some(parse_label(l)?),
+        None => None,
+    };
     // Disjunction over non-default filters: any future filter (e.g. Layer 6's
     // `--description-contains`) must extend `extra_filter_active` here — a single
     // location — rather than appending another `&& *_filter.is_none()` conjunct
@@ -418,7 +473,7 @@ pub fn cmd_list(
     // the structural fragility of the positive-enumeration form is what made the
     // earlier empty-state heuristic break when `--priority` was added in Layer 3
     // and again when `--label` was added in Layer 4. SA Review 9 Finding 2.
-    let extra_filter_active = effective_priority.is_some() || label_filter.is_some();
+    let extra_filter_active = effective_priority.is_some() || effective_label.is_some();
     let is_default_open_view = effective_status == "open" && !extra_filter_active;
 
     let mut issues = load_issues(issues_path)?;
@@ -426,7 +481,7 @@ pub fn cmd_list(
     if let Some(p) = &effective_priority {
         issues.retain(|i| &i.priority == p);
     }
-    if let Some(l) = label_filter {
+    if let Some(l) = &effective_label {
         issues.retain(|i| label_matches(&i.labels, l));
     }
 
@@ -706,5 +761,86 @@ mod tests {
             !label_matches(&labels, "auth"),
             "non-member label should not match"
         );
+    }
+
+    // --- Round 2: label control-character and comma defenses ---
+
+    #[test]
+    fn label_with_newline_is_rejected() {
+        assert!(parse_label("bug\nbreak").is_err());
+        assert!(parse_label("bug\rbreak").is_err());
+    }
+
+    #[test]
+    fn label_with_tab_is_rejected() {
+        assert!(parse_label("bug\tbreak").is_err());
+    }
+
+    #[test]
+    fn label_with_escape_sequence_is_rejected() {
+        // ANSI CSI (red text) — ESC = 0x1B, category Cc.
+        assert!(parse_label("\u{1B}[31mEvil\u{1B}[0m").is_err());
+        // OSC 8 hyperlink leader — ESC ] 8 ; ; URL ST
+        assert!(parse_label("\u{1B}]8;;https://evil/\u{7}X\u{1B}]8;;\u{7}").is_err());
+    }
+
+    #[test]
+    fn label_with_nul_or_del_is_rejected() {
+        assert!(parse_label("bug\u{00}break").is_err());
+        assert!(parse_label("bug\u{7F}break").is_err());
+    }
+
+    #[test]
+    fn label_with_comma_is_rejected() {
+        assert!(parse_label("a,b").is_err());
+        assert!(parse_label(",bug").is_err());
+        assert!(parse_label("bug,").is_err());
+    }
+
+    #[test]
+    fn label_with_printable_unicode_is_accepted() {
+        assert!(parse_label("bug").is_ok());
+        assert!(parse_label("emoji-🚀").is_ok());
+        assert!(parse_label("中文").is_ok());
+        assert!(parse_label("café").is_ok());
+        assert!(parse_label("with space").is_ok());
+    }
+
+    #[test]
+    fn issue_field_validation_rejects_control_char_in_label() {
+        let mut bad = issue(1, "medium");
+        bad.labels = vec!["bug\nfake".to_string()];
+        assert!(!issue_fields_are_valid(&bad));
+    }
+
+    #[test]
+    fn issue_field_validation_rejects_comma_in_label() {
+        let mut bad = issue(1, "medium");
+        bad.labels = vec!["a,b".to_string()];
+        assert!(!issue_fields_are_valid(&bad));
+    }
+
+    #[test]
+    fn issue_field_validation_accepts_clean_label() {
+        let mut ok = issue(1, "medium");
+        ok.labels = vec!["bug".to_string(), "auth".to_string()];
+        assert!(issue_fields_are_valid(&ok));
+    }
+
+    #[test]
+    fn display_safe_passes_printable_chars_through() {
+        assert_eq!(display_safe("low"), "low");
+        assert_eq!(display_safe("foo bar"), "foo bar");
+        assert_eq!(display_safe("emoji-🐛"), "emoji-🐛");
+        assert_eq!(display_safe("中文"), "中文");
+    }
+
+    #[test]
+    fn display_safe_escapes_control_chars() {
+        assert_eq!(display_safe("a\nb"), "a\\u{A}b");
+        assert_eq!(display_safe("a\tb"), "a\\u{9}b");
+        assert_eq!(display_safe("\u{1B}[31m"), "\\u{1B}[31m");
+        assert_eq!(display_safe("\u{00}"), "\\u{0}");
+        assert_eq!(display_safe("\u{7F}"), "\\u{7F}");
     }
 }

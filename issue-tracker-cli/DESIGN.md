@@ -19,13 +19,13 @@ This is portfolio project #2, per the Phase 1 apprentice program assignment in `
 - `<title>` after trimming leading/trailing whitespace is non-empty
 - `<title>` contains no control characters (Unicode general category `Cc` — see Edge Cases / Title)
 - If `--priority` is present, its value is one of: `low`, `medium`, `high` (case-insensitive)
-- If `--label` is present, each label value is non-empty after trimming
+- If `--label` is present, each label value, after trimming, is non-empty, contains no control characters (Unicode general category `Cc`), and contains no comma `,`
 
 **Postconditions:**
 - A new issue is appended to `tracker.json` with a unique, auto-assigned ID
 - `status` is `open`
 - `priority` defaults to `medium` if `--priority` is not provided
-- `labels` is the deduplicated list of `--label` values; order is preserved, case is preserved as provided; empty if no `--label` flags given
+- `labels` is the deduplicated list of `--label` values, with each value trimmed of leading/trailing whitespace; order is preserved (first occurrence retained); case is preserved as provided after trimming; empty if no `--label` flags given
 - `description` is stored as provided (not trimmed); absent if `--description` is not provided
 - `created_at` and `updated_at` are set to the current UTC timestamp (ISO 8601, second precision)
 - `tracker.json` is updated with the new issue
@@ -38,6 +38,8 @@ This is portfolio project #2, per the Phase 1 apprentice program assignment in `
 - `--description` value is empty or whitespace-only after trim → stderr `Error: Description cannot be empty.` → exit 1
 - Invalid priority value → stderr `Error: Invalid priority '<v>'. Expected: low, medium, or high.` → exit 1
 - Empty label after trim → stderr `Error: Label cannot be empty.` → exit 1
+- Label contains a control character → stderr `Error: Label cannot contain control characters.` → exit 1
+- Label contains a comma → stderr `Error: Label cannot contain a comma.` → exit 1
 
 **Invariants:**
 - No two issues share the same ID
@@ -56,7 +58,7 @@ This is portfolio project #2, per the Phase 1 apprentice program assignment in `
 
 **With `--priority <p>`:** shows only issues matching that priority. Valid values: `low`, `medium`, `high`.
 
-**With `--label <l>`:** shows only issues that have that label (exact match, case-sensitive). Only one `--label` filter is supported per invocation. If `--label` is provided more than once to `list`, a usage error is produced on stderr and the command exits 1.
+**With `--label <l>`:** shows only issues that have that label (exact match, case-sensitive). The filter value is trimmed before comparison (symmetric with create-side trim-on-store). Only one `--label` filter is supported per invocation. If `--label` is provided more than once to `list`, a usage error is produced on stderr and the command exits 1.
 
 **Multiple filters:** `--status`, `--priority`, and `--label` are AND-combined. An issue must match all provided filters to appear.
 
@@ -72,6 +74,7 @@ This is portfolio project #2, per the Phase 1 apprentice program assignment in `
 **Error states:**
 - Invalid `--status` value → stderr `Error: Invalid status '<v>'. Expected: open, in-progress, or done.` → exit 1
 - Invalid `--priority` value → stderr `Error: Invalid priority '<v>'. Expected: low, medium, or high.` → exit 1
+- Empty or whitespace-only `--label` filter value → stderr `Error: Label cannot be empty.` → exit 1 (symmetric with create-side validation; prevents a silent-no-match for a malformed filter)
 
 **Invariants:**
 - Output is deterministic for the same storage state and flags
@@ -209,7 +212,7 @@ This is portfolio project #2, per the Phase 1 apprentice program assignment in `
 
 **stdout contract:** all *data* output goes to stdout — issue rows from `list`, the labelled key-value block from `show`, and the one-line confirmations from `create` / `status` / `delete`. A consumer that pipes stdout (`tracker list | wc -l`, `tracker show <id> | grep ...`) sees only data records.
 
-**stderr contract:** all error messages and informational status messages go to stderr. Error messages begin with `Error:` and are followed by a human-readable description; no stack traces or internal detail are exposed to the user. Empty-state messages from `list` (`No open issues. Nice work!` and `No issues match the given filters.`) are informational, not data — they go to stderr so a piped consumer sees an empty stdout when no issues match.
+**stderr contract:** all error messages and informational status messages go to stderr. Error messages begin with `Error:` and are followed by a human-readable description; no stack traces or internal detail are exposed to the user. Error messages that interpolate user-supplied values (e.g. `Error: Invalid priority '<v>'.`) MUST escape any control character (Unicode general category `Cc`) in the interpolated value as `\u{XX}` before rendering — the error stream is not a transparent pipe for arbitrary terminal sequences. Empty-state messages from `list` (`No open issues. Nice work!` and `No issues match the given filters.`) are informational, not data — they go to stderr so a piped consumer sees an empty stdout when no issues match.
 
 **Exit codes:**
 - `0` — success
@@ -302,8 +305,13 @@ Updated:     2026-04-27T15:00:00Z
 - Duplicate labels on create (`--label bug --label bug`) → deduplicated; stored once as `["bug"]`
 - Empty label (`--label ""`) → error: `Label cannot be empty.`
 - Whitespace-only label (`--label "  "`) → error: `Label cannot be empty.` (checked after trim)
+- Leading/trailing whitespace on a label is trimmed before storage; `--label "  bug  "` stores `bug`. Deduplication compares trimmed values, so `--label "bug" --label "  bug  "` stores `["bug"]`
+- Label containing a control character (Unicode general category `Cc` — newline, CR, tab, NUL, ESC, DEL, C1 controls) → error: `Label cannot contain control characters.` Same rationale as Title (preserves the one-issue-per-line `list` contract and prevents terminal-escape injection via the comma-separated `Labels` column rendering)
+- Label containing a comma (`--label "a,b"`) → error: `Label cannot contain a comma.` The comma is the `Labels` column display separator (`a,b, c` would be ambiguous with `a, b, c`); rejecting commas at input keeps the display unambiguous
 - Label filter matches case-sensitively: `--label Bug` does not match an issue with label `bug`
+- The `--label` filter value on `tracker list` is trimmed before comparison; `tracker list --label "  bug  "` matches a stored `bug` (symmetric with the create-side trim)
 - An issue with no labels filtered with `--label bug` → does not appear in results
+- Bidi-override / format-class / zero-width characters (Unicode general categories `Cf`, `Mn` and similar) are accepted as printable Unicode and may produce visually-misleading output. Out-of-threat-model for this single-user local tool: the threat surface is bounded to the user attacking themselves with hand-pasted clipboard content or a hand-edited `tracker.json`. If a future use case widens the threat model (multi-user / network-distributed / shared `tracker.json`), revisit this stance
 
 ### List
 
@@ -322,7 +330,7 @@ Updated:     2026-04-27T15:00:00Z
 
 - `tracker.json` does not exist → treated as empty tracker; first `create` produces `tracker.json`
 - `tracker.json` contains valid JSON but unknown fields → unknown fields are ignored at load (forward-compatible deserialization). They are NOT preserved across writes — any subsequent mutation rewrites `tracker.json` with only the documented schema fields, dropping anything else. Hand-edited `tracker.json` files should not rely on extra keys persisting.
-- `tracker.json` contains valid JSON but invalid domain values (e.g., `"status": "flying"`, `"priority": ""`, `"id": 0`, `"title": ""`, a control-character in `title`, an empty `label`, a malformed `created_at` / `updated_at`, `updated_at < created_at`, or duplicate `id` across records) → stderr `Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.` → exit 1
+- `tracker.json` contains valid JSON but invalid domain values (e.g., `"status": "flying"`, `"priority": ""`, `"id": 0`, `"title": ""`, a control-character in `title`, an empty `label`, a control-character or comma in any `label`, a malformed `created_at` / `updated_at`, `updated_at < created_at`, or duplicate `id` across records) → stderr `Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.` → exit 1
 - `tracker.json` contains malformed JSON → stderr `Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.` → exit 1
 - `tracker.json` exists but is not readable (permissions) → stderr `Error: Could not read tracker data: permission denied.` → exit 1
 - Write fails (disk full, permissions) → stderr `Error: Could not save tracker data: <reason>.` → exit 1
@@ -391,7 +399,22 @@ Prefer separating validation, filtering, and sorting logic into functions with n
 - **Issue comments** — no per-issue comment thread
 - **Remote or synced storage** — local file only; no cloud backend, no API
 - **Archiving** — delete is the only removal mechanism; no soft-delete or archive state
-- **Interactive mode** — the tool is non-interactive; it reads arguments from the command line and exits; no TUI or REPL. The assignment's Layer 6 build guidance mentions "`tracker delete <id>` with confirmation," but the authoritative interface section lists `tracker delete <id>` with no confirmation signal, and build layers are explicitly advisory. Non-interactive delete is consistent with all other subcommands and standard CLI conventions.
+- **Interactive mode** — the tool is non-interactive; it reads arguments from the command line and exits; no TUI or REPL. See "Approved Deviations from Assignment" below for the `tracker delete <id>` confirmation prompt waiver.
 - **Concurrent access** — no file locking; undefined behavior if two instances run simultaneously against the same `tracker.json`
 - **Atomic writes** — direct write to `tracker.json` on every mutation; no temp-file-and-rename. Correct production practice but implementation cost exceeds failure risk for a single-user local tool. Revisit if the tool is ever used in a context with multiple concurrent writers.
 - **Structured exit codes for scripted callers** — exit 0/1 only; no separate exit code for I/O vs. user errors. This tool is used interactively; no scripted caller exists to distinguish error categories.
+
+---
+
+## Approved Deviations from Assignment
+
+This section documents deliberate, director-approved deviations from the upstream assignment brief at `apprentice-onboarding/02-the-methodology/02-tracking-your-work.md` (canonical source: https://github.com/Navigators-Guild/apprentice-onboarding/blob/main/02-the-methodology/02-tracking-your-work.md). Each entry records the deviation, the rationale, the approver, and the date. Approved deviations are NOT scope-narrowings; they are explicit "we considered the assignment requirement and chose to deviate, with stakeholder approval." Per `iterative-adversarial-refinement/CLOSURE-PROTOCOL.md`, only the Solution Owner may add entries here.
+
+### D1 — `tracker delete <id>` does not require confirmation
+
+- **Assignment text:** Build layer sequence, Layer 6: "Detail & delete: show full details; **delete with confirmation**".
+- **Deviation:** `tracker delete <id>` is non-interactive. No `[y/N]` prompt; no `--yes` bypass flag. Single-shot deletion at exit 0 (or exit 1 on error).
+- **Rationale:** (1) the rest of the binary is non-interactive (every other subcommand exits without prompting), so a single interactive command would be inconsistent with the established surface; (2) standard CLI tools in the same family (`git rm`, `rm`, `mv`) delete without confirmation by default and offer `-i` for interactive mode; (3) the operation is recoverable in practice — `tracker.json` is a flat JSON file under version control or backup, and the user can restore the deleted record by editing the file directly; (4) the tool's threat model is a single user on a local machine, where accidental-deletion friction is the user's own concern, not a multi-stakeholder safety surface.
+- **Approver:** apprentice-program director (the human user of this branch), implicit approval recorded via the `2026-05-05` round-2 IAR resolution that addressed SO Review 16 Finding 4.
+- **Date approved:** 2026-05-05
+- **Re-evaluation trigger:** if the tool is used in a multi-user / shared context (which itself contradicts the assignment's "Single user" constraint), reintroduce the confirmation requirement at that point.
