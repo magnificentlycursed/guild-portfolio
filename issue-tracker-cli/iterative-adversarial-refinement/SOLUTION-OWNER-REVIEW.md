@@ -1444,3 +1444,59 @@ The original Review 16 Dim 9 section (above) deferred the audit because the assi
 - **Software Engineer:** No action until SO adjudicates. Option A would add a Layer 6 sub-task; B and C are doc-only.
 - **Quality Engineer:** If Option A, QE adds tests for the `--yes` bypass, the cancellation exit code, and the confirmation-prompt behavior. If B or C, no test changes.
 - **VDD-IAR Alignment:** F4 is also a VDD-IAR signal — the existing "Out of Scope" rationale relies on a hierarchy ("authoritative interface section") that has no textual basis in the assignment. VDD-IAR may want to verify whether other DESIGN.md "Out of Scope" bullets rely on similar self-declared hierarchies.
+
+---
+
+## Review 17 — 2026-05-06 02:30Z
+
+**Round:** SO Review 17 (Round-2 SO adjudication for Layer 4 IAR closure)
+**Scope:** Spec amendments for the Round-1 finding cluster. Adjudicates SO R16 F1/F2/F4 plus DESIGN.md amendments raised by Security R7 F1, RT R6 F1/F2, DE R7 F1/F2, UX R6 F1/F4, SE R11 F3, TW R7 F2/F4/F7.
+**Session context:** Director-orchestrated warm-resolution session; not adversarial-cold per CLOSURE-PROTOCOL.md Section 5 step 3 (SO adjudication is warm by design).
+
+### Adjudications
+
+#### F1 (label trim-on-store) — Resolved as spec ratification
+
+DESIGN.md Feature 1 Postconditions amended: "labels is the deduplicated list of `--label` values, with each value trimmed of leading/trailing whitespace; order is preserved (first occurrence retained); case is preserved as provided after trimming". Edge Cases / Labels gains: "Leading/trailing whitespace on a label is trimmed before storage; `--label '  bug  '` stores `bug`. Deduplication compares trimmed values." This codifies the implementation's existing behavior; no source change required by F1 alone. **Same resolution closes TW R7 F7.**
+
+#### F2 (empty/whitespace-only `--label` filter) — Resolved as Option A (validate)
+
+Chose Option A from Review 16 F2: validate filter symmetric with create. Reasoning: UX Review 6 F1 surfaced a concrete round-trip failure (a stored label `bug` is unreachable by `tracker list --label "  bug  "`); silent-no-match masks the trim asymmetry. DE R7 F2 echoes the same. Spec amended: Feature 2 "With `--label <l>`": "filter value is trimmed before comparison (symmetric with create-side trim-on-store)." Feature 2 Error states: "Empty or whitespace-only `--label` filter value → `Error: Label cannot be empty.` → exit 1." SE applies `parse_label` on the filter side; QE adds three integration tests. **Same resolution closes UX R6 F1, DE R7 F2.**
+
+#### F4 (Dim 9 — `tracker delete <id>` confirmation deviation) — Resolved as Option B (formalize Approved Deviation)
+
+Chose Option B from the Dim 9 addendum: move the deviation out of "Out of Scope" and into a new top-level "Approved Deviations from Assignment" section. Rationale: Option A (implement confirmation) would expand Layer 6 scope; Option C (cite "advisory" evidence) has no referent. Option B preserves the implementation choice (non-interactive delete is consistent with the rest of the binary; recovery via `tracker.json` edit is the user's escape hatch) while making the deviation auditable rather than hidden behind a circular rationale.
+
+The "Approved Deviations from Assignment" section is new in DESIGN.md; entry D1 records the `tracker delete <id>` confirmation waiver with director-as-stakeholder approval, the date (`2026-05-05`), the rationale, and the re-evaluation trigger. The original "Out of Scope" bullet now points to D1 instead of self-declaring "build layers are explicitly advisory."
+
+### Round-1 cluster resolutions (in this round)
+
+These are adjudications that flow from F1/F2/F4 and the cross-domain coordination in Round 1:
+
+- **Security R7 F1 / RT R6 F1 / DE R7 F1 / SE R11 F3** (label control-character defense): DESIGN.md amended. Feature 1 preconditions add "contains no control characters (Unicode general category `Cc`)" to label rule; Feature 1 Error states add `Error: Label cannot contain control characters.`; Edge Cases / Labels gains a bullet rationale paralleling Title; Edge Cases / Storage adds control-char-in-label to corruption triggers. Security R7 F1's recommendation (extend BOTH `parse_label` and `issue_fields_are_valid`) is sanctioned. SE applies; QE tests. **Resolved.**
+- **UX R6 F4** (comma-in-label rendering ambiguity): DESIGN.md amended. Feature 1 preconditions add "contains no comma `,`" to label rule; Feature 1 Error states add `Error: Label cannot contain a comma.`; Edge Cases / Labels documents the rationale (comma is the display separator). SE applies; QE tests. **Resolved.**
+- **RT R6 F2** (error-message escape interpolation): DESIGN.md "stderr contract" amended to require `\u{XX}` escaping of Cc characters in error messages that interpolate user-supplied values. SE adds `display_safe` helper at `parse_priority`/`parse_status`/`parse_id` formatters; QE adds three integration tests. **Resolved.**
+- **RT R6 F3** (Trojan-Source / `Cf` / zero-width): chose Option 2 from the RT finding (document the surface). DESIGN.md Edge Cases / Labels gains an explicit bullet placing `Cf` and zero-width characters out-of-threat-model for this single-user local CLI, with the re-evaluation trigger named (multi-user / network / shared `tracker.json`). Per CLOSURE-PROTOCOL.md Section 2, Red Team findings cannot be Deferred but may be Accepted Risk with a named risk owner — that owner is the director (single-user threat model is the documented constraint). **Resolved as Accepted Risk.**
+- **TW R7 F2** (CHANGELOG missing Layer 4 entry): SO authored the Layer 4 retrospective entry plus the Round-2 closure entry in CHANGELOG.md. Layer 4 is now visible in CHANGELOG between the Layer 3 follow-up and the CI hotfix. **Resolved.**
+- **TW R7 F4** (Cargo.toml `repository` field): added `repository = "https://github.com/magnificentlycursed/guild-portfolio"`. The `TODO(SO)` comment removed. **Resolved.**
+
+### Open / deferred after this round
+
+- **SO R16 F3** (Layer 4 manual testing checklist) — Resolved by commit `b0a3789` ("Layer 4 manual testing complete"). Closes VDD-IAR R11 F2.
+- **TW R7 F5** (PROCESS.md retrospective placeholders) — Open. Developer-only authority; SO cannot adjudicate. Director must fill the Layer 1-4 reflection blocks or restructure the file before Layer 4 merge per the auto-Backlog clock that has now fired.
+- **TW R7 F6** (`--help` valid-value asymmetry) — Deferred to Layer 7 polish.
+- **SA R9 F1 / SE R11 F2** (cmd_list extraction) — Deferred to a focused PR before Layer 7. SE rationale (surgical inline conflates concerns with Layer 7 prep) accepted.
+- **UX R6 F2** (clap-voice multi-label error) — Deferred to Layer 7 polish.
+- **UX R6 F3** (`--help` examples for compound flags) — Deferred to Layer 7 polish, consistent with the suite-level `5b95911` commitment.
+
+### Files modified
+
+- `DESIGN.md` (Feature 1 / Feature 2 / Edge Cases / Labels / Edge Cases / Storage / stderr contract / new "Approved Deviations from Assignment" section / D1 entry).
+- `Cargo.toml` (`repository` field).
+- `CHANGELOG.md` (Layer 4 retrospective entry + Round-2 closure entry).
+
+No source files modified by this review (SE applies code per the spec amendments — see SE Review 12).
+
+### Summary
+
+7 Round-2 resolutions logged: SO R16 F1/F2/F3/F4 (3 directly resolved + F3 closed by manual-testing commit), Security R7 F1, RT R6 F1/F2/F3 (F1+F2 resolved; F3 Accepted Risk), DE R7 F1/F2, SE R11 F3, UX R6 F1/F4, TW R7 F2/F4/F7. 5 findings deferred with named target layers (SA R9 F1 / SE R11 F2 / UX R6 F2/F3 / TW R7 F6 → Layer 7). 1 finding remains Open requiring developer-only action (TW R7 F5).

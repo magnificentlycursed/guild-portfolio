@@ -592,3 +592,62 @@ Recommend the SO accept the asymmetry as a genuine defect (not "by design") and 
 - **Finding 3** → cross-reference [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md): pick up the `5b95911` suite-level commitment in DESIGN.md's `--help` contract; route to Layer 7 polish.
 - **Finding 4** → cross-reference [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md): comma-in-label storage rule vs. display-delimiter change.
 
+---
+
+## Review 7 — 2026-05-06 02:50Z
+
+**Round:** UX Review 7 (Round-2 verification for Layer 4)
+**Scope:** Verify Round-1 F1 (trim-asymmetry round-trip + empty-filter silent-no-match) and F4 (comma-in-label rendering ambiguity) are closed. F2 / F3 deferred to Layer 7 polish per SO Review 17.
+**Session context:** Warm-verification session. Re-ran the Review 6 reproducers against the release binary at commit `67ef920`.
+
+### Resolved
+
+#### Finding 1 (Round-1) — Trim-asymmetry round-trip + empty filter
+
+SO Review 17 chose Option A (validate symmetric with create). DESIGN.md Feature 2 amended; SE applied `parse_label` to the filter side; QE added the regression tests. Re-verified:
+
+```
+$ tracker create "X" --label "  spaced  "
+Created issue #1: X
+$ tracker list --label "  spaced  "
+ID    Status       Priority  Labels                Title
+1     open         medium    spaced                X
+$ tracker list --label ""
+Error: Label cannot be empty.
+exit=1
+$ tracker list --label "  "
+Error: Label cannot be empty.
+exit=1
+```
+
+The round-trip now holds: a stored value is reachable by the same literal filter string. Empty/whitespace-only filters are rejected with the spec-literal error (symmetric with `tracker create`). **Resolved.**
+
+#### Finding 4 (Round-1) — Comma-in-label rendering ambiguity
+
+SO Review 17 chose Option (a) from F4 (reject commas at parse). DESIGN.md Edge Cases / Labels documents the rule; SE added the comma check to `parse_label` and `label_is_valid`; QE added `create_with_comma_label_exits_one` and `corrupt_data_with_comma_label_is_rejected`. Re-verified:
+
+```
+$ tracker create "X" --label "a,b" --label "c"
+Error: Label cannot contain a comma.
+exit=1
+```
+
+The previously-ambiguous `bug, auth` vs. `a,b, c` rendering can no longer arise; the display delimiter is unambiguous because the alphabet of allowed label characters excludes the delimiter itself. **Resolved.**
+
+### Deferred (Layer 7 polish — per SO Review 17)
+
+#### Finding 2 (Round-1) — Clap-voice multi-label error
+
+The clap default message `the argument '--label <LABEL>' cannot be used multiple times` still appears (project-voice rewrite not applied this round). DESIGN.md does not require a specific phrasing — only "usage error on stderr, exit 1" — so this is implementation polish. Deferred to Layer 7.
+
+#### Finding 3 (Round-1) — Top-level `tracker --help` lacks usage examples
+
+Suite-level commitment `5b95911` calls for usage examples by the polish/help-finalization layer. Layer 7 is the polish layer for this project. Deferred to Layer 7. SO Review 17 records the deferral with the named target.
+
+### Summary
+
+Round-1 F1 + F4 → Round-2 closed. F2 + F3 → Layer 7 polish (deferred with named target). The two consequential UX defects (silent no-match for trim-asymmetric input, comma rendering ambiguity) are both resolved. The two polish items are correctly scoped to a future layer rather than being silently dropped.
+
+**Files modified:** Only this log appended.
+
+---

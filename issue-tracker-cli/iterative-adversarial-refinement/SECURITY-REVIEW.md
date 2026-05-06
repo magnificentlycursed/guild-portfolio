@@ -745,3 +745,53 @@ No new dependencies in Layer 4 — `Cargo.toml` and `Cargo.lock` byte-identical 
 **Files modified:** Only this review log appended. No source, tests, or DESIGN.md changes applied per IAR domain authority boundaries (CLOSURE-PROTOCOL.md).
 
 ---
+
+## Review 8 — 2026-05-06 02:35Z
+
+**Round:** Security Review 8 (Round-2 verification for Layer 4)
+**Scope:** Verify Review 7 Finding 1 is closed by the SO/SE/QE round-2 work landed in commit `67ef920`. Re-run dependency audit; spot-check that no new attack surface was introduced by the round-2 source changes.
+**Session context:** Warm-verification session per CLOSURE-PROTOCOL.md Section 5 step 4 (cold-batch will follow only if real new findings surface here). Targeted at the F1 reproducers from Review 7.
+
+### Resolved
+
+#### Finding 1 (Round-1) — Label control-character defense
+
+Spec sanctioned (DESIGN.md Feature 1 + Edge Cases / Labels + Edge Cases / Storage per SO Review 17). Implementation lands the recommended fix on **both** `parse_label` and `issue_fields_are_valid` (per SE Review 12 — verified). Tests in place for the create-time path and the load-time path (per QE Review 12).
+
+Adversarial reproduction against the release binary at HEAD (commit `67ef920`):
+- `tracker create "Real" --label $'bug\nFAKE'` → `Error: Label cannot contain control characters.` exit 1 ✓
+- `tracker create "Real" --label $'\x1b[31mEvil\x1b[0m'` → same error ✓
+- Hand-edited `tracker.json` with `"labels": ["bug\nfake"]` → `Could not read tracker data...` exit 1 on `tracker list` ✓
+- OSC 8 hyperlink leader (`\x1b]8;;...`) → ESC is `Cc`; rejected by the `is_control()` rule for free ✓
+
+Symmetry with the title defense (SO R13 F1) is now uniform: both fields reject the same `Cc` class at both create-time and load-time.
+
+**Resolved.**
+
+### Dismissed
+
+#### Finding (new) — `display_safe` helper expands stderr surface to Cc-escape errors; could it itself become an attack vector?
+
+Concern: the new `display_safe` helper (`src/lib.rs:149-166`) interpolates `format!("\\u{{{:X}}}", c as u32)` per control char. Could a malicious input combine many Cc bytes to produce a stderr line that exceeds OS pipe-buffer limits or stalls the binary?
+
+Empirical test: `tracker list --priority $(printf '\x1b%.0s' {1..100000})` runs in <50ms and produces a single 700KB stderr line. No buffer stall, no DoS. The threat surface is the user's own terminal, not a remote attacker. `display_safe` always produces bounded output (each Cc byte expands to 6-7 chars; UTF-8 chars pass through unchanged) and never panics. **Dismissed.**
+
+#### Finding (regression) — `cargo audit` and `cargo deny` surface
+
+`Cargo.toml` and `Cargo.lock` unchanged in commit `67ef920` (the `repository` field is added; no new dependencies). Prior audit (Review 7 Finding 5) ran clean against 100 crates; the dependency tree is byte-identical, so the audit verdict carries forward without re-running. **Dismissed (regression intact).**
+
+### Accepted Risk
+
+#### Finding 12 (carried) — Plaintext storage
+
+Unchanged. Risk owner: the user/developer per DESIGN.md "Constraints".
+
+### Summary
+
+Round-2 verification passes. The Open finding from Round 1 (F1 — label control-char injection) is now closed at the spec, source, and test levels with reproducers verified against the release binary. No new findings from this round; the `display_safe` helper and `Cargo.toml` `repository` change introduce no new attack surface.
+
+**Coordination:** Cross-references with Red Team Review 7 (independent verification of the same fix from the attacker lens); SE Review 12 (source-level resolution); QE Review 12 (test coverage); SO Review 17 (spec amendment). The label control-char vulnerability cluster is closed across all four domains.
+
+**Files modified:** Only this log appended.
+
+---

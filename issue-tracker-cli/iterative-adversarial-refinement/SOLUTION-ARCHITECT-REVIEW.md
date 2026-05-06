@@ -763,3 +763,44 @@ Two findings dismissed with explicit re-raise conditions (lib.rs decomposition: 
 
 **Architectural concerns next-tier reviewers should know about:** SE will receive both Open findings; the `cmd_list` extraction is the higher-value fix (it's the architectural prerequisite for Layer 7 color and reduces inline literal sprawl now). QE may want to verify the `list --label X --label Y` rejection error text matches the spec's "usage error" intent — clap's default rejection produces clap's standard message format ("the argument '--label <label>' cannot be used multiple times"), which is then transformed by `main.rs` to begin with `Error:`. DESIGN.md does not specify the exact wording for the multiple-label-on-list rejection, so this is acceptable, but a QE round may flag the message quality. Software Engineer should also note that `truncate_with_ellipsis` is now used for both label and title columns — the function is fine as-is, but the magic number `20` for labels duplicates the format-string `:<20}` width and should land alongside the Finding 1 column-width constant extraction.
 
+---
+
+## Review 10 — 2026-05-06 03:00Z
+
+**Round:** SA Review 10 (Round-2 architectural carry-forward for Layer 4)
+**Scope:** Re-evaluate Round-1 F1 / F2 status after the Round-2 source changes in commit `67ef920`. Sycophancy guard: did Round-2 either resolve, worsen, or leave unchanged the architectural debt named in Round 1?
+**Session context:** Warm-verification session.
+
+### Status of Round-1 findings
+
+#### Finding 1 (Round-1) — `cmd_list` extraction with column-width constants
+
+Round-2 source changes added a `parse_label` call on the filter side (`cmd_list:454-461`) and a `display_safe` helper for error formatters. Neither change modified the cmd_list rendering pipeline (column widths, header row, retain calls). The function gained one more pre-load step (`effective_label` validation) but the rendering core is unchanged. The four scattered column-width literals are still scattered. The Layer 7 prep work is still in front of the project.
+
+**Classification: Open (Deferred to a focused PR before Layer 7).** Same as Round 1; SO Review 17 records the deferral with the named target. The Round-2 commit did not regress the architectural quality (no new inline retains; no new format-string occurrences); it also did not advance it. Holding to the original SE/SA rationale: the extraction is a structural change that needs its own PR with its own test scaffolding, not bundled with the security/correctness fix.
+
+#### Finding 2 (Round-1) — `is_default_open_view` polarity inversion
+
+Resolved in SE Review 11 (commit `b4f2db1`). Round-2 source changes re-used the named `extra_filter_active` local introduced by SE Review 11 — adding the new `effective_label.is_some()` disjunct in the same single location, rather than appending a new conjunct to the empty-state predicate. This is the future-extension property the original finding was designed to ensure: future filters (Layer 6's `--description-contains` etc.) will continue to extend at one site rather than everywhere. The structural fragility is genuinely closed.
+
+**Classification: Resolved (re-verified).** The SO Review 11 regression class is closed for Layer 4+ filter additions.
+
+### Round-2 architectural observations (no new findings)
+
+- The new `display_safe` helper (`src/lib.rs:149-166`) is a small, well-scoped, side-effect-free pure helper with its own unit tests — exactly the architectural shape the project's CLI supplement recommends. Its addition reduces architectural debt by centralizing the Cc-escape rule at the formatter sites.
+- The new `label_is_valid` helper (`src/lib.rs:141-147`) is similarly well-scoped: it's the read-side dual of `parse_label`'s write-side validation, and it's called from `issue_fields_are_valid` to maintain the load-time hygiene invariant. This follows the same pattern as the title check on the line above. Symmetry with prior validation discipline is preserved.
+- No new module-level state, no new public API beyond what the spec changes required, no new dependencies.
+
+### Re-raise watches (unchanged from Round 1)
+
+- `lib.rs` non-test line count: now ~485 (was ~460). Approaching the SA Review 8 re-raise threshold of 500 non-test lines. Layer 5/6 will likely cross it, at which point the `lib/storage.rs`, `lib/validate.rs`, `lib/commands.rs` decomposition is due. Tracking note for SE / Layer 5 scoping.
+- `cmd_create` parameters: still 4. Threshold of 5 reached at Layer 6's `--description`. Tracking note unchanged.
+
+### Summary
+
+Round-1 F2 verified Resolved (and the resolution survived contact with new filter additions in Round-2 — the property held). F1 unchanged (Deferred to a focused PR before Layer 7). 0 new architectural findings from Round-2 source changes. The Round-2 source changes are architecturally clean.
+
+**Files modified:** Only this log appended.
+
+---
+

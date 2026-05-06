@@ -593,3 +593,37 @@ The MVR signal for this domain is not yet reached for Layer 4: Finding 1 is a re
 
 ---
 
+## Review 8 — 2026-05-06 02:45Z
+
+**Round:** Data Engineer Review 8 (Round-2 verification for Layer 4)
+**Scope:** Verify Round-1 F1 (label control-char) and F2 (filter normalization symmetry) are closed by the SO/SE/QE Round-2 work in commit `67ef920`.
+**Session context:** Warm-verification session.
+
+### Resolved
+
+#### Finding 1 (Round-1) — Label control-character at create + load
+
+DESIGN.md sanctioned per SO Review 17. SE applied the `parse_label` extension AND the load-time check via the new `label_is_valid` helper called from `issue_fields_are_valid` (`src/lib.rs:131`). QE added integration tests for both paths, plus unit tests on `label_is_valid` directly. Verified by re-running the Review 7 reproducers from `/tmp/de-test*`:
+
+- `tracker create "Test" --label $'bug\nbreak'` → exit 1 with `Error: Label cannot contain control characters.` ✓
+- Hand-edited `tracker.json` with `"labels": ["bug\nbreak"]` → `Could not read tracker data...` exit 1 ✓
+- Same for tab, ESC, NUL, DEL ✓
+
+The data-model invariant — every `String`-bearing field in `Issue` has the same untrusted-input hygiene at create-time AND load-time — is now uniform across `title`, `labels`, and (Layer 6 forward-prep) `description`. **Resolved.**
+
+#### Finding 2 (Round-1) — Filter trim symmetry
+
+DESIGN.md Feature 2 amended (per SO Review 17 Option A): the `--label` filter value is trimmed before comparison, and an empty/whitespace-only filter is rejected with the spec-literal `Error: Label cannot be empty.`. SE applied `parse_label` on the filter side in `cmd_list`. QE added `list_label_filter_is_trimmed_to_match_stored`, `list_empty_label_filter_exits_one`, `list_whitespace_label_filter_exits_one`, and `list_control_char_label_filter_exits_one`. Verified: a stored `bug` is now reachable via `tracker list --label "  bug  "`. The two normalization policies (create vs. filter) are now identical. **Resolved.**
+
+### Round-trip serialization regression check
+
+`Cargo.toml` and `Cargo.lock` unchanged. The new `parse_label` and `label_is_valid` rules don't affect `serde` round-trip semantics — they're invariant predicates over the data, not codec changes. Verified empirically: a clean `tracker.json` written by Round-2 binary loads correctly; the additional rejection cases (control-char, comma) are caught at load time as documented in DESIGN.md Edge Cases / Storage. The forward-compat behavior (unknown fields tolerated at load, dropped at write) is intact.
+
+### Summary
+
+Round-1 F1 + F2 → Round-2 0 Open. The data-model invariant is now uniform across all `String`-bearing fields. No new findings. **Coordination:** cross-references Security Review 8, Red Team Review 7, SE Review 12, QE Review 12, SO Review 17.
+
+**Files modified:** Only this log appended.
+
+---
+

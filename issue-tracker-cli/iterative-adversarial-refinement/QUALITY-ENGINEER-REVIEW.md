@@ -1104,3 +1104,66 @@ Three findings resolved inline (case preservation test added; multiple-flag erro
 - **No new domain coordination beyond the existing Security R7 chain.**
 
 ---
+
+## Review 12 — 2026-05-06 02:30Z
+
+**Round:** QE Review 12 (Round-2 closure for Layer 4)
+**Scope:** Add test coverage for the Round-1 cluster fixes per SO Review 17 + SE Review 12. QE owns `tests/**/*.rs` per CLOSURE-PROTOCOL.md.
+**Session context:** Warm-resolution session paired with SE Review 12. Tests were added in the same commit as the source fixes (`67ef920`) so the change set is coherent — Red Gate discipline is intact at the commit level (the tests are Red without the source fix, Green with it; verified by reverting the source change locally and confirming each new test fails as designed).
+
+### Resolved
+
+#### Finding 4 (Round-1) — Label control-character test coverage
+
+Added to `tests/layer4.rs`:
+- `create_with_control_char_label_exits_one` — `--label $'bug\nFAKE'` rejected with the spec-literal `Error: Label cannot contain control characters.`.
+- `create_with_escape_sequence_label_exits_one` — ESC sequence rejected.
+- `create_with_comma_label_exits_one` — comma rejected with spec-literal `Error: Label cannot contain a comma.` (UX R6 F4 follow-up).
+- `corrupt_data_with_control_char_label_is_rejected` — hand-edited `tracker.json` with `\n` in a label is rejected at load with `Could not read tracker data...`.
+- `corrupt_data_with_comma_label_is_rejected` — same for comma.
+
+Added to `src/lib.rs#tests`:
+- `label_with_newline_is_rejected`, `label_with_tab_is_rejected`, `label_with_escape_sequence_is_rejected`, `label_with_nul_or_del_is_rejected`, `label_with_comma_is_rejected`, `label_with_printable_unicode_is_accepted` — mirror the title control-char unit tests.
+- `issue_field_validation_rejects_control_char_in_label`, `issue_field_validation_rejects_comma_in_label`, `issue_field_validation_accepts_clean_label` — load-time validator coverage.
+
+**Resolved.**
+
+#### Finding (new) — Filter-side validation tests (UX R6 F1 / SO R16 F2)
+
+Added to `tests/layer4.rs`:
+- `list_label_filter_is_trimmed_to_match_stored` — `tracker list --label "  bug  "` matches a stored `bug`.
+- `list_empty_label_filter_exits_one` — empty filter rejected with `Error: Label cannot be empty.` (symmetric with create).
+- `list_whitespace_label_filter_exits_one` — whitespace-only filter rejected.
+- `list_control_char_label_filter_exits_one` — control char in filter rejected (defense in depth).
+
+#### Finding (new) — Error-formatter escape interpolation tests (RT R6 F2)
+
+Added to `tests/layer4.rs`:
+- `invalid_priority_with_escape_chars_is_escaped_in_error` — ESC sequence in `--priority` value renders as `\u{1B}` literal in stderr; raw ESC byte (0x1B) MUST NOT appear (`predicate::str::contains("\u{1B}").not()`).
+- `invalid_status_with_newline_is_escaped_in_error` — newline in `<status>` argument renders as `\u{A}`; no embedded newline in stderr.
+- `invalid_id_with_escape_chars_is_escaped_in_error` — ESC in `<id>` argument escaped.
+
+Added to `src/lib.rs#tests`:
+- `display_safe_passes_printable_chars_through` — printable Unicode unchanged.
+- `display_safe_escapes_control_chars` — Cc → `\u{XX}` round trip.
+
+#### Finding 5 (carried) — Compound-filter AND-logic test (DESIGN.md line 313)
+
+Unchanged from Round 1: still deferred to Layer 5 with the named marker (Layer 5 Red Gate must enumerate `list_status_priority_label_compound_AND_filter` or equivalent). Round-2 source changes do not alter this disposition.
+
+### Verification
+
+`cargo test --locked` — **123 pass / 0 fail** (39 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4). Up from 100. Pre-source-fix Red verification: locally reverted `parse_label` and `display_safe` changes, confirmed each new test fails for the right reason, then re-applied source fix and confirmed all 123 pass. Mutation-test discipline intact.
+
+### Open
+
+#### Finding 5 (carried) — Compound-filter test deferred to Layer 5
+
+Unchanged. The Layer 5 Red Gate must include the test or this deferral has slipped.
+
+### Files modified
+
+- `tests/layer4.rs` — +12 integration tests.
+- `src/lib.rs#tests` — +11 unit tests.
+
+---

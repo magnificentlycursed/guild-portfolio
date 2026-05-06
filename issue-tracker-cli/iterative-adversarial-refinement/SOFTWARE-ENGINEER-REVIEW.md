@@ -1273,3 +1273,55 @@ Review 11 logged. Cold-session sweep produced **one resolved (inline fix)**, **t
 **Files modified:** `src/lib.rs:413-422` (inline fix for Finding 1) and this review log appended.
 
 ---
+
+## Review 12 — 2026-05-06 02:30Z
+
+**Round:** SE Review 12 (Round-2 closure for Layer 4)
+**Scope:** Apply code fixes for the Round-1 cluster sanctioned by SO Review 17. Per CLOSURE-PROTOCOL.md, SE owns `src/**/*.rs`; the SO-spec amendments must precede this round (and they have — DESIGN.md is updated as of commit `67ef920`).
+**Session context:** Warm-resolution session (per CLOSURE-PROTOCOL.md Section 5 step 2/3); not adversarial-cold. Tested with `cargo test --locked`, `cargo clippy --all-targets --locked -- -D warnings`, `cargo fmt --check`, plus targeted adversarial smoke tests against the release binary.
+
+### Resolved (this round)
+
+#### Finding 3 (Round-1) — Label control-character defense
+
+DESIGN.md Feature 1 + Edge Cases / Labels + Edge Cases / Storage now sanction the rule. `parse_label` (`src/lib.rs:339-368`) extended to reject `char::is_control()` and the comma character. New `label_is_valid` helper (`src/lib.rs:141-147`) enforces the same rules at load time; called from `issue_fields_are_valid` for stored data. Symmetric with `validate_title`'s control-char rule. **Resolved.**
+
+#### Finding 4 (new) — Filter-side validation symmetric with create
+
+DESIGN.md Feature 2 amended to specify filter trimming + empty rejection. `cmd_list` (`src/lib.rs:454-461`) now runs `parse_label` on the filter value before `label_matches`. Closes the trim-asymmetry round-trip bug surfaced by UX R6 F1 / DE R7 F2 / SO R16 F2. The named local `effective_label: Option<String>` parallels `effective_priority` and is the value used in the empty-state predicate (`extra_filter_active`). **Resolved.**
+
+#### Finding 5 (new) — display_safe helper for error formatters
+
+DESIGN.md "stderr contract" now requires Cc escaping in interpolated error messages. Added `display_safe` helper (`src/lib.rs:149-166`) that maps each `is_control()` char to `\u{XX}` while leaving printable Unicode untouched. Applied at three formatter sites:
+
+- `parse_priority` (`src/lib.rs`) — error includes `display_safe(raw)` instead of `raw`.
+- `parse_status` — same.
+- `parse_id` — same.
+
+Adversarial smoke test confirms the previously-vulnerable reproducer `tracker list --priority $'\x1b[31mPWN\x1b[0m'` now renders the literal six-char `\u{1B}` in stderr (visible via `od -c`) rather than the raw 0x1B byte. **Resolved.** Cross-reference Red Team Review 6 Finding 2.
+
+### Open (deferred to a focused PR before Layer 7)
+
+#### Finding 2 (carried) — `cmd_list` extraction with column-width constants
+
+Unchanged from Round 1. SA R9 F1 / SE R11 F2 still Open. Round 2 was scoped to security/correctness fixes; the architectural extraction is deliberately out of scope for the cold-batch resolution round and lands in a separate focused PR. The SO Review 17 deferral records this with the named target (Layer 7 prep).
+
+### Verification
+
+- `cargo build --locked` clean.
+- `cargo test --locked` — **123 pass / 0 fail / 0 ignored** (was 100). Added 11 unit + 12 integration tests. The new tests cover: label control-char rejection (newline, ESC, OSC 8 leader, NUL, DEL, tab); label comma rejection; load-time corruption rejection for both classes; filter trim symmetry; filter empty rejection; filter control-char rejection; error-format escape interpolation for priority/status/id.
+- `cargo clippy --all-targets --locked -- -D warnings` clean.
+- `cargo fmt --check` clean.
+
+### Cross-domain coordination
+
+- **SO** Review 17 — DESIGN.md amendments sanctioning each fix, per CLOSURE-PROTOCOL.md authority chain. Code fix landed in same commit as the spec amendments (commit `67ef920`).
+- **QE** Review 12 — adds the test coverage for each fix. Tests live in `tests/layer4.rs` (integration) and `src/lib.rs#tests` (unit).
+- **Security** Review 8 — verifies F1 closed at the binary level.
+- **Red Team** Review 7 — verifies F1+F2 closed; F3 Accepted Risk per the spec stance.
+
+### Files modified
+
+- `src/lib.rs` — `parse_label`, `label_is_valid` (new), `display_safe` (new), `issue_fields_are_valid` (extended for labels), `parse_priority` / `parse_status` / `parse_id` formatter sanitization, `cmd_list` filter validation. Plus 11 new unit tests under the `#[cfg(test)] mod tests` block.
+
+---

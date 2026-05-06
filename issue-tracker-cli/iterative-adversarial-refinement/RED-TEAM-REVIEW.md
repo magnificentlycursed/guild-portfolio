@@ -793,3 +793,94 @@ Round **6** logged. Cold-session sweep produced **three Open findings (Raised to
 **Files modified:** Only this review log appended. No source, tests, or DESIGN.md changes per IAR domain authority boundaries (CLOSURE-PROTOCOL.md).
 
 ---
+
+## Review 7 — 2026-05-06 02:40Z
+
+**Round:** Red Team Review 7 (Round-2 verification for Layer 4)
+**Scope:** Re-run the three Round-1 attack reproducers against the release binary at commit `67ef920`. Verify F1 (label control-char), F2 (error reflection), F3 (Trojan Source) per the SO Review 17 adjudications.
+**Session context:** Warm-verification session. Reproducers from Review 6 re-executed verbatim with `od -c` to capture raw bytes.
+
+### Resolved
+
+#### Finding 1 (Round-1) — Label control-character injection (all three paths)
+
+Re-running the Review 6 reproducers:
+
+```
+$ tracker create "Real" --label $'bug\nFAKE'
+Error: Label cannot contain control characters.
+$ echo $?
+1
+```
+
+Create-time path: closed.
+
+```
+$ cat > tracker.json <<'JSON'
+[{"id":1,"title":"Real","status":"open","priority":"medium","labels":["bug\nFAKE"],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]
+JSON
+$ tracker list
+Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.
+$ echo $?
+1
+```
+
+Load-time path: closed (the SE fix correctly extends the rule to `issue_fields_are_valid` per the new `label_is_valid` helper).
+
+```
+$ tracker create "Real" --label $'\x1b]8;;https://evil/\x1b\\X\x1b]8;;\x1b\\'
+Error: Label cannot contain control characters.
+```
+
+OSC 8 hyperlink leader: closed (ESC is `Cc`; covered by the same rule). **Resolved.**
+
+#### Finding 2 (Round-1) — Error-message escape interpolation
+
+Re-running the reproducers:
+
+```
+$ tracker list --priority $'\x1b[31mPWN\x1b[0m' 2>&1 | od -c | head -3
+0000000    E   r   r   o   r   :       I   n   v   a   l   i   d       p
+0000020    r   i   o   r   i   t   y       '   \   u   {   1   B   }   [
+0000040    3   1   m   P   W   N   \   u   {   1   B   }   [   0   m   '
+```
+
+The previously-vulnerable raw `033` (ESC, byte 0x1B) is now rendered as the literal six-character sequence `\u{1B}`. No bytes in the `Cc` range emerge in stderr. Same observed for `parse_status` (newline → `\u{A}`) and `parse_id` (ESC escaped). **Resolved.**
+
+#### Finding 3 (Round-1) — Trojan-Source bidi / zero-width
+
+SO Review 17 chose Option 2: document the surface as out-of-threat-model in DESIGN.md "Edge Cases / Labels". Per CLOSURE-PROTOCOL.md Section 2, Red Team findings cannot be Deferred but may be Accepted Risk with a named risk owner.
+
+The director (the human user of this branch) is the named risk owner; the threat model basis is DESIGN.md "Constraints" (Single user. No network. No accounts.). Re-evaluation trigger: any future use case that widens the threat model (multi-user / network-distributed / shared `tracker.json`) re-opens this finding. **Reclassified as Accepted Risk.**
+
+### Dismissed
+
+#### Finding (new) — `display_safe` formatting could be exploited by very long input
+
+Tested: `tracker list --priority $(printf '\x1b%.0s' {1..100000})` runs cleanly in <50ms and produces bounded stderr output (~700KB). No buffer stall, no infinite loop, no panic. `display_safe` is bounded by input length × 7 (max expansion per Cc char). **Dismissed.** Cross-reference Security Review 8.
+
+#### Finding (regression) — Symlink, env-var path redirection, JSON depth bomb, `parse::<u64>` overflow
+
+Re-checked the previously-Dismissed and previously-Hallucinated findings against the new binary; all behave identically to Review 6. **Dismissed (regression intact).**
+
+### Accepted Risk
+
+#### Finding 3 (this round) — Trojan-Source / `Cf` / zero-width
+
+Per Round-2 adjudication above. Risk owner: director. Re-evaluation trigger named in DESIGN.md.
+
+#### Finding 10 (carried) — Plaintext `tracker.json`
+
+Unchanged.
+
+### Summary
+
+Round-2 verification: F1 closed at create-time, load-time, and OSC 8 paths; F2 closed at all three error-formatter sites; F3 reclassified as Accepted Risk per the SO-adjudicated spec stance. Three Round-1 Open findings → 0 Round-2 Open findings. No new attack surface introduced by the Round-2 source changes.
+
+**Adversarial honest assessment:** I tried to hallucinate new findings from the new code (the `display_safe` helper, the broader `parse_label`, the filter-side `parse_label` call). None of the candidate hallucinated findings stood up to a reproducer attempt. Either the Round-2 fix is genuinely complete for the Layer 4 surface, or my adversarial creativity is exhausted within this warm-session. A round-2 cold-batch by a fresh reviewer would be the more confident verification — flagged for VDD-IAR Alignment.
+
+**Coordination:** Cross-references Security Review 8 (independent confirmation of F1 closure); SE Review 12 (the source-level fix); SO Review 17 (the spec amendment for F3 Accepted Risk).
+
+**Files modified:** Only this log appended.
+
+---

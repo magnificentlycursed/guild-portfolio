@@ -1349,3 +1349,95 @@ Specifically required before the gate can close:
 
 ---
 
+## Review 12 — 2026-05-06 03:05Z
+
+**Round:** VDD-IAR Alignment Review 12 (Layer 4 Round-2 closure / merge-gate verdict)
+**Scope:** Verify the three Round-1 merge-gating findings (F1/F2/F3 from Review 11) are closed, and that Round-2 cross-domain coordination respected CLOSURE-PROTOCOL.md authority bounds.
+**Session context:** Warm-closure session per CLOSURE-PROTOCOL.md Section 5 step 4. Inputs: SO Review 17, SE Review 12, QE Review 12, Security Review 8, Red Team Review 7, DE Review 8, UX Review 7, TW Review 8, SA Review 10, plus commits `b4f2db1` (Round 1 IAR artifacts), `b0a3789` (Layer 4 manual testing complete), `67ef920` (Round 2 fix bundle). Sycophancy guard: I am the same domain that just declared NO-GO-PENDING-ROUND-2. The signal that the process worked is that this round produces *fewer real findings* than Round 1 (the round-2-after-fix should converge), not that I rubber-stamp. Each Round-1 Open is checked individually; new findings are flagged where they exist.
+
+### Resolved (Round-1 merge-gating findings)
+
+#### Review 11 Finding 1 — Round-2 IAR work uncommitted at start-of-round
+
+Resolved by commit `b4f2db1` ("Layer 4 IAR Round 1 — full-suite reviews + inline fixes") staging the 13 modified files in a single coherent unit, mirroring the Review-10 precedent commit `87e41c6`. **Resolved.**
+
+#### Review 11 Finding 2 — Layer 4 manual testing checklist unchecked
+
+Resolved by commit `b0a3789` ("Layer 4 manual testing complete") ticking all 11 acceptance criteria and all 9 manual checklist items in TODO.md. The 9 manual scenarios were exercised against the release binary by the director ahead of the commit (verified in commit-message body). Mirrors Layer 3's `6f7fd46`. **Resolved.**
+
+#### Review 11 Finding 3 — MVR not reached
+
+The Round-2 cadence per CLOSURE-PROTOCOL.md Section 5 has now run:
+- Step 2 (warm sequential resolution): SE Review 12 + QE Review 12 + TW Review 8 applied source/test/doc fixes coordinated against SO Review 17.
+- Step 3 (SO adjudication): SO Review 17 adjudicated SO R16 F1/F2/F4 + the cross-domain spec-clarification cluster + TW F2/F4. Three of the spec-stance options were chosen (F1: ratify trim-on-store; F2: Option A — validate; F4: Option B — formalize as Approved Deviation D1).
+- Step 4 (round-2 verification): Security Review 8, Red Team Review 7, DE Review 8, UX Review 7, SA Review 10 verified resolutions hold. Each domain logged whether the resolution was Resolved, Deferred-with-target, or Accepted Risk.
+
+After Round 2:
+- Open security findings: 0 (Security R7 F1, RT R6 F1, RT R6 F2 all Resolved; RT R6 F3 Accepted Risk per SO-adjudicated spec stance with director as named risk owner).
+- Open architectural findings: 1 (SA R9 F1 / SE R11 F2 — `cmd_list` extraction; Deferred to a focused PR before Layer 7 with named target).
+- Open spec findings: 0 (SO R16 F1/F2/F4 all Resolved; UX R6 F1/F4 Resolved; DE R7 F1/F2 Resolved).
+- Open polish findings: 3 (UX R6 F2/F3, TW R7 F6 — all Deferred to Layer 7 with named target).
+- Open developer-only findings: 1 (TW R7 F5 — PROCESS.md retrospective placeholders).
+- Open QE findings: 1 (QE R11 F5 — compound-filter test deferred to Layer 5 with named marker).
+
+The cross-domain duplicates collapse cleanly: the label control-character cluster (Security R7 F1 + RT R6 F1 + DE R7 F1 + SE R11 F3 + QE R11 F4) is closed by a single resolution path. The trim-asymmetry cluster (UX R6 F1 + DE R7 F2 + SO R16 F2) is closed by the same `cmd_list` filter-side `parse_label` call. **Resolved (Round-2 cadence ran).**
+
+### Open at merge gate (developer-only)
+
+#### Review 11 Finding (carry — TW R7 F5) — PROCESS.md retrospective placeholders
+
+Per CLOSURE-PROTOCOL.md, this is the only finding that no domain (including SO) can resolve on the director's behalf. The auto-Backlog clock has fired (Open across TW Reviews 5/6/7/8 = four consecutive reviews). VDD-IAR's role here is to mark this as the single explicit director gate item. The director must either:
+
+a. Fill the Layer 1-4 first-person reflection blocks in PROCESS.md, or
+b. Restructure PROCESS.md so the placeholder skeleton is replaced by an explicit "Developer reflection deferred — see PORTFOLIO-ASSESSMENT-REVIEW.md" pointer.
+
+This is the **only** Open finding gating Layer 4 merge after Round 2.
+
+### Authority chain audit (Round 2)
+
+Walking the Round-2 commit `67ef920` against CLOSURE-PROTOCOL.md Section 1:
+
+| File | Modify-authority | Round-2 modifier | OK? |
+|---|---|---|---|
+| `DESIGN.md` | SO only | SO Review 17 | ✓ |
+| `Cargo.toml` (`repository`) | SO (description-class metadata) | SO Review 17 | ✓ |
+| `CHANGELOG.md` | Any domain that produced the change | SO authored Layer 4 + Round 2 entries (matches the protocol — SO owns CHANGELOG entries for layer-shipping work) | ✓ |
+| `src/lib.rs` | SE primary | SE Review 12 | ✓ |
+| `tests/layer4.rs`, `src/lib.rs#tests` | QE primary | QE Review 12 | ✓ |
+| `iterative-adversarial-refinement/<DOMAIN>-REVIEW.md` | The owning domain only | Each domain's own Round-2 entry | ✓ |
+| `iterative-adversarial-refinement/CLOSURE-PROTOCOL.md` | VDD-IAR / SO / director | Not modified | ✓ |
+
+Authority chain is clean. The Review-10-installed protocol has now survived two rounds of contact with parallel-batch + warm-resolution operating modes.
+
+### Cold-batch verification gap (limitation acknowledged)
+
+The Round-2 verification entries (Security 8, RT 7, DE 8, UX 7, SA 10, TW 8) are warm-session — same orchestrator, same context. CLOSURE-PROTOCOL.md Section 5 step 4 (final cold-batch) is the gold-standard verification, but for a Layer 4 with the magnitude of fixes this round, a full cold-batch would be ~10 fresh subagents and proportional cost. The director may legitimately accept the warm-session verification as sufficient for Layer 4 merge given:
+
+1. The reproducers from Round 1 were re-executed against the post-fix binary with concrete byte-level evidence (RT 7).
+2. The test count grew from 100 to 123 with explicit Red Gate verification (QE 12 documents the revert-and-confirm-Red workflow).
+3. No Round-2 source change touched code paths beyond the named fix surface (SA 10 verified architectural cleanliness).
+
+Recommend the director either accept the warm-session verification or schedule a follow-up cold-batch (Round 3) before Layer 5 begins. Either is in-policy. The merge gate verdict below is conditional on the developer-only TW R7 F5 closure; it is NOT conditional on a cold-batch round 3 (Layer 4 has had one cold-batch and one warm-resolution; that is more than the prior layers received).
+
+### Layer 4 merge-gate verdict
+
+**Conditional GO.** Layer 4 may merge once TW R7 F5 (PROCESS.md retrospective placeholders) is closed by the director. All other findings are in terminal states: 14 Resolved this round, 1 Accepted Risk (RT R6 F3), 5 Deferred with named target layers (Layer 7 polish + cmd_list extraction + Layer 5 compound-filter test), 0 Open security findings, 0 Open spec findings.
+
+If TW R7 F5 lands as a developer-authored commit before merge, the gate closes. If the director elects option (b) (restructure to remove the placeholder skeleton), that also closes the gate.
+
+### Closure-protocol regression check
+
+The protocol predicted this round's outcome and the prediction held:
+- The "warm-resolution after cold-batch" cadence (Section 5) ran cleanly; cross-domain coordination via "Raised to" classifications resolved at the receiving domain in the next round (Section 4).
+- The auto-Backlog rule (Section 3) correctly fired for TW R7 F5, surfacing it as the explicit director gate.
+- The "no Deferred for Security/RT/VDD-IAR" rule (Section 2) held — RT R6 F3 went to Accepted Risk, not Deferred.
+- Authority chain (Section 1) held under the larger-than-Round-1 cross-domain change set.
+
+The protocol has survived two contact rounds at the parallel-batch + warm-resolution cadence. Layer 5+ may proceed against the same protocol with high confidence.
+
+### Files modified
+
+Only this log appended.
+
+---
+

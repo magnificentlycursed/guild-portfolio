@@ -614,3 +614,51 @@ The recurring meta-finding from Review 6 ("verification commands that don't actu
 - **Finding 7 (DESIGN.md label trimming gap)** — Raised to SO; spec amendment proposal documented above. TW will not edit DESIGN.md.
 
 Three Open findings carry forward to the next TW review. Per CLOSURE-PROTOCOL Section 3 auto-Backlog rule (Open across three consecutive reviews of originating domain), F4 (`Cargo.toml` `repository`) is now on the carry-forward count starting from Review 6 — if it remains Open through Review 8 without explicit SO adjudication, the auto-Backlog clock applies. F5 (PROCESS.md placeholders) has been Open across Reviews 5/6/7 — that's three consecutive reviews and the auto-Backlog clock has already fired for it; SO or human-director adjudication required before Layer 4 merge.
+
+---
+
+## Review 8 — 2026-05-06 02:55Z
+
+**Round:** Technical Writer Review 8 (Round-2 verification for Layer 4)
+**Scope:** Verify Round-1 documentation findings are closed by SO Review 17 + the round-2 commit. Spot-check `--help` output against the new spec rules.
+**Session context:** Warm-verification session.
+
+### Resolved
+
+#### Finding 2 (Round-1) — CHANGELOG.md missing Layer 4 entry
+
+SO authored two new CHANGELOG entries in commit `67ef920`: a retrospective "Layer 4 — labels (Round 1)" entry covering the Red Gate, implementation, and Round-1 IAR commits, and a "Layer 4 IAR Round 2 closure" entry covering the round-2 spec / source / test fixes. The CHANGELOG is now current as of `67ef920`. **Resolved.**
+
+#### Finding 4 (Round-1) — `Cargo.toml` `repository` field
+
+SO added `repository = "https://github.com/magnificentlycursed/guild-portfolio"` in commit `67ef920`. The `TODO(SO)` comment is removed. The auto-Backlog clock is closed. **Resolved.**
+
+#### Finding 7 (Round-1) — DESIGN.md label-trimming silent-implementation gap
+
+SO Review 17 amended DESIGN.md Feature 1 Postconditions and Edge Cases / Labels with the explicit trim-on-store wording. The implementation behavior (which was correct) and the spec text now match. **Resolved.**
+
+### Open
+
+#### Finding 5 (Round-1) — PROCESS.md retrospective placeholders
+
+Unchanged. Developer-only authority. SO Review 17 explicitly noted this is the only finding requiring director action before Layer 4 merge that no domain can resolve on the director's behalf. The auto-Backlog clock fired at Review 7 (Open across R5/R6/R7); at this Round-2 it is still Open and the merge gate cannot close until the director either fills the Layer 1-4 first-person reflection blocks or restructures the file (option B from R7).
+
+### Deferred (Layer 7 polish — per SO Review 17)
+
+#### Finding 6 (Round-1) — `--help` valid-value asymmetry
+
+`tracker create --help` now reflects the broader label rule (control-char, comma rejected) implicitly through the doc-comment, but the symmetric explicit valid-value documentation matching `--priority`'s "low, medium, high (default: medium)" pattern is deferred to Layer 7. SO Review 17 records the deferral with the named target.
+
+### Verification
+
+- `cargo doc --no-deps` builds without warnings (clippy::missing_errors_doc deny in place).
+- `tracker create --help` output reflects the new label semantics (clap auto-generates from the `Create.label` doc-comment, which has not been updated yet but is on the Layer 7 polish list).
+- README.md status / commands / test sections are still current as of the Round 1 update (commit `b4f2db1`); no Round-2 source changes affect public-facing behavior beyond what the CHANGELOG documents.
+
+### Summary
+
+3 Round-1 Open findings (F2, F4, F7) → Resolved this round. 1 Open (F5 — developer-only). 1 Deferred (F6 — Layer 7 polish, named target). The recurring documentation-currency pattern that Reviews 6 and 7 named is broken at the CHANGELOG level for Layer 4: the cold reader arriving at HEAD now sees Layer 4 with both rounds described, plus the Round-2 closure including the security-class fix cluster.
+
+**Files modified:** Only this log appended.
+
+---
