@@ -86,4 +86,8 @@ Regression check: verify that all pipeline gates and infrastructure controls ins
 
 ---
 
+**Confidentiality-aware citation (Platform-domain reminder).** Pre-commit hooks, CI configuration, and secrets-management defects are this domain's typical findings — and the worked examples that illustrate them tend to instantiate the leak. When citing a hook config, an environment value, an anonymization gap, or a secrets-management defect: abstract the concrete value to a placeholder (`<user>`, `<email>`, `<key>`) before committing the review log. The specific control here is the existing primer rule (`prompts/review-session.md` § Confidentiality-aware citation) and the `iterative-adversarial-refinement/hooks/check-review-log-anonymization.sh` hook. Apply both. Demonstrating an anonymization gap by quoting the actually-leaked value reproduces the gap inside the very review meant to close it.
+
+---
+
 Review entries are logged in `iterative-adversarial-refinement/PLATFORM-ENGINEER-REVIEW.md` inside the project being reviewed.

@@ -65,6 +65,8 @@ The lesson: `git filter-repo` on a working repo should be treated as a full hist
 
 *[Your reflection here — what specifically was difficult, mentally or technically, about Layer 1? Was it the spec phase? The Red Gate discipline of writing tests first? The IAR iteration process? Something in the Rust implementation?]*
 
+The hardest part of this one was the unexpected consequences of the pre-commit hooks. I implemented those not so much as project requirement but as a guard against deanonymization. The Platform Engineering report logged the finding but included an example that deanonymized my username as an example of what not to do which ironically would not have been leaked if I had not tried to implement methods to prevent it from doing so. Some complicated git surgery prevented it from being included in the repo history but it is a good example of the level of instruction and specificity required to guard against unintended consequences.
+
 ---
 
 ### What I got wrong
@@ -73,11 +75,15 @@ The post-deserialization validation gap is the most honest answer. I read the sp
 
 *[Anything else you got wrong the first time? What surprised you about how the build went?]*
 
+This exposed a gap in finding lifecycle that I attempted to formalize and close in a later session.
+
 ---
 
 ### What the process felt like
 
 *[First-person reflection on the experience of working this way — spec-before-code, Red Gate, adversarial review. What was useful? What was friction? What would you do differently in Layer 2?]*
+
+The process feels like being architect directing and supervising the work of a team. Sometimes the teammates raise things in their expert domain that I wouldn't think of and sometimes they miss things that I implied and thought were obvious but were not clearly stated.
 
 ---
 
@@ -125,6 +131,8 @@ Layer 2 merged with these items technically Open. The director's judgment was th
 
 *[Your reflection here — borrow-checker pressure in `cmd_status`? The cold-session deficit decision? The fact that Layer 2 closed with Open VDD-IAR items?]*
 
+The cold session deficit was the hardest part. I don't have a good manual workflow for running them which suggests some helper scripts or project level claude.md might make reduce friction. Things that are skipped or shortcut because they're annoying to do manually are a good candidate for automation. Ignored signals are an antipattern. They should either be addressed if important or the process should be reevaluated if they are not.
+
 ---
 
 ### What I got wrong
@@ -135,11 +143,15 @@ The cold-session deficit was a process decision rather than a code error: I ran 
 
 *[Anything else?]*
 
+Ignoring the cold session signals. I did this for two reasons--my connectivity was bad causing API timeouts that bumped scans that would take minutes to hours and I found I was using the less advanced Sonnet 4.6 model instead of Opus 4.6 or 4.7
+
 ---
 
 ### What the process felt like
 
 *[First-person reflection on Layer 2.]*
+
+*[Anything else?]*This session was especially frustrating because of the connectivity issues causing it to take hours longer and to be split over multiple days. Connectivity and high interactivity requirements really feel like blockers.
 
 ---
 
@@ -196,6 +208,8 @@ After SE round 2 lands and any new findings resolve, MVR for Layer 3 is the cold
 
 *[Your reflection here. Likely candidates: deciding to apply SA Review 7 directly rather than through an AI agent; the cold-session-vs-batched-session quality tradeoff for the in-flight IAR run; the discomfort of merging Layer 2 with Open VDD-IAR items and watching that pattern repeat at Layer 3.]*
 
+Still had connectivity issues plaguing me here so I skipped cold-session reviews.
+
 ---
 
 ### What I got wrong
@@ -206,8 +220,122 @@ The same-session IAR batch was a deliberate quality tradeoff (acknowledged in ea
 
 *[Anything else?]*
 
+The regression makes me think that Green Gate regression testing may be a process enhancement worth codifying. Will revisit this in a future project.
+
 ---
 
 ### What the process felt like
 
 *[First-person reflection on Layer 3. Possible threads: the recurrence of the documentation-currency pattern (CHANGELOG/README stale at every layer close — could a hook catch this?); the value of the cold SO session vs. the batched same-session domains; the decision to apply SA Review 7 directly rather than through an agent.]*
+
+Layer 3 felt like it had a good cadence but had me thinking about gaps in the flow. The process flow chart is implied instead of strongly structured and that means findings linger open or documentation gets stale. Some deliberate thought here to flow can close these
+
+---
+
+## Layer 4: Labels
+
+### Phases
+
+**Decomposition**
+
+DESIGN.md already covered Layer 4 (`--label` on `create`, `--label` filter on `list`, dedup, case-sensitivity, multi-flag-on-list rejection). TODO.md Layer 4 was filled with 11 acceptance criteria, 9 manual testing checklist items, and a Red Gate plan of 12 integration tests + 3 unit tests. The decomposition was unchanged from spec phase — for the *original* Layer 4 features. What was *not* foreseen at decomposition time: Round 1 cold-batch IAR surfaced spec-clarification findings (label trim wording, empty-filter behavior on list, label control-char defense, comma-in-label rendering, delete-with-confirmation Dim 9 deviation) that pulled DESIGN.md amendments into Round 2. The "spec stays still during the layer" property held for the layer's stated features and broke for the spec's surfaced ambiguities — a class of Round-2 work the prior layers had not produced at this volume.
+
+**Red Gate (2026-05-05 11:19 PDT)**
+
+Commit `14bd219` introduced 12 integration tests in `tests/layer4.rs` and 3 unit tests in `src/lib.rs`, with `parse_label`, `dedupe_labels`, `label_matches` as `todo!()` stubs and no `--label` clap arg. Confirmed Red: 10 integration failures from clap unknown-arg, 3 unit failures from `todo!()` panics, 2 explicit Cat B deviations (`create_without_labels_stores_empty_array` and `list_shows_none_for_no_labels` — testing pre-existing Layer 1 defaults rather than new Layer 4 behavior, mirroring Layer 3's `create_without_priority_defaults_to_medium` precedent). The Red Gate commit message disclosed the Cat B disposition explicitly. Commit-pattern discipline intact.
+
+**Implementation (2026-05-05 11:26 PDT)**
+
+`ec5c966` added `parse_label`, `dedupe_labels`, `label_matches`, the `labels: Vec<String>` field on `Issue`, the `--label` clap args (`Vec<String>` on `Create`, `Option<String>` on `List` — the asymmetry encodes the "repeatable on create, single-value on list" rule at the type level), and the `Labels` column rendering in `cmd_list` (comma-separated, 20-char truncate with `…`, `(none)` for empty). 7 minutes after Red Gate. Implementation was mechanical given Layer 3 patterns; the only novel piece was the `HashSet`-backed `dedupe_labels` for first-occurrence preservation, which mirrors `issues_collection_invariants_hold`'s ID-uniqueness pattern.
+
+**Top-level `--help` discoverability (commit `0ad83de`)**
+
+Pulled forward from Layer 7 polish: doc comments on the `Create` and `List` clap variants now mention `--priority` and `--label` so `tracker --help` (top-level) surfaces the new flags rather than just listing subcommand names. Originated from suite-level IAR Review 35 Finding 4 (usage examples for compound CLI flags); the discoverability piece was Layer-4-applicable while the worked-examples piece was deferred to Layer 7.
+
+**Suite-level commits landed during the Layer 4 window**
+
+`f036d8d` and `5b95911` (suite-level IAR Review 35: manual-testing-checklist runnable-step standard + usage examples for `--help`). These are not Layer 4 implementation commits but they affect every future layer's Red Gate plan and `--help` polish work. Triggered by user feedback during Layer 4 manual-test rendering — the prior shorthand bullet format did not produce a tester-familiarity-free plan.
+
+**Round 1 IAR — cold-session parallel batch (2026-05-05 evening)**
+
+The first full-suite cold-batch run on this project. 11 domain reviews appended in a single session via 11 fresh subagents (the orchestrator coordinated the dispatch but did not author any of the 11 reviews; each subagent received the IAR primer cold). Findings:
+
+- **SO Review 16** + Dim 9 addendum — 4 Open. F1: label trim-on-store wording ambiguity. F2: empty `--label` filter silent-no-match asymmetry with create. F3: manual testing checklist unchecked (process observation). F4 (added by addendum): DESIGN.md "Out of Scope" line 394 reclassified the assignment's Layer 6 "delete with confirmation" as advisory without textual basis — Medium-severity Dim 9 finding requiring SO adjudication.
+- **SA Review 9** — 5 findings: 2 Open (raised to SE — F1 cmd_list extraction not applied at Layer 4; F2 filter polarity not inverted), 2 Dismissed (lib.rs line count, cmd_create signature growth — both with revised re-raise conditions), 1 Hallucinated (HashSet over-engineering claim).
+- **Security Review 7** — 12 findings: **1 Open Medium-High** (F1 — labels accept control characters; same `list`-output / terminal-escape injection class as the title control-char defense, applied to the new field), 8 Dismissed (regression checks intact), 2 Hallucinated, 1 Accepted Risk (plaintext storage, carried).
+- **SE Review 11** — 3 findings: 1 Resolved inline (F1 — refactored `is_default_open_view` to extract the `extra_filter_active` disjunction, discharging SA Review 9 F2), 2 Open (F2 — concur with SA9 F1 on cmd_list extraction; F3 — concur with Security 7 F1 on label control-char defense, gated on SO authority for the spec amendment).
+- **QE Review 11** — 11 findings: 3 Resolved inline (F1 — added `create_preserves_label_case_at_storage`; F2 — tightened `list_multiple_label_flags_exits_one` from `contains("Error:")` to the literal clap-message text; F3 — added negative `Nice work!` assertion to `list_label_filter_is_case_sensitive`), 2 Open (F4 — label control-char tests gated on SE/SO; F5 — compound-filter test deferred to Layer 5 with named marker), 4 Dismissed, 2 Hallucinated.
+- **UX Review 6** — 7 findings: 4 Open (F1 — trim-asymmetry round-trip + empty-filter silent-no-match, strictly stronger version of SO R16 F2; F2 — clap-voice multi-label error message; F3 — no `--help` examples for compound flags; F4 — comma-in-label rendering ambiguity), 2 Dismissed, 1 Hallucinated.
+- **Platform Engineer Review 9** — 0 findings. Layer 4 platform-clean: `git diff origin/main...HEAD --name-only` showed only `src/lib.rs`, `src/main.rs`, `tests/layer4.rs` — zero changes to any platform-owned file. Carry-forward controls (SHA-pinned actions, `--locked`, `deny.toml`, fixed pre-commit hooks) all intact.
+- **Data Engineer Review 7** — 5 findings: 2 Open (F1 — labels not validated for control characters at create or load, concur with Security R7 F1; F2 — filter normalization symmetry, concur with UX R6 F1), 3 Dismissed.
+- **Technical Writer Review 7** — 9 findings: 3 Resolved inline (F1 — README "Commands" / Status / Test sections updated for Layer 4; F3 — README test coverage description broadened), 4 Open (F2 — CHANGELOG missing Layer 4 entry, raised to SO; F4 — `Cargo.toml` `repository` field, raised to SO; F5 — PROCESS.md retrospective placeholders, developer-only, auto-Backlog clock has fired; F6 — `--help` valid-value asymmetry; F7 — DESIGN.md label-trimming silent-implementation gap, concur with SO R16 F1), 2 Dismissed.
+- **Red Team Review 6** — 10 findings: 3 Open (F1 — Security R7 F1 confirmed on release binary at create-time, load-time, AND OSC 8 hyperlink paths; F2 — error-message reflection of raw bytes via `parse_priority` / `parse_status` / `parse_id` `format!` sites, surface independent of labels; F3 — Trojan-Source bidi U+202E and zero-width characters bypass `char::is_control()` since `Cf` is a different category from `Cc`), 4 Dismissed, 2 Hallucinated, 1 Accepted Risk.
+- **VDD-IAR Alignment Review 11** — verdict: **NO-GO-PENDING-ROUND-2.** 23 Open findings across 9 domains; 3 merge-gating process findings (uncommitted Round-1 work; manual checklist unchecked; MVR not reached). Cold-session compliance verified for all 11 domain reviewers. Authority chain audit: cleanest of any layer to date — the CLOSURE-PROTOCOL.md installed at Layer 3 closure survived contact with parallel-batch operating mode.
+
+**Manual testing complete (commit `b0a3789`)**
+
+Director ran the binary against the 9 Layer 4 manual checklist items and signed off. All 11 ACs and 9 manual items checked. Mirrors Layer 3's `6f7fd46` precedent. Closes VDD-IAR R11 F2.
+
+**Round-1 commit (commit `b4f2db1`)**
+
+Round-1 IAR artifacts (10 review logs + SE-11 inline source fix + QE-11 test additions + TW-7 README edits) staged as a single coherent unit per CLOSURE-PROTOCOL.md Section 5 step 1's prediction. Closes VDD-IAR R11 F1.
+
+**Round-2 IAR — warm-resolution + warm-verification (commits `67ef920`, `fa4d79f`)**
+
+The first full execution of CLOSURE-PROTOCOL.md Section 5's complete cadence on this project. Commit `67ef920` bundled:
+
+- **SO Review 17** adjudications: F1 (label trim — ratify trim-on-store), F2 (empty filter — Option A: validate symmetric with create), F4 (delete-with-confirmation — Option B: formalize as Approved Deviation D1 in a new DESIGN.md section, replacing the prior "advisory" rationale).
+- **DESIGN.md amendments:** Feature 1 + Feature 2 + Edge Cases / Labels + Edge Cases / Storage + stderr contract + new "Approved Deviations from Assignment" section.
+- **SE Review 12** source changes: `parse_label` extended to reject `is_control()` and `,`; new `label_is_valid` helper enforces same rules at load time via `issue_fields_are_valid`; new `display_safe` helper at three error-formatter sites; `cmd_list` runs `parse_label` on the filter side.
+- **QE Review 12** test additions: 11 new unit tests + 12 new integration tests (label control-char, comma rejection, load-time corruption rejection, filter trim/empty/control-char rejection, error-formatter escape interpolation). Test count 100 → 123.
+- **TW Review 8** doc updates: CHANGELOG Layer 4 retrospective entry + Round-2 closure entry; `Cargo.toml` `repository = "https://github.com/<user>/guild-portfolio"`.
+- **Cluster closure:** Security R7 F1, RT R6 F1+F2, DE R7 F1+F2, SE R11 F3, QE R11 F4, UX R6 F1+F4, SO R16 F1+F2+F4, TW R7 F2+F4+F7. RT R6 F3 (Trojan Source / `Cf`) reclassified Accepted Risk per the SO-adjudicated spec stance — risk owner: director; threat-model basis: single-user local CLI.
+
+Commit `fa4d79f` appended Round-2 IAR review log entries: SO 17, SE 12, QE 12, Security 8, RT 7, DE 8, UX 7, TW 8, SA 10, VDD-IAR 12. Adversarial reproducers from Round 1 (label control-char injection, error-formatter escape interpolation) re-executed against the release binary at HEAD and confirmed defended.
+
+**Suite-level Review 36 (commit `921525d`)**
+
+The first time a project-level retrospective in this branch drove a cross-project suite-level change. Writing the Layer 1 PROCESS.md "What was hardest" reflection (the pre-commit-hooks meta-leak incident) surfaced a defect class — adversarial review logs can themselves leak the values they document — that no domain prompt had named. Three coordinated mitigations applied at the IAR suite level: confidentiality-aware citation rule in `prompts/review-session.md`; domain-specific reminders in `domains/role/PLATFORM-ENGINEER-REVIEW.md` and `SECURITY-REVIEW.md`; new suite-level pre-commit hook `iterative-adversarial-refinement/hooks/check-review-log-anonymization.sh` with public-URL allowlist (so legitimately-public references like `Cargo.toml` `repository` URLs are not blocked). G-98 registered in `GAP-ANALYSIS-LOG.md` and Addressed in-session. Suite Review 36 is the narrative entry.
+
+**Gate closure (in progress)**
+
+VDD-IAR Review 12 verdict: **Conditional GO** pending TW R7 F5 (PROCESS.md retrospective placeholders — developer-only). All other findings in terminal states: 14 Resolved this round, 1 Accepted Risk (RT R6 F3), 5 Deferred with named target layers (Layer 7 polish + cmd_list extraction + Layer 5 compound-filter test), 0 Open security findings, 0 Open spec findings. The Layer 4 retrospective being written below (and the Layer 1-3 reflections the user filled in earlier) is itself the action that closes the gate.
+
+---
+
+### What was hardest
+
+*[First-person reflection on Layer 4. Possible threads: the magnitude of the Round-1 cold-batch (11 fresh subagents, 23 Open findings — substantially more than Layers 1-3 combined); the spec-clarification cluster that turned a small "add a flag" layer into a substantial DESIGN.md amendment session; the meta-leak that surfaced from writing the Layer 1 retrospective itself, retroactively producing a Layer 4 dependency on Layer 1's reflection content; the experience of running the full CLOSURE-PROTOCOL.md Section 5 cadence (cold-batch → warm-resolution → warm-verification → closure) for the first time end-to-end.]*
+
+This was the first layer written with Opus 4.7 instead of Sonnet 4.6 which added significantly to the capabilities and made running cold-batch sessions much easier. The CLOSURE-PROTOCOL is an early attempt at formalizing flow and making the loops clear. I don't know if I like it yet. This is also the first session where I hit the daily session limit on Claude Max which is prompting me to consider optimization in my suite and process for token efficiency like can I read smaller subsets of logs. It made me think about what an observability suite for agent usage would looks like. 
+
+Questions include:
+
+Can I switch between models or effort to best fit for the task automatically?
+Those subagents worked great but is the token spend they incurred commenserate to their value?
+Can I dynamically adjust model/effort based on time til usage reset?
+Reporting and token telemetry
+Optimizing high cost tasks
+Review flow (ie one high cost full scan per layer, then adjust to lower tier models)
+Token projections and recommendations before committing to an expensive turn
+AI Engineering review domain for recommendations
+Session verbose logging to file or log server
+Metrics
+Dashboards
+Alerts
+
+---
+
+### What I got wrong
+
+*[First-person reflection on Layer 4. Possible threads: the original DESIGN.md "Out of Scope" framing for the delete-confirmation deviation — calling assignment build layers "advisory" without textual basis was a self-serving narrowing that the Dim 9 cold-session audit caught; the label control-char defense was a generalization-failure inherited from Layer 1 (the title defense was scoped by-field rather than by-property), and Layer 4 only surfaced it because labels are the second free-form text field in the schema; the Round-1 finding count itself is a signal — 23 Open across 9 domains is more than the prior layers, suggesting either Layer 4 was scoped harder than it looked or the cold-batch produced more value than the same-session batches did at Layers 1-3.]*
+
+The obvious thing I got wrong was using a lower capability model (Sonnet 4.6) for the earlier layers and a frontier model for this one (Opus 4.7). This revealed quite a few new findings but does not indicate anything particularly unique to Layer 4.
+
+---
+
+### What the process felt like
+
+*[First-person reflection on Layer 4. Possible threads: the cold-batch finally working as designed (Round 1 produced substantial real findings; Round 2 verified the fixes — the prediction in the suite README that "parallel independent sessions are the gold standard" was empirically borne out); the Round-1 → Round-2 cadence as the first full-cycle execution of CLOSURE-PROTOCOL.md Section 5; the way writing this retrospective itself drove a suite-level change (the meta-leak incident from Layer 1 became Suite Review 36 because the Layer 4 closure work surfaced it); the experience of orchestrating 11 parallel subagents and then 10 Round-2 entries vs. the same-session batches of prior layers.]*
+
+Opus 4.7 yielded a much more set it and forget it vibe for Layer 4. It worked great and revealed a lot of findings. I won't know for a few more layers if that was a model deficiency or a cold-batch one. I liked playing with the CLOSURE-PROTOCOL and it has some good ideas but I don't think this will be it's final form. It will however be used as context for a future development sprint of my VSDD suite

@@ -483,3 +483,404 @@ The two spec-pending output-encoding attacks closed by SO Review 13 Finding 1 (s
 
 **Coordination:** SO Review 13 cross-reference. No new Red Team findings.
 
+
+---
+
+---
+
+## Review 6 — 2026-05-05 22:30Z
+
+**Scope:** Layer 4 implementation (`tracker create --label`, `tracker list --label`). Verify Security Review 7 Finding 1 reproduces on the current binary; pressure-test the corollary attack vectors Security flagged for Red Team (load path, filter-rendering path, OSC 8, combined attacks); and apply independent adversarial creativity beyond Security's list (Trojan-Source bidi/zero-width characters, error-message reflection of raw bytes, resource exhaustion, JSON depth bomb, symlink, ID/argument-injection edge cases).
+
+**Session note:** Cold session per primer. Parallel Tier-4 batch with VDD-IAR Alignment scheduled to follow. Security 7 ran in a parallel session and surfaced F1 the same day — this review confirms F1 against the actual binary and adds independent findings that Security 7 did not enumerate.
+
+**Posture:** Adversarial. The Layer 3 / SO Review 13 fix (`char::is_control()` rejection at `validate_title` *and* `issue_fields_are_valid`) was scoped *to the title field only*. Layer 4 introduces labels — a second free-form text field that flows to the same `list` rendering surface. The sycophancy hazard the primer names is "describing a gap and concluding it is acceptable without verification": every claim of "the existing control covers this" gets a reproducer.
+
+**Build:** `cargo build --release` against `issue-tracker-cli-labels` @ HEAD `f14c296`. Binary at `target/release/tracker`. Reproducers run from `mktemp -d` directories; output captured with `od -c` so terminal escapes are visible regardless of terminal interpretation.
+
+---
+
+### Threat Model (preamble — not a finding)
+
+Aligned with Security 7's preamble. Crown jewel: the integrity of the tabular `list` output and (Layer 6) `show` rendering surface — terminal-escape injection here propagates to any tool that displays issue data without inspecting the underlying bytes (`grep`, `awk`, `cat` without `-v`, code review of `tracker.json` in an editor that interprets ANSI). Plausible attackers: third-party who hands the user a `tracker.json`; the user pasting clipboard content; a process that writes to the user's CWD `tracker.json`. No remote attackers. No multi-user privilege boundary.
+
+What's *new* in the threat model for this review: **error messages reflect raw user input to stderr**. That surface was not in scope for prior reviews because prior interpolated values were either pre-validated (status, priority small enums echoed back via `format!("Invalid status '{}'", raw)`) or numeric (id strings). Security 7 evaluated label rendering on the *data path* but did not evaluate the *error-reflection path* — that's where Finding 2 below lives.
+
+---
+
+### Open
+
+**Finding 1 — Security 7 F1 confirmed on the current binary; load-path is also vulnerable; OSC 8 hyperlink injection is also vulnerable (Dim 6 — Injection via output-encoding gap; Dim 7 — Client-side terminal injection; Rust supplement Red Team — terminal-escape injection)**
+
+Confirms Security Review 7 Finding 1 against the release binary. The defense gap Security identified is real and exploitable on three distinct paths, two of which Security explicitly asked Red Team to pressure-test:
+
+**(a) Create-time path — newline label fabricates a fake `list` row.**
+
+```
+$ tracker create "Real" --label $'bug\nFAKE'
+Created issue #1: Real
+$ tracker list 2>&1 | od -c | head -10
+0000060                T   i   t   l   e  \n   1                       o
+0000100    p   e   n                                       m   e   d   i
+0000120    u   m                   b   u   g  \n   F   A   K   E        
+0000140                                                    R   e   a   l
+0000160   \n
+```
+
+The `\n` between `bug` and `FAKE` emerges as a literal newline (`od -c` confirms byte `\n` not `\\n`). `tracker list | wc -l` reports 4 lines (header + payload + injected + real-row continuation) instead of the expected 2. Any line-oriented consumer (`grep`, `awk`, `head`) treats the injected substring as a real record.
+
+**(b) Load-time path — hand-edited `tracker.json` reproduces the same exploit and bypasses any create-time fix that doesn't extend to `issue_fields_are_valid`.**
+
+```
+$ cat > tracker.json <<'JSON'
+[{"id":1,"title":"Real","status":"open","priority":"medium","labels":["bug\nFAKE"],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]
+JSON
+$ tracker list 2>&1 | od -c | head -10
+0000120    u   m                   b   u   g  \n   F   A   K   E        
+0000140                                                    R   e   a   l
+```
+
+`load_issues` returns success (exit 0). `issue_fields_are_valid` (`src/lib.rs:131`) only checks `!l.trim().is_empty()` for label hygiene, parallel to the same gap Security 7 named for `parse_label`. Any SE-side fix that closes only `parse_label` and leaves `issue_fields_are_valid` unchanged still fails this reproducer. The remediation Security 7 proposed (extend BOTH `parse_label` and `issue_fields_are_valid`) is necessary; either alone is insufficient.
+
+**(c) OSC 8 hyperlink injection in labels — both create and load paths.**
+
+```
+$ tracker create "Real" --label $'\x1b]8;;https://evil/\x1b\\X\x1b]8;;\x1b\\'
+$ tracker list 2>&1 | od -c | head -10
+0000120    u   m                 033   ]   8   ;   ;   a  \a   X 033   ]
+0000140    8   ;   ;  \a                                   R   e   a   l
+```
+
+Raw `\x1b]8;;...\x1b\\` (or BEL-terminated `\x1b]8;;...\x07X\x1b]8;;\x07` for shorter encodings that fit the 20-char `Labels` column) emerges intact. In any terminal supporting OSC 8 hyperlinks (iTerm2, modern xterm, GNOME Terminal, recent Windows Terminal), the rendered cell becomes a clickable hyperlink to the attacker URL. The DESIGN.md Layer 7 rationale for the title control-char rule (`src/lib.rs:60-66`) names "ESC, C1 controls" — OSC 8 uses ESC, so the same defense closes this attack class once extended to labels. ESC is in Unicode category `Cc` (`char::is_control() == true`), so the recommended Security 7 fix (`trimmed.chars().any(char::is_control)`) covers OSC 8 leaders for free.
+
+**Combined-row attack:** an honest-looking label paired with a payload-bearing label in the same `--label --label` invocation hits the same row, producing rows that pass casual visual inspection but fabricate an entire fake issue:
+
+```
+$ tracker create "Login bug" --label "auth" --label $'bug\n2     done         high      backdoor              Backdoor merged'
+$ tracker list 2>&1 | od -c | head
+   ... auth, bug\n2     done         high      backdoor ... Backdoor merged ...
+```
+
+The `Labels` column truncation at 20 chars cuts mid-injection but only after the newline — the fabricated row is printed beyond the truncation boundary because `truncate_with_ellipsis` operates on the joined-and-rendered string only for the first cell, while the rest of the line is `println!`'d as-is.
+
+**Recommended remediation (Raised to SE; Raised to QE; Raised to SO):** identical to Security 7 F1's recommendation. Extend `parse_label` AND `issue_fields_are_valid` to reject `char::is_control()`. Add unit + integration tests mirroring the title control-char tests. DESIGN.md amendment per Security 7 F1.
+
+**Severity:** Medium-High. Confirms Security 7 F1 with no scope reduction; adds the OSC 8 vector that Security flagged for Red Team to pressure-test (and confirms it's covered by the same `is_control()` rule because ESC is `Cc`); confirms the load-path corollary Security flagged. The fix Security proposed is correct and complete *for the labels surface specifically*. Findings 2 and 3 below identify two surfaces that Security 7 did not enumerate and that the labels fix does not close.
+
+**Classification:** **Open. Raised to SE / Raised to QE / Raised to SO.** Cannot be Hallucinated — reproducers above are concrete and fail to be defended. Cannot be Resolved — fix is not yet applied as of HEAD `f14c296`.
+
+---
+
+**Finding 2 — Error messages reflect raw user input including ESC bytes; terminal-escape injection from any invalid `--priority`, `--status`, or invalid `<id>` argument (Dim 6 — Injection via output-encoding gap; Dim 7 — Client-side terminal injection; Dim 8 — Information leakage via verbose error messages)**
+
+Independent of Security 7 F1. The labels-rendering attack covers the *data* path; this finding covers the *error-reflection* path. Three error-formatter sites interpolate raw user-supplied bytes into stderr:
+
+- `parse_priority` (`src/lib.rs:319`): `Err(format!("Invalid priority '{}'. Expected: low, medium, or high.", raw))`
+- `parse_status` (`src/lib.rs:248-251`): `Err(format!("Invalid status '{}'. Expected: open, in-progress, or done.", raw))`
+- `parse_id` (`src/lib.rs:260-265`): `Err(format!("'{}' is not a valid issue ID. Expected a positive integer.", raw))`
+
+Reproducer (release binary):
+
+```
+$ tracker list --priority $'\x1b[31mPWN\x1b[0m' 2>&1 | od -c | head
+0000020    r   i   o   r   i   t   y       ' 033   [   3   1   m   P   W
+0000040    N 033   [   0   m   '   .       E   x   p   e   c   t   e   d
+```
+
+Raw ESC sequence is interpolated into the error message and emitted on stderr. In any ANSI-capable terminal, this renders the word "PWN" in red — from a single command-line argument typo. Same exploit on `--status`:
+
+```
+$ tracker list --status $'foo\nbar\x1b[31m' 2>&1 | od -c | head
+0000020    t   a   t   u   s       '   f   o   o  \n   b   a   r 033   [
+0000040    3   1   m   '   .       E   x   p   e   c   t   e   d
+```
+
+The `\n` between `foo` and `bar` emerges raw, breaking the one-line-per-error contract. Same exploit on `<id>`:
+
+```
+$ tracker status $'abc\x1b[31mEVIL\x1b[0m' done 2>&1 | od -c | head
+0000000    E   r   r   o   r   :       '   a   b   c 033   [   3   1   m
+0000020    E   V   I   L 033   [   0   m   '
+```
+
+Why this matters beyond labels:
+
+1. **Reach is wider than labels.** Labels require the user to invoke `--label`. The error-reflection vector fires on *any* invalid `--priority` / `--status` / `<id>` argument across all subcommands. A single typo with terminal control bytes pasted from clipboard executes the attack.
+2. **DESIGN.md "stderr contract" is silently violated.** `Error messages begin with Error: and are followed by a human-readable description; no stack traces or internal detail are exposed to the user.` Embedded raw control characters break "human-readable" the same way they break the title rendering surface.
+3. **The Security 7 F1 remediation does NOT close this surface.** Even after `parse_label` + `issue_fields_are_valid` get the `is_control()` check, the three `format!` sites above continue to interpolate raw bytes. This is the same regression class Security 7 named: a control was scoped by-field rather than by-property.
+4. **Same control-char rule covers it.** The fix shape is identical to F1: validate-then-format, or sanitize at the format site (replace `chars().filter(|c| c.is_control())` with `\\u{XX}` escapes before interpolation). Sanitize-at-formatter is the safer architectural choice because it closes *every* error-reflection surface in one place rather than per-validator.
+
+**Recommended remediation (Raised to SE / Raised to QE / Raised to SO):**
+
+- **SO:** Amend DESIGN.md "stderr contract" / "Error states" to specify that error messages echoing user input must escape control characters (Unicode category `Cc`). Suggested wording: `Error messages that interpolate user-supplied values must render control characters as \uXXXX escapes; the error stream is not a transparent pipe for arbitrary terminal sequences.`
+- **SE:** Add a `display_safe(&str) -> String` helper that maps each `is_control()` char to `\uXXXX` (or a similar printable substitute) and use it at the three `format!` sites. The helper localizes the rule and is reusable for future error formatters.
+- **QE:** Add unit tests `error_message_escapes_control_chars_in_*` for priority/status/id. Add an integration test asserting `tracker list --priority $'\x1b[31m' 2>&1 | grep -c $'\x1b'` returns 0.
+
+**Severity:** Medium. Same vulnerability class as Security 7 F1 with a wider entry-point surface but a milder primary impact (stderr typically gets scrolled past faster than stdout). Combined with F1, the project has *two* control-char-output regressions both deriving from the same scoping decision. F1 is the louder of the two; F2 is the broader.
+
+**Classification:** **Open. Raised to SE / Raised to QE / Raised to SO.** Independent of Security 7 — Security 7 evaluated the labels rendering path and did not evaluate error-message reflection. Cannot be Hallucinated — reproducers are concrete byte-for-byte. Cannot be Deferred — Red Team findings are not deferred per CLOSURE-PROTOCOL.md.
+
+---
+
+**Finding 3 — Trojan-Source bidi override and zero-width characters bypass the `char::is_control()` defense in titles AND labels (Dim 6 — Injection via display-class gap; Dim 7 — Client-side terminal injection; Rust supplement Red Team — Trojan-Source / CVE-2021-42574 class)**
+
+The SO Review 13 fix uses `char::is_control()`, which returns `true` only for Unicode general category `Cc` (C0 + C1 + DEL). Two adjacent Unicode classes that affect display rendering are NOT category `Cc` and pass the check unmolested:
+
+- **Category `Cf` (Format):** RIGHT-TO-LEFT OVERRIDE U+202E, LEFT-TO-RIGHT OVERRIDE U+202D, RIGHT-TO-LEFT EMBEDDING U+202B, etc. These reverse the visual rendering direction of subsequent text without changing the underlying byte order — the canonical Trojan-Source attack (CVE-2021-42574, "Some Things You Just Can't Trust").
+- **Zero-width characters (Cf and others):** ZERO WIDTH SPACE U+200B, ZERO WIDTH JOINER U+200D, ZERO WIDTH NON-JOINER U+200C. These render as nothing but participate in string equality — `"auth"` vs `"au​th"` look identical in the terminal but compare unequal, confounding label exact-match.
+
+Reproducer — bidi override in title (release binary, current HEAD):
+
+```
+$ tracker create $'attack‮suoicilam'
+Created issue #1: attack‮suoicilam
+$ tracker list 2>&1 | od -c | head -10
+0000140    c   k 342 200 256   s   u   o   i   c   i   l   a   m  \n
+```
+
+The bytes `342 200 256` are UTF-8 for U+202E. The title passes `validate_title` (the `is_control()` check skips category `Cf`), is stored, and on `tracker list` the terminal renders the literal bytes `attack` + RLO + `suoicilam`, which appears as `attackmalicious` to the user. Same payload via hand-edited JSON (`"‮"`) loads cleanly. Same payload in a label produces the same render in the `Labels` cell.
+
+Reproducer — zero-width characters bypass label exact-match dedup/filter:
+
+```
+$ tracker create "x" --label "auth" --label $'auth​'
+$ tracker list --label "auth"  # → only the first issue's label matches
+```
+
+The two labels render visually identically but `dedupe_labels` (`src/lib.rs:351-360`) treats them as distinct and `label_matches` (`src/lib.rs:367-369`) matches only the first. A user filtering by `--label auth` may believe they've enumerated all auth-tagged issues when in fact a zero-width-poisoned label silently hides one.
+
+Why this is *not* covered by the Security 7 F1 fix: extending `is_control()` to labels closes the `Cc` surface but leaves `Cf` and zero-width characters open — the SO Review 13 wording was specifically `is_control()`, which Rust documents as "category Cc." Closing this finding requires a *broader* validation rule than the title fix used, OR an explicit decision to accept the `Cf` / zero-width surface as out-of-scope.
+
+**Recommended remediation (Raised to SO for spec adjudication; conditional Raised to SE):** SO must adjudicate whether the project's display-safety contract covers `Cf` / zero-width / general bidi/format characters. Three reasonable spec stances:
+
+1. **Tighten:** prohibit any character where `c.is_control() || matches!(c.general_category(), Cf | Co | ...)`. Closes the surface; requires `unicode-general-category` crate or hand-coded ranges.
+2. **Document the surface:** add a DESIGN.md "Edge Cases / Title" bullet explicitly noting that bidi/format/zero-width characters are accepted as valid printable Unicode and may produce visually-misleading output in `list` / `show`. Treats this as the user's responsibility (consistent with the existing "shell-special characters → shell responsibility" framing).
+3. **Sanitize at render:** strip or substitute `Cf` chars at output time in `cmd_list` / `cmd_show` while accepting them at storage. Asymmetric but closes the visual-deception surface without restricting input.
+
+The minimum action is decision (2) — explicitly document what the spec considers safe vs. what falls outside the threat model. Silent acceptance is the failure mode.
+
+**Severity:** Medium. The bidi attack lets any title or label produce visually-misleading rows that pass `cat -v` inspection (RLO renders as `M-^^M-^@M-^^^^^[` — visible but obscure). The zero-width attack defeats the exact-match label filter contract (DESIGN.md Edge Cases / Labels: "exact match, case-sensitive"). Lower than F1/F2 because the user attacks themselves in the organic case, but a hand-edited `tracker.json` from a third party reaches the same outcome.
+
+**Classification:** **Open. Raised to SO (primary) / Raised to SE (conditional on spec stance) / Raised to QE (regression test conditional on spec stance).** Cannot be Hallucinated — reproducers above produce raw UTF-8 bytes for U+202E / U+200B that pass `is_control()` and reach the rendering surface. Cannot be Deferred — Red Team findings are not deferred. The spec adjudication may legitimately accept the surface (option 2 above) — that is the SO's call, not Red Team's, and acceptance must be explicit per CLOSURE-PROTOCOL.md.
+
+---
+
+### Dismissed
+
+**Finding 4 — `--label` filter value is not validated and could carry control bytes (Dim 6 — Injection)**
+
+Concern: `cmd_list`'s `label_filter` parameter (`src/lib.rs:403`) accepts arbitrary strings without `parse_label` validation. A filter value `$'\x1b[31mPWN\x1b[0m'` is passed through unmodified.
+
+Verified reproducer — empty match path:
+
+```
+$ tracker list --label $'\x1b[31mPWN\x1b[0m' 2>&1 | od -c | head
+0000000    N   o       i   s   s   u   e   s       m   a   t   c   h    
+0000020    t   h   e       g   i   v   e   n       f   i   l   t   e   r
+0000040    s   .  \n
+```
+
+The filter value is consumed only by `label_matches` (`src/lib.rs:367-369`) which performs `String` equality. It's never reflected in stdout, never reflected in the `No issues match the given filters.` stderr message, and never reaches a terminal escape sink. Confirms Security 7's Hallucinated Finding 10 is correctly classified — the filter side has no rendering sink even though Security explicitly asked Red Team to pressure-test it.
+
+**Classification:** Dismissed. Security 7 Hallucinated Finding 10 confirmed correct. No injection surface on the filter side regardless of whether the filter value carries control bytes.
+
+---
+
+**Finding 5 — Resource exhaustion via long titles or many `--label` flags (Dim 11 — DoS via expensive operations)**
+
+Empirical timing on release binary, fresh CWD:
+
+- `tracker create "$(python3 -c 'print("A"*200000)')"`: completes in <50ms; 200KB title written to `tracker.json`. List output truncates to 50 chars per spec, no quadratic blowup.
+- `tracker create "x"` with 5000 `--label` flags: completes in 33ms wall-clock; `tracker.json` weighs 94KB; subsequent `tracker list` truncates the `Labels` cell at 20 chars and runs in <50ms.
+- JSON depth bomb (`[[[[[[[[...]]]]]]`, 10000 levels): `tracker list` returns `Could not read tracker data. The file may be corrupt.` with exit 1 in <100ms (serde_json's recursion limit catches this — confirmed by `cargo deny` and `serde_json` defaults).
+
+Single-user local CLI, no remote attacker, no shared state. The user cannot DoS themselves in any meaningful sense; even a worst-case title would just bloat their own `tracker.json`. Carries forward Review 5 Finding 6 reasoning.
+
+**Classification:** Dismissed. Performance bounded; no remote vector; spec-consistent.
+
+---
+
+**Finding 6 — Symlinked `tracker.json` redirects writes outside CWD (Dim — sandbox escape)**
+
+Reproducer:
+
+```
+$ mkdir realdir && ln -s realdir/tracker.json tracker.json
+$ tracker create "via symlink"
+Created issue #1: via symlink
+$ ls realdir/
+tracker.json
+```
+
+The binary follows the symlink and writes through to `realdir/tracker.json`. DESIGN.md "File location: `tracker.json` in the current working directory at the time the command runs" treats the path as opaque; symlink resolution is the OS's job and consistent with every other Unix tool. There's no privilege boundary being crossed (the user creates the symlink themselves; they can already write to `realdir/`). Not a sandbox escape; a documented behavior.
+
+**Classification:** Dismissed. Spec-consistent; no security boundary crossed.
+
+---
+
+**Finding 7 — `tracker.json` argument injection via title that looks like a flag (`tracker create --label`) (Dim 6 — Injection)**
+
+Reproducer:
+
+```
+$ tracker create "--label"
+Error: a value is required for '--label <LABEL>' but none was supplied
+$ tracker create -- "--label"
+Created issue #1: --label
+```
+
+Clap correctly identifies `--label` as a flag without a value and produces a usage error (exit 1). Passing `--` first allows the literal title `--label` to be stored — standard POSIX argument-separator behavior. No injection surface; clap's parsing boundary holds.
+
+**Classification:** Dismissed. Standard clap behavior; spec-consistent.
+
+---
+
+### Hallucinated
+
+**Finding 8 — `tracker.json` could be redirected by env var or relative-path manipulation**
+
+Concern: `Path::new("tracker.json")` in `main.rs:71` could be redirected by setting `TRACKER_JSON_PATH` or chrooting before the binary runs.
+
+Reading `src/main.rs:71` confirms the path is a hardcoded literal; no env var is read. The "redirect by changing CWD" path is documented in DESIGN.md "File location: `tracker.json` in the current working directory at the time the command runs" — that's not an attack, that's the spec.
+
+**Classification:** Hallucinated. No env-var path-redirection surface; CWD-relative behavior is spec-defined.
+
+---
+
+**Finding 9 — `parse_id` could panic on `u128`-sized input**
+
+Concern: `raw.parse::<u64>()` could panic on extreme input.
+
+`parse::<u64>()` returns `Result<u64, ParseIntError>`; `parse_id` (`src/lib.rs:259-266`) handles it with `.ok().filter(|&n| n > 0).ok_or_else(...)`. Verified: `tracker status 999999999999999999999999999 done` produces a clean error (exit 1, no panic). Carries forward Review 4 Finding 2.
+
+**Classification:** Hallucinated. `u64::parse` overflow handled.
+
+---
+
+### Accepted Risk
+
+**Finding 10 — Plaintext `tracker.json` (regression carried forward)**
+
+Unchanged from prior reviews. **Risk owner:** the user/developer (named in DESIGN.md "Constraints").
+
+**Classification:** Accepted Risk.
+
+---
+
+### Summary
+
+Round **6** logged. Cold-session sweep produced **three Open findings (Raised to SE / Raised to QE / Raised to SO)**, **four Dismissed**, **two Hallucinated**, **one Accepted Risk** (carried forward).
+
+**Confirmation of Security 7 F1:** Reproduced on the release binary at HEAD `f14c296`. The fix Security proposed is correct and complete *for the labels surface specifically*. The corollary attack vectors Security flagged for Red Team to pressure-test all reproduce: load-path is independently vulnerable (the fix must touch BOTH `parse_label` AND `issue_fields_are_valid`); OSC 8 hyperlink injection is covered by the same `is_control()` rule because ESC is `Cc`; combined-row attacks produce convincing fake rows.
+
+**Beyond Security 7:** Two additional control-char-output regressions exist that the Security 7 F1 remediation does not close — both derive from the same scoping decision (defense scoped by-field rather than by-property):
+
+- **F2 (error-message reflection)** — three `format!` sites in `parse_priority`, `parse_status`, `parse_id` interpolate raw user input including ESC sequences into stderr error messages. Fires on any invalid argument across all subcommands; wider entry-point surface than labels.
+- **F3 (Trojan-Source bidi/zero-width)** — the SO Review 13 fix used `char::is_control()` (category `Cc` only). Categories `Cf` (RLO/LRO/embeds) and zero-width characters bypass the check at both create and load time, in both titles AND labels. Bypasses the existing title defense too — the title control-char-defense regression test passes because the test uses `\n` and `\x1b` (Cc); RLO U+202E was never tested.
+
+**Pattern:** every layer that adds a free-form text field reopens the terminal-escape attack surface unless the defense is generalized. Security 7 named this exact pattern; this review confirms it AND identifies a parallel pattern: every formatter that interpolates user input reopens the same surface unless the formatter sanitizes control bytes. The strategic remediation is a `display_safe(&str) -> String` helper applied at every output sink, not per-validator rules at every input boundary.
+
+**Coordination:**
+
+- [SECURITY-REVIEW.md](SECURITY-REVIEW.md) — F1 confirms Security 7 F1 with no scope reduction. F2 and F3 should appear as new Security findings (absent controls that Security's review dimensions cover); flag for Security 8 if a follow-up runs. F2 is most clearly Security's surface (DESIGN.md "stderr contract" violation).
+- [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) — F1 requires the DESIGN.md amendment Security 7 already proposed. F2 requires a new DESIGN.md "stderr contract" amendment. F3 requires SO adjudication of the spec's display-safety stance on `Cf` / zero-width characters (three options enumerated in F3).
+- [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) — F1 fix per Security 7. F2 and F3 fixes pending SO adjudication; F2 specifically suggests a `display_safe` helper at format sites rather than per-input validation, because the helper closes every reflection surface in one place.
+- [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) — Regression tests for all three findings. The existing title control-char tests should be extended to RLO/zero-width per F3, regardless of which spec stance SO chooses.
+- [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md) — see merge-gate concerns below.
+
+**Merge-gate concern for VDD-IAR Alignment:** F1, F2, and F3 are all Open and Raised to SO/SE/QE. Per IAR domain authority, Red Team does not modify code. The Layer 4 gate cannot legitimately close with three Open Red Team findings unless the spec accepts the F3 surface (option 2) AND F1 + F2 land code fixes. Specifically: closing the gate with only the Security 7 F1 fix in place leaves F2 (error-reflection) and F3 (Trojan-Source) as known-exploitable surfaces with the same vulnerability class as the title defense the project already invested in. That asymmetry is the merge-gate signal.
+
+**Files modified:** Only this review log appended. No source, tests, or DESIGN.md changes per IAR domain authority boundaries (CLOSURE-PROTOCOL.md).
+
+---
+
+## Review 7 — 2026-05-06 02:40Z
+
+**Round:** Red Team Review 7 (Round-2 verification for Layer 4)
+**Scope:** Re-run the three Round-1 attack reproducers against the release binary at commit `67ef920`. Verify F1 (label control-char), F2 (error reflection), F3 (Trojan Source) per the SO Review 17 adjudications.
+**Session context:** Warm-verification session. Reproducers from Review 6 re-executed verbatim with `od -c` to capture raw bytes.
+
+### Resolved
+
+#### Finding 1 (Round-1) — Label control-character injection (all three paths)
+
+Re-running the Review 6 reproducers:
+
+```
+$ tracker create "Real" --label $'bug\nFAKE'
+Error: Label cannot contain control characters.
+$ echo $?
+1
+```
+
+Create-time path: closed.
+
+```
+$ cat > tracker.json <<'JSON'
+[{"id":1,"title":"Real","status":"open","priority":"medium","labels":["bug\nFAKE"],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]
+JSON
+$ tracker list
+Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.
+$ echo $?
+1
+```
+
+Load-time path: closed (the SE fix correctly extends the rule to `issue_fields_are_valid` per the new `label_is_valid` helper).
+
+```
+$ tracker create "Real" --label $'\x1b]8;;https://evil/\x1b\\X\x1b]8;;\x1b\\'
+Error: Label cannot contain control characters.
+```
+
+OSC 8 hyperlink leader: closed (ESC is `Cc`; covered by the same rule). **Resolved.**
+
+#### Finding 2 (Round-1) — Error-message escape interpolation
+
+Re-running the reproducers:
+
+```
+$ tracker list --priority $'\x1b[31mPWN\x1b[0m' 2>&1 | od -c | head -3
+0000000    E   r   r   o   r   :       I   n   v   a   l   i   d       p
+0000020    r   i   o   r   i   t   y       '   \   u   {   1   B   }   [
+0000040    3   1   m   P   W   N   \   u   {   1   B   }   [   0   m   '
+```
+
+The previously-vulnerable raw `033` (ESC, byte 0x1B) is now rendered as the literal six-character sequence `\u{1B}`. No bytes in the `Cc` range emerge in stderr. Same observed for `parse_status` (newline → `\u{A}`) and `parse_id` (ESC escaped). **Resolved.**
+
+#### Finding 3 (Round-1) — Trojan-Source bidi / zero-width
+
+SO Review 17 chose Option 2: document the surface as out-of-threat-model in DESIGN.md "Edge Cases / Labels". Per CLOSURE-PROTOCOL.md Section 2, Red Team findings cannot be Deferred but may be Accepted Risk with a named risk owner.
+
+The director (the human user of this branch) is the named risk owner; the threat model basis is DESIGN.md "Constraints" (Single user. No network. No accounts.). Re-evaluation trigger: any future use case that widens the threat model (multi-user / network-distributed / shared `tracker.json`) re-opens this finding. **Reclassified as Accepted Risk.**
+
+### Dismissed
+
+#### Finding (new) — `display_safe` formatting could be exploited by very long input
+
+Tested: `tracker list --priority $(printf '\x1b%.0s' {1..100000})` runs cleanly in <50ms and produces bounded stderr output (~700KB). No buffer stall, no infinite loop, no panic. `display_safe` is bounded by input length × 7 (max expansion per Cc char). **Dismissed.** Cross-reference Security Review 8.
+
+#### Finding (regression) — Symlink, env-var path redirection, JSON depth bomb, `parse::<u64>` overflow
+
+Re-checked the previously-Dismissed and previously-Hallucinated findings against the new binary; all behave identically to Review 6. **Dismissed (regression intact).**
+
+### Accepted Risk
+
+#### Finding 3 (this round) — Trojan-Source / `Cf` / zero-width
+
+Per Round-2 adjudication above. Risk owner: director. Re-evaluation trigger named in DESIGN.md.
+
+#### Finding 10 (carried) — Plaintext `tracker.json`
+
+Unchanged.
+
+### Summary
+
+Round-2 verification: F1 closed at create-time, load-time, and OSC 8 paths; F2 closed at all three error-formatter sites; F3 reclassified as Accepted Risk per the SO-adjudicated spec stance. Three Round-1 Open findings → 0 Round-2 Open findings. No new attack surface introduced by the Round-2 source changes.
+
+**Adversarial honest assessment:** I tried to hallucinate new findings from the new code (the `display_safe` helper, the broader `parse_label`, the filter-side `parse_label` call). None of the candidate hallucinated findings stood up to a reproducer attempt. Either the Round-2 fix is genuinely complete for the Layer 4 surface, or my adversarial creativity is exhausted within this warm-session. A round-2 cold-batch by a fresh reviewer would be the more confident verification — flagged for VDD-IAR Alignment.
+
+**Coordination:** Cross-references Security Review 8 (independent confirmation of F1 closure); SE Review 12 (the source-level fix); SO Review 17 (the spec amendment for F3 Accepted Risk).
+
+**Files modified:** Only this log appended.
+
+---

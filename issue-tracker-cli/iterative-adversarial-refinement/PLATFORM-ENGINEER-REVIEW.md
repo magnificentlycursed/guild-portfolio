@@ -677,3 +677,69 @@ error[unlicensed]: tracker = 0.1.0 is unlicensed
 
 **Net Platform posture after this update:** unchanged from the post-Review-14 state — six prior F-numbers Resolved (F1, F2, F4, F5, F6, F8), F3 Backlogged, F7 Dismissed, F9 Resolved. The license fix is not a new Platform finding; it is an SO adjudication that closes a TW Open item that was CI-relevant once F2 landed. No carry-forward Platform findings remain.
 
+---
+
+## Review 9 — 2026-05-05 22:45Z
+
+**Scope:** Layer 4 (labels) full-suite IAR pass on branch `issue-tracker-cli-labels`. Primary lens: Layer 4 platform impact. Secondary: regression check on every gate landed in Reviews 1–8 (toolchain pin, `Cargo.lock`, `--locked` CI invocations, SHA-pinned actions, version-pinned tool installs, `deny.toml` four-section coverage, pre-commit hooks, `Cargo.toml` `license` field).
+
+**Session note:** Cold session per primer. Prior reviewer hit a rate limit before completing; this session starts fresh.
+
+**Layer 4 diff (platform-relevant):** `git diff origin/main...HEAD --name-only` returns exactly three files — `src/lib.rs`, `src/main.rs`, `tests/layer4.rs`. Zero changes to `Cargo.toml`, `Cargo.lock`, `deny.toml`, `rust-toolchain.toml`, `.github/workflows/issue-tracker-cli.yml`, `.pre-commit-config.yaml`, or any file under `.pre-commit-hooks/`. Layer 4 introduced **no new dependencies, no toolchain change, no CI step change, and no hook change**.
+
+**Regression check (verified this session):**
+
+- `rust-toolchain.toml` still pins `channel = "1.94.1"` with `clippy` + `rustfmt` components (✓).
+- `.gitignore` excludes `/target` and `/tracker.json` (✓).
+- `Cargo.lock` is committed; `cargo build --locked` succeeds with no resolver complaint (✓).
+- `Cargo.toml` carries `license = "MIT OR Apache-2.0"` (Review 8 hotfix, line 7) — still present (✓).
+- `deny.toml` retains all four supplement-required sections — `[advisories]`, `[licenses]`, `[bans]`, `[sources]` — plus `[graph]` and `[output]` (✓).
+- `.github/workflows/issue-tracker-cli.yml` still SHA-pins `actions/checkout@34e114876b…  # v4`, `dtolnay/rust-toolchain@3c5f7ea28c…  # master at 2026-05-04`, `Swatinem/rust-cache@e18b497796…  # v2`; all four cargo invocations carry `--locked`; `cargo install cargo-audit --locked --version 0.22.1` and `cargo install cargo-deny --locked --version 0.19.4` are version-pinned (✓).
+- `.pre-commit-config.yaml`'s `cargo-fmt-check` hook still uses `cd "$(git rev-parse --show-toplevel)/issue-tracker-cli"` (Review 8 F8 fix) (✓).
+- `.pre-commit-hooks/check-no-home-paths.sh` reads `$HOME` at runtime, no hardcoded username (✓).
+- Local verification: `cargo build --locked` clean; `cargo clippy --all-targets --locked -- -D warnings` clean; `cargo fmt --check` clean. `cargo deny check` not run locally (`cargo-deny` not installed on dev machine, consistent with Reviews 8.1 and 8.4) — next CI run is the validation point. Per session brief, prior reviewers ran `cargo audit` returning exit 0 with 100 crates, no advisories — Layer 4 added zero crates so no re-audit needed.
+
+---
+
+### Open
+
+*(none)*
+
+---
+
+### Resolved
+
+*(none — no fixes applied this session; nothing to fix)*
+
+---
+
+### Deferred
+
+*(none)*
+
+---
+
+### Dismissed
+
+*(none — no findings raised this session)*
+
+---
+
+### Hallucinated
+
+*(none — no findings raised this session)*
+
+---
+
+### Summary
+
+**Layer 4 is platform-clean.** Zero findings, zero open items, zero regressions. Layer 4 (labels) was implemented as a pure source/test change — no new crates, no toolchain bump, no CI/workflow modification, no hook modification, no `deny.toml` policy change. Every gate installed by Reviews 1–8 (and the Review 8.4 license hotfix) remains in place and passes locally for the checks reproducible without `cargo-deny` installed.
+
+The "no findings" outcome is itself the meaningful signal here: a feature layer that touches only `src/**` and `tests/**` should produce a no-op Platform review, and it did. Surfacing manufactured findings to fill space would be the sycophancy failure mode this domain is most prone to (rationalizing-to-completion). Confirmed "no findings" with explicit regression-check evidence above per the standard adversarial posture: the dimension list was walked; each item was either (a) verified unchanged from Review 8, or (b) verified inapplicable because Layer 4 made no platform-facing change.
+
+Carry-forward state from prior reviews is unchanged: Review 8 F3 (coverage) remains Backlogged by SO Review 14 with explicit re-raise criteria; Review 8 F7 (CI secret scanning) remains Dismissed by SO Review 14 with explicit re-raise criteria. Layer 4 did not change the threat model or the LOC count past the F3 Backlog re-raise threshold (~1000 LOC source); both adjudications still hold.
+
+**Merge-gate verdict:** No platform concerns blocking the Layer 4 merge. Recommend the `issue-tracker-cli-labels` branch proceed through the remaining IAR domains and merge-gate VDD-IAR Alignment without Platform-side gating.
+
+**Coordination:** None required. No cross-domain raises this session.
+

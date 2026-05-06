@@ -4,6 +4,23 @@ All notable changes to the IAR suite are recorded here. Entries are in reverse c
 
 ---
 
+## Unreleased — 2026-05-06 (Review 36: review-log self-disclosure / meta-leak mitigations)
+
+### Added
+- **`prompts/review-session.md`** — new `## Confidentiality-aware citation` section between adversarial-posture and "Before starting a domain review." Names the publishable-artifact class, lists opt-in-anonymization signals a reviewer can detect (home-paths hooks, noreply git config, scrubbed `Cargo.toml`/`package.json`), states the principle ("an example illustrating what-not-to-do should never instantiate what-not-to-do"), prescribes abstract placeholders, and references the suite-level enforcement hook.
+- **`domains/role/PLATFORM-ENGINEER-REVIEW.md`** — appended `**Confidentiality-aware citation (Platform-domain reminder).**` paragraph after the dimensions section. Anchors the primer rule to PE's typical findings (hook configs, environment values, secrets management).
+- **`domains/role/SECURITY-REVIEW.md`** — appended `**Confidentiality-aware citation (Security-domain reminder).**` paragraph after the dimensions section. Anchors the primer rule to Security's typical findings (information exposure, identity disclosure, secrets management).
+- **`hooks/check-review-log-anonymization.sh`** (new) — suite-level pre-commit script. Reads `git config user.name` / `user.email` / `$HOME` at runtime (no identity values hardcoded). Scans IAR review-log markdown line-by-line; reports any match outside the public-URL allowlist (`github.com/`, `gitlab.com/`, `bitbucket.org/`, `noreply.*`). Designed for `pass_filenames: true` invocation; the caller (`.pre-commit-config.yaml`) is responsible for `files:` scoping. Lives at the suite level so a future spinoff carries the hook.
+- **`.pre-commit-config.yaml`** (portfolio repo root) — new `id: review-log-anonymization` entry wires the hook, scoped via `files:` to IAR review-log markdown only (`iterative-adversarial-refinement/.*\.md` and `.*/iterative-adversarial-refinement/.*\.md`). Defense-in-depth alongside the existing `no-home-dir-paths` source-code hook.
+
+### Changed
+- **`issue-tracker-cli/iterative-adversarial-refinement/TECHNICAL-WRITER-REVIEW.md`** — Review 7 Finding 4 line scrubbed: a legacy bare-username citation (` `magnificentlycursed/guild-portfolio` GitHub URL`) was rewritten as `https://github.com/<user>/guild-portfolio` to clear the new hook's baseline. The substantive finding text is unchanged.
+
+### Addressed
+- **G-98 — Adversarial review logs can themselves leak the values they document.** The three additions above operate in defense-in-depth (instruction → domain anchor → enforcement). Surfaced by the `issue-tracker-cli` Layer 1 PROCESS.md retrospective: the user described a Platform Engineer review log that meta-leaked the username its anonymization hooks were defending against, requiring git history rewrite to scrub. Class is broader than anonymization — Security reviews citing leaked credentials, Privacy reviews citing real personal data, exhibit the same pattern.
+
+---
+
 ## Unreleased — 2026-05-05 (Review 35: manual-testing-checklist runnable-step standard)
 
 ### Changed

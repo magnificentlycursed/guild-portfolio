@@ -1,5 +1,168 @@
 # Changelog
 
+## Layer 4 IAR Round 2 closure — 2026-05-06 02:30Z
+
+**Scope:** Resolves the Open finding cluster surfaced by Layer 4 Round 1
+cold-batch IAR (Security R7 / RT R6 / DE R7 / SE R11 / QE R11 / UX R6 /
+SO R16 / TW R7). Lands DESIGN.md spec amendments (SO authority), src/lib.rs
+defenses (SE authority), tests (QE authority), and metadata fixes (Cargo.toml
+`repository`). Closes the label control-character / comma defense cluster,
+the error-message escape-interpolation defense, and the create/list filter
+trim asymmetry. Manual testing for Layer 4 was completed in the prior commit
+`b0a3789`.
+
+### Changed
+
+- **DESIGN.md** — Feature 1: extended `--label` preconditions to add
+  control-character and comma rejection; clarified that labels are trimmed at
+  storage. Feature 2: filter value is trimmed before comparison; empty/
+  whitespace filter is rejected with `Error: Label cannot be empty.`. Edge
+  Cases / Labels: enumerated the new rejection rules and the (out-of-threat-
+  model) bidi/format/zero-width acceptance stance. Edge Cases / Storage: added
+  control-char and comma in stored labels to the corruption triggers. stderr
+  contract: error messages interpolating user input MUST escape Cc as
+  `\u{XX}`. New "Approved Deviations from Assignment" section codifies the
+  `tracker delete` confirmation waiver as director-approved (replaces the
+  prior unattributed "advisory" rationale).
+- **src/lib.rs** — `parse_label` extended to reject `char::is_control()` and
+  the comma character; new `label_is_valid` helper enforces the same rules at
+  load time via `issue_fields_are_valid`. New `display_safe` helper escapes
+  Cc characters as `\u{XX}`; applied at the three error-formatter sites in
+  `parse_priority`, `parse_status`, `parse_id`. `cmd_list` now runs
+  `parse_label` on the filter value, closing the trim-asymmetry round-trip
+  bug and rejecting empty filters symmetric with create.
+- **tests/layer4.rs** — +12 integration tests covering label control-char
+  rejection (newline, ESC), comma rejection, load-time corruption rejection
+  for both, filter trimming/empty/control-char rejection, and error-message
+  escape interpolation (priority, status, id).
+- **src/lib.rs#tests** — +11 unit tests covering the new `parse_label`
+  rejection rules, `label_is_valid` for stored data, and `display_safe` round
+  trips.
+- **Cargo.toml** — added `repository = "https://github.com/magnificentlycursed/guild-portfolio"`.
+  Closes TW Review 6 Finding 6 sub-item (carried since Layer 3) and TW Review
+  7 Finding 4. The `TODO(SO)` comment is removed.
+
+### IAR
+
+Round 2 cold-batch is recommended next per VDD-IAR R11 verdict. The
+substantive Open findings from Round 1 that this commit resolves:
+
+- Security R7 F1 (label control-char injection — Open / Raised to SE/QE/SO) —
+  resolved by the DESIGN.md amendment + `parse_label` / `issue_fields_are_valid`
+  extension + 7 new tests.
+- Red Team R6 F1 (Security R7 F1 confirmed + load-path + OSC 8) — resolved by
+  the same fix; OSC 8 covered by `is_control()` since ESC is Cc.
+- Red Team R6 F2 (error-message escape interpolation) — resolved by
+  `display_safe` helper + 3 new integration tests.
+- Red Team R6 F3 (Trojan-Source bidi / zero-width) — Accepted Risk per the
+  new DESIGN.md "Edge Cases / Labels" out-of-threat-model bullet; risk owner
+  is the director (single-user local-CLI threat model).
+- Data Engineer R7 F1 (label control-chars at create + load) — resolved by
+  the same fix.
+- Data Engineer R7 F2 (filter trim symmetry) — resolved by `cmd_list` running
+  `parse_label` on the filter value.
+- SE R11 F3 (label control-char defense, gated on SO) — resolved.
+- QE R11 F4 (no test for label control-char rejection) — resolved by the new
+  tests.
+- UX R6 F1 (trim-asymmetry round-trip + empty-filter silent-no-match) —
+  resolved.
+- UX R6 F4 (comma-in-label display ambiguity) — resolved by the comma
+  rejection rule.
+- SO R16 F1 (label trim-on-store wording) — resolved by the postcondition
+  amendment.
+- SO R16 F2 (empty filter validation) — resolved (chose option A: validate +
+  reject, symmetric with create).
+- SO R16 F4 / TW R7 F7 (Dim 9 — delete-with-confirmation deviation) —
+  resolved as Approved Deviation D1 in DESIGN.md.
+- TW R7 F4 (Cargo.toml `repository`) — resolved.
+
+Open / deferred after this commit:
+
+- SA R9 F1 / SE R11 F2 (cmd_list extraction) — Deferred to a focused PR
+  before Layer 7 (color), per SE's rationale: surgical inline conflates
+  concerns with Layer 7 prep.
+- UX R6 F2 (clap-voice multi-label error) / UX R6 F3 (no `--help` examples) /
+  TW R7 F6 (`--help` valid-value asymmetry) — Deferred to Layer 7 polish.
+- TW R7 F5 (PROCESS.md retrospective placeholders) — Open; developer-only;
+  director must fill or restructure before Layer 4 merge.
+- TW R7 F2 (CHANGELOG missing Layer 4 entry) — see "Layer 4 — labels (Round 1)"
+  entry below.
+
+### Verification
+
+- `cargo build --locked` — clean.
+- `cargo test --locked` — **123/123 pass** (39 unit + 32 layer1 + 18 layer2
+  + 9 layer3 + 25 layer4). Up from 100 by +11 unit + +12 layer4.
+- `cargo clippy --all-targets --locked -- -D warnings` — clean.
+- `cargo fmt --check` — clean.
+- Adversarial smoke tests against the release binary confirm: newline label
+  rejected; ESC label rejected; comma label rejected; ESC `--priority` value
+  renders as `\u{1B}[31mPWN\u{1B}[0m` in stderr (escaped — no raw ESC byte);
+  `tracker list --label ""` rejected with `Error: Label cannot be empty.`;
+  `tracker list --label "  bug  "` matches a stored `bug`.
+
+---
+
+## Layer 4 — labels (Round 1) — 2026-05-05 11:30Z
+
+**Scope:** Closes the layer-shipping commits for Layer 4 of the assignment
+build sequence ("Add label support; display + filter by labels"). Pulled into
+CHANGELOG retroactively per TW Review 7 Finding 2 — the layer's commits
+shipped in `14bd219` (Red Gate), `ec5c966` (implementation), `0ad83de`
+(top-level `--help` discoverability — pulled forward from Layer 7), `f036d8d`
++ `5b95911` (suite-level IAR commits affecting this project's manual-testing
+standard and `--help` examples). The CHANGELOG was stale through the entire
+Layer 4 manual testing window and Round 1 IAR pass; this entry restores
+"first place a maintainer looks" parity with the implementation state.
+
+### Changed
+
+- **`src/main.rs`** — added `--label <l>...` (repeatable) to `Create` clap
+  variant; added `--label <l>` (single-value `Option<String>`) to `List` clap
+  variant. Top-level `--help` doc-comments updated to mention `--priority` and
+  `--label` for discoverability (commit `0ad83de`).
+- **`src/lib.rs`** — added `parse_label` (trim + non-empty validation),
+  `dedupe_labels` (first-occurrence preservation, case-sensitive),
+  `label_matches` (exact-match filter); added `labels: Vec<String>` to
+  `Issue`; extended `cmd_create` to consume `--label` arg, parse / dedup, and
+  store; extended `cmd_list` to render the `Labels` column (comma-separated,
+  20-char truncate with `…`, `(none)` for empty) and AND-combine the new
+  `--label` filter; extended `issue_fields_are_valid` with empty-label
+  rejection.
+- **`tests/layer4.rs`** — Red Gate (commit `14bd219`): 12 integration tests
+  + 3 unit tests in `src/lib.rs` covering label storage, ordering, dedup,
+  empty rejection, comma-separated rendering, `(none)` empty state, 20-char
+  truncation, exact-match filter, case-sensitive filter, and multiple-flag
+  rejection on `list`.
+- **`SE Review 11`** inline fix (commit b4f2db1) — refactored
+  `is_default_open_view` derivation in `cmd_list` to extract the new-filter
+  disjunction into `extra_filter_active`, discharging SA Review 9 Finding 2.
+- **`tests/layer4.rs`** Round 1 strengthening (commit b4f2db1) — added
+  `create_preserves_label_case_at_storage`; tightened
+  `list_multiple_label_flags_exits_one` from `contains("Error:")` to the
+  full clap-message text; added negative `Nice work!` assertion to
+  `list_label_filter_is_case_sensitive`.
+- **`README.md`** Round 1 (commit b4f2db1) — Layer 4 status block updated;
+  Commands block synopses now show `--label`; Test section sentence
+  broadened to current coverage.
+
+### IAR
+
+Layer 4 Round 1 cold-batch — 11 domain reviews (SO 16 + Dim 9 addendum;
+SA 9; Security 7; SE 11; QE 11; UX 6; PE 9; DE 7; TW 7; RT 6; VDD-IAR 11).
+Verdict: NO-GO-PENDING-ROUND-2 (23 Open findings across 9 domains). Round 2
+resolution lands in commit b0a3789 (manual testing) + this commit's parent
+(Round 2 closure).
+
+### Verification
+
+- `cargo test --locked` — **100/100 pass** at Round 1 close (28 unit + 32
+  layer1 + 18 layer2 + 9 layer3 + 13 layer4).
+- `cargo clippy --all-targets --locked -- -D warnings` — clean.
+- `cargo fmt --check` — clean.
+
+---
+
 ## CI hotfix: self-crate license — 2026-05-05 18:30Z
 
 **Scope:** Restores green CI after `cargo deny --locked check` (added in the

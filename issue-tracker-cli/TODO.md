@@ -186,30 +186,30 @@ Unit tests:
 **Goal:** The user can add labels to issues, see them in the list, and filter by label.
 
 **Acceptance Criteria:**
-- [ ] `tracker create "Fix bug" --label bug` stores `"labels": ["bug"]`
-- [ ] `tracker create "Fix bug" --label bug --label auth` stores `"labels": ["bug", "auth"]` (order preserved)
-- [ ] `tracker create "Fix bug" --label bug --label bug` stores `"labels": ["bug"]` (deduplicated)
-- [ ] `tracker create "Fix bug" --label ""` exits 1, stderr `Error: Label cannot be empty.`
-- [ ] `tracker create "Fix bug" --label "  "` exits 1, stderr `Error: Label cannot be empty.`
-- [ ] `tracker create "Fix bug"` stores `"labels": []`; list shows `(none)` in Labels column
-- [ ] Labels column in list shows comma-separated labels; truncates at 20 characters with `…` if longer
-- [ ] `tracker list --label bug` shows only issues that have `bug` in their labels list
-- [ ] `tracker list --label Bug` does NOT show issues labeled `bug` (case-sensitive match)
-- [ ] `tracker list --label bug` on an issue with no labels → issue does not appear
-- [ ] `tracker list --label bug --label auth` exits 1, stderr contains usage error, exits 1 (multiple `--label` flags on list are rejected)
+- [x] `tracker create "Fix bug" --label bug` stores `"labels": ["bug"]`
+- [x] `tracker create "Fix bug" --label bug --label auth` stores `"labels": ["bug", "auth"]` (order preserved)
+- [x] `tracker create "Fix bug" --label bug --label bug` stores `"labels": ["bug"]` (deduplicated)
+- [x] `tracker create "Fix bug" --label ""` exits 1, stderr `Error: Label cannot be empty.`
+- [x] `tracker create "Fix bug" --label "  "` exits 1, stderr `Error: Label cannot be empty.`
+- [x] `tracker create "Fix bug"` stores `"labels": []`; list shows `(none)` in Labels column
+- [x] Labels column in list shows comma-separated labels; truncates at 20 characters with `…` if longer
+- [x] `tracker list --label bug` shows only issues that have `bug` in their labels list
+- [x] `tracker list --label Bug` does NOT show issues labeled `bug` (case-sensitive match)
+- [x] `tracker list --label bug` on an issue with no labels → issue does not appear
+- [x] `tracker list --label bug --label auth` exits 1, stderr contains usage error, exits 1 (multiple `--label` flags on list are rejected)
 
 **Not in this layer:** compound filter with all three flags simultaneously (Layer 5)
 
 **Manual Testing Checklist:**
-- [ ] Happy path: create issue with `--label bug --label auth` → `tracker list` shows `bug, auth` in Labels column
-- [ ] Deduplication: `--label bug --label bug` → Labels column shows `bug` once
-- [ ] No labels: create without `--label` → Labels column shows `(none)`
-- [ ] Filter: `tracker list --label bug` → only issues with `bug` label appear
-- [ ] Case-sensitive: create issue labeled `bug`, run `tracker list --label Bug` → no results (prints `No issues match the given filters.`)
-- [ ] Error — empty label: `tracker create "Test" --label ""` → exit 1
-- [ ] Error — multiple label filters: `tracker list --label bug --label auth` → exit 1
-- [ ] Long labels: create issue with `--label averylonglabelthatexceedsthecolumnwidth` → Labels column truncates with `…` at 20 chars
-- [ ] Persistence: labels survive reinstall
+- [x] Happy path: create issue with `--label bug --label auth` → `tracker list` shows `bug, auth` in Labels column
+- [x] Deduplication: `--label bug --label bug` → Labels column shows `bug` once
+- [x] No labels: create without `--label` → Labels column shows `(none)`
+- [x] Filter: `tracker list --label bug` → only issues with `bug` label appear
+- [x] Case-sensitive: create issue labeled `bug`, run `tracker list --label Bug` → no results (prints `No issues match the given filters.`)
+- [x] Error — empty label: `tracker create "Test" --label ""` → exit 1
+- [x] Error — multiple label filters: `tracker list --label bug --label auth` → exit 1
+- [x] Long labels: create issue with `--label averylonglabelthatexceedsthecolumnwidth` → Labels column truncates with `…` at 20 chars
+- [x] Persistence: labels survive reinstall
 
 **Red Gate — tests to write first:**
 

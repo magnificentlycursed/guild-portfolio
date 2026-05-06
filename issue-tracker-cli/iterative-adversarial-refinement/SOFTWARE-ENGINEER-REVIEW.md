@@ -1039,3 +1039,289 @@ All three Open findings from Review 10 closed in the parallel-batch resolution p
 **Suite:** 60 → 74 tests; `cargo test --all-targets --locked`, `cargo clippy --all-targets --locked -- -D warnings`, `cargo fmt --check` all clean.
 
 ---
+
+## Review 11 — 2026-05-05 22:30Z
+
+**Scope:** Layer 4 (`issue-tracker-cli-labels` branch) implementation quality of `--label` on `create` (repeatable, deduplicated, case-preserved) and `--label` on `list` (single-value, case-sensitive AND-combined). Code: `src/lib.rs` (711 lines incl. tests), `src/main.rs` (96 lines), `tests/layer4.rs`. Cross-domain inputs from this round: SA Review 9 raised two Open findings to SE — F1 (cmd_list extraction not applied at Layer 4) and F2 (filter polarity inversion applied partially); Security Review 7 raised one Open finding to SE — labels accept control characters and flow into `list` rendering via `issue.labels.join(", ")`. Regression check on prior-layer code (Layer 1–3 paths re-traced).
+
+**Session note:** Cold session per `prompts/review-session.md` primer; parallel-batch with other Tier-3 domains. Sycophancy guard applied: Findings 1 and 2 are concurrence with SA Review 9 carry-forwards but evaluated against SE-domain dimensions (Dim 4 — function design, Dim 5 — duplication, Dim 11 — future-self maintainability), not merely echoed. Finding 3 is concurrence with Security Review 7 but evaluated for the SE-domain implementation gap (Dim 1 — correctness against spec rationale, Dim 5 — duplication of the control-character defense pattern, not just "Security said so"). Sanity probe: `cargo test --all-targets --locked` (100 pass), `cargo clippy --all-targets --locked -- -D warnings` clean, `cargo fmt --check` clean — all re-verified after the inline fix in this session.
+
+**Assumption surfacing (G-20):** Re-verified relevant std/crate APIs against the toolchain pinned in `rust-toolchain.toml` (1.94.1) and `Cargo.lock`: `Vec::retain` filter-in-place semantics, `[T]::join` (string slice's `Vec<String>::join` for `", "` concatenation — does not interpret bytes, no escaping applied), `HashSet::insert` returning `bool` for first-occurrence detection (used in `dedupe_labels`), `Option::is_some_and` (used in cmd_list filter check, stable since 1.70). `Vec<String>::iter().any(|l| l == filter)` uses `PartialEq<&str>` impl on `String` which is byte-equal — case-sensitive by construction (matches DESIGN.md Edge Cases / Labels). `char::is_control` test is consistent with `validate_title`'s use; same Unicode general-category `Cc` semantics. No assumed-but-nonexistent APIs.
+
+---
+
+### Resolved
+
+**Finding 1 — `is_default_open_view` derived via positive-enumeration conjunction; SA Review 9 Finding 2 partial regression (Dim 11 — Future-self maintainability / Dim 4 — Function design / Regression of prior cross-domain Open finding)**
+
+`src/lib.rs:414-415` (pre-fix):
+```rust
+let is_default_open_view =
+    effective_status == "open" && effective_priority.is_none() && label_filter.is_none();
+```
+
+SA Review 9 Finding 2 is correct from the SE lens: every new filter dimension currently forces a developer to remember to extend a four-conjunct (and growing) boolean expression with no compile-time enforcement. The SO Review 11 regression originated from exactly this pattern (Layer 3 added `--priority` and the empty-state predicate did not get extended; the QE test `list_priority_filter_no_match_shows_filter_message` later caught it). Layer 4 added `--label` and *did* extend the conjunction this time — but the structural fragility that produced the Layer 3 regression is unchanged; the next filter will hit the same hazard. Reviewing this as an SE-domain concern (not just architecture): the function is doing two-things-as-one — it's both deriving "effective filters" and computing "are we in the default empty-state branch," and the latter is expressed as positive enumeration of all filter slots being unset. That's the Dim 4 "function design" smell (one expression carrying two responsibilities) plus Dim 11 (future-self has to re-derive the predicate from scratch when adding a filter).
+
+**Resolution:** Applied inline. `src/lib.rs:413-422`:
+```rust
+// Disjunction over non-default filters: any future filter (e.g. Layer 6's
+// `--description-contains`) must extend `extra_filter_active` here — a single
+// location — rather than appending another `&& *_filter.is_none()` conjunct
+// to the empty-state predicate. Reduces the SO Review 11 regression hazard:
+// the structural fragility of the positive-enumeration form is what made the
+// earlier empty-state heuristic break when `--priority` was added in Layer 3
+// and again when `--label` was added in Layer 4. SA Review 9 Finding 2.
+let extra_filter_active = effective_priority.is_some() || label_filter.is_some();
+let is_default_open_view = effective_status == "open" && !extra_filter_active;
+```
+
+Two-line refactor; semantically identical behavior. The `effective_status == "open"` half is preserved verbatim — that captures the "explicit `--status open` matches the default-view empty-state" semantics that QE Review 9's `list_explicit_open_filter_matches_default` (`tests/layer2.rs`) pins. The new conjunct now lives in `extra_filter_active`, a single named site future filters extend. The 6-line comment links back to the SO Review 11 regression so a future-self reader does not need to re-discover the rationale via git log archaeology (Dim 11). All 100 tests pass; `cargo clippy --all-targets --locked -- -D warnings` clean; `cargo fmt --check` clean.
+
+Discharges SA Review 9 Finding 2.
+
+---
+
+### Open
+
+**Finding 2 — `cmd_list` mixes filter, empty-state, and rendering concerns; column-width literals are now duplicated in 4 unsynchronized sites; Layer 4 added a third inline `retain` and a fourth literal occurrence (Dim 4 — Function design / Dim 5 — Duplication / Dim 6 — Complexity / CLI supplement § Output formatting separation, structured result types before formatting)**
+
+`src/lib.rs:400-461`. Concur with SA Review 9 Finding 1 — and the SE-domain framing strengthens the case. From the SE lens this is a concurrent-violation of three CLI-supplement Software-Engineering checklist items:
+
+1. **"Output formatting as a code concern"** — `cmd_list` computes filter results AND renders tabular output AND emits empty-state messages AND emits the header. Four responsibilities in one 60-line function.
+2. **"User-visible strings centralized"** — `"No open issues. Nice work!"` and `"No issues match the given filters."` are inline `eprintln!` literals; `"(none)"` for empty-label rendering is an inline literal at line 448; `"ID"`, `"Status"`, `"Priority"`, `"Labels"`, `"Title"` are inline header literals at line 443.
+3. **"Structured result types before formatting"** — there is no intermediate `Vec<Row>` or similar type between filtering and rendering; the format strings consume `Issue` fields directly. Layer 7 (color) will need to inject ANSI codes into the same format-string call sites that currently render plain text — at four occurrences, not one.
+
+Column-width literals (Dim 5 evidence):
+- `"{:<4}  {:<11}  {:<8}  {:<20}  Title"` (header, line 442)
+- `"{:<4}  {:<11}  {:<8}  {:<20}  {}"` (row, line 455)
+- `truncate_with_ellipsis(&labels_raw, 20)` (line 452 — must match the `:<20` above)
+- `truncate_with_ellipsis(&issue.title, 50)` (line 453 — Title column max width, a hidden contract since the format string uses `{}` not `{:<50}`)
+
+Four locations, no module-level constant. The Title column max (50) is even less visible than the others because the format string uses an unbounded specifier — a future maintainer who only inspects the format string will not realize the truncation cap is 50 chars; they have to read the call site.
+
+**Classification:** Open — recommended impl fix. Not applied this session because the refactor is non-trivial (touches multiple call sites, requires the introduction of `format_header_row` / `format_issue_row` / `filter_issues` helpers, and adds module-level constants — all of which need their own unit tests to lock in the new structure). The change is appropriate as a focused PR ahead of Layer 7 (color), which is the natural consumer of the abstraction (color flags become arguments to `format_issue_row`). Concur with SA Review 9 Finding 1's recommended structure verbatim:
+
+> Extract `filter_issues(issues, status, priority, label) -> Vec<Issue>` as a pure function with unit tests; extract `format_header_row()` and `format_issue_row(&Issue)` as pure formatters; introduce module-level `const ID_WIDTH: usize = 4; const STATUS_WIDTH: usize = 11; const PRIORITY_WIDTH: usize = 8; const LABELS_WIDTH: usize = 20; const TITLE_WIDTH: usize = 50;` and use them in both the format strings (via `format!` with `:<{width}`) and `truncate_with_ellipsis` calls.
+
+**Coordination:** Cross-reference SA Review 9 Finding 1 (same recommendation, structural lens). QE will need a regression-spacing test only if the refactor changes observable output — the existing `list_columns_use_exactly_two_space_separator` (`tests/layer3.rs`) already pins the spacing contract, so a value-preserving extraction will not require new tests beyond unit tests on the new pure helpers themselves.
+
+---
+
+**Finding 3 — Label control-character defense missing; `parse_label` and `issue_fields_are_valid` only check empty/whitespace, not control characters; the title control-char defense pattern was not generalized when Layer 4 added a second free-form text field that flows to the same `list` rendering pipeline (Dim 1 — Correctness against spec rationale / Dim 5 — Duplication of validation pattern / Dim 8 — Defensive coding / Cross-reference Security Review 7 Finding 1)**
+
+`src/lib.rs:339-346`:
+```rust
+pub fn parse_label(raw: &str) -> Result<String, String> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        Err("Label cannot be empty.".to_string())
+    } else {
+        Ok(trimmed.to_string())
+    }
+}
+```
+
+Compare to `validate_title` (`src/lib.rs:68-77`):
+```rust
+pub fn validate_title(raw: &str) -> Result<String, String> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Err("Title cannot be empty.".to_string());
+    }
+    if trimmed.chars().any(char::is_control) {
+        return Err("Title cannot contain control characters.".to_string());
+    }
+    Ok(trimmed.to_string())
+}
+```
+
+The structural similarity is the SE-domain finding: two free-form text-field validators with near-identical purposes, one of which has a defense the other lacks. The DESIGN.md rationale for the title control-char check (line 290) names "the one-issue-per-line contract of `list` output, column alignment, and terminal-escape injection in any tool that displays the title" — the same `list`-output rendering pipeline now consumes labels via `issue.labels.join(", ")` at `src/lib.rs:450`. The rationale applies verbatim; the defense was not extended.
+
+The SE-domain framing (independent of the Security finding): this is duplication-with-divergence (Dim 5). When two functions have the same shape and the same domain semantics — both validate user-supplied display strings before they flow into the same rendering pipeline — they should share the same validation discipline. The current state is a maintainability hazard: a future reader comparing `validate_title` and `parse_label` will see the asymmetry and have to derive whether it is intentional. The DESIGN.md silence on label control characters today (the spec was written before Layer 4 surfaced the asymmetry) makes it easy to read the gap as intentional, when it is in fact a generalization-failure that was not caught when the second field was added.
+
+The proper SE fix is twofold: (a) extend `parse_label` to apply the same control-char rejection as `validate_title`, and (b) consider extracting a shared `validate_no_control_chars(s: &str, field_label: &str) -> Result<String, String>` helper so future free-form text fields (Layer 6's `--description`) inherit the defense by construction rather than each new field re-deriving it. The `issue_fields_are_valid` (`src/lib.rs:131`) load-time check needs the symmetric extension so hand-edited `tracker.json` files are rejected at load.
+
+**Classification:** Open — concur with Security Review 7 Finding 1. Not applied inline because the fix requires three coordinated edits per CLOSURE-PROTOCOL.md authority boundaries:
+
+- **SO** authority for the DESIGN.md amendment (Edge Cases / Labels and Edge Cases / Storage). DESIGN.md is the binding contract; amending it is the SO's authority. Without the spec amendment, the SE fix would diverge from the spec ("labels reject control chars" with no spec backing).
+- **SE** authority for the `parse_label` and `issue_fields_are_valid` extensions (this domain — would apply once SO amends the spec).
+- **QE** authority for the regression tests (label_with_newline_is_rejected, label_with_tab_is_rejected, label_with_escape_sequence_is_rejected, label_with_nul_or_del_is_rejected, label_with_printable_unicode_is_accepted, plus integration tests in `tests/layer4.rs` and corrupt-data tests for label control chars in `tests/layer1.rs`).
+
+The DESIGN.md amendment is the gating action; SE applies the fix once the spec sanctions it. Left Open and raised to SO via this finding's coordination note.
+
+**Cross-reference:** Security Review 7 Finding 1 (canonical reproducer; same defense recommendation; Open / Raised to SE / Raised to QE / Raised to SO). The SE-domain framing here adds the duplication / generalization-failure lens beyond the security framing.
+
+**Coordination:** SO — DESIGN.md amendment to extend the title control-char prohibition to labels (only SO modifies DESIGN.md per CLOSURE-PROTOCOL.md). QE — symmetric unit + integration tests once the spec sanctions the rejection. Red Team — likely independent surfacing as a label terminal-escape exploit at Tier 4.
+
+---
+
+### Dismissed
+
+**Finding 4 — `truncate_with_ellipsis` panics on `max_chars == 0` due to `max_chars - 1` underflow (Dim 8 — Defensive coding, narrow case)**
+
+`src/lib.rs:371-379`:
+```rust
+fn truncate_with_ellipsis(s: &str, max_chars: usize) -> String {
+    let chars: Vec<char> = s.chars().collect();
+    if chars.len() <= max_chars {
+        s.to_string()
+    } else {
+        let truncated: String = chars[..max_chars - 1].iter().collect();
+        format!("{}…", truncated)
+    }
+}
+```
+
+If `max_chars == 0` and `chars.len() > 0`, the slice expression `chars[..max_chars - 1]` underflows `usize` (panic in debug; very-large-index slice panic in release). The function has only two call sites (`labels_raw, 20` and `issue.title, 50`), both with literal arguments far above zero. The risk is unreachable today, but the function takes `usize` and has no documented precondition.
+
+**Classification:** Dismissed. The function is module-private (`fn`, not `pub`), and both call sites are immediately visible; introducing a `Result` return or `max_chars >= 2` precondition assertion would add API/error surface for a path no caller can reach. If the function is ever made public or used with a configurable width (e.g., a future `--columns` flag), this finding becomes real and should be re-raised. Logged for future-self maintainability; cross-reference for Layer 7 if color or width changes touch the truncation logic.
+
+---
+
+**Finding 5 — `cmd_create` body grows linearly with each layer; Layer 6's `--description` adds a fifth piece of pre-`load_issues` logic (Dim 6 — Complexity, premature)**
+
+`src/lib.rs:202-235`. `cmd_create` now performs: title validation, priority parse + default, label parse + dedup, load, ID assignment, timestamp, push, save, println. Nine sequential steps. The function is a linear narrative, all steps are well-named, and no nested control flow exists — this is the case where extraction would obscure rather than clarify.
+
+**Classification:** Dismissed. SE Review 8 Finding 5 already dismissed `cmd_list` length growth on the same grounds; the same logic applies here. SA Review 9 Finding 4 noted that Layer 6's `--description` will push `cmd_create` to 5 parameters, at which point a `CreateArgs` parameter object becomes appropriate. Cross-reference for Layer 6 timing.
+
+---
+
+**Finding 6 — `dedupe_labels` runs after `parse_label` rather than during it; one extra walk over the labels slice (Dim 6 — Complexity, marginal)**
+
+`src/lib.rs:213-217`:
+```rust
+let parsed_labels: Vec<String> = labels_raw
+    .iter()
+    .map(|l| parse_label(l))
+    .collect::<Result<_, _>>()?;
+let labels = dedupe_labels(&parsed_labels);
+```
+
+A single pass that combined parse + dedup would walk once. The current form walks the labels twice (parse + dedup).
+
+**Classification:** Dismissed. Typical CLI label list is 1–5 elements; the cost is unmeasurable. The two-step form is more readable than a fold-with-HashSet-state. Two pure helpers with their own unit tests (`label_empty_after_trim_rejected`, `label_deduplication_preserves_first_occurrence`) is better testable surface than a fused helper. No action.
+
+---
+
+**Finding 7 — `cmd_status` `iter().position()` first-match semantics is now safe given the duplicate-ID load-time check, but the comment / guarantee is implicit (Dim 9 — Comments and self-documentation, marginal)**
+
+`src/lib.rs:283-286`:
+```rust
+let idx = issues
+    .iter()
+    .position(|i| i.id == id)
+    .ok_or_else(|| format!("Issue #{} not found.", id))?;
+```
+
+Review 10 Finding 1 surfaced and resolved the duplicate-ID gap by adding `issues_collection_invariants_hold` to the load path. `cmd_status` is now safe — if the load path admits the data, no two issues share an ID, so `position()` finding the "first" is also finding "the only." But the function does not document the invariant it relies on.
+
+**Classification:** Dismissed. The invariant is now enforced at the load boundary and documented in `load_issues`'s rustdoc / `issues_collection_invariants_hold`. A reader reaching `cmd_status` from `load_issues` follows the invariant chain naturally. Adding a comment at every consumer of the invariant (cmd_status, future cmd_show, future cmd_delete) would be noise. The single source-of-truth is correct as-is.
+
+---
+
+**Finding 8 — `description` field in `Issue` is `Option<String>` but no command writes it; `cmd_create` always sets `description: None`. Layer 6 will populate (Dim 7 — Type safety, intentional forward-compat)**
+
+`src/lib.rs:32-54` (struct), `src/lib.rs:225` (`cmd_create` — hardcoded `None`), `src/lib.rs:132-135` (validator already enforces non-whitespace if present). DESIGN.md commits to `--description` at Layer 6.
+
+**Classification:** Dismissed. Forward-compat field; validator semantics correctly already-prepared (the Layer 3 follow-up extension at Review 10 added the description trim check before Layer 6 needs it). Documented intent. No action.
+
+---
+
+### Hallucinated
+
+**Finding 9 — `Vec<String>` for labels could be `Vec<Cow<'static, str>>` to avoid allocations**
+
+Concern: each label is a heap-allocated `String`; for short literal labels this is wasteful relative to a `Cow` that could borrow from the input.
+
+**Classification:** Hallucinated. The labels are user-supplied at runtime via clap's `Vec<String>` — the input is already heap-allocated by clap; there is no `&'static str` source to borrow from. A `Cow<'static, str>` would force every variant to be `Cow::Owned`, identical in storage to `String` with extra type-system noise. The control holds: `Vec<String>` is the correct type for clap-parsed user input.
+
+---
+
+### Summary
+
+Review 11 logged. Cold-session sweep produced **one resolved (inline fix)**, **two open (raised to SE — `cmd_list` extraction; raised to SO + SE + QE — label control-char defense)**, **five dismissed-with-rationale**, **one hallucinated**.
+
+**Resolved (inline this session):** Finding 1 — `is_default_open_view` derivation refactored at `src/lib.rs:413-422` to extract the new-filter disjunction (`extra_filter_active`) into a named local variable, with a 6-line comment linking the structural decision back to the SO Review 11 regression that motivated it. Discharges SA Review 9 Finding 2. All 100 tests pass; `cargo clippy --all-targets --locked -- -D warnings` clean; `cargo fmt --check` clean.
+
+**Open (left for next round / cross-domain coordination):**
+- Finding 2 — `cmd_list` extraction with column-width constants. SE-domain concurrence with SA Review 9 Finding 1; recommended ahead of Layer 7. Not applied inline because the refactor is non-trivial (multiple call sites, requires new pure helpers and module-level constants with their own unit tests). Better as a focused PR.
+- Finding 3 — Label control-character defense. SE-domain concurrence with Security Review 7 Finding 1; gated on SO authority for the DESIGN.md amendment. Not applied inline because applying the validator change ahead of the spec amendment would diverge from the spec.
+
+**Cross-reference assessment (per orchestrator brief):**
+- **SA Review 9 Finding 1 (cmd_list extraction):** Concur. From the SE lens this is also a duplication / centralization concern (Dim 5) and a CLI-supplement violation (Output formatting as a code concern, User-visible strings centralized, Structured result types before formatting). Layer 4 added a third inline `retain` and a fourth column-width literal; the case strengthens. Open / raised to SE.
+- **SA Review 9 Finding 2 (filter polarity):** Concur — and resolved inline this session via the disjunction extraction. Discharged.
+- **Security Review 7 Finding 1 (label control chars):** Concur from the SE lens — the title-validation pattern was not generalized when Layer 4 added a second free-form text field. The SE-domain framing adds Dim 5 (duplication / generalization-failure of the validation discipline) beyond the security framing. Open / raised to SO+SE+QE.
+
+**No push-back on either cross-reference.** Both findings hold under SE-domain dimensions; neither is hallucinated. SE Review 11 ratifies SA F1, ratifies SA F2 by resolving it, and ratifies Security 7 F1.
+
+**Layer 4 SE verdict:** The Layer 4 implementation is sound on the create path (`parse_label`, `dedupe_labels`, integration with `cmd_create`) and on the list path (filter inclusion, comma-rendering, `(none)` for empty, truncation at 20 chars). Two real architectural-quality concerns persist (`cmd_list` extraction; label control-char defense) — both predate Layer 4 in different ways: the cmd_list extraction was raised at Layer 3 / SA 8 and not actioned; the control-char defense was scoped to title at Layer 1 and not generalized. Neither blocks Layer 4 functional correctness; both should be addressed before Layer 7.
+
+**Concerns for QE in the next round:**
+- The inline fix in Finding 1 changes no observable behavior, so no new test required. Existing `list_explicit_open_filter_matches_default` (`tests/layer2.rs`) and `list_priority_filter_no_match_shows_filter_message` (`tests/layer3.rs`) continue to pin the empty-state semantics through the refactor — verified pass.
+- If SO sanctions the label control-char defense (Finding 3), QE will need symmetric unit + integration tests mirroring the title control-char tests: `label_with_newline_is_rejected`, `label_with_tab_is_rejected`, `label_with_escape_sequence_is_rejected`, `label_with_nul_or_del_is_rejected`, `label_with_printable_unicode_is_accepted`, plus integration test in `tests/layer4.rs` for the create path (rejection of `--label $'bug\nFAKE'`) and a corrupt-data test in `tests/layer1.rs` for the load path.
+- If SE applies the cmd_list extraction (Finding 2), QE will gain testable surface on the new pure helpers (`filter_issues`, `format_header_row`, `format_issue_row`); the existing `list_columns_use_exactly_two_space_separator` (`tests/layer3.rs`) already pins the observable spacing contract, so no integration regression is expected.
+- No QE-domain regressions surfaced this round.
+
+**Coordination:**
+- **SA:** Concur with SA Review 9 Findings 1 and 2. F2 resolved inline this session; F1 acknowledged as Open SE-domain finding (Finding 2 above). Cross-reference established.
+- **Security:** Concur with Review 7 Finding 1. SE-domain framing adds Dim 5 (duplication of validation pattern) beyond the security framing. Resolution gated on SO authority.
+- **SO:** DESIGN.md amendment requested — extend the title control-char prohibition to labels (Finding 3). Without the amendment, SE cannot apply the validator extension without diverging from the spec.
+- **QE:** Two sets of tests anticipated when Findings 2 and 3 close (see "Concerns for QE" above).
+- **Red Team:** Finding 3 likely to surface independently as a label terminal-escape exploit at Tier 4.
+- **VDD-IAR Alignment:** Three SE-domain Open findings raised across this Layer-4 round (F1 resolved inline, F2 + F3 left Open). MVR not yet reached for Layer 4 SE: real findings still being surfaced by cold-session passes.
+
+**Files modified:** `src/lib.rs:413-422` (inline fix for Finding 1) and this review log appended.
+
+---
+
+## Review 12 — 2026-05-06 02:30Z
+
+**Round:** SE Review 12 (Round-2 closure for Layer 4)
+**Scope:** Apply code fixes for the Round-1 cluster sanctioned by SO Review 17. Per CLOSURE-PROTOCOL.md, SE owns `src/**/*.rs`; the SO-spec amendments must precede this round (and they have — DESIGN.md is updated as of commit `67ef920`).
+**Session context:** Warm-resolution session (per CLOSURE-PROTOCOL.md Section 5 step 2/3); not adversarial-cold. Tested with `cargo test --locked`, `cargo clippy --all-targets --locked -- -D warnings`, `cargo fmt --check`, plus targeted adversarial smoke tests against the release binary.
+
+### Resolved (this round)
+
+#### Finding 3 (Round-1) — Label control-character defense
+
+DESIGN.md Feature 1 + Edge Cases / Labels + Edge Cases / Storage now sanction the rule. `parse_label` (`src/lib.rs:339-368`) extended to reject `char::is_control()` and the comma character. New `label_is_valid` helper (`src/lib.rs:141-147`) enforces the same rules at load time; called from `issue_fields_are_valid` for stored data. Symmetric with `validate_title`'s control-char rule. **Resolved.**
+
+#### Finding 4 (new) — Filter-side validation symmetric with create
+
+DESIGN.md Feature 2 amended to specify filter trimming + empty rejection. `cmd_list` (`src/lib.rs:454-461`) now runs `parse_label` on the filter value before `label_matches`. Closes the trim-asymmetry round-trip bug surfaced by UX R6 F1 / DE R7 F2 / SO R16 F2. The named local `effective_label: Option<String>` parallels `effective_priority` and is the value used in the empty-state predicate (`extra_filter_active`). **Resolved.**
+
+#### Finding 5 (new) — display_safe helper for error formatters
+
+DESIGN.md "stderr contract" now requires Cc escaping in interpolated error messages. Added `display_safe` helper (`src/lib.rs:149-166`) that maps each `is_control()` char to `\u{XX}` while leaving printable Unicode untouched. Applied at three formatter sites:
+
+- `parse_priority` (`src/lib.rs`) — error includes `display_safe(raw)` instead of `raw`.
+- `parse_status` — same.
+- `parse_id` — same.
+
+Adversarial smoke test confirms the previously-vulnerable reproducer `tracker list --priority $'\x1b[31mPWN\x1b[0m'` now renders the literal six-char `\u{1B}` in stderr (visible via `od -c`) rather than the raw 0x1B byte. **Resolved.** Cross-reference Red Team Review 6 Finding 2.
+
+### Open (deferred to a focused PR before Layer 7)
+
+#### Finding 2 (carried) — `cmd_list` extraction with column-width constants
+
+Unchanged from Round 1. SA R9 F1 / SE R11 F2 still Open. Round 2 was scoped to security/correctness fixes; the architectural extraction is deliberately out of scope for the cold-batch resolution round and lands in a separate focused PR. The SO Review 17 deferral records this with the named target (Layer 7 prep).
+
+### Verification
+
+- `cargo build --locked` clean.
+- `cargo test --locked` — **123 pass / 0 fail / 0 ignored** (was 100). Added 11 unit + 12 integration tests. The new tests cover: label control-char rejection (newline, ESC, OSC 8 leader, NUL, DEL, tab); label comma rejection; load-time corruption rejection for both classes; filter trim symmetry; filter empty rejection; filter control-char rejection; error-format escape interpolation for priority/status/id.
+- `cargo clippy --all-targets --locked -- -D warnings` clean.
+- `cargo fmt --check` clean.
+
+### Cross-domain coordination
+
+- **SO** Review 17 — DESIGN.md amendments sanctioning each fix, per CLOSURE-PROTOCOL.md authority chain. Code fix landed in same commit as the spec amendments (commit `67ef920`).
+- **QE** Review 12 — adds the test coverage for each fix. Tests live in `tests/layer4.rs` (integration) and `src/lib.rs#tests` (unit).
+- **Security** Review 8 — verifies F1 closed at the binary level.
+- **Red Team** Review 7 — verifies F1+F2 closed; F3 Accepted Risk per the spec stance.
+
+### Files modified
+
+- `src/lib.rs` — `parse_label`, `label_is_valid` (new), `display_safe` (new), `issue_fields_are_valid` (extended for labels), `parse_priority` / `parse_status` / `parse_id` formatter sanitization, `cmd_list` filter validation. Plus 11 new unit tests under the `#[cfg(test)] mod tests` block.
+
+---

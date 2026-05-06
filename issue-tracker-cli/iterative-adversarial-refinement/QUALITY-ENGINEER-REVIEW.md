@@ -894,3 +894,276 @@ Five real findings, all resolved this session via test additions/strengthening (
 - **SO:** Empty-state messages on stdout (QE Review 8 Finding 3) remain Raised to SO — not re-raised but noted as still pending.
 - **PE:** Coverage tooling absence remains escalated (QE Review 8 Coordination) — no new escalation.
 - **No new domain coordination required.**
+
+---
+
+---
+
+## Review 11 — 2026-05-05 22:30Z
+
+**Scope:** Layer 4 (`--label` on `create` and `list`) on the `issue-tracker-cli-labels` branch. Files read: `DESIGN.md`, `PROCESS.md`, `src/lib.rs`, `src/main.rs`, `tests/{common/mod.rs,layer1.rs,layer2.rs,layer3.rs,layer4.rs}`, prior `QUALITY-ENGINEER-REVIEW.md` Reviews 8/9/10, `iterative-adversarial-refinement/SECURITY-REVIEW.md` Review 7. `cargo test --all-targets`, `cargo clippy --all-targets -- -D warnings`, and `cargo fmt --check` all run pre- and post-review. Pre-review: 98 tests pass clean. Post-review: 100 tests pass clean (added 1 test, strengthened 2). Mutation analysis applied per primer's literal-string mandate; secondary regression sweep over Layers 1-3 produced no new findings.
+
+**Session note:** Cold session (subagent context, not the implementer's session) per primer; session-isolated parallel batch with other Tier-2/3 domains. No prior participation in Layer 4 implementation, Red Gate authoring, or in-session reviews.
+
+**Red Gate verdict (Layer 4):** Compliant at the commit-pattern level. Commit `14bd219` ("Layer 4 Red Gate — labels tests and stubs", 2026-05-05 11:19 PDT) introduced 12 integration tests in `tests/layer4.rs` and 3 unit tests in `src/lib.rs`, with `parse_label`, `dedupe_labels`, and `label_matches` as `todo!()` stubs and no `--label` clap arg. The Red Gate state was confirmed (10 integration failures from clap unknown-arg; 3 unit failures from `todo!()` panics; 2 explicitly logged Cat B deviations against existing Layer 1 defaults — `create_without_labels_stores_empty_array` and `list_shows_none_for_no_labels`). Implementation commit `ec5c966` ("Layer 4 implementation — --label on create + list") followed. The Cat B deviations are correctly classified as regression coverage rather than Red Gate tests for new behavior, mirroring Layer 3's `create_without_priority_defaults_to_medium`. **Verdict: Red Gate satisfied for Layer 4.**
+
+**Assumption surfacing:** `assert_cmd::Command::cargo_bin`, `predicates::str::contains/.not()`, `tempfile::TempDir`, `serde_json::Value` indexing/`json!` macro, `clap::Parser` with `Vec<String>` (repeatable) vs. `Option<String>` (single) all verified against versions resolved in `Cargo.lock`. `clap`'s default behavior for `Option<String>` flag passed twice — emit usage error with text `"the argument '--label <LABEL>' cannot be used multiple times"` — confirmed by direct execution against the compiled binary. No hallucinated APIs in new test code.
+
+### Layer 4 acceptance criteria → test trace
+
+| Criterion (DESIGN.md Feature 1 / Feature 2 / Edge Cases / Labels) | Test(s) | Verdict |
+|---|---|---|
+| `--label X` stores `["X"]` | `create_with_label_stores_label` | ✓ |
+| `--label X --label Y` stores `["X","Y"]` (insertion order) | `create_with_multiple_labels_stores_all` | ✓ |
+| `--label X --label X` deduplicated to `["X"]` | `create_with_duplicate_labels_deduplicates` | ✓ |
+| no `--label` flag → `labels: []` | `create_without_labels_stores_empty_array` (Cat B) | ✓ |
+| `--label ""` → exit 1, `Error: Label cannot be empty.` | `create_with_empty_label_exits_one` (literal stderr) | ✓ |
+| `--label "  "` → exit 1, `Error: Label cannot be empty.` | `create_with_whitespace_label_exits_one` | ✓ |
+| labels rendered comma-separated in `list` | `list_shows_labels_comma_separated` | ✓ |
+| `(none)` rendered for empty labels | `list_shows_none_for_no_labels` (Cat B) | ✓ |
+| `Labels` column truncates at 20 chars with `…` | `list_label_value_truncated_at_20_chars` | ✓ |
+| `tracker list --label X` shows only matching | `list_label_filter_shows_matching` | ✓ |
+| `--label Bug` does NOT match `bug` (case-sensitive) | `list_label_filter_is_case_sensitive` | ✓ |
+| multiple `--label` flags on `list` → exit 1 | `list_multiple_label_flags_exits_one` (strengthened — Finding 2) | ✓ |
+| labels with control characters → rejected | **NO TEST** (see Open Finding 4) | ✗ (depends on SE/SO closing Sec R7 F1) |
+| label case preserved at storage as provided | `create_preserves_label_case_at_storage` (added — Finding 1) | ✓ |
+| AND-combined `--status` / `--priority` / `--label` | DESIGN.md line 313 example covered at Layer 5 per TODO; Layer 4 has no integration test (Open Finding 5) | partial |
+
+---
+
+### Resolved
+
+**Finding 1 — Label case preservation at storage has no falsifiable test (Dim 2 — Test falsifiability)**
+
+DESIGN.md Feature 1 postcondition (line 28) specifies: "labels is the deduplicated list of `--label` values; order is preserved, **case is preserved as provided**". A mutation in `parse_label` (`src/lib.rs:339-346`) that lowercased the trimmed value before returning — `Ok(trimmed.to_lowercase())` instead of `Ok(trimmed.to_string())` — would survive every existing Layer 4 test:
+
+- `create_with_label_stores_label` uses lowercase `bug`; `assert_eq!(v[0]["labels"], json!(["bug"]))` passes either way.
+- `create_with_multiple_labels_stores_all` uses lowercase `bug`, `auth`; same.
+- `create_with_duplicate_labels_deduplicates` uses lowercase `bug`, `auth`; same.
+- `list_label_filter_is_case_sensitive` uses `--label Bug` (filter side, mismatched case) — under the mutation, the stored label is now `"bug"` and the filter is `"Bug"` — the test still passes (no match expected and observed).
+
+The mutation is undetected. The user-visible contract — "case is preserved as provided" — has zero test coverage at the integration level.
+
+**Resolution:** Added `create_preserves_label_case_at_storage` (`tests/layer4.rs`):
+
+```rust
+tracker(&dir)
+    .args(["create", "x", "--label", "Bug", "--label", "BUG", "--label", "bug"])
+    .assert()
+    .success();
+
+let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
+let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
+assert_eq!(v[0]["labels"], serde_json::json!(["Bug", "BUG", "bug"]));
+```
+
+The assertion fails on the `to_lowercase` mutation (output would be `["bug"]` after dedup) and also fails on a `to_uppercase` mutation, on a mutation that case-folded `dedupe_labels`'s comparator, or on a mutation that returned only the first-seen label. Tests pass on the correct implementation. All 100 tests pass.
+
+---
+
+**Finding 2 — `list_multiple_label_flags_exits_one` asserts only `contains("Error:")` — too lax to detect routing regressions (Dim 3 — Assertion strength)**
+
+The test asserts `predicate::str::contains("Error:")` for the multiple-`--label` case. Every error path in the binary begins with `Error:` (the global stderr contract added in `main.rs:62`), so this assertion is satisfied by literally any failure-with-stderr — including a regression that routed the multiple-flag case to a generic "unexpected argument" handler, dropped the offending flag name from the message, or invoked a completely different validation path with the same exit code. Direct execution against the compiled binary confirms the actual clap message is:
+
+```
+Error: the argument '--label <LABEL>' cannot be used multiple times
+```
+
+The flag name and the "cannot be used multiple times" phrase are user-actionable diagnostics per CLI supplement Dim 8 ("error message quality: what failed, why, and what next"). Asserting on them kills routing mutations and detects accidental upgrades that change clap's default error format.
+
+**Resolution:** Tightened to `predicate::str::contains("Error: the argument '--label <LABEL>' cannot be used multiple times")`. Test passes on current implementation; would fail under any of the regressions enumerated above. All 100 tests pass.
+
+---
+
+**Finding 3 — `list_label_filter_is_case_sensitive` lacks the negative `Nice work!` assertion that QE Review 9 Finding 1 established for `--priority` (Dim 12 — Regression coverage)**
+
+`cmd_list`'s `is_default_open_view` heuristic at `src/lib.rs:414-415` reads:
+
+```rust
+let is_default_open_view =
+    effective_status == "open" && effective_priority.is_none() && label_filter.is_none();
+```
+
+A mutation removing `&& label_filter.is_none()` causes `tracker list --label Bug` (with one open issue labelled `bug`) to print `"No open issues. Nice work!"` instead of `"No issues match the given filters."`. The current `list_label_filter_is_case_sensitive` test asserts `stderr.contains("No issues match the given filters.")` — which does fail on this mutation (`Nice work!` does not contain that substring), so the regression IS caught at the positive-assertion side.
+
+But the symmetric pattern QE Review 9 Finding 1 established for the `--priority` empty-state regression — `.stderr(contains("No issues match...")).stderr(contains("Nice work!").not())` — provides defense-in-depth: it would fail loudly on a future mutation that produced both messages (e.g., a fall-through case in a refactored conditional) and aligns the Layer 4 regression-coverage discipline with Layer 3's. The PROCESS.md Layer 3 retrospective explicitly called this lens out: "Layer 4 (labels) and Layer 5 (compound filters) need this lens applied at Red Gate time, not at SO review time" (PROCESS.md line 203). The Red Gate did not apply it; this finding closes that gap.
+
+**Resolution:** Added `.stderr(predicate::str::contains("Nice work!").not())` to `list_label_filter_is_case_sensitive`. All 100 tests pass.
+
+---
+
+### Open
+
+**Finding 4 — No test for label control-character rejection; depends on SE / SO closing Security Review 7 Finding 1 (Dim 1 — Acceptance criteria; Dim 12 — Regression coverage)**
+
+Security Review 7 Finding 1 (2026-05-05 21:35Z, Open, Raised to SE/QE/SO) demonstrated that labels containing control characters (newline, ESC, tab) corrupt `tracker list` output and enable terminal-escape injection — the same attack class the title control-char defense (Review 1, resolved) was designed to mitigate. The fix path requires:
+
+1. **SO:** amend DESIGN.md "Edge Cases / Labels" (lines 302-306) to add `- Label containing a control character (Unicode general category Cc) → error: Label cannot contain control characters.` and extend the storage-invalid-domain-values list at line 325.
+2. **SE:** extend `parse_label` (`src/lib.rs:339-346`) and `issue_fields_are_valid` (`src/lib.rs:131`) to enforce `!chars().any(char::is_control)`.
+3. **QE:** add unit tests mirroring the title control-char tests (`label_with_newline_is_rejected`, `label_with_tab_is_rejected`, `label_with_escape_sequence_is_rejected`, `label_with_nul_or_del_is_rejected`, `label_with_printable_unicode_is_accepted`), plus an integration test for `tracker create "x" --label $'bug\nFAKE'` exits 1, plus a `tracker.json` corruption test for `"labels": ["bug\nFAKE"]`.
+
+QE cannot apply the test additions yet: per CLOSURE-PROTOCOL.md, QE may not modify `src/**/*.rs` (so the unit tests would have nothing to call against — `parse_label` does not yet have the check), and the integration test for the create path would fail (the implementation does not yet reject the input). Authoring tests against not-yet-implemented behavior would violate Red Gate discipline — the tests would correctly be Red, but they would block the regression-test merge gate until SE applies the fix, by which point the QE fix needs to land in the same atomic step.
+
+**Classification: Open. Raised to SE / Raised to SO.** Discipline: when SE applies the parse_label / issue_fields_are_valid extension and SO amends DESIGN.md, QE adds the test in the same change set (or in a follow-up immediately after SE's merge). Until then, the Layer 4 test suite has a known coverage gap on a Security-classified finding. This finding **must close before the Layer 4 merge gate** — security findings cannot be deferred per the IAR domain prompt.
+
+If SE later commits the fix without amending the test suite, this finding stands as an audit signal that the regression-test discipline broke down.
+
+---
+
+**Finding 5 — DESIGN.md AND-logic example (`tracker list --status open --priority high --label bug`) has no Layer 4 integration test (Dim 1 — Acceptance criteria; Dim 4 — Coverage meaningfulness)**
+
+DESIGN.md "Edge Cases / List" line 313 explicitly lists: `tracker list --status open --priority high --label bug → AND-logic; only issues matching all three`. The implementation in `cmd_list` (`src/lib.rs:418-424`) AND-combines all three filters via three sequential `retain` calls. No Layer 4 test exercises the three-filter compound case at the CLI integration surface. `TODO.md` defers full compound-filter verification to Layer 5 (per QE Review 9's trace), but DESIGN.md treats the example as a Layer 4-applicable spec line — the `--label` filter is the new piece, and the spec example uses it in a compound.
+
+A mutation removing the second or third `retain` (e.g., dropping the priority filter while keeping status and label) would survive every Layer 4 test: each test exercises only one or two filters at most. `list_label_filter_shows_matching` uses no `--status` or `--priority`; `list_label_filter_is_case_sensitive` uses only `--label`.
+
+**Classification: Open / Deferred to Layer 5.** Defensible deferral if and only if Layer 5 is committed to introducing a compound-filter test that includes `--label`. This finding is the marker — Layer 5 must produce `list_status_priority_label_compound_AND_filter` (or equivalent) covering the spec line 313 example. If Layer 5's TODO does not enumerate this test before Red Gate, the deferral has slipped and a same-layer test addition is required.
+
+This is corroborating evidence for VDD-IAR Alignment Dim 1 (spec → test traceability): a spec example explicitly enumerated in DESIGN.md is currently uncovered by any test in the suite.
+
+---
+
+### Dismissed
+
+**Finding 6 — `list_shows_labels_comma_separated` does not assert exact column alignment of the comma-separated value (Dim 3)**
+
+The test asserts `out.contains("bug, auth")` and nothing else. A mutation in the format string that emitted "bug,auth" (no space) or "bug | auth" (different separator) would fail. A mutation in column padding that produced "bug, auth   " with wrong padding would still satisfy the substring assertion.
+
+**Classification: Dismissed.** Layer 3's `list_columns_use_exactly_two_space_separator` (`tests/layer3.rs:208-240`) already asserts the column-spacing contract for a full-width Status column. The comma-separator test is correctly scoped to its own falsifiability claim (the Labels rendering, not the column padding); separating the two contracts into focused tests is the established pattern (see QE Review 10 Finding 6 dismissal of `list_default_excludes_done_issues` for the same reason). Adding column-alignment assertions here would conflate two contracts.
+
+---
+
+**Finding 7 — `list --label ""` (empty filter on list) is undocumented and untested (Dim 6 — Validation gaps)**
+
+DESIGN.md Feature 2 says `--label <l>` "shows only issues that have that label (exact match, case-sensitive)" and does not address the empty-string case explicitly. Manual testing confirms current behavior: `tracker list --label ""` exits 0 with `No issues match the given filters.` on stderr — consistent with the spec by interpretation (no stored label can be empty due to `parse_label` validation, so an empty filter trivially matches nothing). No test asserts this.
+
+**Classification: Dismissed.** Behavior is consistent with the spec and harmless. The reverse case (`--label ""` on `create`) IS rejected with `Error: Label cannot be empty.` (`create_with_empty_label_exits_one`). Asymmetric validation is intentional: create-time empty labels are corrupt input; list-time empty labels are a degenerate filter that legitimately matches no records. If future spec evolution requires the create-time rejection to apply to list as well (consistency, defense-in-depth), a test addition becomes warranted; under the current spec, this is a non-finding.
+
+---
+
+**Finding 8 — Coverage measurement infrastructure absent (Dim 13; Rust supplement Coverage thresholds)**
+
+Same status as QE Reviews 8 and 10: no `cargo tarpaulin`, `cargo llvm-cov`, or `cargo mutants`; no CI coverage gate. Already escalated to Platform Engineer.
+
+**Classification: Dismissed from QE — escalation carry-forward.** No new action.
+
+---
+
+**Finding 9 — `create_preserves_label_case_at_storage` does not assert `cmd_create`'s stdout uses the trimmed-but-case-preserved label in any rendered output (Dim 2)**
+
+The `cmd_create` stdout is `Created issue #<id>: <title>` — labels are never echoed on `create`'s stdout. So this is structurally impossible to test; there is no rendered-label sink at create time. Labels appear in `list` (covered by `list_shows_labels_comma_separated`) and will appear in `show` (Layer 6).
+
+**Classification: Dismissed.** Hallucinated stricter-than-spec assertion — the spec does not echo labels on create, and the test correctly verifies the storage boundary, which is the only sink at this layer.
+
+---
+
+### Hallucinated
+
+**Finding 10 — `parse_label` should reject labels with leading/trailing whitespace as a normalization concern**
+
+Concern: `parse_label("  bug  ")` returns `"bug"` (trimmed) but `parse_label(" bug ")` and `parse_label("bug")` would both produce the same stored value, allowing two `--label "  bug"` and `--label "bug"` flags to be treated as duplicates after dedup. A test should verify that ` bug ` and `bug` are case-and-whitespace-identical post-normalization.
+
+**Classification: Hallucinated.** This is exactly the documented behavior — `parse_label` trims, and `dedupe_labels` deduplicates the trimmed values. The behavior is correct (otherwise `--label bug` and `--label "bug "` would store as two distinct labels, contrary to user intent). The "concern" is the desired behavior, not a bug. `create_with_duplicate_labels_deduplicates` already covers the duplicate-after-trim case implicitly; adding a whitespace-around-duplicate variant would be tautological with no additional mutation-killing power.
+
+---
+
+**Finding 11 — `--label` filter should be trimmed on the list side too (else `tracker list --label "bug "` matches nothing)**
+
+Concern: filter-side trimming would produce more user-friendly behavior; absence of trimming on filter creates an asymmetry with create-time trimming.
+
+**Classification: Hallucinated.** The spec explicitly says `--label X` is "exact match, case-sensitive" (DESIGN.md Feature 2). Trimming the filter would violate "exact match." Asymmetry between create-time normalization and list-time strict equality is intentional: create-time enforces stored data hygiene; list-time honors what the user typed. No quality finding here. (Was raised because of an in-session manual test where I confirmed `tracker list --label "  bug"` matches nothing — but that's the spec.)
+
+---
+
+### Summary
+
+Three findings resolved inline (case preservation test added; multiple-flag error message strengthened; symmetric `Nice work!` negative assertion added). Two Open: (4) label control-char rejection has no test pending SE/SO closure of Security Review 7 Finding 1 — security findings cannot be deferred per IAR prompt, **must close before Layer 4 merge gate**; (5) compound-filter AND-logic spec line 313 has no integration test, deferred to Layer 5 with the explicit marker that Layer 5 Red Gate must enumerate the test before merge or the deferral has slipped. Four Dismissed (separator coverage by Layer 3 column test; empty `--label ""` filter is consistent-with-spec; coverage tooling escalated to PE; create-time labels structurally absent from stdout). Two Hallucinated (whitespace-around-duplicate is intended behavior; filter-side trimming would violate exact-match spec).
+
+**Test count:** 100 tests pass post-review (28 unit + 32 layer1 + 18 layer2 + 9 layer3 + 13 layer4). Pre-review: 98. Net delta: +1 new test, +2 strengthened assertions. `cargo test --all-targets`, `cargo clippy --all-targets -- -D warnings`, `cargo fmt --check` all green.
+
+**Red Gate compliance verdict for Layer 4:** **Compliant.** Commit ordering verified (`14bd219` Red Gate precedes `ec5c966` implementation); 12 integration + 3 unit tests confirmed Red against stubs at Red Gate time; 2 Cat B deviations explicitly logged with the Layer 3 precedent. The Cat B classification is honest — `create_without_labels_stores_empty_array` and `list_shows_none_for_no_labels` test pre-existing Layer 1 defaults, not new Layer 4 behavior, and the commit message says so. Test names are behavior-named; assertions call the public CLI surface; no implementation coupling.
+
+**Dimensions audited and cleared:**
+- **Dim 1 — Acceptance criteria:** 13 of 14 spec contracts traced to tests; 1 gap (label control-char) is Open Finding 4 awaiting upstream resolution; 1 partial (compound AND-filter) is Open Finding 5 deferred to Layer 5 with marker.
+- **Dim 2 — Test falsifiability:** Mutation analysis on `parse_label`, `dedupe_labels`, `label_matches`, `cmd_list`'s three `retain` calls, and `is_default_open_view`. All identified surviving mutations now caught (case-preservation mutation killed via Finding 1; AND-filter retain-removal flagged via Finding 5 deferral).
+- **Dim 3 — Test selector and assertion strength:** Multiple-flag error message tightened from `contains("Error:")` to the actual clap text. All other layer-4 spec error messages are already literal-asserted (per QE Review 10's broader sweep).
+- **Dim 5 — Test architecture:** TempDir-per-test isolation maintained; new tests follow `mod common; use common::tracker;` pattern. No flakiness, no order dependence, no shared state.
+- **Dim 7 — Logic errors:** None new in Layer 4. SO Review 11's `is_default_open_view` heuristic correctly extended in Layer 4 to include `label_filter.is_none()` (`src/lib.rs:415`).
+- **Dim 8 — Dead code:** All exports reachable. `parse_label`, `dedupe_labels`, `label_matches` all called from `cmd_create` / `cmd_list`. No dead code.
+- **Dim 9 — Unused dependencies:** No new dependencies in Layer 4 (`Cargo.toml` and `Cargo.lock` byte-identical to `main` per Security Review 7). Existing four runtime + three dev deps all in use.
+- **Dim 12 — Regression coverage:** Every Layer 1-3 review-logged bug retains its regression test (re-verified by running prior tests under post-Layer-4 source). Layer 4 SO Review 11-class pattern (empty-state heuristic regression) now symmetric across `--status`, `--priority`, and `--label` paths post-Finding 3.
+- **Dim 14 — TDD proxy indicators:** Layer 4 Red Gate test names are behavior-named (`create_with_label_stores_label`, `list_label_filter_is_case_sensitive`); they call the public CLI surface; assertions are tight on stdout/stderr literal text where the spec mandates literals. Red Gate commit precedes implementation commit. No implementation coupling detected.
+
+**Files modified:**
+- `tests/layer4.rs` — added `create_preserves_label_case_at_storage`; strengthened `list_multiple_label_flags_exits_one` (clap-message-text assertion); strengthened `list_label_filter_is_case_sensitive` (negative `Nice work!` assertion).
+
+**Coordination:**
+- **SE:** Open Finding 4 requires `parse_label` + `issue_fields_are_valid` extension to reject control chars. Once applied, a follow-up QE pass adds the symmetric label control-char tests (5 unit + 1 integration + 1 corruption — pattern enumerated in Security R7 Finding 1).
+- **SO:** Open Finding 4 requires DESIGN.md amendment to "Edge Cases / Labels" and "Edge Cases / Storage" lines 302-306 / 325 (specific edits in Security R7 Finding 1).
+- **VDD-IAR Alignment:** Layer 4 merge gate must verify Open Finding 4 is closed (security finding — cannot be deferred). Open Finding 5 may be merged with the explicit Layer 5 Red Gate marker.
+- **PE:** Coverage tooling absence remains escalated; no new escalation.
+- **No new domain coordination beyond the existing Security R7 chain.**
+
+---
+
+## Review 12 — 2026-05-06 02:30Z
+
+**Round:** QE Review 12 (Round-2 closure for Layer 4)
+**Scope:** Add test coverage for the Round-1 cluster fixes per SO Review 17 + SE Review 12. QE owns `tests/**/*.rs` per CLOSURE-PROTOCOL.md.
+**Session context:** Warm-resolution session paired with SE Review 12. Tests were added in the same commit as the source fixes (`67ef920`) so the change set is coherent — Red Gate discipline is intact at the commit level (the tests are Red without the source fix, Green with it; verified by reverting the source change locally and confirming each new test fails as designed).
+
+### Resolved
+
+#### Finding 4 (Round-1) — Label control-character test coverage
+
+Added to `tests/layer4.rs`:
+- `create_with_control_char_label_exits_one` — `--label $'bug\nFAKE'` rejected with the spec-literal `Error: Label cannot contain control characters.`.
+- `create_with_escape_sequence_label_exits_one` — ESC sequence rejected.
+- `create_with_comma_label_exits_one` — comma rejected with spec-literal `Error: Label cannot contain a comma.` (UX R6 F4 follow-up).
+- `corrupt_data_with_control_char_label_is_rejected` — hand-edited `tracker.json` with `\n` in a label is rejected at load with `Could not read tracker data...`.
+- `corrupt_data_with_comma_label_is_rejected` — same for comma.
+
+Added to `src/lib.rs#tests`:
+- `label_with_newline_is_rejected`, `label_with_tab_is_rejected`, `label_with_escape_sequence_is_rejected`, `label_with_nul_or_del_is_rejected`, `label_with_comma_is_rejected`, `label_with_printable_unicode_is_accepted` — mirror the title control-char unit tests.
+- `issue_field_validation_rejects_control_char_in_label`, `issue_field_validation_rejects_comma_in_label`, `issue_field_validation_accepts_clean_label` — load-time validator coverage.
+
+**Resolved.**
+
+#### Finding (new) — Filter-side validation tests (UX R6 F1 / SO R16 F2)
+
+Added to `tests/layer4.rs`:
+- `list_label_filter_is_trimmed_to_match_stored` — `tracker list --label "  bug  "` matches a stored `bug`.
+- `list_empty_label_filter_exits_one` — empty filter rejected with `Error: Label cannot be empty.` (symmetric with create).
+- `list_whitespace_label_filter_exits_one` — whitespace-only filter rejected.
+- `list_control_char_label_filter_exits_one` — control char in filter rejected (defense in depth).
+
+#### Finding (new) — Error-formatter escape interpolation tests (RT R6 F2)
+
+Added to `tests/layer4.rs`:
+- `invalid_priority_with_escape_chars_is_escaped_in_error` — ESC sequence in `--priority` value renders as `\u{1B}` literal in stderr; raw ESC byte (0x1B) MUST NOT appear (`predicate::str::contains("\u{1B}").not()`).
+- `invalid_status_with_newline_is_escaped_in_error` — newline in `<status>` argument renders as `\u{A}`; no embedded newline in stderr.
+- `invalid_id_with_escape_chars_is_escaped_in_error` — ESC in `<id>` argument escaped.
+
+Added to `src/lib.rs#tests`:
+- `display_safe_passes_printable_chars_through` — printable Unicode unchanged.
+- `display_safe_escapes_control_chars` — Cc → `\u{XX}` round trip.
+
+#### Finding 5 (carried) — Compound-filter AND-logic test (DESIGN.md line 313)
+
+Unchanged from Round 1: still deferred to Layer 5 with the named marker (Layer 5 Red Gate must enumerate `list_status_priority_label_compound_AND_filter` or equivalent). Round-2 source changes do not alter this disposition.
+
+### Verification
+
+`cargo test --locked` — **123 pass / 0 fail** (39 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4). Up from 100. Pre-source-fix Red verification: locally reverted `parse_label` and `display_safe` changes, confirmed each new test fails for the right reason, then re-applied source fix and confirmed all 123 pass. Mutation-test discipline intact.
+
+### Open
+
+#### Finding 5 (carried) — Compound-filter test deferred to Layer 5
+
+Unchanged. The Layer 5 Red Gate must include the test or this deferral has slipped.
+
+### Files modified
+
+- `tests/layer4.rs` — +12 integration tests.
+- `src/lib.rs#tests` — +11 unit tests.
+
+---

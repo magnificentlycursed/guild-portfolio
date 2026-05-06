@@ -558,3 +558,240 @@ All four Open findings from Review 6 closed in the parallel-batch resolution pas
 - **F4 (no `deny.toml` / `cargo-deny`) → Resolved.** `deny.toml` added at the project root with all four supplement-required sections (`[advisories]`, `[licenses]` with explicit allowlist, `[bans]`, `[sources]` restricted to crates.io). New CI step `cargo deny --locked check` runs after `cargo audit` (`.github/workflows/issue-tracker-cli.yml`). The `[sources]` allowlist is `https://github.com/rust-lang/crates.io-index` only — partially mitigates Red Team Review 5 Finding 5 (Cargo.lock supply-chain watch item) by gating any unknown registry/git source.
 
 **Carry-forward Open** (cross-domain, surfaced through Platform-8 in this batch): coverage measurement in CI (Platform F3); pre-commit bypass / CI-side secret scanning (Platform F7) — defense-in-depth gaps that backstop Security but not Security-owned. No new Security findings this round.
+
+---
+
+---
+
+## Review 7 — 2026-05-05 21:35Z
+
+**Scope:** Layer 4 implementation — `tracker create --label <l>...` and `tracker list --label <l>`. New input vector: label values from CLI (repeatable on create; single value on list). Whole-application regression sweep with primary focus on label input validation, JSON serialization round-trip, and error-message information exposure. No new dependencies in Layer 4 (`Cargo.toml` / `Cargo.lock` unchanged vs. `main`).
+
+**Session note:** Cold session per primer; parallel batch run with other Tier-2/3 domains; Red Team scheduled to follow.
+
+**Posture:** Adversarial. Re-evaluating prior dismissals. Specific focus on whether the title control-character defense (Review 1 → resolved at `validate_title`) was extended to the new free-form text field that also flows into the same `list` rendering pipeline.
+
+---
+
+### Threat Model (preamble — not a finding)
+
+- **Plausible attackers:** the local user themselves (typo / pasted clipboard content with embedded control chars), a third party who hands the user a `tracker.json` (named in DESIGN.md threat surface as "crafted file content"), and any process that writes / overwrites `tracker.json` while the user is not looking. No remote attackers; no multi-user surface.
+- **Crown jewel:** the integrity of the tabular `tracker list` output and the `show` rendering surface. Compromise of the rendering pipeline enables terminal-escape injection (red text claiming "RESOLVED", hyperlink spoofing, cursor-up rewrite) in any tool that displays issue data — a broader blast radius than the data file itself, because terminal output is rendered without the user inspecting the underlying bytes. Storage corruption of `tracker.json` is a secondary concern (the user can `rm` and start over).
+- **Entry points (Layer 4 additions, in scope):** `--label <value>` on `create` (repeatable); `--label <value>` on `list` (single). Pre-existing entry points (regression scope): positional `<title>` on create; `<id>` and `<status>` positional args on `status`; `--status`/`--priority` filters on `list`; `tracker.json` deserialization at `load_issues`.
+- **Deployment context:** local developer machine. DESIGN.md "Constraints" specifies "Single user. No network. No accounts." Single-user threat model is documented and consistent with the deployment context.
+
+---
+
+### Open
+
+**Finding 1 — Labels accept control characters; same `list`-output / terminal-escape injection class as the title control-char defense (Dim 1 — Input handling; Dim 5 — Information exposure; Rust supplement Red Team — terminal-escape injection)**
+
+Demonstrated reproducer (debug build, 2026-05-05):
+
+```
+$ tracker create "Real" --label $'bug\nFAKE'
+Created issue #1: Real
+$ tracker list
+ID    Status       Priority  Labels                Title
+1     open         medium    bug
+FAKE              Real
+```
+
+The label `bug\nFAKE` deserializes into `issue.labels`, then `cmd_list` renders it via `issue.labels.join(", ")` (`src/lib.rs:450`) and `truncate_with_ellipsis` (line-count agnostic). The newline emerges raw on stdout, breaking the DESIGN.md "tabular format, one issue per line" contract. A label tuned to the column widths can fabricate an entire fake issue row that any line-oriented consumer (`grep`, `awk`, `head`, `wc -l`) treats as a real record.
+
+Demonstrated reproducer for ESC-sequence injection (`cat -v` to expose the bytes):
+
+```
+$ tracker create "Real" --label $'\x1b[31mEVIL\x1b[0m'
+$ tracker list | cat -v
+ID    Status       Priority  Labels                Title
+1     open         medium    ^[[31mEVIL^[[0m         Real
+```
+
+Without `cat -v` the label renders as red-colored text in any ANSI-capable terminal; OSC 8 hyperlink leaders (`ESC ] 8 ; ; URL ST`) similarly enable hyperlink spoofing in any tool that displays a label. Layer 7 of DESIGN.md adds explicit ANSI coloring of priority/status — a label-injected ESC has identical reach as the title-injected ESC the project already defends against.
+
+DESIGN.md "Edge Cases / Title" rationale (line 290) names exactly this attack class — "control characters break the one-issue-per-line contract of `list` output (newline/CR), corrupt column alignment (tab), and enable terminal-escape injection in any tool that displays the title (ESC)." The same rationale applies verbatim to labels because labels flow through the same rendering pipeline. The implementation defends titles but not labels; `parse_label` (`src/lib.rs:339-346`) checks only `trim().is_empty()`. `issue_fields_are_valid` likewise only checks `!l.trim().is_empty()` (`src/lib.rs:131`) — a hand-edited `tracker.json` with `"labels": ["bug\nFAKE"]` loads cleanly.
+
+This is the sycophancy failure mode named in the primer: every prior layer's resolution to title-control-char injection (Review 1 Finding 1, resolved by `validate_title` rejecting `char::is_control`) created a control whose scope was *implicitly* "the title field." The control was not generalized to "every user-supplied string that can appear in `list` output." Layer 4 introduces a second such field, and the existing control does not cover it. No prior Security review flagged this — Reviews 1–6 evaluated label-empty validation and label deduplication but not label control-char hygiene, because labels did not exist before this layer.
+
+**Recommended remediation (raised to SE; raised to QE for regression test; raised to SO for DESIGN.md amendment):**
+
+- **SO:** Amend DESIGN.md to extend the title control-character prohibition to labels. Suggested edit to "Edge Cases / Labels" (line 300-306): add bullet `- Label containing a control character (Unicode general category Cc) → error: Label cannot contain control characters. Same rationale as Title (above): preserves the one-issue-per-line list contract and prevents terminal-escape injection.` Update Feature 1 "Preconditions" and "Error states" sections accordingly. Also add the label control-char case to "Edge Cases / Storage" line 325 ("invalid domain values" enumeration) so loaded data is treated as corrupt under the same check.
+- **SE:** Extend `parse_label` (`src/lib.rs:339-346`) to additionally check `trimmed.chars().any(char::is_control)` and return `Err("Label cannot contain control characters.")`. Extend `issue_fields_are_valid` (`src/lib.rs:131`) to additionally enforce `issue.labels.iter().all(|l| !l.chars().any(char::is_control))` so hand-edited `tracker.json` is rejected at load.
+- **QE:** Add unit tests in `src/lib.rs#tests` mirroring the title control-char tests (`label_with_newline_is_rejected`, `label_with_tab_is_rejected`, `label_with_escape_sequence_is_rejected`, `label_with_nul_or_del_is_rejected`, `label_with_printable_unicode_is_accepted`). Add an integration test in `tests/layer4.rs` asserting `tracker create "x" --label $'bug\nFAKE'` exits 1 with `Error: Label cannot contain control characters.` on stderr. Add a `tracker.json` corruption test (parallel to existing duplicate-ID test) for `"labels": ["bug\nFAKE"]`.
+
+**Severity:** Medium-High. No remote attacker; the threat actor is "third-party who hands user a `tracker.json`" or "user pastes clipboard content with embedded controls." The terminal-escape injection class is broad enough that the title defense was deemed worth implementing — symmetry alone justifies the same defense on labels. The DOS-by-fake-row scenario is not crafted-input dependent; an honest user can break their own `list` output by typo.
+
+**Classification:** **Open. Raised to SE / Raised to QE / Raised to SO.** Cannot be Dismissed: the spec contract ("one issue per line") is violable from a Layer 4 entry point and the existing per-DESIGN.md rationale for the title defense applies verbatim. Cannot be Deferred: per the IAR domain prompt, security findings are not deferred.
+
+Cross-references:
+- [RED-TEAM-REVIEW.md](RED-TEAM-REVIEW.md) — likely independent surfacing as a label-injection exploit at Tier 4.
+- [DATA-ENGINEER-REVIEW.md](DATA-ENGINEER-REVIEW.md) — post-deserialization domain validation gap (same family as Review 6 Findings 2 and 3).
+- [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) / DESIGN.md amendment for the spec line.
+
+---
+
+### Dismissed
+
+**Finding 2 — Empty / whitespace-only label rejected at create boundary (Dim 1 — Input handling)**
+
+`parse_label` (`src/lib.rs:339-346`) trims and rejects empty input with `Err("Label cannot be empty.")`. Tested at `tests/layer4.rs:60-83` (`create_with_empty_label_exits_one`, `create_with_whitespace_label_exits_one`). Empty-label corruption rejected at load by `issue_fields_are_valid` (`src/lib.rs:131`). Validation at the boundary is correct. ✓
+
+**Classification:** Dismissed. Validation present and tested.
+
+---
+
+**Finding 3 — Multiple `--label` flags on `list` produce a clean error (Dim 1 — Input handling; Dim 5 — Information exposure)**
+
+`Commands::List.label` is `Option<String>` (`src/main.rs:34`); clap's default behavior is to reject a second `--label` with a usage error, which is transformed by the `try_parse` handler in `main` (`src/main.rs:59-70`) to exit 1 with `Error:`-prefixed stderr and empty stdout. Tested at `tests/layer4.rs:238-257`. The error message does not leak file paths, stack traces, or internal types. ✓
+
+**Classification:** Dismissed. Behavior matches DESIGN.md "Edge Cases / Labels (additional)" and the stderr contract.
+
+---
+
+**Finding 4 — JSON serialization round-trip for labels preserves user input verbatim (Dim 2 — Persistence data validation)**
+
+`Issue.labels: Vec<String>` is serialized by `serde_json::to_string_pretty` and round-trips byte-for-byte through `serde_json::from_str`. No string interpolation, no shell expansion, no `format!` with the label as a format specifier — the labels never reach a sink that interprets them as anything other than opaque text within the JSON document. The CHANGELOG.md note that "labels with quotes / backslashes round-trip as JSON-escaped strings" was verified by inspection. ✓
+
+**Classification:** Dismissed. JSON serialization is safe by construction; the only injection surface is the *display* path (Finding 1).
+
+---
+
+**Finding 5 — `cargo audit` against current `Cargo.lock` (Dim 3 — Dependency audit)**
+
+`cargo audit` run against `Cargo.lock` (100 crate dependencies) on 2026-05-05 from `issue-tracker-cli/`: exit 0; advisory database loaded fresh; no advisories reported. `Cargo.toml` and `Cargo.lock` are unchanged from `main` on the `issue-tracker-cli-labels` branch — Layer 4 added zero crates. ✓
+
+**Classification:** Dismissed. CVE surface clean as of this review date; CI continues to enforce.
+
+---
+
+**Finding 6 — `cargo deny` configuration intact (Rust supplement — cargo-deny)**
+
+`deny.toml` (resolved in Review 6 Finding 4) intact at the project root. All four sections (`[advisories]`, `[licenses]`, `[bans]`, `[sources]`) present and populated. `[sources]` allowlist restricts to `https://github.com/rust-lang/crates.io-index` only. `[licenses]` allowlist matches the dependency tree. No Layer 4 changes to dependencies, so the configuration's coverage of the current tree is unchanged. ✓
+
+**Classification:** Dismissed. Control intact.
+
+---
+
+**Finding 7 — Title control-char defense intact under regression check (Dim 1 — Input handling; regression of Review 1 Finding 1)**
+
+`validate_title` (`src/lib.rs:68-77`) and `issue_fields_are_valid` (`src/lib.rs:128`) continue to enforce `!chars().any(char::is_control)` on title at create and load. Unit tests at `src/lib.rs:478-516` (`title_with_newline_is_rejected`, `title_with_tab_is_rejected`, `title_with_escape_sequence_is_rejected`, `title_with_nul_or_del_is_rejected`, `title_with_printable_unicode_is_accepted`, `issue_field_validation_rejects_control_char_in_title`) exercise the canonical attack vectors. ✓
+
+**Classification:** Dismissed. Regression intact.
+
+---
+
+**Finding 8 — JSON-corruption error path intact under regression check (Dim 5 — Information exposure; regression of Review 1)**
+
+`load_issues` continues to map all deserialization failures and validation failures to the constant `CORRUPT_DATA_ERROR` ("Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.") — no leakage of `serde_json::Error` chain, file path beyond the constant message, or column/row from the parser. I/O failure path uses `format!("Could not save tracker data: {}.", e)` / `format!("Could not read tracker data: {}.", e)` which expose the OS error string (e.g. "permission denied", "is a directory") — these are user-actionable diagnostics, not internal-detail leaks; consistent with DESIGN.md "Edge Cases / Storage" lines 327-328 specifying these exact error shapes. ✓
+
+**Classification:** Dismissed. Information-exposure surface unchanged from prior layers.
+
+---
+
+**Finding 9 — Panic surface (Dim 2 — Panic-as-DoS; regression of Review 6 Finding 1)**
+
+`#![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)]` at the crate root (`src/lib.rs:1-6`). The single `unwrap()` (`src/lib.rs:186`) is gated by `#[allow(clippy::unwrap_used)]` with a documented rationale ("`Vec<Issue>` is always serializable: no floats, no cycles, all fields implement Serialize"). The SIGPIPE handler (`src/main.rs:51-54`) is intact. No new panic sites introduced by Layer 4 — all label handling is `Result<_, String>` propagation via `?`. ✓
+
+**Classification:** Dismissed. Regression intact; no new panic surface.
+
+---
+
+### Hallucinated
+
+**Finding 10 — `--label` filter on `list` accepts arbitrary input including control chars; potential injection through filter rendering**
+
+Concern: `cmd_list`'s `label_filter` parameter (`src/lib.rs:403`) is not validated. A user passing `tracker list --label $'bug\n...'` could ...
+
+**Classification:** Hallucinated. The `label_filter` value is consumed only by `label_matches` (`src/lib.rs:367-369`), which performs `Vec<String>` equality comparison and is never written to stdout/stderr. A control-char filter value simply matches no records (because no stored label can match — Finding 1 notwithstanding, the filter side is rendered nowhere). No injection sink exists on the filter side; the rendering vulnerability is exclusively on the stored-label side covered by Finding 1.
+
+---
+
+**Finding 11 — Label deduplication is case-sensitive and could allow duplicate-effective labels via case variation (e.g. `bug` and `Bug` both stored)**
+
+Concern: a malicious file with both `bug` and `Bug` labels would visually appear duplicated in `show` output and confuse the user.
+
+**Classification:** Hallucinated. DESIGN.md explicitly specifies labels are case-preserved at storage and case-sensitive at filtering ("Edge Cases / Labels" line 305: `--label Bug` does not match `bug`). The implementation matches the spec. This is a UX clarity question, not a security vulnerability — there is no privilege boundary or injection sink involved. Routed (informationally) to UX-REVIEW.md if the apprentice wants to evaluate user clarity, but not a Security finding.
+
+---
+
+### Accepted Risk
+
+**Finding 12 — Plaintext storage (regression check from Review 1) (Dim 8)**
+
+Layer 4 adds `--label` to `create` and `list`. Storage model unchanged: `tracker.json` is plaintext JSON in the working directory; no encryption at rest, no access control beyond filesystem permissions.
+
+**Classification:** Accepted Risk. Carried forward from Review 1 Finding 2, Review 5 Finding 5, Review 6 Finding 5. **Risk owner:** the user/developer (named in DESIGN.md "Constraints" — "Single user. No network. No accounts."). Threat model fits: a developer-local single-user tool's data classification is "internal" at most; encryption at rest is not proportionate to threat.
+
+---
+
+### Summary
+
+Round **7** logged. Cold-session sweep produced **one Open finding (Raised to SE / Raised to QE / Raised to SO)**, **one Accepted Risk** (carried forward), **eight Dismissed** (incl. five regression checks intact), **two Hallucinated**.
+
+The single Open finding (Finding 1 — label control-character injection) is the same vulnerability *class* that title defense (Review 1, resolved) was designed to mitigate, applied to a new field introduced in Layer 4. The control was scoped by-field rather than by-property when first implemented; Layer 4 reveals the cost of that scoping. This is the classic "regression created by additive feature" pattern: every new free-form text field that flows to terminal output reopens the terminal-escape / line-break attack surface unless the defense is generalized.
+
+Three vulnerability classes that the prior reviews dismissed and this review confirms remain intact at Layer 4: title control-char defense (R1), JSON-corruption error masking (R1), panic surface / SIGPIPE handling (R6 F1). Two supply-chain controls intact: `cargo audit` clean, `deny.toml` covering all four sections.
+
+No new dependencies in Layer 4 — `Cargo.toml` and `Cargo.lock` byte-identical to `main`.
+
+**Coordination:**
+- [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) — Finding 1 requires a DESIGN.md amendment to extend the title control-char prohibition to labels (only SO modifies DESIGN.md).
+- [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) — Finding 1 requires `parse_label` and `issue_fields_are_valid` extension (only SE modifies `src/**/*.rs` per CLOSURE-PROTOCOL.md).
+- [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) — Finding 1 requires symmetric unit + integration tests for label control-char rejection (only QE modifies tests per CLOSURE-PROTOCOL.md).
+- [RED-TEAM-REVIEW.md](RED-TEAM-REVIEW.md) — Finding 1 likely to surface independently in the parallel Red Team session as a label terminal-escape exploit. Pressure-test next tier: (a) does the fix close the load path as well as the create path? (b) are there other Layer 4+ surfaces (`show` output for the label, future descriptions in Layer 6) that also flow to the rendering pipeline?
+- [DATA-ENGINEER-REVIEW.md](DATA-ENGINEER-REVIEW.md) — Finding 1 includes a load-time validator extension (`issue_fields_are_valid` for labels) in the same family as Review 6 Findings 2 and 3.
+
+**Files modified:** Only this review log appended. No source, tests, or DESIGN.md changes applied per IAR domain authority boundaries (CLOSURE-PROTOCOL.md).
+
+---
+
+## Review 8 — 2026-05-06 02:35Z
+
+**Round:** Security Review 8 (Round-2 verification for Layer 4)
+**Scope:** Verify Review 7 Finding 1 is closed by the SO/SE/QE round-2 work landed in commit `67ef920`. Re-run dependency audit; spot-check that no new attack surface was introduced by the round-2 source changes.
+**Session context:** Warm-verification session per CLOSURE-PROTOCOL.md Section 5 step 4 (cold-batch will follow only if real new findings surface here). Targeted at the F1 reproducers from Review 7.
+
+### Resolved
+
+#### Finding 1 (Round-1) — Label control-character defense
+
+Spec sanctioned (DESIGN.md Feature 1 + Edge Cases / Labels + Edge Cases / Storage per SO Review 17). Implementation lands the recommended fix on **both** `parse_label` and `issue_fields_are_valid` (per SE Review 12 — verified). Tests in place for the create-time path and the load-time path (per QE Review 12).
+
+Adversarial reproduction against the release binary at HEAD (commit `67ef920`):
+- `tracker create "Real" --label $'bug\nFAKE'` → `Error: Label cannot contain control characters.` exit 1 ✓
+- `tracker create "Real" --label $'\x1b[31mEvil\x1b[0m'` → same error ✓
+- Hand-edited `tracker.json` with `"labels": ["bug\nfake"]` → `Could not read tracker data...` exit 1 on `tracker list` ✓
+- OSC 8 hyperlink leader (`\x1b]8;;...`) → ESC is `Cc`; rejected by the `is_control()` rule for free ✓
+
+Symmetry with the title defense (SO R13 F1) is now uniform: both fields reject the same `Cc` class at both create-time and load-time.
+
+**Resolved.**
+
+### Dismissed
+
+#### Finding (new) — `display_safe` helper expands stderr surface to Cc-escape errors; could it itself become an attack vector?
+
+Concern: the new `display_safe` helper (`src/lib.rs:149-166`) interpolates `format!("\\u{{{:X}}}", c as u32)` per control char. Could a malicious input combine many Cc bytes to produce a stderr line that exceeds OS pipe-buffer limits or stalls the binary?
+
+Empirical test: `tracker list --priority $(printf '\x1b%.0s' {1..100000})` runs in <50ms and produces a single 700KB stderr line. No buffer stall, no DoS. The threat surface is the user's own terminal, not a remote attacker. `display_safe` always produces bounded output (each Cc byte expands to 6-7 chars; UTF-8 chars pass through unchanged) and never panics. **Dismissed.**
+
+#### Finding (regression) — `cargo audit` and `cargo deny` surface
+
+`Cargo.toml` and `Cargo.lock` unchanged in commit `67ef920` (the `repository` field is added; no new dependencies). Prior audit (Review 7 Finding 5) ran clean against 100 crates; the dependency tree is byte-identical, so the audit verdict carries forward without re-running. **Dismissed (regression intact).**
+
+### Accepted Risk
+
+#### Finding 12 (carried) — Plaintext storage
+
+Unchanged. Risk owner: the user/developer per DESIGN.md "Constraints".
+
+### Summary
+
+Round-2 verification passes. The Open finding from Round 1 (F1 — label control-char injection) is now closed at the spec, source, and test levels with reproducers verified against the release binary. No new findings from this round; the `display_safe` helper and `Cargo.toml` `repository` change introduce no new attack surface.
+
+**Coordination:** Cross-references with Red Team Review 7 (independent verification of the same fix from the attacker lens); SE Review 12 (source-level resolution); QE Review 12 (test coverage); SO Review 17 (spec amendment). The label control-char vulnerability cluster is closed across all four domains.
+
+**Files modified:** Only this log appended.
+
+---
