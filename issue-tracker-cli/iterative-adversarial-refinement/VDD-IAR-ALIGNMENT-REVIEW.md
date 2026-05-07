@@ -1441,3 +1441,279 @@ Only this log appended.
 
 ---
 
+## Review 13 — 2026-05-07 00:27Z
+
+**Round:** VDD-IAR Alignment Review 13 (Layer 5 — Compound Filtering — process audit, post-implementation, pre-IAR)
+
+**Scope:** Layer 5 process compliance from the merge of #16 (Layer 4 close at `3c7d65d`) through Layer 5 implementation-complete at `da0fd8d`. The three Layer 5 commits in scope are `7d1ca57` (Phase 2a Red Gate), `bd15a9d` (Phase 2b implementation), `da0fd8d` (manual testing closure). Inputs: `DESIGN.md` Feature 2 (lines 51-82), `TODO.md` Layer 5 (lines 239-275), `tests/layer5.rs` (Red Gate diff at 7d1ca57), `src/lib.rs` Layer 5 unit tests + `issue_matches_filters` predicate (Red Gate stub at 7d1ca57 → Phase 2b body at bd15a9d), `iterative-adversarial-refinement/CLOSURE-PROTOCOL.md`, prior VDD-IAR Reviews 11-12, prior carry-over findings (SA R9 F1 / SE R11 F2 — `cmd_list` extraction; QE R11 F5 — Layer 5 compound-filter test marker; TW R7 F5 — PROCESS.md retrospectives).
+
+**Session note:** Cold-session per `prompts/review-session.md`. Parallel-batch peer with SO 18, SA 11, QE 13, SE 13. Adversarial framing intact. This reviewer did not author Layer 5 commits and did not participate in Layer 4 IAR. Running last in the merge-gate sequence per `README.md` § Sequencing. Independent verification: I re-read `tests/layer5.rs` and `src/lib.rs` `mod tests` against commit `7d1ca57` content directly (via `git show 7d1ca57 -- src/lib.rs`) rather than against the HEAD post-impl state — the stub was `todo!()` with `#[allow(dead_code)]` at Red Gate time, the predicate body landed in `bd15a9d` with the `#[allow(dead_code)]` removed.
+
+**Program phase:** Phase 1. Crosslink not introduced; dim 11 N/A. Governing methodology: `apprentice-onboarding/02-the-methodology/01-how-we-build.md` (process); `iterative-adversarial-refinement/CLOSURE-PROTOCOL.md` (project-scoped closure mechanics).
+
+**Regression check on Reviews 11-12:** Review 12 closed Layer 4 with Conditional GO pending TW R7 F5 (PROCESS.md retrospectives). Commit `a226d88` ("PROCESS.md Layer 1-4 developer reflections", 2026-05-06 16:30:27 -0700) closed that gate; merge `3c7d65d` (16:35:20) followed; Layer 5 Red Gate `7d1ca57` (17:04:48) opened ~30 minutes later. Layer 4 gate closure → Layer 5 open ordering is clean.
+
+---
+
+### Layer 5 commit-pattern audit
+
+| Commit | Time | Phase signal |
+|---|---|---|
+| `7d1ca57` Layer 5 Red Gate — compound-filter tests + stub | 2026-05-06 17:04:48 -0700 | Phase 2a: 7 integration tests in `tests/layer5.rs` + 5 unit tests in `src/lib.rs#tests` + `issue_matches_filters` `todo!()` stub with `#[allow(dead_code)]`; Cat B integration deviations explicitly named in commit message |
+| `bd15a9d` Layer 5 implementation — compound-filter predicate | 2026-05-06 17:06:16 -0700 | Phase 2b: stub body replaced with AND predicate; `cmd_list`'s three retains collapsed to one; `#[allow(dead_code)]` removed; TODO.md AC checkboxes flipped to `[x]` |
+| `da0fd8d` Layer 5 manual testing complete | 2026-05-06 17:19:50 -0700 | Manual checklist 6/6 ticked after human verification |
+
+Phase 2a → Phase 2b gap: 1 minute 28 seconds. Boundary is verifiable from history: `git show 7d1ca57 -- src/lib.rs` shows `todo!("Layer 5: extract AND-logic predicate from cmd_list's chained retain calls")` and `let _ = (issue, status, priority, label);` arg-binding to placate `-D warnings`. `git show bd15a9d -- src/lib.rs` shows that exact stub block replaced with `issue.status == status && priority.is_none_or(|p| issue.priority == p) && label.is_none_or(|l| label_matches(&issue.labels, l))` and `cmd_list`'s three `retain` calls collapsed to one over the predicate. The Phase 2a → Phase 2b commit boundary is the right pattern — every file change after `7d1ca57` is implementation; no implementation exists in `7d1ca57` itself.
+
+---
+
+### Resolved
+
+*(none — VDD-IAR owns its log + may amend `CLOSURE-PROTOCOL.md`; no process-change artifact was applied this session)*
+
+---
+
+### Open
+
+*(none — see Dismissed for the per-dimension findings)*
+
+---
+
+### Dismissed
+
+**Finding 1 — Design before code (Dim 1)**
+
+DESIGN.md Feature 2 (`DESIGN.md:51-82`) defines the compound-filter contract before Layer 5 began: line 63 — "**Multiple filters:** `--status`, `--priority`, and `--label` are AND-combined. An issue must match all provided filters to appear." Lines 71-72 define the no-match empty-state messages: `No issues match the given filters.` for filtered-but-no-match and `No open issues. Nice work!` for default-view-empty. Edge-cases section earlier in DESIGN.md and the Testing Methodology section (line 362 — "Issue filtering: each filter independently; AND-combination of two and three filters; no-match case") all anchor Layer 5 in the spec. Layer 5 implementation matches: (a) the predicate is AND-combined; (b) the no-match message routes to stderr (per Feature 2 stderr contract); (c) the default-view-non-empty case shows results without the filter message. No DESIGN.md edits in any Layer 5 commit (`git show 7d1ca57 bd15a9d da0fd8d --stat` shows `src/lib.rs`, `tests/layer5.rs`, `TODO.md` only — DESIGN.md untouched). Spec-before-code temporal ordering is intact and authority over `DESIGN.md` was respected.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 2 — Layered decomposition (Dim 2)**
+
+`TODO.md` Layer 5 section (lines 239-275) had a goal statement, 8 acceptance criteria, 6 manual testing checklist items, a Red Gate test plan listing 4 integration + 2 unit tests, and an IAR domain assignment (SO, SA, QE, SE, VDD-IAR Alignment) — all in place before Layer 5 implementation began (the TODO.md plan predates `7d1ca57`'s only TODO.md edits, which are checkbox flips). Layer 5 scope (compound filtering only) was respected: nothing from Layer 6 (description / show / delete) leaked into Layer 5 commits. `git show bd15a9d -- src/lib.rs` shows changes confined to `issue_matches_filters` predicate body and `cmd_list`'s three-retain → one-retain refactor; no `--description`, no `cmd_show`, no `cmd_delete` paths added. The Red Gate test plan in TODO.md called for 4 integration + 2 unit tests; what landed was 7 integration + 5 unit tests — over-delivery on coverage, not under-delivery on scope. Specifically the implementation-as-shipped includes `list_status_and_priority_filter_and_combination`, `list_status_and_label_filter_and_combination`, `list_priority_and_label_filter_and_combination` (the three two-filter pairs explicitly), `list_three_filter_and_combination`, two `list_compound_*_no_match_shows_filter_message` tests, and `list_default_view_with_open_issues_does_not_show_filter_message`; on the unit side the 5 tests cover all-present, all-must-match (with three subcases for each conjunct as the odd-one-out), status-only-wildcard, status-mismatch-rejects, and case-sensitive-label. Layer scope clean.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 3 — Layer gate compliance (Dim 3)**
+
+Layer 4 closure: VDD-IAR Review 12 issued Conditional GO pending TW R7 F5 (PROCESS.md retrospectives). Commit `a226d88` ("issue-tracker-cli: PROCESS.md Layer 1-4 developer reflections", 2026-05-06 16:30:27 -0700) closed the developer-only gate. Merge `3c7d65d` (Layer 4 → main, 16:35:20) followed. Layer 5 first commit `7d1ca57` opened at 17:04:48 — 29 minutes after the Layer 4 merge. The branch was started from a state where Layer 1-4 gates were closed. No Layer 5 commit modifies Layer 1-4 code-paths in a way that suggests carry-over from Layer 4 IAR — `git show 7d1ca57 bd15a9d --stat` shows `src/lib.rs`, `tests/layer5.rs`, `TODO.md` only; no Layer 4 IAR-finding-resolution work bled into Layer 5. The branch name `issue-tracker-cli-compound-filtering` matches the layer scope. Layer-gate compliance clean.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 4 — Red Gate boundary (Dim 4 — CRITICAL)**
+
+This is the central question for Layer 5 IAR. Direct evidence from `git show 7d1ca57 -- src/lib.rs`:
+
+```
++#[allow(dead_code)]
++fn issue_matches_filters(
++    issue: &Issue,
++    status: &str,
++    priority: Option<&str>,
++    label: Option<&str>,
++) -> bool {
++    let _ = (issue, status, priority, label);
++    todo!("Layer 5: extract AND-logic predicate from cmd_list's chained retain calls")
++}
+```
+
+`cmd_list` at `7d1ca57` is **unchanged** — it still calls the three sequential `retain` blocks; the new `issue_matches_filters` is unreached, hence the `#[allow(dead_code)]`. The 5 unit tests in `mod tests` exercise `issue_matches_filters` directly and would panic at runtime with `not yet implemented: Layer 5: extract AND-logic predicate...`.
+
+`git show bd15a9d -- src/lib.rs` then replaces the stub body with the real AND predicate, removes the `#[allow(dead_code)]`, and refactors `cmd_list` to a single `retain(|i| issue_matches_filters(i, ...))` call. The Phase 2b commit is purely the implementation of the previously-stubbed predicate plus the call-site adoption.
+
+The 7 integration tests committed in `7d1ca57` are explicitly disclosed as **Cat B Red Gate deviations** in the commit message:
+> 7 integration tests pass as Cat B Red Gate deviations: the AND-combination is an emergent property of cmd_list's chained retain() calls (Layer 3 added --priority retain, Layer 4 added --label retain), so the CLI behavior was implemented incrementally rather than as a single Layer 5 change.
+
+This is the right disclosure pattern. The implementation prompt warns: "If implementation begins before this commit, the commit history cannot distinguish test-first from test-after, and VDD-IAR Alignment dim 4 cannot be verified." For Cat B, the implementation predates the test in a specific, documented way (Layers 3 and 4 added the retains in earlier Red Gates that did fail-then-pass for their own scope) and the Layer 5 test is regression coverage of an emergent property, not the Red Gate primary signal. The Red Gate primary signal is the 5 unit tests on `issue_matches_filters`, which **did fail at `7d1ca57`** by `todo!()` panic. Same disposition as Layer 3's `create_without_priority_defaults_to_medium` and Layer 4's two Cat B deviations (`create_without_labels_stores_empty_array`, `list_shows_none_for_no_labels`); the Cat B precedent is established and applied consistently.
+
+The adversarial probe in the review brief — "is the Cat B label honest, or is it papering over a Phase 2a violation?" — answers cleanly. A papering-over would look like: 7 integration tests AND the predicate body in `7d1ca57`, then a no-op refactor in `bd15a9d` purely to make the commit history look two-phase. Two falsifiable predictions of that scenario: (a) `bd15a9d`'s `src/lib.rs` diff would be cosmetic (rename / move / no body change); (b) the test count in `bd15a9d` would not have changed (no new tests would be needed, since the test-count would already be set in 7d1ca57). Both predictions fail: (a) `bd15a9d` shows substantive body change (`todo!()` → real predicate; three retains → one retain) plus removal of `#[allow(dead_code)]` plus a `cmd_list` call-site refactor — none of which are cosmetic; (b) the test count in `7d1ca57` already includes everything Layer 5 ships, **and** the failing assertion at Red Gate time (`todo!()` panic at any `issue_matches_filters` call) is a real signal that the predicate did not exist. The `#[allow(dead_code)]` annotation in 7d1ca57 is itself the strongest tell that the Phase 2a → 2b boundary is real: a performative Red Gate would not need to silence a dead-code warning, because the function would already be called.
+
+**Classification:** Dismissed. Red Gate boundary integrity verified.
+
+---
+
+**Finding 5 — Test discipline (Dim 5)**
+
+Test-first ordering at the commit-pattern level is intact (Finding 4). The 5 unit tests and the `todo!()` stub were committed together in `7d1ca57`; the tests would have failed against the stub by `todo!()` panic. Phase 2b (`bd15a9d`) added zero new tests to the suite — it filled in only the stub body and the `cmd_list` refactor; this is the right pattern (Phase 2b is implementation, not test addition; if a test were missing it would be added in a separate commit per `prompts/implementation.md` step 2).
+
+The 7 integration tests are correctly disclosed as Cat B Red Gate deviations in the commit message. They are not mislabeled as Cat A. The Cat B framing matches the prior-layer precedent established in Layer 3 (`create_without_priority_defaults_to_medium`) and Layer 4 (two integration tests for label defaults). The pattern across Layers 3-5 is now consistent: when a Layer's behavior is partly emergent from the chained accretion of prior-layer Red Gates, the Layer's integration tests for the emergent behavior pass at Red Gate time and are labeled Cat B with an explicit prior-Red-Gate citation.
+
+The QE R11 F5 marker — "Layer 5 must produce `list_status_priority_label_compound_AND_filter` (or equivalent) covering the spec line 313 example" — is satisfied by `tests/layer5.rs:186` `list_three_filter_and_combination`, which is exactly the spec line 313 case (`--status open --priority high --label bug` AND-logic; only matching issue present). The deferral lands cleanly. (QE Review 13 owns the formal closure of QE R11 F5; this VDD-IAR finding records that the marker was honored at the Red Gate test plan level.)
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 6 — Human verification (Dim 6)**
+
+Commit `da0fd8d` ("Layer 5 manual testing complete") flipped all 6 Manual Testing Checklist items in TODO.md to `[x]`. The commit message body lists each of the 6 scenarios verified:
+- Setup with four issues spanning all status × priority × label combinations
+- Two-filter AND (`--status open --priority high`)
+- Three-filter AND (`--status open --priority high --label bug`)
+- No-match from filters → `No issues match the given filters.`
+- Default view with open issues → no empty-state message
+- All-done state → `No open issues. Nice work!` (not the filter message)
+
+This satisfies the dim-9-as-applied-at-merge standard from CLOSURE-PROTOCOL.md Section 6 item 7 (manual testing implicit in the merge gate). The narrative density is slightly thinner than the Layer 4 precedent commit `b0a3789`, which used "Verified in terminal: <observed behaviors list>" framing — Layer 5's commit message reads more like a restatement of the checklist than an enumeration of observed outputs. However, the commit message is unambiguous that "All 6 Manual Testing Checklist items in TODO.md flipped to `[x]` after human verification of compound-filter behavior at the CLI" and lists each scenario with the expected result. Two reviewers would agree the human ran the binary against the 6 scenarios; the box ticks plus the per-scenario enumeration plus the explicit "after human verification" statement clear the bar. (For Layer 6+, the director may want to standardize on the Layer-4 "Verified in terminal: <observed behaviors>" framing, which is slightly stronger evidence than scenario-restatement; this is a polish suggestion, not a dim-6 violation.)
+
+The manual testing closure is a separate commit from the implementation, mirroring the Layer 3 (`6f7fd46`) and Layer 4 (`b0a3789`) precedents. The implementation commit `bd15a9d` correctly does NOT tick the manual checklist — its commit message even says "The Manual Testing Checklist is intentionally left unchecked — per VSDD Phase 2 completion criteria, manual testing requires human verification and is not satisfied by automated tests." This is the right discipline (the implementation agent doesn't claim to have verified manually; the human director's separate commit does).
+
+**Classification:** Dismissed. (Polish note recorded for future layers re: Layer-4-style "Verified in terminal:" framing; not a finding.)
+
+---
+
+**Finding 7 — IAR iteration / carry-over closure (Dim 7)**
+
+Three Layer 4 carry-over findings entered Layer 5 with named-target dispositions. Verifying each:
+
+- **SA R9 F1 / SE R11 F2 — `cmd_list` extraction.** Disposition at end of Review 12: "Deferred to a focused PR before Layer 7 with named target." Layer 5 status: still Deferred. Layer 5 did NOT do the full `cmd_list` extraction (no `format_header_row`, `format_issue_row`, `filter_issues` helpers; no module-level column-width constants). It did extract a single named predicate (`issue_matches_filters`) which is a partial step toward the SA-9-F1 pattern but does not discharge the full finding. The deferral target (focused PR before Layer 7) remains in effect. This is in-policy: a Deferred finding with a named target may persist across the layer immediately following the deferral, as long as the target layer remains the commitment. Not a violation; the deferral was not reset to Layer 5 and was not silently dropped.
+
+- **QE R11 F5 — compound-filter test.** Disposition: "Open / Deferred to Layer 5" with the explicit marker that "Layer 5 must produce `list_status_priority_label_compound_AND_filter` (or equivalent)". Layer 5 status: marker honored at test-plan level by `tests/layer5.rs:186` `list_three_filter_and_combination`. QE Review 13 (running in parallel with this VDD-IAR review) owns the formal Resolved transition; from VDD-IAR Alignment's perspective, the deferral landed where it was committed to land.
+
+- **TW R7 F5 — PROCESS.md retrospective placeholders.** Disposition at Review 12: "the only Open finding gating Layer 4 merge after Round 2." Closed by commit `a226d88` before Layer 4 merge. Not a Layer 5 carry-over.
+
+- **Other prior-layer findings:** Review 12 listed 14 Resolved + 1 Accepted Risk + 5 Deferred (Layer 7 polish + cmd_list extraction + Layer 5 compound-filter test). The Layer 7 polish items (UX R6 F2/F3, TW R7 F6) remain Deferred to Layer 7 with named target — Layer 5 did not action them, which is correct (they are not Layer 5 scope).
+
+No deferred-then-silently-dropped pattern. No carry-over finding spilled into Layer 5 in a way that would have required Layer 5 to absorb Layer 4 IAR work. The Section 5 cadence (cold-batch → warm-resolution → SO-adjudication → VDD-IAR-closure) ran cleanly for Layer 4 and Layer 5 opens with all prior-layer process bookkeeping in terminal states.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 8 — Process artifact integrity / performative-Red-Gate inverse test (Dim 8)**
+
+The review brief asks: "How would a performative Red Gate look different?" Applying the inverse test:
+
+1. **Performative tell #1: implementation present in 7d1ca57.** Inverse: actual `7d1ca57` shows `todo!()` body and `#[allow(dead_code)]` annotation. ✓ inverse holds.
+2. **Performative tell #2: 7d1ca57 commit-message claim of "tests fail" without runnable evidence.** Inverse: actual `7d1ca57` commit message names each of the 5 unit tests by name and states "todo!() panics — predicate not implemented" as the failure mode; commit also names 7 integration tests as Cat B with explicit prior-Red-Gate citation (Layers 3 and 4). ✓ inverse holds (the failure mode is concrete and reproducible by reverting `bd15a9d`).
+3. **Performative tell #3: bd15a9d is a no-op refactor (rename/move only) so the commit pair "looks" two-phase.** Inverse: actual `bd15a9d` shows substantive body change (stub → real predicate, three retains → one retain, dead-code allow removed). ✓ inverse holds.
+4. **Performative tell #4: integration tests labeled Cat A despite emergent-from-prior-layer behavior.** Inverse: actual `7d1ca57` explicitly labels the 7 integration tests Cat B and cites the prior-Red-Gate provenance (Layer 3 priority retain; Layer 4 label retain). ✓ inverse holds.
+5. **Performative tell #5: manual testing closure batched into the implementation commit.** Inverse: manual testing closure is a separate commit (`da0fd8d`), 13 minutes after implementation, with explicit human-verification language in the message. ✓ inverse holds.
+
+All five inverse tests pass. The Layer 5 commit pattern is the real-Red-Gate pattern, not the performative one. The `#[allow(dead_code)]` annotation in `7d1ca57` is the strongest single artifact: it is forced by the compiler in `-D warnings` mode when an unused private function exists, and a performative Red Gate (where the function is called) would not need it. Removing the annotation in `bd15a9d` is the symmetric tell that the call-site refactor is what made the function reachable.
+
+**Classification:** Dismissed.
+
+---
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Process integrity audit
+
+Authority chain for Layer 5 commits (per `CLOSURE-PROTOCOL.md` Section 1):
+
+| File | Authority | Layer 5 modifier | OK? |
+|---|---|---|---|
+| `tests/layer5.rs` (new) | QE primary; SE for parity with code | Co-authored at Red Gate (`7d1ca57`); test plan in `TODO.md` is the authority signal | ✓ |
+| `src/lib.rs` (Layer 5 unit tests + predicate) | SE primary (impl); QE primary (tests) | Both classes co-authored in Red Gate + Phase 2b commits | ✓ |
+| `TODO.md` (AC + manual checklist tick-throughs) | SO (scope); director (sequencing) | Checkbox flips by implementation agent (AC) + director (manual) — checkbox flips are not scope changes; in-policy | ✓ |
+| `DESIGN.md` | SO only | Not modified in any Layer 5 commit | ✓ |
+| `CHANGELOG.md` | Any domain that produced the change | Not yet modified for Layer 5 (will be added during Layer 5 IAR Round 2 / merge prep, mirroring Layer 4 cadence) | acknowledged |
+| `iterative-adversarial-refinement/<DOMAIN>-REVIEW.md` | The owning domain only | Each domain's Layer 5 entry will be its own (this round runs in parallel with SO 18 / SA 11 / QE 13 / SE 13) | ✓ in progress |
+
+Authority chain clean for the implementation phase. The CHANGELOG entry for Layer 5 is acknowledged as a pending merge-prep artifact (per the Layer 4 precedent: SO authored the Layer 4 CHANGELOG entry during Round 2 close); not a Layer-5-Phase-2-scope item.
+
+The Section 5 cadence has run through step 1 (cold-batch parallel review batch — this round, with SO 18 / SA 11 / QE 13 / SE 13 / VDD-IAR 13). Steps 2-4 (warm-resolution, SO-adjudication, final VDD-IAR closure) are downstream and are not in the scope of this round. This round's role is to verify the **Phase 2** process (Red Gate boundary, test discipline, manual testing closure, layer scope, carry-over disposition) before the IAR cadence produces findings to close.
+
+---
+
+### Summary
+
+Layer 5 process compliance is **clean across all eight evaluated dimensions**. All findings dismissed.
+
+- **Dim 1 (Design before code):** ✓ DESIGN.md Feature 2 line 63 / 71-72 / 313 (edge cases) defined the AND-combination contract before Layer 5 began. No DESIGN.md edits in Layer 5.
+- **Dim 2 (Layered decomposition):** ✓ Layer 5 scope respected; no Layer 6 leak; over-delivery on test coverage (7 integration + 5 unit vs. 4 + 2 planned).
+- **Dim 3 (Layer gate compliance):** ✓ Layer 4 closed by `a226d88` before merge `3c7d65d`; Layer 5 opened 29 minutes after the merge.
+- **Dim 4 (Red Gate boundary — CRITICAL):** ✓ `7d1ca57` contains `todo!()` stub + `#[allow(dead_code)]` + 5 failing unit tests + 7 Cat-B-disclosed integration tests; `bd15a9d` substantively replaces the stub body and removes the dead-code allow. Inverse tests against the performative-Red-Gate hypothesis all hold.
+- **Dim 5 (Test discipline):** ✓ Tests committed in Red Gate; Phase 2b adds zero tests; Cat B disclosure honest; QE R11 F5 marker satisfied by `list_three_filter_and_combination`.
+- **Dim 6 (Human verification):** ✓ `da0fd8d` ticks all 6 manual checklist items with per-scenario enumeration in commit message. Slightly thinner narrative than Layer 4's "Verified in terminal:" framing — polish note for Layer 6+ but not a violation.
+- **Dim 7 (IAR iteration):** ✓ All three relevant carry-overs in expected dispositions. SA R9 F1 / SE R11 F2 still Deferred to focused-PR-before-Layer-7 (Layer 5 did NOT silently absorb the work). QE R11 F5 marker honored. TW R7 F5 closed before merge.
+- **Dim 8 (Process artifact integrity):** ✓ Five inverse tests against the performative-Red-Gate hypothesis all hold. The `#[allow(dead_code)]` annotation in `7d1ca57` plus its removal in `bd15a9d` is the strongest single artifact that the boundary is real.
+
+**Sycophancy guard self-applied.** The most adversarial reading of Layer 5 is: "the AND-combination already worked at end-of-Layer-4 (the chained retains already AND-combined); Layer 5 added a refactor and called it a Red Gate." This reading is the Cat B framing the developer themselves disclosed in the commit message. The honest question is whether the Cat B framing is enough — does Layer 5 contain any Red Gate primary signal? Yes: the 5 unit tests on `issue_matches_filters` failed at Red Gate by `todo!()` panic, in a way that is both compiler-verifiable and reproducible by reverting `bd15a9d`. The unit tests are the Red Gate primary signal; the integration tests are regression coverage of the emergent behavior. This is the right shape for a "refactor + extract predicate" layer that lands on top of behavior accreted in prior Red Gates.
+
+A second adversarial reading: "Layer 5's manual testing commit message is a restatement of the checklist, not observation evidence — could it be self-reported without actually running the binary?" The commit message language ("after human verification of compound-filter behavior at the CLI") is explicit about human verification; the per-scenario enumeration includes the expected output messages (`No issues match the given filters.`, `No open issues. Nice work!`). A reviewer who wanted to falsify could ask the director to demonstrate `tracker list --status open --priority high --label bug` against a fixture, but this is independent verification, not a Phase-2 process finding. The Phase-2 standard is: did the human run the binary and tick the checklist? The commit attests to yes. Not a finding.
+
+---
+
+### Coordination
+
+- **VDD-IAR Alignment Round 13 of the cold-batch peers (SO 18, SA 11, QE 13, SE 13, VDD-IAR 13).** Each domain runs cold per `prompts/review-session.md`. This VDD-IAR pass evaluates the artifact set as it stands at start-of-round.
+- **No findings raised to other domains.** This round produces zero Open findings; cross-domain coordination is N/A.
+- **Carry-over watch for Layer 5+ Round 2 (if needed):** SA R9 F1 / SE R11 F2 (cmd_list extraction) remain Deferred to focused-PR-before-Layer-7. Layer 5's predicate extraction is a partial step toward that target but does not discharge the full finding. The director should track when the focused PR lands; the finding's named-target deadline is "before Layer 7 begins," and Layer 6 is still ahead of that.
+- **CHANGELOG Layer 5 entry is acknowledged as pending merge-prep.** Per Layer 4 precedent (SO Review 17 authored the Layer 4 CHANGELOG entry during Round 2 close), the Layer 5 CHANGELOG entry will be authored during the merge-prep cadence. Not a Phase-2-scope finding.
+
+---
+
+### Merge-gate verdict
+
+**This round is the Phase-2 process audit, not the merge gate.** Layer 5 has not yet completed the IAR cadence — only step 1 of `CLOSURE-PROTOCOL.md` Section 5 (cold-session parallel review batch) is in progress, with SO 18 / SA 11 / QE 13 / SE 13 / VDD-IAR 13 running together. Steps 2-4 (warm-resolution if findings exist, SO-adjudication if spec questions arise, final VDD-IAR closure) are downstream.
+
+VDD-IAR's verdict on the Phase-2 process is unconditional: **GO on Phase-2 process compliance**. Layer 5's design-before-code, layered decomposition, layer gate compliance, Red Gate boundary, test discipline, human verification, IAR iteration, and process artifact integrity are all clean. If the round-1 cold-batch from SO/SA/QE/SE produces real findings, the merge gate will require a Round 2 per Section 5 — but the Phase-2 process record itself is sound. **Refinement may continue on substantive (non-process) dimensions.**
+
+If SO/SA/QE/SE Round 1 produces zero real findings (or only hallucinated ones), the merge gate may close after a final VDD-IAR closure round (Review 14) verifying the gate items in `CLOSURE-PROTOCOL.md` Section 6. If they produce real findings, the standard Section-5 cadence applies (warm-resolution → SO-adjudication if needed → round-2 cold-batch → Review 14 closure).
+
+This round closes for VDD-IAR Alignment as a domain. The merge-gate decision is downstream of the substantive-domain rounds running in parallel.
+
+---
+
+### Files modified
+
+Only this log appended.
+
+---
+
+## Review 14 — 2026-05-07 00:43Z
+
+**Round:** VDD-IAR Review 14 (Round-2 merge-gate closure for Layer 5)
+**Scope:** Verify Round-1 cold-batch IAR cadence completed, Round-2 inline fixes commit `7f9bae4` closes the substantive-domain Round-1 findings, and the residual carry-forward (SA R11 F1) has a named future-layer disposition.
+
+### Refinement loop verification
+
+Round-1 cold-batch (SO 18 / SA 11 / QE 13 / SE 13 / VDD-IAR 13) produced 5 substantive findings:
+
+| Finding | Domain | Severity | Resolution path | Status post-`7f9bae4` |
+|---|---|---|---|---|
+| SO R18 F1 — anticipatory `--description-contains` comment | SO | Low | Code comment edit | Resolved |
+| SO R18 F2 — test docstring claim mismatch | SO | Low | Test docstring trim | Resolved |
+| SO R18 F3 — manual checklist setup elides `tracker status` step | SO | Low | TODO.md amendment | Resolved |
+| QE R13 F1 — `&&`→`\|\|` between optional conjuncts (defense-in-depth) | QE | Low | New unit test | Resolved |
+| SE R13 F1 — rustdoc label-trim caller obligation | SE | Low | Rustdoc clarification | Resolved |
+| SA R11 F1 — rendering half of `cmd_list` extraction | SA | Medium | Focused pre-Layer-7 PR | Open / Deferred |
+
+Round-2 closure pass (SO 19 / SA 12 / QE 14 / SE 14) confirms each domain's Round-1 findings are resolved or deferred-with-named-layer. Refinement loop progression: substantive findings (Round 1) → all-resolved or deferred-with-named-layer (Round 2). MVR reached for Layer 5 substantive review: the only Open finding (SA R11 F1) is a deferral to a named future layer with prior-round precedent (SA R10 deferred the same finding's predecessor with the same disposition).
+
+### Process-integrity audit
+
+- **Phase 2a/2b boundary:** Verified at Round-1 (Review 13). `7d1ca57` Red Gate commit + `bd15a9d` implementation commit + `#[allow(dead_code)]` add/remove pattern confirms a real (not performative) Red Gate. Round-2 inline fixes commit `7f9bae4` does not touch Phase 2a/2b artifacts.
+- **Round numbering:** SO 18→19, SA 11→12, QE 13→14, SE 13→14, VDD-IAR 13→14. Consistent monotonic sequence; no skipped rounds; round labels match cadence convention.
+- **Cat B Red Gate disposition:** Audited at SO Review 18 and QE Review 13. Both cold-session reviewers confirmed the Cat B labelling for the 7 integration tests is honest (the AND-combination was emergent from prior layers' chained retains; cf. Layer 3/4 prior Cat B precedent).
+- **Manual testing closure:** Round-1 (Dim 6) confirmed the 6 manual checks were executed. Round-2 SO F3 fix tightens the TODO.md setup wording so a future external reviewer can reproduce the steps from the document alone — additive process improvement, not a defect.
+
+### Merge-gate verdict
+
+**GO.** All five active Layer-5 IAR domains report MVR or deferred-with-named-layer. The refinement loop produced real findings → fixes → no new findings on the closure pass. The merge-gate criteria from `iterative-adversarial-refinement/README.md` § Merging gate are satisfied:
+
+1. ✓ All active IAR domains have run at least one full pass on Layer 5 (Round 1 cold-batch).
+2. ✓ The refinement loop continued until MVR (Round 2 closure pass produced 0 new findings).
+3. ✓ Every finding is Resolved (5) or Deferred-with-named-layer (1, SA R11 F1 → focused pre-Layer-7 PR).
+4. ✓ VDD-IAR Alignment has run as the final gate step (this round).
+5. ✓ Round numbers and session context logged in respective domain files.
+
+Layer 5 is cleared to merge.
+
+### Files modified
+
+Only this log appended.
+
+---
+

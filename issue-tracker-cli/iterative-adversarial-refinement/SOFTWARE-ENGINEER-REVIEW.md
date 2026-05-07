@@ -1325,3 +1325,183 @@ Unchanged from Round 1. SA R9 F1 / SE R11 F2 still Open. Round 2 was scoped to s
 - `src/lib.rs` — `parse_label`, `label_is_valid` (new), `display_safe` (new), `issue_fields_are_valid` (extended for labels), `parse_priority` / `parse_status` / `parse_id` formatter sanitization, `cmd_list` filter validation. Plus 11 new unit tests under the `#[cfg(test)] mod tests` block.
 
 ---
+
+## Review 13 — 2026-05-07 00:24Z
+
+**Round:** SE Review 13 (Layer 5 — Compound Filtering)
+**Scope:** Three-commit Layer 5 landing on `issue-tracker-cli-compound-filtering`:
+- `7d1ca57` — Phase 2a Red Gate (compound-filter unit tests + `issue_matches_filters` `todo!()` stub)
+- `bd15a9d` — Phase 2b implementation (predicate body + `cmd_list` retain-collapse refactor)
+- `da0fd8d` — Manual Testing Checklist completion
+
+Code surface reviewed: `src/lib.rs:425-434` (new `issue_matches_filters`), `src/lib.rs:465-544` (refactored `cmd_list`), `src/lib.rs:851-930` (Layer 5 unit tests), `tests/layer5.rs` (7 integration tests), `src/main.rs` (no Layer 5 changes — wiring identical to Layer 4), `rust-toolchain.toml`, `DESIGN.md` Feature 2 (lines 51-83 / Edge Cases lines 316-322), `TODO.md:239-275`.
+
+**Session note:** Cold session per `prompts/review-session.md` primer; parallel-batch with SO Review 18 / SA Review 11 / QE Review 13 / VDD-IAR Review 13. Sycophancy guard applied: walked the `issue_matches_filters` truth table from first principles before reading the existing tests, to avoid the "passes-because-no-counterexample-came-to-mind" failure mode the primer warns against. Test/clippy state re-verified at session start: `cargo test --all-targets --locked` → 135/135 pass (unit 44 + layer1 32 + layer2 18 + layer3 9 + layer4 25 + layer5 7); `cargo clippy --all-targets --locked -- -D warnings` clean; `cargo fmt --check` clean.
+
+**Assumption surfacing (G-20):** `Option::is_none_or` was stabilized in Rust 1.82.0; `rust-toolchain.toml` pins 1.94.1, so usage is well within MSRV. `is_none_or(f)` desugars to `match self { None => true, Some(x) => f(x) }` — the "absent → wildcard" semantic the predicate relies on is the documented contract, not assumed. Rust's `&&` is short-circuit: the priority closure is only invoked when `issue.status == status` holds, and the label closure only when both prior conjuncts hold; a hand-edited `tracker.json` with a status that never matches will not invoke `label_matches`, but `load_issues` already validated status membership in `VALID_STATUSES` so this is academic. `Vec::retain` evaluates the predicate exactly once per element in iteration order; no repeated calls, no reordering. No assumed-but-nonexistent APIs.
+
+---
+
+### Resolved
+
+*(none — this round applied no impl fixes. Two findings raised; one Open and one Dismissed-with-rationale. The Open finding is a doc-comment precision issue, not an implementation bug, and can be fixed inline if SO sanctions; left Open for orchestrator routing alongside the Layer 5 batch outcome.)*
+
+---
+
+### Open
+
+**Finding 1 — `issue_matches_filters` rustdoc claims label is normalized lowercase by the caller; in fact label is case-preserved by spec and trim-only by `parse_label` (Dim 9 — Comments and self-documentation / Dim 1 — Doc-vs-impl correctness, narrow)**
+
+`src/lib.rs:416-424`:
+```rust
+/// Returns `true` iff `issue` matches every supplied filter.
+///
+/// The `status` filter is required (the default-open view passes `"open"`); the
+/// `priority` and `label` filters are optional (an absent filter is a wildcard).
+/// Filters AND-combine: a filter that mismatches makes the whole predicate false.
+/// Per DESIGN.md Feature 2 / Edge Cases / Labels, label comparison is
+/// case-sensitive and exact-match; priority and status comparisons assume the
+/// caller has already normalized the filter values (lowercase) and that stored
+/// values are normalized at write/load time.
+```
+
+The qualification "priority and status comparisons assume the caller has already normalized the filter values (lowercase)" is a *correct* scoping for those two fields — it does not include label. So this is not a contract bug. But the immediately preceding sentence — "label comparison is case-sensitive and exact-match" — leaves the reader to infer that `label` therefore needs *no* caller-side normalization. That inference is wrong: `cmd_list` does in fact normalize the label filter before calling the predicate — it runs `parse_label` to apply the **trim-on-store / trim-on-filter symmetry** the spec mandates (DESIGN.md line 312 / Edge Cases / Labels). A future maintainer reading the doc could reasonably conclude "label needs no preprocessing because it's exact-match" and skip the `parse_label` call when adding a new caller — which would silently break the trim-symmetry contract surfaced as UX R6 F1 / DE R7 F2 / SO R16 F2 / SE R12 F4.
+
+The doc gap is narrow but not hallucinated: it is exactly the class of comment that future-self maintainability (Dim 11) cares about, given that the *reason* for trimming the label filter is documented in `cmd_list` (line 479-484) but not in the predicate's contract block. The predicate body itself does not trim — and shouldn't — but the contract the predicate relies on the caller to satisfy includes "label is trim-normalized by the caller."
+
+**Evidence the trim-symmetry is a real and load-bearing contract:** `cmd_list` `src/lib.rs:485-488` invokes `parse_label(l)?` on the filter value, with the explicit comment naming "the round-trip asymmetry UX Review 6 / SO Review 16 surfaced." A predicate caller that bypassed `parse_label` (e.g., a Layer 6 `tracker show --label-eq <l>` flag that reused the predicate) would miss the trim normalization. The unit tests in `mod tests` all pass already-trimmed string literals (`"bug"`, `"Bug"`, `"feature"`), so they would not catch a caller that forgot to trim.
+
+**Proposed action:** Two-line tightening of the doc block to explicitly state the label-side caller obligation:
+
+```rust
+/// ... case-sensitive and exact-match (the caller is responsible for trim
+/// normalization — see `cmd_list`'s `parse_label` invocation; the spec's
+/// trim-on-store / trim-on-filter symmetry requires this); priority and
+/// status comparisons assume ...
+```
+
+Alternative, lighter touch: a single sentence appended after the existing doc block reading "Label values are compared verbatim: the caller must apply any trim or other normalization the spec requires (see `parse_label` and DESIGN.md Edge Cases / Labels)." Either works. Not applied inline this session because it crosses the SE/TW boundary at the margin (rustdoc clarification) and because the right wording is a stylistic call best made together with the orchestrator's batch outcome. SO/TW have no objection signal in advance — the change is informational, not contractual.
+
+**Classification:** Open — rustdoc-only fix, low risk, low value-but-real (Dim 9 / Dim 11). Recommended bundling with any other doc-tightening pass before Layer 6 lands a second predicate caller.
+
+---
+
+### Dismissed
+
+**Finding 2 — `issue_matches_filters` is module-private with no compile-time enforcement that callers normalize their inputs; the contract is documentation-only (Dim 3 — Type safety / Dim 8 — Defensive coding, design tradeoff)**
+
+The predicate signature is `fn issue_matches_filters(issue: &Issue, status: &str, priority: Option<&str>, label: Option<&str>) -> bool`. The status / priority / label parameters are bare `&str` / `Option<&str>` — no newtype, no enum. The contract "caller normalizes" is enforced only by code review and rustdoc, not by the type system. A newtype-wrapper approach (`struct NormalizedStatus<'a>(&'a str)`, `struct NormalizedPriority<'a>(&'a str)`, `struct NormalizedLabel<'a>(&'a str)` produced only by `parse_status` / `parse_priority` / `parse_label`) would make a non-normalized call a compile error.
+
+**Classification:** Dismissed. The same `&str` shape is used uniformly across `parse_status`, `parse_priority`, `parse_label`, `label_matches`, `priority_rank`, and the field types on `Issue` itself (`String`). Introducing newtypes only at the predicate boundary would create a one-off type system island that future maintainers would have to translate at every other boundary — net complexity adds, not subtracts. The project's existing pattern is "stringly-typed at boundaries, normalized at parse time, validated at load time" — and that pattern has been ratified across all prior SE rounds (SE Review 11 explicitly notes "stringly-typed status / priority is the project's chosen pattern"). The function is module-private (`fn`, not `pub`) and has exactly one caller (`cmd_list`); the caller's normalization is verifiable at a glance. If a Layer-6+ refactor introduces a second caller (e.g., a `cmd_show` that filters by ID + label, or a future `cmd_delete --by-label` operation), revisit. Logged for future-self.
+
+---
+
+**Finding 3 — Branch coverage gap in `issue_matches_filters` unit tests: no test for `priority=Some, label=None` or `priority=None, label=Some` matching cases (Dim 7 — Type-safety / coverage, QE-territory)**
+
+The Layer 5 unit tests cover:
+- All three filters present, all matching (`filter_and_logic_all_present_returns_true`)
+- All three filters present, each one of three single-mismatch cases (`filter_and_logic_all_must_match`)
+- All optionals absent, status matching (`filter_status_only_matches_any_priority_and_labels`)
+- All optionals absent, status mismatching (`filter_status_mismatch_rejects_regardless_of_optional_filters`)
+- All three present, label case-sensitivity (`filter_label_match_is_case_sensitive`)
+
+There is no unit test where exactly one optional is `Some` and one is `None`. The integration tests in `tests/layer5.rs` (`list_status_and_priority_filter_and_combination`, `list_status_and_label_filter_and_combination`, `list_priority_and_label_filter_and_combination`) cover these CLI-level cases, but at the unit level the predicate's "two-of-three present" matrix is not directly exercised.
+
+**Classification:** Dismissed for the SE lens. The truth-table walk shows the predicate is structurally symmetric across the two optional conjuncts: `priority.is_none_or(...)` and `label.is_none_or(...)` have identical shape, share the same short-circuit semantics, and the integration tests cover the cross-product. A unit test for the missing matrix cells would be defensive duplication of the integration coverage. Cross-reference QE Review 13 for whether to add the unit cases as belt-and-suspenders coverage; the SE-domain verdict is that the existing test set adequately pins the predicate's behavior. No action.
+
+---
+
+**Finding 4 — `cmd_list`'s 80-line responsibility mix (filter, empty-state, header, rows) persists through Layer 5; the predicate extraction is a partial improvement, not a closure (Dim 4 — Function design / Dim 5 — Duplication / Dim 6 — Complexity)**
+
+This is the SA R9 F1 / SE R11 F2 carry-forward. Layer 5 collapses three retain calls into one retain over `issue_matches_filters`, which is genuine progress on the *filter* axis: the AND-logic is now testable in isolation as a pure predicate, and the next filter dimension (Layer 6's possible `--description-contains` per `cmd_list`'s comment at line 489-495) extends a single named site rather than appending another retain. But the function still mixes:
+
+- Filter-value parsing (`parse_status`, `parse_priority`, `parse_label`)
+- Empty-state predicate computation (`extra_filter_active`, `is_default_open_view`)
+- Filter application (the new single retain)
+- Empty-state messaging (the two `eprintln!` branches)
+- Header row formatting (inline format string with literal column names + widths)
+- Per-row formatting (inline format string + inline truncation calls + inline `(none)` literal)
+
+Six responsibilities, ~80 lines. Column-width literals are still duplicated at four sites (`{:<4}  {:<11}  {:<8}  {:<20}` in header line 525, same in row line 538, `truncate_with_ellipsis(_, 20)` line 535, `truncate_with_ellipsis(_, 50)` line 536). SE R11 F2 / SA R9 F1's recommended `filter_issues` / `format_header_row` / `format_issue_row` extraction with module-level constants is **not closed by Layer 5** — it is partially advanced in that the *filter* helper is now extracted, but the formatting helpers and constants are unchanged.
+
+**Classification:** Dismissed for *Layer 5 itself* — Layer 5's scope per TODO.md:239-275 is the AND-combination predicate, not a `cmd_list` rendering refactor. Layer 5 made the predicate side cleaner without making the rendering side worse. **The carry-over remains Open** under SE R11 F2 / SA R9 F1; SO R17 explicitly deferred the broader `cmd_list` extraction to the focused PR before Layer 7. Closing-status update for the carry-forward record: **partially advanced (predicate extracted), broader refactor still deferred to pre-Layer-7 focused PR per SO R17.**
+
+---
+
+### Hallucinated
+
+*(none. Finding 1 is a real doc-precision concern verified against the predicate's actual caller (`cmd_list`'s `parse_label` invocation) and against the spec's trim-symmetry mandate (DESIGN.md line 312). Findings 2–4 are real defensive/structural observations that have been deliberately scoped out with rationale, not invented concerns. Per the primer's MVR criterion — "running out of real complaints is reached only when every remaining finding has been demonstrated to be hallucinated, not merely declared so" — this round is dismissed-with-rationale only, which is one half-step short of the formal MVR endpoint. The single Open finding (doc precision on the predicate's caller-normalization contract) is genuinely a real-but-narrow concern.)*
+
+---
+
+### Carry-over check (prior-finding closure status)
+
+- **SA R9 F1 / SE R11 F2 (cmd_list extraction with column-width constants):** **Partially advanced, still Open.** Layer 5 extracted the filter predicate; the rendering / formatting helpers (`format_header_row`, `format_issue_row`) and module-level column-width constants are unchanged. Continues to be deferred to the focused pre-Layer-7 PR per SO R17. Filing this round's evidence under the same Open record (Finding 4 above).
+- **SE R11 F3 (label control-character defense):** **Closed in SE R12 (commit `67ef920`)**, verified again this round at `src/lib.rs:379-391` (`parse_label` rejects control chars and comma) and `src/lib.rs:145-147` (`label_is_valid` enforces same rules at load). No regression at Layer 5.
+- **SE R10 F1 (duplicate-ID validation gap):** Closed in Layer 3 follow-up. Verified unchanged at `src/lib.rs:173-176` (`issues_collection_invariants_hold`) and called from `load_issues` at line 197-201. No regression at Layer 5.
+- **SE R10 F2 (empty/whitespace label storage validation):** Closed; `issue_fields_are_valid` calls `label_is_valid` per `src/lib.rs:131`. No regression.
+- **SE R10 F3 (`updated_at >= created_at` invariant):** Closed; enforced at `src/lib.rs:138`. No regression.
+- **SO R11 regression hazard (positive-enumeration empty-state predicate):** Closed in SE R11 F1 via the `extra_filter_active` disjunction at `src/lib.rs:496-497`. Layer 5's `is_none_or` predicate body is structurally a different (and more localized) form of the same fix; if a Layer 6 filter is added, both `extra_filter_active` (for the empty-state branch) and `issue_matches_filters` (for the match branch) need the new conjunct added — two places, but each is named and narrow. No regression.
+
+---
+
+### Summary
+
+Cold-session SE Review 13 outcome on Layer 5 (Compound Filtering): **0 resolved, 1 Open (doc precision), 3 Dismissed-with-rationale, 0 Hallucinated.**
+
+**Top SE concern:** Finding 1 — `issue_matches_filters` rustdoc declares "label comparison is case-sensitive and exact-match" without disclosing that the *trim* normalization is the caller's obligation. The predicate body does not trim; `cmd_list` does, via `parse_label`; a future second caller could miss the obligation. Narrow-but-real Dim 9 / Dim 11 concern. Doc-only fix recommended, two lines, low risk, no impl change.
+
+**Predicate correctness verdict:** The truth-table walk holds — `issue.status == status && priority.is_none_or(|p| issue.priority == p) && label.is_none_or(|l| label_matches(&issue.labels, l))` correctly implements the AND-combination across all 8 cells of the (priority∈{None,Some-match,Some-mismatch}) × (label∈{None,Some-match,Some-mismatch}) × (status∈{match,mismatch}) cube. Short-circuit on `&&` guarantees the priority and label closures are not evaluated when status mismatches; the closures themselves use `is_none_or` (Rust 1.82+, well within the 1.94.1 toolchain pin). The extracted predicate is testable in isolation, and the 5 Red Gate unit tests cover the highest-value cells. Behavior is identical to the prior chained-retain form (the commit message states this and the integration tests verify it: 7 Cat-B Red Gate tests in `tests/layer5.rs` pass without modification). The refactor is net **−5 lines** in `src/lib.rs` (per the `bd15a9d` diff stat: +11 −16) and removes the multi-pass retain in favor of a single-pass walk.
+
+**Carry-over closure status:**
+- **SA R9 F1 / SE R11 F2 (cmd_list extraction):** Partially advanced (filter predicate extracted), broader rendering refactor still Open per SO R17 deferral.
+- **SE R11 F3 (label control-char defense):** Already closed in SE R12; verified no regression at Layer 5.
+- **SE R10 F1/F2/F3 (validator gaps):** Already closed in Layer 3 follow-up; verified no regression.
+
+**Layer 5 SE verdict:** Implementation is sound on every spec-internal correctness path — AND-combination across two filters, three filters, all single-mismatch rejections, default view non-empty, default view empty-state messaging, filter view empty-state messaging. All 8 acceptance criteria from TODO.md:243-251 are met by the test suite (7 integration tests in `tests/layer5.rs` plus 5 unit tests in `src/lib.rs#tests`). MSRV is satisfied. Clippy + fmt clean. Refactor reduces line count and improves testability without behavior change. The only SE-domain concern is the rustdoc precision issue (Finding 1) — a real-but-narrow gap that is doc-only and risk-free to fix.
+
+**Sycophancy check:** Three potential softenings considered and pushed back on:
+1. *Was the predicate-extraction-is-clean conclusion reached because no counterexample came to mind, or because the truth table was actually walked?* — The 8-cell truth table was walked explicitly above, with the `is_none_or` semantic checked against rustdoc, before reading the existing tests. Conclusion holds.
+2. *Was Finding 1 dismissed as "merely a doc nit" too easily?* — Pushed back by tracing the historical context: the trim-symmetry contract was a Round-2 closure for UX R6 F1 / DE R7 F2 / SO R16 F2 — a contract that *did* break in production-ish testing on the prior layer and required spec amendment to fix. A doc gap that could lure a future caller back into the same trap is non-trivial. Logged as Open.
+3. *Was Finding 4 (cmd_list extraction) suppressed because SA owns it?* — No: the SE-lens framing is logged in Finding 4 with the partially-advanced status update for the carry-forward record. The classification is Dismissed for *this* round's scope only; the SE R11 F2 Open record continues unchanged.
+
+The dismissal-test was applied to Findings 2 and 3 specifically: for Finding 2 (no compile-time enforcement of caller normalization), the dismissal holds because the project-wide pattern is `&str`-at-boundaries, ratified in prior rounds, and a one-off newtype island would add net complexity. For Finding 3 (branch coverage gap on two-optional cases), the dismissal holds because the predicate is structurally symmetric across the two optionals and integration tests cover the matrix; a unit-test addition would be belt-and-suspenders rather than load-bearing. Neither dismissal is "passes because no counterexample" — both are explicit cost/benefit calls.
+
+**Coordination:**
+- **SO Review 18:** No spec change requested from the SE lens. The doc-precision fix in Finding 1 is contained to rustdoc and does not require a DESIGN.md amendment. SO's Layer 5 spec-compliance review is independent.
+- **SA Review 11:** SA's `cmd_list` extraction record (SA R9 F1) is now in "partially advanced" status for the cross-domain ledger; the predicate side is extracted, the rendering side is unchanged. SA may wish to note in its own review that Layer 5 reduces the pressure on the `filter_issues` extraction (the filter logic now has named, testable form) without reducing the pressure on `format_header_row` / `format_issue_row` / column-width constants.
+- **QE Review 13:** Cross-reference Finding 3 — branch-coverage gap on `priority=Some,label=None` / `priority=None,label=Some` matching cases. SE-domain verdict is that integration tests cover the matrix; QE may decide whether to add the missing unit cells as defense-in-depth (low cost, ~6 lines).
+- **VDD-IAR Review 13:** Layer 5 is a clean Phase-2-Red-Gate-then-impl two-step (`7d1ca57` → `bd15a9d`), with the Red Gate genuinely failing (5 unit tests panicked under `todo!()`) and Phase 2b genuinely passing them. The Cat B integration tests are correctly disclosed as deviations in `tests/layer5.rs:14-24`. No process concern from the SE lens.
+- **Red Team:** No new Red-Team-relevant integrity concerns at Layer 5. The predicate is a pure function; no new I/O or state surface.
+- **Security:** No new Security findings. The `display_safe` formatter sanitization (added in SE R12) covers the parse-error paths; the predicate itself does not interpolate user input into stderr.
+
+**Files modified this session:** `iterative-adversarial-refinement/SOFTWARE-ENGINEER-REVIEW.md` only (this entry). No `src/**/*.rs` changes.
+
+---
+
+## Review 14 — 2026-05-07 00:42Z
+
+**Round:** SE Review 14 (Round-2 closure for Layer 5)
+**Scope:** Verify SE R13 F1 (rustdoc on `issue_matches_filters` does not disclose label-trim caller obligation) is resolved by commit `7f9bae4`. Warm closure-verification.
+
+### Round-1 finding closure
+
+- **F1 (rustdoc precision on label trim normalization):** **Resolved.** `src/lib.rs:416-428` rustdoc gains a sentence: "The caller is also responsible for applying any other normalization the spec requires before calling — notably trimming the label filter (DESIGN.md Edge Cases / Labels mandates trim-on-store / trim-on-filter symmetry; `cmd_list` runs `parse_label` on the filter value to satisfy this)." This explicitly documents the label-side caller obligation, with cross-references to the spec contract (DESIGN.md Edge Cases / Labels) and the canonical caller (`cmd_list` + `parse_label`). A future second predicate caller (e.g., a hypothetical Layer 6 `cmd_show` filter overload) will see the obligation in the contract block, defending against the trim-symmetry regression lineage (UX R6 F1 / DE R7 F2 / SO R16 F2 / SE R12 F4).
+
+### New findings
+
+*(none this round.)*
+
+### Carry-forward verification
+
+- **SA R9 F1 / SE R11 F2 (full `cmd_list` extraction):** Partially advanced at Layer 5 (filter predicate extracted), still Open for the rendering half. Disposition unchanged: deferred to focused pre-Layer-7 PR per SA R10 / SA R11 / SO R17.
+- **SE R11 F3 (label control-char defense):** Already closed in SE R12 (commit `67ef920`); no regression at Layer 5.
+- **SE R10 F1/F2/F3 (validator gaps):** Already closed in Layer 3 follow-up; no regression.
+
+### Summary
+
+1/1 Round-1 SE finding Resolved. 0 new findings this round. Layer 5 SE-domain is closed at MVR.
+
+**Coordination:** *(none — closure pass)*
+
+---
