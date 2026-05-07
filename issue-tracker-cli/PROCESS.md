@@ -388,10 +388,16 @@ VDD-IAR Review 14 verdict: **GO.** All five `README.md` § Merging gate criteria
 
 *[First-person reflection on Layer 5. Possible threads: Layer 5 had no new externally observable behavior — the AND-combination was already emergent from prior layers' chained retains, so the entire Red Gate was a refactor-to-testability move plus AC-coverage tests that necessarily passed Cat B; the question of whether a layer that ships only an internal abstraction is "really" a layer in the VSDD sense; the Round 1 finding count (5 substantive Low + 1 carry-forward) being substantially smaller than Layer 4's 23 — was that because Layer 5 was genuinely smaller, because the active-domain set was narrower, or because the Round-1 cold-batch primer had matured by Layer 5; the experience of writing the Phase-2a-only `#[allow(dead_code)]` annotation as a deliberate Red-Gate-integrity artifact, knowing it would later be the proof that Phase 2a was real.]*
 
+Nothing particularly hard. More on that below.
+
 ### What I got wrong
 
 *[First-person reflection on Layer 5. Possible threads: the manual testing checklist wording (TODO.md:256) drifted from the explicitness norm of Layers 2-4 — caught by SO Review 18 F3 only because the cold-session reviewer compared it to prior layers; the anticipatory `--description-contains` comment in `cmd_list` (predates Layer 5 but Layer 5's commit message ratified the same direction) — anticipatory creep at the comment level is a recurring class of finding the cold-batch is good at catching; the rustdoc on `issue_matches_filters` did not document the label-side caller obligation explicitly, exactly the doc gap class that has bitten the project before (the trim-symmetry contract was broken once already at Layer 4).]*
 
+I do want to take another consistency pass at manual testing. The manual tests in the TODO and the PR do not match. Who owns the manual test plan? Does it get modified in response to findings in review? Should it be spun off into a separate .md file like it will be handed off and worked by a 3rd party reviewer--that's what my previous test plan decomp edits were pointing towards but they were not applied retroactively here.
+
 ### What the process felt like
 
 *[First-person reflection on Layer 5. Possible threads: the second consecutive cold-batch run (Layer 4 was the first), and whether the cadence felt rehearsed or still novel; the size asymmetry between Layer 4's 11-domain run and Layer 5's 5-domain run — did the smaller domain set feel proportional to Layer 5's smaller surface, or did it feel under-reviewed; the Round-2 closure pass landing in two commits (one for inline fixes, one for review log entries) versus Layer 4's similar split — does this two-commit shape feel right for the closure cadence; the way the entire Layer 5 work — design, Red Gate, implementation, manual testing, IAR Round 1, IAR Round 2, gate closure — landed within a single working session, versus Layer 4's multi-day arc.]*
+
+This layer felt too easy. I could have easily done it one shot. That requires a bit of interrogation about whether it's skill with the method improving, a discipline problem with the process, or just that this layer was correctly scoped.
