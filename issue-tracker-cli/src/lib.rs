@@ -413,6 +413,32 @@ pub fn label_matches(labels: &[String], filter: &str) -> bool {
     labels.iter().any(|l| l == filter)
 }
 
+/// Returns `true` iff `issue` matches every supplied filter.
+///
+/// The `status` filter is required (the default-open view passes `"open"`); the
+/// `priority` and `label` filters are optional (an absent filter is a wildcard).
+/// Filters AND-combine: a filter that mismatches makes the whole predicate false.
+/// Per DESIGN.md Feature 2 / Edge Cases / Labels, label comparison is
+/// case-sensitive and exact-match; priority and status comparisons assume the
+/// caller has already normalized the filter values (lowercase) and that stored
+/// values are normalized at write/load time.
+// Phase 2a Red Gate: cmd_list does not yet call this predicate, so the non-test
+// lib build sees it as dead code. The unit tests in `mod tests` exercise the
+// stub and (will, at Phase 2b) the real implementation. The allow is removed at
+// Phase 2b once cmd_list adopts the predicate.
+#[allow(dead_code)]
+fn issue_matches_filters(
+    issue: &Issue,
+    status: &str,
+    priority: Option<&str>,
+    label: Option<&str>,
+) -> bool {
+    // Stub: Phase 2a Red Gate. Bind args so Phase 2a compile is warning-free
+    // under -D warnings; Phase 2b will replace this body with the real predicate.
+    let _ = (issue, status, priority, label);
+    todo!("Layer 5: extract AND-logic predicate from cmd_list's chained retain calls")
+}
+
 fn truncate_with_ellipsis(s: &str, max_chars: usize) -> String {
     let chars: Vec<char> = s.chars().collect();
     if chars.len() <= max_chars {
@@ -825,6 +851,87 @@ mod tests {
         let mut ok = issue(1, "medium");
         ok.labels = vec!["bug".to_string(), "auth".to_string()];
         assert!(issue_fields_are_valid(&ok));
+    }
+
+    // --- Layer 5: compound-filter predicate (Red Gate) ---
+
+    fn issue_with(status: &str, priority: &str, labels: &[&str]) -> Issue {
+        Issue {
+            id: 1,
+            title: "x".to_string(),
+            description: None,
+            status: status.to_string(),
+            priority: priority.to_string(),
+            labels: labels.iter().map(|s| s.to_string()).collect(),
+            created_at: "2026-01-01T00:00:00Z".to_string(),
+            updated_at: "2026-01-01T00:00:00Z".to_string(),
+        }
+    }
+
+    #[test]
+    fn filter_and_logic_all_present_returns_true() {
+        // DESIGN.md Feature 2: status, priority, label are AND-combined; an
+        // issue matching all three filters must be present in results.
+        let issue = issue_with("open", "high", &["bug"]);
+        assert!(issue_matches_filters(
+            &issue,
+            "open",
+            Some("high"),
+            Some("bug")
+        ));
+    }
+
+    #[test]
+    fn filter_and_logic_all_must_match() {
+        // AND, not OR: an issue that satisfies 2/3 filters must NOT pass the
+        // predicate. Three subcases — each filter independently is the
+        // odd-one-out — kill mutations that drop any single conjunct.
+        let issue = issue_with("open", "high", &["bug"]);
+
+        // status mismatch (priority + label match)
+        assert!(
+            !issue_matches_filters(&issue, "done", Some("high"), Some("bug")),
+            "status mismatch must reject even when priority and label match"
+        );
+        // priority mismatch (status + label match)
+        assert!(
+            !issue_matches_filters(&issue, "open", Some("low"), Some("bug")),
+            "priority mismatch must reject even when status and label match"
+        );
+        // label mismatch (status + priority match)
+        assert!(
+            !issue_matches_filters(&issue, "open", Some("high"), Some("feature")),
+            "label mismatch must reject even when status and priority match"
+        );
+    }
+
+    #[test]
+    fn filter_status_only_matches_any_priority_and_labels() {
+        // Optional filters absent → wildcard. Status-only filter accepts any
+        // priority and any (including empty) label set.
+        let high_with_bug = issue_with("open", "high", &["bug"]);
+        let low_no_labels = issue_with("open", "low", &[]);
+        assert!(issue_matches_filters(&high_with_bug, "open", None, None));
+        assert!(issue_matches_filters(&low_no_labels, "open", None, None));
+    }
+
+    #[test]
+    fn filter_status_mismatch_rejects_regardless_of_optional_filters() {
+        // Status is a required filter (cmd_list always supplies one — default
+        // "open" or the user's --status value). A mismatched status rejects
+        // even when no optional filters are present.
+        let issue = issue_with("done", "high", &["bug"]);
+        assert!(!issue_matches_filters(&issue, "open", None, None));
+    }
+
+    #[test]
+    fn filter_label_match_is_case_sensitive() {
+        // Predicate-level corollary of label_filter_case_sensitive_match: the
+        // compound predicate must inherit the case-sensitive contract from
+        // label_matches, not silently lowercase.
+        let issue = issue_with("open", "high", &["bug"]);
+        assert!(issue_matches_filters(&issue, "open", None, Some("bug")));
+        assert!(!issue_matches_filters(&issue, "open", None, Some("Bug")));
     }
 
     #[test]
