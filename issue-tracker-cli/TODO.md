@@ -241,14 +241,14 @@ Unit tests:
 **Goal:** Status, priority, and label filters AND-combine correctly; all no-match states are correct.
 
 **Acceptance Criteria:**
-- [ ] `tracker list --status open --priority high` shows only issues that are both open AND high-priority
-- [ ] `tracker list --status open --label bug` shows only open issues with label `bug`
-- [ ] `tracker list --priority high --label bug` shows only high-priority issues with label `bug`
-- [ ] `tracker list --status open --priority high --label bug` shows only issues matching all three
-- [ ] An issue that matches two of three filters but not the third does NOT appear
-- [ ] `tracker list --status done --priority low` with no matching issues prints `No issues match the given filters.`
-- [ ] `tracker list --status open --priority high --label nonexistent` with no matching issues prints `No issues match the given filters.`
-- [ ] `tracker list` (default, all open, some exist) shows only open issues, not `No issues match` message
+- [x] `tracker list --status open --priority high` shows only issues that are both open AND high-priority
+- [x] `tracker list --status open --label bug` shows only open issues with label `bug`
+- [x] `tracker list --priority high --label bug` shows only high-priority issues with label `bug`
+- [x] `tracker list --status open --priority high --label bug` shows only issues matching all three
+- [x] An issue that matches two of three filters but not the third does NOT appear
+- [x] `tracker list --status done --priority low` with no matching issues prints `No issues match the given filters.`
+- [x] `tracker list --status open --priority high --label nonexistent` with no matching issues prints `No issues match the given filters.`
+- [x] `tracker list` (default, all open, some exist) shows only open issues, not `No issues match` message
 
 **Not in this layer:** any new commands or flags
 

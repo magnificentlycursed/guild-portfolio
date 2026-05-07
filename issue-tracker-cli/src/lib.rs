@@ -422,21 +422,15 @@ pub fn label_matches(labels: &[String], filter: &str) -> bool {
 /// case-sensitive and exact-match; priority and status comparisons assume the
 /// caller has already normalized the filter values (lowercase) and that stored
 /// values are normalized at write/load time.
-// Phase 2a Red Gate: cmd_list does not yet call this predicate, so the non-test
-// lib build sees it as dead code. The unit tests in `mod tests` exercise the
-// stub and (will, at Phase 2b) the real implementation. The allow is removed at
-// Phase 2b once cmd_list adopts the predicate.
-#[allow(dead_code)]
 fn issue_matches_filters(
     issue: &Issue,
     status: &str,
     priority: Option<&str>,
     label: Option<&str>,
 ) -> bool {
-    // Stub: Phase 2a Red Gate. Bind args so Phase 2a compile is warning-free
-    // under -D warnings; Phase 2b will replace this body with the real predicate.
-    let _ = (issue, status, priority, label);
-    todo!("Layer 5: extract AND-logic predicate from cmd_list's chained retain calls")
+    issue.status == status
+        && priority.is_none_or(|p| issue.priority == p)
+        && label.is_none_or(|l| label_matches(&issue.labels, l))
 }
 
 fn truncate_with_ellipsis(s: &str, max_chars: usize) -> String {
@@ -503,13 +497,14 @@ pub fn cmd_list(
     let is_default_open_view = effective_status == "open" && !extra_filter_active;
 
     let mut issues = load_issues(issues_path)?;
-    issues.retain(|i| i.status == effective_status);
-    if let Some(p) = &effective_priority {
-        issues.retain(|i| &i.priority == p);
-    }
-    if let Some(l) = &effective_label {
-        issues.retain(|i| label_matches(&i.labels, l));
-    }
+    issues.retain(|i| {
+        issue_matches_filters(
+            i,
+            &effective_status,
+            effective_priority.as_deref(),
+            effective_label.as_deref(),
+        )
+    });
 
     if issues.is_empty() {
         // Empty-state messages route to stderr per DESIGN.md "stderr contract" /
