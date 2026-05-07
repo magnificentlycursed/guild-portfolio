@@ -253,12 +253,12 @@ Unit tests:
 **Not in this layer:** any new commands or flags
 
 **Manual Testing Checklist:**
-- [ ] Setup: create four issues — `(open, high, bug)`, `(open, medium, bug)`, `(done, high, bug)`, `(open, high, feature)` — then run each filter combination and verify only the correct issue(s) appear
-- [ ] Two-filter AND: `--status open --priority high` → issues #1 and #4 only
-- [ ] Three-filter AND: `--status open --priority high --label bug` → issue #1 only
-- [ ] No-match from filters: `--status open --priority low` → `No issues match the given filters.`
-- [ ] Default view (open exists): `tracker list` → shows open issues, not the no-match message
-- [ ] `No open issues. Nice work!` message: mark all issues done, `tracker list` → correct empty-state message (not the filter message)
+- [x] Setup: create four issues — `(open, high, bug)`, `(open, medium, bug)`, `(done, high, bug)`, `(open, high, feature)` — then run each filter combination and verify only the correct issue(s) appear
+- [x] Two-filter AND: `--status open --priority high` → issues #1 and #4 only
+- [x] Three-filter AND: `--status open --priority high --label bug` → issue #1 only
+- [x] No-match from filters: `--status open --priority low` → `No issues match the given filters.`
+- [x] Default view (open exists): `tracker list` → shows open issues, not the no-match message
+- [x] `No open issues. Nice work!` message: mark all issues done, `tracker list` → correct empty-state message (not the filter message)
 
 **Red Gate — tests to write first:**
 
