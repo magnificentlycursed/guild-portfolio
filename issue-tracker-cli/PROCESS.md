@@ -339,3 +339,59 @@ The obvious thing I got wrong was using a lower capability model (Sonnet 4.6) fo
 *[First-person reflection on Layer 4. Possible threads: the cold-batch finally working as designed (Round 1 produced substantial real findings; Round 2 verified the fixes — the prediction in the suite README that "parallel independent sessions are the gold standard" was empirically borne out); the Round-1 → Round-2 cadence as the first full-cycle execution of CLOSURE-PROTOCOL.md Section 5; the way writing this retrospective itself drove a suite-level change (the meta-leak incident from Layer 1 became Suite Review 36 because the Layer 4 closure work surfaced it); the experience of orchestrating 11 parallel subagents and then 10 Round-2 entries vs. the same-session batches of prior layers.]*
 
 Opus 4.7 yielded a much more set it and forget it vibe for Layer 4. It worked great and revealed a lot of findings. I won't know for a few more layers if that was a model deficiency or a cold-batch one. I liked playing with the CLOSURE-PROTOCOL and it has some good ideas but I don't think this will be it's final form. It will however be used as context for a future development sprint of my VSDD suite
+
+---
+
+## Layer 5: Compound filtering
+
+### Phases
+
+**Decomposition**
+
+DESIGN.md Feature 2 already specified the AND-combination of `--status`, `--priority`, and `--label` filters (line 63) and the no-match filter-message branch (line 71). TODO.md Layer 5 was filled with 8 acceptance criteria, 6 manual testing checklist items, and a Red Gate plan of 4 integration tests + 2 unit tests. What was *not* fully foreseen at decomposition time: the AND-combination behavior was already emergent from the chained `retain()` calls in `cmd_list` (Layer 3 added the priority retain, Layer 4 added the label retain). Layer 5 had no new externally observable behavior to ship — the work was instead to extract a named pure predicate so the AND-logic could be unit-tested in isolation, and to add explicit AC-coverage tests (which would necessarily be Cat B Red Gate deviations because they passed against the existing implementation).
+
+**Red Gate (commit `7d1ca57`)**
+
+7 integration tests in `tests/layer5.rs` and 5 unit tests in `src/lib.rs`'s `mod tests`, with `issue_matches_filters` introduced as a `todo!()` stub. Confirmed Red: 5 unit-test panics from `todo!()` (Cat A — the genuine Red Gate for Layer 5), 7 integration-test passes (Cat B Red Gate deviations explicitly disclosed in the test-file header comment and in the commit message). The Phase-2a-only `#[allow(dead_code)]` annotation on the stub was the strongest single artifact that the Red Gate was real and not performative — `cmd_list` did not yet call the predicate, so the lib build needed the allow to satisfy `-D warnings`; Phase 2b removed it.
+
+**Implementation (commit `bd15a9d`)**
+
+Replaced the `todo!()` body with `issue.status == status && priority.is_none_or(|p| issue.priority == p) && label.is_none_or(|l| label_matches(&i.labels, l))`, refactored `cmd_list`'s three chained `retain()` calls into one `retain()` over the predicate, removed the `#[allow(dead_code)]`. 1 minute 28 seconds after the Red Gate commit. Net change: −5 lines in `src/lib.rs`. All five Layer-5 unit tests flipped from panic to pass; all seven integration tests remained green; no prior-layer regressions.
+
+**Manual testing (commit `da0fd8d`)**
+
+Director executed all six Layer 5 manual checklist items and signed off. The setup wording was tighter than Layers 2-4 (it elided the explicit `tracker status 3 done` step required to produce the `(done, high, bug)` issue) — a drift from the prior layers' explicitness norm that the Round-1 IAR caught.
+
+**Round 1 IAR — cold-session parallel batch**
+
+Five domain reviews dispatched in a single message via 5 fresh subagents (orchestrator coordinated dispatch but did not author any review). Domain set: SO 18, SA 11, QE 13, SE 13, VDD-IAR 13. Active-domain set was narrower than Layer 4's 11 because Layer 5 introduced no new attack surface (no new I/O, no new free-form text field, no new clap arg) — Security, Red Team, UX, Platform Engineer, Data Engineer, Technical Writer were not part of Layer 5's IAR plan per `TODO.md:275`.
+
+Findings:
+
+- **SO Review 18** — 3 Low Open. F1: anticipatory `--description-contains` comment in `cmd_list` named a feature DESIGN.md "Out of Scope" excludes (text search). F2: `list_priority_and_label_filter_and_combination` test docstring claimed an in-progress setup issue that does not exist in the test setup. F3: manual checklist setup wording elided the `tracker status 3 done` step required to produce the `(done, high, bug)` issue (drift from Layers 2-4 explicitness).
+- **SA Review 11** — 1 Open Medium (carry-forward, deferred), 2 Resolved, 2 Dismissed, 1 Hallucinated. F1 Open: rendering half of `cmd_list` extraction (column-width literals × 4 sites, no `format_*_row` helpers) — explicitly framed as "filter half closed by Layer 5; rendering half remains, deferred to focused pre-Layer-7 PR per SA R10 disposition." Resolved: filter-half of SA R9 F1; `extra_filter_active` disjunction property survives Layer 5.
+- **QE Review 13** — 1 Low Open, 1 carried-forward Resolved. F1: defense-in-depth — the inter-conjunct `&&`→`||` mutation between the priority and label optionals survives all 5 Round-1 unit tests (each single-mismatch subcase short-circuits true on the matching conjunct under `||`); caught at integration but not at unit. Carried-forward: QE R11 F5 (compound-filter test deferred to Layer 5) closes via `list_three_filter_and_combination`.
+- **SE Review 13** — 1 Low Open, 3 Dismissed. F1: `issue_matches_filters` rustdoc qualified the priority/status caller-normalization contract but left the label side ambiguous; a future second predicate caller could miss the trim-symmetry obligation and reintroduce the UX R6 F1 / DE R7 F2 / SO R16 F2 / SE R12 F4 bug class.
+- **VDD-IAR Review 13** — 0 Open. All 8 process dimensions Clean. Phase 2a/2b boundary verified real (not performative) via the `#[allow(dead_code)]` add/remove pattern. Cat B Red Gate disposition audited honest. Merge-gate verdict: GO on Phase-2 process compliance.
+
+**Round 2 IAR — warm-resolution + warm-verification (commits `7f9bae4`, `3139a2d`)**
+
+Commit `7f9bae4` bundled all five inline closures: SO F1 (comment edit), SO F2 (test docstring trim), SO F3 (TODO.md setup wording), QE F1 (`filter_and_logic_is_not_or_between_optional_conjuncts` defense unit test), SE F1 (rustdoc trim-normalization caller obligation). Test count 135 → 136. Commit `3139a2d` appended Round-2 closure entries: SO 19, SA 12, QE 14, SE 14, VDD-IAR 14. The single Open finding (SA R11 F1) holds named-future-layer disposition (focused pre-Layer-7 PR).
+
+**Gate closure**
+
+VDD-IAR Review 14 verdict: **GO.** All five `README.md` § Merging gate criteria satisfied: domain pass complete, MVR reached, every finding terminal (5 Resolved, 1 Deferred-with-named-layer), VDD-IAR ran as the final gate step, round numbers logged. Layer 5 cleared to merge.
+
+---
+
+### What was hardest
+
+*[First-person reflection on Layer 5. Possible threads: Layer 5 had no new externally observable behavior — the AND-combination was already emergent from prior layers' chained retains, so the entire Red Gate was a refactor-to-testability move plus AC-coverage tests that necessarily passed Cat B; the question of whether a layer that ships only an internal abstraction is "really" a layer in the VSDD sense; the Round 1 finding count (5 substantive Low + 1 carry-forward) being substantially smaller than Layer 4's 23 — was that because Layer 5 was genuinely smaller, because the active-domain set was narrower, or because the Round-1 cold-batch primer had matured by Layer 5; the experience of writing the Phase-2a-only `#[allow(dead_code)]` annotation as a deliberate Red-Gate-integrity artifact, knowing it would later be the proof that Phase 2a was real.]*
+
+### What I got wrong
+
+*[First-person reflection on Layer 5. Possible threads: the manual testing checklist wording (TODO.md:256) drifted from the explicitness norm of Layers 2-4 — caught by SO Review 18 F3 only because the cold-session reviewer compared it to prior layers; the anticipatory `--description-contains` comment in `cmd_list` (predates Layer 5 but Layer 5's commit message ratified the same direction) — anticipatory creep at the comment level is a recurring class of finding the cold-batch is good at catching; the rustdoc on `issue_matches_filters` did not document the label-side caller obligation explicitly, exactly the doc gap class that has bitten the project before (the trim-symmetry contract was broken once already at Layer 4).]*
+
+### What the process felt like
+
+*[First-person reflection on Layer 5. Possible threads: the second consecutive cold-batch run (Layer 4 was the first), and whether the cadence felt rehearsed or still novel; the size asymmetry between Layer 4's 11-domain run and Layer 5's 5-domain run — did the smaller domain set feel proportional to Layer 5's smaller surface, or did it feel under-reviewed; the Round-2 closure pass landing in two commits (one for inline fixes, one for review log entries) versus Layer 4's similar split — does this two-commit shape feel right for the closure cadence; the way the entire Layer 5 work — design, Red Gate, implementation, manual testing, IAR Round 1, IAR Round 2, gate closure — landed within a single working session, versus Layer 4's multi-day arc.]*
