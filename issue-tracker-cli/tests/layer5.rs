@@ -119,10 +119,10 @@ fn list_status_and_label_filter_and_combination() {
 #[test]
 fn list_priority_and_label_filter_and_combination() {
     // Cat B Red Gate deviation. AC: `tracker list --priority high --label bug`
-    // shows only high-priority issues with label `bug`. Note this exercises
-    // the non-default-status path: with no --status flag, effective_status is
-    // "open" and only open issues participate; one of the setup issues is in-
-    // progress to confirm it is filtered out by the implicit status default.
+    // shows only high-priority issues with label `bug`. With no --status flag,
+    // effective_status defaults to "open" — all three setup issues are open,
+    // so the AND-combination of the priority and label filters is what
+    // excludes the two single-mismatch issues from the result.
     let dir = TempDir::new().unwrap();
     tracker(&dir)
         .args([

@@ -421,7 +421,11 @@ pub fn label_matches(labels: &[String], filter: &str) -> bool {
 /// Per DESIGN.md Feature 2 / Edge Cases / Labels, label comparison is
 /// case-sensitive and exact-match; priority and status comparisons assume the
 /// caller has already normalized the filter values (lowercase) and that stored
-/// values are normalized at write/load time.
+/// values are normalized at write/load time. The caller is also responsible
+/// for applying any other normalization the spec requires before calling —
+/// notably trimming the label filter (DESIGN.md Edge Cases / Labels mandates
+/// trim-on-store / trim-on-filter symmetry; `cmd_list` runs `parse_label` on
+/// the filter value to satisfy this).
 fn issue_matches_filters(
     issue: &Issue,
     status: &str,
@@ -486,13 +490,15 @@ pub fn cmd_list(
         Some(l) => Some(parse_label(l)?),
         None => None,
     };
-    // Disjunction over non-default filters: any future filter (e.g. Layer 6's
-    // `--description-contains`) must extend `extra_filter_active` here — a single
-    // location — rather than appending another `&& *_filter.is_none()` conjunct
-    // to the empty-state predicate. Reduces the SO Review 11 regression hazard:
-    // the structural fragility of the positive-enumeration form is what made the
-    // earlier empty-state heuristic break when `--priority` was added in Layer 3
-    // and again when `--label` was added in Layer 4. SA Review 9 Finding 2.
+    // Disjunction over non-default filters: any new filter the spec is amended
+    // to add must extend `extra_filter_active` here — a single location —
+    // rather than appending another `&& *_filter.is_none()` conjunct to the
+    // empty-state predicate. Reduces the SO Review 11 regression hazard: the
+    // structural fragility of the positive-enumeration form is what made the
+    // earlier empty-state heuristic break when `--priority` was added in
+    // Layer 3 and again when `--label` was added in Layer 4. SA Review 9
+    // Finding 2. (DESIGN.md "Out of Scope" excludes text search; the
+    // disjunction is shaped for spec-amended filters, not anticipated ones.)
     let extra_filter_active = effective_priority.is_some() || effective_label.is_some();
     let is_default_open_view = effective_status == "open" && !extra_filter_active;
 
@@ -927,6 +933,23 @@ mod tests {
         let issue = issue_with("open", "high", &["bug"]);
         assert!(issue_matches_filters(&issue, "open", None, Some("bug")));
         assert!(!issue_matches_filters(&issue, "open", None, Some("Bug")));
+    }
+
+    #[test]
+    fn filter_and_logic_is_not_or_between_optional_conjuncts() {
+        // Defense-in-depth (QE Review 13 F1) against `&&` → `||` between the
+        // priority and label conjuncts: an issue that mismatches BOTH optional
+        // filters (matching status only) must still reject. The three
+        // single-mismatch subcases of filter_and_logic_all_must_match each
+        // mismatch exactly one filter, so a between-optional `||` mutation
+        // would survive them — this case mismatches both optionals at once.
+        let issue = issue_with("open", "medium", &["bug"]);
+        assert!(!issue_matches_filters(
+            &issue,
+            "open",
+            Some("high"),
+            Some("feature")
+        ));
     }
 
     #[test]

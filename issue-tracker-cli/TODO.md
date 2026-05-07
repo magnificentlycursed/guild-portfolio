@@ -253,7 +253,7 @@ Unit tests:
 **Not in this layer:** any new commands or flags
 
 **Manual Testing Checklist:**
-- [x] Setup: create four issues — `(open, high, bug)`, `(open, medium, bug)`, `(done, high, bug)`, `(open, high, feature)` — then run each filter combination and verify only the correct issue(s) appear
+- [x] Setup: run `tracker create "..." --priority high --label bug`, `tracker create "..." --priority medium --label bug`, `tracker create "..." --priority high --label bug` then `tracker status 3 done`, `tracker create "..." --priority high --label feature` — produces issues `(open, high, bug)`, `(open, medium, bug)`, `(done, high, bug)`, `(open, high, feature)`. Then run each filter combination and verify only the correct issue(s) appear.
 - [x] Two-filter AND: `--status open --priority high` → issues #1 and #4 only
 - [x] Three-filter AND: `--status open --priority high --label bug` → issue #1 only
 - [x] No-match from filters: `--status open --priority low` → `No issues match the given filters.`
