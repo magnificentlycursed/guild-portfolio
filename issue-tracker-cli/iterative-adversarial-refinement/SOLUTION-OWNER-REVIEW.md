@@ -1500,3 +1500,197 @@ No source files modified by this review (SE applies code per the spec amendments
 ### Summary
 
 7 Round-2 resolutions logged: SO R16 F1/F2/F3/F4 (3 directly resolved + F3 closed by manual-testing commit), Security R7 F1, RT R6 F1/F2/F3 (F1+F2 resolved; F3 Accepted Risk), DE R7 F1/F2, SE R11 F3, UX R6 F1/F4, TW R7 F2/F4/F7. 5 findings deferred with named target layers (SA R9 F1 / SE R11 F2 / UX R6 F2/F3 / TW R7 F6 → Layer 7). 1 finding remains Open requiring developer-only action (TW R7 F5).
+
+---
+
+## Review 18 — 2026-05-07 00:23Z
+
+**Round:** SO Review 18 (Layer 5 — Compound Filtering)
+**Scope:** Layer 5 (status × priority × label AND-combination + filter-empty-state messaging) primary. Three commits to evaluate: `7d1ca57` (Phase 2a Red Gate — `issue_matches_filters` `todo!()` stub + 5 unit tests + 7 integration tests), `bd15a9d` (Phase 2b — predicate body + `cmd_list` retain refactor), `da0fd8d` (manual testing checklist closure). Secondary: spot-check that no Layer 6/7 surface leaked in.
+**Reference:** `DESIGN.md` Feature 2 (lines 51-82, 316-322), `TODO.md` Layer 5 (lines 239-275), assignment brief Layer 5 ("Compound filter").
+**Session note:** Cold session, fresh subagent. Parallel-batch IAR run on branch `issue-tracker-cli-compound-filtering` with SA Review 11, QE Review 13, SE Review 13, VDD-IAR Review 13. SO did not participate in Layer 5 scoping or implementation.
+
+---
+
+### Compliance table — Layer 5 acceptance criteria
+
+| AC (TODO.md lines 244-251) | Status | Evidence |
+|---|---|---|
+| `--status open --priority high` shows only open AND high-priority | Met | `tests/layer5.rs:28-73` `list_status_and_priority_filter_and_combination`; predicate `src/lib.rs:425-434`. |
+| `--status open --label bug` shows only open with label `bug` | Met | `tests/layer5.rs:75-117` `list_status_and_label_filter_and_combination`. |
+| `--priority high --label bug` shows only high + bug | Met | `tests/layer5.rs:119-181` `list_priority_and_label_filter_and_combination`. |
+| `--status open --priority high --label bug` shows only triple-match | Met | `tests/layer5.rs:185-279` `list_three_filter_and_combination`. |
+| 2/3-match issue does NOT appear | Met | Same test — three negative assertions, one per single-filter mismatch. |
+| `--status done --priority low` no-match → `No issues match the given filters.` | Met | `tests/layer5.rs:283-310` `list_compound_two_filter_no_match_shows_filter_message`; asserts stdout empty + stderr message + absence of `Nice work!`. |
+| `--status open --priority high --label nonexistent` no-match → filter message | Met | `tests/layer5.rs:312-350` `list_compound_three_filter_no_match_shows_filter_message`. |
+| `tracker list` (default, opens exist) → no `No issues match` message | Met | `tests/layer5.rs:352-384` `list_default_view_with_open_issues_does_not_show_filter_message`; asserts `Nice work!` and `No issues match` both absent. |
+| Predicate `issue_matches_filters` AND-combines status/priority/label | Met | `src/lib.rs:431-433` — `issue.status == status && priority.is_none_or(|p| issue.priority == p) && label.is_none_or(|l| label_matches(...))`; 5 unit tests `src/lib.rs:867-930`. |
+| Manual testing checklist (TODO.md lines 255-261) | Verified | All six items flipped to `[x]` in commit `da0fd8d`; expected outputs match the implementation under spot-trace (see Finding 2). |
+| `Cargo.toml` unchanged (no new deps) | Met | `git diff 921525d..HEAD -- issue-tracker-cli/Cargo.toml issue-tracker-cli/Cargo.lock` returns empty. |
+| Test count regression check | Met | `cargo test --no-fail-fast --locked` → 32+18+9+25+7 integration + 44 unit = 135 passing, 0 failing. |
+| No Layer 6+ surface (no `show`, no `delete`, no `--description`) | Met | `src/main.rs:11-43` enum still `Create | List | Status`. |
+
+All eight Layer 5 ACs are Met. Manual checklist closed. No new dependencies. No Layer 6/7 leakage. Test count is 135/135.
+
+---
+
+### Findings
+
+#### Finding 1: `cmd_list` comment cites `--description-contains` as a future Layer 6 filter, contradicting DESIGN.md "Out of Scope" exclusion of text search
+
+- **Dimension:** Dim 1 (Spec coverage), Dim 2 (Scope creep — anticipatory), Dim 7 (Design fidelity)
+- **Severity:** Low
+- **Evidence:**
+  - `src/lib.rs:489-490`: "Disjunction over non-default filters: any future filter (e.g. Layer 6's `--description-contains`) must extend `extra_filter_active` here…"
+  - DESIGN.md "Out of Scope" line 397: "**Search by text** — no full-text search across titles or descriptions; filtering is by exact-match status, priority, and label only".
+  - DESIGN.md TODO.md Layer 6 (lines 279-345): no `--description-contains` flag is named in any AC; Layer 6 adds `tracker show`, `tracker delete`, and `--description` on `create` only — no description filter.
+  - The bd15a9d commit message reinforces the same aspirational direction: "future filters (Layer 6's optional --description-* flag and beyond) extend one place rather than appending another retain".
+  - The comment was added in an earlier layer (preexisting at the start of the Layer 5 diff), so this is not Layer 5's new creep — but Layer 5's commit message ratifies the same anticipated extension.
+- **Rationale:** A code comment that names a feature DESIGN.md excludes is anticipatory scope creep at the documentation level. Future-proofing for a feature the spec forbids ("filtering is by exact-match status, priority, and label only") signals to the next reader that the author considers the exclusion soft. This is the same defect class SO has caught before (e.g., the `tracker delete <id>` confirmation rationalization, SO R16 F4): a self-declared eventuality not anchored in the spec. The code is correct; the comment misrepresents what the design space allows.
+- **Classification:** Open — Raised to SO (this round) for code-comment cleanup. Carry-forward candidate, not a Layer 5 blocker.
+- **Proposed action:** Edit `src/lib.rs:489-490` to remove the `--description-contains` example, or replace it with a Layer-correct example (e.g., a hypothetical future `--created-after` filter framed as "if the spec is ever amended to add a new filter"). Edit the bd15a9d commit narrative if a follow-up amendment lands; otherwise note the carry-forward in CHANGELOG. No DESIGN.md change required — DESIGN.md is correct; the code comment is the deviation.
+- **Spec-creep evaluation:** Anticipatory creep at the comment level, which is the lowest-cost form to clear. The implementation itself is in scope.
+
+---
+
+#### Finding 2: Integration test docstring claims an in-progress setup issue exists, but the setup creates only open issues
+
+- **Dimension:** Dim 4 (Test obligations — test/comment fidelity)
+- **Severity:** Low
+- **Evidence:**
+  - `tests/layer5.rs:124-125`: "Note this exercises the non-default-status path: with no --status flag, effective_status is 'open' and only open issues participate; one of the setup issues is in-progress to confirm it is filtered out by the implicit status default."
+  - `tests/layer5.rs:127-159`: setup creates three issues (`Match all`, `Wrong priority`, `Wrong label`) via `tracker create` only — no `tracker status` invocation. All three start at default status `open`. None are in-progress.
+  - The test still passes because the AND-logic correctly excludes `Wrong priority` (low) and `Wrong label` (feature) from the `--priority high --label bug` filter result. The defect is in the docstring, not the assertion.
+- **Rationale:** A future maintainer reading the comment will look for an in-progress setup step that does not exist, then either add one (changing test semantics) or be confused. This is a small but real test-doc fidelity defect that was missed during code review of the Red Gate commit. It does not affect AC coverage — the test still establishes the AND-combination — but the stated intent ("confirm an in-progress issue is filtered out by the implicit status default") is not actually tested anywhere in `tests/layer5.rs`.
+- **Classification:** Open — coordination item for QE Review 13 (test-side ownership). SO surfaces it as a Dim 4 fidelity gap; QE may resolve directly without DESIGN.md or `TODO.md` changes.
+- **Proposed action:** Either (a) add a fourth setup issue and a `tracker status N in-progress` call so the comment matches the setup, or (b) trim the comment to drop the "one of the setup issues is in-progress" clause. Option (b) is the cheaper resolution; option (a) modestly strengthens the test by exercising the implicit-status-default path explicitly.
+
+---
+
+#### Finding 3: Manual testing checklist setup wording does not specify the `tracker status` step required to produce the `(done, high, bug)` issue
+
+- **Dimension:** Dim 1 (Spec coverage — checklist precision), Dim 9 (Assignment compliance — manual testing methodology)
+- **Severity:** Low
+- **Evidence:**
+  - `TODO.md:256`: "Setup: create four issues — `(open, high, bug)`, `(open, medium, bug)`, `(done, high, bug)`, `(open, high, feature)` — then run each filter combination and verify only the correct issue(s) appear".
+  - `tracker create` always produces `status: "open"` per DESIGN.md Feature 1 postcondition (line 26). To produce `(done, high, bug)` the user must also run `tracker status 3 done` after creating the third issue. The checklist instruction does not name this step.
+  - The commit `da0fd8d` ticks the box without elaboration. A literal reading of the wording — "create four issues" — matches a four-`tracker create` workflow, which would produce four open issues, not the `(done, ...)` mix the subsequent items assume.
+  - Compare prior layers' manual checklists (TODO.md Layer 2 / Layer 3 / Layer 4): each is explicit about each command needed. This Layer 5 entry is more terse and assumes the reader infers the status-change step.
+- **Rationale:** A manual testing checklist is the contract between developer and reviewer for the human-verification gate (DESIGN.md Testing Methodology line 373: "Each layer must be manually tested before the layer gate closes"). When the wording elides a required step, the gate becomes ambiguous: did the developer execute the implied step, or just the literal one? The actual filter-output expectations downstream of the setup (e.g., `--status open --priority high → issues #1 and #4 only` at TODO line 257) are only correct if issue #3 is `done`, so the elision is benign in practice — but the checklist as written is under-specified for a future reviewer reproducing the steps from scratch.
+- **Classification:** Open — Raised to SO for adjudication. The defect is in the checklist text, not in the implementation or the commit's ticking decision (which is consistent with the developer having executed the obvious additional `tracker status 3 done` step).
+- **Proposed action:** Amend `TODO.md:256` to spell out the setup explicitly. Suggested wording: "Setup: `tracker create "..." --priority high --label bug` (×1), `tracker create "..." --priority medium --label bug` (×1), `tracker create "..." --priority high --label bug` then `tracker status 3 done` (×1), `tracker create "..." --priority high --label feature` (×1)". Lowest-cost resolution; preserves the developer's existing tick and just records the reproducible command sequence.
+- **Spec-creep evaluation:** Documentation precision, not creep. Faithful elaboration of the existing checklist intent.
+
+---
+
+### Spec-creep audit (Dim 2 — additions not in DESIGN.md)
+
+Walked the Layer 5 diff (`921525d..HEAD`) for additions not described in DESIGN.md or TODO.md Layer 5:
+
+- **`issue_matches_filters` predicate** (`src/lib.rs:425-434`): directly required by DESIGN.md Feature 2 lines 63 + 321 (AND-combination) and the Layer 5 Red Gate plan (TODO.md lines 271-273). Not creep.
+- **`cmd_list` retain refactor** (single retain over the predicate, replacing three chained retains): structural refactor with unchanged behavior; the bd15a9d commit message documents the equivalence and the regression check confirms 135/135 passing. Per SO Review 16/17 the prior chained-retain form was already in place; consolidating is not new feature surface. Not creep.
+- **5 new unit tests** (`src/lib.rs:867-930`): all five exercise `issue_matches_filters` directly. Each maps to the Red Gate plan's two named unit tests (`filter_and_logic_all_must_match`, `filter_and_logic_all_present_returns_true`) plus three additional sub-cases that surface predicate-level corollaries (status-only matches anything, status mismatch rejects regardless of optional filters, label-match is case-sensitive). The three extras lean toward over-test by the strict TODO.md Red Gate plan, but each kills a distinct mutation (drop status conjunct, drop label conjunct case-sensitivity) and the marginal cost is trivial (~60 LOC across all five). Within tolerance for Dim 4; not creep.
+- **7 new integration tests** (`tests/layer5.rs`): 4 are named in the Red Gate plan (`list_two_filter_and_combination`, `list_three_filter_and_combination`, `list_no_match_shows_filter_message`, `list_default_does_not_show_filter_message`); 3 are sub-decompositions that split the AC pairs and the no-match cases. The Red Gate plan calls for 4; the actual count is 7. The extra three each exercise a distinct AC-pair (status×priority, status×label, priority×label, three-way) so the over-coverage is shaped to the AC count (8 ACs, 7 tests + 1 manual setup), not gold-plating. Cat B Red Gate disposition (see audit below) is honest. Slight over-test; well within tolerance.
+- **No new dependencies** in `Cargo.toml` or `Cargo.lock`. Confirmed unchanged by `git diff`.
+- **No Layer 6/7 surface leak.** `src/main.rs` enum is still `Create | List | Status`. No `show`, no `delete`, no `--description`, no `--help` polish, no color output.
+
+No spec creep detected at the implementation level. The single anticipatory comment in `cmd_list` referencing `--description-contains` is logged separately as Finding 1.
+
+---
+
+### Cat B Red Gate disposition audit
+
+The 7 integration tests in `tests/layer5.rs` are classified as "Cat B Red Gate deviations" because the AND-combination already worked at Phase 2a (the chained retains in `cmd_list` from Layers 3+4 produced the AND emergent behavior). The 5 unit tests on `issue_matches_filters` panic at Phase 2a (the `todo!()` stub) and pass at Phase 2b (the real predicate body), so they are the genuine Cat A Red Gate for Layer 5.
+
+Auditing for honesty:
+
+- **Is the Cat B claim factually correct?** Yes. The Phase 2a commit `7d1ca57` did not modify `cmd_list`; the integration tests at Phase 2a invoked the binary which still went through chained retains. The integration tests passed at Phase 2a — confirmed by the commit message's explicit statement and reproducible via `git checkout 7d1ca57 && cargo test --test layer5`.
+- **Is this consistent with prior layers' dispositions?** Yes. Layer 3's `create_without_priority_defaults_to_medium` and Layer 4's two Cat B deviations (commit `14bd219`) follow the same pattern: a layer's AC is genuinely emergent from a prior layer's implementation, the integration test is regression coverage rather than Red Gate gating, and the layer-specific genuine Red Gate is a unit-test-level abstraction that didn't exist before. Same shape here.
+- **Does it paper over a Phase 2a violation?** No. A Phase 2a violation would be: a behavior named in Layer 5's ACs that exists at Phase 2a but does not have a unit test failing against the Phase 2a state. Here, every AC pair has a Phase-2a-failing unit test against `issue_matches_filters`, which is the abstraction Layer 5 introduces. The integration tests are *additional* regression coverage, not the only assertion of the AC.
+- **Could the Cat A unit tests have been written without introducing the predicate?** Only by testing through `cmd_list` (an integration shape) or by inlining the AND-logic as a free function the tests could call. Either alternative would either degrade testability or duplicate the chained-retain logic in a function-body extracted-from-`cmd_list` form — which is exactly what Phase 2b does. So the predicate extraction is the natural Cat A scaffold, and committing it as a `todo!()` stub at Phase 2a is the correct Red Gate shape.
+
+The Cat B disposition is honest. No Phase 2a violation.
+
+---
+
+### Hallucinated
+
+*(none this round)*
+
+### Backlogged
+
+*(none this round)*
+
+### Dismissed
+
+*(none this round — F1 / F2 / F3 are real low-severity findings, not hallucinations)*
+
+### Open
+
+- **F1** (anticipatory `--description-contains` comment) — code-comment cleanup; coordination with SE.
+- **F2** (test-comment claims in-progress setup that doesn't exist) — coordination with QE.
+- **F3** (manual testing checklist setup elides `tracker status` step) — SO doc-only fix to `TODO.md`.
+
+### Carry-forward (from prior rounds)
+
+- **F8 (Review 15)** — `Cargo.toml` `repository` field — Resolved post-R17 (the file now has `repository = "https://github.com/magnificentlycursed/guild-portfolio"` per R17 closure entry). Status: **Resolved**, retroactively. No action this round.
+
+---
+
+### Summary
+
+3 Open findings, all Low severity. 0 Hallucinated. 0 Dismissed. 0 Backlogged. 0 Approved deviations.
+
+The Layer 5 implementation matches all 8 acceptance criteria with passing tests; the Cat B Red Gate disposition is honest and consistent with prior-layer practice; no new dependencies; no Layer 6/7 surface leakage; manual testing checklist closed. The compliance table is clean at the implementation level.
+
+The three findings are documentation-class:
+- F1 is an anticipatory code comment that names an out-of-scope feature.
+- F2 is a test docstring that describes a setup step that doesn't exist.
+- F3 is a manual testing checklist that elides a required `tracker status` step.
+
+None block Layer 5 closure. All are within reach of a single-PR cleanup. F1 + F2 are SE/QE coordination items; F3 is SO-authority (TODO.md).
+
+**Sycophancy check (self-applied):** A clean Layer 5 review is the failure mode the cold-session prompt warns about. I tested whether the three findings are real by trying to dismiss each:
+
+- **F1 dismissal attempt:** "The comment is harmless aspirational future-proofing." Counter: the spec explicitly excludes the feature ("filtering is by exact-match status, priority, and label only"). A comment that names an excluded feature as a Layer 6 expectation contradicts the spec's binding text. The bd15a9d commit message ratifies the same direction, doubling the signal. Real finding.
+- **F2 dismissal attempt:** "Test docstrings are low-stakes; the test still asserts the right behavior." Counter: the test is correct; the docstring is wrong. A future maintainer reading the docstring will look for the in-progress setup step that doesn't exist and either change the test (regressing coverage) or be confused. The cost to fix is one line; the cost to leave is one future code-review distraction. Real finding, low severity.
+- **F3 dismissal attempt:** "Manual testing was executed correctly; the developer obviously knew the `tracker status` step was implied." Counter: the manual checklist is the contract between developer and external reviewer for the gate-close. The developer's tacit knowledge does not document the gate. Compare prior layers' checklists, which spell out each step explicitly — the Layer 5 wording is genuinely terser. Real finding, low severity.
+
+Each finding survived the dismissal test. The clean compliance table is genuine; the three findings are the residue.
+
+**Coordination:**
+- **Software Engineer (SE Review 13):** F1 is the code-side change (one comment edit at `src/lib.rs:489-490`). SE may resolve directly; no DESIGN.md change required.
+- **Quality Engineer (QE Review 13):** F2 is the test-side change. QE may resolve directly via either (a) trim the comment or (b) add the missing setup step. SO has no preference; QE owns the call.
+- **Solution Architect (SA Review 11):** SA may have an architectural opinion on whether the predicate extraction is a valuable layer 7 prep step (it co-locates the AND-logic for the Layer 7 color refactor). Not a finding for this round; flagged for SA awareness.
+- **VDD-IAR Alignment (VDD-IAR Review 13):** F3 is a manual-testing-process datum — the checklist precision norm is in VDD-IAR's wheelhouse. Recommend VDD-IAR's pass note whether the Layer 5 checklist precision (terser than Layers 2-4) is an isolated deviation or a drift the project should correct.
+- **Director (SO authority):** F3 requires a `TODO.md` edit. SO is the only domain that may edit `TODO.md` directly per CLOSURE-PROTOCOL.md authority. Recommended action: in the Round-2 closure pass, edit the Layer 5 manual checklist setup line to enumerate the four-step command sequence including the `tracker status 3 done` step.
+
+The Layer 5 implementation is in spec compliance and ready to merge after the documentation cleanup above. No DESIGN.md amendments required this round.
+
+---
+
+## Review 19 — 2026-05-07 00:39Z
+
+**Round:** SO Review 19 (Round-2 closure for Layer 5 — Compound Filtering)
+**Scope:** Verify Round-1 inline findings (F1, F2, F3) are resolved by commit `7f9bae4`. No new substantive review pass; this is a warm closure-verification per CLOSURE-PROTOCOL Section 5 step 3.
+**Session context:** Director-orchestrated warm-resolution session; not adversarial-cold by design.
+
+### Round-1 finding closures
+
+- **F1 (anticipatory `--description-contains` comment):** **Resolved.** `src/lib.rs:489-497` now reads "any new filter the spec is amended to add" with an explicit DESIGN.md "Out of Scope" citation. The prior anticipated-Layer-6-feature framing is gone; no out-of-scope feature is named. Verified by reading the post-`7f9bae4` diff.
+- **F2 (test-comment claims in-progress setup that does not exist):** **Resolved.** `tests/layer5.rs:121-125` docstring trimmed to drop the false in-progress claim; replaced with an accurate description of the AND-combination across the priority and label filters under the implicit `--status open` default. Test assertions unchanged; 7/7 Layer-5 integration tests still pass.
+- **F3 (manual checklist setup elides `tracker status` step):** **Resolved.** `TODO.md:256` rewritten to enumerate each `tracker create` invocation and the `tracker status 3 done` step required to produce the `(done, high, bug)` issue. Matches the explicitness of Layers 2-4 manual checklists.
+
+### Hallucinated / Backlogged / Dismissed
+
+*(none this round)*
+
+### Open
+
+*(none from SO domain. SA R11 F1 — rendering half of `cmd_list` extraction — remains the only Layer 5 Open finding across the suite, deferred to a focused pre-Layer-7 PR per SA R10 / SA R11 disposition. SO has no objection to that deferral.)*
+
+### Summary
+
+3/3 Round-1 SO findings Resolved by commit `7f9bae4`. 0 new findings this round. Layer 5 SO compliance is closed. Layer 5 ready to merge from the SO lens once VDD-IAR R14 confirms the suite-level merge gate.
+
+**Coordination:** *(none — closure pass)*

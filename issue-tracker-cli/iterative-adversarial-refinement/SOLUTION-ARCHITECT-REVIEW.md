@@ -804,3 +804,159 @@ Round-1 F2 verified Resolved (and the resolution survived contact with new filte
 
 ---
 
+---
+
+## Review 11 — 2026-05-07 00:23Z
+
+**Round:** SA Review 11 (Layer 5 — Compound Filtering).
+**Scope:** Cold-session adversarial SA review of the Layer 5 implementation (commits `7d1ca57` Phase 2a Red Gate, `bd15a9d` Phase 2b implementation, `da0fd8d` manual-testing checklist closure). Code under review: `src/lib.rs` (948 lines incl. tests), `src/main.rs`, `tests/layer5.rs`. Primary lens: dim 1 (separation of concerns), dim 2 (cohesion), dim 3 (coupling), dim 4 (interface contracts), dim 5 (complexity budget), dim 6 (decision documentation), and the SA Review 9 carry-forward findings (F1 cmd_list extraction, F2 extra_filter_active disjunction).
+**Session note:** Cold session per the IAR primer. Adversarial framing intact. Parallel batch with SO 18 / QE 13 / SE 13 / VDD-IAR 13. Sycophancy guard: every prior Open / Resolved finding from SA 8/9/10 was specifically re-validated against the Layer 5 source — particularly the SA R10 "Resolved" verdict on F2 (extra_filter_active disjunction).
+
+---
+
+### Open
+
+**Finding 1 — Layer 5's predicate extraction closed the *filter* half of SA Review 9 Finding 1; the *rendering* half (column-width constants + `format_header_row` / `format_issue_row` extraction) remains untouched. The Layer 7 collision argument is unchanged (Dim 1 — Separation of concerns / Dim 12 — Purity boundary / Carry-forward of SA R8 F1 → SA R9 F1)**
+
+`src/lib.rs:425-434` — `issue_matches_filters` is now a named pure predicate with five unit tests (`filter_and_logic_all_present_returns_true`, `filter_and_logic_all_must_match`, `filter_status_only_matches_any_priority_and_labels`, `filter_status_mismatch_rejects_regardless_of_optional_filters`, `filter_label_match_is_case_sensitive`). `cmd_list:500-507` collapses three chained `retain` calls into a single `retain` over the predicate. This is a real architectural improvement and partially discharges SA R9 F1: the filter logic is now testable in isolation, and any future filter (e.g. a hypothetical Layer 8 `--created-since`) extends the predicate at one site rather than appending another `retain` to `cmd_list`.
+
+The *rendering* half of SA R9 F1 is unchanged. The four scattered column-width literals are still scattered:
+
+- `src/lib.rs:525` — header format string `"{:<4}  {:<11}  {:<8}  {:<20}  Title"`
+- `src/lib.rs:535` — `truncate_with_ellipsis(&labels_raw, 20)`
+- `src/lib.rs:536` — `truncate_with_ellipsis(&issue.title, 50)`
+- `src/lib.rs:538` — row format string `"{:<4}  {:<11}  {:<8}  {:<20}  {}"`
+
+No module-level `ID_WIDTH` / `STATUS_WIDTH` / `PRIORITY_WIDTH` / `LABELS_WIDTH` / `TITLE_WIDTH` constants exist. No `format_header_row()` / `format_issue_row(&Issue)` helpers exist. `cmd_list` still mixes load (effect) → filter (now pure via predicate) → empty-state branch (effect, two messages) → sort (pure) → header `println!` (effect) → row `println!` loop (effect) in a single function body of ~80 lines. The Layer 7 collision argument from SA Review 8 stands unchanged: ANSI escape bytes injected into priority/status values before they reach `{:<11}` / `{:<8}` will break column padding because Rust's `{:<width}` counts escape bytes as visible chars, and the rewrite Layer 7 will need to do still spans four width-literal occurrences plus two scattered format strings.
+
+**Self-test (sycophancy guard):** could this be dismissed as "rendering extraction is genuinely a Layer 7 concern"? No — the original SA R8 F1 finding was specific that doing the extraction in Layer 7 *alongside* `IsTerminal` plumbing and color injection conflates two unrelated changes; doing it before Layer 7 is the architecturally cheaper path. Layer 5 touched `cmd_list` (the predicate refactor, the chained-retain collapse) and was the third natural opportunity to address the rendering half. The work was scoped to predicate extraction only. The Layer 7 prep is still in front of the project.
+
+**Severity:** Low-to-medium. Half of SA R9 F1 is now genuinely closed; the architectural improvement is real (filter logic is unit-testable, predicate is the future-extension site). The remaining half is the same shape it has been since SA R8 — a known, tracked, deferred refactor.
+
+**Classification: Open (Deferred to a focused PR before Layer 7).** Same disposition as SA R10's verdict on the original F1: deferred to a focused PR with its own test scaffolding, not bundled with another layer's behavioral work. SO Review 17 already records this deferral with the named target. This finding is the narrowed re-raise: the predicate extraction *did* close half the original concern, and that progress should be acknowledged.
+
+**Proposed action:** Track as a pre-Layer-7 PR (existing deferral). Recommended scope at that time: introduce `ID_WIDTH`/`STATUS_WIDTH`/`PRIORITY_WIDTH`/`LABELS_WIDTH`/`TITLE_WIDTH` module-level `const` items; extract `format_header_row()` and `format_issue_row(&Issue)`; thread the format-width literals through `format!("{:<width$}", ..., width = STATUS_WIDTH)` so the `:<11}` / `:<20}` widths and the `truncate_with_ellipsis(_, 20)` / `truncate_with_ellipsis(_, 50)` caps share a single source of truth.
+
+**Coordination:** Cross-reference with [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) (CLI supplement § Software Engineering — output formatting separation, structured result types before formatting). No new SE referral; the existing pre-Layer-7 deferral covers it.
+
+---
+
+### Resolved
+
+**Finding 2 — Predicate-extraction half of SA Review 9 Finding 1 (Carry-forward / Dim 1)**
+
+The predicate-extraction half of SA R9 F1 is now closed by Layer 5: `issue_matches_filters` is a named pure function (`src/lib.rs:425-434`) with five focused unit tests. `cmd_list` no longer carries inline filter closures; the AND-combination is testable at the unit level and visible at one site. Future filter additions extend the predicate's body or signature, not the call site.
+
+**Classification: Resolved (predicate-extraction half).** Re-validated against the Layer 5 source. The remaining rendering-extraction half is tracked as Finding 1 above.
+
+---
+
+**Finding 3 — `extra_filter_active` disjunction property survives Layer 5 (Carry-forward / Dim 7 — Extensibility / SA R8 F2 → SA R9 F2 → SA R10)**
+
+SA Review 10 verified F2 Resolved: `cmd_list` uses a named `extra_filter_active = effective_priority.is_some() || effective_label.is_some()` disjunction (`src/lib.rs:496`), and the empty-state predicate consumes it as `effective_status == "open" && !extra_filter_active` (`src/lib.rs:497`). Layer 5 did not add a new filter dimension (compound filtering is the AND of existing dimensions), so the disjunction was not re-tested by source change.
+
+The Layer 6 risk to this property is bounded: per DESIGN.md (line 207-208), `--description` is on `tracker create` only, not `tracker list`. Layer 6 will not extend the `cmd_list` filter set. The property holds for the spec as written. If a future hypothetical filter (a `--description-contains` polish, etc.) is added to `list`, it will need to extend the disjunction at one site — which is exactly the property the original finding was designed to ensure.
+
+`tests/layer5.rs::list_compound_three_filter_no_match_shows_filter_message` is a regression check on this property: the label filter alone is the odd-one-out, so a regression that dropped `--label` from `extra_filter_active` would route to "No open issues. Nice work!" instead of "No issues match the given filters." and the test would fail.
+
+**Classification: Resolved (re-verified for Layer 5).** Property holds; regression check exists; spec-as-written has no Layer 6 filter additions to threaten it.
+
+---
+
+### Dismissed
+
+**Finding 4 — Predicate signature asymmetry (`status: &str` required, `priority`/`label: Option<&str>` optional) is undocumented at the contract level beyond the doc comment; risk of misuse if a caller passes a non-normalized status (Dim 4 — Interface contracts)**
+
+`src/lib.rs:425-434`. The predicate signature is asymmetric: `status` is required, `priority` and `label` are optional. The function uses `==` for status equality (`issue.status == status`) — case-sensitive byte comparison. A caller that passed `"OPEN"` rather than `"open"` would silently no-match every issue. The doc comment (`src/lib.rs:421-424`) explicitly notes "priority and status comparisons assume the caller has already normalized the filter values (lowercase) and that stored values are normalized at write/load time," which addresses the contract but does not enforce it.
+
+**Classification: Dismissed.** Demonstration that the control holds:
+
+1. **The function is private** (`fn`, not `pub fn`), so external misuse is impossible. The only call site is `cmd_list` (`src/lib.rs:500-507`).
+2. **The single call site normalizes inputs**: `effective_status` is the result of `parse_status(s)?` (`src/lib.rs:471-474`) which lowercases unconditionally; `effective_priority` is the result of `parse_priority(p)?` (`src/lib.rs:475-478`) which also lowercases. `effective_label` flows through `parse_label` (`src/lib.rs:485-488`) which trims but does not case-normalize — but label comparison is *spec-required* to be case-sensitive (DESIGN.md "Labels filter matches case-sensitively"), so passing the raw trimmed value is correct.
+3. **Stored values are normalized at write/load time**: `parse_status` lowercases on input to `cmd_status` and `cmd_create`; `parse_priority` lowercases on input to `cmd_create`; `issue_fields_are_valid` rejects non-canonical stored values at load (`src/lib.rs:129-130`).
+4. **The doc comment is the contract for an internal helper.** Promoting the contract from doc-comment-on-private-fn to a type-level invariant (e.g., an enum-typed `Status` parameter) was already evaluated and Dismissed in SA R8 F4 / SA R6 F1 / SA R7 F1 with re-raise condition "if a defect is found that an enum would have caught at compile time." No such defect has surfaced.
+
+The control holds: no realistic path exists for a misuse to land. Marking this finding Dismissed requires demonstrating the control specifically; the demonstration is above.
+
+**Re-raise condition:** if `issue_matches_filters` is ever made `pub` (exported from the library), or if a future Layer's `cmd_*` handler grows a second call site that does not flow through `parse_status` / `parse_priority`, revisit immediately — the doc-comment contract is too weak for an exported API or a multi-call-site predicate.
+
+---
+
+**Finding 5 — DECISIONS.md has no Layer 5 entry; the predicate-extraction architectural choice is captured only in the commit messages of `7d1ca57` and `bd15a9d` (Dim 6 — Decision documentation)**
+
+DECISIONS.md (107 lines, last updated for Layer 3 SO Review 13 spec amendments) has entries for atomic-write deferral, line-ending non-normalization, control-character-rejection-in-titles, empty-state-stderr-routing, and SE Review 9 ratification — but no Layer 4 or Layer 5 entries. The Layer 5 architectural decision (extract `issue_matches_filters` as a private predicate rather than a `filter_issues(...) -> Vec<Issue>` form, collapse three retains into one, defer the rendering split per SA R10) is documented in the commit messages of `7d1ca57` Phase 2a Red Gate and `bd15a9d` Phase 2b implementation. A future reviewer reading DECISIONS.md cold will not see why the predicate is private, why `is_none_or` was chosen over a match, or why the rendering split was deferred.
+
+**Classification: Dismissed.** DECISIONS.md is a record of *durable* architectural choices and *spec amendments* — atomic-write deferrals, control-character rejection, stream-routing changes. The predicate extraction is an internal refactor of a private function with no spec-visible behavior change ("Behavior is unchanged from the prior chained-retain form" per the `bd15a9d` commit message). The commit-message rationale is the appropriate documentation venue for this class of change. DECISIONS.md should not become a refactor log; it would dilute the durable-decision signal.
+
+**Re-raise condition:** if Layer 5 had introduced a *spec-visible* architectural choice (a new public API, a behavior change, a stream-routing change, etc.), DECISIONS.md would be the right venue. None did. If a future layer's refactor introduces a spec-visible architectural decision, DECISIONS.md is the right venue at that point.
+
+---
+
+### Hallucinated
+
+**Finding 6 — `issue_matches_filters` couples to `Issue` struct shape (`issue.status`, `issue.priority`, `issue.labels` field reads); a future change to `Issue` would propagate to the predicate (Dim 3 — Coupling)**
+
+Initial concern: the predicate reads three `Issue` fields directly. If `Issue.status` ever became `Issue.state`, the predicate would need updating. Decoupling via accessor methods (`issue.status()`, `issue.priority()`, `issue.labels()`) would isolate the predicate from struct-shape change.
+
+**Classification: Hallucinated.** Demonstration that the control holds:
+
+1. **`Issue` is the data model, not a service abstraction.** Coupling a filter predicate to the data model it filters is *the correct* coupling shape. Decoupling via accessors would add ceremony for no benefit — accessor methods that just return `&self.field` are noise that obscure the intent.
+2. **The `Issue` struct shape is fixed by DESIGN.md.** DESIGN.md (lines 162-171) specifies the field names and types as part of the storage contract. A field rename would require both a DESIGN.md spec amendment AND a migration story for existing `tracker.json` files. The "what if a field gets renamed" hypothetical does not have a realistic path.
+3. **Direct field reads are the Rust-idiomatic pattern for internal predicates.** A `pub fn matches(&self, ...)` on `Issue` would be the alternative, but moving the predicate to an `impl` block on `Issue` would couple `Issue` (the data model) to filter semantics (a `cmd_list` concern), which is a worse architectural shape than the current arrangement.
+
+The control holds: the coupling is the correct coupling for an internal-predicate-over-data-model pattern. Marking this finding Hallucinated requires demonstrating the alternative would be worse, and the demonstration is above.
+
+---
+
+### Summary
+
+One real finding — a narrowed carry-forward of SA R9 F1: the predicate-extraction half is now closed (filter logic is unit-testable; AND-combination is one named function), but the rendering-extraction half (column-width constants + header/row formatters) is unchanged. Layer 5 was the third natural opportunity to do that work; it remained scoped out. The Layer 7 collision argument is unchanged. Disposition: Open — Deferred to a focused PR before Layer 7 (same disposition as SA R10's verdict on the original F1).
+
+Two findings Resolved (re-verified for Layer 5): predicate-extraction half of SA R9 F1, and the `extra_filter_active` disjunction property from SA R8/R9/R10 F2. The disjunction property was not re-tested by source change in Layer 5 (no new filter dimension was added), and the Layer 6 risk is bounded by the spec (`--description` is on `create` only, not `list`).
+
+Two findings Dismissed (predicate signature asymmetry — function is private, single normalized call site, doc comment is the contract; DECISIONS.md absent Layer 5 entry — internal refactor with no spec-visible behavior change is the wrong venue for DECISIONS.md). One finding Hallucinated (predicate coupling to `Issue` struct shape — direct field coupling is the correct pattern for an internal predicate over a data model).
+
+**Complexity budget (Dim 5):** `git show bd15a9d --stat` shows `+19/-24` for `src/lib.rs` — net **−5 lines** in the implementation commit. Phase 2a Red Gate added `+107` (predicate stub + 5 unit tests + helper); Phase 2b reduced `cmd_list` body. Net Layer 5 source change is +102 lines, dominated by tests and doc comments. The refactor genuinely shrunk the function body while adding testability — the right direction. `lib.rs` is now 948 lines total, with ~485 non-test lines (estimate: tests-and-helpers section starts at line 546). Approaching the 500-non-test-lines re-raise threshold (SA R9 Finding 3 revised condition), but not over it. Tracking note for SE Layer 6 scoping unchanged.
+
+**Layer boundary (Dim 1):** Respected. No Layer 6 / show / delete / description bleed into Layer 5 source. The predicate has no description filter even though `Issue.description` exists; clean.
+
+**Sycophancy check:** Two findings I tried to dismiss but could not:
+- Finding 1 (rendering-extraction half remains): I tried to dismiss as "Layer 7 concern" — but SA R8 F1 explicitly argued doing it in Layer 7 conflates two changes, and Layer 5 was the third natural touch-point. Dismissal unconvincing → finding stands as Open (narrowed).
+- The original F2 (extra_filter_active) — I tried to find a way it had regressed in Layer 5. It hasn't. Layer 5 didn't touch the disjunction at all because it didn't add a filter dimension. The "Resolved (re-verified)" verdict survives the dismissal attempt → confirmed Resolved.
+
+Two findings I tried to elevate but couldn't:
+- Predicate signature asymmetry (Finding 4) — I tried to argue the doc-comment contract is too weak. But the function is private and the single call site normalizes inputs. Elevation unconvincing → finding stands as Dismissed with explicit re-raise condition.
+- DECISIONS.md absent Layer 5 entry (Finding 5) — I tried to argue future reviewers will lack context. But DECISIONS.md is for spec amendments and durable choices; an internal refactor is not the right venue. Elevation unconvincing → finding stands as Dismissed.
+
+**Carry-forward status (explicit):**
+- **SA R9 F1 (cmd_list extraction):** Predicate-extraction half **closed by Layer 5**. Rendering-extraction half **still Open** (Deferred to pre-Layer-7 focused PR). Net progress.
+- **SA R9 F2 (extra_filter_active disjunction):** **Resolved**, re-verified for Layer 5. No new filter dimension added; property holds; regression check exists in `tests/layer5.rs:312-350`.
+- **SA R8 F3 (lib.rs decomposition past 500 non-test lines):** ~485 non-test lines now (estimate). Below threshold. Tracking note for Layer 6.
+- **SA R8 F4 (`cmd_create` parameter count):** still 4. Threshold at 5. Layer 6's `--description` reaches threshold. Tracking note unchanged.
+
+**Coordination:**
+- **No new SE referral.** Finding 1 (rendering-extraction half) is the existing pre-Layer-7 deferred PR, already tracked.
+- **For QE (informational):** the Layer 5 unit tests (`filter_and_logic_*`, `filter_status_*`, `filter_label_match_is_case_sensitive`) genuinely close the "filter logic is testable only via subprocess integration" gap from SA R8 F1. The integration tests in `tests/layer5.rs` are correctly disclosed as Cat B Red Gate deviations (the AND-combination was emergent from prior layers).
+- **For SO (informational):** no DESIGN.md changes proposed by SA. The compound-filter behavior is spec-faithful; the predicate-extraction is an internal refactor.
+- **For VDD-IAR (informational):** the Phase 2a/2b split (Red Gate first, predicate body second) was executed as documented; the Phase-2a-only `#[allow(dead_code)]` was correctly removed at Phase 2b. Process compliance is intact from SA's lens.
+
+---
+
+## Review 12 — 2026-05-07 00:40Z
+
+**Round:** SA Review 12 (Round-2 closure for Layer 5)
+**Scope:** Verify SA R11 disposition holds after Round-1 inline fixes commit `7f9bae4`. Warm closure-verification, not a new adversarial pass.
+
+### Round-1 finding status
+
+- **F1 (rendering half of `cmd_list` extraction — column-width literals × 4 sites, no `format_*_row` helpers):** **Open / Deferred unchanged.** The Round-1 inline fixes did not touch the rendering half of `cmd_list` (correctly — the SA R11 disposition is "deferred to focused pre-Layer-7 PR"). SA confirms this finding is *not* claimed Resolved by `7f9bae4` and remains the only suite-wide Layer 5 Open finding pending Layer 7 prep.
+
+### New findings
+
+*(none this round. The other Round-1 inline fixes — SO F1/F2/F3, QE F1, SE F1 — are doc-precision-class changes that don't intersect SA's separation-of-concerns / coupling lens.)*
+
+### Summary
+
+SA R11 F1 carry-forward unchanged: deferred. 0 new findings this round. From SA's lens, Layer 5 is merge-ready; the rendering-half deferral is bookkept for the focused PR before Layer 7.
+
+**Coordination:** *(none — closure pass)*

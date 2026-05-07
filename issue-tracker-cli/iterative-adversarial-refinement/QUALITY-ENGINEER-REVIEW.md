@@ -1167,3 +1167,216 @@ Unchanged. The Layer 5 Red Gate must include the test or this deferral has slipp
 - `src/lib.rs#tests` — +11 unit tests.
 
 ---
+
+## Review 13 — 2026-05-07 00:24Z
+
+**Round:** QE Review 13 (Layer 5 — Compound Filtering)
+**Scope:** Layer 5 lands on the `issue-tracker-cli-compound-filtering` branch in three commits — `7d1ca57` (Phase 2a Red Gate: 7 integration tests + 5 unit tests + `issue_matches_filters` `todo!()` stub), `bd15a9d` (Phase 2b: predicate body + `cmd_list` collapses three `retain` calls into one), `da0fd8d` (manual testing checklist completion). Files read: `DESIGN.md`, `TODO.md` lines 239-275, `tests/layer5.rs`, `tests/layer{1,2,3,4}.rs`, `src/lib.rs` Layer 5 surface (`issue_matches_filters` + refactored `cmd_list`), `src/lib.rs#tests` Layer 5 block (lines 851-948), prior QE Reviews 10/11/12 for prior-finding context. Full-suite verification: `cargo test --no-fail-fast --locked` → **135 passed / 0 failed** (49 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4 + **7 layer5**). Pre-review state: 135 passed. Net delta from this review: 0 source/test changes (no findings warrant inline resolution; see Open / Dismissed / Hallucinated below).
+
+**Session note:** Cold session, parallel batch with SO Review 18 / SA Review 11 / SE Review 13 / VDD-IAR Review 13. No prior participation in Layer 5 implementation, Red Gate authoring, or in-session reviews. Carried-forward marker from Review 12: Open Finding 5 ("Compound-filter test deferred to Layer 5") closes via Layer 5's Red Gate inclusion of `list_three_filter_and_combination`; the deferral was honored (see AC mapping below).
+
+**Red Gate verdict (Layer 5):** Compliant. The Red Gate commit `7d1ca57` introduced (a) 7 integration tests in `tests/layer5.rs` explicitly self-classified as "Cat B Red Gate deviations" — the AND-combination is an emergent property of Layers 3-4's chained `retain()` calls, so the integration tests pass against the unrefactored implementation as regression coverage; (b) 5 unit tests against an `issue_matches_filters` `todo!()` stub that genuinely panic at Red Gate time. The Phase-2a-only `#[allow(dead_code)]` on the stub is honest about why the predicate is not yet wired into `cmd_list`. Implementation commit `bd15a9d` replaces the stub body with the AND predicate and collapses the three chained `retain` calls into one over the predicate, preserving observable behavior. The Cat B classification is itself adversarially honest — see Dim 2 audit below.
+
+**Assumption surfacing:** `Option::is_none_or` (stable since Rust 1.82, present in this MSRV per `Cargo.toml`), `predicate::str::contains(...).not()` chaining, `assert_cmd::Command::cargo_bin`, `tempfile::TempDir` all verified against the lockfile. No hallucinated APIs in new test or source code.
+
+### Layer 5 acceptance criteria → test trace
+
+| AC (TODO.md lines 244-251) | Test(s) | Category |
+|---|---|---|
+| AC 1 — `--status open --priority high` shows only matching | `list_status_and_priority_filter_and_combination` | Cat B integration |
+| AC 2 — `--status open --label bug` shows only matching | `list_status_and_label_filter_and_combination` | Cat B integration |
+| AC 3 — `--priority high --label bug` shows only matching | `list_priority_and_label_filter_and_combination` | Cat B integration |
+| AC 4 — `--status open --priority high --label bug` (three-filter AND) | `list_three_filter_and_combination` (also closes QE R11/R12 carried-forward Open Finding 5) | Cat B integration |
+| AC 5 — 2/3 match but not 3rd → does NOT appear | `list_three_filter_and_combination` (three subcase `!contains` assertions) + unit `filter_and_logic_all_must_match` (three predicate-level subcases) | Cat B + Cat A unit |
+| AC 6 — `--status done --priority low` no match → filter message | `list_compound_two_filter_no_match_shows_filter_message` | Cat B integration |
+| AC 7 — `--status open --priority high --label nonexistent` no match → filter message | `list_compound_three_filter_no_match_shows_filter_message` | Cat B integration |
+| AC 8 — `tracker list` (default, open issues exist) shows them, NOT filter message | `list_default_view_with_open_issues_does_not_show_filter_message` | Cat B integration |
+
+**Predicate-level Cat A unit tests (5):** `filter_and_logic_all_present_returns_true` (true case), `filter_and_logic_all_must_match` (three 2/3-mismatch subcases — status-only-fails, priority-only-fails, label-only-fails), `filter_status_only_matches_any_priority_and_labels` (None=wildcard for priority + label), `filter_status_mismatch_rejects_regardless_of_optional_filters` (status is required), `filter_label_match_is_case_sensitive` (case-sensitivity preserved through the predicate boundary).
+
+**Coverage verdict: 8/8 ACs traced to at least one passing automated test that fails if the AC is violated.**
+
+### Mutation analysis — `issue_matches_filters`
+
+The predicate body is:
+
+```rust
+issue.status == status
+    && priority.is_none_or(|p| issue.priority == p)
+    && label.is_none_or(|l| label_matches(&issue.labels, l))
+```
+
+For each unit test, one mutation killed and one not killed:
+
+| Unit test | Mutation killed | Mutation NOT killed (gap or covered elsewhere) |
+|---|---|---|
+| `filter_and_logic_all_present_returns_true` | constant-`false` body | swap `==` → `!=` on status alone (would surface only via the all-must-match test); covered by `filter_and_logic_all_must_match` and `filter_status_mismatch_rejects_regardless_of_optional_filters` |
+| `filter_and_logic_all_must_match` | drop any single conjunct (replace with `true`) — three subcases pin the three conjuncts independently | swap `&&` → `\|\|` between the first two AND'd terms when neither short-circuits to false on its own (e.g., status-mismatch + priority-mismatch with label-match); not exercised — see Open Finding 1 |
+| `filter_status_only_matches_any_priority_and_labels` | swap `is_none_or` → `is_some_and` (None branch becomes false) | a mutation that always returns `true` when both optional filters are `None` regardless of status; covered by `filter_status_mismatch_rejects_regardless_of_optional_filters` (this test alone wouldn't catch it) |
+| `filter_status_mismatch_rejects_regardless_of_optional_filters` | route status to `!=` | a mutation that ignores `issue.status` and uses `priority.unwrap_or("open") == status` instead — covered transitively by `filter_and_logic_all_must_match` priority subcase |
+| `filter_label_match_is_case_sensitive` | inserting `.to_lowercase()` on either side of `label_matches`'s `==` | a mutation that swaps the compare to `labels.iter().all(\|l\| l == filter)` instead of `.any(...)` — predicate-level NOT caught here (test issue has only one label so `any` and `all` agree); covered at integration via Layer 4 `list_label_filter_shows_matching` "No-label item" subcase, which would surface a vacuous-`all`-true (an unlabeled issue would appear under `--label bug`) |
+
+**Aggregate mutation score:** All five "drop-a-conjunct" mutations are killed. All three "single-clause inversion" mutations (status `==`→`!=`, priority `==`→`!=`, label predicate inversion) are killed. The case-sensitivity contract is killed by `filter_label_match_is_case_sensitive`. The optional-filter wildcard contract is killed by `filter_status_only_matches_any_priority_and_labels`. The required-status-filter contract is killed by `filter_status_mismatch_rejects_regardless_of_optional_filters`. **Predicate-level coverage is tight.**
+
+### Open
+
+**Finding 1 — `&&` → `||` mutation between status and priority conjuncts is not caught at the predicate level when only one disjunct fires (Dim 3 — Mutation resilience)**
+
+The predicate is `issue.status == status && priority.is_none_or(...) && label.is_none_or(...)`. Consider the mutation `&&` → `||` between the **first two** conjuncts: `issue.status == status || priority.is_none_or(...) && label.is_none_or(...)`. Rust precedence binds `&&` tighter than `||`, so this parses as `status == status || (priority.is_none_or(...) && label.is_none_or(...))`.
+
+- `filter_and_logic_all_must_match` status-mismatch subcase: `issue=("open","high",["bug"])`, call `(issue, "done", Some("high"), Some("bug"))`. Mutated predicate: `false || (true && true)` = **true**. Expected: false. **Caught.**
+- `filter_and_logic_all_must_match` priority-mismatch subcase: call `(issue, "open", Some("low"), Some("bug"))`. Mutated predicate: `true || (false && true)` = **true**. Expected: false. The original predicate also returns false. **NOT caught — survives.**
+- `filter_and_logic_all_must_match` label-mismatch subcase: `(issue, "open", Some("high"), Some("feature"))`. Mutated: `true || (true && false)` = **true**. Original: false. **NOT caught — survives.**
+
+So the status-subcase catches the `&&`→`||` mutation between conjuncts 1 and 2, but only because it's the only subcase where the LHS of the `||` is false. A symmetric mutation `&&` → `||` between conjuncts 2 and 3 (i.e., `status == status && (priority.is_none_or(...) || label.is_none_or(...))`) is **not caught by any unit test**: the priority-mismatch subcase yields `true && (false || true)` = true (expected false); label-mismatch subcase yields `true && (true || false)` = true (expected false). Both survive. The status-mismatch subcase yields `false && (...)` = false (expected false) — also survives.
+
+At integration level, `list_three_filter_and_combination` does cover this: each "wrong-X-only" subcase has a negative `!contains` assertion, and the implementation goes through the predicate, so the `&&`→`||` between conjuncts 2 and 3 mutation would surface "Wrong priority only" or "Wrong label only" in the output. Verified by mental execution: with the mutation, `issue.status == "open" && (priority.is_none_or(|p| p == "medium") || label.is_none_or(|l| label_matches(&["bug"], l)))` evaluated against the priority-mismatch issue ("Wrong priority only", priority=medium, labels=["bug"]) and filter `(open, high, bug)` becomes `true && (false || true)` = true. The issue would appear in output. The `!contains("Wrong priority only")` assertion fires. **Caught at integration.**
+
+**Severity: Low.** The mutation is killed at the integration boundary, just not at the predicate-unit boundary. The unit tests are slightly thinner than they appear: their AC-pinning value is real (each conjunct's role is demonstrated), but the structural argument that "five focused unit tests fully cover the predicate" overstates the case — the integration test is doing real work that the unit tests do not.
+
+**Evidence:** `src/lib.rs:425-434` (predicate); `src/lib.rs#tests:880-901` (`filter_and_logic_all_must_match`); `tests/layer5.rs:185-279` (`list_three_filter_and_combination`).
+
+**Rationale:** Defense-in-depth at the predicate boundary is cheap. A single additional unit subcase — e.g., `filter_or_logic_between_optional_conjuncts_is_not_a_substitute` asserting `!issue_matches_filters(&issue_with("open","medium",["bug"]), "open", Some("high"), Some("feature"))` — would kill the `&&`→`||`-between-conjuncts-2-and-3 mutation at the unit level. It's slightly redundant with the integration test, but the cost is one assertion line.
+
+**Classification: Open / Low severity / non-blocking.** This is a sharper-than-required mutation analysis; the integration test catches the mutation. Recommend addition as a defense-in-depth strengthening, not a merge-gate concern.
+
+**Proposed action:** Add to `mod tests` in `src/lib.rs`:
+```rust
+#[test]
+fn filter_and_logic_is_not_or_between_optional_conjuncts() {
+    // Defense-in-depth against `&&` → `||` between the priority and label
+    // conjuncts: an issue that mismatches BOTH optional filters (matching
+    // status only) must still reject. Catches a mutation that the three
+    // single-mismatch subcases of filter_and_logic_all_must_match do not.
+    let issue = issue_with("open", "medium", &["bug"]);
+    assert!(!issue_matches_filters(&issue, "open", Some("high"), Some("feature")));
+}
+```
+
+---
+
+### Dismissed
+
+**Finding 2 — Cat B classification of the 7 integration tests is "honest sycophancy" — could the dev have made them Cat A by extracting the predicate before Layer 3/4? (Dim 2 — Red Gate compliance)**
+
+Adversarial probe: the Red Gate commit message says "the AND-combination is an emergent property of cmd_list's chained retain() calls (Layer 3 added --priority retain, Layer 4 added --label retain), so the CLI behavior was implemented incrementally rather than as a single Layer 5 change." Could the dev have written these as Cat A by sequencing differently — e.g., introducing `issue_matches_filters` at Layer 3 with priority-only support, then extending in Layer 4, then asserting AND-combination as the Layer 5 Red Gate?
+
+**Classification: Dismissed.** The actual decomposition followed the layer plan in `TODO.md` (line 270 explicitly enumerates `filter_and_logic_all_must_match` as the Layer 5 unit Red Gate, not the integration tests). The integration tests for AC 1-3 (two-filter AND combinations) genuinely could not be Cat A under the layer plan — once Layer 3 added `--priority` filtering and Layer 4 added `--label` filtering with chained `retain` calls, the two-filter AND was *already implemented*. The Cat B classification accurately describes regression coverage of pre-existing emergent behavior. The same disposition applied at Layer 3 (`create_without_priority_defaults_to_medium` was Cat B because Layer 1 already defaulted via `priority: "medium"`) and Layer 4 (two Cat B deviations on Layer 1 defaults). The pattern is honest, consistent, and correctly self-classified.
+
+The only path to genuinely Cat A integration tests at Layer 5 would have been to *not* implement the per-filter `retain` calls at Layers 3 and 4, deferring all filtering until a single Layer 5 implementation. That contradicts the layer plan's per-flag layering. **No finding.**
+
+---
+
+**Finding 3 — `list_default_view_with_open_issues_does_not_show_filter_message` exit-status assertion absent (Dim 3 — Assertion strength)**
+
+The test calls `.assert().success()` then extracts stdout/stderr separately for content checks. `success()` already asserts exit code 0; no separate `.code(0)` is needed. Other Layer 5 tests follow the same pattern and use `success()`.
+
+**Classification: Dismissed.** `assert_cmd::Assert::success()` is documented to assert `code == 0` per its Rust docs; this is the canonical idiom in the rest of the suite (see Layer 1/2/3/4). Adding a redundant `.code(0)` would be cargo-cult. No finding.
+
+---
+
+**Finding 4 — AC 6 ("`--status done --priority low` no match") setup uses one open-high and one open-low issue; neither has `--status done`. Could a mutation still surface? (Dim 5 — Empty-state coverage)**
+
+`list_compound_two_filter_no_match_shows_filter_message` creates two issues — `(open, high)` and `(open, low)` — then filters `--status done --priority low`. Neither matches both. The test asserts the filter message appears and `Nice work!` does not. The negative `Nice work!` assertion is the structural defense (per QE Review 9 Finding 1 / Review 11 Finding 3 pattern), and it is present.
+
+But: is the setup adversarial enough? An issue that's `(done, low)` would match. A mutation that broke the filter would surface either issue. The test would detect both. **Dismissed — the setup is correct.** The negative `Nice work!` assertion specifically guards against the SO Review 11 hazard where adding a new filter and forgetting to extend `extra_filter_active` routes the empty-state path back to "Nice work!" — and `list_compound_two_filter_no_match_shows_filter_message`'s `effective_status == "done"` setup means `is_default_open_view` is false regardless of the disjunction — so this test is somewhat weaker than `list_compound_three_filter_no_match_shows_filter_message` for that specific hazard. The three-filter sibling closes the gap (its `effective_status == "open"` setup makes `is_default_open_view` route on the disjunction).
+
+**Classification: Dismissed.** The two tests are complementary — between them, both branches of `is_default_open_view` are exercised in compound contexts. No new finding.
+
+---
+
+**Finding 5 — Cat B integration test assertions use substring `contains` rather than full-line matching for issue rendering (Dim 3)**
+
+E.g., `list_three_filter_and_combination` asserts `out.contains("Triple match")` — a substring match. A mutation that printed only `Triple match` with no other column data would still pass this assertion.
+
+**Classification: Dismissed.** Layer 1's `list_shows_header_and_issues` and Layer 3's `list_columns_use_exactly_two_space_separator` already pin the column-rendering contract. Layer 5's tests are correctly scoped to filter selection (which titles appear / don't appear), not column formatting. Conflating two contracts in a single test is the anti-pattern QE Review 11 Finding 6 explicitly dismissed at Layer 4. Same disposition here.
+
+---
+
+**Finding 6 — No Layer 5 test for `list --priority X --label Y` with `--status` defaulting to `"open"` AND only `done` issues exist (Dim 5 — Empty-state path interaction)**
+
+Adversarial probe: when `--priority` and `--label` are both supplied but `--status` is not, `effective_status = "open"`, `extra_filter_active = true`, so `is_default_open_view = false`. If all stored issues are `done`, the result is empty and the filter-message branch fires. Is this covered?
+
+`list_priority_and_label_filter_and_combination` does have an in-progress issue intended to confirm the implicit-status-default filter, BUT the test asserts a **non-empty** result ("Match all" appears), not an empty one. So the empty-result-with-implicit-default path is not directly asserted at Layer 5.
+
+**Classification: Dismissed.** The path is exercised transitively by `list_compound_two_filter_no_match_shows_filter_message` (effective_status="done", priority="low") and `list_compound_three_filter_no_match_shows_filter_message` (effective_status="open" via `--status open`, priority="high", label="nonexistent"). The latter exercises the `extra_filter_active = true && effective_status == "open"` routing precisely. The implicit-default vs. explicit-`--status open` distinction is parser-side and identical past `parse_status` (both produce `effective_status == "open"`). Adding a third empty-state test for "implicit `--status open` + non-default filters + no match" would be tautological with the explicit form. No finding.
+
+---
+
+**Finding 7 — Manual testing checklist relies on developer attestation; no automated verification of the four-issue setup or two-filter / three-filter outputs (Dim 7)**
+
+TODO.md lines 256-261 list 6 manual checks, all marked complete in commit `da0fd8d`. The integration tests in `tests/layer5.rs` cover all 6 automated equivalents (the four-issue setup matches `list_three_filter_and_combination`'s setup; the empty-state messages match the two compound-no-match tests; the default-view non-empty case matches the eighth test). The manual checklist is reproducible from TODO.md alone.
+
+**Classification: Dismissed.** Each manual check has an automated counterpart with stronger assertions (negative `!contains` for non-matching issues, exact stderr literal for empty-state messages). The dev's claim of completion is reproducible by anyone running `cargo test --test layer5` against the same source. No finding.
+
+---
+
+### Hallucinated
+
+**Finding 8 — `cmd_list` refactor changed evaluation order from three-pass `retain` to single-pass `retain`; could a mutation in the now-fused predicate body silently change short-circuit semantics? (Dim 6 — Regression coverage)**
+
+Concern: previously each `retain` call walked the full vector once; the refactor walks once and short-circuits on the first false. A side-effecting mutation in any conjunct would behave differently across the two forms.
+
+**Classification: Hallucinated.** No conjunct has side effects — `==` on `String`, `Option::is_none_or`, and `label_matches` (slice scan) are all pure. AND is commutative and associative for booleans; the ordering between the three `retain` passes (which always saw the full surviving set after each) and the single fused predicate (which short-circuits per-element) is observably identical. The refactor preserves behavior. No finding.
+
+---
+
+**Finding 9 — The unit test `filter_status_only_matches_any_priority_and_labels` asserts both `high_with_bug` and `low_no_labels` match — the second is redundant**
+
+Concern: the test creates two issues but the predicate's behavior is element-by-element; one issue suffices to assert "None=wildcard."
+
+**Classification: Hallucinated.** The two issues exercise distinct shapes (high+labelled vs. low+unlabelled) — both should pass when filters are None, and the test catches a subtle mutation where `is_none_or` is replaced with a non-empty-labels constraint (which would reject `low_no_labels` but accept `high_with_bug`). The two cases are intentionally complementary, not redundant. No finding.
+
+---
+
+**Finding 10 — `list_three_filter_and_combination` does not assert that issue ordering in the (single-result) output is correct**
+
+Concern: the test asserts `Triple match` is present but doesn't verify it's at position 1 in the table.
+
+**Classification: Hallucinated.** With one matching result, ordering is degenerate (only one issue can be in any position). Sort ordering is contract-pinned by Layer 3's `list_sorts_high_before_medium_before_low` and `list_within_tier_sorted_by_id_ascending`, which exercise a multi-issue result set. Layer 5's tests are correctly scoped to filter selection. No finding.
+
+---
+
+### Summary
+
+**Test count:** 135/135 pass post-review (49 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4 + 7 layer5). Pre-review: 135/135. Net delta: 0 inline source/test changes. One Open Low-severity strengthening proposed (Finding 1: `&&`→`||` between optional conjuncts at predicate level — caught at integration but not at unit; recommend a one-test addition).
+
+**AC coverage:** 8/8 Layer 5 ACs traced to passing automated tests. The carried-forward Open Finding 5 from QE Reviews 11 and 12 (compound-filter test deferred to Layer 5) **closes** via `list_three_filter_and_combination` — the deferral was honored; the Layer 5 Red Gate enumerated the test before merge.
+
+**Cat B disposition:** **Honest.** The 7 integration tests are correctly classified as Cat B Red Gate deviations: AND-combination was an emergent property of Layers 3-4's chained `retain()` calls. The 5 unit tests are correctly Cat A — they exercise `issue_matches_filters` directly and panicked against the `todo!()` stub at Phase 2a. Per-conjunct mutation pinning is tight at the predicate level for single-clause inversions and drop-a-conjunct mutations; the only gap is the cross-conjunct `&&`→`||` mutation at the predicate-unit boundary, which is caught at integration via `list_three_filter_and_combination`'s three negative-subcase assertions.
+
+**Mutation resilience:** Strong at integration boundary; tight at predicate-unit boundary with one identified gap. The five unit tests collectively kill all single-conjunct-drop mutations, all single-clause-inversion mutations, all `is_none_or` ↔ `is_some_and` mutations, and all `to_lowercase` injections in the label compare. The cross-conjunct `&&`→`||` mutation between conjuncts 2-and-3 survives at the unit level but dies at the integration level via the AC 5 negative assertions.
+
+**Top concern:** None merge-blocking. Finding 1 is a defense-in-depth strengthening at the unit level that the integration test already covers. Layer 5 ships with stronger test coverage than Layers 3 or 4 did at their respective merge gates: the Red Gate self-classification practice has matured (Cat A unit + Cat B integration + adversarial empty-state coverage with both `effective_status` branches exercised).
+
+**Sycophancy check:** Did I pass any dimension because I couldn't think of a counterexample? Re-audited Dim 2 (Cat B) and Dim 3 (mutation resilience). On Cat B: I considered alternative decompositions and confirmed the actual one was forced by the layer plan, not a convenient story. On mutation resilience: I deliberately constructed `&&`→`||` mutations between specific conjunct pairs and traced each through every unit test rather than pattern-matching to "looks tight." Found one survival (Finding 1), filed it Low-severity, did not soften. On AC coverage: I checked each AC has a *failing*-on-violation test, not just a passing one — `list_default_view_with_open_issues_does_not_show_filter_message`'s `!stderr.contains("No issues match")` assertion specifically catches the inverse, so AC 8 is genuinely covered, not just nominally. **No softening detected.**
+
+**Coordination:**
+- **SE:** Open Finding 1 proposes adding one unit test (`filter_and_logic_is_not_or_between_optional_conjuncts`). QE owns `tests/**` and `src/lib.rs#tests` per CLOSURE-PROTOCOL.md; this can land in QE's same-round closure if the round produces a follow-up commit. If not, deferred to next layer.
+- **SO / SA:** No spec or architecture concerns surfaced.
+- **VDD-IAR Alignment:** Carried-forward Open Finding 5 (QE R11/R12) closes via Layer 5 Red Gate inclusion of `list_three_filter_and_combination`. Layer 5 merge gate is unblocked from the QE side.
+- **PE:** Coverage tooling absence (Finding 8 from QE R10/R11) remains escalated; no new escalation.
+- **No new domain coordination required.**
+
+---
+
+## Review 14 — 2026-05-07 00:41Z
+
+**Round:** QE Review 14 (Round-2 closure for Layer 5)
+**Scope:** Verify QE R13 F1 (defense-in-depth unit test for `&&`→`||` between optional conjuncts) is resolved by commit `7f9bae4`. Warm closure-verification.
+
+### Round-1 finding closure
+
+- **F1 (predicate-unit `&&`→`||` mutation between priority and label conjuncts survives all 5 Layer-5 unit tests):** **Resolved.** `src/lib.rs` `mod tests` adds `filter_and_logic_is_not_or_between_optional_conjuncts` — issue `(open, medium, [bug])` filtered with `priority=Some("high"), label=Some("feature")` mismatches both optionals at once, killing the inter-conjunct `||` mutation. The three single-mismatch subcases of `filter_and_logic_all_must_match` did not catch this mutation (each mismatched only one filter, so `||` would short-circuit-true on the matching conjunct). Test count: 136/136 (was 135 + 1 new defense unit test). Verified `cargo test --no-fail-fast --locked` green.
+
+### Catalog of un-killed mutations remaining
+
+After the new test, predicate-unit mutation analysis shows the AND-logic is mutation-tight at the unit level for: drop-a-conjunct, single-conjunct-flip (`==` → `!=`), `is_none_or` ↔ `is_some_and`, `to_lowercase` injection, single inter-conjunct `&&` → `||`. The only mutations that survive predicate-unit are CLI-wiring mutations (e.g., `cmd_list` passing the wrong filter into the wrong slot), which integration tests in `tests/layer5.rs` cover.
+
+### Summary
+
+1/1 Round-1 QE finding Resolved. 0 new findings this round. Layer 5 QE-domain is closed at MVR for the predicate-unit boundary.
+
+**Coordination:** *(none — closure pass)*
+
+---

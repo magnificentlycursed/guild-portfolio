@@ -28,9 +28,9 @@ A personal issue tracker for the terminal. Single user, no network, no accounts.
 | Layer | Feature | Status |
 |---|---|---|
 | 1 | Core create + list | ✅ Complete |
-| 2 | Status flow | 🔲 Not started |
-| 3 | Priority | 🔲 Not started |
-| 4 | Labels | 🔲 Not started |
-| 5 | Compound filtering | 🔲 Not started |
+| 2 | Status flow | ✅ Complete |
+| 3 | Priority | ✅ Complete |
+| 4 | Labels | ✅ Complete |
+| 5 | Compound filtering | 🟡 In review (PR #17) |
 | 6 | Description, show, delete | 🔲 Not started |
 | 7 | Polish (color, `--help`) | 🔲 Not started |

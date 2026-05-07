@@ -241,24 +241,24 @@ Unit tests:
 **Goal:** Status, priority, and label filters AND-combine correctly; all no-match states are correct.
 
 **Acceptance Criteria:**
-- [ ] `tracker list --status open --priority high` shows only issues that are both open AND high-priority
-- [ ] `tracker list --status open --label bug` shows only open issues with label `bug`
-- [ ] `tracker list --priority high --label bug` shows only high-priority issues with label `bug`
-- [ ] `tracker list --status open --priority high --label bug` shows only issues matching all three
-- [ ] An issue that matches two of three filters but not the third does NOT appear
-- [ ] `tracker list --status done --priority low` with no matching issues prints `No issues match the given filters.`
-- [ ] `tracker list --status open --priority high --label nonexistent` with no matching issues prints `No issues match the given filters.`
-- [ ] `tracker list` (default, all open, some exist) shows only open issues, not `No issues match` message
+- [x] `tracker list --status open --priority high` shows only issues that are both open AND high-priority
+- [x] `tracker list --status open --label bug` shows only open issues with label `bug`
+- [x] `tracker list --priority high --label bug` shows only high-priority issues with label `bug`
+- [x] `tracker list --status open --priority high --label bug` shows only issues matching all three
+- [x] An issue that matches two of three filters but not the third does NOT appear
+- [x] `tracker list --status done --priority low` with no matching issues prints `No issues match the given filters.`
+- [x] `tracker list --status open --priority high --label nonexistent` with no matching issues prints `No issues match the given filters.`
+- [x] `tracker list` (default, all open, some exist) shows only open issues, not `No issues match` message
 
 **Not in this layer:** any new commands or flags
 
 **Manual Testing Checklist:**
-- [ ] Setup: create four issues — `(open, high, bug)`, `(open, medium, bug)`, `(done, high, bug)`, `(open, high, feature)` — then run each filter combination and verify only the correct issue(s) appear
-- [ ] Two-filter AND: `--status open --priority high` → issues #1 and #4 only
-- [ ] Three-filter AND: `--status open --priority high --label bug` → issue #1 only
-- [ ] No-match from filters: `--status open --priority low` → `No issues match the given filters.`
-- [ ] Default view (open exists): `tracker list` → shows open issues, not the no-match message
-- [ ] `No open issues. Nice work!` message: mark all issues done, `tracker list` → correct empty-state message (not the filter message)
+- [x] Setup: run `tracker create "..." --priority high --label bug`, `tracker create "..." --priority medium --label bug`, `tracker create "..." --priority high --label bug` then `tracker status 3 done`, `tracker create "..." --priority high --label feature` — produces issues `(open, high, bug)`, `(open, medium, bug)`, `(done, high, bug)`, `(open, high, feature)`. Then run each filter combination and verify only the correct issue(s) appear.
+- [x] Two-filter AND: `--status open --priority high` → issues #1 and #4 only
+- [x] Three-filter AND: `--status open --priority high --label bug` → issue #1 only
+- [x] No-match from filters: `--status open --priority low` → `No issues match the given filters.`
+- [x] Default view (open exists): `tracker list` → shows open issues, not the no-match message
+- [x] `No open issues. Nice work!` message: mark all issues done, `tracker list` → correct empty-state message (not the filter message)
 
 **Red Gate — tests to write first:**
 

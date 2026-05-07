@@ -413,6 +413,30 @@ pub fn label_matches(labels: &[String], filter: &str) -> bool {
     labels.iter().any(|l| l == filter)
 }
 
+/// Returns `true` iff `issue` matches every supplied filter.
+///
+/// The `status` filter is required (the default-open view passes `"open"`); the
+/// `priority` and `label` filters are optional (an absent filter is a wildcard).
+/// Filters AND-combine: a filter that mismatches makes the whole predicate false.
+/// Per DESIGN.md Feature 2 / Edge Cases / Labels, label comparison is
+/// case-sensitive and exact-match; priority and status comparisons assume the
+/// caller has already normalized the filter values (lowercase) and that stored
+/// values are normalized at write/load time. The caller is also responsible
+/// for applying any other normalization the spec requires before calling —
+/// notably trimming the label filter (DESIGN.md Edge Cases / Labels mandates
+/// trim-on-store / trim-on-filter symmetry; `cmd_list` runs `parse_label` on
+/// the filter value to satisfy this).
+fn issue_matches_filters(
+    issue: &Issue,
+    status: &str,
+    priority: Option<&str>,
+    label: Option<&str>,
+) -> bool {
+    issue.status == status
+        && priority.is_none_or(|p| issue.priority == p)
+        && label.is_none_or(|l| label_matches(&issue.labels, l))
+}
+
 fn truncate_with_ellipsis(s: &str, max_chars: usize) -> String {
     let chars: Vec<char> = s.chars().collect();
     if chars.len() <= max_chars {
@@ -466,24 +490,27 @@ pub fn cmd_list(
         Some(l) => Some(parse_label(l)?),
         None => None,
     };
-    // Disjunction over non-default filters: any future filter (e.g. Layer 6's
-    // `--description-contains`) must extend `extra_filter_active` here — a single
-    // location — rather than appending another `&& *_filter.is_none()` conjunct
-    // to the empty-state predicate. Reduces the SO Review 11 regression hazard:
-    // the structural fragility of the positive-enumeration form is what made the
-    // earlier empty-state heuristic break when `--priority` was added in Layer 3
-    // and again when `--label` was added in Layer 4. SA Review 9 Finding 2.
+    // Disjunction over non-default filters: any new filter the spec is amended
+    // to add must extend `extra_filter_active` here — a single location —
+    // rather than appending another `&& *_filter.is_none()` conjunct to the
+    // empty-state predicate. Reduces the SO Review 11 regression hazard: the
+    // structural fragility of the positive-enumeration form is what made the
+    // earlier empty-state heuristic break when `--priority` was added in
+    // Layer 3 and again when `--label` was added in Layer 4. SA Review 9
+    // Finding 2. (DESIGN.md "Out of Scope" excludes text search; the
+    // disjunction is shaped for spec-amended filters, not anticipated ones.)
     let extra_filter_active = effective_priority.is_some() || effective_label.is_some();
     let is_default_open_view = effective_status == "open" && !extra_filter_active;
 
     let mut issues = load_issues(issues_path)?;
-    issues.retain(|i| i.status == effective_status);
-    if let Some(p) = &effective_priority {
-        issues.retain(|i| &i.priority == p);
-    }
-    if let Some(l) = &effective_label {
-        issues.retain(|i| label_matches(&i.labels, l));
-    }
+    issues.retain(|i| {
+        issue_matches_filters(
+            i,
+            &effective_status,
+            effective_priority.as_deref(),
+            effective_label.as_deref(),
+        )
+    });
 
     if issues.is_empty() {
         // Empty-state messages route to stderr per DESIGN.md "stderr contract" /
@@ -825,6 +852,104 @@ mod tests {
         let mut ok = issue(1, "medium");
         ok.labels = vec!["bug".to_string(), "auth".to_string()];
         assert!(issue_fields_are_valid(&ok));
+    }
+
+    // --- Layer 5: compound-filter predicate (Red Gate) ---
+
+    fn issue_with(status: &str, priority: &str, labels: &[&str]) -> Issue {
+        Issue {
+            id: 1,
+            title: "x".to_string(),
+            description: None,
+            status: status.to_string(),
+            priority: priority.to_string(),
+            labels: labels.iter().map(|s| s.to_string()).collect(),
+            created_at: "2026-01-01T00:00:00Z".to_string(),
+            updated_at: "2026-01-01T00:00:00Z".to_string(),
+        }
+    }
+
+    #[test]
+    fn filter_and_logic_all_present_returns_true() {
+        // DESIGN.md Feature 2: status, priority, label are AND-combined; an
+        // issue matching all three filters must be present in results.
+        let issue = issue_with("open", "high", &["bug"]);
+        assert!(issue_matches_filters(
+            &issue,
+            "open",
+            Some("high"),
+            Some("bug")
+        ));
+    }
+
+    #[test]
+    fn filter_and_logic_all_must_match() {
+        // AND, not OR: an issue that satisfies 2/3 filters must NOT pass the
+        // predicate. Three subcases — each filter independently is the
+        // odd-one-out — kill mutations that drop any single conjunct.
+        let issue = issue_with("open", "high", &["bug"]);
+
+        // status mismatch (priority + label match)
+        assert!(
+            !issue_matches_filters(&issue, "done", Some("high"), Some("bug")),
+            "status mismatch must reject even when priority and label match"
+        );
+        // priority mismatch (status + label match)
+        assert!(
+            !issue_matches_filters(&issue, "open", Some("low"), Some("bug")),
+            "priority mismatch must reject even when status and label match"
+        );
+        // label mismatch (status + priority match)
+        assert!(
+            !issue_matches_filters(&issue, "open", Some("high"), Some("feature")),
+            "label mismatch must reject even when status and priority match"
+        );
+    }
+
+    #[test]
+    fn filter_status_only_matches_any_priority_and_labels() {
+        // Optional filters absent → wildcard. Status-only filter accepts any
+        // priority and any (including empty) label set.
+        let high_with_bug = issue_with("open", "high", &["bug"]);
+        let low_no_labels = issue_with("open", "low", &[]);
+        assert!(issue_matches_filters(&high_with_bug, "open", None, None));
+        assert!(issue_matches_filters(&low_no_labels, "open", None, None));
+    }
+
+    #[test]
+    fn filter_status_mismatch_rejects_regardless_of_optional_filters() {
+        // Status is a required filter (cmd_list always supplies one — default
+        // "open" or the user's --status value). A mismatched status rejects
+        // even when no optional filters are present.
+        let issue = issue_with("done", "high", &["bug"]);
+        assert!(!issue_matches_filters(&issue, "open", None, None));
+    }
+
+    #[test]
+    fn filter_label_match_is_case_sensitive() {
+        // Predicate-level corollary of label_filter_case_sensitive_match: the
+        // compound predicate must inherit the case-sensitive contract from
+        // label_matches, not silently lowercase.
+        let issue = issue_with("open", "high", &["bug"]);
+        assert!(issue_matches_filters(&issue, "open", None, Some("bug")));
+        assert!(!issue_matches_filters(&issue, "open", None, Some("Bug")));
+    }
+
+    #[test]
+    fn filter_and_logic_is_not_or_between_optional_conjuncts() {
+        // Defense-in-depth (QE Review 13 F1) against `&&` → `||` between the
+        // priority and label conjuncts: an issue that mismatches BOTH optional
+        // filters (matching status only) must still reject. The three
+        // single-mismatch subcases of filter_and_logic_all_must_match each
+        // mismatch exactly one filter, so a between-optional `||` mutation
+        // would survive them — this case mismatches both optionals at once.
+        let issue = issue_with("open", "medium", &["bug"]);
+        assert!(!issue_matches_filters(
+            &issue,
+            "open",
+            Some("high"),
+            Some("feature")
+        ));
     }
 
     #[test]
