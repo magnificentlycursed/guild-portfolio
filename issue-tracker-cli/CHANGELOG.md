@@ -1,5 +1,80 @@
 # Changelog
 
+## Layer 5 — compound filtering — 2026-05-07 00:43Z
+
+**Scope:** Closes the layer-shipping commits for Layer 5 of the assignment
+build sequence ("Compound filter — `--status`, `--priority`, `--label` AND-
+combined; correct empty-state messaging"). Layer 5's externally observable
+behavior was already emergent from the chained `retain()` calls added in
+Layer 3 (`--priority`) and Layer 4 (`--label`); this layer extracts the
+AND-logic into a named pure predicate (`issue_matches_filters`) so it is
+testable in isolation, adds explicit acceptance-criterion coverage of the
+compound paths, and ratifies the manual-testing checklist.
+
+### Changed
+
+- **`src/lib.rs`** — added private `issue_matches_filters(&Issue, &str,
+  Option<&str>, Option<&str>) -> bool` predicate AND-combining the required
+  status filter and the optional priority/label filters; refactored
+  `cmd_list`'s three chained `retain()` calls into a single `retain()` over
+  the predicate. Behavior unchanged; unit-testability gained. Rustdoc on the
+  predicate documents the caller obligation: status/priority comparisons
+  assume lowercased filter values; label comparison is case-sensitive
+  exact-match and the caller is responsible for trim normalization (per
+  DESIGN.md Edge Cases / Labels trim-on-store / trim-on-filter symmetry).
+- **`src/lib.rs#tests`** — Red Gate (commit `7d1ca57`): 5 unit tests against
+  the `todo!()` stub covering all-three-match, three single-mismatch
+  subcases, status-only wildcard, status-mismatch-with-optionals-absent, and
+  case-sensitive label match. Round 2 (commit `7f9bae4`):
+  `filter_and_logic_is_not_or_between_optional_conjuncts` defense-in-depth
+  added per QE Review 13 Finding 1 — kills the inter-conjunct `&&`→`||`
+  mutation that all five Round-1 unit tests survive.
+- **`tests/layer5.rs`** — Red Gate (commit `7d1ca57`): 7 integration tests
+  covering the three two-filter AND combinations (status+priority,
+  status+label, priority+label), the three-way AND, the two-filter no-match
+  filter-message branch, the three-filter no-match filter-message branch,
+  and the default-view-non-empty no-filter-message branch. All seven are
+  Cat B Red Gate deviations (the AND-combination was emergent from prior
+  layers' chained retains; the integration tests are regression coverage
+  of acceptance criteria, not Red Gate gating for new behavior — same
+  disposition as Layer 3's `create_without_priority_defaults_to_medium`
+  and Layer 4's two Cat B deviations).
+- **`TODO.md`** — Layer 5 acceptance-criteria checkboxes flipped to `[x]`
+  (commit `bd15a9d`); manual-testing checklist flipped after human
+  verification (commit `da0fd8d`); manual-testing setup wording amended in
+  Round 2 (commit `7f9bae4`) per SO Review 18 Finding 3 to enumerate the
+  `tracker create` invocations and the `tracker status 3 done` step
+  required to produce the `(done, high, bug)` issue.
+- **`src/lib.rs`** (`cmd_list` comment) Round 2 — replaced the anticipatory
+  `--description-contains` example with neutral "any new filter the spec is
+  amended to add" framing plus a DESIGN.md "Out of Scope" citation, per SO
+  Review 18 Finding 1 (DESIGN.md excludes text-search filtering).
+- **`tests/layer5.rs`** (`list_priority_and_label_filter_and_combination`
+  docstring) Round 2 — trimmed false claim that one of the setup issues is
+  in-progress (per SO Review 18 Finding 2). Test assertions unchanged.
+
+### IAR
+
+Layer 5 Round 1 cold-batch — 5 domain reviews (SO 18; SA 11; QE 13; SE 13;
+VDD-IAR 13). Verdict: 5 substantive Low Open findings + 1 Medium-severity
+carry-forward (SA R11 F1, rendering half of `cmd_list` extraction —
+deferred to focused pre-Layer-7 PR per prior SA R10 disposition). Round 2
+warm-resolution closure pass — 4 domain reviews (SO 19; SA 12; QE 14;
+SE 14) + VDD-IAR 14 merge-gate verdict: GO. The 5 substantive findings
+closed inline in commit `7f9bae4`; the 1 carry-forward holds named-future-
+layer disposition. MVR reached.
+
+### Verification
+
+- `cargo test --locked --no-fail-fast` — **136/136 pass** at gate close
+  (45 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4 + 7 layer5).
+- `cargo clippy --all-targets --locked -- -D warnings` — clean.
+- `cargo fmt --check` — clean.
+- Manual testing checklist (TODO.md Layer 5) — six items executed by the
+  director; all six expected outputs reproduced.
+
+---
+
 ## Layer 4 IAR Round 2 closure — 2026-05-06 02:30Z
 
 **Scope:** Resolves the Open finding cluster surfaced by Layer 4 Round 1
