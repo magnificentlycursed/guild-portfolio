@@ -10,10 +10,13 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Create a new issue (with optional priority and labels)
+    /// Create a new issue (with optional description, priority, and labels)
     Create {
         /// Issue title
         title: String,
+        /// Free-form description (stored verbatim; not trimmed)
+        #[arg(long)]
+        description: Option<String>,
         /// Priority: low, medium, high (default: medium)
         #[arg(long)]
         priority: Option<String>,
@@ -39,6 +42,16 @@ enum Commands {
         id: String,
         /// New status: open, in-progress, done
         status: String,
+    },
+    /// Show full details for an issue
+    Show {
+        /// Issue ID
+        id: String,
+    },
+    /// Delete an issue (no confirmation; deleted IDs are never reused)
+    Delete {
+        /// Issue ID
+        id: String,
     },
 }
 
@@ -73,9 +86,16 @@ fn main() {
     let result = match cli.command {
         Commands::Create {
             title,
+            description,
             priority,
             label,
-        } => tracker::cmd_create(&title, priority.as_deref(), &label, path),
+        } => tracker::cmd_create(
+            &title,
+            description.as_deref(),
+            priority.as_deref(),
+            &label,
+            path,
+        ),
         Commands::List {
             status,
             priority,
@@ -87,6 +107,8 @@ fn main() {
             path,
         ),
         Commands::Status { id, status } => tracker::cmd_status(&id, &status, path),
+        Commands::Show { id } => tracker::cmd_show(&id, path),
+        Commands::Delete { id } => tracker::cmd_delete(&id, path),
     };
 
     if let Err(e) = result {

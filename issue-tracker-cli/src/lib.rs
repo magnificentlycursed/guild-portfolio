@@ -228,11 +228,18 @@ pub fn save_issues(path: &Path, issues: &[Issue]) -> Result<(), String> {
 /// space is exhausted, or persisting the new issue fails.
 pub fn cmd_create(
     title_raw: &str,
+    description_raw: Option<&str>,
     priority_raw: Option<&str>,
     labels_raw: &[String],
     issues_path: &Path,
 ) -> Result<(), String> {
     let title = validate_title(title_raw)?;
+    // Phase 2a Red Gate: description argument is accepted at the CLI boundary
+    // but not yet stored. validate_description / Issue.description wiring lands
+    // in Phase 2b; until then the parameter exists so the binary accepts
+    // `--description` without unknown-arg failures, but the stored value stays
+    // None — surfacing the description-storage tests as red.
+    let _ = description_raw;
     let priority = match priority_raw {
         Some(p) => parse_priority(p)?,
         None => "medium".to_string(),
@@ -316,6 +323,73 @@ pub fn cmd_status(id_raw: &str, status_raw: &str, issues_path: &Path) -> Result<
     save_issues(issues_path, &issues)?;
     println!("Issue #{} status \u{2192} {}.", id, issues[idx].status);
     Ok(())
+}
+
+/// Validates an `--description` value against the spec's empty-after-trim rule.
+///
+/// Per DESIGN.md Feature 1: `--description` must be non-empty after trim, but
+/// the *stored* value is the input verbatim (not trimmed). This function returns
+/// the un-trimmed input on success so the caller can write it as-is.
+///
+/// # Errors
+/// Returns `Err("Description cannot be empty.")` when `raw` is empty or
+/// whitespace-only after trim.
+#[allow(dead_code)]
+pub fn validate_description(raw: &str) -> Result<String, String> {
+    // Phase 2a Red Gate: stub. Phase 2b will implement the empty-after-trim
+    // check and pass-through. Bind args to keep -D warnings clean.
+    let _ = raw;
+    todo!("Layer 6: validate --description (empty-after-trim rejection, store verbatim)")
+}
+
+/// Renders a single issue as the `tracker show` labelled key-value block.
+///
+/// Per DESIGN.md "Show output format": each label is right-padded to a fixed
+/// width of 13 characters so values align. For multi-line descriptions, the
+/// first line follows the `Description:` label; each continuation line is
+/// indented by 13 spaces (matching the label-column width).
+///
+/// Returns the formatted block including a trailing newline.
+#[allow(dead_code)]
+fn format_show_block(issue: &Issue) -> String {
+    // Phase 2a Red Gate: stub. Phase 2b will implement the labelled key-value
+    // block per the DESIGN.md "Show output format" example.
+    let _ = issue;
+    todo!("Layer 6: format_show_block — labelled key-value block, 13-char label column, multi-line description indented 13 spaces")
+}
+
+/// Implements `tracker show <id>`.
+///
+/// Validates `id_raw`, locates the issue, and prints the full labelled
+/// key-value block (per DESIGN.md "Show output format") to stdout. Show is
+/// non-mutating: storage is read but never written.
+///
+/// # Errors
+/// Returns `Err` if the ID is malformed, the issue does not exist, or
+/// storage I/O fails.
+pub fn cmd_show(id_raw: &str, issues_path: &Path) -> Result<(), String> {
+    // Phase 2a Red Gate: stub. Phase 2b will wire parse_id + load_issues +
+    // format_show_block + println.
+    let _ = (id_raw, issues_path);
+    todo!("Layer 6: cmd_show — parse id, load issues, find by id, render via format_show_block")
+}
+
+/// Implements `tracker delete <id>`.
+///
+/// Validates `id_raw`, locates the issue, removes it from storage, persists
+/// the updated array, and prints `Deleted issue #<id>.` to stdout. Deleted
+/// IDs are never reused: the next `create` assigns `max(remaining_ids) + 1`,
+/// which is strictly greater than any deleted ID. Other issues are not
+/// affected.
+///
+/// # Errors
+/// Returns `Err` if the ID is malformed, the issue does not exist, or
+/// storage I/O fails.
+pub fn cmd_delete(id_raw: &str, issues_path: &Path) -> Result<(), String> {
+    // Phase 2a Red Gate: stub. Phase 2b will wire parse_id + load_issues +
+    // retain/remove + save_issues + println.
+    let _ = (id_raw, issues_path);
+    todo!("Layer 6: cmd_delete — parse id, load issues, remove by id, persist, print confirmation")
 }
 
 /// Sort rank for `p`: index in `PRIORITY_ORDER` (high=0, medium=1, low=2).
@@ -950,6 +1024,77 @@ mod tests {
             Some("high"),
             Some("feature")
         ));
+    }
+
+    // --- Layer 6: description + show + delete (Red Gate) ---
+
+    fn issue_with_full(id: u64, title: &str, description: Option<&str>, labels: &[&str]) -> Issue {
+        Issue {
+            id,
+            title: title.to_string(),
+            description: description.map(|s| s.to_string()),
+            status: "open".to_string(),
+            priority: "medium".to_string(),
+            labels: labels.iter().map(|s| s.to_string()).collect(),
+            created_at: "2026-01-01T00:00:00Z".to_string(),
+            updated_at: "2026-01-01T00:00:00Z".to_string(),
+        }
+    }
+
+    #[test]
+    fn multiline_description_show_format() {
+        // DESIGN.md "Show output format": for multi-line descriptions, the
+        // first line follows the `Description:` label; each continuation
+        // line is indented by 13 spaces (matching the label-column width).
+        let issue = issue_with_full(1, "Fix auth", Some("line1\nline2"), &[]);
+        let out = format_show_block(&issue);
+        assert!(
+            out.contains("Description: line1"),
+            "first line must follow the Description: label:\n{out}"
+        );
+        assert!(
+            out.contains("\n             line2"),
+            "continuation line must be indented by 13 spaces:\n{out:?}"
+        );
+    }
+
+    #[test]
+    fn show_label_column_right_padded_to_13() {
+        // DESIGN.md "Show output format": the label column is right-padded
+        // to a fixed width of 13 characters so values align. Each label
+        // (e.g. `ID:`, `Title:`, `Description:`) occupies the leading 13
+        // chars of its line before the value starts.
+        let issue = issue_with_full(42, "Hello", None, &["bug"]);
+        let out = format_show_block(&issue);
+        // Pick a few representative labels and assert they appear with the
+        // 13-char prefix shape.
+        for prefix in &[
+            "ID:          ", // "ID:" + 10 spaces = 13 chars
+            "Title:       ", // "Title:" + 7 spaces = 13 chars
+            "Status:      ", // "Status:" + 6 spaces = 13 chars
+            "Priority:    ", // "Priority:" + 4 spaces = 13 chars
+            "Labels:      ", // "Labels:" + 6 spaces = 13 chars
+            "Description: ", // "Description:" + 1 space = 13 chars
+            "Created:     ", // "Created:" + 5 spaces = 13 chars
+            "Updated:     ", // "Updated:" + 5 spaces = 13 chars
+        ] {
+            assert!(
+                out.contains(prefix),
+                "expected 13-char label column prefix `{prefix}` in show output:\n{out}"
+            );
+        }
+    }
+
+    #[test]
+    fn max_id_plus_one_skips_deleted_ids() {
+        // DESIGN.md Feature 5 / Invariants: the deleted ID is never reused.
+        // For an issue list with IDs [1, 3] (id=2 was deleted), the next ID
+        // is max+1=4 — NOT 2 (sequential counter would re-use the gap).
+        // Cat B Red Gate deviation: `next_id` already implements max+1 from
+        // Layer 1 (`next_id(&[1,3])` returns 4); this test pins the behavior
+        // for the Layer 6 delete-id-never-reused contract.
+        assert_eq!(next_id(&[1, 3]), Ok(4));
+        assert_eq!(next_id(&[2, 5, 9]), Ok(10));
     }
 
     #[test]
