@@ -132,10 +132,21 @@ fn issue_fields_are_valid(issue: &Issue) -> bool {
         && issue
             .description
             .as_ref()
-            .is_none_or(|d| !d.trim().is_empty())
+            .is_none_or(|d| description_is_valid(d))
         && parse_timestamp(&issue.created_at).is_some()
         && parse_timestamp(&issue.updated_at).is_some()
         && issue.updated_at >= issue.created_at
+}
+
+/// Stored-description hygiene predicate. Stored descriptions are verbatim
+/// (not trimmed); this predicate checks the same hygiene rules
+/// `validate_description` enforces at the input boundary, so a hand-edited
+/// `tracker.json` with a description that bypassed `validate_description`
+/// (control character other than `\n`, or whitespace-only) is rejected at
+/// load. Newline is permitted because the spec carves it out for multi-line
+/// `show` rendering.
+fn description_is_valid(description: &str) -> bool {
+    !description.trim().is_empty() && !description.chars().any(|c| c.is_control() && c != '\n')
 }
 
 /// Stored-label hygiene predicate. Stored labels are post-trim; this predicate
@@ -214,35 +225,52 @@ pub fn save_issues(path: &Path, issues: &[Issue]) -> Result<(), String> {
     fs::write(path, contents).map_err(|e| format!("Could not save tracker data: {}.", e))
 }
 
-/// Implements `tracker create "<title>" [--priority <p>] [--label <l>]...`.
+/// Raw `tracker create` inputs as supplied by the CLI layer, before validation.
 ///
-/// Validates the title, optional priority, and each label; assigns the next ID;
-/// appends the new issue to storage; and prints `Created issue #<id>: <title>`
-/// to stdout. Priority defaults to `medium` when not supplied. Labels are
-/// trimmed individually and deduplicated (first occurrence preserved,
-/// case-sensitive).
+/// Bundles the per-field arguments so `cmd_create`'s signature is stable as
+/// the spec adds optional flags (priority added at Layer 3, labels at Layer 4,
+/// description at Layer 6). The struct holds borrows from the CLI parse
+/// result; ownership of the underlying strings stays with the caller.
+///
+/// Field naming uses `_raw` suffix to distinguish CLI-provided input from
+/// validated/parsed values inside `cmd_create`.
+pub struct CreateArgs<'a> {
+    /// Required `<title>` positional argument.
+    pub title_raw: &'a str,
+    /// Optional `--description` value (None if flag absent).
+    pub description_raw: Option<&'a str>,
+    /// Optional `--priority` value (None if flag absent → defaults to `medium`).
+    pub priority_raw: Option<&'a str>,
+    /// Zero or more `--label` values (already collected by clap).
+    pub labels_raw: &'a [String],
+}
+
+/// Implements `tracker create "<title>" [--description <d>] [--priority <p>] [--label <l>]...`.
+///
+/// Validates the title, optional description, optional priority, and each
+/// label; assigns the next ID; appends the new issue to storage; and prints
+/// `Created issue #<id>: <title>` to stdout. Priority defaults to `medium`
+/// when not supplied. Labels are trimmed individually and deduplicated (first
+/// occurrence preserved, case-sensitive). Description is stored verbatim
+/// (not trimmed) when supplied.
 ///
 /// # Errors
-/// Returns `Err` if the title is empty/whitespace, the priority is invalid,
-/// any label is empty after trim, stored data is unreadable or corrupt, the ID
-/// space is exhausted, or persisting the new issue fails.
-pub fn cmd_create(
-    title_raw: &str,
-    description_raw: Option<&str>,
-    priority_raw: Option<&str>,
-    labels_raw: &[String],
-    issues_path: &Path,
-) -> Result<(), String> {
-    let title = validate_title(title_raw)?;
-    let description = match description_raw {
+/// Returns `Err` if the title is empty/whitespace, the description is empty
+/// after trim or contains a forbidden control character, the priority is
+/// invalid, any label is empty after trim, stored data is unreadable or
+/// corrupt, the ID space is exhausted, or persisting the new issue fails.
+pub fn cmd_create(args: &CreateArgs, issues_path: &Path) -> Result<(), String> {
+    let title = validate_title(args.title_raw)?;
+    let description = match args.description_raw {
         Some(d) => Some(validate_description(d)?),
         None => None,
     };
-    let priority = match priority_raw {
+    let priority = match args.priority_raw {
         Some(p) => parse_priority(p)?,
         None => "medium".to_string(),
     };
-    let parsed_labels: Vec<String> = labels_raw
+    let parsed_labels: Vec<String> = args
+        .labels_raw
         .iter()
         .map(|l| parse_label(l))
         .collect::<Result<_, _>>()?;
@@ -323,18 +351,35 @@ pub fn cmd_status(id_raw: &str, status_raw: &str, issues_path: &Path) -> Result<
     Ok(())
 }
 
-/// Validates an `--description` value against the spec's empty-after-trim rule.
+/// Validates an `--description` value against the spec's empty-after-trim and
+/// control-character rules.
 ///
 /// Per DESIGN.md Feature 1: `--description` must be non-empty after trim, but
 /// the *stored* value is the input verbatim (not trimmed). This function returns
 /// the un-trimmed input on success so the caller can write it as-is.
 ///
+/// Per DESIGN.md Edge Cases / Description: description rejects every control
+/// character (Unicode general category `Cc`) EXCEPT newline (`\n`). The
+/// carve-out exists because the spec explicitly permits multi-line descriptions
+/// for `show` continuation rendering. Bidi controls (`Cf`) are NOT rejected
+/// (same out-of-threat-model posture as title and labels — single-user CLI).
+/// Same lineage as the title (Layer 1) and label (Layer 4) control-character
+/// defenses: free-form text that flows to a terminal-emitting render path
+/// must not carry escape bytes.
+///
 /// # Errors
 /// Returns `Err("Description cannot be empty.")` when `raw` is empty or
 /// whitespace-only after trim.
+/// Returns `Err("Description cannot contain control characters other than newline.")`
+/// when `raw` contains any `char::is_control()` other than `\n`.
 pub fn validate_description(raw: &str) -> Result<String, String> {
     if raw.trim().is_empty() {
         return Err("Description cannot be empty.".to_string());
+    }
+    if raw.chars().any(|c| c.is_control() && c != '\n') {
+        return Err(
+            "Description cannot contain control characters other than newline.".to_string(),
+        );
     }
     Ok(raw.to_string())
 }
@@ -1123,6 +1168,92 @@ mod tests {
                 "expected 13-char label column prefix `{prefix}` in show output:\n{out}"
             );
         }
+    }
+
+    // --- Round 2: description Cc defense (Security R9 F1 / RT R8 F1 / DE R9 F1 / SE R15 F1 / QE R15 F2 / SO R20 F3) ---
+
+    #[test]
+    fn description_empty_after_trim_is_rejected() {
+        assert!(validate_description("").is_err());
+        assert!(validate_description("   ").is_err());
+        assert!(validate_description("\n").is_err()); // newline-only is whitespace-only after trim
+    }
+
+    #[test]
+    fn description_with_control_char_other_than_newline_is_rejected() {
+        // ESC, BEL, NUL, DEL, tab, bare CR — all Cc, all not \n. Rejected.
+        assert!(validate_description("a\u{1B}b").is_err());
+        assert!(validate_description("a\u{07}b").is_err());
+        assert!(validate_description("a\u{00}b").is_err());
+        assert!(validate_description("a\u{7F}b").is_err());
+        assert!(validate_description("a\tb").is_err());
+        assert!(validate_description("a\rb").is_err());
+        // CRLF: contains \r, which is Cc-not-\n. Reject.
+        assert!(validate_description("line1\r\nline2").is_err());
+    }
+
+    #[test]
+    fn description_with_newline_only_is_accepted() {
+        // \n is the spec-permitted carve-out.
+        assert_eq!(
+            validate_description("line1\nline2"),
+            Ok("line1\nline2".to_string())
+        );
+        assert_eq!(
+            validate_description("first\nsecond\nthird"),
+            Ok("first\nsecond\nthird".to_string())
+        );
+    }
+
+    #[test]
+    fn description_stored_verbatim_not_trimmed() {
+        // Stored value is the raw input — not trimmed. Pins the
+        // "stored as provided (not trimmed)" half of the spec contract.
+        // Killing the mutation `Ok(raw.trim().to_string())`.
+        assert_eq!(
+            validate_description("  padded  "),
+            Ok("  padded  ".to_string())
+        );
+        assert_eq!(
+            validate_description("trailing-space "),
+            Ok("trailing-space ".to_string())
+        );
+    }
+
+    #[test]
+    fn description_with_printable_unicode_is_accepted() {
+        assert!(validate_description("emoji 🐛").is_ok());
+        assert!(validate_description("中文").is_ok());
+        assert!(validate_description("café").is_ok());
+    }
+
+    #[test]
+    fn issue_field_validation_rejects_control_char_in_description() {
+        let mut bad = issue(1, "medium");
+        bad.description = Some("a\u{1B}[31mPWN".to_string());
+        assert!(!issue_fields_are_valid(&bad));
+    }
+
+    #[test]
+    fn issue_field_validation_rejects_carriage_return_in_description() {
+        let mut bad = issue(1, "medium");
+        bad.description = Some("line1\rOVER".to_string());
+        assert!(!issue_fields_are_valid(&bad));
+    }
+
+    #[test]
+    fn issue_field_validation_accepts_newline_in_description() {
+        // \n is the spec-permitted carve-out at the load boundary too.
+        let mut ok = issue(1, "medium");
+        ok.description = Some("line1\nline2".to_string());
+        assert!(issue_fields_are_valid(&ok));
+    }
+
+    #[test]
+    fn issue_field_validation_accepts_no_description() {
+        // None is always valid (description is optional).
+        let issue = issue(1, "medium"); // helper leaves description = None
+        assert!(issue_fields_are_valid(&issue));
     }
 
     #[test]

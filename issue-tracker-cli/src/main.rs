@@ -43,14 +43,14 @@ enum Commands {
         /// New status: open, in-progress, done
         status: String,
     },
-    /// Show full details for an issue
+    /// Show full details for an issue: ID, Title, Status, Priority, Labels, Description, Created, Updated
     Show {
-        /// Issue ID
+        /// Issue ID (positive integer, >= 1)
         id: String,
     },
-    /// Delete an issue (no confirmation; deleted IDs are never reused)
+    /// Delete an issue. No confirmation prompt (see DESIGN.md D1); deleted IDs are never reused.
     Delete {
-        /// Issue ID
+        /// Issue ID (positive integer, >= 1)
         id: String,
     },
 }
@@ -90,10 +90,12 @@ fn main() {
             priority,
             label,
         } => tracker::cmd_create(
-            &title,
-            description.as_deref(),
-            priority.as_deref(),
-            &label,
+            &tracker::CreateArgs {
+                title_raw: &title,
+                description_raw: description.as_deref(),
+                priority_raw: priority.as_deref(),
+                labels_raw: &label,
+            },
             path,
         ),
         Commands::List {

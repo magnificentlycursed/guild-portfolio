@@ -1,5 +1,50 @@
 # Changelog
 
+## Layer 6 IAR Round 2 closure — 2026-05-11 02:00Z
+
+**Scope:** Resolves the substantive Open finding cluster surfaced by Layer 6 Round 1 cold-batch IAR (Security R9 / RT R8 / DE R9 / SE R15 / QE R15 / SO R20 / SA R13 / UX R8 / TW R9). Lands DESIGN.md spec amendments (SO authority), `src/lib.rs` defenses + the `CreateArgs` struct extraction (SE authority), tests (QE authority), `show` / `delete` `--help` parity (UX authority), and doc updates (TW authority).
+
+### Changed
+
+- **DESIGN.md** — Feature 1: description now must reject control characters other than `\n`; new error state `Error: Description cannot contain control characters other than newline.`. Edge Cases / Description: enumerated the rule, the `\n` carve-out rationale, the `\r\n` → `\n` normalization defense, and the bidi (Cf) accepted-risk stance (same posture as title and labels — single-user CLI, risk owner: director). Edge Cases / Storage: control-char-in-description added to corruption triggers. "Show output format": ratified the `\r\n` → `\n` normalization that the implementation does for legacy stored data / external-editor round-trips.
+- **src/lib.rs** — `validate_description` extended to reject `char::is_control()` except `\n`; new `description_is_valid` helper enforces the same rule at load time via `issue_fields_are_valid`. Same lineage as `parse_label` + `label_is_valid` from Layer 4 R2. New public `CreateArgs<'a>` struct bundles the four `cmd_create` inputs (title / description / priority / labels); `cmd_create`'s signature collapses from 5 parameters to 2 (`args: &CreateArgs`, `issues_path: &Path`), discharging SA R13 F1 Trigger A (CreateArgs refactor scheduled at SA R7 F4 / R8 F4 / R10).
+- **src/main.rs** — `Commands::Create` arm constructs `CreateArgs` and passes it through to `tracker::cmd_create`. `Show` and `Delete` doc-comments expanded to match the Layer 1-4 `--help` depth standard (UX R8 F1) — `show` now documents the full set of fields rendered; `delete` references the D1 deviation and the no-confirmation rule.
+- **tests/layer6.rs** — +12 integration tests covering description Cc rejection (ESC, CR, CRLF, tab, DEL, OSC 8 hyperlink), `\n` carve-out acceptance, verbatim-with-whitespace storage (kills the `Ok(raw.trim().to_string())` mutation per QE R15 F3), load-time corruption rejection for control-char and CR in description, `\n` accepted at load, and exact-full-block `show` rendering (kills the over-padding mutation per QE R15 F1).
+- **src/lib.rs#tests** — +10 unit tests covering `validate_description` empty/whitespace/Cc rejection, `\n` carve-out, verbatim-stored-with-whitespace, printable Unicode, and `issue_fields_are_valid` description-Cc rejection + `\n` acceptance + None acceptance.
+- **CHANGELOG.md** — Layer 6 entry retrospective per TW R9 F1 (the cold reader's primary handoff document was stale at Layer 6 landing — repeating the Layer 4 pattern).
+
+### IAR
+
+Round 1 cold-batch — 11 domain reviews (SO 20, SA 13, QE 15, SE 15, Security 9, Platform Engineer 10, UX 8, Data Engineer 9, Red Team 8, Technical Writer 9, VDD-IAR Alignment 15). Verdict: NO-GO-PENDING-MANUAL + Round 2 required. The substantive Open findings resolved in this Round 2 commit:
+
+- **Security R9 F1 / RT R8 F1 / DE R9 F1 / SE R15 F1 / QE R15 F2 / SO R20 F3** (description control-char defense — Open Medium-High; the third consecutive layer to surface the same generalization-failure pattern, the prior two being Title L1 and Labels L4 R7 F1) — resolved by the DESIGN.md amendment + `validate_description` + `description_is_valid` + 12 new tests.
+- **SO R20 F2** (`format_show_block` `\r\n` normalization undeclared in DESIGN.md) — resolved by ratifying the normalization in the "Show output format" spec section.
+- **QE R15 F1** (over-padding mutation survives substring assertions on 6 of 8 show rows) — resolved by the new `show_renders_exact_full_block_for_single_line_issue` test using full-line equality on all 8 rendered rows.
+- **QE R15 F3** (verbatim-storage half of description postcondition untested) — resolved by `create_preserves_description_verbatim_with_surrounding_whitespace` plus the unit test `description_stored_verbatim_not_trimmed`.
+- **SE R15 F2 / DE R9 F2** (bare `\r` overprints `show` alignment) — subsumed by the broader Cc-except-`\n` rejection rule; `\r` is now rejected at create time and at load time.
+- **UX R8 F1 / TW R9 F2** (`show` / `delete` `--help` one-line stubs vs. Layer 1-4 standard) — resolved by expanded doc-comments in `src/main.rs`.
+- **SA R13 F1 Trigger A** (CreateArgs refactor scheduled for Layer 6) — resolved by the new `CreateArgs<'a>` struct.
+- **TW R9 F1** (CHANGELOG missing Layer 6 entry) — resolved by this entry.
+- **RT R8 F2** (Trojan-Source / Cf in description) — Accepted Risk per the DESIGN.md amendment carve-out. Same posture as RT R6 F3 / R8 for title and labels (single-user local CLI threat model; risk owner: director).
+
+### Deferred (named future layer)
+
+- **SA R11 F1 / SA R13 F2** (rendering-half of `cmd_list` extraction; `format_show_block` column-width literals as second instance) — focused pre-Layer-7 PR.
+- **SA R13 F1 Trigger B** (`src/lib.rs` storage/validate/commands module split — 665+ LOC over the 500-line threshold) — bundled into the same pre-Layer-7 PR per SO adjudication (SO Review 21).
+
+### Open (process)
+
+- **VDD-IAR R15 F1 / SO R20 F1 / TW R9 F4** (Layer 6 manual testing checklist 13/13 unchecked) — director must execute the checklist and commit before merge per CLOSURE-PROTOCOL.md merge-gate criterion 3. Same standard as Layer 4 R11 F2.
+
+### Verification
+
+- `cargo test --no-fail-fast --locked` — **180/180 pass** at Round 2 close (57 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4 + 7 layer5 + 32 layer6).
+- `cargo clippy --all-targets --locked -- -D warnings` — clean.
+- `cargo fmt --check` — clean.
+- Manual testing checklist (TODO.md Layer 6) — pending (process Open).
+
+---
+
 ## Layer 5 — compound filtering — 2026-05-07 00:43Z
 
 **Scope:** Closes the layer-shipping commits for Layer 5 of the assignment

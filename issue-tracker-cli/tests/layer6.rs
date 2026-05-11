@@ -439,6 +439,282 @@ fn delete_not_found_exits_one() {
 
 // --- list does not leak description ---
 
+// --- Round 2: description control-character defense (Security R9 F1 / RT R8 F1 / SE R15 F1 / DE R9 F1 / QE R15 F2 / SO R20 F3) ---
+
+#[test]
+fn create_with_control_char_description_exits_one() {
+    // DESIGN.md Feature 1 / Edge Cases / Description (Round 2 amendment):
+    // description rejects every control character (Cc) except newline. ESC
+    // is the canonical terminal-escape injection byte and the same defect
+    // class that motivated the title (Layer 1) and label (Layer 4) defenses.
+    let dir = TempDir::new().unwrap();
+    tracker(&dir)
+        .args([
+            "create",
+            "Real",
+            "--description",
+            "Auth\u{1B}[31mPWN\u{1B}[0m",
+        ])
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::contains(
+            "Error: Description cannot contain control characters other than newline.",
+        ))
+        .stdout("");
+}
+
+#[test]
+fn create_with_carriage_return_description_exits_one() {
+    // Bare \r overprints the rendered line column 0 in show output — SE R15 F2
+    // / DE R9 F2. Subsumed by the broader Cc rejection rule with the \n
+    // carve-out: \r is Cc and is NOT \n, so reject.
+    let dir = TempDir::new().unwrap();
+    tracker(&dir)
+        .args(["create", "Real", "--description", "line1\rOVERWRITE"])
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::contains(
+            "Error: Description cannot contain control characters other than newline.",
+        ))
+        .stdout("");
+}
+
+#[test]
+fn create_with_crlf_description_exits_one() {
+    // \r\n contains \r which is Cc-not-\n. Reject at create time per the
+    // Round-2 spec amendment. (The format_show_block CRLF normalization is
+    // defense-in-depth for legacy stored data / hand-edited files, NOT a
+    // sanction for accepting CRLF at create time.)
+    let dir = TempDir::new().unwrap();
+    tracker(&dir)
+        .args(["create", "Real", "--description", "line1\r\nline2"])
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::contains(
+            "Error: Description cannot contain control characters other than newline.",
+        ))
+        .stdout("");
+}
+
+#[test]
+fn create_with_tab_description_exits_one() {
+    // Tab is Cc and is NOT \n. Reject. Same rule as title (Layer 1) and
+    // label (Layer 4) tab rejection.
+    let dir = TempDir::new().unwrap();
+    tracker(&dir)
+        .args(["create", "Real", "--description", "a\tb"])
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::contains(
+            "Error: Description cannot contain control characters other than newline.",
+        ))
+        .stdout("");
+}
+
+#[test]
+fn create_with_del_description_exits_one() {
+    // DEL (U+007F) is Cc and not \n. Reject. (NUL — U+0000 — cannot be passed
+    // through argv because the OS forbids it at process-spawn time; that path
+    // is covered by the unit test `description_with_control_char_other_than_
+    // newline_is_rejected` in src/lib.rs which calls validate_description in-
+    // process.)
+    let dir = TempDir::new().unwrap();
+    tracker(&dir)
+        .args(["create", "Real", "--description", "a\u{7F}b"])
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::contains(
+            "Error: Description cannot contain control characters other than newline.",
+        ))
+        .stdout("");
+}
+
+#[test]
+fn create_with_osc8_hyperlink_description_exits_one() {
+    // OSC 8 hyperlink leader: ESC ] 8 ; ; URL BEL. Both ESC (0x1B) and BEL
+    // (0x07) are Cc and not \n. Reject. Same rule as label OSC 8 rejection
+    // (Layer 4 RT R6 F1).
+    let dir = TempDir::new().unwrap();
+    tracker(&dir)
+        .args([
+            "create",
+            "Real",
+            "--description",
+            "\u{1B}]8;;https://evil/\u{07}click\u{1B}]8;;\u{07}",
+        ])
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::contains(
+            "Error: Description cannot contain control characters other than newline.",
+        ))
+        .stdout("");
+}
+
+#[test]
+fn create_with_newline_description_is_accepted() {
+    // \n is the spec-permitted carve-out: multi-line descriptions render in
+    // show with the continuation lines indented 13 spaces. Verify acceptance.
+    // Pinning the carve-out at the input boundary kills any mutation that
+    // tightens the predicate to reject all Cc indiscriminately.
+    let dir = TempDir::new().unwrap();
+    tracker(&dir)
+        .args(["create", "Multi-line", "--description", "line1\nline2"])
+        .assert()
+        .success();
+
+    let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
+    let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(v[0]["description"], "line1\nline2");
+}
+
+#[test]
+fn create_preserves_description_verbatim_with_surrounding_whitespace() {
+    // QE R15 F3: existing create_with_description_stores_verbatim does not
+    // pin the "stored as provided, not trimmed" half of the postcondition
+    // because its test value has no surrounding whitespace. A mutation
+    // `Ok(raw.trim().to_string())` in validate_description would survive
+    // the original test. This test pins the verbatim-with-whitespace
+    // contract.
+    let dir = TempDir::new().unwrap();
+    tracker(&dir)
+        .args(["create", "X", "--description", "  padded  "])
+        .assert()
+        .success();
+
+    let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
+    let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(
+        v[0]["description"], "  padded  ",
+        "description must be stored verbatim including leading/trailing whitespace (not trimmed)"
+    );
+}
+
+// --- Round 2: load-time corruption rejection for description (DE R9 F1 / Security R9 F1 load-path corollary) ---
+
+#[test]
+fn corrupt_data_with_control_char_description_is_rejected() {
+    // Hand-edited tracker.json with a JSON-escaped ESC in description must
+    // be rejected as corrupt at load. issue_fields_are_valid enforces the
+    // same Cc-except-\n rule on stored data that validate_description
+    // enforces on input. Same load-path corollary pattern as Layer 4
+    // corrupt_data_with_control_char_label_is_rejected.
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("tracker.json");
+    fs::write(
+        &path,
+        r#"[{"id":1,"title":"Real","description":"a[31mPWN","status":"open","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]"#,
+    )
+    .unwrap();
+
+    tracker(&dir)
+        .args(["list"])
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::contains(
+            "Could not read tracker data. The file may be corrupt.",
+        ))
+        .stdout("");
+}
+
+#[test]
+fn corrupt_data_with_carriage_return_description_is_rejected() {
+    // Load-path corollary for bare \r — overprints show alignment column;
+    // rejected at load.
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("tracker.json");
+    fs::write(
+        &path,
+        r#"[{"id":1,"title":"Real","description":"line1\rOVER","status":"open","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]"#,
+    )
+    .unwrap();
+
+    tracker(&dir)
+        .args(["list"])
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::contains(
+            "Could not read tracker data. The file may be corrupt.",
+        ))
+        .stdout("");
+}
+
+#[test]
+fn load_accepts_description_with_newline() {
+    // Load-path corollary of the create-time \n carve-out: a stored
+    // description with a literal newline must NOT be rejected as corrupt.
+    // Pins the carve-out across the boundary; kills a load-time predicate
+    // that rejects all Cc indiscriminately.
+    let dir = TempDir::new().unwrap();
+    let path = dir.path().join("tracker.json");
+    fs::write(
+        &path,
+        r#"[{"id":1,"title":"Real","description":"line1\nline2","status":"open","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]"#,
+    )
+    .unwrap();
+
+    tracker(&dir).args(["show", "1"]).assert().success();
+}
+
+// --- Round 2: show rendering strictness (QE R15 F1 over-padding mutation) ---
+
+#[test]
+fn show_renders_exact_full_block_for_single_line_issue() {
+    // QE R15 F1: substring contains assertions in show_displays_all_fields
+    // do not catch over-padding mutations (e.g., "ID:          " → "ID:           ").
+    // Pin one full single-line show block exactly to lock the rendering
+    // contract. The created_at / updated_at timestamps vary by clock so we
+    // assert on the deterministic prefix lines only via a single full-line
+    // comparison per field.
+    let dir = TempDir::new().unwrap();
+    tracker(&dir)
+        .args(["create", "Update README", "--priority", "low"])
+        .assert()
+        .success();
+
+    let output = tracker(&dir)
+        .args(["show", "1"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let out = String::from_utf8(output).unwrap();
+    // Each row must match EXACTLY (full-line match, not substring). The label
+    // column is right-padded to 13 characters; any over-padding mutation
+    // (an extra space) fails the equality check.
+    let lines: Vec<&str> = out.lines().collect();
+    assert_eq!(lines[0], "ID:          1");
+    assert_eq!(lines[1], "Title:       Update README");
+    assert_eq!(lines[2], "Status:      open");
+    assert_eq!(lines[3], "Priority:    low");
+    assert_eq!(lines[4], "Labels:      (none)");
+    assert_eq!(lines[5], "Description: (none)");
+    // Lines 6 + 7 are Created: / Updated: with clock-dependent timestamps;
+    // assert just the label column prefix shape on those.
+    assert!(
+        lines[6].starts_with("Created:     "),
+        "Created: row must start with 13-char label column:\n{lines:?}"
+    );
+    assert!(
+        lines[7].starts_with("Updated:     "),
+        "Updated: row must start with 13-char label column:\n{lines:?}"
+    );
+    // No 9th line (no trailing blank line beyond the final \n that print! consumed).
+    assert_eq!(
+        lines.len(),
+        8,
+        "show output must be exactly 8 lines:\n{out}"
+    );
+}
+
 #[test]
 fn description_not_in_list_output() {
     // DESIGN.md Edge Cases / Description: "in list output, description is
