@@ -1158,3 +1158,38 @@ The two real Open findings both surface the same root cause: **color is the user
 - **No findings raised to QE, Security, Platform, or SA for code-only action this round.**
 
 **Files modified:** Only this log appended.
+
+---
+
+## Review 11 — 2026-05-12 00:00Z
+
+**Round:** UX Review 11 (Layer 7 IAR Round 2 closure pass). Warm verification per CLOSURE-PROTOCOL.md §5; not a new adversarial round.
+
+**Scope:** Verify R10 Open findings closed by commit `09b1905`. Inputs: DESIGN.md "Interface / Color output" amendments (NO_COLOR / CLICOLOR honoring + bold-redundancy spec); `src/lib.rs` `color_mode_from_env` + `priority_ansi` / `status_ansi` (now bold-on-highlighted); integration test `no_color_env_does_not_break_piped_invocation`; manual TTY re-walk pending.
+
+### Round-1 finding closures
+
+- **F1 — `NO_COLOR` / `CLICOLOR` / `CLICOLOR_FORCE` not honored:** **Resolved by `09b1905`.** DESIGN.md amendment ratifies the de-facto cross-tool standard (https://no-color.org/) — NO_COLOR (any non-empty value) and CLICOLOR=0 both force ColorMode::Off; CLICOLOR_FORCE deliberately not honored to preserve pipe-cleanness. `color_mode_from_env()` implements the precedence: TTY check → NO_COLOR → CLICOLOR=0 → On. Integration test `no_color_env_does_not_break_piped_invocation` verifies env-var passthrough on the piped path (TTY-positive verification deferred to manual checklist re-walk). The cross-tool consistency principle is now honored: user has the same opt-out lever in `tracker` that they have in `git`, `cargo`, `ripgrep`, `bat`, `fd`, `eza`, `delta`.
+- **F2 — Color asymmetry: `high` is bold-red but `done` / `in-progress` / `medium` are plain:** **Resolved by `09b1905`.** DESIGN.md amendment changes the color table to "Red / bold" / "Yellow / bold" / "Cyan / bold" / "Green / bold" for the four highlighted values, leaving `low` and `open` plain so the highlighted-vs-unhighlighted dichotomy reads at a glance. `priority_ansi("medium", On)` returns `\x1b[1;33m`; `status_ansi("in-progress", On)` returns `\x1b[1;36m`; `status_ansi("done", On)` returns `\x1b[1;32m`. WCAG 1.4.1 *Use of Color* is now honored: every color cue carries a non-color cue (bold weight) so deuteranopia/protanopia users have a non-color signal to distinguish highlighted states.
+
+### Manual checklist re-walk needed (carry-forward)
+
+The Round-2 spec and implementation changes introduce new behaviors that the existing 7-item manual checklist (TODO.md L368-374) does not cover. Director should add and execute:
+
+- **`NO_COLOR=1 tracker list` in terminal → no ANSI rendered** (CVD/accessibility opt-out).
+- **`CLICOLOR=0 tracker list` in terminal → no ANSI rendered.**
+- **`CLICOLOR_FORCE=1 tracker list | cat -v` → still no ANSI** (pipe-cleanness contract preserved).
+- **`tracker list` in terminal with done / in-progress / medium values → bold weight visible** (CVD redundancy).
+- **`tracker list | cat -v` with no issues matching → stderr empty-state has no ANSI** (R2 symmetric-stderr commitment).
+
+### New findings
+
+*(none — closure pass.)*
+
+### Summary
+
+Both R1 UX findings Resolved by R2 spec amendments + implementation: F1 NO_COLOR / CLICOLOR honoring is now in-spec and tested at the env-var level; F2 bold-redundancy gives every highlighted value a non-color cue per WCAG 1.4.1. The CVD-correctness gap that the original Layer-7 spec carried is closed. Manual TTY re-walk for the new behaviors is the standing carry-forward to merge gate.
+
+**Coordination:** SO R24 — spec amendments ratified; Security R12 — NO_COLOR cross-domain coordination verified; QE R18 — integration coverage for env-var path acknowledged as partial (TTY-positive deferred to manual / future force_color seam).
+
+**Files modified:** This log appended only. The DESIGN.md amendments and `src/lib.rs` implementation landed in `09b1905` under SO + SE authority per CLOSURE-PROTOCOL.md §1.

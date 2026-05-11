@@ -2218,3 +2218,40 @@ The two substantive concerns are process-class, not implementation-class: (F1) t
 - **Quality Engineer (QE — Layer 7 round):** F2 is in QE's wheelhouse. Either (a) ratify in TODO.md with a "polish-layer Red Gate" clause that names pinning-of-conventions as a valid Red Gate purpose for polish layers, or (b) backfill a Phase-2a test that fails against pre-Layer-7 main (a unit test on `priority_ansi` / `status_ansi` would not compile against main).
 - **Director:** Adjudicate F2 with QE. Manual checklist for Layer 7 already closed at `603c689`; the standing skeptical posture against fast closure was dismissed under scrutiny (F3) but recorded for future cross-layer auditing.
 - **VDD-IAR Alignment (next round):** Two process-class findings this round (F1 broken-deferral, F2 Red-Gate-framing). Both are within the IAR process surface VDD-IAR audits. Worth recording the pattern: a deferral with a named gate that closes silently when the gate is crossed is the same defect class as SO R22's "spec invariant violated quietly by simplification" — both are "the system did the easier thing without acknowledging the trade-off."
+
+---
+
+## Review 24 — 2026-05-12 00:00Z
+
+**Round:** SO Review 24 (Layer 7 IAR Round 2 closure pass). Warm closure-verification per CLOSURE-PROTOCOL.md §5; not a new adversarial round.
+
+**Scope:** Verify Round-1 finding closures landed in commits `fbbb8a3` (VDD-IAR R17 F1 Option A retrofit) and `09b1905` (substantive cross-domain Round-2 closure). Inputs: DESIGN.md amendments at "Interface / Color output" + "stderr contract" + Edge Cases storage; six new DECISIONS.md entries under "Layer 7 IAR Round 2 spec amendments"; CHANGELOG.md Layer 7 Round-2 entry.
+
+### Round-1 finding closures
+
+- **F1 — Pre-Layer-7 focused PR deferral expired (SA carry-forward cluster):** **Backlogged per CLOSURE-PROTOCOL.md §3.** DECISIONS.md entry "SA R11 F1 + SA R13 F1 Trigger B + SA R13 F2 auto-Backlog per CLOSURE-PROTOCOL.md §3" promotes the three findings from Deferred to Backlogged. The architectural concerns remain real but the cost-benefit calculus for a focused refactor PR has not shifted; Backlogging captures the work without binding it to a specific upcoming layer.
+- **F2 — Red Gate pass-against-current framing:** **Resolved by `fbbb8a3` (VDD-IAR R17 F1 Option A).** 12 retroactive unit tests added with the `// retroactive Red Gate:` label per `prompts/implementation.md` L56; DECISIONS.md entry documents the rationale and "Do not repeat for non-polish layers" annotation. Option B (CLOSURE-PROTOCOL.md polish-layer-exception amendment) deliberately not taken — rule changes earned by recurrence.
+- **F3 — Manual checklist 16-minute closure window:** **Dismissed under scrutiny.** `603c689` commit body enumerates per-checklist-item observed behaviors with specificity exceeding checkbox restatement; verification depth claim stands.
+- **F4 — Private color helpers as spec-bearing API:** **Resolved by `09b1905`.** `ColorMode` enum + `color_mode_from_env()` now `pub`; `display_safe` also exposed `pub` (RT R10 F1 lineage). The spec-bearing surface that previously hid behind `fn` is now part of the documented public surface.
+
+### Layer 7 AC compliance (post-R2)
+
+All 13 original Layer 7 ACs (TODO.md L353-364) Met. Four new R2-amended commitments Met:
+- NO_COLOR / CLICOLOR=0 honored (DESIGN.md L239 amendment; `color_mode_from_env`; integration test `no_color_env_does_not_break_piped_invocation`).
+- Bold redundancy on every highlighted value (DESIGN.md L243-248 amendment; `priority_ansi("medium", On)` → `\x1b[1;33m`; `status_ansi("in-progress", On)` → `\x1b[1;36m`; `status_ansi("done", On)` → `\x1b[1;32m`).
+- stderr Cc-escape extended to clap pipeline (DESIGN.md L222 amendment; `sanitize_quoted_values`; integration test `unknown_subcommand_with_cc_payload_escapes_in_stderr`).
+- Errno tag in OS-error stderr ratified (DESIGN.md L343 amendment).
+
+### New findings
+
+*(none — closure pass.)*
+
+### Summary
+
+All four R1 SO-domain findings transitioned cleanly: F1 Backlogged §3, F2 Resolved (fbbb8a3), F3 Dismissed, F4 Resolved (09b1905). Six R2 spec amendments landed in DECISIONS.md with citation chain to originating R1 findings. The "private helpers as spec-bearing API" observation prompted the right architectural move (public `ColorMode` + `color_mode_from_env`) — a small Round-2 sweetener beyond the Open-finding contract.
+
+**Verdict:** **GO-PENDING-MANUAL-REWALK.** The Round-2 manual testing checklist re-walk for the new behaviors (NO_COLOR / CLICOLOR / CLICOLOR_FORCE / bold rendering / no-ANSI-on-stderr-empty-state) is the standing CLOSURE-PROTOCOL §6 criterion-3 requirement; director must add to TODO.md and execute before merge.
+
+**Coordination:** VDD-IAR R18 — ratify R17 F1 closure (evidence chain: `fbbb8a3` retrofit + R2 test updates + DECISIONS.md entry). SA R16 — F1 Backlog state ratified.
+
+**Files modified:** This log appended; DESIGN.md and DECISIONS.md edits (SO authority) landed in `09b1905`.

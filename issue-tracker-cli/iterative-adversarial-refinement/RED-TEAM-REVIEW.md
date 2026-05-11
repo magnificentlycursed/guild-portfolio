@@ -1331,3 +1331,42 @@ Round **10** logged. Cold-session cold-batch produced **2 Open findings** (F1 st
 - [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md) — The "every new free-form text field needs an explicit Cc contract" Red Gate criterion proposed in RT R9 (and forwarded to VDD-IAR R16) needs broadening: the criterion should extend from "schema member" to "every stderr write site that interpolates user-supplied bytes," including clap-generated errors and any other library-level error pipeline. F12 (insider-threat boundary) is a documentation-only addition; flag for VDD-IAR's CLOSURE-PROTOCOL review.
 
 **Files modified:** Only this review log appended. No source, tests, or DESIGN.md changes per IAR domain authority boundaries (CLOSURE-PROTOCOL.md §1).
+
+---
+
+## Review 11 — 2026-05-12 00:00Z
+
+**Round:** RT Review 11 (Layer 7 IAR Round 2 closure pass). Warm verification per CLOSURE-PROTOCOL.md §5; not a new adversarial round.
+
+**Scope:** Verify R10 Open findings closed by commit `09b1905`. Inputs: `src/lib.rs` `sanitize_quoted_values` + `src/main.rs` application to clap errors; DESIGN.md "stderr contract" amendment extending Cc-escape to clap pipeline; DESIGN.md Permission-denied error broadening; tests/layer7.rs new integration test `unknown_subcommand_with_cc_payload_escapes_in_stderr`; carry-forward Accepted Risk regression check.
+
+### Round-1 finding closures
+
+- **F1 — clap's `unrecognized subcommand` error reflects raw Cc bytes to stderr:** **Resolved by `09b1905`.** Two-stage defense in place: (1) DESIGN.md "stderr contract" amendment explicitly extends the Cc-escape rule to clap's argument-parsing pipeline ("every stderr write site, including the parser's, must Cc-escape reflected user values"); (2) `src/main.rs` now applies `tracker::sanitize_quoted_values(&raw)` to clap's error string after the `error:` → `Error:` capitalization swap. The narrow-scope sanitizer (separate from `display_safe` to preserve clap's structural `\n\nUsage:` LFs) walks the error and applies `display_safe` only inside the `'<value>'` quoted regions, where user-supplied bytes are reflected.
+
+  PoC regression verification: `tracker $'pre\rmid\ttab'` (planted CR + TAB) now stderr-emits `Error: unrecognized subcommand 'pre\u{D}mid\u{9}tab'\n\nUsage: tracker <COMMAND>\n\nFor more information, try '--help'.\n` — CR and TAB are escaped inside the quoted region; structural LFs survive (verified by `tests/layer7.rs::unknown_subcommand_with_cc_payload_escapes_in_stderr`).
+
+  Discovered during the R2 implementation work: clap's own error pipeline upstream-strips raw `\x1B` (ESC) bytes from reflected user values before they reach our sanitizer. This is a clap-side defense we did not previously know about; it doesn't change our defense (we still sanitize what clap passes through) but documents that the ESC-byte attack vector is closed at the upstream layer as well.
+
+  The systemic-pattern observation from R10 (this is the 4th instance of the surface-class drift defect class: Title L1 → Labels L4 → Description L6 → clap pipeline L7) is now closed at the per-stderr-write-site level rather than just per-validate-boundary. The rule generalization that VDD-IAR R16 proposed has been earned by this round.
+
+- **F2 — Spec drift in OS-error message wording (DESIGN.md L343 vs. actual emit) + low-severity errno reconnaissance:** **Resolved by `09b1905`.** DESIGN.md L343 amended to ratify the platform `std::io::Error` Display verbatim: `Error: Could not read tracker data: <os-error-description>.` where `<os-error-description>` is the platform's std::io::Error Display (e.g. `Permission denied (os error 13)` on Unix). The errno tag is now explicitly in-spec as a diagnostic aid; the prefix `Error: Could not read tracker data: ` carries the spec-stable shape. Save-side error follows the symmetric pattern. Spec/code drift is closed by broadening the spec to match the implementation's diagnostic value rather than reducing the implementation's diagnostic output. Errno-reconnaissance value remains zero in the single-user threat model; the rationale is recorded in DECISIONS.md.
+
+### Carry-forward Accepted Risk regression
+
+- **F9 (Trojan-Source / Cf in title, label, description):** Re-verified intact. Layer 7 Round-2 changes touch presentation and stderr safety only; no new Cf surface in description rendering (description is uncolored). Risk owner: director. Re-evaluation trigger unchanged: any future multi-user / shared `tracker.json` use case.
+- **F10 (Plaintext `tracker.json`):** Unchanged. R2 made no storage changes.
+- **F11 (Concurrent-write TOCTOU):** Unchanged. R2 added zero new I/O.
+- **F12 (Insider-threat / cosmic-ray `tracker.json` modification):** Unchanged. R2 strengthened the defense surface — `wrap_color` debug_assert! catches refactor-introduced free-form colored fields whose load-time validation was missed (Security R12 closure), but the underlying insider-threat boundary documented in F12 is unchanged.
+
+### New findings
+
+*(none — closure pass.)*
+
+### Summary
+
+Both R1 RT findings Resolved. F1 was the substantive Cc-defense extension at the clap-pipeline stderr write site (4th-instance of the surface-class drift pattern, now closed at the per-write-site level). F2 was the spec-wording drift, resolved by broadening the spec to match the diagnostic-valuable implementation rather than reducing the implementation. All four carry-forward Accepted Risks re-verified intact.
+
+**Coordination:** Security R12 — `sanitize_quoted_values` defense-in-depth coordination verified; VDD-IAR R18 — RT R9 generalization-rule proposal (extend Cc-defense from per-field to per-stderr-write-site) is now earned by this round's resolution; pattern can be documented as a CLOSURE-PROTOCOL.md-amendment candidate if SO concurs.
+
+**Files modified:** Only this review log appended.

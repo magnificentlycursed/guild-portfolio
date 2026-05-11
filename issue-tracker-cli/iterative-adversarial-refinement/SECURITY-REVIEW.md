@@ -1261,3 +1261,37 @@ Round **11** logged. Cold-session Layer 7 sweep produced **two Open findings** (
 **Files modified:** Only this review log appended; no source, tests, or DESIGN.md changes applied per CLOSURE-PROTOCOL.md §1 (Security may apply CVE fixes to `src/**` — no CVE fixes triggered this round; Finding 1 is a defense-in-depth recommendation, not a CVE). Attack payloads abstracted (`<ESC>`, `<TOKEN_PLACEHOLDER>`, `<RAW_SUBCMD>`) per primer guidance.
 
 ---
+
+## Review 12 — 2026-05-12 00:00Z
+
+**Round:** Security Review 12 (Layer 7 IAR Round 2 closure pass). Warm verification per CLOSURE-PROTOCOL.md §5; not a new adversarial round.
+
+**Scope:** Verify R11 Open findings closed by commit `09b1905`. Inputs: `src/lib.rs` `wrap_color` (with debug_assert!) and `color_mode_from_env` (NO_COLOR / CLICOLOR honoring); DESIGN.md "Interface / Color output" amendment ratifying env-var opt-out; `src/lib.rs#tests` `wrap_color_debug_assert_active_in_debug_builds` test; carry-forward Accepted Risk regression check.
+
+### Round-1 finding closures
+
+- **F1 — `wrap_color` trusts caller's value-byte hygiene; defense-in-depth gap on the new ANSI-emitting code path:** **Resolved by `09b1905`.** `wrap_color` now contains `debug_assert!(!value.chars().any(char::is_control), ...)` at the function entry. The assertion fires on debug builds (i.e., `cargo test`) on any control-character-bearing input, surfacing future refactors that introduce a free-form colored field whose validation was missed. In release builds the assertion is compiled out, so the production cost is zero. Verified by `wrap_color_debug_assert_active_in_debug_builds` unit test: `std::panic::catch_unwind(|| wrap_color("evil\x1b[0m", Some("\x1b[1;31m")))` returns `Err`, confirming the panic on Cc-bearing input.
+- **F2 — `NO_COLOR` environment variable convention not honored:** **Resolved by `09b1905`.** DESIGN.md "Interface / Color output" amended to honor `NO_COLOR` (any non-empty value) and `CLICOLOR=0`, with `CLICOLOR_FORCE` deliberately not honored (pipe-cleanness contract takes precedence). `color_mode_from_env()` implements the check chain. Integration test `no_color_env_does_not_break_piped_invocation` verifies env-var passthrough (the test cannot exercise the TTY-positive branch — TTY-positive verification is in the Layer-7 manual checklist re-walk).
+
+### Carry-forward regression verification
+
+- **F13 (Trojan-Source / Cf in title, label, description, RT R8 F2 lineage):** Accepted Risk re-verified intact. Layer 7 Round-2 changes touch presentation only; no new surface for Cf bytes. The `wrap_color` debug_assert! catches *Cc* bytes (controls); Cf (formatting) bytes are not in `char::is_control()` per Rust's Unicode-category definition, so the Accepted Risk posture is preserved.
+- **F12 (Plaintext `tracker.json` storage):** Accepted Risk unchanged. No storage-format changes in R2.
+- **`cargo audit` regression:** clean (0/1069 advisories, 100 crate deps). Verified at HEAD `09b1905`.
+- **Cc-defenses (title L1, labels L4 R7 F1, description L6 R2 / Security R9 F1):** verified intact at `src/lib.rs` `validate_title` / `parse_label` / `validate_description` / `issue_fields_are_valid` — no R2 edits in those code paths.
+
+### Round-2 sweetener (not a closure but worth noting)
+
+- **`sanitize_quoted_values` adds a new defensive layer** at the previously-uncovered stderr write site (clap's argument-parsing pipeline; coordinated with RT R10 F1). The byte-level defense for stderr Cc-escape now extends to clap-reflected values, closing the surface-class drift pattern that RT R9 / R10 named.
+
+### New findings
+
+*(none — closure pass.)*
+
+### Summary
+
+Both R1 Security findings Resolved: F1 by `wrap_color` debug_assert! (defense-in-depth on the output boundary); F2 by `color_mode_from_env` NO_COLOR + CLICOLOR support (UX accessibility opt-out as a security primitive). All carry-forward Accepted Risks re-verified intact. The R2 sweetener of `sanitize_quoted_values` extending Cc-defense to clap's stderr write site is a positive cross-domain outcome — Layer 7 now has Cc-defense at every input boundary (validate_*) AND every stderr output boundary (display_safe / sanitize_quoted_values).
+
+**Coordination:** RT R11 — clap stderr Cc-escape coordinated closure verified (`unknown_subcommand_with_cc_payload_escapes_in_stderr` integration test); UX R11 — NO_COLOR closure cross-checked; QE R18 — `wrap_color` debug_assert! test verified.
+
+**Files modified:** This log appended only. The `wrap_color` debug_assert! and `color_mode_from_env` landed in `09b1905` under SE authority per CLOSURE-PROTOCOL.md §1 (Security has CVE-fix authority on `src/**`; this round's findings were defense-in-depth, not CVE).

@@ -1015,3 +1015,39 @@ All help-text valid-value enumerations match the tests and DESIGN.md. The `Creat
 **Files modified:** Only this log appended.
 
 ---
+
+## Review 12 — 2026-05-12 00:00Z
+
+**Round:** TW Review 12 (Layer 7 IAR Round 2 closure pass). Warm verification per CLOSURE-PROTOCOL.md §5; not a new adversarial round.
+
+**Scope:** Verify R11 Open findings closed by commit `09b1905`. Inputs: rewritten `issue-tracker-cli/README.md`; updated `guild-portfolio/README.md` Layer 7 row; refreshed `src/lib.rs` `//!` module-level doc-comment; new DECISIONS.md entries; refreshed CHANGELOG.md Round-2 entry.
+
+### Round-1 finding closures
+
+- **F1 — `issue-tracker-cli/README.md` "Available now (Layer 4)" block stale across four layers:** **Resolved by `09b1905`.** Full rewrite: all 5 subcommands documented with current flags including `--description`; new "Color output" section explaining TTY rule + NO_COLOR / CLICOLOR honoring + WCAG bold-redundancy rationale + CLICOLOR_FORCE exclusion; install section bumped to `rust-version = "1.82"` reference; Status block now reads "Layer 7 implementation complete; Layer 7 IAR Round 2 closure in progress" with all 7 layer checkboxes; IAR domain count corrected to 11 active. The recurring "README stale" pattern (TW R7 F1 / R9 F3 lineage) is closed at the Layer 7 timing the prior reviews explicitly committed to.
+- **F2 — `guild-portfolio/README.md` Layer 7 row mis-marked 🔲 Not started:** **Resolved by `09b1905`.** Layer 6 row corrected to ✅ Complete; Layer 7 row corrected to 🟡 In IAR Round 2. The portfolio-level reader now sees accurate current-state.
+- **F3 — `src/lib.rs` module-level `//!` doc-comment names functions that no longer exist:** **Resolved by `09b1905`.** Full refresh: `load_issues` / `save_issues` (renamed at Layer 6 R3 SO-R22 closure) corrected to `load_tracker` / `save_tracker`; missing surface added (`cmd_show`, `cmd_delete`, `validate_description`, `CreateArgs`, `Tracker`, `display_safe`); `cargo doc` now shows an accurate map for cold readers.
+- **F4 — DECISIONS.md missing the "raw ANSI escapes, no `anstyle` dependency" decision:** **Resolved by `09b1905`.** New entry "Raw ANSI escapes rather than `anstyle` / `termcolor` dependency" under "Layer 7 IAR Round 2 spec amendments" captures the SE-domain rationale, the spec-scoped target environment (VT100-compatible terminals), and the re-evaluation triggers.
+- **F5 — `CHANGELOG.md` Layer 7 entry "Open (process)" half-claims a contradicted state:** **Resolved by `09b1905`.** The prior Layer 7 implementation entry's "Open (process)" item was the manual-checklist closure, which landed in `603c689` before Round 1. The new Round-2 CHANGELOG entry has its own "Open (process)" section listing current carry-forward items: VDD-IAR R18 ratification, manual re-walk, deferred force_color seam, deferred clippy hook. The CHANGELOG narrative is now consistent with closure state at HEAD.
+
+### Doc-currency verification (R2 sweep)
+
+- **README.md (issue-tracker-cli):** every claim cross-checked against current code — Color output section against `priority_ansi` / `status_ansi` bold values; NO_COLOR / CLICOLOR section against `color_mode_from_env`; storage shape claim against `Tracker` struct.
+- **README.md (guild-portfolio):** Layer 7 row consistent with Status block in issue-tracker-cli README.
+- **CHANGELOG.md:** the three Round-2 commit message claims (substantive R2, R1 review log batch, retroactive Red Gate retrofit) reflected in the CHANGELOG entry.
+- **DECISIONS.md:** six R2 entries, each with citation chain to originating R1 finding(s).
+- **src/lib.rs `//!`:** public surface listing matches `pub fn` / `pub enum` / `pub struct` declarations at HEAD.
+
+No claim-vs-code drift detected in the R2 doc sweep.
+
+### New findings
+
+*(none — closure pass.)*
+
+### Summary
+
+All 5 R1 TW findings Resolved. The recurring "doc-currency drift" pattern (TW R7 F1 / R9 F3 — README stale at end-of-layer) was the highest-priority recurrent finding across the project's TW history; its resolution at Layer 7 R2 closure breaks the pattern at the timing prior reviews committed to. Doc artifacts are at MVR for Layer 7.
+
+**Coordination:** SO R24 — DECISIONS.md and CHANGELOG entries authored under SO authority verified for correctness; SE R18 — `//!` doc-comment refresh verified against `pub fn` surface.
+
+**Files modified:** Only this log appended. The README.md / CHANGELOG.md / DECISIONS.md / `//!` doc-comment edits landed in `09b1905` under TW + SO + SE authority per CLOSURE-PROTOCOL.md §1.

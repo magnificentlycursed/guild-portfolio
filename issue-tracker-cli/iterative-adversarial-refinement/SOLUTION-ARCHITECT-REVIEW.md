@@ -1459,3 +1459,36 @@ Three findings I tried to elevate but could not:
 - **For UX (informational):** If `--color=auto|always|never` is ever requested as a feature, Finding 3's enum refactor is the architectural prep.
 - **For Platform Engineer (informational):** Raw ANSI escapes vs. `anstyle` / `termcolor` is library-agnostic per DECISIONS.md L47-49; the choice is documented in the function-level comment + CHANGELOG but not in DECISIONS.md. Optional DECISIONS.md entry recommended (see Dim 10 commentary).
 - **For VDD-IAR (informational):** The pre-Layer-7 focused PR was the SO-adjudicated condition (SO R21, recorded in SA R14 L1184-1186); Layer 7 shipped without it. VDD-IAR should verify whether this constitutes a process-compliance gap (closure-protocol auto-Backlog rule firing) or an SO-authority disposition still in flight.
+
+---
+
+## Review 16 — 2026-05-12 00:00Z
+
+**Round:** SA Review 16 (Layer 7 IAR Round 2 closure pass). Warm verification per CLOSURE-PROTOCOL.md §5; not a new adversarial round.
+
+**Scope:** Verify R15 Open findings closed by commits `fbbb8a3` + `09b1905`. Inputs: `src/lib.rs` color helpers (now with `ColorMode` enum + `color_mode_from_env` + `render_cell` + `sanitize_quoted_values`); `src/main.rs` TTY-decision centralization; DECISIONS.md "Layer 7 IAR Round 2 spec amendments" entries.
+
+### Round-1 finding closures
+
+- **F1 — Pre-Layer-7 focused PR deferral expired:** **Backlogged per CLOSURE-PROTOCOL.md §3** alongside SO R24 F1. The SA architectural concerns stand (SA R11 F1 cmd_list rendering extraction; SA R13 F1 Trigger B src/lib.rs module split; SA R13 F2 format_show_block column-width literals); Backlogged state captures them without binding to a specific layer. Re-evaluation trigger: any future layer whose scope would benefit from a clean separation between data layer, validation, and rendering — or portfolio-closeout polish.
+- **F2 — TTY detection duplicated at `cmd_show` + `cmd_list` entry:** **Resolved by `09b1905`.** `src/main.rs` L88 `let color = tracker::color_mode_from_env();` is now the sole TTY-decision point; `cmd_show(id_raw, issues_path, color: ColorMode)` and `cmd_list(..., color: ColorMode)` take the decision as parameter. No more `is_terminal()` calls inside cmd_* functions. Architectural shape now matches the SA-recommended "single environmental check, threaded through" pattern.
+- **F3 — `format_show_block(issue, use_color: bool)` boolean trap:** **Resolved by `09b1905`.** `ColorMode { On, Off }` enum with `is_on()` accessor replaces the `bool` parameter; call sites read self-documentingly (`format_show_block(issue, ColorMode::Off)` in unit tests, `format_show_block(issue, color)` in `cmd_show` where `color` is the threaded `ColorMode`). The boolean-trap antipattern is closed.
+
+### Architectural re-check (Round-2 changes)
+
+- **`ColorMode` enum + `color_mode_from_env`:** Cohesion gain — environmental decision factored out into a single named, testable function. Decision documentation (DECISIONS.md "Layer 7 IAR Round 2 spec amendments" / NO_COLOR / CLICOLOR honoring) captures the design rationale; no architectural drift.
+- **`render_cell` replaces `pad_after_color`:** SE R17 F2 closure produced a cleaner API (caller passes bare value + ansi + width; visible_chars computed internally). Eliminates the off-by-one API-misuse surface SA had implicitly underwritten by accepting the prior signature.
+- **`sanitize_quoted_values`:** RT R10 F1 closure introduced a narrow-scope sanitizer for the clap-error stderr write site. Architecturally clean: pure function, single-purpose, sibling to `display_safe` with clear cohesion (both are stderr-safety helpers; both are `pub`).
+- **`src/lib.rs` LOC (informational):** Pre-R2 ~1506 LOC → post-R2 ~1908 LOC (driven by R2 unit-test additions, the `sanitize_quoted_values` function + its 4 unit tests, and the `color_mode_from_env_*` tests). Non-test code is still under the SA R13 F1 Trigger B threshold; the module-split deferral remains Backlogged, not reactivated.
+
+### New findings
+
+*(none — closure pass.)*
+
+### Summary
+
+All three R1 SA findings closed: F1 Backlogged §3 (with SO R24); F2 Resolved (main.rs centralization); F3 Resolved (ColorMode enum). The Round-2 architectural moves (ColorMode enum, render_cell, sanitize_quoted_values, public-API exposure of color helpers) all align with prior SA-domain recommendations. No new architectural drift detected.
+
+**Coordination:** SO R24 — F1 Backlogged ratification. VDD-IAR R18 — process-pattern observation: the auto-Backlog rule firing here is a healthy outcome of the §3 mechanism, not a process gap.
+
+**Files modified:** This log appended only.

@@ -910,3 +910,45 @@ Layer 7 is presentation-only. Diff evidence (0 lines in `src/main.rs`; 0 grep ma
 
 **Files modified:** Only this log appended.
 
+---
+
+## Review 12 — 2026-05-12 00:00Z
+
+**Round:** DE Review 12 (Layer 7 IAR Round 2 closure pass). Warm verification per CLOSURE-PROTOCOL.md §5; not a new adversarial round.
+
+**Scope:** Verify that Round-2 substantive commit `09b1905` and the R1 retrofit `fbbb8a3` preserve the R11 closure: Layer 7 is presentation-only; data layer untouched.
+
+### Round-1 finding closures
+
+- **R11 had 0 substantive findings.** Closure-pass scope is a regression check only.
+
+### Data-layer regression check (R2 commits)
+
+`git diff 01208f1 HEAD -- issue-tracker-cli/src/lib.rs | grep -E '(Tracker|Issue|load_tracker|save_tracker|parse_status|parse_priority|parse_label|parse_id|validate_title|validate_description|issue_fields_are_valid|tracker_is_valid|bump_next_id|next_id|PRIORITY_ORDER|STATUS_ORDER|VALID_STATUSES|serde|Serialize|Deserialize)'` — verified no non-doc edits in the data-layer code paths. The R2 commit `09b1905` added:
+
+- `ColorMode` enum, `color_mode_from_env`, `render_cell`, `sanitize_quoted_values`, `wrap_color` debug_assert! — all presentation / safety helpers.
+- `display_safe` exposed `pub` — accessibility change only, no behavioral.
+- `cmd_show` / `cmd_list` signatures gain `color: ColorMode` — control-flow plumbing, no data-layer effect.
+- Bold-redundancy color values in `priority_ansi` / `status_ansi` — output-byte change only; the underlying `status` / `priority` field values are unchanged.
+- DESIGN.md amendments confined to "Interface / Color output", "stderr contract", and Permission-denied error wording — none touch storage shape or validation rules.
+
+### Defense-in-depth coordination (informational)
+
+The new `wrap_color` debug_assert! pattern (Security R12 closure) is the right shape for data-layer-to-presentation boundary verification: it pins the contract that a colored value must have already been validated by the data-layer's closed-enum check. `issue_fields_are_valid` is the upstream defense; `wrap_color`'s debug_assert! is the downstream sanity check. Defense-in-depth is cleanly layered.
+
+### Storage round-trip verification
+
+Spot-test via integration suite: `cargo test --test layer6 -- create_with_description_stores_verbatim show_displays_all_fields delete_id_not_reused_high_edge` — all pass at HEAD. The persistent `next_id` counter invariant (SO R22 closure) is regression-checked by the existing tests; no R2 edits could have affected it.
+
+### New findings
+
+*(none — closure pass, presentation-only confirmed.)*
+
+### Summary
+
+R11's 0-findings MVR is maintained at HEAD. R2 changes are confirmed presentation-only by diff inspection. Data layer (storage shape, validation predicates, parse_* helpers, next_id counter invariants) is byte-for-byte unchanged. No DE-domain action required.
+
+**Coordination:** Security R12 — informational note on `wrap_color` debug_assert! defense-in-depth layering.
+
+**Files modified:** Only this log appended.
+

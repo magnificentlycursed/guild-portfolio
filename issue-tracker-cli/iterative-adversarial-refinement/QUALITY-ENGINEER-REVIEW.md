@@ -1860,3 +1860,34 @@ The `--help` / unknown-subcommand surface is appropriately covered by Cat B regr
 - **Security / Red Team:** No new escalation; no security-class findings this round.
 
 ---
+
+## Review 18 — 2026-05-12 00:00Z
+
+**Round:** QE Review 18 (Layer 7 IAR Round 2 closure pass). Warm verification per CLOSURE-PROTOCOL.md §5; not a new adversarial round.
+
+**Scope:** Verify R17 Open findings closed by commits `fbbb8a3` (12 retroactive unit tests) and `09b1905` (test tightening + Round-2 unit and integration tests). Inputs: `tests/layer7.rs` (now 12 tests, was 9); `src/lib.rs#tests` (now 84 tests, was 62).
+
+### Round-1 finding closures
+
+- **F1 — TTY-positive color rendering has zero automated coverage; `force_color` test seam would have made it automatable:** **Deferred (Round-2 partial mitigation applied).** A `force_color` test seam still requires refactoring (a public `set_color_mode_for_test` hook or env-var override path that bypasses TTY detection). Partial mitigation in `09b1905`: 4 new `color_mode_from_env_*` unit tests pin the env-var precedence logic (NO_COLOR / NO_COLOR-empty / CLICOLOR=0 / piped-stdout-wins-over-CLICOLOR_FORCE), serialized via `ENV_TEST_LOCK` mutex to avoid env-var races. The unit-level color contract is now comprehensively covered; the integration-level TTY-positive path remains manual-only per TODO.md. Deferred to a future polish layer with a force_color seam.
+- **F2 — No unit tests for `priority_ansi` / `status_ansi` / `wrap_color` / `pad_after_color`:** **Resolved by `fbbb8a3` (12 retroactive tests) + `09b1905` (test updates).** Tests now reflect Round-2 ColorMode enum signatures and bold-redundancy values: `priority_ansi("medium", On)` → `\x1b[1;33m`, `status_ansi("in-progress", On)` → `\x1b[1;36m`, `status_ansi("done", On)` → `\x1b[1;32m`. The previously enumerated 7 mutation-survival permutations are now killed: bold-drop on high, bold-drop on medium, yellow↔green swap, reset-drop in `wrap_color`, color-emitted-when-Off, missing color when value highlighted, padding miscalculated under color.
+- **F3 — `unknown_subcommand_exits_one` does not assert stdout empty; `help_flag_*` tests don't assert stderr clean:** **Resolved by `09b1905`.** `unknown_subcommand_exits_one` now asserts `stdout("")`. The new `unknown_subcommand_with_cc_payload_escapes_in_stderr` test additionally asserts `stdout("")` while pinning the Cc-escape rule on stderr.
+- **F4 — `list_piped_has_no_ansi_codes` / `show_piped_has_no_ansi_codes` check only stdout:** **Resolved by `09b1905`.** Both tests now assert `stderr(predicate::str::contains("\x1b[").not())`. New `list_empty_state_stderr_has_no_ansi_codes` test pins the symmetric stderr cleanliness when `list` emits the "No open issues. Nice work!" empty-state message — closing the previously-untested stderr ANSI-leak surface.
+- **F5 — `pad_after_color`'s `visible_chars` arg relies on chars-count-equals-display-width:** **Deferred — latent risk only.** No current status/priority value exercises non-ASCII (all enum values are ASCII); the SE R17 F2 refactor renamed the helper to `render_cell` with the bare value passed directly (visible_chars computed internally), reducing the API surface that could mis-handle wide characters, but the helper still uses `.chars().count()` rather than `unicode-width`. Re-evaluation trigger: any future spec amendment allowing non-ASCII status/priority values.
+
+### Test delta
+
+- Pre-R2: 195/195 pass (62 unit + 32+18+9+25+7+33+9 layer 1-7 integration).
+- Post-R2: **220/220 pass** (84 unit + 32+18+9+25+7+33+12 layer 1-7 integration). Delta: +22 unit (12 retrofit in `fbbb8a3` + 6 ColorMode/env-var/debug_assert + 4 sanitize_quoted_values); +3 integration (unknown_subcommand_with_cc_payload_escapes_in_stderr, list_empty_state_stderr_has_no_ansi_codes, no_color_env_does_not_break_piped_invocation).
+
+### New findings
+
+*(none — closure pass.)*
+
+### Summary
+
+3 of 5 R1 findings Resolved (F2, F3, F4); 2 Deferred with rationale (F1 force_color seam, F5 CJK display-width latent). Mutation resilience materially improved: the 7 enumerated R1 mutation-survival permutations on the color-helper contract are now killed by the retrofit + R2 update tests. Stderr discipline tightened symmetrically with the previously-stdout-only piped tests.
+
+**Coordination:** VDD-IAR R18 — Red Gate retroactive-test evidence chain documented per implementation.md L56 (12 retrofit tests labelled `// retroactive Red Gate:` in source comments); SE R18 — `render_cell` refactor verified by the rewritten `render_cell_*` unit tests.
+
+**Files modified:** This log appended only. The test additions and tightenings landed in `09b1905` under QE authority (tests/** + src/lib.rs#tests per CLOSURE-PROTOCOL.md §1).

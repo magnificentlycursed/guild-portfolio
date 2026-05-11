@@ -1006,3 +1006,36 @@ The "no new deps + raw ANSI" choice is applauded as deliberate dependency minimi
 
 **Merge-gate verdict (PE, Layer 7 R1):** Three Open findings; none block functional merge, but F1 (branch protection) and F2 (`rust-version`) warrant Round-2 closure action before the Layer 7 merge per CLOSURE-PROTOCOL §6 criterion 3 ("No finding remains in Open state"). F3 may close via Round-2 implementation or via SO/director rationale documenting decline.
 
+---
+
+## Review 13 — 2026-05-12 00:00Z
+
+**Round:** PE Review 13 (Layer 7 IAR Round 2 closure pass). Warm verification per CLOSURE-PROTOCOL.md §5; not a new adversarial round.
+
+**Scope:** Verify R12 Open findings closed by commit `09b1905`. Inputs: `Cargo.toml` (now declares `rust-version = "1.82"`); local pipeline gate runs.
+
+### Round-1 finding closures
+
+- **F1 — Branch-protection / required-status-check verification is outside the working tree:** **Dismissed.** The GitHub repository configuration is not part of the source tree; the workflow file declaring six gates and the local pre-commit hooks are the working-tree artifacts. Verification of which gates are required-to-merge on `main` is a director-level GitHub-settings task. Recorded as a process-pattern observation for VDD-IAR R18's "tree-external verification" coordination flag (suggested CLOSURE-PROTOCOL.md amendment: add a checklist item to require director-verification of branch-protection settings before each layer merge — out of scope for this round).
+- **F2 — `Cargo.toml` declares no `rust-version` / MSRV; floor raised to 1.70 this layer:** **Resolved by `09b1905`.** `Cargo.toml` now declares `rust-version = "1.82"`. The actual MSRV is governed by usage: the codebase uses `Option::is_none_or` (stable Rust 1.82), and the `clippy::incompatible_msrv` lint correctly flagged 1.70 as insufficient when SE attempted that value first. The declared 1.82 matches actual usage. The pinned toolchain (`rust-toolchain.toml`) remains 1.94.1 for local development consistency; the `rust-version` manifest field is the redistribution / cargo-install-from-source MSRV declaration.
+- **F3 — Pre-commit gate covers fmt but not clippy or test; CI is the first stop for either:** **Deferred.** SE concurrence recorded in SE R18 coordination; the clippy pre-commit hook would block SE commits that fail clippy and is a small ergonomic gain. The hook addition is a focused pre-commit-config commit deferred to a future PE-domain round (or a Layer-8 polish pass if one occurs). Cost-benefit not high enough to schedule mid-Layer-7 closure.
+
+### Pipeline gate verification (Layer 7 HEAD `09b1905`)
+
+- `cargo test --no-fail-fast --locked` — **220/220 pass.**
+- `cargo clippy --all-targets --locked -- -D warnings` — clean (after the rust-version=1.82 bump unblocked `is_none_or`).
+- `cargo fmt --check` — clean.
+- `cargo audit` — **0 advisories** (100 crate dependencies scanned, 1069 advisories loaded).
+
+### New findings
+
+*(none — closure pass.)*
+
+### Summary
+
+F2 (MSRV) Resolved cleanly via the manifest declaration; F1 (branch protection) Dismissed as out-of-tree; F3 (pre-commit clippy hook) Deferred to a future focused commit. All four pipeline gates pass at HEAD. The QE R17 carry-forward note about an incorrect MSRV inference is now closed by the explicit `rust-version` value.
+
+**Coordination:** SE R18 — concurrence on `rust-version = "1.82"` matching `Option::is_none_or` usage; SO R24 — MSRV value choice ratified (no scope debate); VDD-IAR R18 — pattern note on tree-external verification (informational).
+
+**Files modified:** This log appended only. The `Cargo.toml` rust-version edit landed in `09b1905` under PE authority per CLOSURE-PROTOCOL.md §1.
+

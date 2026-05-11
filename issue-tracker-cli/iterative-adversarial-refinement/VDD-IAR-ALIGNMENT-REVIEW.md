@@ -2272,3 +2272,74 @@ Layer 7's design-before-code, layered decomposition, layer-gate compliance, test
 Only this log appended.
 
 ---
+
+## Review 18 — 2026-05-12 00:00Z
+
+**Round:** VDD-IAR Alignment Review 18 (Layer 7 IAR Round 2 closure pass + R17 F1 ratification). Warm verification per CLOSURE-PROTOCOL.md §5; not a new adversarial round.
+
+**Scope:** Verify R17 F1 (CRITICAL Red Gate) closure by commits `fbbb8a3` (Option A retrofit) and `09b1905` (Round-2 retrofit-test updates). Verify R17 Dismisseds remain correctly dismissed at HEAD. Verify the cross-domain Round-2 closure pass produced consistent process compliance across all 11 active domains.
+
+### Round-1 finding closures
+
+- **F1 (CRITICAL, Dim 4 — Red Gate compliance):** **✅ Resolved.** Two-stage closure verified:
+  - Stage 1 (`fbbb8a3`): 12 retroactive unit tests landed on `priority_ansi`, `status_ansi`, `wrap_color`, `pad_after_color` in `src/lib.rs#tests`. Each test block prefaced with the literal `// retroactive Red Gate: <behavior name> — discovered during Phase 3 IAR Round 1 (VDD-IAR Review 17 Finding 1), test added post-implementation, confirmed passes against current implementation.` label per `iterative-adversarial-refinement/prompts/implementation.md` L56. DECISIONS.md entry "Layer 7 Red Gate methodological deviation — VDD-IAR Review 17 Finding 1 (Option A resolution)" documents the rationale, the trade-off, and the "Do not repeat for non-polish layers" annotation.
+  - Stage 2 (`09b1905`): the 12 retrofit tests updated to the Round-2 `ColorMode` enum signature + bold-redundancy color values + `render_cell` API. Six additional Round-2 unit tests added (`color_mode_from_env_*` with `ENV_TEST_LOCK` serialization, `wrap_color_debug_assert_active_in_debug_builds`, `color_mode_is_on_helper`); four `sanitize_quoted_values_*` tests added. The unit-level color-helper surface is now comprehensively covered.
+  - Closure rationale: Option A taken (smallest, dim-4-severity-mitigating). The retrofit cannot satisfy the Red Gate retroactively (per implementation.md L56 — the implementation existed before the test would have failed), but it does (a) expose the testable primitive surface that should have been the Phase 2a focus, (b) document the deviation explicitly in source comments + commit message + DECISIONS.md entry, and (c) close the dim-4 evidence chain at four artifact locations. Option B (CLOSURE-PROTOCOL.md polish-layer-exception amendment) deliberately not taken — a permanent rule change should be earned by recurrence, not pre-empted by a single instance. Option C (DECISIONS.md acceptance) folded into Option A's accompanying DECISIONS.md entry.
+- **F2-F8 (Dismissed Round-1 process findings):** No transitions; all still Dismissed at HEAD. No new evidence reopens any.
+- **F4 process pattern (SA carry-forward auto-Backlog):** correctly handled by SO R24 + SA R16 invoking CLOSURE-PROTOCOL.md §3 (the deferral set by SO R21 expired; three findings transitioned from Deferred to Backlogged). The §3 mechanism firing here is the rule's correct activation, not a process gap.
+
+### Cross-domain Round-2 closure consistency check
+
+| Domain | R1 substantive Open | R2 transitions | At HEAD |
+|---|---|---|---|
+| SO R23/24 | 4 (mixed Raised/Open) | 1 Backlogged §3, 2 Resolved, 1 Dismissed | clean |
+| SA R15/16 | 3 | 1 Backlogged §3 (with SO), 2 Resolved | clean |
+| QE R17/18 | 5 | 3 Resolved, 2 Deferred (force_color seam, CJK display-width) | clean |
+| SE R17/18 | 3 | 2 Resolved, 1 Backlogged §3 (with SA) | clean |
+| Security R11/12 | 2 | 2 Resolved | clean |
+| Platform R12/13 | 3 | 1 Resolved, 1 Dismissed, 1 Deferred (clippy pre-commit hook) | clean |
+| UX R10/11 | 2 | 2 Resolved | clean |
+| DE R11/12 | 0 substantive | (regression-only) | clean |
+| RT R10/11 | 2 | 2 Resolved | clean |
+| TW R11/12 | 5 | 5 Resolved | clean |
+| VDD-IAR R17/18 | 1 CRITICAL | 1 Resolved (this entry) | clean |
+
+24 R1 substantive Open findings (excluding VDD-IAR F1) transitioned cleanly: 16 Resolved, 4 Deferred-with-rationale (named conditions), 3 Backlogged-§3 (SA cluster), 1 Dismissed-out-of-tree. Plus VDD-IAR F1 Resolved. No domain has unfinished closure work for Layer 7.
+
+### Commit-pattern + boundary audit
+
+- `git log main..HEAD --oneline` shows the Layer 7 commit sequence: `7b461aa` (Phase 2a Red Gate) → `a2b8062` (Phase 2b implementation) → `603c689` (manual closure) → `fbbb8a3` (R17 F1 Option A retrofit) → `01208f1` (R1 review logs) → `09b1905` (R2 substantive closure) → this commit (R2 review logs). The Phase 2a/2b boundary remains uncontaminated; Round 2 modifications are clearly on the implementation side of that boundary.
+- `git diff 7b461aa~ 7b461aa -- src/` still empty (Red Gate did not touch implementation at commit time).
+- `cargo test --no-fail-fast --locked` at HEAD: 220/220 pass.
+
+### Merge-gate verdict (Layer 7)
+
+**GO-PENDING-MANUAL-REWALK.**
+
+The Round-2 manual testing checklist re-walk for the new behaviors is the standing CLOSURE-PROTOCOL §6 criterion-3 requirement before merge:
+- `NO_COLOR=1 tracker list` in terminal → no ANSI rendered.
+- `CLICOLOR=0 tracker list` in terminal → no ANSI rendered.
+- `CLICOLOR_FORCE=1 tracker list | cat -v` → still no ANSI (pipe-cleanness contract preserved).
+- `tracker list` in terminal with done / in-progress / medium values → bold weight visible.
+- `tracker list` empty-state → stderr ANSI-clean.
+- `tracker $'pre\rmid'` → stderr Cc-escape inside the quoted region; structural LFs survive.
+
+Director must add these items to TODO.md and execute against the release binary built from HEAD. Same closure cadence as Layer 6 R3 once manual is complete.
+
+### Process-pattern observations (informational, no findings)
+
+- **CLOSURE-PROTOCOL.md §3 auto-Backlog rule firing for the SA cluster** is a healthy outcome of the protocol's mechanism. No protocol amendment needed.
+- **Polish-layer Red Gate exception consideration:** declined this round per the Option A rationale. If a second polish layer encounters the same Red Gate friction — testable surface hidden behind private helpers — the CLOSURE-PROTOCOL.md Option B amendment becomes the right move. One instance is a deviation; two would be a pattern. Recorded as a watch-item.
+- **Surface-class drift pattern (RT R9 / R10 named):** the "every new free-form text field needs an explicit Cc contract" rule has now been extended from per-field-validate-boundary to per-stderr-write-site by RT R10 F1's resolution. SO R24 + RT R11 coordinated suggesting documentation in CLOSURE-PROTOCOL.md as a layer-N Red Gate criterion. Recorded for future suite-level decision.
+
+### New findings
+
+*(none — closure pass.)*
+
+### Summary
+
+R17 F1 (CRITICAL Red Gate compliance) Resolved via Option A: two-stage retrofit + DECISIONS.md entry + commit-message disclosure + source-level `// retroactive Red Gate:` labels at every relevant test block. The dim-4 evidence chain is comprehensive. All cross-domain R1 closures verified consistent at HEAD; 24 substantive findings transitioned cleanly. Merge-gate is GO-PENDING-MANUAL-REWALK pending the director's Round-2 manual checklist execution.
+
+**Coordination:** SO R24 — F1 closure ratified; full active-domain set at MVR. Manual checklist re-walk routing: director.
+
+**Files modified:** Only this log appended.

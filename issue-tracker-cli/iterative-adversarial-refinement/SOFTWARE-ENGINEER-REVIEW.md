@@ -1882,3 +1882,36 @@ The three Open findings are idiomaticity / API design / architectural concerns �
 **Files modified this session:** `iterative-adversarial-refinement/SOFTWARE-ENGINEER-REVIEW.md` only (this entry). No `src/**/*.rs` changes (cold-batch surfacing — Round 1 does not apply fixes per CLOSURE-PROTOCOL.md §5 step 1). No test, DESIGN.md, TODO.md, or CHANGELOG changes.
 
 ---
+
+## Review 18 — 2026-05-12 00:00Z
+
+**Round:** SE Review 18 (Layer 7 IAR Round 2 closure pass). Warm verification per CLOSURE-PROTOCOL.md §5; not a new adversarial round.
+
+**Scope:** Verify R17 Open findings closed by commits `fbbb8a3` + `09b1905`. Inputs: `src/lib.rs` (now with `ColorMode`, `color_mode_from_env`, `render_cell`, `sanitize_quoted_values`, public `display_safe`); `src/main.rs` (centralized TTY decision + `sanitize_quoted_values` application to clap errors).
+
+### Round-1 finding closures
+
+- **F1 — `format_show_block(issue, use_color: bool)` boolean-trap + duplicated TTY detection:** **Resolved by `09b1905`.** `pub enum ColorMode { On, Off }` with `is_on()` accessor replaces the bool parameter. `cmd_show(id_raw, issues_path, color: ColorMode)` and `cmd_list(..., color: ColorMode)` take the decision as parameter. `std::io::stdout().is_terminal()` no longer called inside library functions — single decision point in `src/main.rs` L88 via `tracker::color_mode_from_env()`. The flag-argument antipattern is closed; environmental state is threaded explicitly.
+- **F2 — `pad_after_color(colored, visible_chars, total_width)` exposes a caller-must-compute-visible-chars API surface:** **Resolved by `09b1905`.** `render_cell(value, ansi, total_width)` replaces it: caller passes the bare value + optional ANSI prefix + width; visible_chars is computed internally from `value.chars().count()`. The off-by-one API-misuse surface is eliminated by construction. Unit tests on `render_cell` pin the new contract: padding for narrow value, no padding when at-or-over width, ANSI bytes not counted against the width budget.
+- **F3 — Five new top-level items added to `src/lib.rs` without addressing the four-round-Open module split:** **Backlogged with SA R16 F1 / SO R24 F1 per CLOSURE-PROTOCOL.md §3.** The module split remains the right architectural move but the cost-benefit hasn't shifted to schedule it in any specific upcoming layer. `src/lib.rs` LOC at HEAD: ~1908 (Round-1 was 1506; +402 from test additions + `sanitize_quoted_values` + `color_mode_from_env_*` tests). Non-test code is still under the SA R13 F1 Trigger B threshold.
+
+### Round-2 implementation review (added since R17)
+
+- **`ColorMode` enum:** clean. `#[derive(Debug, Clone, Copy, PartialEq, Eq)]` appropriate. `is_on()` accessor sugar reads better than `matches!(c, ColorMode::On)` at call sites.
+- **`color_mode_from_env`:** clean. Short-circuits at TTY check first (cheapest), then NO_COLOR, then CLICOLOR. `var_os` over `var` avoids UTF-8-validation panic on non-UTF-8 env values. Returns `ColorMode::Off` consistently when any opt-out fires.
+- **`wrap_color` debug_assert! byte-hygiene** (Security R11 F1 closure): `debug_assert!` is the right vehicle — fires on the test surface to catch refactor-introduced free-form colored fields, compiles out in release. Message includes the offending value for diagnostic.
+- **`sanitize_quoted_values`** (RT R10 F1 closure): clean two-buffer state machine; defensive on unbalanced trailing `'`; unit tests cover passthrough / single-quoted / unbalanced / multiple-quoted cases. `pub` exposure is appropriate (sibling to `display_safe`).
+- **`render_cell`** (SE R17 F2 closure): clean; reuses `wrap_color` internally for the color step; padding computed against bare-value char count.
+- **`#![deny(clippy::unwrap_used, expect_used, panic, missing_errors_doc)]` discipline:** unchanged. All new pub functions have doc-comments; the new env-helper tests use `unwrap_or_else(|e| e.into_inner())` to recover from a poisoned mutex (defensive) rather than `unwrap()`.
+
+### New findings
+
+*(none — closure pass.)*
+
+### Summary
+
+2 of 3 R1 findings Resolved by R2 code changes (F1 ColorMode enum + main.rs centralization; F2 render_cell API refactor). F3 (lib.rs module split) Backlogged with the SA carry-forward cluster. Round-2 implementation is idiomatic Rust: ColorMode enum follows the type-safety idiom over bool flags; `sanitize_quoted_values` is a clean pure function; `display_safe` exposure to `pub` is the correct cross-crate API decision. No regression on the lint deny-set or on the public-API surface contract.
+
+**Coordination:** QE R18 — render_cell + ColorMode + sanitize_quoted_values test coverage verified. SA R16 — F3 Backlog ratification. Platform R13 — MSRV declaration consistent with `Option::is_none_or` usage.
+
+**Files modified:** This log appended only. The `src/lib.rs` + `src/main.rs` edits landed in `09b1905` under SE authority per CLOSURE-PROTOCOL.md §1.
