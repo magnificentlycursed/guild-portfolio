@@ -366,13 +366,13 @@ Unit tests:
 - [ ] An unknown subcommand (`tracker frobnicate`) exits 1 with a usage error on stderr
 
 **Manual Testing Checklist:**
-- [ ] Run `tracker --help` and each subcommand `--help` → verify flags and valid values are accurately described
-- [ ] Run `tracker list` in terminal → verify `high` priority is red/bold, `in-progress` is cyan, `done` is green
-- [ ] Run `tracker list | cat` → verify output contains no `\033[` escape sequences
-- [ ] Run `tracker show <id>` in terminal with an `in-progress`/`high` issue → verify coloring in show output
-- [ ] Run `tracker show <id>` piped → no ANSI codes
-- [ ] Review each error message from all prior layers manually: does it say what went wrong and what the valid alternatives are?
-- [ ] `tracker frobnicate` → exit 1, stderr usage error
+- [x] Run `tracker --help` and each subcommand `--help` → verify flags and valid values are accurately described
+- [x] Run `tracker list` in terminal → verify `high` priority is red/bold, `in-progress` is cyan, `done` is green
+- [x] Run `tracker list | cat` → verify output contains no `\033[` escape sequences
+- [x] Run `tracker show <id>` in terminal with an `in-progress`/`high` issue → verify coloring in show output
+- [x] Run `tracker show <id>` piped → no ANSI codes
+- [x] Review each error message from all prior layers manually: does it say what went wrong and what the valid alternatives are?
+- [x] `tracker frobnicate` → exit 1, stderr usage error
 
 **Red Gate — tests to write first:**
 
