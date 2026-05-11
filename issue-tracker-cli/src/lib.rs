@@ -234,12 +234,10 @@ pub fn cmd_create(
     issues_path: &Path,
 ) -> Result<(), String> {
     let title = validate_title(title_raw)?;
-    // Phase 2a Red Gate: description argument is accepted at the CLI boundary
-    // but not yet stored. validate_description / Issue.description wiring lands
-    // in Phase 2b; until then the parameter exists so the binary accepts
-    // `--description` without unknown-arg failures, but the stored value stays
-    // None — surfacing the description-storage tests as red.
-    let _ = description_raw;
+    let description = match description_raw {
+        Some(d) => Some(validate_description(d)?),
+        None => None,
+    };
     let priority = match priority_raw {
         Some(p) => parse_priority(p)?,
         None => "medium".to_string(),
@@ -256,7 +254,7 @@ pub fn cmd_create(
     issues.push(Issue {
         id,
         title: title.clone(),
-        description: None,
+        description,
         status: "open".to_string(),
         priority,
         labels,
@@ -334,12 +332,11 @@ pub fn cmd_status(id_raw: &str, status_raw: &str, issues_path: &Path) -> Result<
 /// # Errors
 /// Returns `Err("Description cannot be empty.")` when `raw` is empty or
 /// whitespace-only after trim.
-#[allow(dead_code)]
 pub fn validate_description(raw: &str) -> Result<String, String> {
-    // Phase 2a Red Gate: stub. Phase 2b will implement the empty-after-trim
-    // check and pass-through. Bind args to keep -D warnings clean.
-    let _ = raw;
-    todo!("Layer 6: validate --description (empty-after-trim rejection, store verbatim)")
+    if raw.trim().is_empty() {
+        return Err("Description cannot be empty.".to_string());
+    }
+    Ok(raw.to_string())
 }
 
 /// Renders a single issue as the `tracker show` labelled key-value block.
@@ -350,12 +347,43 @@ pub fn validate_description(raw: &str) -> Result<String, String> {
 /// indented by 13 spaces (matching the label-column width).
 ///
 /// Returns the formatted block including a trailing newline.
-#[allow(dead_code)]
 fn format_show_block(issue: &Issue) -> String {
-    // Phase 2a Red Gate: stub. Phase 2b will implement the labelled key-value
-    // block per the DESIGN.md "Show output format" example.
-    let _ = issue;
-    todo!("Layer 6: format_show_block — labelled key-value block, 13-char label column, multi-line description indented 13 spaces")
+    let labels_display = if issue.labels.is_empty() {
+        "(none)".to_string()
+    } else {
+        issue.labels.join(", ")
+    };
+    let description_display = match &issue.description {
+        None => "(none)".to_string(),
+        Some(d) => {
+            // Multi-line descriptions: first line after the label, each
+            // continuation line indented 13 spaces to match the label column.
+            // `\r\n` sequences are normalized to `\n` for splitting so a
+            // CRLF-stored description renders without a stray `\r` in the
+            // first line. The 13-space continuation indent applies to every
+            // line after the first regardless of original separator.
+            let normalized = d.replace("\r\n", "\n");
+            normalized.replace('\n', "\n             ")
+        }
+    };
+    format!(
+        "ID:          {}\n\
+         Title:       {}\n\
+         Status:      {}\n\
+         Priority:    {}\n\
+         Labels:      {}\n\
+         Description: {}\n\
+         Created:     {}\n\
+         Updated:     {}\n",
+        issue.id,
+        issue.title,
+        issue.status,
+        issue.priority,
+        labels_display,
+        description_display,
+        issue.created_at,
+        issue.updated_at,
+    )
 }
 
 /// Implements `tracker show <id>`.
@@ -368,10 +396,16 @@ fn format_show_block(issue: &Issue) -> String {
 /// Returns `Err` if the ID is malformed, the issue does not exist, or
 /// storage I/O fails.
 pub fn cmd_show(id_raw: &str, issues_path: &Path) -> Result<(), String> {
-    // Phase 2a Red Gate: stub. Phase 2b will wire parse_id + load_issues +
-    // format_show_block + println.
-    let _ = (id_raw, issues_path);
-    todo!("Layer 6: cmd_show — parse id, load issues, find by id, render via format_show_block")
+    let id = parse_id(id_raw)?;
+    let issues = load_issues(issues_path)?;
+    let issue = issues
+        .iter()
+        .find(|i| i.id == id)
+        .ok_or_else(|| format!("Issue #{} not found.", id))?;
+    // `format_show_block` already includes a trailing newline; use `print!`
+    // rather than `println!` to avoid emitting a stray blank line.
+    print!("{}", format_show_block(issue));
+    Ok(())
 }
 
 /// Implements `tracker delete <id>`.
@@ -386,10 +420,16 @@ pub fn cmd_show(id_raw: &str, issues_path: &Path) -> Result<(), String> {
 /// Returns `Err` if the ID is malformed, the issue does not exist, or
 /// storage I/O fails.
 pub fn cmd_delete(id_raw: &str, issues_path: &Path) -> Result<(), String> {
-    // Phase 2a Red Gate: stub. Phase 2b will wire parse_id + load_issues +
-    // retain/remove + save_issues + println.
-    let _ = (id_raw, issues_path);
-    todo!("Layer 6: cmd_delete — parse id, load issues, remove by id, persist, print confirmation")
+    let id = parse_id(id_raw)?;
+    let mut issues = load_issues(issues_path)?;
+    let idx = issues
+        .iter()
+        .position(|i| i.id == id)
+        .ok_or_else(|| format!("Issue #{} not found.", id))?;
+    issues.remove(idx);
+    save_issues(issues_path, &issues)?;
+    println!("Deleted issue #{}.", id);
+    Ok(())
 }
 
 /// Sort rank for `p`: index in `PRIORITY_ORDER` (high=0, medium=1, low=2).
