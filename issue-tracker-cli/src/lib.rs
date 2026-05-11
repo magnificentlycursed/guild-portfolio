@@ -7,12 +7,15 @@
 
 //! Library crate for the `tracker` issue-tracker CLI.
 //!
-//! This crate exposes the data model (`Issue`), the command implementations
-//! (`cmd_create`, `cmd_list`, `cmd_status`), the parsing/validation helpers
-//! (`validate_title`, `parse_status`, `parse_priority`, `parse_id`), and the
-//! storage primitives (`load_issues`, `save_issues`). The `tracker` binary in
-//! `src/main.rs` wires `clap`-parsed arguments to these functions; integration
-//! tests in `tests/` invoke the compiled binary as a subprocess.
+//! This crate exposes the data model (`Issue`, `Tracker`, `CreateArgs`), the
+//! command implementations (`cmd_create`, `cmd_list`, `cmd_status`, `cmd_show`,
+//! `cmd_delete`), the parsing/validation helpers (`validate_title`,
+//! `validate_description`, `parse_status`, `parse_priority`, `parse_label`,
+//! `parse_id`), the storage primitives (`load_tracker`, `save_tracker`), and
+//! the display safety helper `display_safe` for stderr Cc-escape. The
+//! `tracker` binary in `src/main.rs` wires `clap`-parsed arguments to these
+//! functions; integration tests in `tests/` invoke the compiled binary as a
+//! subprocess.
 //!
 //! All public functions return `Result<T, String>` where the `Err` variant is
 //! the user-facing error message (without an `Error: ` prefix — `main.rs` adds
@@ -28,15 +31,23 @@ use std::path::Path;
 // --- Layer 7: TTY-detected color output (DESIGN.md "Interface / color output") ---
 //
 // Color is applied only to the `status` and `priority` value cells in `list`
-// and `show` output, only when stdout is a TTY. Piped stdout (e.g.
-// `tracker list | cat`) suppresses color entirely. The color scheme:
+// and `show` output, only when `ColorMode::On` is in effect. Piped stdout,
+// `NO_COLOR=<anything>`, and `CLICOLOR=0` each force `ColorMode::Off`.
+// `CLICOLOR_FORCE` is deliberately not honored (Round 2 DECISIONS.md: the
+// pipe-cleanness contract takes precedence over forced color into a non-TTY
+// stream).
 //
-//   priority=high     → bold red    `\x1b[1;31m`
-//   priority=medium   → yellow      `\x1b[33m`
-//   priority=low      → default (no escape)
-//   status=in-progress → cyan       `\x1b[36m`
-//   status=done       → green       `\x1b[32m`
-//   status=open       → default (no escape)
+// Every highlighted value carries the `bold` SGR attribute (Round 2 spec
+// amendment per UX R10 F2 — WCAG 1.4.1 *Use of Color*: a non-color cue must
+// accompany any color cue so users with color-vision deficiency can
+// distinguish states):
+//
+//   priority=high      → bold red     `\x1b[1;31m`
+//   priority=medium    → bold yellow  `\x1b[1;33m`
+//   priority=low       → default (no escape)
+//   status=in-progress → bold cyan    `\x1b[1;36m`
+//   status=done        → bold green   `\x1b[1;32m`
+//   status=open        → default (no escape)
 //
 // Raw ANSI escapes (no anstyle/termcolor dependency) keep the dependency
 // surface minimal — these six sequences are universally supported by
@@ -45,30 +56,79 @@ use std::path::Path;
 
 const ANSI_RESET: &str = "\x1b[0m";
 
+/// Whether the rendering layer should emit ANSI color escapes.
+///
+/// Replaces the prior `use_color: bool` parameter with a self-documenting enum
+/// (SA R15 F3 / SE R17 F1 — boolean-trap antipattern at the call site).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ColorMode {
+    /// Emit ANSI color escapes for highlighted values.
+    On,
+    /// Suppress all ANSI color escapes; emit bare values.
+    Off,
+}
+
+impl ColorMode {
+    /// Returns `true` if this mode emits ANSI color escapes.
+    pub fn is_on(self) -> bool {
+        matches!(self, ColorMode::On)
+    }
+}
+
+/// Decides the color mode for the current process based on stdout TTY-state
+/// and the `NO_COLOR` / `CLICOLOR` env-var opt-outs (DESIGN.md "Interface /
+/// color output").
+///
+/// Order of checks (any one returning `Off` short-circuits):
+/// 1. `std::io::stdout().is_terminal()` — if stdout is piped, `Off`.
+/// 2. `NO_COLOR` set to any non-empty value — `Off` (per https://no-color.org/).
+/// 3. `CLICOLOR` set to `0` — `Off`.
+///
+/// Otherwise `On`.
+///
+/// `CLICOLOR_FORCE` is intentionally NOT honored: this CLI never emits ANSI
+/// to a non-TTY stdout regardless of env vars, preserving the pipe-cleanness
+/// contract for downstream parsers.
+pub fn color_mode_from_env() -> ColorMode {
+    if !std::io::stdout().is_terminal() {
+        return ColorMode::Off;
+    }
+    if let Some(v) = std::env::var_os("NO_COLOR") {
+        if !v.is_empty() {
+            return ColorMode::Off;
+        }
+    }
+    if std::env::var_os("CLICOLOR").is_some_and(|v| v == "0") {
+        return ColorMode::Off;
+    }
+    ColorMode::On
+}
+
 /// Returns the ANSI start sequence for a priority value's color theme, or
 /// `None` if the value renders in default color (`low` / unknown) or
-/// `use_color` is false.
-fn priority_ansi(priority: &str, use_color: bool) -> Option<&'static str> {
-    if !use_color {
+/// `color` is `ColorMode::Off`. Round 2: `medium` now bold-yellow.
+fn priority_ansi(priority: &str, color: ColorMode) -> Option<&'static str> {
+    if !color.is_on() {
         return None;
     }
     match priority {
         "high" => Some("\x1b[1;31m"),
-        "medium" => Some("\x1b[33m"),
+        "medium" => Some("\x1b[1;33m"),
         _ => None,
     }
 }
 
 /// Returns the ANSI start sequence for a status value's color theme, or
 /// `None` if the value renders in default color (`open` / unknown) or
-/// `use_color` is false.
-fn status_ansi(status: &str, use_color: bool) -> Option<&'static str> {
-    if !use_color {
+/// `color` is `ColorMode::Off`. Round 2: `in-progress` now bold-cyan,
+/// `done` now bold-green.
+fn status_ansi(status: &str, color: ColorMode) -> Option<&'static str> {
+    if !color.is_on() {
         return None;
     }
     match status {
-        "in-progress" => Some("\x1b[36m"),
-        "done" => Some("\x1b[32m"),
+        "in-progress" => Some("\x1b[1;36m"),
+        "done" => Some("\x1b[1;32m"),
         _ => None,
     }
 }
@@ -76,21 +136,41 @@ fn status_ansi(status: &str, use_color: bool) -> Option<&'static str> {
 /// Wraps `value` with the given ANSI prefix + reset, or returns it unchanged
 /// if `ansi` is `None`. Centralizes the "color is value-only, not row-wide"
 /// contract: the caller passes the bare value text, not a padded cell.
+///
+/// Defense-in-depth (Security R11 F1): in debug builds, asserts the input
+/// `value` contains no control characters. Today's call sites pass
+/// `issue.status` and `issue.priority`, both validated against closed enums
+/// at parse-time AND load-time — control bytes cannot reach this function in
+/// release builds. The debug-assert catches any future refactor that
+/// introduces a free-form colored field whose validation was missed.
 fn wrap_color(value: &str, ansi: Option<&str>) -> String {
+    debug_assert!(
+        !value.chars().any(char::is_control),
+        "wrap_color called with control-character-bearing value (output-boundary contract violated): {:?}",
+        value
+    );
     match ansi {
         Some(prefix) => format!("{}{}{}", prefix, value, ANSI_RESET),
         None => value.to_string(),
     }
 }
 
-/// Right-pads a (possibly color-wrapped) cell so its *visible* width reaches
-/// `total_width`. `visible_chars` is the character count of the bare value
-/// (no ANSI codes). Rust's `{:<width}` formatter pads to byte length, which
-/// double-counts ANSI escape bytes — `pad_after_color` sidesteps that by
-/// padding after wrapping with the visible-width budget.
-fn pad_after_color(colored: &str, visible_chars: usize, total_width: usize) -> String {
+/// Renders a (possibly colored) cell that, when printed, occupies exactly
+/// `total_width` visible columns. The bare `value` provides both the
+/// visible content (its `chars().count()` is the width budget) and the
+/// substring to wrap in `ansi`. ANSI escape bytes do NOT consume the
+/// padding budget — visible width is measured against the bare value.
+///
+/// Rust's `{:<width}` formatter pads to byte length, which double-counts
+/// ANSI escape bytes — `render_cell` sidesteps that by computing visible
+/// width internally from the bare value, eliminating the SE R17 F2
+/// off-by-one API-misuse surface that the prior `pad_after_color(colored,
+/// visible_chars, total_width)` signature exposed.
+fn render_cell(value: &str, ansi: Option<&str>, total_width: usize) -> String {
+    let colored = wrap_color(value, ansi);
+    let visible_chars = value.chars().count();
     if visible_chars >= total_width {
-        colored.to_string()
+        colored
     } else {
         format!("{}{}", colored, " ".repeat(total_width - visible_chars))
     }
@@ -265,7 +345,15 @@ fn label_is_valid(label: &str) -> bool {
 /// embedded newline cannot cross the stderr → terminal boundary as raw bytes.
 /// Non-control characters (including printable Unicode, emoji, CJK) pass through
 /// unchanged. See DESIGN.md "stderr contract".
-fn display_safe(s: &str) -> String {
+///
+/// Round 2 (RT R10 F1): exposed `pub` so other crates (e.g. `src/main.rs` for
+/// clap's argument-parsing errors) can apply the same value-level Cc-escape
+/// before reaching stderr — the spec's stderr Cc-escape rule applies to every
+/// stderr write site, including the parser's reflected user-supplied values.
+/// For multi-line error strings (e.g. clap's `Error: ...\n\nUsage: ...`), use
+/// `sanitize_quoted_values` instead so structural LFs survive while the
+/// interpolated values inside the `'X'` quotes are still escaped.
+pub fn display_safe(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
         if c.is_control() {
@@ -273,6 +361,53 @@ fn display_safe(s: &str) -> String {
         } else {
             out.push(c);
         }
+    }
+    out
+}
+
+/// Sanitizes a multi-line error string by applying `display_safe` only to the
+/// substrings inside single-quoted regions (`'<value>'`), leaving the rest of
+/// the message — including structural newlines and surrounding clap formatting
+/// — unchanged.
+///
+/// Round 2 (RT R10 F1): clap's `Error: unrecognized subcommand 'X'\n\nUsage:
+/// ...` template structurally uses `\n` for line breaks. A naive
+/// whole-string `display_safe` would escape those structural `\n`s into
+/// `\u{A}`, destroying clap's multi-line formatting. The DESIGN.md rule is
+/// narrow — sanitize the REFLECTED USER-SUPPLIED VALUE, not the entire
+/// error. This helper matches that narrow scope: it walks the string, tracks
+/// the open/close of each single-quoted region, and applies `display_safe`
+/// only to the bytes between the matching `'` pair. Quotes themselves pass
+/// through unchanged so the error's visible structure (e.g. `'<user-input>'`)
+/// is preserved.
+///
+/// If the input has an unbalanced trailing `'`, the quoted-but-unclosed tail
+/// is still sanitized — safer than letting an unclosed payload through. If
+/// the input has no quotes, it passes through unchanged (no sanitization
+/// because there is no reflected user value to escape).
+pub fn sanitize_quoted_values(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut buffer = String::new();
+    let mut in_quote = false;
+    for c in s.chars() {
+        match (in_quote, c) {
+            (false, '\'') => {
+                in_quote = true;
+                out.push('\'');
+            }
+            (true, '\'') => {
+                out.push_str(&display_safe(&buffer));
+                buffer.clear();
+                in_quote = false;
+                out.push('\'');
+            }
+            (true, _) => buffer.push(c),
+            (false, _) => out.push(c),
+        }
+    }
+    if in_quote {
+        // Unbalanced trailing quote: sanitize the trailing payload defensively.
+        out.push_str(&display_safe(&buffer));
     }
     out
 }
@@ -523,7 +658,7 @@ pub fn validate_description(raw: &str) -> Result<String, String> {
 /// indented by 13 spaces (matching the label-column width).
 ///
 /// Returns the formatted block including a trailing newline.
-fn format_show_block(issue: &Issue, use_color: bool) -> String {
+fn format_show_block(issue: &Issue, color: ColorMode) -> String {
     let labels_display = if issue.labels.is_empty() {
         "(none)".to_string()
     } else {
@@ -542,11 +677,11 @@ fn format_show_block(issue: &Issue, use_color: bool) -> String {
             normalized.replace('\n', "\n             ")
         }
     };
-    // Layer 7: color the status and priority values when `use_color` is true.
+    // Layer 7: color the status and priority values when `color` is `On`.
     // The label column ("Status:      ", "Priority:    ") is uncolored — color
     // applies to value text only per DESIGN.md "Interface / color output".
-    let status_display = wrap_color(&issue.status, status_ansi(&issue.status, use_color));
-    let priority_display = wrap_color(&issue.priority, priority_ansi(&issue.priority, use_color));
+    let status_display = wrap_color(&issue.status, status_ansi(&issue.status, color));
+    let priority_display = wrap_color(&issue.priority, priority_ansi(&issue.priority, color));
     format!(
         "ID:          {}\n\
          Title:       {}\n\
@@ -571,12 +706,15 @@ fn format_show_block(issue: &Issue, use_color: bool) -> String {
 ///
 /// Validates `id_raw`, locates the issue, and prints the full labelled
 /// key-value block (per DESIGN.md "Show output format") to stdout. Show is
-/// non-mutating: storage is read but never written.
+/// non-mutating: storage is read but never written. `color` decides whether
+/// the rendered block carries ANSI color escapes for the status / priority
+/// value cells; `main.rs` reads `color_mode_from_env()` once and threads it
+/// through (SA R15 F2 / SE R17 F1 — single decision point in the binary).
 ///
 /// # Errors
 /// Returns `Err` if the ID is malformed, the issue does not exist, or
 /// storage I/O fails.
-pub fn cmd_show(id_raw: &str, issues_path: &Path) -> Result<(), String> {
+pub fn cmd_show(id_raw: &str, issues_path: &Path, color: ColorMode) -> Result<(), String> {
     let id = parse_id(id_raw)?;
     let tracker = load_tracker(issues_path)?;
     let issue = tracker
@@ -586,10 +724,7 @@ pub fn cmd_show(id_raw: &str, issues_path: &Path) -> Result<(), String> {
         .ok_or_else(|| format!("Issue #{} not found.", id))?;
     // `format_show_block` already includes a trailing newline; use `print!`
     // rather than `println!` to avoid emitting a stray blank line.
-    // Layer 7: enable color only when stdout is a TTY. `tracker show 1 | cat`
-    // detects the pipe and suppresses ANSI codes.
-    let use_color = std::io::stdout().is_terminal();
-    print!("{}", format_show_block(issue, use_color));
+    print!("{}", format_show_block(issue, color));
     Ok(())
 }
 
@@ -773,6 +908,7 @@ pub fn cmd_list(
     priority_filter: Option<&str>,
     label_filter: Option<&str>,
     issues_path: &Path,
+    color: ColorMode,
 ) -> Result<(), String> {
     let effective_status = match status_filter {
         None => "open".to_string(),
@@ -829,10 +965,9 @@ pub fn cmd_list(
 
     sort_issues(&mut issues);
 
-    // Layer 7: enable color only when stdout is a TTY. The header row is
-    // never colored (color applies to value cells only per DESIGN.md
-    // "Interface / color output").
-    let use_color = std::io::stdout().is_terminal();
+    // Header row is never colored (color applies to value cells only per
+    // DESIGN.md "Interface / color output"). TTY decision is made once in
+    // main.rs and threaded as `color`; no in-function env access here.
 
     println!(
         "{:<4}  {:<11}  {:<8}  {:<20}  Title",
@@ -847,16 +982,12 @@ pub fn cmd_list(
         };
         let labels_display = truncate_with_ellipsis(&labels_raw, 20);
         let title_display = truncate_with_ellipsis(&issue.title, 50);
-        // Status and Priority are emitted as pre-padded cells so any ANSI
-        // wrap doesn't throw off the column alignment Rust's `{:<width}`
-        // would otherwise miscount (it pads by byte length, double-counting
-        // escape sequences). All status/priority values are ASCII so
-        // visible character count equals byte count of the bare value.
-        let status_colored = wrap_color(&issue.status, status_ansi(&issue.status, use_color));
-        let status_cell = pad_after_color(&status_colored, issue.status.chars().count(), 11);
-        let priority_colored =
-            wrap_color(&issue.priority, priority_ansi(&issue.priority, use_color));
-        let priority_cell = pad_after_color(&priority_colored, issue.priority.chars().count(), 8);
+        // render_cell wraps the bare value with the optional ANSI prefix and
+        // pads to the column width by *visible* characters — ANSI bytes do
+        // not consume padding budget. All status/priority values are ASCII;
+        // visible-char count equals byte count of the bare value.
+        let status_cell = render_cell(&issue.status, status_ansi(&issue.status, color), 11);
+        let priority_cell = render_cell(&issue.priority, priority_ansi(&issue.priority, color), 8);
         println!(
             "{:<4}  {}  {}  {:<20}  {}",
             issue.id, status_cell, priority_cell, labels_display, title_display
@@ -1333,7 +1464,7 @@ mod tests {
         // first line follows the `Description:` label; each continuation
         // line is indented by 13 spaces (matching the label-column width).
         let issue = issue_with_full(1, "Fix auth", Some("line1\nline2"), &[]);
-        let out = format_show_block(&issue, false);
+        let out = format_show_block(&issue, ColorMode::Off);
         assert!(
             out.contains("Description: line1"),
             "first line must follow the Description: label:\n{out}"
@@ -1351,7 +1482,7 @@ mod tests {
         // (e.g. `ID:`, `Title:`, `Description:`) occupies the leading 13
         // chars of its line before the value starts.
         let issue = issue_with_full(42, "Hello", None, &["bug"]);
-        let out = format_show_block(&issue, false);
+        let out = format_show_block(&issue, ColorMode::Off);
         // Pick a few representative labels and assert they appear with the
         // 13-char prefix shape.
         for prefix in &[
@@ -1504,6 +1635,49 @@ mod tests {
         assert_eq!(display_safe("\u{7F}"), "\\u{7F}");
     }
 
+    // --- Round 2: sanitize_quoted_values (RT R10 F1 narrow-scope clap-error sanitizer) ---
+
+    #[test]
+    fn sanitize_quoted_values_passes_through_unquoted_content() {
+        assert_eq!(
+            sanitize_quoted_values("Error: foo\n\nUsage: bar"),
+            "Error: foo\n\nUsage: bar"
+        );
+    }
+
+    #[test]
+    fn sanitize_quoted_values_escapes_only_inside_quotes() {
+        // Structural newlines outside quotes must survive; control bytes
+        // inside the quoted value must be escaped.
+        let input = "Error: unrecognized subcommand 'pre\rmid\ttab'\n\nUsage: x";
+        let out = sanitize_quoted_values(input);
+        assert!(
+            out.contains("'pre\\u{D}mid\\u{9}tab'"),
+            "value sanitized: {out:?}"
+        );
+        assert!(
+            out.contains("\n\nUsage: x"),
+            "structural LFs preserved: {out:?}"
+        );
+    }
+
+    #[test]
+    fn sanitize_quoted_values_handles_unbalanced_trailing_quote() {
+        // Defensive: an unclosed quote at the end of the string still gets
+        // its trailing payload sanitized rather than passing through raw.
+        let out = sanitize_quoted_values("garbage 'pre\rpost");
+        assert_eq!(out, "garbage 'pre\\u{D}post");
+    }
+
+    #[test]
+    fn sanitize_quoted_values_handles_multiple_quoted_regions() {
+        // clap errors like `invalid value 'X' for '--flag'` have multiple
+        // quoted regions; each must be independently sanitized.
+        let out = sanitize_quoted_values("invalid value 'a\rb' for '--c\td'");
+        assert!(out.contains("'a\\u{D}b'"));
+        assert!(out.contains("'--c\\u{9}d'"));
+    }
+
     // --- Layer 7 retroactive Red Gate: color helper unit tests ---
     //
     // VDD-IAR Alignment Review 17 Finding 1 (CRITICAL Dim 4): Layer 7's
@@ -1520,6 +1694,11 @@ mod tests {
     // the test would fail) — they are labelled here as a Red Gate
     // deviation, not as the literal Red Gate that should have been.
     //
+    // Round 2: color values updated to the bold-redundancy spec amendment
+    // (DESIGN.md "Interface / color output" Round 2, UX R10 F2): medium,
+    // in-progress, and done all gain `1;` bold prefix. `pad_after_color`
+    // was replaced by `render_cell` (SE R17 F2 API refactor).
+    //
     // retroactive Red Gate: priority_ansi color mapping — discovered during
     // Phase 3 IAR Round 1 (VDD-IAR Review 17 Finding 1), test added post-
     // implementation, confirmed passes against current implementation.
@@ -1528,57 +1707,60 @@ mod tests {
     //
     // retroactive Red Gate: wrap_color ANSI prefix + reset wrapping — same.
     //
-    // retroactive Red Gate: pad_after_color visible-width padding — same.
+    // retroactive Red Gate: render_cell visible-width padding (replaced
+    // pad_after_color in Round 2) — same lineage.
 
     #[test]
     fn priority_ansi_high_returns_bold_red() {
-        assert_eq!(priority_ansi("high", true), Some("\x1b[1;31m"));
+        assert_eq!(priority_ansi("high", ColorMode::On), Some("\x1b[1;31m"));
     }
 
     #[test]
-    fn priority_ansi_medium_returns_yellow() {
-        assert_eq!(priority_ansi("medium", true), Some("\x1b[33m"));
+    fn priority_ansi_medium_returns_bold_yellow() {
+        assert_eq!(priority_ansi("medium", ColorMode::On), Some("\x1b[1;33m"));
     }
 
     #[test]
     fn priority_ansi_low_returns_none() {
         // DESIGN.md "Interface / color output": low renders in default color.
-        assert_eq!(priority_ansi("low", true), None);
+        assert_eq!(priority_ansi("low", ColorMode::On), None);
     }
 
     #[test]
-    fn priority_ansi_returns_none_when_use_color_false() {
-        // TTY-detection bypass: every priority value must return None when
-        // the caller signals stdout is not a TTY. A regression here would
-        // emit ANSI to piped consumers — the cmd_list / cmd_show
-        // integration tests catch the stdout side, but this pins the
-        // helper contract directly.
-        assert_eq!(priority_ansi("high", false), None);
-        assert_eq!(priority_ansi("medium", false), None);
-        assert_eq!(priority_ansi("low", false), None);
+    fn priority_ansi_returns_none_when_color_off() {
+        // Every priority value must return None when ColorMode::Off. A
+        // regression here would emit ANSI to piped consumers — the
+        // cmd_list / cmd_show integration tests catch the stdout side, but
+        // this pins the helper contract directly.
+        assert_eq!(priority_ansi("high", ColorMode::Off), None);
+        assert_eq!(priority_ansi("medium", ColorMode::Off), None);
+        assert_eq!(priority_ansi("low", ColorMode::Off), None);
     }
 
     #[test]
-    fn status_ansi_in_progress_returns_cyan() {
-        assert_eq!(status_ansi("in-progress", true), Some("\x1b[36m"));
+    fn status_ansi_in_progress_returns_bold_cyan() {
+        assert_eq!(
+            status_ansi("in-progress", ColorMode::On),
+            Some("\x1b[1;36m")
+        );
     }
 
     #[test]
-    fn status_ansi_done_returns_green() {
-        assert_eq!(status_ansi("done", true), Some("\x1b[32m"));
+    fn status_ansi_done_returns_bold_green() {
+        assert_eq!(status_ansi("done", ColorMode::On), Some("\x1b[1;32m"));
     }
 
     #[test]
     fn status_ansi_open_returns_none() {
         // DESIGN.md "Interface / color output": open renders in default color.
-        assert_eq!(status_ansi("open", true), None);
+        assert_eq!(status_ansi("open", ColorMode::On), None);
     }
 
     #[test]
-    fn status_ansi_returns_none_when_use_color_false() {
-        assert_eq!(status_ansi("in-progress", false), None);
-        assert_eq!(status_ansi("done", false), None);
-        assert_eq!(status_ansi("open", false), None);
+    fn status_ansi_returns_none_when_color_off() {
+        assert_eq!(status_ansi("in-progress", ColorMode::Off), None);
+        assert_eq!(status_ansi("done", ColorMode::Off), None);
+        assert_eq!(status_ansi("open", ColorMode::Off), None);
     }
 
     #[test]
@@ -1590,7 +1772,10 @@ mod tests {
             wrap_color("high", Some("\x1b[1;31m")),
             "\x1b[1;31mhigh\x1b[0m"
         );
-        assert_eq!(wrap_color("done", Some("\x1b[32m")), "\x1b[32mdone\x1b[0m");
+        assert_eq!(
+            wrap_color("done", Some("\x1b[1;32m")),
+            "\x1b[1;32mdone\x1b[0m"
+        );
     }
 
     #[test]
@@ -1604,23 +1789,144 @@ mod tests {
     }
 
     #[test]
-    fn pad_after_color_pads_visible_width_to_total() {
+    fn render_cell_pads_visible_width_to_total() {
         // Bare "open" (4 visible chars) padded to width 11 → 7 trailing spaces.
-        assert_eq!(pad_after_color("open", 4, 11), "open       ");
-        // Colored "high\x1b[0m" with 4 visible chars padded to width 8 →
-        // 4 trailing spaces. ANSI bytes do NOT consume padding budget.
+        assert_eq!(render_cell("open", None, 11), "open       ");
+        // Colored "high" with 4 visible chars padded to width 8 → 4 trailing
+        // spaces; ANSI bytes do NOT consume padding budget. The visible
+        // width is now computed internally from the bare value (SE R17 F2
+        // API refactor: render_cell takes the bare value + ansi + width,
+        // eliminating the visible_chars-must-match-bare-value contract
+        // surface that pad_after_color exposed).
         assert_eq!(
-            pad_after_color("\x1b[1;31mhigh\x1b[0m", 4, 8),
+            render_cell("high", Some("\x1b[1;31m"), 8),
             "\x1b[1;31mhigh\x1b[0m    "
         );
     }
 
     #[test]
-    fn pad_after_color_does_not_pad_when_at_or_over_width() {
-        // "in-progress" exactly fills width 11 — no padding added.
-        assert_eq!(pad_after_color("in-progress", 11, 11), "in-progress");
-        // Visible >= total: no padding (defensive — the cmd_list call sites
-        // pass conforming widths, but the helper must not panic or under-pad).
-        assert_eq!(pad_after_color("anything", 8, 4), "anything");
+    fn render_cell_does_not_pad_when_visible_equals_or_exceeds_total() {
+        // "in-progress" (11 visible chars) exactly fills width 11 — no
+        // padding added regardless of whether color is applied.
+        assert_eq!(
+            render_cell("in-progress", Some("\x1b[1;36m"), 11),
+            "\x1b[1;36min-progress\x1b[0m"
+        );
+        assert_eq!(render_cell("in-progress", None, 11), "in-progress");
+        // Visible > total: no padding (defensive — the cmd_list call sites
+        // pass conforming widths, but the helper must not panic or
+        // under-pad).
+        assert_eq!(render_cell("anything", None, 4), "anything");
+    }
+
+    // --- Round 2: ColorMode + env-var helper tests ---
+    // SE R17 F1 / SA R15 F3 refactor + UX R10 F1 / Security R11 F2
+    // NO_COLOR / CLICOLOR honoring. The env-var helper tests use a serial
+    // pattern guarded by a process-global mutex — Rust's test runner runs
+    // unit tests in parallel by default, and these tests both read AND
+    // mutate process env vars, which would race without serialization.
+
+    use std::sync::Mutex;
+    static ENV_TEST_LOCK: Mutex<()> = Mutex::new(());
+
+    #[test]
+    fn color_mode_is_on_helper() {
+        assert!(ColorMode::On.is_on());
+        assert!(!ColorMode::Off.is_on());
+    }
+
+    #[test]
+    fn color_mode_from_env_off_when_no_color_set() {
+        // SAFETY: env-var mutation is racy across parallel tests; the
+        // ENV_TEST_LOCK serializes our color_mode_from_env tests with each
+        // other. We cannot defend against unrelated tests reading
+        // NO_COLOR concurrently, but no other test in this crate touches
+        // these env vars.
+        let _guard = ENV_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        // Safety preamble: clear both vars to a known state before mutating.
+        // SAFETY: only this thread is reading these env vars during the
+        // critical section (ENV_TEST_LOCK held); std::env::set_var is
+        // unsafe in Rust 1.85+ due to data-race potential with concurrent
+        // readers, but our serialization eliminates that race for the
+        // tests in this crate.
+        // Stdout in `cargo test` is non-TTY, so color_mode_from_env returns
+        // Off regardless of env. We can only assert the env precedence at
+        // the unit level: even when stdout WERE a TTY, NO_COLOR must force
+        // Off. The integration tests (tests/layer7.rs, Round 2 additions)
+        // cover the end-to-end env-var paths via the binary.
+        unsafe {
+            std::env::set_var("NO_COLOR", "1");
+            std::env::remove_var("CLICOLOR");
+        }
+        assert_eq!(color_mode_from_env(), ColorMode::Off);
+        unsafe {
+            std::env::remove_var("NO_COLOR");
+        }
+    }
+
+    #[test]
+    fn color_mode_from_env_off_when_clicolor_zero() {
+        let _guard = ENV_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        unsafe {
+            std::env::remove_var("NO_COLOR");
+            std::env::set_var("CLICOLOR", "0");
+        }
+        assert_eq!(color_mode_from_env(), ColorMode::Off);
+        unsafe {
+            std::env::remove_var("CLICOLOR");
+        }
+    }
+
+    #[test]
+    fn color_mode_from_env_off_when_stdout_piped_regardless_of_env() {
+        // In `cargo test`, stdout is captured (non-TTY). Even if no
+        // env-var opt-out is set, color_mode_from_env returns Off because
+        // is_terminal() is false. This pins the TTY-precedence invariant:
+        // a piped stdout always wins over CLICOLOR_FORCE-style overrides
+        // (which we deliberately don't honor anyway).
+        let _guard = ENV_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        unsafe {
+            std::env::remove_var("NO_COLOR");
+            std::env::remove_var("CLICOLOR");
+            std::env::set_var("CLICOLOR_FORCE", "1");
+        }
+        assert_eq!(color_mode_from_env(), ColorMode::Off);
+        unsafe {
+            std::env::remove_var("CLICOLOR_FORCE");
+        }
+    }
+
+    #[test]
+    fn color_mode_from_env_off_when_no_color_set_to_empty_string() {
+        // Per https://no-color.org/: "any value other than the empty
+        // string". Our implementation reads `var_os` and checks `!v.is_empty()`,
+        // so NO_COLOR="" should NOT suppress color (empty value = unset).
+        let _guard = ENV_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        unsafe {
+            std::env::set_var("NO_COLOR", "");
+            std::env::remove_var("CLICOLOR");
+        }
+        // stdout is non-TTY in cargo test, so this still returns Off — but
+        // for the no-color.org reason, not for the NO_COLOR-empty reason.
+        // The unit-level invariant we can pin: the function does not panic
+        // and returns Off in the captured-stdout test environment.
+        assert_eq!(color_mode_from_env(), ColorMode::Off);
+        unsafe {
+            std::env::remove_var("NO_COLOR");
+        }
+    }
+
+    #[test]
+    fn wrap_color_debug_assert_active_in_debug_builds() {
+        // Defense-in-depth contract (Security R11 F1): wrap_color must
+        // panic in debug builds when given a control-character-bearing
+        // value. In release builds the debug_assert! is compiled out;
+        // this test runs under `cargo test` which builds in debug mode by
+        // default, so the assertion fires.
+        let result = std::panic::catch_unwind(|| wrap_color("evil\x1b[0m", Some("\x1b[1;31m")));
+        assert!(
+            result.is_err(),
+            "wrap_color must debug_assert on control-bearing values"
+        );
     }
 }

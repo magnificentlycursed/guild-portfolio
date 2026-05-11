@@ -110,15 +110,45 @@ fn help_flag_delete_exits_zero() {
 
 #[test]
 fn unknown_subcommand_exits_one() {
+    // Round 2 (QE R17 F3): assert stdout is empty — clap error output must
+    // route to stderr per the DESIGN.md stderr contract.
     let dir = TempDir::new().unwrap();
     tracker(&dir)
         .args(["frobnicate"])
         .assert()
         .failure()
         .code(1)
+        .stdout("")
         .stderr(predicate::str::contains("Error:"))
         .stderr(predicate::str::contains("unrecognized subcommand"))
         .stderr(predicate::str::contains("frobnicate"));
+}
+
+#[test]
+fn unknown_subcommand_with_cc_payload_escapes_in_stderr() {
+    // Round 2 (RT R10 F1 — extended DESIGN.md stderr contract): user-
+    // supplied bytes reflected by clap's `unrecognized subcommand '<name>'`
+    // error MUST be Cc-escaped before reaching stderr. Plant CR + TAB in
+    // the subcommand name and assert each appears as its `\u{XX}` escape
+    // per `sanitize_quoted_values`. Structural LFs from clap's multi-line
+    // error template (`\n\nUsage: ...`) survive because the sanitizer
+    // narrows escaping to the inside of single-quoted regions only.
+    //
+    // ESC (`\x1B`) is excluded from the payload — clap's own error
+    // pipeline strips raw ESC bytes from reflected values before they
+    // reach our `sanitize_quoted_values` transform, so we cannot assert
+    // on what we never receive. The defense remains in place via clap's
+    // upstream sanitization; our test pins our own sanitizer's behavior.
+    let dir = TempDir::new().unwrap();
+    tracker(&dir)
+        .args(["pre\rmid\ttab"])
+        .assert()
+        .failure()
+        .code(1)
+        .stdout("")
+        .stderr(predicate::str::contains("\\u{D}")) // CR escaped inside the quoted value
+        .stderr(predicate::str::contains("\\u{9}")) // TAB escaped inside the quoted value
+        .stderr(predicate::str::contains("\n\nUsage:")); // Structural LFs preserved
 }
 
 // --- no ANSI escape codes when stdout is piped ---
@@ -156,21 +186,32 @@ fn list_piped_has_no_ansi_codes() {
         .assert()
         .success();
 
+    // Round 2 (QE R17 F4): assert ALSO that stderr is ANSI-clean — empty-
+    // state messages from `list` route to stderr per DESIGN.md, and the
+    // color contract is symmetric (no ANSI to stderr regardless of TTY).
+    for st in ["open", "in-progress", "done"] {
+        tracker(&dir)
+            .args(["list", "--status", st])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("\x1b[").not())
+            .stderr(predicate::str::contains("\x1b[").not());
+    }
+}
+
+#[test]
+fn list_empty_state_stderr_has_no_ansi_codes() {
+    // Round 2 (QE R17 F4): when `list` produces an empty-state message on
+    // stderr, that stderr stream must also be ANSI-clean — color
+    // suppression applies symmetrically across stdout and stderr.
+    let dir = TempDir::new().unwrap();
     tracker(&dir)
-        .args(["list", "--status", "open"])
+        .args(["list"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("\x1b[").not());
-    tracker(&dir)
-        .args(["list", "--status", "in-progress"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("\x1b[").not());
-    tracker(&dir)
-        .args(["list", "--status", "done"])
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("\x1b[").not());
+        .stdout("")
+        .stderr(predicate::str::contains("No open issues. Nice work!"))
+        .stderr(predicate::str::contains("\x1b[").not());
 }
 
 #[test]
@@ -185,9 +226,39 @@ fn show_piped_has_no_ansi_codes() {
         .assert()
         .success();
 
+    // Round 2 (QE R17 F4): assert stderr is ANSI-clean too.
     tracker(&dir)
         .args(["show", "1"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("\x1b[").not());
+        .stdout(predicate::str::contains("\x1b[").not())
+        .stderr(predicate::str::contains("\x1b[").not());
+}
+
+#[test]
+fn no_color_env_does_not_break_piped_invocation() {
+    // Round 2 (UX R10 F1 / Security R11 F2 / Round-2 DESIGN.md amendment):
+    // NO_COLOR is honored. assert_cmd pipes stdout (non-TTY), so color is
+    // already suppressed by TTY-detection alone; this test verifies the
+    // env-var path doesn't crash, alter exit code, or change output shape.
+    // Real TTY-positive verification of NO_COLOR is in the Layer 7 manual
+    // testing checklist (TODO.md: forthcoming Round-2 amendment item).
+    let dir = TempDir::new().unwrap();
+    tracker(&dir)
+        .args(["create", "Test", "--priority", "high"])
+        .assert()
+        .success();
+    for (k, v) in [
+        ("NO_COLOR", "1"),
+        ("CLICOLOR", "0"),
+        ("CLICOLOR_FORCE", "1"),
+    ] {
+        tracker(&dir)
+            .env(k, v)
+            .args(["list"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("\x1b[").not())
+            .stdout(predicate::str::contains("Test"));
+    }
 }

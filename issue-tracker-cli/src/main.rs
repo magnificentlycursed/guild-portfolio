@@ -69,11 +69,21 @@ fn main() {
     // DESIGN.md stderr contract: error messages begin with `Error:`; all errors exit 1.
     // clap defaults to lowercase `error:` and exit code 2 for usage errors — transform here.
     // For --help / --version, clap routes via stdout and exits 0; preserve that behavior.
+    //
+    // Round 2 (RT R10 F1 / stderr Cc-escape rule extended to clap pipeline):
+    // user-supplied bytes reflected by clap (e.g. `unrecognized subcommand
+    // 'X'` where X may contain `\r`, NEL, C1 bytes from a paste) must be
+    // Cc-escaped before reaching stderr — per DESIGN.md "stderr contract".
+    // We apply `sanitize_quoted_values` rather than `display_safe` to
+    // preserve clap's structural newlines (the `\n\nUsage: ...` block) while
+    // still escaping any control bytes that appear INSIDE the `'X'` quoted
+    // user-reflection regions.
     let cli = match Cli::try_parse() {
         Ok(cli) => cli,
         Err(e) if e.use_stderr() => {
-            let msg = e.to_string().replacen("error:", "Error:", 1);
-            eprint!("{}", msg);
+            let raw = e.to_string().replacen("error:", "Error:", 1);
+            let safe = tracker::sanitize_quoted_values(&raw);
+            eprint!("{}", safe);
             std::process::exit(1);
         }
         Err(e) => {
@@ -82,6 +92,12 @@ fn main() {
         }
     };
     let path = Path::new("tracker.json");
+
+    // Round 2 (SE R17 F1 / SA R15 F2): decide ColorMode ONCE in main and
+    // thread through to cmd_list / cmd_show. Previously each of those
+    // functions called `is_terminal()` independently, duplicating an
+    // environmental check that should have a single decision point.
+    let color = tracker::color_mode_from_env();
 
     let result = match cli.command {
         Commands::Create {
@@ -107,9 +123,10 @@ fn main() {
             priority.as_deref(),
             label.as_deref(),
             path,
+            color,
         ),
         Commands::Status { id, status } => tracker::cmd_status(&id, &status, path),
-        Commands::Show { id } => tracker::cmd_show(&id, path),
+        Commands::Show { id } => tracker::cmd_show(&id, path, color),
         Commands::Delete { id } => tracker::cmd_delete(&id, path),
     };
 

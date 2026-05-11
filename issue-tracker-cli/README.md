@@ -8,29 +8,35 @@ This is portfolio project #2 from the Phase 1 apprentice program — the first R
 
 ## Commands
 
-Available now (Layer 4):
-
 ```
-tracker create "Fix the login bug" [--priority low|medium|high] [--label <l>]...
-tracker list [--status open|in-progress|done] [--priority low|medium|high] [--label <l>]
+tracker create "Fix the login bug" [--description "..."] [--priority low|medium|high] [--label <l>]...
+tracker list   [--status open|in-progress|done] [--priority low|medium|high] [--label <l>]
 tracker status <id> open|in-progress|done
+tracker show   <id>
+tracker delete <id>
 ```
 
-Planned (not yet implemented — see Status):
+`tracker list` defaults to open issues, sorted by priority (high → medium → low) then ID ascending. The `--label` filter on `list` accepts a single value and matches case-sensitively; on `create` it is repeatable and labels are deduplicated (case-preserved). Descriptions are stored verbatim; control characters other than `\n` are rejected at create and load. Deleted issue IDs are never reused. Run `tracker --help` or `tracker <subcommand> --help` for the full flag reference.
 
-```
-tracker create ... [--description "..."]   # Layer 6
-tracker show <id>                          # Layer 6
-tracker delete <id>                        # Layer 6
-```
+---
 
-`tracker list` defaults to open issues, sorted by priority (high → medium → low) then ID ascending. The `--label` filter on `list` accepts a single value and matches case-sensitively; on `create` it is repeatable and labels are deduplicated (case-preserved). Run `tracker --help` or `tracker <subcommand> --help` for the full flag reference of currently-implemented commands.
+## Color output
+
+When stdout is a TTY, `tracker list` and `tracker show` color the priority and status value cells: bold red for `high`, bold yellow for `medium`, bold cyan for `in-progress`, bold green for `done`. `low` priority and `open` status render in the terminal's default color so the highlighted-vs-unhighlighted dichotomy reads at a glance (including for color-vision-deficient users, since every highlighted value carries the `bold` SGR attribute per WCAG 1.4.1 *Use of Color*).
+
+Color is suppressed when:
+
+- stdout is piped or redirected (so downstream parsers see clean text), or
+- the `NO_COLOR` environment variable is set to any non-empty value (per <https://no-color.org/>), or
+- `CLICOLOR=0` is set.
+
+`CLICOLOR_FORCE` is intentionally not honored — ANSI escapes are never emitted to a non-TTY stdout regardless of env vars.
 
 ---
 
 ## Install
 
-Requires Rust (toolchain pinned to 1.94.1 — see `rust-toolchain.toml`).
+Requires Rust 1.82+ (`rust-version` declared in `Cargo.toml`; the project's pinned toolchain via `rust-toolchain.toml` is 1.94.1).
 
 ```sh
 cargo install --path .
@@ -51,7 +57,7 @@ cargo build --release
 cargo test
 ```
 
-Integration tests invoke the compiled binary as a subprocess and assert on stdout, stderr, and exit code. Unit tests cover validation (title, label), ID assignment, status/priority/ID parsing, sort ordering, label deduplication, and case-sensitive label matching.
+Integration tests invoke the compiled binary as a subprocess and assert on stdout, stderr, and exit code. Unit tests cover validation (title, label, description, ID parsing, priority/status enums), persistent `next_id` counter invariants, sort ordering, color-helper ANSI sequences, TTY-detection + env-var color suppression, and the clap-error quoted-value sanitizer.
 
 ---
 
@@ -59,25 +65,25 @@ Integration tests invoke the compiled binary as a subprocess and assert on stdou
 
 Issues are stored in `tracker.json` in the directory where you run the command. The file is created automatically on first `tracker create`. To use separate issue lists per project, run `tracker` from the project's root directory.
 
-`tracker.json` is plain JSON — you can inspect it with any text editor. Do not manually set field values outside the valid enum sets (status: `open`, `in-progress`, `done`; priority: `low`, `medium`, `high`) — invalid values are treated as file corruption.
+`tracker.json` is plain JSON — you can inspect it with any text editor. The top-level shape is `{"issues": [...], "next_id": <u64>}`; the `next_id` counter is monotonically increasing so deleted IDs are never reused (including the previously-highest ID). Do not manually set field values outside the valid enum sets (status: `open`, `in-progress`, `done`; priority: `low`, `medium`, `high`) — invalid values are treated as file corruption.
 
 ---
 
 ## Status
 
-**Layer 4 implementation complete. Layer 5 not started.**
+**Layer 7 implementation complete; Layer 7 IAR Round 2 closure in progress.**
 
 - [x] DESIGN.md — full behavioral specification
 - [x] TODO.md — 7-layer development plan with Red Gate test plans
 - [x] DECISIONS.md — key design decisions with rationale
-- [x] IAR suite — 10 domains reviewed
+- [x] IAR suite — 11 active domains (8 core + RT + TW + VDD-IAR Alignment)
 - [x] Layer 1: Core create + list
 - [x] Layer 2: Status flow
 - [x] Layer 3: Priority
 - [x] Layer 4: Labels
-- [ ] Layer 5: Compound filtering
-- [ ] Layer 6: Description, show, delete
-- [ ] Layer 7: Polish (color, `--help`, error messages)
+- [x] Layer 5: Compound filtering
+- [x] Layer 6: Description, show, delete
+- [x] Layer 7: Polish (color, `--help`, error messages, NO_COLOR / CLICOLOR honoring, stderr Cc-escape)
 
 ---
 
@@ -89,4 +95,4 @@ Issues are stored in `tracker.json` in the directory where you run the command. 
 | `TODO.md` | Layered development plan with acceptance criteria, manual testing checklists, Red Gate test plans |
 | `DECISIONS.md` | Key design decisions with rationale |
 | `PROCESS.md` | Layer-by-layer process retrospective — what was built, what was caught by IAR, what was learned |
-| `iterative-adversarial-refinement/` | IAR review logs for all 10 active domains |
+| `iterative-adversarial-refinement/` | IAR review logs for all 11 active domains |
