@@ -959,4 +959,215 @@ Two findings I tried to elevate but couldn't:
 
 SA R11 F1 carry-forward unchanged: deferred. 0 new findings this round. From SA's lens, Layer 5 is merge-ready; the rendering-half deferral is bookkept for the focused PR before Layer 7.
 
+---
+
+## Review 13 — 2026-05-11 01:07Z
+
+**Round:** SA Review 13 (Layer 6 — Description + Show + Delete).
+**Scope:** Cold-session adversarial SA review of the Layer 6 implementation (commits `4fb5e67` Phase 2a Red Gate, `c91676a` Phase 2b implementation). Code under review: `src/lib.rs` (1156 lines incl. tests; 665 non-test lines), `src/main.rs` (118 lines), `tests/layer6.rs` (465 lines). Primary lens: Dim 1 (layered decomposition), Dim 2 (separation of concerns), Dim 3 (coupling), Dim 4 (interface contracts), Dim 5 (complexity budget), Dim 6 (decision documentation), and the SA Review 7/8/9/11 carry-forward re-raise conditions that explicitly named Layer 6 as the trigger point.
+**Session note:** Cold session per the IAR primer. Adversarial framing intact. Parallel batch with SO 20 / QE 15 / SE 15 / Security 9 / Data Engineer 9 / Platform Engineer 10 / Red Team 8 / Technical Writer 9 / UX 8 / VDD-IAR 15. Sycophancy guard: every prior re-raise watch from SA 7/8/9/10/11/12 was specifically re-evaluated against the Layer 6 source — particularly the two tripwires SA 7/8/9 set with explicit "trigger fires at Layer 6" language.
+
+---
+
+### Open
+
+**Finding 1 — Both `lib.rs` decomposition (SA R8 F3 / SA R9 F3 revised) and `cmd_create` parameter-object (SA R7 F4 / SA R8 F4 / SA R10) re-raise triggers fired at Layer 6 and neither was acted on (Dim 2 — Cohesion / Dim 3 — Coupling / Carry-forward — explicit re-raise condition triggered)**
+
+Two prior dismissals carried explicit, single-trigger re-raise conditions that named Layer 6 as the firing point. Both fired in this commit. Neither was acted on.
+
+*Trigger 1 — non-test source past 500 lines.* SA R9 Finding 3 (revised re-raise condition, recorded in this log at `Review 9 — Dismissed F3` and re-affirmed in SA R10 / SA R11): "If Layer 5 or Layer 6 adds non-test code (i.e., excluding the `#[cfg(test)]` block) past 500 lines, the decomposition into `lib/storage.rs`, `lib/validate.rs`, `lib/commands.rs` is due."
+
+Measurement: `src/lib.rs:666` is `#[cfg(test)]`. Non-test lines = `665`. The threshold is `500`. The threshold was crossed by `+165` (33% over). SA R11 estimated ~485 non-test lines at the end of Layer 5; Layer 6 added the four new bodies (`validate_description`, `format_show_block`, `cmd_show`, `cmd_delete`) plus doc comments and the `cmd_create` description-wiring change, totaling roughly +180 non-test lines. The Layer 6 source change is what crossed the threshold, exactly as the re-raise condition predicted.
+
+*Trigger 2 — `cmd_create` parameter count reaches 5.* SA R7 F4 / SA R8 F4 (re-affirmed in SA R10): "Layer 6's `--description` addition pushes `cmd_create` to 5 parameters. At that point, introduce `CreateArgs { title, priority, labels, description }` and pass `(args, path)`. SE should preempt this when scoping Layer 6 to avoid a separate refactor pass."
+
+Measurement (`src/lib.rs:229-234`):
+
+```
+pub fn cmd_create(
+    title_raw: &str,
+    description_raw: Option<&str>,
+    priority_raw: Option<&str>,
+    labels_raw: &[String],
+    issues_path: &Path,
+) -> Result<(), String> {
+```
+
+Five parameters. The threshold is `>5` if SA R7 F4's literal text is read strictly, or `≥5` if SA R8 F4's "5 parameter" language is read as the trigger point. Reading the *combined intent* across SA R7/R8/R10 — which all named Layer 6's `--description` as the action-now moment — the re-raise was scheduled for now, not for a later >5. The four-parameter signature was the dismissal-condition. The five-parameter signature is the re-raise-condition. The re-raise was scoped to *be done at* Layer 6, not *after* Layer 6.
+
+Both re-raise conditions were prior commitments by SA. The Layer 6 implementer did not act on either (no module split; `cmd_create` still takes 5 positional parameters with no `CreateArgs` struct). Neither re-raise condition is mentioned in the commit message of `c91676a`.
+
+**Self-test (sycophancy guard):** Could I dismiss this as "the refactor is scheduled for a later focused PR, same as the SA R11 F1 rendering deferral"? No — the rendering-half deferral was tied to a different layer's trigger (Layer 7's color injection). These two triggers were scheduled *for Layer 6* by their original dismissal text. Dismissing them again with the same "deferred to focused PR" framing would invalidate the prior re-raise commitment retroactively. The dismissal-rule contract was: "We accept the smaller fix now, and we commit to acting at Layer 6." Layer 6 came and went without action. Could I dismiss as "the re-raise rule was Phase-1-too-strict, revisit"? No — that would be moving the goalposts after the fact. The proper move is to raise the finding and let SO/SE decide the disposition (defer again with a *new* explicit trigger, or act now).
+
+Could I dismiss the parameter-count half specifically as "5 parameters is still readable, the dismissal was over-cautious"? On its own merits, 5 parameters is acceptable Rust; it is not unreadable. But the SA prior commitments tied the param-object refactor to layer-stable signatures: Layer 6 is the last layer that touches `cmd_create`'s signature in any planned way; Layer 7 is polish-only. Doing the refactor *now*, in the same commit that adds the fifth param, is cheaper than doing it later (atomic test scaffolding, no separate review pass). Dismissing on "5 is still fine" undoes the cost-amortization argument the prior reviews made.
+
+**Severity:** Medium for the lib.rs decomposition (the trigger is materially exceeded — 33% over, not borderline). Low-to-medium for the param-object (the literal count is exactly at the boundary; readability is not yet impaired). Both findings are about prior-commitment compliance more than about new-defect material.
+
+**Classification: Open.** Disposition recommendation: SO / SE should decide whether to (a) act in a Round-2 inline fix during this IAR cycle, (b) defer to a single focused pre-Layer-7 PR (alongside the SA R11 F1 rendering-half), or (c) explicitly revise the re-raise condition with a new trigger. Whichever option is chosen, the SA carry-forward bookkeeping needs an explicit update — the current Open list is now three (this finding's two halves + SA R11 F1).
+
+**Proposed action (if (b) is chosen):** Bundle into the pre-Layer-7 focused PR. Module split: `src/lib/mod.rs` (re-exports + `Issue`), `src/lib/storage.rs` (`load_issues`, `save_issues`, validation predicates), `src/lib/validate.rs` (`validate_title`, `validate_description`, `parse_label`, `parse_id`, `parse_status`, `parse_priority`, `display_safe`), `src/lib/commands.rs` (`cmd_create`, `cmd_list`, `cmd_status`, `cmd_show`, `cmd_delete`, `format_show_block`, `issue_matches_filters`, `truncate_with_ellipsis`, `priority_rank`, `sort_issues`). `CreateArgs` struct introduced alongside, with the call site in `main.rs` updated. Tests stay in `lib.rs` until module-level test colocation is decided.
+
+**Coordination:** Raised to SE for disposition. Raised to SO for trigger-revision authority if (c) is preferred. Cross-reference with [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) — SE 15 is the right round to scope the action.
+
+---
+
+**Finding 2 — `format_show_block` encodes the 13-char label-column width as eight hand-spaced format-string literals plus a duplicated 13-space continuation indent; no `LABEL_WIDTH` / `LABEL_INDENT` constant exists; the duplication shape mirrors SA R8 F1's `cmd_list` rendering-half complaint applied to a new render site (Dim 1 — Separation of concerns / Dim 2 — Cohesion / "two of a kind makes a pattern")**
+
+`src/lib.rs:369-377` — the show block is rendered via a single `format!` with the label column hand-spaced at every line:
+
+```
+"ID:          {}\n\
+ Title:       {}\n\
+ Status:      {}\n\
+ Priority:    {}\n\
+ Labels:      {}\n\
+ Description: {}\n\
+ Created:     {}\n\
+ Updated:     {}\n",
+```
+
+Each prefix is hand-counted to 13 characters (`"ID:"` + 10 spaces, `"Title:"` + 7 spaces, etc.). The unit test at `src/lib.rs:1102-1126` re-counts the same 13-character widths in eight assert lines. The continuation-indent for multi-line descriptions at `src/lib.rs:366` is a separate `"\n             "` literal (1 `\n` + 13 spaces) — the 13 is duplicated from the column-width-via-spacing encoding.
+
+There is no module-level `const LABEL_WIDTH: usize = 13;` and no `format!("{:<width$}", label, width = LABEL_WIDTH)` form. A future change to the label-column width would require updating: (a) eight format-string literals in `format_show_block`, (b) one `"\n             "` replace-target literal, (c) eight test prefix strings in `show_label_column_right_padded_to_13`, and (d) test prefix strings in `tests/layer6.rs:172-187` and `tests/layer6.rs:215-216`. DESIGN.md "Show output format" already specifies the 13-char column width, so the *value* of the constant is contractual — but the *single-source-of-truth* property is missing.
+
+This is the same complaint shape as SA R8 F1 (rendering-half of `cmd_list` extraction): scattered width literals without a named constant. Applied to a new render site introduced in Layer 6. Two render functions (`cmd_list`, `format_show_block`) now both encode their column widths as scattered literals — two of a kind makes a pattern. The Layer 7 collision argument from SA R8 F1 applies here too in a narrower form: `format!("{:<width$}", value, width = …)` is the form Layer 7 needs if color injection is added to status/priority values inside the show block, because escape bytes break `{:<13}` padding the same way they would break `{:<11}` in the list row. The fact that Layer 7's color plan currently doesn't list show-block coloring (DESIGN.md line 234 says "color is applied only to the value text in its column cell, not to the entire row or header" — and DESIGN.md line 232 says color applies "in list and show output") makes this *more* relevant for Layer 7, not less.
+
+**Self-test (sycophancy guard):** Could I dismiss this as "the format! is readable, the 13-char column is contractual, hand-spacing is the simplest form"? Partially — the 8-line `format!` literal *is* readable in the abstract, and a `format!("{:<13}{}", "ID:", id)` form has its own readability tax (more vertical, more boilerplate per row, the `:` placement inside the format-string vs. inside the format-argument decision). But the duplication-count argument is the actual finding: the 13 appears in 1 (format-call) + 1 (replace-target) + 8 (unit-test asserts) + at-least-2 (integration-test asserts) = 12+ source locations. That count is a real maintenance-cost number, not an aesthetic preference. Dismissing on "format! is readable" would skip the duplication argument.
+
+Could I dismiss as "Layer 7 will add color to status/priority *value* cells, not to label cells, so the column-width concern doesn't apply"? Color is applied to *value text* per DESIGN.md line 243, and the value column starts at offset 13 — so injecting ANSI escape bytes into the status/priority values inside `format_show_block` would not break the *label* column (it's already past it), but it *would* corrupt the trailing-newline-and-13-space-continuation logic if a multi-line description ever contained color (it doesn't today, but the architectural shape is the same as the list-row collision). The pattern is the same. Dismissal-attempt fails.
+
+Could I dismiss as "this is the same finding as SA R8 F1 rendering-half, just at a new site — log it as part of that carry-forward, not a new finding"? Reasonable accounting choice — but SA R8 F1 was explicitly about `cmd_list`. Pretending the new render function isn't a separate site is wishful-thinking accounting. The right move is: this is the *second* instance of the rendering-half pattern; the focused pre-Layer-7 PR (if that's the disposition for F1) should cover both render sites; record the new render site here so it's visible in the carry-forward bookkeeping.
+
+**Severity:** Low. The function is short, the duplication is local, the eight-line format-string is itself readable. The finding is about pattern-recognition — Layer 6 added a *second* render site that encodes its widths as scattered literals rather than as a named constant. Worth flagging for the same focused pre-Layer-7 PR; not worth blocking Layer 6 closure for.
+
+**Classification: Open (Deferred to the same focused pre-Layer-7 PR as SA R11 F1).** Same disposition as the existing SA R11 F1 rendering-half deferral, scoped to include `format_show_block` alongside `cmd_list` rendering.
+
+**Proposed action:** In the pre-Layer-7 PR, introduce `const LABEL_WIDTH: usize = 13;` at module level. Refactor `format_show_block` to use `format!("{:<width$} {}", "ID:", id, width = LABEL_WIDTH)` (or a small `fn show_row(label: &str, value: &str) -> String` helper). Refactor the continuation-indent to `"\n".to_string() + &" ".repeat(LABEL_WIDTH)` or equivalent. Update the test prefix strings to derive from the constant.
+
+**Coordination:** Cross-reference with [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) — SE 15 has the action.
+
+---
+
+### Resolved
+
+*(no findings resolved this round. The Layer 6 source change did not touch the rendering-half of `cmd_list` (correctly per the SA R11 deferral), did not touch `extra_filter_active` (correctly — `cmd_list`'s filter set is unchanged), and added two new bodies that are independent of all prior Open findings.)*
+
+---
+
+### Dismissed
+
+**Finding 3 — `format_show_block`'s `\r\n` → `\n` normalization at render time is an undocumented architectural choice that conflicts with DECISIONS.md "No Windows line-ending normalization" / SA Review 1 Finding 5 (Dim 6 — Decision documentation)**
+
+`src/lib.rs:365` — `format_show_block` does `let normalized = d.replace("\r\n", "\n");` on the description value before splitting at `\n`. DECISIONS.md lines 81-83 record: "No Windows line-ending normalization — `\r\n` is not normalized to `\n` on storage. Target platform is macOS." The commit message of `c91676a` mentions the normalization ("`\r\n` separators are normalized to `\n` before splitting so a CRLF-stored description renders without a stray `\r` in the first line") but DESIGN.md does not, and DECISIONS.md does not.
+
+A future reader of DECISIONS.md cold sees "we don't normalize line endings" and may not realize there's a render-time normalization in `format_show_block` (different concern: not storage, not list-rendering — just the multi-line description-indent in show output).
+
+**Classification: Dismissed.** Demonstration that the control holds:
+
+1. **DECISIONS.md "No Windows line-ending normalization" is about *storage* — the input/output boundary of `tracker.json`.** The original decision text and its SA Review 1 source are about whether to rewrite `\r\n` to `\n` on the way *into* the file. The Layer 6 normalization is at *render* time only — the stored value is still verbatim. These are different concerns; there is no contradiction.
+
+2. **The normalization is a defensive render-side detail, not a spec amendment.** The DESIGN.md "Show output format" example shows a multi-line description with continuation lines indented 13 spaces. If a stored description contains `\r\n` (because the user piped a file or pasted from Windows), the spec is silent on whether the `\r` should render as a stray invisible character at the end of each line. The Layer 6 implementer chose: strip the `\r` so the indent works. The alternative (preserve the `\r`) would visibly corrupt the show-block alignment with no user-visible benefit. The choice is correct and defensible.
+
+3. **DECISIONS.md is for *durable* architectural choices and *spec amendments* (SA R11 F5 dismissal text).** A render-side detail in a single private function is the wrong venue. The commit-message rationale is the appropriate documentation venue for this class of change, exactly per SA R11 F5's dismissal-rule.
+
+4. **The defensive normalization is bounded:** it does not affect storage (stored description still contains `\r\n` per "stored verbatim"); it does not affect `list` (description is not rendered in list); it only affects the show-block rendering. The blast radius is one private function.
+
+The control holds: the choice is correct, the venue (commit message) is appropriate, and DECISIONS.md "no line-ending normalization" is about a different concern (storage) so no contradiction exists. Dismissal-attempt to elevate: I tried to argue future readers will be confused. But the function-level comment at `src/lib.rs:362-364` explains the choice in-place; that's where a future reader of `format_show_block` will look first. The control holds.
+
+**Re-raise condition:** if a future render decision introduces a *spec-visible* line-ending behavior change (e.g., a `--strict-storage` mode that round-trips `\r\n` through show output), DECISIONS.md is the right venue at that point.
+
+---
+
+**Finding 4 — `validate_description`'s contract is *describe* the un-trimmed input, in contrast to `validate_title`'s *trim* the input; the asymmetry is documented in the doc-comment but not enforced at the type level (Dim 4 — Interface contracts)**
+
+`src/lib.rs:326-340`. The doc comment at lines 326-334 explicitly notes the contract: "DESIGN.md Feature 1: `--description` must be non-empty after trim, but the *stored* value is the input verbatim (not trimmed). This function returns the un-trimmed input on success so the caller can write it as-is." `validate_title` at lines 56-77 has the same `Result<String, String>` shape but the returned value is trimmed. A caller that confuses the two (passes the result of `validate_description` to a code path that expected a trimmed value, or vice versa) gets a silent semantic error.
+
+**Classification: Dismissed.** Demonstration that the control holds:
+
+1. **Both functions have a single call site each — `cmd_create`.** `cmd_create:236` for title; `cmd_create:237-240` for description. There is no third call site that would conflate them. (`tests` calls them in unit-test context where the caller controls the assertion.)
+
+2. **The doc comment is the contract for a function whose only two callers are: `cmd_create` and a unit test.** Promoting the contract to a type-level distinction (e.g., separate `TrimmedTitle(String)` and `VerbatimDescription(String)` newtypes) would add ceremony for a single-call-site invariant. SA R11 F4 dismissed an analogous "doc-comment-as-contract" concern with the same reasoning.
+
+3. **The asymmetry is the spec's:** DESIGN.md Feature 1 postconditions specify the title-trim-on-store and description-verbatim-on-store rules explicitly. The function shape mirrors the spec asymmetry rather than introducing it. If anything, the asymmetry is correct documentation discipline — the *function* asymmetry surfaces the *spec* asymmetry.
+
+4. **The dismissal-attempt to elevate:** I tried to argue that future maintenance might add a second call site (e.g., a hypothetical `tracker edit` that re-validates the description). But (a) DESIGN.md "Out of Scope" line 396 explicitly excludes editing after creation, and (b) if such a feature were ever added, the spec amendment would surface the trim-vs-verbatim choice and the function's caller would consult the doc-comment-or-callsite-pattern at that point. The contract is sufficient for the current spec.
+
+The control holds: doc-comment-on-private-call-site-pair is the right contract level for an internal validation helper. Marking this finding Dismissed requires demonstrating the alternative would be worse; the alternative (newtype wrapper) is heavier than the problem.
+
+**Re-raise condition:** if `validate_description` or `validate_title` is ever exported beyond the lib crate, or if a second call site is added that does not flow through `cmd_create`, revisit immediately.
+
+---
+
+### Hallucinated
+
+**Finding 5 — `cmd_show` and `cmd_delete` both call `parse_id` + `load_issues` + find-by-id, then diverge into "render" vs. "mutate"; the shared prelude is duplicated rather than extracted into a `fn find_issue_by_id(id_raw, path) -> Result<(Vec<Issue>, usize), String>` helper (Dim 2 — Cohesion / Dim 3 — Coupling)**
+
+Initial concern: `src/lib.rs:398-409` (cmd_show) and `src/lib.rs:422-432` (cmd_delete) share the same opening lines — `parse_id` + `load_issues` + position-or-find by id. The shared prelude is duplicated. A `find_issue_by_id(id_raw, path) -> Result<(Vec<Issue>, usize), String>` (or `find_issue_index`) helper would centralize the id-not-found error message ("Issue #N not found.") and the parse-then-load sequence.
+
+**Classification: Hallucinated.** Demonstration that the control holds:
+
+1. **The two functions actually diverge on the *third* step, not the *prelude*.** `cmd_show` uses `.iter().find(…)` (returns `&Issue`); `cmd_delete` uses `.iter().position(…)` (returns `usize`). The shared *prelude* is two lines (`let id = parse_id(id_raw)?; let mut/let issues = load_issues(issues_path)?;`). Extracting a two-line shared prelude into a helper that has to return *either* a borrowed reference *or* an index — i.e., a `Result<(Vec<Issue>, Either<&Issue, usize>), String>` — would be heavier than the duplication. The Rust borrow checker would make the unified-helper form ugly: returning `(Vec<Issue>, &Issue)` from the same function requires lifetime annotations that propagate to the caller, and returning `(Vec<Issue>, usize)` for both call sites means `cmd_show` would have to re-index after the call, paying for ergonomics it didn't ask for.
+
+2. **`cmd_status` (`src/lib.rs:311-324`) has the exact same shape:** `parse_id` + `load_issues` + `position(|i| i.id == id)` + diverge into "mutate this field". Three call sites with the same prelude *plus* divergent middle-and-tail is the right shape for a private-helper extraction only if all three call sites want the same return type. They don't — `cmd_show` wants a borrowed reference for read-only access (avoid a clone or an index into a freshly-loaded Vec), `cmd_delete` wants an index for `Vec::remove`, `cmd_status` wants an index for `Vec[idx].status = …`. Two of three want the index; one wants the reference. A helper that returns the index would impose a re-lookup on `cmd_show`. A helper that returns the reference would force `cmd_delete` and `cmd_status` to do a second pass to get the index.
+
+3. **The duplication is the *correct* coupling shape for the Rust borrow-checker constraints.** The shared lines are mechanically simple (parse + load + find); their duplication is cheap. The non-shared lines (the mutation/render divergence) are where the complexity lives; extracting the shared part would push complexity *into* the helper signature (lifetime parameters, enum-of-results) at no readability gain.
+
+4. **The `Issue #N not found.` error string is duplicated three times across `cmd_status` / `cmd_show` / `cmd_delete`.** This is the real candidate for centralization — `fn not_found_error(id: u64) -> String`. But the savings (three callsite literals → one constant) is small and the constant version is no clearer than the inline `format!`. Marginal at best.
+
+The control holds: the duplication is the right cost-of-doing-business for the divergent-Result-type pattern. Marking this finding Hallucinated requires demonstrating the alternative would be worse; the demonstration is above. The two-line prelude is not a maintenance burden, and the alternative shapes are uglier.
+
+---
+
+### Summary
+
+Two real findings, both prior-commitment re-raises that explicitly named Layer 6 as the trigger:
+
+1. **Finding 1 — both `lib.rs` decomposition (non-test code past 500 lines) and `cmd_create` parameter-object (5 parameters reached) re-raise triggers fired in Layer 6 and neither was acted on.** Non-test lib.rs is 665 lines (target: ≤500; 33% over). `cmd_create` has 5 parameters (target: ≤4 without param-object). Both were scheduled-for-Layer-6 by prior dismissal text. Disposition: Open; SO/SE to choose Round-2 inline fix vs. focused pre-Layer-7 PR vs. trigger-revision.
+
+2. **Finding 2 — `format_show_block` is a new render site (Layer 6 added it) and it encodes the 13-char label-column width as eight hand-spaced format-string literals plus a duplicated 13-space continuation-indent.** Same architectural shape as SA R8/R9/R11 F1's `cmd_list` rendering-half complaint, applied at a new site. Bundle into the same pre-Layer-7 focused PR.
+
+Three findings reviewed and Dismissed/Hallucinated:
+
+- **Finding 3 (Dismissed)** — `\r\n` → `\n` normalization at show-render time vs. DECISIONS.md "no line-ending normalization." Different concern (render vs. storage); no contradiction; commit-message-as-documentation venue is correct for a render-side detail.
+- **Finding 4 (Dismissed)** — `validate_description` returns un-trimmed in contrast to `validate_title`'s trimmed return. Asymmetry is the spec's, not the function's. Doc-comment-on-single-call-site-pair is the right contract level for an internal validation helper.
+- **Finding 5 (Hallucinated)** — shared `parse_id` + `load_issues` + find prelude across `cmd_show` / `cmd_delete` / `cmd_status`. Divergent Result types make the unified-helper form heavier than the duplication; the duplication is the correct coupling shape for the Rust borrow-checker constraints.
+
+**Complexity budget (Dim 5):** `git show c91676a --stat` shows `src/lib.rs` +90/-43 = net +47 lines in the implementation commit. Phase 2a Red Gate added +145 lines (stubs + tests). Net Layer 6 source change is +192 lines, dominated by `format_show_block`'s body and three integration-test additions in `tests/layer6.rs`. Predicate-extraction pattern from Layer 5 was *not* applied to Layer 6 — there is no `show_matches_filter` or similar predicate; the Layer 5 pattern was specific to filter-AND-combination, not render. Layer 6's natural predicate-extraction analogue would be the rendering-half refactor (Finding 2) — same pattern, different site — but it was not applied. `lib.rs` is now 1156 lines total, 665 non-test (Finding 1's trigger).
+
+**Layer boundary (Dim 1):** Respected. No Layer 7 surface leak — no color output in `format_show_block`, no `IsTerminal` plumbing, no `--help` polish. The implementation is scoped to Layer 6 features exactly.
+
+**Separation of concerns (Dim 2):** `format_show_block` is a *mostly*-pure rendering function (it builds a `String`, no I/O). `cmd_show` is the thin I/O wrapper around it: parse, load, find, print. This split is clean and is the architectural shape DESIGN.md "Testing Methodology / Purity guidance" recommends. The corresponding split was *not* done for `cmd_list` (rendering still inline; SA R11 F1 carry-forward). The `cmd_show` split is the right pattern; the `cmd_list` rendering should follow it in the pre-Layer-7 PR.
+
+**Coupling (Dim 3):** `format_show_block` couples to `Issue` field shape directly (`issue.id`, `issue.title`, `issue.status`, etc.) — this is the *correct* coupling for an internal renderer over a data model (SA R11 F6 dismissal logic applies symmetrically). `cmd_show` and `cmd_delete` couple to `parse_id` / `load_issues` / `save_issues` via direct function calls — correct internal coupling.
+
+**Interface contracts (Dim 4):** `cmd_show` (lib.rs:389-397) and `cmd_delete` (lib.rs:411-421) have faithful doc comments — preconditions, postconditions, error states all named. `validate_description` (lib.rs:326-334) explicitly documents the un-trimmed-return contract (see dismissed Finding 4 for the contract-level analysis).
+
+**Sycophancy check:** Two findings I tried to dismiss but could not:
+- Finding 1 (both Layer-6-tripwire triggers fired without action) — I tried to dismiss as "defer to focused PR, same as SA R11 F1." But the original dismissals named Layer 6 as the *action* moment, not the *defer-again* moment. Dismissing the trigger after it fires would invalidate the prior re-raise contract retroactively. Dismissal unconvincing → finding stands as Open.
+- Finding 2 (new render-site duplication in `format_show_block`) — I tried to dismiss as "the 8-line format! is readable in isolation." But the duplication-count argument (1 format + 1 replace-target + 8 unit-test asserts + 2 integration-test asserts = 12+ source locations) is a real maintenance-cost number. Dismissal unconvincing → finding stands as Open (deferred to pre-Layer-7 PR).
+
+Three findings I tried to elevate but couldn't:
+- Finding 3 (`\r\n` normalization undocumented) — I tried to argue future-reader confusion. But function-level comment exists and DECISIONS.md "no line-ending normalization" is about storage, not render. Elevation unconvincing → Dismissed.
+- Finding 4 (`validate_description` un-trimmed return) — I tried to argue type-level enforcement. But single call site + doc-comment-as-contract + asymmetry-is-the-spec's. Elevation unconvincing → Dismissed.
+- Finding 5 (prelude duplication across cmd_show/cmd_delete/cmd_status) — I tried to argue helper-extraction. But divergent Result types and Rust borrow-checker constraints make the helper-form heavier. Elevation unconvincing → Hallucinated.
+
+**Carry-forward status (explicit):**
+- **SA R7 F4 / SA R8 F4 (`cmd_create` parameter count, threshold at 5):** **Trigger fired in Layer 6.** Re-raised as Finding 1 half-A. Was the explicit Layer-6-action expectation.
+- **SA R8 F3 / SA R9 F3 revised (`lib.rs` decomposition, non-test past 500 lines):** **Trigger fired in Layer 6.** Re-raised as Finding 1 half-B. Was the explicit Layer-5-or-Layer-6-action expectation; the threshold was 33% exceeded.
+- **SA R8 F1 / SA R9 F1 / SA R11 F1 (`cmd_list` rendering-half extraction):** **Unchanged.** Layer 6 did not touch `cmd_list` rendering; correctly per the SA R11 deferral. The rendering-half deferral now also covers a new render site (`format_show_block`, Finding 2). Pre-Layer-7 PR scope expanded.
+- **SA R9 F2 (`extra_filter_active` disjunction):** **Resolved, unchanged.** Layer 6 did not add a `list` filter (description is `create`-only per DESIGN.md); the property holds trivially.
+- **SA R11 F4 / SA R11 F6 (doc-comment-as-contract; data-model coupling for predicates):** **Patterns applied symmetrically to Layer 6.** `validate_description` doc-contract dismissed under R11 F4 logic; `format_show_block` data-model coupling not raised under R11 F6 logic.
+
+**DECISIONS.md (Dim 6):** No Layer 6 entry added. Following SA R11 F5 dismissal-rule precedent: internal refactors / render-side defensive details (the `\r\n` normalization) don't warrant a DECISIONS.md entry. The non-confirmation-on-delete decision (DECISIONS.md lines 37-39) was the only spec-visible Layer 6 choice, and that was added under the D1 deviation entry in DESIGN.md (lines 413-420) ahead of Layer 6 implementation — correctly. The Layer 6 commit-message rationale is the appropriate documentation venue for the render-side details.
+
+**Coordination:**
+- **Raised to SE (Finding 1):** decide Round-2 inline fix vs. focused pre-Layer-7 PR vs. trigger-revision. The two halves can be acted on independently if needed (param-object now, module-split later, or vice versa) but both have the same disposition decision. Cross-reference with [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) — SE 15 has the action.
+- **Raised to SE (Finding 2):** bundle `format_show_block`'s `LABEL_WIDTH` constant extraction into the pre-Layer-7 PR alongside the `cmd_list` rendering-half. Same focused-PR scope; lower-priority within that scope.
+- **Raised to SO (Finding 1):** trigger-revision authority. SO may choose to extend the dismissal contract (revised re-raise condition with a new explicit Layer 7 trigger) rather than acting now. Either path is acceptable from SA's lens; what is *not* acceptable is silently letting the trigger fire and continuing the prior dismissal as if it had not fired.
+- **For QE (informational):** the Layer 6 unit tests in `lib.rs:1085-1138` are well-scoped (multiline format, label-column padding, max+1 ID assignment). Cat B Red Gate disclosure for the `max_id_plus_one_skips_deleted_ids` test is correct (Layer 1's `next_id` already returns max+1). No SA gap to flag.
+- **For SO (informational):** DESIGN.md is faithful to the Layer 6 implementation; no spec amendments proposed. The non-confirmation-delete decision is correctly recorded in the D1 deviation. The `\r\n`-normalization choice is appropriately at commit-message-level (not DESIGN.md / not DECISIONS.md).
+- **For VDD-IAR (informational):** Phase 2a Red Gate (4fb5e67) → Phase 2b implementation (c91676a) split was executed as documented. The Phase-2a `#[allow(dead_code)]` annotations on `validate_description` and `format_show_block` were correctly removed at Phase 2b (both now on the production path). Process compliance is intact from SA's lens.
+
+**Architectural concerns next-tier reviewers should know about:** SE will receive Finding 1 (the carry-forward trigger fires) and needs to make the disposition call — Round-2 inline fix, pre-Layer-7 focused PR, or trigger-revision. The right answer is likely the focused PR (bundles cleanly with SA R11 F1's rendering-half + Finding 2's `LABEL_WIDTH` extraction), but the decision is SE/SO's. If the dispostion is the focused PR, the scope at that time is: (a) `cmd_list` rendering extraction with `ID_WIDTH` / `STATUS_WIDTH` / `PRIORITY_WIDTH` / `LABELS_WIDTH` / `TITLE_WIDTH` constants and `format_header_row` / `format_issue_row` helpers (SA R11 F1); (b) `format_show_block` `LABEL_WIDTH` constant + helper (Finding 2); (c) `lib.rs` module split into `storage`/`validate`/`commands` (Finding 1 half-A); (d) `CreateArgs` struct + `cmd_create` signature update (Finding 1 half-B). All four are architectural prep work that benefits from being done in a single focused PR with its own test scaffolding rather than scattered through Layer 7's color/help work.
+
 **Coordination:** *(none — closure pass)*

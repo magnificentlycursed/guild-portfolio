@@ -1505,3 +1505,159 @@ The dismissal-test was applied to Findings 2 and 3 specifically: for Finding 2 (
 **Coordination:** *(none — closure pass)*
 
 ---
+
+## Review 15 — 2026-05-11 01:08Z
+
+**Round:** SE Review 15 (Layer 6 — Description + Show + Delete)
+**Scope:** Two-commit Layer 6 landing on `issue-tracker-cli-compound-filtering`:
+- `4fb5e67` — Phase 2a Red Gate (20 integration + 3 unit tests; four `todo!()` stubs in `src/lib.rs`; `Show` / `Delete` variants + `--description` flag wired through `src/main.rs`)
+- `c91676a` — Phase 2b implementation (bodies for `validate_description`, `format_show_block`, `cmd_show`, `cmd_delete`; `cmd_create` description wiring)
+
+Code surface reviewed: `src/lib.rs:229-267` (`cmd_create` description wiring), `src/lib.rs:326-340` (`validate_description`), `src/lib.rs:342-387` (`format_show_block`), `src/lib.rs:389-409` (`cmd_show`), `src/lib.rs:411-433` (`cmd_delete`); `src/main.rs:11-56` (Commands enum gains `Show` / `Delete`; `Create` gains `--description`); `src/main.rs:86-112` (dispatch); `tests/layer6.rs` (full file, 465 lines, 20 integration tests); `src/lib.rs:1069-1170` (Layer 6 unit-test block); `DESIGN.md` Feature 1 (lines 15-39), Feature 4 (lines 105-128), Feature 5 (lines 130-153), "Show output format" (lines 245-270), Edge Cases / Description (lines 339-345), Edge Cases / Storage (line 333); `TODO.md:279-345`.
+
+**Session note:** Cold session per `prompts/review-session.md` primer. Adversarial posture; SE-domain only. Sycophancy guard applied: hand-counted the label-column width for each of the eight rows from the source format string before reading the unit tests (`show_label_column_right_padded_to_13` would catch a width-13 violation, but only via a single regex assertion — I wanted independent verification). Test/clippy state verified at session start: `cargo clippy --all-targets --locked -- -D warnings` clean, `cargo fmt --check` clean.
+
+**Assumption surfacing (G-20):** Rust string-literal continuations (`"...\n\` followed by whitespace-and-text-on-the-next-source-line) strip the backslash, the source newline, and *all leading whitespace* on the continuation line. Empirically verified with a standalone `rustc` reproduction this session — the format string body `"ID:          {}\n\` continued with `         Title:       {}\n\` produces exactly `ID:          1\nTitle:       Test\n` with no spurious indentation injected from source. So the four-space indent the source file uses for continuation lines is invisible at runtime; the 13-char label column is what the literal actually emits. Similarly, `str::replace` is a literal-pattern replace (not regex), so `replace("\r\n", "\n")` matches the exact two-byte CR-LF sequence; a bare `\r` (CR-only, classic Mac line ending) is *not* matched, leaving the bare `\r` to flow into the rendered output unmodified — see Finding 2 below.
+
+---
+
+### Resolved
+
+*(none — this round applies no impl fixes. Two new findings raised; both Open. The prior SE R11 F2 / SA R9 F1 carry-forward (`cmd_list` rendering extraction) is unchanged by Layer 6.)*
+
+---
+
+### Open
+
+**Finding 1 — `validate_description` does not reject control characters; `format_show_block` renders description verbatim to stdout. Spec-permitted today (DESIGN.md is silent on non-newline controls), but this is the Security R7 → "future descriptions in Layer 6" prediction realized (Dim 8 — Defensive coding / Dim 1 — Correctness against spec, narrow / cross-domain Security+SO)**
+
+`validate_description` (`src/lib.rs:335-340`) checks `raw.trim().is_empty()` and otherwise returns `raw.to_string()`. No control-char check. The contract has the inverse symmetry of `validate_title` (`src/lib.rs:68-77`) and `parse_label` (`src/lib.rs:493-505`), both of which run `trimmed.chars().any(char::is_control)` and reject — and which were hardened in SE R12 (label) and Review 1 (title) precisely because the field flows into a terminal-display sink. `format_show_block` (`src/lib.rs:350-387`) writes `description_display` directly into the output format string, after only the `\r\n → \n` normalization and the `\n → \n             ` continuation-indent expansion (lines 365-366). No control-char escape; no `display_safe` wrapping; no other defense. A description containing `\u{1B}[31m` flows byte-for-byte to stdout and renders the value column red on any ANSI-capable terminal; a description containing `\u{7}` rings the bell; a description containing OSC 8 (`\u{1B}]8;;<url>\u{7}<text>\u{1B}]8;;\u{7}`) spoofs a hyperlink. `issue_fields_are_valid` (`src/lib.rs:125-139`) validates description only via `is_none_or(|d| !d.trim().is_empty())` — no control-char check at load, either. A hand-edited `tracker.json` carrying ESC bytes in `description` loads cleanly and renders weaponized on `tracker show`.
+
+**Cross-reference for this being predicted-not-novel:** SECURITY-REVIEW.md Review 7 carry-forward at line 742 explicitly named this surface — "are there other Layer 4+ surfaces (`show` output for the label, **future descriptions in Layer 6**) that also flow to the rendering pipeline?" SE Review 11 carry-forward at SE-REVIEW line 1142 likewise recommended "extracting a shared `validate_no_control_chars(s: &str, field_label: &str) -> Result<String, String>` helper so future free-form text fields (Layer 6's `--description`) inherit the defense by construction rather than each new field re-deriving it." Layer 6 did neither: no shared helper was extracted, and the description field was added without the control-char rejection that title and label both carry. The prediction has fired.
+
+**Why this is an Open finding and not a hard SE bug:** DESIGN.md is *silent* on non-newline control characters in description. Line 345 explicitly *permits* `\n` ("Description may contain newlines (`\n`)..."), so any defense has to carve `\n` out — the title/label `char::is_control` rule cannot be lifted verbatim. Line 333 enumerates the corrupt-data invariants and does not include "a control character in description" (it does include "a control-character in `title`" and "a control-character or comma in any `label`"). So Layer 6's choice to *not* reject control chars in description is **strictly spec-compliant**. But the spec silence is itself the gap: every prior layer that introduced a free-form text field which flows to terminal output added a control-char defense to it, and the Security R7 closure explicitly flagged "future descriptions in Layer 6" as the next field requiring the same review. The SE-domain implementation correctly follows the spec; the spec is the underspecified surface.
+
+**Proposed action (cross-domain coordination, not unilateral SE fix):**
+- **SO:** Amend DESIGN.md Edge Cases / Description (lines 339-345) to add: `- Description may contain newlines (\n) but no other control characters (Unicode general category Cc \ {\n}) → error: Description cannot contain control characters (except newline).` Same shape as the title and label rules. Update Feature 1 "Error states" (line 38) accordingly. Add the description control-char case to Edge Cases / Storage (line 333) so loaded data is treated as corrupt under the same check.
+- **SE:** Extend `validate_description` (`src/lib.rs:335-340`) to additionally check `trimmed.chars().any(|c| c.is_control() && c != '\n')` and return `Err("Description cannot contain control characters (except newline).".to_string())`. Extend `issue_fields_are_valid` (`src/lib.rs:125-139`) to additionally enforce the same predicate on `issue.description` so hand-edited `tracker.json` is rejected at load. *Alternative:* extract the shared `validate_no_control_chars` helper SE R11 anticipated; reuse it from `validate_title`, `parse_label`, and `validate_description` with a per-field `allow_newline: bool` parameter.
+- **QE:** Add unit tests mirroring the existing title/label control-char coverage: `description_with_escape_sequence_is_rejected`, `description_with_tab_is_rejected`, `description_with_nul_or_del_is_rejected`, `description_with_newline_is_accepted` (newline is the carve-out), `issue_field_validation_rejects_control_char_in_description`. Add an integration test in `tests/layer6.rs` parallel to `create_with_empty_description_exits_one`.
+- **Red Team / Security:** Cross-reference Security R8 (next Layer 6 round) for independent attack-surface reproduction. The reproducer is `tracker create "x" --description $'\e[31mfake-red\e[0m'` then `tracker show 1`.
+
+**Severity:** Medium. The injection class is the same one that Review 1 / SE R12 / Security R7 already treated as worth defending against; the only reason this surfaces as an SE-with-SO-coordination finding rather than a unilateral SE fix is that the spec is silent and SO (not SE) owns DESIGN.md amendments per the closure protocol. Logged as Open pending SO routing.
+
+**Sycophancy check:** Was this finding suppressed because "the spec allows it, therefore the implementation is correct"? Pushed back by tracing the historical lineage: the title control-char defense (R1) and the label control-char defense (SE R12 / Security R7) were both spec-silent before the corresponding round amended DESIGN.md; in each case, the implementation predated the spec amendment. The pattern is "implementation surfaces the surface, spec catches up." Layer 6 introduces the next instance of the same pattern. Treating spec silence as a license to skip the defense is exactly the failure mode the primer warns about ("dismissing without verification, softening because intent seems good"). Held.
+
+**Classification:** Open. SE work pending SO spec-amendment decision; not applied this session because (a) the closure protocol assigns DESIGN.md edits to SO and (b) the right wording carves `\n` out, which is a spec-level judgment, not an SE call.
+
+---
+
+**Finding 2 — `format_show_block`'s line-separator normalization handles `\r\n` but not bare `\r`; a description with a classic-Mac line ending renders the continuation indent on the wrong segment (Dim 1 — Correctness against spec, narrow / Dim 8 — Defensive coding, edge case)**
+
+`src/lib.rs:365-366`:
+```rust
+let normalized = d.replace("\r\n", "\n");
+normalized.replace('\n', "\n             ")
+```
+
+This normalizes CR-LF to LF and then expands every LF into LF + 13-space indent. The doc-comment (lines 359-364) explains the choice: "`\r\n` sequences are normalized to `\n` for splitting so a CRLF-stored description renders without a stray `\r` in the first line." Correct for CR-LF input. But a *bare* `\r` (CR-only line separator, classic Mac OS pre-X convention) is not matched by either replace — it passes through unmodified to the rendered output. Concrete reproducer: a description stored as `"line1\rline2"` (single CR byte, no LF) renders as `Description: line1\rline2\n` — and the terminal carriage-returns to the column-0 position, overwriting `Description: line1` with `line2` before moving down. The visible effect on screen is that "line2" replaces "Description: line1" partially or fully (depending on whether `line2` is shorter than `Description: line1`).
+
+**How likely is this in organic use?** Low. Classic Mac line endings are rare in 2026 inputs; most shells produce `\n` for `$'...'` style and pasted clipboard content uses either `\n` (Unix/macOS X+) or `\r\n` (Windows). But the same hand-edited-`tracker.json` threat model that motivated the CR-LF normalization (per the doc comment's reference to crafted file content) covers bare-`\r` as well — and the JSON spec permits both `\r` and `\n` in strings (RFC 8259 §7: only `"`, `\`, and U+0000–U+001F are mandatory-escape; `\r` and `\n` are typically written `\r` / `\n` but a stored file *could* carry them as raw bytes in the deserialized string).
+
+**Why this is a real defect rather than a quibble:** The CR-LF normalization is *already there* for exactly the visual-alignment reason this finding cares about. The author noticed that the first line would render with a stray `\r` if a CR-LF input flowed through; the same observation applies to bare-CR input. The normalization is incomplete on the same axis it was added to address. The fix is one-character: `d.replace("\r\n", "\n").replace('\r', "\n")` — first collapse CR-LF, then collapse remaining bare-CR. Or, more symmetric: split on any of `\r\n`, `\r`, `\n` (via `split_terminator` over a char-class predicate, or via the `linesplit`-style helper) and join with `\n             `.
+
+**Cross-reference:** This is a subset of Finding 1's surface (`\r` is a control character, and Finding 1's proposed defense would reject `\r` outright unless `\n` is the only carve-out *and* the spec amendment doesn't also carve out `\r`). If Finding 1 is adopted with the "newline only" carve-out, Finding 2 closes by construction — bare `\r` in description becomes a `validate_description` error. If Finding 1 is dismissed or the carve-out is widened to include `\r`, Finding 2 stands on its own as a narrow rendering bug.
+
+**Severity:** Low (organic) / Medium (defense in depth against hand-edited input). Logged as Open pending Finding 1 disposition.
+
+**Classification:** Open. Two-line fix; would be applied inline if Finding 1's spec amendment is rejected. If Finding 1 lands with "newline only," this finding is subsumed.
+
+---
+
+### Dismissed
+
+**Finding 3 — `cmd_status` and `cmd_delete` share the `load + position-find + not-found error` boilerplate; candidate for a shared `find_issue_index_mut` helper (Dim 5 — Duplication, design tradeoff)**
+
+`cmd_status` (`src/lib.rs:311-324`) and `cmd_delete` (`src/lib.rs:422-433`) both compute:
+```rust
+let mut issues = load_issues(issues_path)?;
+let idx = issues
+    .iter()
+    .position(|i| i.id == id)
+    .ok_or_else(|| format!("Issue #{} not found.", id))?;
+```
+
+`cmd_show` (`src/lib.rs:398-409`) computes the same shape with `iter().find` instead of `iter().position` (since show doesn't need a mutable index). Three call sites, two of which are byte-identical on the `position` form.
+
+**Classification:** Dismissed. Each call site is four lines; a shared helper would replace 4 lines × 2 with `let idx = find_issue_index(&issues, id)?;` × 2 plus a 5-line helper definition — net wash on line count, but it would obscure the not-found error format at the call site (a future change to the error message would have to chase the helper). The duplication is shallow and aligned with the existing project pattern (`cmd_status` is the canonical example; `cmd_delete` is its mirror for a different mutation). The Issue-#-not-found error message is a string literal that already differs by `&` (mutable vs immutable position) and by what's done with `idx` after — the helper would have to return either `usize` or `(usize, &mut Issue)` and the call site would still differ. Logged for future-self if a fourth `position`-by-id site appears (e.g., a hypothetical Layer-7 `tracker edit <id>` command).
+
+---
+
+**Finding 4 — Inline `"ID:          "` / `"Title:       "` / etc. literals in `format_show_block`'s `format!` argument rather than module-level constants — is this the same duplication concern that SE R11 F2 / SA R9 F1 / SA R11 F1 raised about `cmd_list`'s `{:<4}  {:<11}  ...` column widths? (Dim 4 — Function design / Dim 5 — Duplication, distinguishable)**
+
+The Layer 6 implementation hard-codes eight label-column literals as part of the format string body. Each is 13 chars wide. The string `"             "` (13 spaces) for the continuation indent is also inline (line 366). No module-level `const LABEL_COLUMN_WIDTH: usize = 13;` or `const SHOW_LABELS: &[&str] = &["ID:", "Title:", ...];`.
+
+**Classification:** Dismissed — distinguishable from the `cmd_list` carry-forward. Three reasons:
+
+1. **One call site, one shape.** `format_show_block` is invoked from exactly one place (`cmd_show`), and the shape it renders is the entire block at once. There is no header-row / data-row split (as in `cmd_list`) where the column widths must be coordinated across two `format!` calls. The 13-char width appears in two places (the label column, the continuation indent) — both inside a single function — and they read top-to-bottom in the source. A future change to the column width is a single-function edit.
+2. **The labels are stylistic, not data-driven.** The list of labels (`ID`, `Title`, `Status`, ...) is not user-facing data passed through a renderer; it's a stylistic key naming the row. Extracting `SHOW_LABELS: &[&str]` would split the visual presentation from the value it labels, making the format string harder to read, not easier.
+3. **No regression risk via drift.** The `cmd_list` SA R11 F1 concern was specifically that the column widths in the header `format!` and the data-row `format!` could drift (4 chars in one and 5 in the other), and that the values fed to `truncate_with_ellipsis` could fall out of sync with the column widths. Neither failure mode is present here: the format string is one block, the continuation indent is on the line immediately below the column-width count.
+
+A `const LABEL_COLUMN_WIDTH: usize = 13;` with `format!` width-format arguments (`"{label:<width$}{value}"` × 8) would be marginally more DRY but at the cost of readability. The current inline form is the right call for a one-shot fixed-shape block. Not duplication of the SA R11 F1 class.
+
+---
+
+**Finding 5 — `cmd_delete` is non-atomic: a concurrent reader between `load_issues` and `save_issues` would see the pre-delete state (Dim 8 — Defensive coding, single-user scope)**
+
+`cmd_delete` reads `tracker.json`, mutates in memory, and writes back. There is no file lock and no temp-file-and-rename atomic-write. A concurrent `tracker show <id>` between the load and the save would succeed against the pre-delete state.
+
+**Classification:** Dismissed. DESIGN.md "Out of Scope" line 403 explicitly carves out concurrent access: "no file locking; undefined behavior if two instances run simultaneously against the same `tracker.json`." Line 404 carves out atomic writes likewise. Both are documented deviations from production practice for a single-user local CLI. The Layer 6 implementation is consistent with every other mutating command (`cmd_create`, `cmd_status`); no Layer 6 regression. Logged for future-self if the tool ever grows a multi-writer surface.
+
+---
+
+### Hallucinated
+
+*(none. Both Open findings have empirically verified reproducers — Finding 1's ESC-injection class is the same one Security R7 documented with a working reproducer; Finding 2's bare-`\r` overwriting is verifiable by piping `printf 'line1\rline2'` through any terminal. Findings 3-5 are real-but-deliberately-scoped-out observations with stated rationale, not invented concerns.)*
+
+---
+
+### Carry-over check (prior-finding closure status)
+
+- **SE R11 F2 / SA R9 F1 (full `cmd_list` rendering extraction with column-width constants):** **Unchanged at Layer 6.** Layer 6 does not touch `cmd_list`; the same partial-advancement status from SE R13 holds (filter predicate extracted at Layer 5; header / row rendering and column-width literals still inline). Still Open, still deferred to focused pre-Layer-7 PR per SO R17 / SA R10 / SA R11.
+- **SE R11 F3 (label control-character defense):** **Closed in SE R12 (commit `67ef920`)**; verified again this round at `src/lib.rs:493-505` (`parse_label`) and `src/lib.rs:145-147` (`label_is_valid`). No regression at Layer 6.
+- **SE R13 F1 (rustdoc trim-normalization caller obligation on `issue_matches_filters`):** **Closed in SE R14** (commit `7f9bae4`); verified no regression at Layer 6 (predicate untouched).
+- **SE R10 F1/F2/F3 (validator gaps):** Closed in Layer 3 follow-up. No regression at Layer 6 — `issue_fields_are_valid` and `issues_collection_invariants_hold` are extended this round only on the description axis, and that extension is the underspecified gap raised in Finding 1; the existing per-record / cross-record checks are intact.
+- **Security R7 / "future descriptions in Layer 6" carry-forward:** **Realized as Finding 1 this round.** The prediction made at Security R7 closure (line 742) is now an Open SE/SO/Security cross-domain finding.
+
+---
+
+### Summary
+
+Cold-session SE Review 15 outcome on Layer 6 (Description + Show + Delete): **0 Resolved, 2 Open (description control-char defense; bare-`\r` line-separator handling), 3 Dismissed-with-rationale, 0 Hallucinated.**
+
+**Top SE concern:** Finding 1 — `validate_description` and `issue_fields_are_valid` do not reject control characters in `description`, and `format_show_block` renders description verbatim to stdout. The injection class (ESC, OSC 8, BEL, bare-`\r` overwrite) is the same one Title (Review 1) and Label (SE R12 / Security R7) were hardened against. Security R7's explicit carry-forward at line 742 predicted this surface — "future descriptions in Layer 6" — and Layer 6 introduced the field without the defense or the shared helper (`validate_no_control_chars`) SE R11 anticipated. DESIGN.md is silent on non-newline controls in description (line 333 enumerates corrupt-data invariants without including description; line 345 explicitly permits `\n` only) so the implementation is strictly spec-compliant — but the spec silence is the gap. Cross-domain (SO amendment + SE hardening + QE coverage + Security/Red Team reproduction); not applied this session because the closure protocol routes DESIGN.md edits through SO.
+
+**Layer 6 correctness verdict:** Implementation is sound on every spec-internal path inspected this round:
+- `validate_description`: empty-after-trim rejection ✓; verbatim return on success (preserves leading/trailing whitespace per DESIGN.md line 344) ✓.
+- `format_show_block`: 13-char label column on all eight rows verified by hand-count against the format-string body; `(none)` rendered for empty labels and absent description per DESIGN.md "Show output format" examples ✓; 13-space continuation indent matches the label column width ✓; format-string source indentation is stripped at compile time (verified empirically with standalone `rustc`).
+- `cmd_show`: `print!` + format-string `\n`-termination produces exactly one trailing newline (no spurious blank line); non-mutating (reads but does not write `issues_path`) ✓.
+- `cmd_delete`: `position` + `Vec::remove` + `save_issues` + `println!` matches DESIGN.md Feature 5 stdout contract (`Deleted issue #<id>.`) ✓; deleted-ID-not-reused invariant is structurally satisfied by `next_id`'s `max(remaining) + 1` (verified by Layer 1) ✓.
+
+`cargo clippy --all-targets --locked -- -D warnings` clean. `cargo fmt --check` clean. The two Open findings are defense-in-depth / spec-silence concerns, not spec-violations.
+
+**Sycophancy check:** Four potential softenings considered and pushed back on:
+1. *Was Finding 1 dismissed as "the spec allows it" too quickly?* — Pushed back by tracing the title (R1) and label (SE R12 / Security R7) precedents: in each case, the implementation surfaced the surface before the spec amendment caught up. Holding Finding 1 as Open is consistent with that pattern. Not softened.
+2. *Was Finding 2 (bare-`\r`) over-counted given the CR-LF case is handled?* — Verified the reproducer is real (bare-`\r` does cause terminal column-0 overwrite). Logged as Open but with subsumption-path noted under Finding 1 if the spec amendment carves out `\n` only.
+3. *Was Finding 3 (cmd_status / cmd_delete shared helper) suppressed because it's "just shallow duplication"?* — Counted by line-count + maintainability tradeoff explicitly; the dismissal stands because the helper would add net lines and obscure the not-found error format at the call site, with no current third caller to amortize.
+4. *Was Finding 4 (inline `format_show_block` label literals) dismissed because the function is small?* — Verified the distinction from SE R11 F2 / SA R11 F1's `cmd_list` concern: one call site, one shape, no header/data split, no drift surface. The dismissal is structural (one-shot fixed-shape block) not size-based.
+
+**Coordination:**
+- **SO Review 20:** Finding 1 requires a DESIGN.md amendment to extend the title/label control-character prohibition to description (with `\n` as the carve-out). Suggested edit to Edge Cases / Description (lines 339-345) and to Edge Cases / Storage (line 333). Only SO modifies DESIGN.md per CLOSURE-PROTOCOL.md.
+- **SA Review 13:** No new SA findings from the SE lens; `cmd_list` rendering extraction status is unchanged at Layer 6 (Layer 6 doesn't touch `cmd_list`).
+- **QE Review 15:** Cross-reference Finding 1 — if the spec amendment is adopted, mirror the title/label control-char unit tests onto description (`description_with_escape_sequence_is_rejected`, `description_with_tab_is_rejected`, `description_with_nul_or_del_is_rejected`, `description_with_newline_is_accepted`, `issue_field_validation_rejects_control_char_in_description`). Integration test parallel to `create_with_empty_description_exits_one`.
+- **Security Review 9:** Cross-reference Finding 1 directly — this is the Security R7 → "future descriptions in Layer 6" carry-forward realized. Independent reproducer at the binary level: `tracker create "x" --description $'\e[31mfake-red\e[0m'` then `tracker show 1` renders red text.
+- **Red Team Review 8:** Likely independent surfacing as a description terminal-escape exploit at Tier 4; cross-reference Finding 1.
+- **VDD-IAR Review 15:** Layer 6 is a clean Phase-2-Red-Gate-then-impl two-step (`4fb5e67` → `c91676a`), with the Red Gate genuinely failing (4 `todo!()` stubs panic at runtime; 18 integration + 2 unit tests fail accordingly) and Phase 2b genuinely passing them. The two Cat B Red Gate deviations (`create_without_description_has_no_field_in_json` from Layer 1 serde `skip_serializing_if`; `description_not_in_list_output` because `cmd_list` never rendered description) are correctly disclosed in `tests/layer6.rs:14-24` / TODO.md. No process concern from the SE lens.
+
+**Files modified this session:** `iterative-adversarial-refinement/SOFTWARE-ENGINEER-REVIEW.md` only (this entry). No `src/**/*.rs` changes. No `DESIGN.md` / `TODO.md` / test changes.
+
+---

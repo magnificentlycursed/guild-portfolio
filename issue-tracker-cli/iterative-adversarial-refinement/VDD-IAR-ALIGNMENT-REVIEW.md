@@ -1717,3 +1717,264 @@ Only this log appended.
 
 ---
 
+## Review 15 — 2026-05-11 01:10Z
+
+**Round:** VDD-IAR Alignment Review 15 (Layer 6 — Description + Show + Delete — process audit, post-implementation, pre-IAR-cadence)
+
+**Scope:** Layer 6 process compliance from the merge of #17 (Layer 5 close at `727aef9`) through the Layer 6 implementation commit `c91676a`. The two Layer 6 commits in scope are `4fb5e67` (Phase 2a Red Gate — description + show + delete tests + stubs) and `c91676a` (Phase 2b implementation). Inputs: `DESIGN.md` Features 1, 4, 5 + Show output format + Edge Cases / Description, `TODO.md` Layer 6 (lines 279-340), `tests/layer6.rs` (full Red Gate at `4fb5e67`), `src/lib.rs` `mod tests` Layer 6 unit tests + `validate_description` / `format_show_block` / `cmd_show` / `cmd_delete` (Red Gate stubs at `4fb5e67` → bodies at `c91676a`), `src/main.rs` (Commands enum extension at `4fb5e67`), `iterative-adversarial-refinement/CLOSURE-PROTOCOL.md`, `iterative-adversarial-refinement/README.md` Merging gate, prior VDD-IAR Reviews 11-14, prior carry-forward findings (SA R11 F1 / SE R11 F2 — `cmd_list` rendering extraction; QE R11 F5 — already discharged in Layer 5).
+
+**Session note:** Cold-session per `prompts/review-session.md`. Parallel-batch peer with SO 20, SA 13, QE 15, SE 15, Security 9, PE 10, UX 8, DE 9, RT 8, TW 9. Adversarial framing intact. This reviewer did not author Layer 6 commits and did not participate in Layer 5 IAR. Running last in the merge-gate sequence per `README.md` § Sequencing. Independent verification: I re-read `tests/layer6.rs` and `src/lib.rs` `mod tests` against commit `4fb5e67` content directly (via `git show 4fb5e67 -- src/lib.rs` and `git show 4fb5e67 --stat`) rather than against the HEAD post-impl state — the four stubs (`validate_description`, `format_show_block`, `cmd_show`, `cmd_delete`) were genuinely `todo!()` at Red Gate time; `validate_description` and `format_show_block` carried `#[allow(dead_code)]` annotations that were removed at Phase 2b.
+
+**Program phase:** Phase 1. Crosslink not introduced; dim 11 N/A. Governing methodology: `apprentice-onboarding/02-the-methodology/01-how-we-build.md` (process); `iterative-adversarial-refinement/CLOSURE-PROTOCOL.md` (project-scoped closure mechanics).
+
+**Regression check on Reviews 13-14:** Review 14 closed Layer 5 with merge-gate GO after Round-2 inline fixes at `7f9bae4`. Merge `727aef9` followed (per `git log`). Layer 6 Red Gate `4fb5e67` (2026-05-10 16:59:44 -0700) opened well after the Layer 5 merge. Layer 5 gate closure → Layer 6 open ordering is clean. Carry-forward SA R11 F1 (cmd_list rendering extraction, Deferred to focused PR before Layer 7) remains alive — Layer 6 is not the named target layer for that deferral; Layer 7 is.
+
+---
+
+### Layer 6 commit-pattern audit
+
+| Commit | Time | Phase signal |
+|---|---|---|
+| `4fb5e67` Layer 6 Red Gate — description + show + delete tests + stubs | 2026-05-10 16:59:44 -0700 | Phase 2a: 20 integration tests in `tests/layer6.rs` + 3 unit tests in `src/lib.rs#tests` + four `todo!()` stubs (`validate_description`, `format_show_block`, `cmd_show`, `cmd_delete`); `#[allow(dead_code)]` on `validate_description` and `format_show_block`; `cmd_create` signature extended with `description_raw` but the parameter is discarded (`let _ = description_raw;`) so description-storage tests are red; 2 Cat B Red Gate deviations explicitly named (`create_without_description_has_no_field_in_json`, `description_not_in_list_output`) plus 1 Cat B unit test (`max_id_plus_one_skips_deleted_ids` — Layer 1's `next_id` already returns max+1) |
+| `c91676a` Layer 6 implementation — description + show + delete | 2026-05-10 17:01:50 -0700 | Phase 2b: four `todo!()` stub bodies replaced with real implementations; `cmd_create` wires `description_raw` through `validate_description` into `Issue.description` (no longer discarded); `#[allow(dead_code)]` on both annotated functions removed (both reachable on the production path); TODO.md AC checkboxes flipped to `[x]`; **Manual Testing Checklist intentionally left unchecked** with explicit commit-message rationale ("VSDD Phase 2 completion requires human verification, not satisfied by automated tests") |
+
+Phase 2a → Phase 2b gap: 2 minutes 6 seconds. Boundary is verifiable from history: `git show 4fb5e67 -- src/lib.rs` shows four `todo!()` panics, `let _ = (...)` arg-binding to placate `-D warnings`, and `#[allow(dead_code)]` on `validate_description` + `format_show_block`. `git show c91676a -- src/lib.rs` shows each of the four `todo!()` panic blocks replaced with substantive bodies plus removal of both `#[allow(dead_code)]` annotations and the `cmd_create` storage wiring (`description: None` → `description`). The Phase 2a → Phase 2b commit boundary is the right pattern — every file change after `4fb5e67` is implementation; no implementation exists in `4fb5e67` itself.
+
+---
+
+### Resolved
+
+*(none — VDD-IAR owns its log + may amend `CLOSURE-PROTOCOL.md`; no process-change artifact applied this session)*
+
+---
+
+### Open
+
+**Finding 1 — Layer 6 manual testing checklist is fully unchecked at the moment the parallel-batch IAR Round 1 runs against the implementation; merge gate cannot close per `iterative-adversarial-refinement/README.md` § Merging gate + `CLOSURE-PROTOCOL.md` Section 6 item 7 + DESIGN.md Testing Methodology + `prompts/implementation.md` Phase 2 completion criterion 3 (Dim 6 — Human verification)**
+
+`TODO.md:303-316` shows all 13 Layer 6 manual checklist items as `- [ ]` (unchecked). The implementation commit `c91676a` explicitly acknowledges this with the rationale "Manual Testing Checklist is intentionally left unchecked — VSDD Phase 2 completion requires human verification, not satisfied by automated tests" — this is the right honest framing (the implementation agent does not claim to have run the binary), but it leaves the verification step outstanding.
+
+The standard is binary. `prompts/implementation.md:75` Phase 2 completion criterion 3: "The manual testing checklist from the layer plan has been executed by a human — automated tests do not substitute for human verification of interaction flows, error states, and 'technically correct but wrong in context' failures." `README.md` § Merging gate requires "the refinement loop continued until MVR" with all findings in terminal states — a manual checklist that has not been executed is a process-state finding, not a terminal state. Layer 3 precedent (`6f7fd46` "Layer 3 manual testing complete" — separate sign-off commit), Layer 4 precedent (`b0a3789` — "Verified in terminal: <observed behaviors list>" framing), and Layer 5 precedent (`da0fd8d` "Layer 5 manual testing complete" — per-scenario enumeration) all establish that the human director's separate commit landing the manual-testing tick-throughs is the right shape for closure. None of these have happened for Layer 6 at the start of this round.
+
+Direct precedent: VDD-IAR Review 11 Finding 2 raised the same issue against Layer 4 ("Layer 4 manual-testing checklist is fully unchecked at the moment a Tier-1 SO review and Tier-3 UX/QE reviews ran against the implementation; merge gate cannot close"), classified **Open — Raised to director**, with remediation "director runs the binary against the N checklist items and ticks each in `TODO.md`, with a dedicated commit 'Layer N manual testing complete' mirroring `6f7fd46`". That finding gated the Layer 4 merge until commit `b0a3789` closed it. Apply the same standard here: Layer 6 has 13 checklist items, all unchecked; the gate cannot close on the current state.
+
+Sycophancy guard: could the absence be excused because the layer is mid-flight and the IAR cadence is still in Round 1? SO Review 16 Finding 3 framed it that way at Layer 4 ("consistent with Layer 4 being mid-flight") and was routed to VDD-IAR, where the standard did not soften. The VDD-IAR-Alignment standard, per `prompts/implementation.md:75` and dim 6 of the review brief, does not soften based on "in-progress" framing — at merge gate, the checklist must be checked, full stop. Anything else would repeat the Layer 2 → Review 8 → Review 10 retroactive-flag pattern this protocol exists to prevent.
+
+Sycophancy guard 2: could the implementation commit's explicit "intentionally left unchecked" rationale itself satisfy the standard by transparency alone? No. Transparency about non-completion is the right discipline (it prevents the silent-tick-through failure mode) but it is not completion. The merge gate requires execution, not honest disclosure of non-execution.
+
+**Classification: Open — Raised to director.** Per `CLOSURE-PROTOCOL.md` Section 6 item 7 (manual testing implicit in the merge gate) and `prompts/implementation.md` Phase 2 completion criterion 3, Layer 6 cannot merge until the 13 checklist items are executed and ticked. Recommended remediation: director runs the binary against the 13 checklist items in `TODO.md:303-316` and ticks each, with a dedicated commit "Layer 6 manual testing complete" mirroring `6f7fd46` / `b0a3789` / `da0fd8d`. Strongly prefer the Layer 4-style "Verified in terminal: <observed behaviors list>" commit-message framing (Review 13 Finding 6 polish note) over the Layer 5-style scenario-restatement framing, for evidence quality. The 13 items include three multi-step scenarios (multi-line description, delete-then-show, delete-then-create) that benefit from observed-output evidence in the commit message rather than just box-ticks.
+
+This finding gates Layer 6 merge. It does not block the IAR Round 1 cadence from proceeding through warm-resolution + SO-adjudication if those are needed for substantive-domain findings.
+
+---
+
+### Dismissed
+
+**Finding 2 — Design before code (Dim 1)**
+
+DESIGN.md anchors every Layer 6 feature surface in spec text that predates the Layer 6 implementation. Feature 1 (Create) names `--description` with empty-after-trim rejection. Feature 4 (Show) names the all-fields display with `(none)` fallbacks. Feature 5 (Delete) names the exit-0-with-confirmation contract and the ID-never-reused invariant. DESIGN.md "Show output format" anchors the 13-character right-padded label column and the multi-line description continuation indent. Edge Cases / Description anchors empty/whitespace rejection and the verbatim-storage rule (the stored value is NOT trimmed; only the validity check trims). Data Model section anchors the `Option<String>` description field with `skip_serializing_if` (the absent-key-not-null shape).
+
+Layer 6 implementation matches: (a) `validate_description` rejects empty-after-trim and returns the input verbatim (untrimmed) on success — mirrors `validate_title`'s empty-after-trim rule but without the trimmed-to-storage step; (b) `format_show_block` renders the 13-char right-padded label column with continuation lines indented 13 spaces; (c) `cmd_show` is non-mutating (storage read, never written); (d) `cmd_delete` removes-and-persists, prints `Deleted issue #<id>.`, and relies on Layer 1's `next_id` (max+1) for the ID-never-reused invariant.
+
+No DESIGN.md edits in either Layer 6 commit. `git show 4fb5e67 --stat` shows `src/lib.rs`, `src/main.rs`, `tests/layer6.rs` only; `git show c91676a --stat` shows `TODO.md`, `src/lib.rs` only. DESIGN.md untouched. Spec-before-code temporal ordering is intact and authority over `DESIGN.md` was respected (CLOSURE-PROTOCOL.md Section 1).
+
+Minor observation (not a finding): `format_show_block` adds a `\r\n` → `\n` normalization step before splitting for multi-line continuation indent. This is a defensive behavior not explicitly named in DESIGN.md's Show output format section. It is arguably implementation freedom (CLI tools normalize line separators by convention) but if a future SO review surfaces this as spec-divergence, the right remediation is to add a DESIGN.md note rather than to remove the normalization. Recording here as an awareness item for SO Review 20 if it lands as a finding.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 3 — Layered decomposition (Dim 2)**
+
+`TODO.md` Layer 6 section (lines 279-340) had a goal statement, 18 acceptance criteria, 13 manual testing checklist items, and a Red Gate test plan listing the integration + unit tests — all in place before Layer 6 implementation began (the TODO.md plan predates `4fb5e67`'s only TODO.md edits, which are checkbox flips at `c91676a`).
+
+Layer 6 scope (description + show + delete only) was respected: nothing from Layer 7 (color, --help polish) leaked into Layer 6 commits. `git show c91676a -- src/lib.rs` shows changes confined to the four stub bodies + the `cmd_create` description-wiring; no color flags, no `--help` polish, no clap voice changes. `git show 4fb5e67 -- src/main.rs` adds `Show { id }` and `Delete { id }` variants to the Commands enum and threads `--description` onto Create — exactly the Layer 6 CLI surface; nothing from Layer 7.
+
+The Red Gate test plan in TODO.md called for the layer-6-test set; what landed was 20 integration + 3 unit tests, which exceeds the bullet count in the plan but stays within the Layer 6 feature surface (no Layer 7 tests crept in). Over-delivery on coverage is consistent with the Layer 4/5 precedent.
+
+The SA R11 F1 / SE R11 F2 carry-forward (cmd_list rendering extraction, Deferred to focused-PR-before-Layer-7) was correctly NOT actioned in Layer 6 — it remains Open / Deferred with named target, exactly as Review 14 left it. Layer 6 did not silently absorb that finding (the rendering helpers — `format_header_row`, `format_issue_row`, `filter_issues` — are not present in `c91676a`; the Layer 6 implementation added new helpers (`format_show_block`) for new functionality but did not refactor `cmd_list`'s rendering loop). Authority chain clean.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 4 — Layer gate compliance (Dim 3)**
+
+Layer 5 closure: VDD-IAR Review 14 issued GO. Merge `727aef9` (Layer 5 → main) is present in `git log`. Layer 6 first commit `4fb5e67` opened 2026-05-10 16:59:44 -0700, well after the Layer 5 merge. The branch name `issue-tracker-cli-description-show-delete` matches the layer scope.
+
+No Layer 6 commit modifies Layer 1-5 code-paths in a way that suggests carry-over from Layer 5 IAR. `git show 4fb5e67 c91676a --stat` shows `src/lib.rs`, `src/main.rs`, `tests/layer6.rs`, `TODO.md` only; no Layer 5 IAR-finding-resolution work bled into Layer 6. The regression check on prior-layer tests in the `4fb5e67` commit message attests to "Layer 1 (32), Layer 2 (18), Layer 3 (9), Layer 4 (25), Layer 5 (7), prior unit tests (45) all still pass — 136/136 baseline preserved" — Layer 6 entered with a green prior-layer test suite.
+
+`cargo test --no-fail-fast --locked` at HEAD reports 48 + 32 + 18 + 9 + 25 + 7 + 20 = 159 passing tests (matching the `c91676a` commit-message claim). Layer-gate compliance clean.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 5 — Red Gate boundary (Dim 4 — CRITICAL)**
+
+This is the central question for Layer 6 IAR. Direct evidence from `git show 4fb5e67 -- src/lib.rs`:
+
+The four newly-added functions in `4fb5e67`:
+
+- `validate_description` body: `let _ = raw; todo!("Layer 6: validate --description ...")` with `#[allow(dead_code)]`.
+- `format_show_block` body: `let _ = issue; todo!("Layer 6: format_show_block ...")` with `#[allow(dead_code)]`.
+- `cmd_show` body: `let _ = (id_raw, issues_path); todo!("Layer 6: cmd_show ...")` (no dead_code allow — called from `main.rs`).
+- `cmd_delete` body: `let _ = (id_raw, issues_path); todo!("Layer 6: cmd_delete ...")` (no dead_code allow — called from `main.rs`).
+
+`cmd_create` at `4fb5e67` has the new `description_raw: Option<&str>` parameter but the body contains `let _ = description_raw;` and `description: None,` — the parameter exists at the CLI boundary but the storage path is unchanged from Layer 1's behavior. The description-storage tests are red because of this.
+
+The 3 unit tests in `mod tests` exercise `format_show_block` (2 of 3) and `next_id` (1 of 3, Cat B) directly. The 2 Cat A unit tests would panic at runtime with `not yet implemented: Layer 6: format_show_block...`. The Cat B unit test (`max_id_plus_one_skips_deleted_ids`) passes at Red Gate because `next_id` was implemented in Layer 1; the test is regression coverage of the deleted-ID-never-reused contract, explicitly disclosed as Cat B in the commit message.
+
+`git show c91676a -- src/lib.rs` then:
+1. Replaces all four `todo!()` stub bodies with their real implementations (`validate_description`'s empty-after-trim check + verbatim pass-through; `format_show_block`'s labelled key-value block with 13-char right-padded label column and multi-line continuation indent; `cmd_show`'s parse+load+find+print pipeline; `cmd_delete`'s parse+load+position+remove+save+println pipeline).
+2. Removes the `#[allow(dead_code)]` annotations from `validate_description` and `format_show_block` (both are now reachable on the production path: `validate_description` from `cmd_create`, `format_show_block` from `cmd_show`).
+3. Wires `description_raw` through `validate_description` in `cmd_create` and stores the result in `Issue.description` (was `None` at Red Gate).
+
+The Phase 2b commit is purely the implementation of the previously-stubbed functions plus the call-site adoption. There is no test addition in `c91676a` — `git show c91676a --stat` shows `TODO.md` and `src/lib.rs` only; `tests/layer6.rs` is untouched (zero new tests).
+
+The 20 integration tests in `4fb5e67` are partially disclosed as **Cat B Red Gate deviations**: 2 of the 20 (`create_without_description_has_no_field_in_json` and `description_not_in_list_output`) pass at Red Gate because Layer 1's serde `skip_serializing_if` produces the required absent-key shape and `cmd_list` never rendered description. The remaining 18 fail at Red Gate by `todo!()` panic against the stubs. This is the right disclosure pattern (matches the Layer 3, 4, 5 precedent for Cat B labelling — emergent properties of prior-layer Red Gates that the current layer's tests pin as regression coverage).
+
+Applying the implementation prompt's strict standard from `prompts/implementation.md:34` ("If implementation begins before this commit, the commit history cannot distinguish test-first from test-after, and VDD-IAR Alignment dim 4 cannot be verified"): does any implementation appear in `4fb5e67`? Walking the diff: `cmd_create` signature change is a stub-level surface change (the parameter exists but is discarded); the four new functions all have `todo!()` bodies; `Commands` enum gains `Show { id }` and `Delete { id }` variants in `main.rs` to make the CLI accept the new commands (without which clap rejects them with "unknown command", which would prevent the integration tests from reaching the `todo!()` panic). The `main.rs` dispatch wires `tracker::cmd_show(id, &issues_path)` and `tracker::cmd_delete(id, &issues_path)` — these are call-site wiring needed to reach the stubs; they are not bodies. None of this is implementation in the sense the standard names ("implementation begins before this commit" — there is no behavior implementation in `4fb5e67`).
+
+The adversarial probe: "is the Cat B label honest, or is it papering over a Phase 2a violation?" answers cleanly. A papering-over would look like: 18 integration tests AND the bodies in `4fb5e67`, then a no-op refactor in `c91676a` purely to make the commit history look two-phase. Two falsifiable predictions of that scenario: (a) `c91676a`'s `src/lib.rs` diff would be cosmetic (rename / move / no body change); (b) the test count in `c91676a` would not have changed. Both predictions fail: (a) `c91676a` shows substantive body change in all four stubs plus the `cmd_create` storage wiring change plus removal of two `#[allow(dead_code)]` annotations — none cosmetic; (b) the test count in `4fb5e67` already includes all 20 integration + 3 unit tests, and the failing assertions at Red Gate time (`todo!()` panics) are real signals that the bodies did not exist. The `#[allow(dead_code)]` annotations in `4fb5e67` on `validate_description` and `format_show_block` are themselves the strongest tells that the Phase 2a → 2b boundary is real: a performative Red Gate (where the functions are called) would not need to silence dead-code warnings, because the functions would already be reachable. The fact that the annotations are absent on `cmd_show` / `cmd_delete` (which are wired through `main.rs`) corroborates the discipline — the annotation was applied precisely where needed and nowhere else.
+
+**Classification:** Dismissed. Red Gate boundary integrity verified.
+
+---
+
+**Finding 6 — Test discipline (Dim 5)**
+
+Test-first ordering at the commit-pattern level is intact (Finding 5). The 20 integration tests + 3 unit tests and the four `todo!()` stubs were committed together in `4fb5e67`; the 18 non-Cat-B integration tests would have failed against the stubs by `todo!()` panic (or, in the case of integration tests that exercise the Show/Delete CLI surface, by `todo!()` panic propagating through clap's command dispatch); the 2 Cat A unit tests would have failed by `todo!()` panic in `format_show_block`.
+
+Phase 2b (`c91676a`) added zero new tests to the suite — it filled in only the four stub bodies, the `cmd_create` description-storage wiring, the removal of the two `#[allow(dead_code)]` annotations, and the TODO.md AC checkbox flips. This is the right pattern (Phase 2b is implementation, not test addition; if a test were missing it would be added in a separate commit per `prompts/implementation.md` Phase 2b step 2). No retroactive (Category C) tests in Layer 6 at this point — that's consistent because no IAR round has run yet to surface a finding that would drive a Category C addition.
+
+The 2 integration tests + 1 unit test correctly disclosed as Cat B Red Gate deviations in the commit message:
+- `create_without_description_has_no_field_in_json` — passes at Red Gate because Layer 1's serde `skip_serializing_if = "Option::is_none"` on `Issue.description` produces the required absent-key (not null) shape; the Layer 6 test pins this as regression coverage.
+- `description_not_in_list_output` — passes at Red Gate because `cmd_list` was never extended to render description (it iterates and prints id/title/status/priority/labels only); the Layer 6 test pins that absence.
+- `max_id_plus_one_skips_deleted_ids` — passes at Red Gate because Layer 1's `next_id` returns `max(existing) + 1` (not a sequential counter); the Layer 6 test pins the deleted-ID-never-reused invariant for the Layer 6 delete feature.
+
+These are not mislabeled as Cat A. The Cat B framing matches the prior-layer precedent (Layer 3's `create_without_priority_defaults_to_medium`, Layer 4's two integration tests for label defaults, Layer 5's 7 integration tests for compound-filter emergent behavior). The pattern across Layers 3-6 is now consistent and well-disclosed: when a Layer's behavior is partly emergent from prior-layer Red Gates, the Layer's regression-coverage tests for the emergent behavior pass at Red Gate time and are labeled Cat B with explicit prior-Red-Gate citation.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 7 — IAR iteration / carry-over closure (Dim 7)**
+
+Three Layer 5 carry-over states entered Layer 6:
+
+- **SA R11 F1 (cmd_list rendering extraction).** Disposition at end of Review 14: "Open / Deferred to focused PR before Layer 7." Layer 6 status: still Open / Deferred. Layer 6 did NOT do the cmd_list rendering extraction — `git show c91676a -- src/lib.rs` shows no `format_header_row`, `format_issue_row`, or `filter_issues` extraction; the new helper `format_show_block` is for the new Show feature, not a refactor of `cmd_list`. The deferral target (focused PR before Layer 7) remains in effect. This is in-policy: a Deferred finding with a named target may persist across the layer immediately following the deferral, and Layer 6 is still ahead of the Layer-7 deadline. The director should track this — the focused PR must land before Layer 7's first commit, or the deferral pattern degrades into a silent-drop.
+
+- **QE R11 F5 (compound-filter test).** Disposition: Resolved at Layer 5 via `list_three_filter_and_combination` in `tests/layer5.rs`. Not a Layer 6 carry-over.
+
+- **Other prior-layer findings:** Review 14 produced 5 Resolved + 1 Open-Deferred (SA R11 F1 above). The Layer 7 polish items remain on the Layer 7 roadmap with named targets — Layer 6 did not action them, which is correct (they are not Layer 6 scope).
+
+No deferred-then-silently-dropped pattern. No carry-over finding spilled into Layer 6 in a way that would have required Layer 6 to absorb Layer 5 IAR work. The Section 5 cadence (cold-batch → warm-resolution → SO-adjudication → VDD-IAR-closure) ran cleanly for Layer 5 and Layer 6 opens with all prior-layer process bookkeeping in terminal or named-deferred states.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 8 — Process artifact integrity / performative-Red-Gate inverse test (Dim 8)**
+
+The review brief asks to apply the inverse test. Walking through each tell:
+
+1. **Performative tell #1: implementation present in `4fb5e67`.** Inverse: actual `4fb5e67` shows four `todo!()` bodies, `let _ = (...)` arg-binding to placate `-D warnings`, `#[allow(dead_code)]` on `validate_description` and `format_show_block`, and `cmd_create`'s `description_raw` parameter discarded with `let _ = description_raw;`. ✓ inverse holds (no implementation; only stub scaffolding).
+
+2. **Performative tell #2: `4fb5e67` commit-message claim of "tests fail" without runnable evidence.** Inverse: actual `4fb5e67` commit message names the 2 unit tests that fail (`multiline_description_show_format`, `show_label_column_right_padded_to_13`) and the precise failure mode (`todo!()` panics in `format_show_block`); names the 18 integration tests that fail at runtime against the stubs and description-ignoring `cmd_create`; explicitly names the 1 Cat B unit test (`max_id_plus_one_skips_deleted_ids`) plus the 2 Cat B integration tests with prior-Red-Gate citation (Layer 1's `skip_serializing_if`; `cmd_list` never rendering description). ✓ inverse holds (the failure mode is concrete and reproducible by reverting `c91676a`).
+
+3. **Performative tell #3: `c91676a` is a no-op refactor (rename/move only) so the commit pair "looks" two-phase.** Inverse: actual `c91676a` shows substantive body changes in all four stubs (the `format_show_block` body alone is 30+ lines of `format!` and string-manipulation logic; `cmd_show` is 7-8 lines of pipeline; `cmd_delete` is 8-9 lines including `save_issues` write; `validate_description` is the empty-after-trim check + verbatim pass-through), the removal of two `#[allow(dead_code)]` annotations, and the `cmd_create` storage-wiring change. ✓ inverse holds (substantive, not cosmetic).
+
+4. **Performative tell #4: integration tests labeled Cat A despite emergent-from-prior-layer behavior.** Inverse: actual `4fb5e67` explicitly labels 3 tests (2 integration + 1 unit) as Cat B with explicit prior-Red-Gate citation (Layer 1's `skip_serializing_if`; `cmd_list`'s rendering scope; Layer 1's `next_id`). The other 18 integration tests + 2 unit tests are correctly NOT labeled Cat B because they exercise the new functions whose bodies do not exist at Red Gate. ✓ inverse holds.
+
+5. **Performative tell #5: manual testing closure batched into the implementation commit.** Inverse: manual testing closure is NOT batched into `c91676a`; instead, the implementation commit explicitly states "The Manual Testing Checklist is intentionally left unchecked — VSDD Phase 2 completion requires human verification, not satisfied by automated tests." ✓ inverse holds — but this also surfaces Finding 1 (the manual testing has not been done as a separate commit yet, which the merge gate requires). The honest disclosure here is good discipline; the outstanding manual run is the open process question.
+
+6. **Performative tell #6 (additional Layer-6-specific tell): `cmd_create` signature change applied without the discard pattern.** Inverse: `4fb5e67` includes `let _ = description_raw;` plus an inline comment ("description argument is accepted at the CLI boundary but not yet stored. validate_description / Issue.description wiring lands in Phase 2b") — the discard pattern is the explicit tell that the Phase 2a boundary is honored even at the signature level. ✓ inverse holds.
+
+All six inverse tells hold. The Layer 6 commit pattern is the real-Red-Gate pattern, not the performative one. The `#[allow(dead_code)]` annotations on `validate_description` and `format_show_block` in `4fb5e67`, plus their removal in `c91676a`, plus the `description_raw` discard pattern in `cmd_create` at `4fb5e67` and its removal in `c91676a`, are three independent compiler-verifiable artifacts that the boundary is real. A performative Red Gate would require all three of these artifacts to be fabricated consistently — which is implausible.
+
+**Classification:** Dismissed.
+
+---
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Process integrity audit
+
+Authority chain for Layer 6 commits (per `CLOSURE-PROTOCOL.md` Section 1):
+
+| File | Authority | Layer 6 modifier | OK? |
+|---|---|---|---|
+| `tests/layer6.rs` (new) | QE primary; SE for parity with code | Co-authored at Red Gate (`4fb5e67`); test plan in `TODO.md` is the authority signal | ✓ |
+| `src/lib.rs` (Layer 6 unit tests + four new functions + cmd_create extension) | SE primary (impl); QE primary (tests) | Both classes co-authored in Red Gate + Phase 2b commits | ✓ |
+| `src/main.rs` (Commands enum extension + --description on Create) | SE primary | Co-authored at Red Gate `4fb5e67`; Phase 2b did not touch `main.rs` (✓ — the dispatch wiring needed to reach the stubs is correctly all in Phase 2a) | ✓ |
+| `TODO.md` (AC checkbox flips at Phase 2b; manual checklist still unticked) | SO (scope); director (sequencing) | Checkbox flips by implementation agent (AC) at `c91676a` — checkbox flips are not scope changes; in-policy. Manual checklist is director-only and is outstanding (Finding 1). | partial ✓ |
+| `DESIGN.md` | SO only | Not modified in any Layer 6 commit | ✓ |
+| `CHANGELOG.md` | Any domain that produced the change | Not yet modified for Layer 6 (will be added during Layer 6 IAR Round 2 / merge prep, mirroring Layer 4 + Layer 5 cadence) | acknowledged |
+| `iterative-adversarial-refinement/<DOMAIN>-REVIEW.md` | The owning domain only | Each domain's Layer 6 entry will be its own (this round runs in parallel with SO 20 / SA 13 / QE 15 / SE 15 / Security 9 / PE 10 / UX 8 / DE 9 / RT 8 / TW 9) | ✓ in progress |
+
+Authority chain clean for the implementation phase. The CHANGELOG entry for Layer 6 is acknowledged as a pending merge-prep artifact (per the Layer 4 + Layer 5 precedent); not a Layer-6-Phase-2-scope item.
+
+The Section 5 cadence has run through step 1 (cold-batch parallel review batch — this round, with the 10 parallel peers + VDD-IAR 15). Steps 2-4 (warm-resolution, SO-adjudication if needed, final VDD-IAR closure) are downstream. This round's role is to verify the **Phase 2** process (Red Gate boundary, test discipline, manual testing closure, layer scope, carry-over disposition) before the IAR cadence produces findings to close.
+
+---
+
+### Summary
+
+Layer 6 process compliance is **clean across seven of eight evaluated dimensions** with one Open finding on dim 6 (Human verification).
+
+- **Dim 1 (Design before code):** ✓ DESIGN.md Features 1, 4, 5 + Show output format + Edge Cases / Description defined the Layer 6 contracts before Layer 6 began. No DESIGN.md edits in Layer 6.
+- **Dim 2 (Layered decomposition):** ✓ Layer 6 scope respected; no Layer 7 leak; 20 integration + 3 unit tests deliver the planned + over-deliver on coverage without scope creep.
+- **Dim 3 (Layer gate compliance):** ✓ Layer 5 closed by Review 14 GO; merge `727aef9` precedes Layer 6 Red Gate `4fb5e67`. Prior-layer test baseline preserved (136 → 159 with Layer 6 additions).
+- **Dim 4 (Red Gate boundary — CRITICAL):** ✓ `4fb5e67` contains four `todo!()` stubs + two `#[allow(dead_code)]` annotations + `cmd_create`'s `description_raw` discard pattern + 2 failing Cat A unit tests + 18 failing integration tests + 3 Cat-B-disclosed deviations; `c91676a` substantively replaces all four stub bodies, removes both dead-code allows, and removes the discard pattern. Six inverse tests against the performative-Red-Gate hypothesis all hold.
+- **Dim 5 (Test discipline):** ✓ Tests committed in Red Gate; Phase 2b adds zero tests; Cat B disclosure honest and consistent with Layers 3-5 precedent.
+- **Dim 6 (Human verification):** ✗ **Open — Finding 1.** Layer 6 manual testing checklist (`TODO.md:303-316`) is fully unchecked (13 items). The implementation commit honestly discloses this with explicit "intentionally left unchecked" rationale, but the merge gate requires execution, not disclosure of non-execution. Direct precedent: Review 11 F2 (Layer 4 same issue, Open until `b0a3789` closed it). Recommended remediation: director runs the binary against the 13 items and ticks each in a dedicated `Layer 6 manual testing complete` commit mirroring `6f7fd46` / `b0a3789` / `da0fd8d`, ideally with Layer-4-style "Verified in terminal: <observed behaviors>" framing.
+- **Dim 7 (IAR iteration):** ✓ SA R11 F1 (cmd_list rendering extraction) remains Open / Deferred to focused-PR-before-Layer-7 (Layer 6 did NOT silently absorb the work). QE R11 F5 resolved at Layer 5, not a Layer 6 carry-over. No silent-drop pattern.
+- **Dim 8 (Process artifact integrity):** ✓ Six inverse tests against the performative-Red-Gate hypothesis all hold. Three independent compiler-verifiable artifacts (two `#[allow(dead_code)]` add/remove pairs + `description_raw` discard-pattern add/remove) corroborate the Phase 2a/2b boundary.
+
+**Sycophancy guard self-applied.** The most adversarial reading of Layer 6 is: "the description-handling tests are minor variations on title-handling (`validate_description` mirrors `validate_title`), the show/delete operations are straightforward CRUD against an in-memory `Vec<Issue>`, and the developer's honesty about manual-testing-still-pending is just transparency — soften the manual-testing finding because the layer is technically sound and the disclosure is in good faith." This reading is exactly the failure mode the cold-session primer warns against. Layer 4's R11 F2 was treated as Open, blocked merge until `b0a3789` closed it, and was vindicated by the precedent. Treating Layer 6's identical situation as anything else would be inconsistent application of the standard. The honest answer is: the disclosure is good discipline (better than a silent skip), but the execution is still outstanding, and the merge gate is about execution, not disclosure.
+
+A second adversarial reading: "the cmd_create extension wiring (signature change to take `description_raw`, then `let _ = description_raw;` in the body) is implementation, not stub — Phase 2a should not modify cmd_create's signature." This reading fails on inspection: the signature change is required for the Red Gate state to be a valid CLI surface (without it, `main.rs` cannot pass `--description` through to `tracker::cmd_create` and the integration tests cannot reach the storage-path failure mode). The discard pattern (`let _ = description_raw;`) explicitly preserves the no-behavior contract at the signature level. Compare to Layer 5: `issue_matches_filters`'s signature was introduced in Phase 2a with arg-binding to placate `-D warnings`; same pattern. This is the established Layer 3-5 precedent. Not a finding.
+
+A third adversarial reading: "the `\r\n` → `\n` normalization in `format_show_block` is implementation that exceeds the DESIGN.md spec — it should have been a Phase 2a-disclosed Cat B test or a spec amendment." This reading has some merit but is more an SO-spec-clarity concern than a VDD-IAR process concern. The normalization is defensive behavior (it does no harm; CRLF descriptions are unusual on the unix shell flow the manual checklist exercises). The relevant question is whether this is implementation freedom (defensible) or spec divergence (a finding). I've recorded the observation in Finding 2 as an awareness item for SO Review 20; it does not by itself shift the VDD-IAR-Alignment verdict.
+
+---
+
+### Coordination
+
+- **VDD-IAR Alignment Round 15 of the cold-batch peers (SO 20 / SA 13 / QE 15 / SE 15 / Security 9 / PE 10 / UX 8 / DE 9 / RT 8 / TW 9 / VDD-IAR 15).** Each domain runs cold per `prompts/review-session.md`. This VDD-IAR pass evaluates the artifact set as it stands at start-of-round.
+- **One Open finding raised to director.** Finding 1 (manual testing closure) — director-only resolution per the Layer 4 R11 F2 precedent. Recommended remediation in Finding 1 body.
+- **Carry-forward watch for Layer 6+ Round 2 (if needed):** SA R11 F1 (cmd_list rendering extraction) remains Open / Deferred to focused-PR-before-Layer-7. Layer 6 did not advance this work — the new `format_show_block` helper is for the new Show feature, not a `cmd_list` rendering refactor. The director should track when the focused PR lands; the finding's named-target deadline is "before Layer 7 begins," and the focused PR has not yet landed. If Layer 7 opens without the focused PR, the deferral pattern degrades into a silent-drop; escalate to a hard Open at that point.
+- **CHANGELOG Layer 6 entry is acknowledged as pending merge-prep.** Per the Layer 4 + Layer 5 precedent (SO authors the layer's CHANGELOG entry during Round 2 close), the Layer 6 CHANGELOG entry will be authored during the merge-prep cadence. Not a Phase-2-scope finding.
+- **No cross-domain duplicates from this VDD-IAR round.** Finding 1 may overlap with SO Review 20 or UX Review 8 if either domain independently surfaces the unchecked manual checklist; the resolution applies once per CLOSURE-PROTOCOL.md Section 4.
+
+---
+
+### Merge-gate verdict
+
+**NO-GO-PENDING-MANUAL.** Layer 6 Phase-2 process compliance is sound on 7 of 8 dimensions, but the merge gate cannot close until the Layer 6 manual testing checklist is executed by the director and a dedicated `Layer 6 manual testing complete` commit lands (Finding 1).
+
+If the substantive-domain parallel-batch (SO 20 / SA 13 / QE 15 / SE 15 / Security 9 / PE 10 / UX 8 / DE 9 / RT 8 / TW 9) produces additional real findings, the merge gate further requires the standard CLOSURE-PROTOCOL.md Section 5 cadence (warm-resolution → SO-adjudication if needed → round-2 cold-batch → Review 16 closure). If the substantive batch produces only Hallucinated or Dismissed findings, the merge gate may close after Finding 1 closes plus a final Review 16 closure round verifying the gate items in `CLOSURE-PROTOCOL.md` Section 6.
+
+Specifically required before the gate can close:
+
+- [ ] Director executes the 13 Layer 6 manual testing checklist items in `TODO.md:303-316` and ticks each (Finding 1). Recommend a dedicated commit `Layer 6 manual testing complete` mirroring `6f7fd46` / `b0a3789` / `da0fd8d`, ideally with Layer-4-style "Verified in terminal: <observed behaviors list>" framing for evidence quality.
+- [ ] Warm-resolution + SO-adjudication + round-2 cold-batch as required by the substantive-domain findings (downstream of this VDD-IAR round; not yet known).
+- [ ] Final VDD-IAR closure round (Review 16) verifies all gate items in `CLOSURE-PROTOCOL.md` Section 6 are checked.
+- [ ] CHANGELOG Layer 6 entry lands before merge per the Layer 4 + Layer 5 precedent.
+- [ ] SA R11 F1 (cmd_list rendering extraction) tracked toward focused-PR-before-Layer-7 — not a Layer 6 merge gate, but a Layer 7 opening gate.
+
+Layer 6's design-before-code, layered decomposition, layer-gate compliance, Red Gate boundary, test discipline, IAR iteration discipline, and process artifact integrity are all clean. **Refinement may continue on substantive (non-process) dimensions in parallel** with the manual-testing-execution outstanding work. The merge gate closes after Finding 1 closes and any substantive-domain findings reach terminal states.
+
+---
+
+### Files modified
+
+Only this log appended.
+
+---
+

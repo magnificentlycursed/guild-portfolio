@@ -884,3 +884,161 @@ Round-2 verification: F1 closed at create-time, load-time, and OSC 8 paths; F2 c
 **Files modified:** Only this log appended.
 
 ---
+
+## Review 8 — 2026-05-11 01:15Z
+
+**Round:** Red Team Review 8 (cold-batch, Layer 6 — description + show + delete)
+**Scope:** New attack surface introduced by commits `4fb5e67` (Red Gate) and `c91676a` (implementation): `--description` input, `format_show_block` rendering, `cmd_show`, `cmd_delete`. Probe whether the Layer 4 control-character defense lineage (RT R6 F1 labels + RT R6 F2 error-message reflection) was extended to description, and verify the existing defenses still hold under the new code paths.
+**Session context:** Cold session. Built `cargo build --release --locked` against HEAD `c91676a`. Reproducers run from `/tmp/rt8` (fresh CWD per attack). All payloads abstracted as `<ESC>`, `<NUL>`, `<RLO>`, etc. in this log per confidentiality-aware citation.
+
+### Open
+
+#### Finding 1 — `validate_description` accepts control characters; `tracker show` renders them raw to stdout (Dim 6 — Injection via display-class gap; Dim 7 — Client-side terminal injection)
+
+`validate_description` (`src/lib.rs:335-340`) only checks `raw.trim().is_empty()`. There is NO `is_control()` filter. Description is then written verbatim into storage and, on `tracker show <id>`, interpolated raw into `format_show_block` (`src/lib.rs:369-387`) which prints to stdout via `print!`. `issue_fields_are_valid` (`src/lib.rs:125-139`) also does NOT validate description content — only checks `!d.trim().is_empty()` — so the load-path corollary fires too.
+
+Reproducer A — create-time path (release binary, HEAD `c91676a`, fresh CWD):
+
+```
+$ tracker create "Real title" --description <ESC>[31mPWN<ESC>[0m
+Created issue #1: Real title
+$ tracker show 1 | od -c | sed -n '7,8p'
+0000140    i   p   t   i   o   n   :     033   [   3   1   m   P   W   N
+0000160  033   [   0   m  \n   C   r   e   a   t   e   d   :
+```
+
+Raw `033` (ESC, byte 0x1B) reaches stdout. On a TTY the four-byte sequence `<ESC>[31m` switches the terminal to red text; `PWN` renders red until `<ESC>[0m` resets. Same defect class as RT R6 F1 for labels, on a different field.
+
+Reproducer B — load-path path (hand-edited `tracker.json`):
+
+```
+$ python3 -c 'import json; open("tracker.json","w").write(json.dumps([{"id":1,"title":"Real","description":"[31mPWN[0m","status":"open","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]))'
+$ tracker show 1 | od -c | sed -n '7,8p'
+0000140    i   p   t   i   o   n   :     033   [   3   1   m   P   W   N
+0000160  033   [   0   m  \n   C   r   e   a   t   e   d   :
+```
+
+The hand-edited record passes `issue_fields_are_valid` and the same bytes reach stdout. Confirms both halves of the Layer 4 F1 lineage are open on description: input boundary AND load boundary.
+
+Reproducer C — OSC 8 hyperlink leader (terminal-rendered clickable link pointing wherever the attacker chose):
+
+```
+$ tracker create "Real" --description $'<ESC>]8;;https://evil/<ESC>\\X<ESC>]8;;<ESC>\\'
+Created issue #1: Real
+$ tracker show 1 | od -c | sed -n '7,9p'
+0000140    i   p   t   i   o   n   :     033   ]   8   ;   ;   h   t   t
+0000160    p   s   :   /   /   e   v   i   l   / 033   \   X 033   ]   8
+0000200    ;   ; 033   \  \n   C   r   e   a   t   e   d   :
+```
+
+The OSC 8 sequence is preserved byte-for-byte. Same byte-class as RT R6 F1's OSC 8 reproducer for labels.
+
+Reproducer D — bare CR (no LF) causes the description line to overwrite preceding terminal content:
+
+```
+$ tracker create "Real" --description $'before<CR>OVERWRITE'
+$ tracker show 1 | od -c | sed -n '7,8p'
+0000140    i   p   t   i   o   n   :       b   e   f   o   r   e  \r   O
+0000160    V   E   R   W   R   I   T   E  \n   C   r   e   a   t   e   d
+```
+
+Note: `format_show_block` (`src/lib.rs:365`) normalizes `\r\n` → `\n` for the continuation-indent logic, but does NOT touch bare `\r`. A description with `before<CR>OVERWRITE` renders on a TTY as `OVERWRITE` (CR sends the cursor to column 0, `OVERWRITE` overwrites `before `).
+
+Reproducer E — combined clear-screen attack via multi-line description:
+
+```
+$ tracker create "title" --description $'first\nsecond<ESC>[2J<ESC>[H'
+$ tracker show 1
+```
+
+The `<ESC>[2J<ESC>[H` sequence clears the screen and homes the cursor mid-render. The 13-space continuation indent on the second line legitimately survives the `format_show_block` normalization, so the attacker can place the escape on any line of a multi-line description.
+
+**Severity:** High. Same impact class as RT R6 F1 (labels) but on a wider field (description has no length limit per DESIGN.md "Description is not validated for length"). Combined with reproducers C (OSC 8) and E (clear-screen + cursor-home), an attacker can paint arbitrary content on the user's terminal when the user later runs `tracker show <id>`. The user is the attacker in the local-CLI threat model, but the attack vector reaches them through pasted clipboard content, a shared `tracker.json` (e.g. accidentally committed to a repo and viewed by a teammate running `tracker show`), or a hand-crafted record planted by another tool.
+
+**Why this is a regression of the Layer 4 F1 fix specifically:** SO Review 17 adjudicated F1 by adding control-character rejection to both `parse_label` and `issue_fields_are_valid` (via `label_is_valid`). The Layer 6 spec amendment added description but DESIGN.md "Edge Cases / Description" (lines 339-345) is SILENT on control characters — it explicitly *allows* `\n` ("Description may contain newlines"). The implementation faithfully mirrors the silent spec: `validate_description` does only the empty-after-trim check, `issue_fields_are_valid` does only the empty-after-trim check for the description. This is the same scoping pattern Security 7 named: defense scoped by-field rather than by-property. The spec gap is real (DESIGN.md "stderr contract" / "Edge Cases / Title" both invoke `Cc` rejection for terminal-safety reasons that apply identically to description rendered through `tracker show`).
+
+**A spec-aware nuance:** the description spec deliberately permits `\n` (multi-line rendering is a feature). So the defense cannot be a blanket `is_control()` rejection like title/label. The minimally-correct rule is: reject `Cc` *except* `\n` (and possibly `\t`). The `format_show_block` `\r\n` → `\n` normalization at line 365 suggests the implementor anticipated only `\n` and `\r\n` line endings, not arbitrary control bytes — but no validator enforces that anticipation.
+
+**Recommended remediation (Raised to SO / Raised to SE / Raised to QE):**
+
+- **SO:** Amend DESIGN.md "Edge Cases / Description" to specify the description's control-character contract. Three reasonable spec shapes: (a) reject all `Cc` except `\n` (tightest; consistent with title/label rationale); (b) reject all `Cc` except `\n` and `\t` (permits tabular content); (c) escape control characters at the `show` render site via `display_safe`-equivalent before printing (asymmetric: accept at storage, sanitize at output — mirrors the F2 fix shape). Option (c) closes both create-time and load-time paths with one change. Option (a) is the simplest and consistent with the title/label posture; the cost is rejecting tab-indented descriptions, which DESIGN.md does not currently endorse anyway.
+- **SE:** Either (a)/(b): extend `validate_description` and `issue_fields_are_valid` with a `description_is_valid`-style helper analogous to `label_is_valid`; or (c): apply `display_safe`-but-keep-`\n` at the `format_show_block` description branch. Either fix should ride alongside a regression test exercising the load-path corollary (the trap RT R6 F1 originally fell into is closing only the input boundary).
+- **QE:** Add regression tests `description_with_escape_sequence_is_rejected` (create path), `description_with_nul_or_del_is_rejected`, `issue_field_validation_rejects_control_char_in_description` (load path), `description_with_bare_cr_is_rejected_or_sanitized`, `description_with_osc8_hyperlink_is_rejected_or_sanitized`. Conditional on the SO stance, `description_with_newline_is_accepted` should remain green.
+
+**Classification:** **Open. Raised to SO (primary, spec adjudication) / Raised to SE (conditional on spec stance) / Raised to QE (regression tests).** Cannot be Hallucinated — five reproducers above (A–E) all produce raw bytes on stdout. Cannot be Deferred — Red Team findings are not deferred per CLOSURE-PROTOCOL.md. Not Accepted Risk: this is a NEW field introduced in Layer 6, not a previously-adjudicated surface; the analogous title/label surfaces were adjudicated as code-fixes, not as accepted risks, so a consistency principle says description should follow the same route unless SO explicitly chooses otherwise.
+
+**Self-dismissal test:** Can the defense be circumvented? There IS no defense currently — `validate_description` is empty-after-trim only and `issue_fields_are_valid` checks empty-after-trim only. Self-dismissal fails because there is no defense to dismiss. The finding stands.
+
+### Dismissed
+
+#### Finding 2 — Description with `\n` leaks into `list` output (A3)
+
+Concern: a description containing `\n` might somehow reach `cmd_list` and break the one-issue-per-line `list` contract.
+
+Verified: `cmd_list` (`src/lib.rs:583-664`) reads only `id`, `status`, `priority`, `labels`, `title` from each issue — never `description`. The list-rendering closure constructs a row from these five fields and `truncate_with_ellipsis` further bounds `labels` and `title` to fixed widths. Reproducer with a `\n`-containing description shows `list` output identical to a `\n`-free description (other than absent description column). **Dismissed.** The Layer 4 one-issue-per-line contract is preserved.
+
+#### Finding 3 — Concurrent `tracker delete N1` / `tracker delete N2` race (A4)
+
+Concern: two simultaneous deletes could corrupt `tracker.json` or crash the binary.
+
+Reproducer: five rounds of four parallel `tracker delete N` invocations against a fresh 8-issue store. Result: no panics, no crashes, all four target IDs removed cleanly across rounds, `tracker.json` ended well-formed (JSON-parseable, 4 records remaining). Last-writer-wins on the file write is the observed behavior; this matches DESIGN.md "Constraints" (single user, no concurrency contract) and is consistent with how every other mutating subcommand behaves. **Dismissed (Accepted-Risk-adjacent).** The single-user threat model (DESIGN.md "Single user. No network. No accounts.") names the user as the named owner of any concurrency loss; the binary's behavior on contended writes is graceful, not crash-prone.
+
+#### Finding 4 — `tracker show 99` error message escape interpolation (A5)
+
+Concern: `Error: Issue #99 not found.` could echo a control byte if `99` was attacker-controlled.
+
+`parse_id` (`src/lib.rs:291-298`) rejects non-`u64` input *first* — and its error path uses `display_safe(raw)` (verified by reproducer in A6 below). Only a validated `u64` ever reaches the `Issue #{} not found.` format site. A `u64` cannot contain a control character in its `Display` output. **Dismissed.** No injection surface.
+
+#### Finding 5 — `tracker show abc` error message escape interpolation (A6)
+
+Concern: `Error: 'abc' is not a valid issue ID.` could echo a control byte from the raw input.
+
+Reproducer: `tracker show $'<ESC>[31mabc' 2>&1 | od -c` produced `Error: '\u{1B}[31mabc' is not a valid issue ID.` — the ESC byte rendered as the literal six-character escape `\u{1B}`. The `parse_id` error path (`src/lib.rs:294`) calls `display_safe(raw)`, inherited correctly from the Layer 4 R2 F2 fix. Same observed for `tracker delete $'<ESC>[31mabc'`. **Dismissed.** Inherits the F2 closure intact.
+
+#### Finding 6 — Path traversal on `tracker.json` argument (A8)
+
+Concern: `tracker show` / `tracker delete` might accept a user-controlled path argument.
+
+`src/main.rs:84` hardcodes `Path::new("tracker.json")`; no `show` or `delete` subcommand accepts a path argument. CWD-relative behavior is spec-defined (DESIGN.md "File location"). **Dismissed.** Same posture as RT R6 F8/F6.
+
+### Accepted Risk
+
+#### Finding 7 — Bidi-override / `Cf` / zero-width characters in description (A7)
+
+Concern: the same Trojan-Source / zero-width attack RT R6 F3 documented for title/label is also valid for description.
+
+Reproducer: `tracker create "Real" --description $'attack<RLO>suoicilam'` accepts the UTF-8 bytes `342 200 256` (U+202E RIGHT-TO-LEFT OVERRIDE) and `tracker show 1` renders them on a TTY as the visually-misleading `attackmalicious`.
+
+DESIGN.md "Edge Cases / Title" (line 314) documents bidi/`Cf`/zero-width as out-of-threat-model for the single-user local tool. SO Review 17 made this an explicit Accepted Risk for the title/label surfaces. The same threat model basis (DESIGN.md "Constraints": Single user. No network. No accounts.) and same risk owner (the director, the user of this branch) extend identically to description. Re-evaluation trigger: any future use case widening the threat model (multi-user / shared `tracker.json`) re-opens this finding for description simultaneously with title/label.
+
+**Classification:** Accepted Risk. Risk owner: director. Re-evaluation trigger named in DESIGN.md "Edge Cases / Title" (line 314).
+
+#### Finding 8 (carried) — Plaintext `tracker.json`
+
+Unchanged from RT R6 F10 / RT R7 F10. **Risk owner:** the user/developer (DESIGN.md "Constraints").
+
+### Hallucinated
+
+None this round. Each candidate finding that initially looked exploitable was confirmed by a byte-level reproducer (Finding 1) or refuted by a byte-level reproducer (Findings 2, 3, 4, 5, 6).
+
+### Summary
+
+Round **8** logged. Cold-session cold-batch produced **one Open finding (F1, Raised to SO/SE/QE)**, **five Dismissed**, **two Accepted Risk** (F7 new for Layer 6 — by analogy to RT R6 F3 carried via SO Review 17; F8 carried). Zero Hallucinated.
+
+**Top exploitable finding:** F1 — `validate_description` and `issue_fields_are_valid` both accept control characters in description; `tracker show` prints them raw to stdout. Five reproducers (A–E) covering the create-time path, the load-time path, OSC 8 hyperlink injection, bare-CR line-overwrite, and combined clear-screen-via-multi-line-description. This is the third instance of the same control-character-rendering vulnerability class on this project (title at Layer 1, labels at Layer 4, description at Layer 6). The pattern Security 7 named ("every layer that adds a free-form text field reopens the terminal-escape attack surface unless the defense is generalized") is now empirically validated across three consecutive layers.
+
+**Carry-over status for the description-control-char-defense lineage:** Open. The Layer 4 F1 fix (SO Review 17 + SE Review 12) closed labels via `label_is_valid` and `parse_label` extensions. Description received NO equivalent treatment at Layer 6; the spec is silent on the property and the implementation is silent on the property. The strategic fix Security 7 already named — a `display_safe`-style helper applied at every output sink, not per-validator rules at every input boundary — remains the architecturally cheapest closure for the whole lineage going forward. F1's recommended remediation Option (c) (sanitize at `format_show_block`) is the direct instantiation of that strategy for this layer. Whichever option SO chooses, the design principle to preserve forward is: any new free-form text field added in a future layer (notes, comments, attachment names, anything that flows through a stdout render) is presumptively in-scope for the same control-character rule unless DESIGN.md explicitly says otherwise.
+
+**Adversarial honest assessment:** I tried hard to find additional Open findings beyond F1 — multi-line list leakage, concurrent-delete corruption, error-message reflection on the new `show`/`delete` paths, hardcoded-path bypass, bidi escalation. None of these stood up to byte-level reproducers. F1 alone is the Layer 6 attack-surface signal, and it is a textbook instance of a known regression pattern. A round-2 verification by a fresh reviewer would be the higher-confidence closure of the dismissed list; this review log is the round-1 cold-batch product.
+
+**Coordination:**
+
+- [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) — F1 requires a DESIGN.md "Edge Cases / Description" amendment specifying the control-character contract (three options enumerated in F1 above). F7 should appear as an Accepted Risk extension consistent with the existing line-314 stance.
+- [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) — F1 fix shape depends on the SO adjudication; the simplest (Option a/b) is a `description_is_valid` helper analogous to `label_is_valid`. Option c (sanitize at `format_show_block`) is architecturally cleaner because it closes the load-path with no additional validator.
+- [SECURITY-REVIEW.md](SECURITY-REVIEW.md) — F1 is independently a Security Dim 6 / Dim 7 finding; cross-reference Security Review 9 for the same byte-level reproducers.
+- [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) — Regression tests on both input-boundary and load-boundary paths for description, mirroring the Layer 4 R2 label tests.
+- [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md) — Layer 6 gate cannot legitimately close with F1 Open. This is the third repetition of the same regression class across three layers; flag for VDD-IAR Alignment as a systemic spec-coverage issue. The pattern "new free-form field added without explicit control-character contract" should become a Layer-N Red Gate criterion if it isn't already.
+
+**Files modified:** Only this review log appended. No source, tests, or DESIGN.md changes per IAR domain authority boundaries (CLOSURE-PROTOCOL.md).
+
+---
