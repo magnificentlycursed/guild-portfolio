@@ -1617,3 +1617,34 @@ Concern: `position` returns the first index, but if two issues had id=1 (duplica
 - **PE Review 10:** Coverage tooling absence remains escalated; no new escalation.
 
 ---
+
+## Review 16 — 2026-05-11 02:00Z
+
+**Round:** QE Review 16 (Round-2 closure for Layer 6)
+**Scope:** Verify the three QE R15 findings + cross-domain description-Cc-defense cluster are resolved by commit `9b775f0`. Warm closure-verification.
+
+### Round-1 finding closures
+
+- **F2 (description Cc defense, High / merge-blocking):** **Resolved by commit `9b775f0`.** `validate_description` rejects `is_control()` except `\n`; `description_is_valid` enforces the same at load time via `issue_fields_are_valid`. Tests added:
+  - Integration (tests/layer6.rs): `create_with_control_char_description_exits_one` (ESC), `create_with_carriage_return_description_exits_one`, `create_with_crlf_description_exits_one`, `create_with_tab_description_exits_one`, `create_with_del_description_exits_one`, `create_with_osc8_hyperlink_description_exits_one`, `create_with_newline_description_is_accepted`, `corrupt_data_with_control_char_description_is_rejected`, `corrupt_data_with_carriage_return_description_is_rejected`, `load_accepts_description_with_newline`.
+  - Unit (src/lib.rs#tests): `description_empty_after_trim_is_rejected`, `description_with_control_char_other_than_newline_is_rejected`, `description_with_newline_only_is_accepted`, `description_stored_verbatim_not_trimmed`, `description_with_printable_unicode_is_accepted`, `issue_field_validation_rejects_control_char_in_description`, `issue_field_validation_rejects_carriage_return_in_description`, `issue_field_validation_accepts_newline_in_description`, `issue_field_validation_accepts_no_description`.
+  - (Note: NUL byte cannot be tested via subprocess argv per OS constraint; covered by the unit test in-process.)
+- **F1 (over-padding mutation in show output):** **Resolved by commit `9b775f0`.** New test `show_renders_exact_full_block_for_single_line_issue` uses full-line `assert_eq!` on all 8 rendered rows; an over-padding mutation (e.g., `"ID:          "` → `"ID:           "`) now fails. Plus a `lines.len() == 8` assertion that catches any extra-line-emit mutation.
+- **F3 (verbatim-storage half of description postcondition untested):** **Resolved by commit `9b775f0`.** `create_preserves_description_verbatim_with_surrounding_whitespace` (integration) + `description_stored_verbatim_not_trimmed` (unit) both kill the `Ok(raw.trim().to_string())` mutation in `validate_description`.
+
+### New findings
+
+*(none this round.)*
+
+### Test suite delta
+
+- Pre-R2: 159/159 pass (48 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4 + 7 layer5 + 20 layer6).
+- Post-R2: **180/180 pass** (57 unit + 32 + 18 + 9 + 25 + 7 + 32 layer6). Delta: +9 unit + +12 integration.
+
+### Summary
+
+3/3 Round-1 QE findings Resolved. The cross-domain description-Cc-defense cluster is closed at the test boundary with 21 new tests (12 integration + 9 unit). Layer 6 QE-domain is at MVR for the predicate + render boundaries.
+
+**Coordination:** *(none — closure pass)*
+
+---

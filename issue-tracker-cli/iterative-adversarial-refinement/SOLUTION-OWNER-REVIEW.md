@@ -1910,3 +1910,42 @@ Each finding survived. The clean compliance table is real; the three findings ar
 - **Director (SO authority):** F1 is a TODO.md tick after manual execution. F2 / F3 may need DESIGN.md amendments — SO authority. Recommended action: settle F2/F3 in Round 1 cross-domain adjudication; close F1 by manual checklist execution before merge.
 
 The Layer 6 implementation is in spec compliance and merge-ready from the SO lens after F1 is closed by manual testing and F2/F3 are adjudicated in Round 2.
+
+---
+
+## Review 21 — 2026-05-11 02:00Z
+
+**Round:** SO Review 21 (Round-2 SO adjudication for Layer 6 IAR closure)
+**Scope:** Spec amendments + cross-domain finding adjudications for the Round-1 Open cluster.
+**Session context:** Director-orchestrated warm-resolution session; not adversarial-cold per CLOSURE-PROTOCOL.md Section 5 step 3.
+
+### Adjudications
+
+- **R20 F1 (manual testing 13/13 unchecked):** **Open / Pending Director.** Same standard as Layer 4 R11 F2 / Layer 5 final closure — execute the 13 items + commit before merge per `b0a3789` / `da0fd8d` precedent.
+- **R20 F2 (`\r\n` → `\n` normalization undeclared in DESIGN.md):** **Resolved as spec ratification.** DESIGN.md "Show output format" now declares the normalization with rationale.
+- **R20 F3 / Security R9 F1 / RT R8 F1 / DE R9 F1 / SE R15 F1 / QE R15 F2 (description Cc defense — convergent across 7 domains):** **Resolved as Option-A (Layer 4 R2 lineage replay).** Defend at create + load + spec, mirroring the Layer 4 label hardening. DESIGN.md Feature 1 + Edge Cases / Description amended; `validate_description` + `description_is_valid` extended; 12 integration + 10 unit tests added. Same resolution closes the cluster across 7 domains.
+- **RT R8 F2 (Trojan-Source / Cf in description):** **Accepted Risk** per spec ratification. Same posture as RT R6 F3 for title/labels (single-user local-CLI threat model; risk owner: director). DESIGN.md Edge Cases / Description explicitly enumerates the Cf accepted-risk stance.
+- **SA R13 F1 (CreateArgs + module-split tripwires fired):** **Split decision** — Trigger A (CreateArgs refactor) **Resolved inline**; Trigger B (`src/lib.rs` storage/validate/commands split) **Deferred to pre-Layer-7 focused PR** bundled with SA R11 F1 + SA R13 F2. The CreateArgs refactor was specifically scheduled "at the layer that adds the next create flag" by SA R7 F4 / R8 F4 / R10 — Layer 6 is that moment, so it lands now. The module split is real architectural work that benefits from its own focused PR with test scaffolding.
+- **QE R15 F1 (over-padding mutation):** **Resolved** by `show_renders_exact_full_block_for_single_line_issue` (full-line equality across all 8 rendered rows).
+- **QE R15 F3 (verbatim-storage half untested):** **Resolved** by `create_preserves_description_verbatim_with_surrounding_whitespace` + unit equivalent.
+- **SE R15 F2 / DE R9 F2 (bare `\r` overprint):** **Resolved** — subsumed by the broader Cc-except-`\n` rejection rule.
+- **UX R8 F1 / TW R9 F2 (`show` / `delete` `--help` depth):** **Resolved** by expanded doc-comments in `src/main.rs`.
+- **TW R9 F1 (CHANGELOG missing Layer 6):** **Resolved** by Layer 6 retrospective + Round-2 closure entry in CHANGELOG.md.
+- **TW R9 F3 (portfolio README stale across L5+L6):** **Resolved** — Layer 5 → ✅ Complete, Layer 6 → 🟡 In IAR Round 2.
+- **TW R9 F4 (manual checklist unchecked):** Same as R20 F1. **Open / Pending Director.**
+
+### Open
+
+- **R20 F1 / VDD-IAR R15 F1 / TW R9 F4** — Layer 6 manual testing checklist. Director action.
+
+### Backlogged / Dismissed / Hallucinated
+
+*(none this round)*
+
+### Summary
+
+10 Round-1 cross-domain Open findings closed inline in commit `9b775f0`. 1 Accepted Risk (RT R8 F2). 2 architectural concerns Deferred to pre-Layer-7 focused PR (SA R11 F1 + SA R13 F2 rendering; SA R13 F1 Trigger B module split). 1 Open process finding pending director action. DESIGN.md amendments are non-creep — they ratify the description-Cc defense that the title and label hardenings already established at Layers 1 and 4.
+
+**Coordination:**
+- **VDD-IAR R16:** Verify Round-2 closure cadence + Open F1 disposition. Merge-gate verdict pending F1 closure.
+- **Director:** Execute 13 manual checklist items; commit per `b0a3789` / `da0fd8d` precedent.

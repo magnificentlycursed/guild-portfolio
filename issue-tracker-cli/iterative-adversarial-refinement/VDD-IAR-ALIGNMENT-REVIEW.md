@@ -1978,3 +1978,53 @@ Only this log appended.
 
 ---
 
+## Review 16 — 2026-05-11 02:00Z
+
+**Round:** VDD-IAR Alignment Review 16 (Round-2 merge-gate closure for Layer 6)
+**Scope:** Verify Round-1 cold-batch IAR cadence completed, Round-2 inline fixes commit `9b775f0` closes the substantive Open cluster, and the residual carry-forwards (SA R11 F1 + SA R13 F1 Trigger B + SA R13 F2) have named-future-layer dispositions. Verify the Open process finding (R15 F1 manual testing) status.
+
+### Refinement loop verification
+
+Round-1 cold-batch (11 domains: SO 20 / SA 13 / QE 15 / SE 15 / Security 9 / PE 10 / UX 8 / DE 9 / RT 8 / TW 9 / VDD-IAR 15) produced the following substantive findings:
+
+| Finding | Domain | Severity | Resolution path | Status post-`9b775f0` |
+|---|---|---|---|---|
+| SO R20 F1 / TW R9 F4 / VDD-IAR R15 F1 — manual checklist 13/13 unchecked | Process | (gate) | Director executes + commits | **Open / Pending Director** |
+| SO R20 F2 — `\r\n` normalization undeclared in DESIGN.md | SO | Low | Spec ratification | Resolved |
+| SO R20 F3 / Security R9 F1 / RT R8 F1 / DE R9 F1 / SE R15 F1 / QE R15 F2 — description Cc defense | Convergent (7 domains) | Medium-High | DESIGN.md + validate + load + tests | Resolved |
+| RT R8 F2 — Trojan-Source / Cf in description | RT | (risk) | Spec carve-out | Accepted Risk |
+| SA R13 F1 Trigger A — CreateArgs refactor | SA | Medium | Inline now (scheduled at SA R7 F4) | Resolved |
+| SA R13 F1 Trigger B — `lib.rs` storage/validate/commands split | SA | Medium | Pre-Layer-7 focused PR | Open / Deferred |
+| SA R13 F2 — `format_show_block` column-width literals (second site) | SA | Low | Pre-Layer-7 focused PR | Open / Deferred |
+| QE R15 F1 — over-padding mutation in show | QE | Low | Full-line equality test | Resolved |
+| QE R15 F3 — verbatim-storage half untested | QE | Medium | New test + unit | Resolved |
+| SE R15 F2 / DE R9 F2 — bare `\r` overprint | SE / DE | Low | Subsumed by Cc rule | Resolved |
+| UX R8 F1 / TW R9 F2 — `show` / `delete` `--help` depth | UX / TW | Low | Doc-comment expansion | Resolved |
+| TW R9 F1 — CHANGELOG missing Layer 6 entry | TW | Low | Layer 6 entry added | Resolved |
+| TW R9 F3 — portfolio README stale | TW | Low | README synced | Resolved |
+
+10 substantive findings Resolved by `9b775f0`. 1 Accepted Risk. 2 architectural findings Deferred to named pre-Layer-7 focused PR (with explicit re-raise condition: SA may re-raise at Layer 7 opening if the PR has not landed). 1 process finding Open / Pending Director.
+
+Refinement loop progression: substantive findings (Round 1) → all-resolved-or-deferred-with-named-layer (Round 2 cold-batch peers report MVR in their Round-2 closure entries). The clean-disposition test holds: every Open finding has a named-future-layer disposition (architectural) or a director-action handoff (process).
+
+### Process-integrity audit
+
+- **Phase 2a/2b boundary:** Verified clean at Round-1 (Review 15). Round 2 does not touch Phase 2a/2b artifacts; `9b775f0` is a pure Round-2 closure commit (DESIGN.md + src + tests + docs) per CLOSURE-PROTOCOL.md Section 5 step 4.
+- **Round numbering:** SO 20→21, SA 13→14, QE 15→16, SE 15→16, Security 9→10, PE 10→11, UX 8→9, DE 9→10, RT 8→9, TW 9→10, VDD-IAR 15→16. Monotonic across all 11 domains; no skipped rounds.
+- **Cat B Red Gate disposition:** Audited at SO Review 20 and QE Review 15 (Round 1). Both honest. Consistent with Layer 3/4/5 prior Cat B precedent.
+- **Convergent finding handling:** The description-Cc-defense finding was raised independently by 7 of the 11 domain reviewers (SO, QE, SE, Security, DE, RT, plus TW carry-forward observation). This is the expected pattern for a real defect — independent cold-session reviewers converge on the same surface. The cross-domain coordination resolved it via a single bundled fix in `9b775f0`. **The independence of the convergent surfacing is itself a positive signal for the cold-batch methodology.**
+
+### Systemic-pattern flag (from RT R9)
+
+RT R9 surfaced a systemic-pattern observation: the "new free-form text field added without explicit Cc contract" pattern has surfaced three times (Title L1 SO R13 F1, Labels L4 R7 F1, Description L6 R8 F1). Each fix has been local; the broader generalization has not been encoded as a process invariant. Recommend incorporating into the VSDD layer-planning template or DESIGN.md Testing Methodology: "any new schema member of type `String` or `Option<String>` flowing through a render path requires an explicit DESIGN.md control-character policy and corresponding `validate_*` + `*_is_valid` pair at create + load boundaries." Surfaced as suite-level coordination, not a Layer 6 blocker.
+
+### Merge-gate verdict
+
+**NO-GO-PENDING-MANUAL.** All substantive-domain findings are Resolved, Deferred-with-named-layer, or Accepted-Risk. The only remaining gate criterion is human verification: TODO.md:303-316 has 13 unchecked manual checklist items. Director must execute the 13 items and commit per the `b0a3789` / `da0fd8d` precedent. Once the manual-testing commit lands, **VDD-IAR will close the gate as GO** without an additional cold-batch round (substantive refinement loop has terminated; only the gate item remains).
+
+### Files modified
+
+Only this log appended.
+
+---
+

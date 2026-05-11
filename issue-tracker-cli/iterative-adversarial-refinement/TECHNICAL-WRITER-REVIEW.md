@@ -802,3 +802,30 @@ Suspected the new `pub` functions might have skimpy rustdoc. Re-read (lines 389�
 **Files modified:** Only this log appended.
 
 ---
+
+## Review 10 — 2026-05-11 02:00Z
+
+**Round:** Technical Writer Review 10 (Round-2 closure for Layer 6)
+**Scope:** Verify Round-1 Open findings (CHANGELOG, --help depth, README, manual checklist) are resolved by commit `9b775f0`. Warm closure-verification.
+
+### Round-1 finding closures
+
+- **F1 (CHANGELOG missing Layer 6 entry):** **Resolved by commit `9b775f0`.** New Layer 6 retrospective + Round-2 closure entry added at the head of `CHANGELOG.md`. Entry follows the Layer 4 R2 format: Scope / Changed / IAR / Deferred / Open / Verification. Test count documented as 180/180 at Round 2 close. The cold-reader handoff document is current.
+- **F2 (`Show` / `Delete` `--help` doc-comment depth asymmetry — cross-cut with UX R8 F1):** **Resolved by commit `9b775f0`.** `Show` and `Delete` doc-comments expanded in `src/main.rs` to enumerate fields (Show) / reference D1 + never-reused-ID rule (Delete) / document `<id>` as positive integer >= 1. Verified via `cargo run --quiet -- show --help` and `cargo run --quiet -- delete --help` — now match the Layer 1-4 depth standard.
+- **F3 (portfolio README stale across Layer 5 + Layer 6):** **Resolved by commit `9b775f0`.** `guild-portfolio/README.md` updated: Layer 5 → ✅ Complete (was 🟡 In review PR #17); Layer 6 → 🟡 In IAR Round 2 (was 🔲 Not started). Synopsis-block / Commands-block deferred — those are project-README concerns (issue-tracker-cli/README.md), which TW will re-check at Layer 7 polish per the established cadence.
+- **F4 (TODO.md Layer 6 manual-testing checklist unchecked):** **Open / Pending Director.** Same disposition as Layer 4 R11 F2 / Layer 5 final closure: director executes the 13 items + commits per `b0a3789` / `da0fd8d` precedent. SO R21 + VDD-IAR R16 both track this as the merge gate.
+
+### Carry-forward verification
+
+- TW R7 F2 / R7 F4 / R7 F7 (Layer 4 doc closures): No regression at Layer 6.
+
+### New findings
+
+*(none this round.)*
+
+### Summary
+
+3/4 Round-1 TW findings Resolved by commit `9b775f0`. 1 Open / Pending Director (F4 manual checklist). Cold-reader handoff documents (CHANGELOG + portfolio README) are current.
+
+**Coordination:** *(none — closure pass)*
+---

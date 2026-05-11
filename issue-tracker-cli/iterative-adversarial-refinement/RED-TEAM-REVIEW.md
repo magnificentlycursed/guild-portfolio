@@ -1042,3 +1042,39 @@ Round **8** logged. Cold-session cold-batch produced **one Open finding (F1, Rai
 **Files modified:** Only this review log appended. No source, tests, or DESIGN.md changes per IAR domain authority boundaries (CLOSURE-PROTOCOL.md).
 
 ---
+
+## Review 9 — 2026-05-11 02:00Z
+
+**Round:** Red Team Review 9 (Round-2 closure for Layer 6)
+**Scope:** Re-execute the Round-1 Open and Accepted-Risk attacks against the release binary at `HEAD` after commit `9b775f0`. Warm closure-verification.
+
+### Round-1 finding closures
+
+- **F1 (description-as-escape-injection vector):** **Resolved by commit `9b775f0`.** Re-executed all 5 reproducers against the release binary at `HEAD`:
+  - A1 (create-time ESC): `tracker create "X" --description '<ESC>[31mPWN<ESC>[0m'` → **exit 1**, `Error: Description cannot contain control characters other than newline.` (was: exit 0, attack stored; `show` rendered red.)
+  - A2 (load-time ESC via hand-edited tracker.json): `tracker list` → **exit 1**, `Error: Could not read tracker data. The file may be corrupt.` (was: loaded cleanly; `show` rendered raw bytes.)
+  - A3 (OSC 8 hyperlink leader): rejected at create-time with the same error. (was: accepted; `show` rendered hyperlink.)
+  - A4 (bare CR overprint): rejected at create-time with the same error. (was: accepted; `show` overwrote the `Description: ` prefix.)
+  - A5 (multi-line ESC clear-screen): rejected at create-time because the description contains a Cc byte other than `\n`. (was: accepted via `\n`-permitted carve-out paired with ESC.)
+  All 5 attacks now produce exit 1 + safe stderr output. The Title L1 → Labels L4 → Description L6 generalization-failure pattern is closed.
+- **F2 (Trojan-Source / Cf in description):** **Accepted Risk** per spec ratification. DESIGN.md "Edge Cases / Description" now explicitly enumerates the Cf accepted-risk stance with the same threat-model rationale as RT R6 F3 for title and labels (single-user local-CLI; risk owner: director).
+
+### Carry-forward verification
+
+- RT R6 F1 / R7 carry-forward (label control-chars): No regression at Layer 6.
+- RT R6 F2 (error-message escape interpolation via `display_safe`): No regression at Layer 6. The new "Description cannot contain..." error message is a constant string with no user-input interpolation — safe by construction.
+- RT R6 F3 (Trojan-Source / `Cf`): Unchanged Accepted Risk stance, now uniformly applied across all three free-form text fields.
+
+### Systemic-pattern observation
+
+The "new free-form text field added without explicit Cc contract" pattern surfaced three times (Title L1 SO R13 F1, Labels L4 R2, Description L6 R2). The cross-domain coordination with Security R10 closes Layer 6 but does not foreclose a recurrence at Layer 7's color rendering or any future addition. Recommend VDD-IAR adopt a Layer-N Red Gate criterion: "any new schema member of type `String` or `Option<String>` flowing through a render path requires an explicit DESIGN.md control-character policy and corresponding `validate_*` + `*_is_valid` pair at create + load boundaries." Surfaced to VDD-IAR R16; not a Layer 6 blocker.
+
+### New findings
+
+*(none this round.)*
+
+### Summary
+
+1/1 Round-1 Open finding Resolved across 5 attack reproducers. 1 Accepted-Risk preserved (F2 / Trojan-Source) with explicit spec stance. Layer 6 RT-domain is at MVR. No exploitable surface remains.
+
+**Coordination:** *(none — closure pass)*

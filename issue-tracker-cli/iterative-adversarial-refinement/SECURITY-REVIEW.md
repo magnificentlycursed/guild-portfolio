@@ -988,3 +988,38 @@ Round **9** logged. Cold-session sweep produced **one Open finding (Raised to SO
 **Files modified:** Only this review log appended; no source, tests, or DESIGN.md changes applied per IAR domain authority boundaries (CLOSURE-PROTOCOL.md). Attack payloads in this review are abstracted (`<ESC>`, `<CR>`, `<BEL>`) per primer guidance.
 
 ---
+
+## Review 10 — 2026-05-11 02:00Z
+
+**Round:** Security Review 10 (Round-2 closure for Layer 6)
+**Scope:** Verify Round-1 Open finding (description control-char defense) is resolved by commit `9b775f0`. Warm closure-verification.
+
+### Round-1 finding closure
+
+- **F1 (description control-char defense — third lineage instance after Title L1 / Labels L4):** **Resolved by commit `9b775f0`.** Resolution applied at three boundaries per the cross-domain consensus:
+  1. **Spec (DESIGN.md):** Feature 1 error states adds `Error: Description cannot contain control characters other than newline.`. Edge Cases / Description enumerates the rule with `\n` carve-out rationale and Cf accepted-risk stance. Edge Cases / Storage adds the new corruption trigger.
+  2. **Create-time (`src/lib.rs`):** `validate_description` rejects `char::is_control()` except `\n`. The `\n` carve-out is description-specific because the spec permits multi-line descriptions.
+  3. **Load-time (`src/lib.rs`):** New `description_is_valid` helper enforces the same rule via `issue_fields_are_valid`. Mirrors `label_is_valid` from Layer 4 R2.
+
+Adversarial reproducers from Round 1 re-executed against the release binary at `HEAD`:
+- `tracker create "X" --description '<ESC>[31mPWN<ESC>[0m'` → now **exits 1** with `Error: Description cannot contain control characters other than newline.`
+- Hand-edited tracker.json with JSON-escaped ESC in description + `tracker list` → now **exits 1** with corrupt-data error
+- OSC 8 hyperlink leader / bare CR / tab / DEL: all rejected at create + load
+- `\n` (legitimate multi-line description): accepted at both boundaries
+
+### Carry-forward verification
+
+- Layer 4 R2 lineage closures (label control-chars at create + load; `display_safe` at parse-error sites): No regression at Layer 6.
+- Plaintext storage Accepted Risk (carried since Layer 1): unchanged.
+
+### New findings
+
+*(none this round.)*
+
+### Summary
+
+1/1 Round-1 Security finding Resolved. The Title L1 → Labels L4 → Description L6 generalization-failure pattern is now closed; all three free-form text fields carry the equivalent control-char defense at create + load. **No Security findings remain Open for Layer 6.**
+
+**Coordination:** *(none — closure pass)*
+
+---

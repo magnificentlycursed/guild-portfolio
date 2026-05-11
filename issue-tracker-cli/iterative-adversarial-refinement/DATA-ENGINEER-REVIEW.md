@@ -818,3 +818,29 @@ The forward-compat invariant established at Layer 1 (DE R1 F2, DE R3 F2) holds t
 
 ---
 
+## Review 10 — 2026-05-11 02:00Z
+
+**Round:** Data Engineer Review 10 (Round-2 closure for Layer 6)
+**Scope:** Verify Round-1 Open findings (description Cc load-time gap + `\r`-overprint subcase) are resolved by commit `9b775f0`. Warm closure-verification.
+
+### Round-1 finding closures
+
+- **F1 (description Cc load-time gap):** **Resolved by commit `9b775f0`.** `description_is_valid` helper added (`src/lib.rs`) mirroring `label_is_valid` from Layer 4 R2; called from `issue_fields_are_valid`. Hand-edited tracker.json with `is_control()` characters other than `\n` in description is now rejected at load with `Error: Could not read tracker data. The file may be corrupt.`. DESIGN.md Edge Cases / Storage updated to enumerate "a control-character other than newline in `description`" in the corruption triggers list.
+- **F2 (bare `\r` overprint in show):** **Resolved by commit `9b775f0`.** Subsumed by F1's broader Cc-except-`\n` rule — `\r` is Cc and is not `\n`, so it is rejected at both create-time (`validate_description`) and load-time (`description_is_valid`). Additionally, `format_show_block`'s `\r\n` → `\n` normalization (now ratified in DESIGN.md "Show output format") provides defense-in-depth for any legacy stored data.
+
+### Schema evolution re-verification
+
+- `Option<String>` with `#[serde(skip_serializing_if = "Option::is_none")]` unchanged — pre-Layer-6 data still loads correctly under Layer 6 + R2.
+- A pre-R2 tracker.json with a valid (non-Cc) description still loads under post-R2 binary.
+- A pre-R2 tracker.json with a Cc-other-than-`\n` description in description **now** fails to load — this is the intended new invariant per DE F1 resolution, not a backward-compatibility regression. The defect was that such files should never have been writable in the first place (validate_description didn't check Cc at create time).
+
+### New findings
+
+*(none this round.)*
+
+### Summary
+
+2/2 Round-1 DE findings Resolved. Schema evolution is still clean. The load-time hygiene invariant for description now matches the title and label parallels (Layer 1 / Layer 4 R2). Layer 6 DE-domain is at MVR.
+
+**Coordination:** *(none — closure pass)*
+

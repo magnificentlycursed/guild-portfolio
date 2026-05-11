@@ -1661,3 +1661,35 @@ Cold-session SE Review 15 outcome on Layer 6 (Description + Show + Delete): **0 
 **Files modified this session:** `iterative-adversarial-refinement/SOFTWARE-ENGINEER-REVIEW.md` only (this entry). No `src/**/*.rs` changes. No `DESIGN.md` / `TODO.md` / test changes.
 
 ---
+
+## Review 16 — 2026-05-11 02:00Z
+
+**Round:** SE Review 16 (Round-2 closure for Layer 6)
+**Scope:** Verify the two SE R15 findings + cross-domain description-Cc-defense cluster + CreateArgs refactor are resolved by commit `9b775f0`. Warm closure-verification.
+
+### Round-1 finding closures
+
+- **F1 (description Cc defense):** **Resolved by commit `9b775f0`.** `validate_description` rejects `is_control()` except `\n` with the new error string "Description cannot contain control characters other than newline.". New `description_is_valid` helper enforces the same predicate at load time via `issue_fields_are_valid`, mirroring `label_is_valid` from Layer 4 R2. Same lineage replay (Title L1 → Labels L4 → Description L6) closes the third generalization-failure instance.
+- **F2 (bare `\r` overprints `show` alignment):** **Resolved by commit `9b775f0`.** Subsumed by the broader Cc-except-`\n` rejection rule. `format_show_block`'s `\r\n` → `\n` normalization stays as defense-in-depth for legacy stored data (now ratified in DESIGN.md "Show output format").
+
+### Cross-cut closures
+
+- **SA R13 F1 Trigger A (CreateArgs):** **Resolved.** New `pub struct CreateArgs<'a>` bundles the four create-time inputs; `cmd_create` signature collapses from 5 parameters to 2. Borrows-only so caller retains ownership.
+- **UX R8 F1 (`show` / `delete` `--help` depth):** **Resolved.** Doc-comments in `src/main.rs` expanded to Layer 1-4 standard.
+
+### Carry-forward verification
+
+- **SA R9 F1 / SA R11 F1 / SE R11 F2 / SA R13 F2** (`cmd_list` rendering + `format_show_block` constants + `lib.rs` module split): All Open / Deferred to pre-Layer-7 focused PR per SO R21.
+- **SE R13 F1** (rustdoc trim-normalization caller obligation): Closed in SE R14; no regression at Layer 6.
+
+### New findings
+
+*(none this round.)*
+
+### Summary
+
+2/2 Round-1 SE findings Resolved. Cross-cut findings (CreateArgs, UX help) also Resolved. 4 architectural findings still Open / Deferred to pre-Layer-7 PR. Layer 6 SE-domain at MVR.
+
+**Coordination:** *(none — closure pass)*
+
+---

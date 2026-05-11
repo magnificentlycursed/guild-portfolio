@@ -893,3 +893,31 @@ The single open finding is **#1**: the `show` and `delete` `--help` doc-comments
 **Files modified:** Only this log appended.
 
 ---
+
+## Review 9 — 2026-05-11 02:00Z
+
+**Round:** UX Review 9 (Round-2 closure for Layer 6)
+**Scope:** Verify Round-1 Open finding is resolved by commit `9b775f0`. Warm closure-verification.
+
+### Round-1 finding closure
+
+- **F1 (`show` / `delete` `--help` one-line stubs vs. Layer 1-4 standard):** **Resolved by commit `9b775f0`.** Doc-comments in `src/main.rs` expanded:
+  - `Show`: now reads "Show full details for an issue: ID, Title, Status, Priority, Labels, Description, Created, Updated"; `<id>` positional documented as "Issue ID (positive integer, >= 1)".
+  - `Delete`: now reads "Delete an issue. No confirmation prompt (see DESIGN.md D1); deleted IDs are never reused."; `<id>` positional same as Show.
+
+Verified via `cargo run --quiet -- show --help` and `cargo run --quiet -- delete --help` against the release binary. Help text now matches the depth of `create --help` / `list --help` / `status --help` (each documents the valid-values surface and the destructive/non-mutating posture of the operation).
+
+### Carry-forward verification
+
+- Trim-asymmetry round-trip (UX R6 F1): no regression at Layer 6.
+- stdout/stderr discipline: confirmed unchanged — `show` data → stdout, `delete` confirmation → stdout, all errors → stderr.
+
+### New findings
+
+*(none this round.)*
+
+### Summary
+
+1/1 Round-1 UX finding Resolved. Layer 6 UX-domain is at MVR. `--help` depth is now uniform across all five subcommands.
+
+**Coordination:** *(none — closure pass)*

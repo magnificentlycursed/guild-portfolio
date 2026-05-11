@@ -1171,3 +1171,30 @@ Three findings I tried to elevate but couldn't:
 **Architectural concerns next-tier reviewers should know about:** SE will receive Finding 1 (the carry-forward trigger fires) and needs to make the disposition call — Round-2 inline fix, pre-Layer-7 focused PR, or trigger-revision. The right answer is likely the focused PR (bundles cleanly with SA R11 F1's rendering-half + Finding 2's `LABEL_WIDTH` extraction), but the decision is SE/SO's. If the dispostion is the focused PR, the scope at that time is: (a) `cmd_list` rendering extraction with `ID_WIDTH` / `STATUS_WIDTH` / `PRIORITY_WIDTH` / `LABELS_WIDTH` / `TITLE_WIDTH` constants and `format_header_row` / `format_issue_row` helpers (SA R11 F1); (b) `format_show_block` `LABEL_WIDTH` constant + helper (Finding 2); (c) `lib.rs` module split into `storage`/`validate`/`commands` (Finding 1 half-A); (d) `CreateArgs` struct + `cmd_create` signature update (Finding 1 half-B). All four are architectural prep work that benefits from being done in a single focused PR with its own test scaffolding rather than scattered through Layer 7's color/help work.
 
 **Coordination:** *(none — closure pass)*
+
+---
+
+## Review 14 — 2026-05-11 02:00Z
+
+**Round:** SA Review 14 (Round-2 closure for Layer 6)
+**Scope:** Verify Round-1 finding dispositions hold after Round-2 inline fixes commit `9b775f0`. Warm closure-verification.
+
+### Round-1 finding closures
+
+- **R13 F1 Trigger A (CreateArgs refactor):** **Resolved by commit `9b775f0`.** `cmd_create` signature is now `(args: &CreateArgs, issues_path: &Path)`; the new `pub struct CreateArgs<'a>` bundles the four create-time inputs with field-level doc comments. The 5-parameter signature that SA R7 F4 / R8 F4 / R10 scheduled for replacement at Layer 6 is gone. Discharges the scheduled action.
+- **R13 F1 Trigger B (`src/lib.rs` storage/validate/commands module split):** **Open / Deferred** to pre-Layer-7 focused PR per SO R21 adjudication. `src/lib.rs` is now ~735 LOC after R2 additions. The deferral bundles the split with SA R11 F1 + SA R13 F2 rendering-half extraction so all three architectural-prep items land in one focused PR before Layer 7. SA may re-raise at Layer 7 opening if the PR has not landed.
+- **R13 F2 (`format_show_block` column-width literals as second rendering site):** **Open / Deferred** to the same pre-Layer-7 PR.
+
+### Carry-forward
+
+- **SA R11 F1** (rendering-half of `cmd_list` extraction): Unchanged. Open / Deferred. Bundled with R13 F1 Trigger B and R13 F2 in the pre-Layer-7 focused PR scope.
+
+### New findings
+
+*(none this round.)*
+
+### Summary
+
+1/2 SA R13 findings Resolved by commit `9b775f0` (Trigger A). 1 Deferred (Trigger B). R13 F2 also Deferred. SA R11 F1 carry-forward unchanged. Pre-Layer-7 PR scope: (a) `cmd_list` rendering extraction, (b) `format_show_block` constants, (c) `lib.rs` module split.
+
+**Coordination:** *(none — closure pass)*
