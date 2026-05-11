@@ -1,5 +1,44 @@
 # Changelog
 
+## Layer 7 implementation — TTY color output — 2026-05-11 22:00Z
+
+**Scope:** Phase 2b implementation of the polish layer per TODO.md L350-396. Adds TTY-detected color output for `priority` and `status` value cells in `tracker list` and `tracker show`. Per DESIGN.md "Interface / color output": color applies only to value text (header rows and label columns are uncolored), only when stdout is a TTY; piped stdout (`tracker list | cat`) suppresses ANSI codes entirely.
+
+### Added
+
+- **src/lib.rs** — Color helper section above the `Tracker` definition: `ANSI_RESET` constant; `priority_ansi(priority, use_color)` and `status_ansi(status, use_color)` return `Option<&'static str>` ANSI start sequences (None for default-color values `low` / `open` and when `use_color` is false); `wrap_color(value, ansi)` centralizes the value-only wrapping contract; `pad_after_color(colored, visible_chars, total_width)` sidesteps Rust's byte-count padding bug for ANSI-wrapped strings. Raw ANSI escapes (no `anstyle` / `termcolor` dependency) — the six sequences (`\x1b[1;31m` bold red, `\x1b[33m` yellow, `\x1b[36m` cyan, `\x1b[32m` green, `\x1b[0m` reset) are universally supported by VT100-compatible terminals, the only environment this single-user portfolio CLI targets.
+
+### Changed
+
+- **src/lib.rs / `cmd_show`** — TTY detection via `std::io::stdout().is_terminal()` (stable since Rust 1.70). Result threaded through to `format_show_block(issue, use_color)`.
+- **src/lib.rs / `format_show_block`** — Signature gains `use_color: bool`. Value text for `status` and `priority` rows is wrapped via `wrap_color`; the 13-char label column ("Status:      ", "Priority:    ") remains uncolored.
+- **src/lib.rs / `cmd_list`** — TTY detection at the top of the function. Header row (`ID Status Priority Labels Title`) is never colored. Per-issue row formatting now emits status and priority as pre-padded cells (`pad_after_color`) instead of relying on Rust's `{:<width}` formatter — the latter pads by byte length and would over-count ANSI escape bytes, mis-aligning the Labels column when color is active.
+- **src/lib.rs#tests** — `multiline_description_show_format` and `show_label_column_right_padded_to_13` updated to pass `false` for the new `use_color` parameter of `format_show_block` (both tests verify uncolored layout; coloring is verified by the integration `*_piped_has_no_ansi_codes` tests and the manual TTY checklist).
+
+### Tests
+
+- **tests/layer7.rs** — Already added in the Phase 2a Red Gate commit (7b461aa). All 9 tests continue to pass against this implementation. The two `*_piped_has_no_ansi_codes` tests now serve their intended regression-guard role: a `println!("\x1b[...")` without TTY detection would break them. `assert_cmd::Command` invokes the binary with stdout connected to a pipe (non-TTY), so the piped branch of `is_terminal()` is exercised by every existing integration test across layers 1-7 — none regressed.
+
+### Verification
+
+- `cargo test --no-fail-fast --locked` — **195/195 pass** (62 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4 + 7 layer5 + 33 layer6 + 9 layer7).
+- `cargo clippy --all-targets --locked -- -D warnings` — clean.
+- `cargo fmt --check` — clean.
+- Manual TTY verification via `script -q /dev/null tracker list ...`:
+  - `list --status open` (issue with priority=low): no escape sequences ✓
+  - `list --status in-progress` (priority=high): `\x1b[36min-progress\x1b[0m` cyan, `\x1b[1;31mhigh\x1b[0m` bold red ✓
+  - `list --status done` (priority=medium): `\x1b[32mdone\x1b[0m` green, `\x1b[33mmedium\x1b[0m` yellow ✓
+  - `show 1` piped: no escape sequences; `show 1` via `script`: status / priority value cells colored, label column uncolored ✓
+  - Column alignment preserved across all colored / uncolored combinations (visible-width padding correct in all 9 status × priority combinations).
+- `cargo audit` — pending pre-IAR check.
+
+### Open (process)
+
+- **Layer 7 manual testing checklist** (TODO.md L368-374) — 7 unchecked items. Director must execute and commit per CLOSURE-PROTOCOL.md merge-gate criterion 3 (same standing process Open as Layers 4 / 6). Carry-forward for the IAR session.
+- **IAR** — Layer 7 active domains per TODO.md: SO, SA, QE, SE, UX, Platform, VDD-IAR Alignment.
+
+---
+
 ## Layer 6 IAR Round 3 — `next_id` persistent counter (SO Review 22 Option A) — 2026-05-11 04:30Z
 
 **Scope:** Resolves SO Review 22 Finding 1 — a director-raised spec violation surfaced by Layer 6 manual testing (TODO.md:311 "ID not reused"). The pre-R22 `max(existing_ids) + 1` id-assignment did not honor the "deleted ID never reused, including after deletion" invariant in the high-edge case (delete the highest-id issue, then create — reassigned the deleted id). Option A restores the persistent `next_id` counter that SA Review 3 Finding 3 had removed, reversing two prior decisions (SA R3 F3 "no stored counter" and SO R7 "bare top-level array") in favor of honoring the spec contract.

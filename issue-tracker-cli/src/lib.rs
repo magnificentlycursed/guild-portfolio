@@ -22,7 +22,79 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
+use std::io::IsTerminal;
 use std::path::Path;
+
+// --- Layer 7: TTY-detected color output (DESIGN.md "Interface / color output") ---
+//
+// Color is applied only to the `status` and `priority` value cells in `list`
+// and `show` output, only when stdout is a TTY. Piped stdout (e.g.
+// `tracker list | cat`) suppresses color entirely. The color scheme:
+//
+//   priority=high     → bold red    `\x1b[1;31m`
+//   priority=medium   → yellow      `\x1b[33m`
+//   priority=low      → default (no escape)
+//   status=in-progress → cyan       `\x1b[36m`
+//   status=done       → green       `\x1b[32m`
+//   status=open       → default (no escape)
+//
+// Raw ANSI escapes (no anstyle/termcolor dependency) keep the dependency
+// surface minimal — these six sequences are universally supported by
+// VT100-compatible terminals, which is the only TTY environment this
+// single-user portfolio CLI targets.
+
+const ANSI_RESET: &str = "\x1b[0m";
+
+/// Returns the ANSI start sequence for a priority value's color theme, or
+/// `None` if the value renders in default color (`low` / unknown) or
+/// `use_color` is false.
+fn priority_ansi(priority: &str, use_color: bool) -> Option<&'static str> {
+    if !use_color {
+        return None;
+    }
+    match priority {
+        "high" => Some("\x1b[1;31m"),
+        "medium" => Some("\x1b[33m"),
+        _ => None,
+    }
+}
+
+/// Returns the ANSI start sequence for a status value's color theme, or
+/// `None` if the value renders in default color (`open` / unknown) or
+/// `use_color` is false.
+fn status_ansi(status: &str, use_color: bool) -> Option<&'static str> {
+    if !use_color {
+        return None;
+    }
+    match status {
+        "in-progress" => Some("\x1b[36m"),
+        "done" => Some("\x1b[32m"),
+        _ => None,
+    }
+}
+
+/// Wraps `value` with the given ANSI prefix + reset, or returns it unchanged
+/// if `ansi` is `None`. Centralizes the "color is value-only, not row-wide"
+/// contract: the caller passes the bare value text, not a padded cell.
+fn wrap_color(value: &str, ansi: Option<&str>) -> String {
+    match ansi {
+        Some(prefix) => format!("{}{}{}", prefix, value, ANSI_RESET),
+        None => value.to_string(),
+    }
+}
+
+/// Right-pads a (possibly color-wrapped) cell so its *visible* width reaches
+/// `total_width`. `visible_chars` is the character count of the bare value
+/// (no ANSI codes). Rust's `{:<width}` formatter pads to byte length, which
+/// double-counts ANSI escape bytes — `pad_after_color` sidesteps that by
+/// padding after wrapping with the visible-width budget.
+fn pad_after_color(colored: &str, visible_chars: usize, total_width: usize) -> String {
+    if visible_chars >= total_width {
+        colored.to_string()
+    } else {
+        format!("{}{}", colored, " ".repeat(total_width - visible_chars))
+    }
+}
 
 /// The top-level storage shape persisted to `tracker.json`.
 ///
@@ -451,7 +523,7 @@ pub fn validate_description(raw: &str) -> Result<String, String> {
 /// indented by 13 spaces (matching the label-column width).
 ///
 /// Returns the formatted block including a trailing newline.
-fn format_show_block(issue: &Issue) -> String {
+fn format_show_block(issue: &Issue, use_color: bool) -> String {
     let labels_display = if issue.labels.is_empty() {
         "(none)".to_string()
     } else {
@@ -470,6 +542,11 @@ fn format_show_block(issue: &Issue) -> String {
             normalized.replace('\n', "\n             ")
         }
     };
+    // Layer 7: color the status and priority values when `use_color` is true.
+    // The label column ("Status:      ", "Priority:    ") is uncolored — color
+    // applies to value text only per DESIGN.md "Interface / color output".
+    let status_display = wrap_color(&issue.status, status_ansi(&issue.status, use_color));
+    let priority_display = wrap_color(&issue.priority, priority_ansi(&issue.priority, use_color));
     format!(
         "ID:          {}\n\
          Title:       {}\n\
@@ -481,8 +558,8 @@ fn format_show_block(issue: &Issue) -> String {
          Updated:     {}\n",
         issue.id,
         issue.title,
-        issue.status,
-        issue.priority,
+        status_display,
+        priority_display,
         labels_display,
         description_display,
         issue.created_at,
@@ -509,7 +586,10 @@ pub fn cmd_show(id_raw: &str, issues_path: &Path) -> Result<(), String> {
         .ok_or_else(|| format!("Issue #{} not found.", id))?;
     // `format_show_block` already includes a trailing newline; use `print!`
     // rather than `println!` to avoid emitting a stray blank line.
-    print!("{}", format_show_block(issue));
+    // Layer 7: enable color only when stdout is a TTY. `tracker show 1 | cat`
+    // detects the pipe and suppresses ANSI codes.
+    let use_color = std::io::stdout().is_terminal();
+    print!("{}", format_show_block(issue, use_color));
     Ok(())
 }
 
@@ -749,6 +829,11 @@ pub fn cmd_list(
 
     sort_issues(&mut issues);
 
+    // Layer 7: enable color only when stdout is a TTY. The header row is
+    // never colored (color applies to value cells only per DESIGN.md
+    // "Interface / color output").
+    let use_color = std::io::stdout().is_terminal();
+
     println!(
         "{:<4}  {:<11}  {:<8}  {:<20}  Title",
         "ID", "Status", "Priority", "Labels"
@@ -762,9 +847,19 @@ pub fn cmd_list(
         };
         let labels_display = truncate_with_ellipsis(&labels_raw, 20);
         let title_display = truncate_with_ellipsis(&issue.title, 50);
+        // Status and Priority are emitted as pre-padded cells so any ANSI
+        // wrap doesn't throw off the column alignment Rust's `{:<width}`
+        // would otherwise miscount (it pads by byte length, double-counting
+        // escape sequences). All status/priority values are ASCII so
+        // visible character count equals byte count of the bare value.
+        let status_colored = wrap_color(&issue.status, status_ansi(&issue.status, use_color));
+        let status_cell = pad_after_color(&status_colored, issue.status.chars().count(), 11);
+        let priority_colored =
+            wrap_color(&issue.priority, priority_ansi(&issue.priority, use_color));
+        let priority_cell = pad_after_color(&priority_colored, issue.priority.chars().count(), 8);
         println!(
-            "{:<4}  {:<11}  {:<8}  {:<20}  {}",
-            issue.id, issue.status, issue.priority, labels_display, title_display
+            "{:<4}  {}  {}  {:<20}  {}",
+            issue.id, status_cell, priority_cell, labels_display, title_display
         );
     }
 
@@ -1238,7 +1333,7 @@ mod tests {
         // first line follows the `Description:` label; each continuation
         // line is indented by 13 spaces (matching the label-column width).
         let issue = issue_with_full(1, "Fix auth", Some("line1\nline2"), &[]);
-        let out = format_show_block(&issue);
+        let out = format_show_block(&issue, false);
         assert!(
             out.contains("Description: line1"),
             "first line must follow the Description: label:\n{out}"
@@ -1256,7 +1351,7 @@ mod tests {
         // (e.g. `ID:`, `Title:`, `Description:`) occupies the leading 13
         // chars of its line before the value starts.
         let issue = issue_with_full(42, "Hello", None, &["bug"]);
-        let out = format_show_block(&issue);
+        let out = format_show_block(&issue, false);
         // Pick a few representative labels and assert they appear with the
         // 13-char prefix shape.
         for prefix in &[
