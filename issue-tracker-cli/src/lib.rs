@@ -1503,4 +1503,124 @@ mod tests {
         assert_eq!(display_safe("\u{00}"), "\\u{0}");
         assert_eq!(display_safe("\u{7F}"), "\\u{7F}");
     }
+
+    // --- Layer 7 retroactive Red Gate: color helper unit tests ---
+    //
+    // VDD-IAR Alignment Review 17 Finding 1 (CRITICAL Dim 4): Layer 7's
+    // Phase 2a Red Gate landed with 0 failing primary signals — the 9
+    // integration tests in tests/layer7.rs all passed against pre-
+    // implementation code (clap-default --help, no-ANSI-when-piped).
+    // The implementation kept color logic in private helpers, eliminating
+    // the positive Red Gate signal that pure-function unit tests on those
+    // helpers would have provided.
+    //
+    // Resolution per VDD-IAR R17 F1 Option A: retrofit unit tests on the
+    // testable primitives. Per prompts/implementation.md L56, retroactive
+    // tests cannot satisfy the Red Gate (the implementation exists before
+    // the test would fail) — they are labelled here as a Red Gate
+    // deviation, not as the literal Red Gate that should have been.
+    //
+    // retroactive Red Gate: priority_ansi color mapping — discovered during
+    // Phase 3 IAR Round 1 (VDD-IAR Review 17 Finding 1), test added post-
+    // implementation, confirmed passes against current implementation.
+    //
+    // retroactive Red Gate: status_ansi color mapping — same.
+    //
+    // retroactive Red Gate: wrap_color ANSI prefix + reset wrapping — same.
+    //
+    // retroactive Red Gate: pad_after_color visible-width padding — same.
+
+    #[test]
+    fn priority_ansi_high_returns_bold_red() {
+        assert_eq!(priority_ansi("high", true), Some("\x1b[1;31m"));
+    }
+
+    #[test]
+    fn priority_ansi_medium_returns_yellow() {
+        assert_eq!(priority_ansi("medium", true), Some("\x1b[33m"));
+    }
+
+    #[test]
+    fn priority_ansi_low_returns_none() {
+        // DESIGN.md "Interface / color output": low renders in default color.
+        assert_eq!(priority_ansi("low", true), None);
+    }
+
+    #[test]
+    fn priority_ansi_returns_none_when_use_color_false() {
+        // TTY-detection bypass: every priority value must return None when
+        // the caller signals stdout is not a TTY. A regression here would
+        // emit ANSI to piped consumers — the cmd_list / cmd_show
+        // integration tests catch the stdout side, but this pins the
+        // helper contract directly.
+        assert_eq!(priority_ansi("high", false), None);
+        assert_eq!(priority_ansi("medium", false), None);
+        assert_eq!(priority_ansi("low", false), None);
+    }
+
+    #[test]
+    fn status_ansi_in_progress_returns_cyan() {
+        assert_eq!(status_ansi("in-progress", true), Some("\x1b[36m"));
+    }
+
+    #[test]
+    fn status_ansi_done_returns_green() {
+        assert_eq!(status_ansi("done", true), Some("\x1b[32m"));
+    }
+
+    #[test]
+    fn status_ansi_open_returns_none() {
+        // DESIGN.md "Interface / color output": open renders in default color.
+        assert_eq!(status_ansi("open", true), None);
+    }
+
+    #[test]
+    fn status_ansi_returns_none_when_use_color_false() {
+        assert_eq!(status_ansi("in-progress", false), None);
+        assert_eq!(status_ansi("done", false), None);
+        assert_eq!(status_ansi("open", false), None);
+    }
+
+    #[test]
+    fn wrap_color_with_ansi_prefixes_and_resets() {
+        // wrap_color must place the bare value between the prefix and the
+        // ANSI reset sequence — a mutation that drops the reset would leak
+        // color onto subsequent cells / rows.
+        assert_eq!(
+            wrap_color("high", Some("\x1b[1;31m")),
+            "\x1b[1;31mhigh\x1b[0m"
+        );
+        assert_eq!(wrap_color("done", Some("\x1b[32m")), "\x1b[32mdone\x1b[0m");
+    }
+
+    #[test]
+    fn wrap_color_returns_bare_value_when_ansi_is_none() {
+        // When the ansi argument is None (TTY-detection said no color OR
+        // the value is a default-color value), the bare value is returned
+        // unchanged — no ANSI bytes emitted.
+        assert_eq!(wrap_color("low", None), "low");
+        assert_eq!(wrap_color("open", None), "open");
+        assert_eq!(wrap_color("", None), "");
+    }
+
+    #[test]
+    fn pad_after_color_pads_visible_width_to_total() {
+        // Bare "open" (4 visible chars) padded to width 11 → 7 trailing spaces.
+        assert_eq!(pad_after_color("open", 4, 11), "open       ");
+        // Colored "high\x1b[0m" with 4 visible chars padded to width 8 →
+        // 4 trailing spaces. ANSI bytes do NOT consume padding budget.
+        assert_eq!(
+            pad_after_color("\x1b[1;31mhigh\x1b[0m", 4, 8),
+            "\x1b[1;31mhigh\x1b[0m    "
+        );
+    }
+
+    #[test]
+    fn pad_after_color_does_not_pad_when_at_or_over_width() {
+        // "in-progress" exactly fills width 11 — no padding added.
+        assert_eq!(pad_after_color("in-progress", 11, 11), "in-progress");
+        // Visible >= total: no padding (defensive — the cmd_list call sites
+        // pass conforming widths, but the helper must not panic or under-pad).
+        assert_eq!(pad_after_color("anything", 8, 4), "anything");
+    }
 }
