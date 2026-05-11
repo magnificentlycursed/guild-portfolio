@@ -627,3 +627,220 @@ Round-1 F1 + F2 → Round-2 0 Open. The data-model invariant is now uniform acro
 
 ---
 
+## Review 9 — 2026-05-11 01:09Z
+
+**Round:** Data Engineer Review 9 (cold-session pass, Layer 6 — `--description` + show + delete)
+**Scope:** Commits `4fb5e67` (Red Gate stubs/tests) + `c91676a` (implementation). DE-domain audit of the new `description: Option<String>` schema member, load-time validation, `next_id` after delete, save atomicity, post-delete storage shape, schema evolution from pre-Layer-6 data, and storage edge cases (CRLF / multi-line / very long / whitespace-only descriptions). Files reviewed: `DESIGN.md`, `src/lib.rs`, `tests/layer6.rs`, `TODO.md` Layer 6.
+
+**Session context:** Cold session per primer. Adversarial posture: stored data is untrusted (DESIGN.md Storage Edge Cases enumerates "control-character in `title`" and "control-character or comma in any `label`" as corruption triggers; description is the new `String`-bearing field on the same boundary). Live experiments performed against `/tmp/de-r9` with the Layer 6 binary.
+
+---
+
+### Open
+
+**Finding 1 — Stored `description` is not validated for control characters at load time (Dim 2 — Load-time validation; Dim 7 — Edge cases / Description)**
+
+`src/lib.rs:125-139` (`issue_fields_are_valid`) currently validates description only as `description.as_ref().is_none_or(|d| !d.trim().is_empty())` — empty-after-trim is rejected, nothing else. By contrast, `title` (line 128) is validated with `!issue.title.chars().any(char::is_control)`, and `labels` (line 131) are validated through `label_is_valid` (line 145-147), which rejects control characters and commas. The description field is the only `String`-bearing schema member without control-char hygiene at the load boundary.
+
+Empirical reproduction (`/tmp/de-r9`, hand-edited `tracker.json` written via Python so the raw bytes are unambiguous):
+
+```python
+data = [{"id": 1, "title": "Test",
+         "description": "Line1\nline2-injected\x1b[31mRED\x1b[0m",
+         "status": "open", "priority": "medium", "labels": [],
+         "created_at": "2025-01-01T00:00:00Z",
+         "updated_at": "2025-01-01T00:00:00Z"}]
+```
+
+`tracker show 1` loads this issue successfully (exit 0) and emits the raw `0x1B` byte to stdout. Verified via `od -c`:
+
+```
+0000200    -   i   n   j   e   c   t   e   d 033   [   3   1   m   R   E
+0000220    D 033   [   0   m  \n
+```
+
+This is the exact failure mode DE Review 7 F1 / SO Review 17 fixed for stored labels and SO Review 13 F1 fixed for stored titles. The threat model from DESIGN.md "Edge Cases / Title" (control characters "break the one-issue-per-line contract", "corrupt column alignment", "enable terminal-escape injection in any tool that displays the title") applies word-for-word to description, since `tracker show` renders description as one of the labelled key-value rows on stdout. The Layer 4 round-2 commit message explicitly noted: "the data-model invariant — every `String`-bearing field in `Issue` has the same untrusted-input hygiene at create-time AND load-time — is now uniform across `title`, `labels`, and (Layer 6 forward-prep) `description`." Layer 6 landed without finishing that forward-prep on the load side.
+
+A defect-revealing hand-edited `tracker.json` for this dimension:
+
+```json
+[{"id": 1, "title": "Innocent",
+  "description": "ok]8;;file:///etc/passwdClick me]8;;",
+  "status": "open", "priority": "medium", "labels": [],
+  "created_at": "2025-01-01T00:00:00Z",
+  "updated_at": "2025-01-01T00:00:00Z"}]
+```
+
+OSC 8 hyperlink injection via stored description; `tracker show 1` renders it as a clickable terminal hyperlink to a local file path. The user opened the tracker; the data file (which the user may have copied from another machine, or restored from backup, or hand-edited under another agent's direction) attacks the terminal. Same threat surface as labels and titles.
+
+**Cross-cut (input side, noted for SE/Security context but the DE-domain framing is the load gap):** `validate_description` at `src/lib.rs:335-340` also has no `char::is_control` rejection. `tracker create "Bad" --description $'l\x1bm'` succeeds; the resulting `tracker.json` stores `"description": "lm"`. So today, the input boundary AND the load boundary both fail to reject control chars in description — meaning even an organic create flow (not just hand-edited storage) can plant the injection vector. This is consistent with Security/RT framings, but DE's specific contribution is: even after SE fixes the input side, `issue_fields_are_valid` must reject control-char descriptions at load time so that a `tracker.json` containing such a description from any source (older binary, hand-edit, restored backup, cross-host transfer) is treated as corrupt rather than silently rendered.
+
+**Recommendation:**
+- **SO:** DESIGN.md "Edge Cases / Description" currently has six bullets covering absent / empty / length / not-trimmed / multi-line behaviors. Add a bullet: "Description containing a control character (Unicode general category `Cc` — newline, CR, tab, NUL, ESC, DEL, C1 controls) other than the spec-sanctioned `\n` line separator → error: `Description cannot contain control characters.` Same rationale as Title and Labels (preserves rendering contract in `show`, prevents terminal-escape injection)." **Note the carve-out:** description is the only field the spec actively permits to contain `\n` (DESIGN.md "Edge Cases / Description" final bullet — "Description may contain newlines (`\n`)"). The validator must reject every `Cc` *except* `\n`; bare `\r` is rejected (see Finding 2). Extend DESIGN.md "Edge Cases / Storage" enumeration: add "a control-character (other than `\n`) in `description`" to the corruption-trigger list (alongside the existing "control-character in `title`" and "control-character or comma in any `label`" items).
+- **SE:** Extend `validate_description` (line 335) and `issue_fields_are_valid` (line 132-135) with the carved-out predicate (e.g. a `description_is_valid(&str)` helper paralleling `label_is_valid` that returns `false` if `d.trim().is_empty() || d.chars().any(|c| c.is_control() && c != '\n')`).
+- **QE:** Add (1) unit test asserting `validate_description("l\u{1B}m").is_err()` and `validate_description("line1\nline2").is_ok()` — the latter pins the carve-out; (2) integration test asserting `tracker create "Bad" --description $'l\x1bm'` exits 1 with the new error message; (3) integration test asserting a hand-edited `tracker.json` with `"description": "lm"` triggers the corrupt-data error path on load.
+
+**Classification:** Raised to SO (spec amendment — including the `\n` carve-out), Raised to SE (validator extension at both input and load boundaries), Raised to QE (regression coverage at both boundaries + the `\n` carve-out). The scope is symmetric to DE Review 7 F1 / SO Review 17.
+
+Cross-reference: [SECURITY-REVIEW.md](SECURITY-REVIEW.md) (escape-injection vector via descriptions in `show`), [RED-TEAM-REVIEW.md](RED-TEAM-REVIEW.md) (terminal-injection through stored data), [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) (DESIGN.md amendment), [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md), [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md).
+
+---
+
+**Finding 2 — `format_show_block` normalizes only `\r\n` → `\n`; a bare `\r` in a stored description is emitted raw and overprints the alignment column (Dim 7 — Edge cases / Description)**
+
+`src/lib.rs:365` reads `let normalized = d.replace("\r\n", "\n"); normalized.replace('\n', "\n             ")`. This handles CRLF correctly but a description containing a bare `\r` (no following `\n`) is left untouched in the replace, then printed verbatim. A bare `\r` is a "go to column 0" cursor instruction in essentially every terminal — the bytes printed after it overwrite the same physical line, destroying the 13-space alignment that `show` is contractually obligated to maintain ("first line follows the `Description:` label; each continuation line is indented by 13 spaces").
+
+Empirical reproduction (`/tmp/de-r9`):
+
+```python
+data = [{"id": 1, ..., "description": "line1\r\nline2\rline3", ...}]
+```
+
+`tracker show 1` produces (od -c on the stdout):
+
+```
+Description: line1\n             line2\rline3\n
+```
+
+The `\r\n` was correctly normalized into `\n` + 13-space indent. The bare `\r` after `line2` was preserved. When rendered to a terminal, `line2` is overwritten by `line3` starting at column 0, breaking the show alignment contract. Even ignoring the visual artifact, the byte stream contains a control character that DESIGN.md "Edge Cases / Title" explicitly enumerates as a rejection trigger for titles ("newline / CR ... break the one-issue-per-line contract") — and description is rendered in the same display surface.
+
+This is in scope for Finding 1's recommended carve-out predicate: rejecting all `Cc` other than `\n` *would* reject this case (`\r` is `Cc`). The two findings overlap; this is a finer-grained pointer to one specific concrete failure mode of the more general gap. If SO chooses a different remediation (e.g. "allow `\r\n` and `\n`, reject other control chars"), the rule needs to explicitly enumerate bare-`\r` rejection — `\r\n` is the only `\r`-bearing sequence the spec should accept; lone `\r` has no defensible purpose in stored description.
+
+**Recommendation:** subsume into Finding 1's predicate. Specifically: the predicate must reject `\r` even though the spec permits "newlines (`\n`)" — i.e. lone `\r` is not a "newline" in the spec's sense; only `\r\n` and `\n` are. Document this in DESIGN.md alongside the Finding 1 amendment.
+
+**Classification:** Raised to SO + SE + QE as a sub-case of Finding 1. Tracked separately because the manifestation (alignment-column overprinting in `show`) differs from Finding 1's manifestation (escape-injection via ESC) and the test case is distinct.
+
+Cross-reference: same as Finding 1.
+
+---
+
+### Dismissed
+
+**Finding 3 — `save_issues` is non-atomic; a write failure mid-process could leave `tracker.json` truncated (Dim 4 — Save atomicity)**
+
+`src/lib.rs:210-215` calls `fs::write(path, contents)` directly with no temp-file-and-rename. A disk-full / power-loss / kill-9 between `fs::write` opening the file (truncating) and finishing the write would leave `tracker.json` in a half-written state, likely failing JSON parse on next load → all data appears corrupt to the user.
+
+A defect-revealing input for this dimension: not a `tracker.json` shape but a runtime condition — e.g. `dd` into the data directory to fill the disk just before invoking `tracker create`, or `kill -9` the binary during the `fs::write` call.
+
+**Classification:** Dismissed (spec-sanctioned trade-off). DESIGN.md "Out of Scope" explicitly enumerates: "Atomic writes — direct write to `tracker.json` on every mutation; no temp-file-and-rename. Correct production practice but implementation cost exceeds failure risk for a single-user local tool. Revisit if the tool is ever used in a context with multiple concurrent writers." DESIGN.md "Storage invariants" similarly says: "`tracker.json` is written directly on every mutation; on I/O failure the file may be in an indeterminate state — the error is reported and the binary exits 1. Atomic writes are the correct production approach and are deferred — implementation cost exceeds the failure risk for a single-user local tool." The implementation matches the spec. Self-test by dismissal passes: there is no defect against the spec, only a difference between this spec and what a production multi-user data store would require.
+
+No raise. Tracking note: if the project's threat model widens (multi-host sync, shared `tracker.json`, agent-driven concurrent edits), the atomic-write deferral is the first storage decision to revisit.
+
+---
+
+**Finding 4 — Schema evolution: a `tracker.json` written by a pre-Layer-6 binary has no `description` key; a Layer 6 binary must read it without error (Dim 6 — Schema evolution)**
+
+`src/lib.rs:39-40` declares `#[serde(skip_serializing_if = "Option::is_none")] pub description: Option<String>`. `Option<T>` in serde defaults to `None` when the key is absent — this is the documented serde behavior for `Option` fields (no `#[serde(default)]` needed because the codec already treats absent-key as `None` for `Option`).
+
+Empirical verification (`/tmp/de-r9`): a hand-edited `tracker.json` matching the exact shape of a Layer 1-5 binary's output (no `description` key) loads successfully under the Layer 6 binary. `tracker show 1` renders `Description: (none)`. No corrupt-data error. Round-trip on a subsequent mutation re-writes the file without a `description` key (because `None` skips via `skip_serializing_if`), so pre-Layer-6 data round-trips through Layer 6 with no schema churn.
+
+**Classification:** Dismissed. The schema-evolution contract from DE Review 1 Finding 2 / Layer 1 (`skip_serializing_if = "Option::is_none"`) and from DE Review 3 Finding 2 (presence of the attribute since Layer 1) is satisfied by construction. Layer 6 added the field as a real schema member exactly the way `Option<T>` fields are supposed to be added: optional, absent-when-None, default-None-on-missing. No defect.
+
+A defect-revealing input for this dimension would be a `tracker.json` containing `"description": null` (a hand-edit, or written by a tool that doesn't use `skip_serializing_if`). Empirical test: `python3 -c "import json; json.dump([{...,'description': None,...}], open('tracker.json','w'))"` → load. Result: loads successfully (`null` deserializes to `None` for `Option<String>` in serde, then `is_none_or(...)` is vacuously true; no error). Forward-compatible AND backward-compatible. The DESIGN.md Data Model line 165 contract ("Implementations must omit the key when the value is None") is about *writes*; reads tolerate `null` as a courtesy. No defect.
+
+---
+
+**Finding 5 — `Issue` does not derive `serde(deny_unknown_fields)`, so a hand-edited `tracker.json` with a typo'd field (e.g., `descrption`) silently drops the value on round-trip (Dim 3 — Schema evolution, Dim 6)**
+
+A defect-revealing input: `{"id": 1, ..., "descrption": "the real description"}` (note typo). Load succeeds, the typo field is dropped, any subsequent mutation rewrites the file without it.
+
+**Classification:** Dismissed by prior round (DE Review 6 F3 → SO Review 13 Finding 3). DESIGN.md "Edge Cases / Storage" now states: "Unknown fields in stored JSON load successfully (forward-compatible deserialization). They are NOT preserved across writes — any subsequent mutation rewrites `tracker.json` with only the documented schema fields, dropping anything else. Hand-edited `tracker.json` files should not rely on extra keys persisting." This is the spec's deliberate forward-compat posture. The typo-field hazard is a sub-case the user is now warned about in writing. No new raise.
+
+---
+
+**Finding 6 — `cmd_delete` leaves `tracker.json` as `[]` after deleting the last issue, but `next_id` correctly returns 1 again (Dim 3 — `next_id` and delete, Dim 5 — Storage shape after delete)**
+
+After `tracker delete 1` on a single-issue tracker, `tracker.json` is `[]` (empty array). The spec says "the deleted ID is never reused" — but if the tracker is empty, `next_id(&[]) = 1`, and the next create gets id=1. Is this a contract violation against the "never reused" invariant?
+
+**Classification:** Dismissed. Re-reading DESIGN.md Feature 5 invariants: "the next created issue receives `max(remaining_ids) + 1`, which will always be greater than the deleted ID". When the remaining set is empty, there is no `max` — the invariant text technically does not cover this case. But the *spirit* of "never reused" is about not reassigning a still-meaningful ID; once every issue is gone, the user has reset the tracker to its initial state, and getting id=1 on the next create is the principle-of-least-surprise outcome (matches the first-ever create's behavior). Walking `next_id`'s implementation (line 88-92): `existing_ids.iter().max().copied().unwrap_or(0)` then `+1` — empty slice yields 0+1=1. Verified empirically (`/tmp/de-r9`): create #1, delete #1, create "Next" → gets id=1. The behavior is what a careful spec author would have intended; the spec's phrasing is the minor ambiguity, not the implementation.
+
+**Coordination note:** SO may wish to amend the Feature 5 invariant text to say `max(remaining_ids) + 1`, or `1` if no issues remain, to remove the edge ambiguity. Tracked as a minor wording cleanup, not a raise. The behavior is correct.
+
+---
+
+**Finding 7 — Post-delete storage shape: `tracker.json` after `delete` is still a valid array and still passes `load_issues` (Dim 5)**
+
+Verified empirically (`/tmp/de-r9`): after `tracker delete 1` on a two-issue tracker, the file is a valid JSON array `[{...id:2...}]`. Subsequent `tracker list`, `tracker show 2`, `tracker status 2 done`, and `tracker create "x"` all succeed against the post-delete file. The serialized output preserves the pretty-printed shape (`serde_json::to_string_pretty`) and remains human-readable per DESIGN.md "Manual testing checklist" ("verify `tracker.json` is valid JSON after each mutation"). No defect.
+
+**Classification:** Dismissed (working as specified).
+
+---
+
+**Finding 8 — Very long description (200KB), multi-line description, and whitespace-only description handled correctly at storage boundary (Dim 7 — Edge cases)**
+
+Verified empirically:
+- 200KB description: stored, loaded, rendered (truncated by terminal width but no error in the pipeline).
+- Multi-line description (`"line1\nline2"`): stored verbatim, rendered with 13-space continuation indent via `format_show_block`.
+- Whitespace-only stored description (`"   "`): load-time check `!d.trim().is_empty()` rejects → corrupt-data error → exit 1.
+
+All match DESIGN.md "Edge Cases / Description": "Description is not validated for length (no maximum)"; "Description may contain newlines (`\n`)"; "`--description ""` (empty string after trim) → error" (and the load side mirrors this rejection).
+
+**Classification:** Dismissed (working as specified). The single edge case that *fails* — bare `\r` and other control chars — is Finding 1 / Finding 2.
+
+---
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Schema evolution assessment
+
+Layer 6 is the first layer to add an `Option<String>` field to the schema. The schema evolution outcome is clean:
+
+1. **Pre-Layer-6 reads under Layer 6 binary:** absent `description` key → deserializes to `None` (default serde behavior for `Option<T>`) → renders as `(none)` in show. ✓
+2. **Layer 6 reads under pre-Layer-6 binary:** if `--description` was never used, no `description` key is written, so a pre-Layer-6 binary sees its own schema and loads fine. If `--description` was used, a pre-Layer-6 binary either ignores the `description` field (its `Issue` struct has no such field, serde drops unknown keys by default) or — if a stricter deserializer was used — could fail. Spec-sanctioned forward-compat (DE R6 F3 → SO R13 F3): unknown fields tolerated.
+3. **`"description": null` in stored data:** deserializes to `None` (serde courtesy), then `is_none_or(...)` passes, rendered as `(none)`. ✓
+4. **Round-trip preservation:** an issue with no description, written by Layer 6, contains no `description` key thanks to `#[serde(skip_serializing_if = "Option::is_none")]`. An issue with a description writes the field verbatim. No drift across reads/writes. ✓
+
+The forward-compat invariant established at Layer 1 (DE R1 F2, DE R3 F2) holds through Layer 6 without modification. **No schema-evolution defect.**
+
+---
+
+### Summary
+
+**Open: 2 findings.** Both root-cause the same gap: the `description` field is the new `String`-bearing schema member added in Layer 6 and it has not received the per-field control-character hygiene that title (SO R13 F1, Layer 1 cross-cut) and labels (DE R7 F1 / SO R17, Layer 4 round 2) received. Finding 1 is the general case (any control char at the load boundary); Finding 2 is one specific concrete manifestation (bare `\r` in `show` rendering breaks the 13-space alignment contract). The fix is symmetric to the existing `label_is_valid` pattern — about 4 lines of code in `src/lib.rs`, plus the spec amendment with an explicit `\n` carve-out, plus the test triad.
+
+**Dismissed: 6 findings.** Save atomicity is spec-sanctioned out-of-scope. Schema evolution is clean — `Option<String>` with `skip_serializing_if = "Option::is_none"` is exactly the textbook serde idiom for this addition; pre-Layer-6 data loads correctly and round-trips without drift. `next_id` after delete is correct (empirically and by walking the function). Post-delete storage shape is valid. The other storage edge cases (long, multi-line, whitespace-only) are handled.
+
+**Top DE concern:** Finding 1 — the load-time control-char gap for description. The fix pattern is exactly the one applied to labels in Layer 4 R2; the cost of doing it now (≤ 1 hour SE + DESIGN.md amendment + test triad) is far below the cost of finding it later via a real terminal-injection attack through a synced or backup-restored `tracker.json`. The Layer 4 R2 commit message claimed this was already done as "(Layer 6 forward-prep)"; it was not — only the empty-after-trim check landed.
+
+**Schema evolution assessment:** clean. The new `Option<String>` field is added correctly per DE R1 F2 / DE R3 F2; forward-compat (unknown fields tolerated, dropped at write) is intact and documented per DE R6 F3 / SO R13 F3; backward-compat (pre-Layer-6 data loads under Layer 6) verified empirically and matches the documented `Option<T>` serde contract. The single load-time invariant that was *not* extended to description in Layer 6 is the control-char check (Finding 1) — that is a hygiene gap, not a schema-evolution gap.
+
+**MVR signal:** not yet reached for Layer 6 in the DE domain. Finding 1 + Finding 2 are real defects with a clear spec precedent and a small fix. Re-evaluate after SE + SO + QE close them (Round 2).
+
+**Coordination:**
+- Finding 1 → [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) (DESIGN.md amendment + `\n` carve-out), [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) (`validate_description` + `issue_fields_are_valid` extension, paralleling `label_is_valid`), [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) (test triad: unit + create-side integration + load-side integration), [SECURITY-REVIEW.md](SECURITY-REVIEW.md) / [RED-TEAM-REVIEW.md](RED-TEAM-REVIEW.md) (escape-injection vector via description in `show`).
+- Finding 2 → folds into Finding 1's predicate; called out separately for the `\r`-overprinting test case.
+
+**Files modified:** Only this log appended.
+
+---
+
+## Review 10 — 2026-05-11 02:00Z
+
+**Round:** Data Engineer Review 10 (Round-2 closure for Layer 6)
+**Scope:** Verify Round-1 Open findings (description Cc load-time gap + `\r`-overprint subcase) are resolved by commit `9b775f0`. Warm closure-verification.
+
+### Round-1 finding closures
+
+- **F1 (description Cc load-time gap):** **Resolved by commit `9b775f0`.** `description_is_valid` helper added (`src/lib.rs`) mirroring `label_is_valid` from Layer 4 R2; called from `issue_fields_are_valid`. Hand-edited tracker.json with `is_control()` characters other than `\n` in description is now rejected at load with `Error: Could not read tracker data. The file may be corrupt.`. DESIGN.md Edge Cases / Storage updated to enumerate "a control-character other than newline in `description`" in the corruption triggers list.
+- **F2 (bare `\r` overprint in show):** **Resolved by commit `9b775f0`.** Subsumed by F1's broader Cc-except-`\n` rule — `\r` is Cc and is not `\n`, so it is rejected at both create-time (`validate_description`) and load-time (`description_is_valid`). Additionally, `format_show_block`'s `\r\n` → `\n` normalization (now ratified in DESIGN.md "Show output format") provides defense-in-depth for any legacy stored data.
+
+### Schema evolution re-verification
+
+- `Option<String>` with `#[serde(skip_serializing_if = "Option::is_none")]` unchanged — pre-Layer-6 data still loads correctly under Layer 6 + R2.
+- A pre-R2 tracker.json with a valid (non-Cc) description still loads under post-R2 binary.
+- A pre-R2 tracker.json with a Cc-other-than-`\n` description in description **now** fails to load — this is the intended new invariant per DE F1 resolution, not a backward-compatibility regression. The defect was that such files should never have been writable in the first place (validate_description didn't check Cc at create time).
+
+### New findings
+
+*(none this round.)*
+
+### Summary
+
+2/2 Round-1 DE findings Resolved. Schema evolution is still clean. The load-time hygiene invariant for description now matches the title and label parallels (Layer 1 / Layer 4 R2). Layer 6 DE-domain is at MVR.
+
+**Coordination:** *(none — closure pass)*
+

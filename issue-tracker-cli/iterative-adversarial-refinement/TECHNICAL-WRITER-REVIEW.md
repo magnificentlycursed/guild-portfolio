@@ -662,3 +662,170 @@ Unchanged. Developer-only authority. SO Review 17 explicitly noted this is the o
 **Files modified:** Only this log appended.
 
 ---
+
+## Review 9 — 2026-05-11 01:10Z
+
+**Round:** Technical Writer Review 9 — Layer 6 cold-batch (description + show + delete).
+**Scope:** All public-facing documentation against Layer 6 implementation (commits `4fb5e67` Red Gate + `c91676a` implementation). Inputs: `README.md`, `CHANGELOG.md`, `DESIGN.md`, `DECISIONS.md`, `TODO.md`, `PROCESS.md`, `src/main.rs` clap doc-comments, `src/lib.rs` rustdoc on the new `pub` surface (`validate_description`, `cmd_show`, `cmd_delete`) and the private `format_show_block`. Bash captures of `tracker --help`, `tracker show --help`, `tracker delete --help`, `tracker create --help`; end-to-end `tracker show` output against the two DESIGN.md example blocks; `cargo test --quiet` test count; `RUSTDOCFLAGS="-D missing_docs" cargo doc --no-deps`.
+
+**Session note:** Cold session per primer; reviewer did not participate in Layer 6 build.
+
+---
+
+**Regression check:** Reviews 1–8 closed all prior TW findings except Review 7 Finding 5 (PROCESS.md retrospective placeholders) which remains developer-only Open. The recurring documentation-currency pattern named in Reviews 6/7/8 ("CHANGELOG/README stale at every layer close") recurs at Layer 6 — same shape as TW R7 F2.
+
+---
+
+### Resolved
+
+*(none — TW did not modify any source-of-truth artifact this round.)*
+
+### Open
+
+**Finding 1 — CHANGELOG.md has no Layer 6 entry (Dim 2 — CHANGELOG quality; same shape as TW R7 F2)**
+
+`CHANGELOG.md` head is `## Layer 5 — compound filtering — 2026-05-07 00:43Z`. Both Layer 6 layer-shipping commits — `4fb5e67` (Red Gate: description + show + delete tests + stubs) and `c91676a` (implementation) — sit in `git log` with no corresponding CHANGELOG entry. The only `Layer 6` token in CHANGELOG.md is a Layer 3 follow-up forward-compat reference (line 491). A cold maintainer arriving at HEAD reads CHANGELOG, sees Layer 5 as the most recent layer-shipped entry, and concludes Layer 6 has not landed — directly contradicting the implementation, the test suite (20 layer6 integration tests now pass), and the TODO.md acceptance-criteria checkmarks. Same recurring documentation-currency defect class TW Reviews 6/7/8 named. The Layer 5 entry's "Verification" subsection set the precedent of including a literal test count (136 at gate close); the absent Layer 6 entry must include the new count.
+
+Verified count via `cargo test --quiet`: **159/159 pass** (48 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4 + 7 layer5 + 20 layer6). Delta from Layer 5 close: +3 unit, +20 layer6 = +23 total.
+
+**Classification:** Open. Raised to SO. CHANGELOG ownership belongs to SO per CLOSURE-PROTOCOL.md — TW does not author layer-shipping entries. Proposed entry must include: scope (Feature 1 `--description`, Feature 4 `show`, Feature 5 `delete`); files added (`tests/layer6.rs` — 20 integration tests; `src/lib.rs` — `validate_description`, `cmd_show`, `cmd_delete` `pub` + private `format_show_block`; `src/main.rs` — `Commands::Show`, `Commands::Delete`, `Create.description` flag); test count (159 — see breakdown above); IAR coverage (this round); explicit reference to D1 (`tracker delete <id>` confirmation waiver, codified in DESIGN.md "Approved Deviations" at Layer 4 R2, now realized in Layer 6 code).
+
+---
+
+**Finding 2 — `tracker show --help` and `tracker delete --help` doc-comments are below the parity bar set by `tracker create --help` and `tracker list --help` (Dim 4 — `--help` quality)**
+
+Captured via Bash:
+
+- `tracker show --help` body: `Show full details for an issue` / `Usage: tracker show <ID>` / `<ID>  Issue ID`.
+- `tracker delete --help` body: `Delete an issue (no confirmation; deleted IDs are never reused)` / `Usage: tracker delete <ID>` / `<ID>  Issue ID`.
+
+Compare to `tracker create --help`, which documents the valid `--priority` value set inline (`Priority: low, medium, high (default: medium)`), and to `tracker list --help`, which documents the case-sensitive single-value `--label` filter rule. The `Show` and `Delete` doc-comments in `src/main.rs` (lines 46–55) carry zero spec contract:
+
+- `Show` doc-comment does not name the eight-field labelled key-value block (`ID`, `Title`, `Status`, `Priority`, `Labels`, `Description`, `Created`, `Updated`) — i.e. what the user sees when the command succeeds.
+- `Delete` doc-comment does say "no confirmation; deleted IDs are never reused" — this is good — but does not state the post-condition message format (`Deleted issue #<id>.`) or the not-found error path.
+
+Symmetry-wise: `Create` documents its valid-value sets; `List` documents its filter semantics; `Status` documents the valid status values via the `New status: open, in-progress, done` arg doc-comment. `Show` and `Delete` are the only subcommands whose `--help` body is a bare one-liner with no contract details. The asymmetry is the finding.
+
+This overlaps with TW R7 F6 (`--help` valid-value asymmetry) which was deferred to Layer 7 polish in SO R17. The same Layer 7 deferral disposition applies here — the underlying defect class is identical (`--help` doc-comment depth varies by subcommand). Flagging in case Layer 7 polish is the moment the suite addresses it suite-wide rather than per-subcommand.
+
+**Classification:** Open. Deferred to Layer 7 polish, mirroring the TW R7 F6 disposition. Raised to SE for the `Show` / `Delete` clap doc-comments. Not blocking Layer 6 merge — the help text is accurate as far as it goes, just thinner than the parity expectation.
+
+---
+
+**Finding 3 — README.md Status block and Commands block both stale: Layer 6 ships description + show + delete but the README still describes them as Planned (Dim 1 — README accuracy; same shape as TW R7 F1)**
+
+`README.md` line 11 reads `Available now (Layer 4):`. Lines 19–25 list `--description`, `show`, `delete` under `Planned (not yet implemented — see Status):` with the `# Layer 6` annotation. Line 68 reads `**Layer 4 implementation complete. Layer 5 not started.**`. Line 78 has `[ ] Layer 5: Compound filtering` and line 79 has `[ ] Layer 6: Description, show, delete`, both unchecked.
+
+Factually wrong on three counts as of HEAD:
+
+1. Layer 5 (compound filtering) shipped at `bd15a9d` and its CHANGELOG entry is at the top of `CHANGELOG.md` (2026-05-07 00:43Z). The README never caught up to Layer 5 closure.
+2. Layer 6 (description + show + delete) shipped at `c91676a` (per the commit log). `tracker create --description`, `tracker show <id>`, `tracker delete <id>` all work today, but the README presents them as Planned.
+3. The README "Commands" synopses for `create` and `list` do not show `--description`; the synopsis section omits `tracker show` and `tracker delete` entirely.
+
+Same regression class as TW R7 F1 (under-claiming the implemented surface). The two-layer README staleness (Layer 5 + Layer 6) compounds the cold-reader handoff failure: a user who clones the repo and reads README sees a tool that supports only labels, when in fact every documented command in DESIGN.md is now implemented.
+
+**Classification:** Open. Raised to SO. README is SO authority per CLOSURE-PROTOCOL Section 1. Proposed shape: bump heading to "Available now (Layer 6)"; add `[--description "<desc>"]` to the create synopsis and add `tracker show <id>` and `tracker delete <id>` to the synopsis block; remove the Planned block entirely (Layer 7 is polish, not new commands); flip Layer 5 and Layer 6 status checkboxes; status line to "Layer 6 implementation complete. Layer 7 not started." Also: line 27's `--label` paragraph is fine but should grow a sibling sentence about description (verbatim storage, multi-line) and the non-truncating nature of `show` per DESIGN.md.
+
+---
+
+**Finding 4 — TODO.md Layer 6 manual-testing checklist all unchecked (Dim 8 — process artifact accuracy; not strictly TW-owned but visible to cold reader)**
+
+`TODO.md` Layer 6 acceptance-criteria block (lines 283–301) is fully `[x]`. The manual-testing checklist immediately below it (lines 303–316) is fully `[ ]`. Prior layers' pattern: manual-testing checklist flips to `[x]` in its own commit after director-run smoke tests (see Layer 5: commit `da0fd8d`). For Layer 6 the manual-testing window has not yet executed, or the checkbox flip has not yet been committed. This is not a TW-actionable defect (manual testing is a director gate, not a doc-currency claim), but it is visible to the cold reader as a Layer-6-not-fully-closed signal — flagging for situational awareness rather than as a finding to fix in this round. Same disposition as the Open carry-over for TW R7 F5 (PROCESS.md retrospectives) — held for human director.
+
+**Classification:** Open. Informational. Held for human director per the Layer 5 precedent (manual testing commits its own checklist flip).
+
+---
+
+### Dismissed
+
+**Finding 5 — DESIGN.md Show output examples diverge from binary output (Dim 7 — examples consistency)**
+
+Suspected the two example blocks in DESIGN.md "Show output format" (lines 247–256 single-line and 261–270 multi-line) might be stale. Verified by reproducing both via Bash:
+
+- Single-line: `tracker create "Update README" --priority low` → `tracker show 1` produces the exact 8-line block DESIGN.md shows (modulo the specific `Created`/`Updated` timestamps), including the 13-char label-column padding and the `(none)` rendering for absent labels + description.
+- Multi-line: `tracker create "Fix auth flow" --priority high --label bug --description $'Token refresh fails after 1 hour.\nReproduces reliably on Safari.'` → `tracker show 2` produces the exact 9-line block including the 13-space continuation-line indent on `Reproduces reliably on Safari.`.
+
+The two example blocks match the implementation byte-for-byte (excluding the timestamps, which are wall-clock).
+
+**Classification:** Dismissed. DESIGN.md "Show output format" examples are accurate.
+
+---
+
+**Finding 6 — `validate_description` rustdoc does not note that the stored value is un-trimmed (Dim 5 — rustdoc fidelity)**
+
+Suspected the rustdoc on `validate_description` (lines 326–334 of `src/lib.rs`) might fail to surface the spec-mandated verbatim-storage rule — a subtle defect because the trim/store distinction is the one thing a careless reader would miss. Re-read:
+
+> Per DESIGN.md Feature 1: `--description` must be non-empty after trim, but the *stored* value is the input verbatim (not trimmed). This function returns the un-trimmed input on success so the caller can write it as-is.
+
+The rustdoc names the trim-vs-store distinction explicitly and cites DESIGN.md. The reading-order prompt asked specifically whether the un-trimmed return is documented; it is.
+
+**Classification:** Dismissed. Verified accurate.
+
+---
+
+**Finding 7 — DECISIONS.md does not have a Layer 6 entry; D1 deviation lives only in DESIGN.md (Dim 6)**
+
+DECISIONS.md does record the non-interactive-delete decision in two places: the original "Interface and CLI" / "Non-interactive delete" entry (line 37, citing SO R6 F1) AND DESIGN.md's "Approved Deviations from Assignment" section D1 added at Layer 4 R2. DECISIONS.md does not have a Layer-6-specific section, but Layer 6 did not introduce new decisions distinct from D1 — `cmd_delete` simply realizes D1 in code without confirmation-prompt logic. The decision record is discoverable by a reader who looks under "Interface and CLI" → "Non-interactive delete" or under DESIGN.md "Approved Deviations". A Layer-6 retrospective grouping would be a nicety, not a defect.
+
+**Classification:** Dismissed. The D1 decision is documented in both DESIGN.md (the "Approved Deviations" canonical record) and DECISIONS.md (the "Non-interactive delete" entry). No Layer-6-specific addition is required.
+
+---
+
+**Finding 8 — `cmd_show` / `cmd_delete` rustdoc thin compared to `cmd_status` (Rust supplement — rustdoc coverage)**
+
+Suspected the new `pub` functions might have skimpy rustdoc. Re-read (lines 389–433 of `src/lib.rs`): both have `///` doc comments, both have `# Errors` sections enumerating the failure modes, both cite DESIGN.md, and `cmd_delete` explicitly states the ID-reuse invariant ("Deleted IDs are never reused: the next `create` assigns `max(remaining_ids) + 1`, which is strictly greater than any deleted ID. Other issues are not affected.") which is the substance of DESIGN.md Feature 5 invariants. `RUSTDOCFLAGS="-D missing_docs" cargo doc --no-deps` is clean. Rustdoc parity with `cmd_status` (post-TW R6 F5 expansion) is met.
+
+**Classification:** Dismissed. Rustdoc on Layer 6 public surface is accurate and at parity with the rest of the file.
+
+---
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Summary
+
+4 Open findings: (1) CHANGELOG missing Layer 6 entry — high-impact recurring documentation-currency defect, same shape as TW R7 F2, raised to SO; (2) `Show` / `Delete` `--help` doc-comment depth asymmetry, deferred to Layer 7 polish mirroring TW R7 F6; (3) README Status + Commands blocks stale across both Layer 5 and Layer 6 closure, raised to SO; (4) TODO.md Layer 6 manual-testing checklist all unchecked, informational, held for human director. 4 Dismissed: DESIGN.md show-output examples verified byte-for-byte against the binary; `validate_description` rustdoc verified to name the trim-vs-store distinction; D1 decision is documented twice (DESIGN.md + DECISIONS.md "Non-interactive delete"); new `pub` rustdoc parity with `cmd_status` confirmed. 0 Hallucinated.
+
+**Doc-currency assessment:** The two highest-impact handoff documents (CHANGELOG, README) are stale at the moment Layer 6 lands — repeating the Layer 4 pattern that was the dominant theme of TW Reviews 7/8. CHANGELOG misses Layer 5 nothing (already entered) but is missing the entire Layer 6 entry; README is stale at both Layer 5 closure (status checkbox never flipped) and Layer 6 implementation (commands still listed as Planned). The pre-commit hook idea floated in TW R6 ("a future hook can grep this section's count against `cargo test` output and fail on drift") would have fired here. Rustdoc, DESIGN.md show-output examples, and the `validate_description` un-trimmed-storage contract are all accurate.
+
+**Top concern:** Finding 1 (CHANGELOG no Layer 6 entry) — the cold reader's primary handoff document fails on the most recently shipped layer for the third time in a row across Reviews 7/8/9. Finding 3 (README stale across two layers) is functionally part of the same defect class. SO authority required for both before Layer 6 merge.
+
+**Coordination:**
+- F1 (CHANGELOG Layer 6 entry) → Raised to SO. Proposed shape documented above.
+- F2 (`--help` doc-comment asymmetry) → Deferred to Layer 7 polish per TW R7 F6 precedent. Raised to SE for the `src/main.rs` `Show` / `Delete` clap doc-comments.
+- F3 (README staleness across Layer 5 + Layer 6) → Raised to SO. Proposed shape documented above.
+- F4 (TODO.md manual-testing checklist) → Informational; held for human director per the Layer 5 precedent that manual-test commits its own checklist flip.
+
+**Files modified:** Only this log appended.
+
+---
+
+## Review 10 — 2026-05-11 02:00Z
+
+**Round:** Technical Writer Review 10 (Round-2 closure for Layer 6)
+**Scope:** Verify Round-1 Open findings (CHANGELOG, --help depth, README, manual checklist) are resolved by commit `9b775f0`. Warm closure-verification.
+
+### Round-1 finding closures
+
+- **F1 (CHANGELOG missing Layer 6 entry):** **Resolved by commit `9b775f0`.** New Layer 6 retrospective + Round-2 closure entry added at the head of `CHANGELOG.md`. Entry follows the Layer 4 R2 format: Scope / Changed / IAR / Deferred / Open / Verification. Test count documented as 180/180 at Round 2 close. The cold-reader handoff document is current.
+- **F2 (`Show` / `Delete` `--help` doc-comment depth asymmetry — cross-cut with UX R8 F1):** **Resolved by commit `9b775f0`.** `Show` and `Delete` doc-comments expanded in `src/main.rs` to enumerate fields (Show) / reference D1 + never-reused-ID rule (Delete) / document `<id>` as positive integer >= 1. Verified via `cargo run --quiet -- show --help` and `cargo run --quiet -- delete --help` — now match the Layer 1-4 depth standard.
+- **F3 (portfolio README stale across Layer 5 + Layer 6):** **Resolved by commit `9b775f0`.** `guild-portfolio/README.md` updated: Layer 5 → ✅ Complete (was 🟡 In review PR #17); Layer 6 → 🟡 In IAR Round 2 (was 🔲 Not started). Synopsis-block / Commands-block deferred — those are project-README concerns (issue-tracker-cli/README.md), which TW will re-check at Layer 7 polish per the established cadence.
+- **F4 (TODO.md Layer 6 manual-testing checklist unchecked):** **Open / Pending Director.** Same disposition as Layer 4 R11 F2 / Layer 5 final closure: director executes the 13 items + commits per `b0a3789` / `da0fd8d` precedent. SO R21 + VDD-IAR R16 both track this as the merge gate.
+
+### Carry-forward verification
+
+- TW R7 F2 / R7 F4 / R7 F7 (Layer 4 doc closures): No regression at Layer 6.
+
+### New findings
+
+*(none this round.)*
+
+### Summary
+
+3/4 Round-1 TW findings Resolved by commit `9b775f0`. 1 Open / Pending Director (F4 manual checklist). Cold-reader handoff documents (CHANGELOG + portfolio README) are current.
+
+**Coordination:** *(none — closure pass)*
+---

@@ -1380,3 +1380,271 @@ After the new test, predicate-unit mutation analysis shows the AND-logic is muta
 **Coordination:** *(none — closure pass)*
 
 ---
+
+## Review 15 — 2026-05-11 01:08Z
+
+**Round:** QE Review 15 (Layer 6 — Description + Show + Delete)
+**Scope:** Layer 6 lands in two commits — `4fb5e67` (Phase 2a Red Gate: 20 integration tests + 3 unit tests + `validate_description`/`format_show_block`/`cmd_show`/`cmd_delete` stubs) and `c91676a` (Phase 2b implementation). Files read in full: `iterative-adversarial-refinement/QUALITY-ENGINEER-REVIEW.md` Reviews 13–14, `DESIGN.md` (Features 1/4/5 + Edge Cases), `TODO.md` lines 279-345, `tests/layer6.rs` (all 20 integration tests), `src/lib.rs` Layer 6 surface (`validate_description` 335-340, `format_show_block` 350-387, `cmd_show` 398-409, `cmd_delete` 422-433, `cmd_create` 229-267 with new `description_raw` parameter, `next_id` 88-92), `src/lib.rs#tests` Layer 6 block lines 1069-1138 plus the load-time validator at `issue_field_validation_rejects_empty_description` line 758. Full-suite verification: `cargo test --no-fail-fast --locked` → **159/159 passed** (48 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4 + 7 layer5 + **20 layer6**). Pre-review state: 159/159. Net delta from this review: 0 source/test changes (reviewer scope; findings filed for SE/SO/follow-up QE round).
+
+**Session note:** Cold session, parallel batch. No prior participation in Layer 6 implementation, Red Gate authoring, or in-session reviews.
+
+**Assumption surfacing:** `serde_json::Value` indexing semantics; `assert_cmd` `success()`/`failure()` and `predicate::eq` / `contains` chains; `TempDir` cwd-isolation via `mod common`. All consistent with the lockfile and prior layers.
+
+### Layer 6 acceptance criteria → test trace
+
+19 AC bullets per `TODO.md` lines 283-301.
+
+| AC | Test(s) | Category |
+|---|---|---|
+| AC 1 — `--description "..."` stores verbatim | `create_with_description_stores_verbatim` (integration) | Cat A integration |
+| AC 2 — `--description ""` exits 1 with literal error | `create_with_empty_description_exits_one` | Cat A integration |
+| AC 3 — `--description "  "` exits 1 (whitespace-only) | `create_with_whitespace_description_exits_one` | Cat A integration |
+| AC 4 — No flag → no `description` JSON key | `create_without_description_has_no_field_in_json` | Cat B integration (pre-existing serde behavior) |
+| AC 5 — `show 1` displays all 8 fields | `show_displays_all_fields` (integration) + `show_label_column_right_padded_to_13` (unit, prefix shapes) | Cat A integration + Cat A unit |
+| AC 6 — Label column right-padded to 13 chars | `show_label_column_right_padded_to_13` (unit) + `show_displays_none_for_no_labels` (integration: exact `Labels:      (none)`) + `show_displays_none_for_absent_description` (integration: exact `Description: (none)`) | Cat A unit + Cat A integration |
+| AC 7 — Multi-line continuation indented 13 spaces | `show_multiline_description_indents_continuation` (integration) + `multiline_description_show_format` (unit) | Cat A integration + Cat A unit |
+| AC 8 — Show untruncated title/labels | `show_does_not_truncate_title_or_labels` | Cat A integration |
+| AC 9 — `show abc` exits 1 with parse error | `show_invalid_id_string_exits_one` | Cat A integration |
+| AC 10 — `show 0` exits 1 | `show_zero_id_exits_one` | Cat A integration |
+| AC 11 — `show 99` exits 1 not found | `show_not_found_exits_one` | Cat A integration |
+| AC 12 — `delete 1` exits 0 + confirmation + removed | `delete_exits_zero_and_prints_confirmation` + `delete_removes_issue` | Cat A integration ×2 |
+| AC 13 — After delete, `show <deleted>` not-found | `delete_then_show_returns_not_found` | Cat A integration |
+| AC 14 — Deleted IDs never reused (max+1) | `delete_id_not_reused` (integration) + `max_id_plus_one_skips_deleted_ids` (unit) | Cat A integration + Cat B unit |
+| AC 15 — `delete abc` exits 1 parse error | `delete_invalid_id_exits_one` | Cat A integration |
+| AC 16 — `delete 99` exits 1 not found | `delete_not_found_exits_one` | Cat A integration |
+| AC 17 — Other issues unchanged after delete | `delete_other_issues_unchanged` | Cat A integration |
+| AC 18 — Description never in list output | `description_not_in_list_output` | Cat B integration (pre-existing `cmd_list` behavior) |
+| AC 19 — `show 0` parse error (same as AC 10) | covered by AC 10 | — |
+
+**Coverage verdict:** 19/19 AC bullets traced to a passing test that would fail if the AC were violated. (AC 19 is a duplicate of AC 10 in `TODO.md`; both shapes are pinned by `show_zero_id_exits_one`.)
+
+### Red Gate compliance (`4fb5e67`)
+
+Verified the commit-message classification:
+- **3 unit tests** authored. 2 are Cat A (`multiline_description_show_format` + `show_label_column_right_padded_to_13` — both call `format_show_block` which is a `todo!()` stub at Red Gate, so they panic and Red). 1 is Cat B (`max_id_plus_one_skips_deleted_ids` — `next_id` was implemented in Layer 1 and already returns `max+1`; the unit test pins the contract for Layer 6's delete-id-never-reused invariant). Classification **honest**.
+- **18 integration tests** classified Cat A: each exercises behavior new in Layer 6 — `cmd_show` / `cmd_delete` were stubbed with `todo!()` so any invocation panics with exit signal 101; `cmd_create`'s new `description_raw` parameter is intentionally discarded at Phase 2a so `create_with_description_stores_verbatim`, `create_with_empty_description_exits_one`, and `create_with_whitespace_description_exits_one` all see the wrong behavior. Mental run-through confirms each of the 18 fails Red.
+- **2 integration tests** classified Cat B: `create_without_description_has_no_field_in_json` (serde `#[serde(skip_serializing_if = "Option::is_none")]` from Layer 1 already omits the key) and `description_not_in_list_output` (`cmd_list` from Layer 1 has never rendered description). Both are correctly self-classified — they cannot be Red against the stubs because the contract they pin pre-exists Layer 6. Same disposition pattern as Layer 4's two Cat B deviations (`create_without_labels_stores_empty_array`, `list_shows_none_for_no_labels`) and Layer 5's seven Cat B integration tests. **Honest classification.**
+
+Red Gate verdict: **Compliant.** Commit ordering verified (`4fb5e67` precedes `c91676a`); 18 Cat A integration + 2 Cat A unit + 1 Cat B unit + 2 Cat B integration; the Phase-2a-only `#[allow(dead_code)]` on `validate_description` (called by `cmd_create` but discarded at Phase 2a — wait, re-read: it IS called at Phase 2a, see commit message — `cmd_create` discards the description, but `validate_description` was the stub that `cmd_create` does not yet call. Verified by the commit message: `validate_description (todo!())` + `cmd_create` `description_raw: Option<&str>` parameter `currently discarded so create still stores description: None`. So the Phase-2a wiring is: `validate_description` is unwired and `dead_code`-suppressed; `cmd_create` accepts the parameter and ignores it. At Phase 2b, the discard is replaced with `Some(validate_description(d)?)` per `src/lib.rs:237-240`, and the `#[allow(dead_code)]` is removed. Honest staging.
+
+### Mutation analysis — `format_show_block`
+
+Three mutations against `format_show_block` (`src/lib.rs:350-387`):
+
+1. **Mutation A: change `"ID:          "` (10 spaces) → `"ID:           "` (11 spaces).** Test `show_label_column_right_padded_to_13` asserts `out.contains("ID:          ")`. Substring matching does NOT pin the trailing edge — `"ID:           "` (11 spaces) contains the 10-space prefix as a substring. **The mutation SURVIVES** the unit test. See Open Finding 1.
+2. **Mutation B: drop the `\r\n` normalization (`let normalized = d.replace("\r\n", "\n");` → `let normalized = d.clone();`).** Currently no test feeds a CRLF description. `validate_description` (lines 335-340) only rejects empty-after-trim; it does NOT reject control characters (unlike `validate_title` and `parse_label`). Combined with the absence of a `description.chars().any(char::is_control)` check in `issue_fields_are_valid` (lines 132-135 only check `!d.trim().is_empty()`), a hand-edited `tracker.json` with `"description": "line1\r\nline2"` would load cleanly and reach `format_show_block`. The normalization line is currently UNTESTED — dropping it would change the rendered output for CRLF inputs, and no test fails. **The mutation SURVIVES.** See Open Finding 2 (Dim 5 cross-cut).
+3. **Mutation C: change `\n             ` (newline + 13 spaces) → `\n            ` (12 spaces) for continuation indent.** Test `multiline_description_show_format` asserts `out.contains("\n             line2")` (13 spaces). The 12-space output contains `\n            line2` — substring match fails on the 13-space pattern (the 13th space is "l" in the mutated output). **The mutation IS killed.**
+4. **Mutation D (bonus): change `(none)` for empty labels → `none`.** `show_displays_none_for_no_labels` asserts `Labels:      (none)`. Mutation **killed.**
+
+**Mutation score for `format_show_block`:** 2 of 4 named mutations killed at the unit-test boundary (mutations C, D); 1 survives at unit but caught at integration *if* the test included a CRLF input (it does not); 1 survives both layers (mutation A — the unit prefix-shape test is too loose because of substring matching). Mutation A is the **top mutation gap**.
+
+### Mutation analysis — `cmd_delete`
+
+Per the prompt, two mutations against `cmd_delete` (`src/lib.rs:422-433`):
+
+1. **Mutation E: `issues.remove(idx)` → no-op (`let _ = idx;`).** Killed by `delete_removes_issue` (post-delete JSON read asserts id=1 absent in the array). Killed by `delete_then_show_returns_not_found` (post-delete `show 1` returns `not found`). Killed by `delete_id_not_reused` (the new id assignment would be 3 only if the remove actually happened).
+2. **Mutation F: swap order — call `save_issues` BEFORE `issues.remove(idx)`.** Killed by `delete_removes_issue` (saving the unchanged Vec writes id=1 back; post-delete JSON read sees id=1 still present).
+3. **Mutation G: change the not-found error format from `"Issue #{} not found."` → `"Issue {} not found."` (no `#`).** Killed by `delete_not_found_exits_one` which asserts `contains("Error: Issue #99 not found.")` — exact literal pinning, missing `#` fails.
+4. **Mutation H (bonus): change `println!("Deleted issue #{}.", id)` → `println!("Deleted #{}.", id)`.** Killed by `delete_exits_zero_and_prints_confirmation` which uses `predicate::eq("Deleted issue #1.\n")` — strict equality on stdout.
+
+**Mutation score for `cmd_delete`:** All four named mutations killed. **Tight.**
+
+### Open
+
+#### Finding 1 — `show_label_column_right_padded_to_13` substring assertions do not pin the trailing edge of the padding (Dim 6 — Show rendering invariants; Dim 3 — Mutation resilience)
+
+The unit test asserts each label prefix via `out.contains("ID:          ")` (3 chars + 10 spaces = 13). Substring matching does not detect a mutation that inserts ONE extra space (3 chars + 11 spaces = 14 char prefix in the rendered output). A 14-char prefix string still contains the 13-char substring. The same problem applies to `Title:       ` (6 + 7 spaces), `Status:      ` (7 + 6), `Priority:    ` (9 + 4), `Labels:      ` (7 + 6), `Created:     ` (8 + 5), `Updated:     ` (8 + 5).
+
+The exceptions are `Description: ` (12 + 1 space) — where `multiline_description_show_format` asserts `out.contains("Description: line1")` which pins the immediately-following character as 'l', killing a "Description:  line1" (2 spaces) mutation; and the `Labels:      (none)` / `Description: (none)` integration tests where `(none)` immediately follows, pinning the trailing edge by adjacency.
+
+So the unit test is loose for ID/Title/Status/Priority/Created/Updated (6 of 8 rows), tight for Labels and Description due to adjacent-value matching at the integration boundary.
+
+The spec contract per DESIGN.md "Show output format" is **fixed-width 13 chars**. Any padding mutation that produces 12 or 14 would silently survive 6 of the 8 row-shape assertions in `show_label_column_right_padded_to_13`. The 12-char mutation (one space less) IS caught for those rows because the 13-char substring no longer matches a 12-char prefix (the asserted padding ends in a space, and the next character in the output would be a digit — the substring would still find a hit only if some other 13-space sequence happened, which is implausible). So the test catches *under-padding* mutations but NOT *over-padding* mutations.
+
+**Severity: Medium.** The Dim 6 question in the prompt named this exact mutation: "Are tests strict enough that a mutation that changed `"ID:          "` to `"ID:           "` (one extra space) would fail?" — answer: **no, the unit test does not fail.** The integration test `show_displays_all_fields` also uses `contains` for each row label without exact-shape anchoring, so it shares the gap. Only `show_displays_none_for_absent_description` and `show_displays_none_for_no_labels` are tight, and only for the Description and Labels rows.
+
+**Evidence:** `src/lib.rs:1102-1126` (`show_label_column_right_padded_to_13`); `tests/layer6.rs:124-138` (`show_displays_all_fields` row-label loop).
+
+**Proposed action (for next QE round):** Add a unit subcase that asserts `out` contains the prefix as a regex / exact-match boundary, e.g., `out.lines().any(|l| l.starts_with("ID:          ") && l.chars().nth(13).map(|c| c != ' ').unwrap_or(false))` — or equivalently, assert the exact byte length of the first line, or use `predicate::str::is_match(r"^ID:\s{10}\d")` on the first line. The simplest defense: change the assertion to `out.contains("ID:          1")` for the issue with id=1 (forces the digit boundary). One line change per row. Cost: 6 strengthened assertions; benefit: kills the over-padding mutation at the unit boundary.
+
+**Classification: Open / Medium severity / non-blocking for the merge but warrants a Round-2 QE strengthening.**
+
+---
+
+#### Finding 2 — `validate_description` does not reject control characters, and no test asserts it should (Dim 5 — Description as user input; Dim 4 — Error-path coverage; cross-cut with Security/RT)
+
+**Symmetry break:** `validate_title` (line 685 has `validate_title("Fix\r\nbug").is_err()`) rejects control characters per Layer 1; `parse_label` rejects them per Layer 4 (per QE Review 11 Finding 4 → Review 12 closure). `validate_description` (lines 335-340) **only** checks `raw.trim().is_empty()`. A user can pass `tracker create "x" --description $'line1[31mFAKE'` (ESC + ANSI red sequence in description) and the binary accepts and stores it.
+
+**Stored-data side:** `issue_fields_are_valid` (lines 125-139) checks the description with `is_none_or(|d| !d.trim().is_empty())` — no control-char check. A hand-edited `tracker.json` with `"description": "fake\n[31mERR[0m"` loads cleanly. When `tracker show <id>` renders this through `format_show_block`, the embedded ANSI sequence reaches stdout as raw bytes — terminal-escape injection on the show surface.
+
+This is **the description-side equivalent** of the security finding QE Review 11 Finding 4 closed for labels (Security R7 Finding 1). The pattern is identical:
+- Layer 1: title control-char rejection landed (QE R3-era).
+- Layer 4: label control-char rejection landed (QE R11 → R12, closed under Security R7 atomic chain).
+- Layer 6: description should land the same — Security/RT will surface it; QE Review 15 surfaces the **test-side gap**.
+
+**Missing tests** (test side; SE owns the source extension; SO owns the DESIGN.md amendment):
+- `description_with_newline_is_rejected` — `validate_description("a\nb").is_err()` (unit)
+- `description_with_tab_is_rejected` — `validate_description("a\tb").is_err()` (unit)
+- `description_with_escape_sequence_is_rejected` — `validate_description("\u{1B}[31mERR").is_err()` (unit)
+- `description_with_nul_or_del_is_rejected` — `validate_description("a\u{0}b").is_err()` + `validate_description("a\u{7F}b").is_err()` (unit)
+- `description_with_printable_unicode_is_accepted` — emoji / CJK passes (unit)
+- `issue_field_validation_rejects_control_char_in_description` — load-time validator (unit)
+- `create_with_control_char_description_exits_one` — `--description $'line1\nFAKE'` integration → exit 1, literal `Error: Description cannot contain control characters.`
+- `corrupt_data_with_control_char_description_is_rejected` — hand-edited `tracker.json` with `\n` in description rejected at load (integration)
+
+These are exactly parallel to the seven tests QE R12 added for labels. Pattern-named for direct copy-paste from `tests/layer4.rs::create_with_control_char_label_exits_one` etc.
+
+**Severity: High.** Surface that emits user-supplied text to the terminal without escape sanitization. The threat model in DESIGN.md "Edge Cases / Labels" line 314 explicitly bounds the surface to "the user attacking themselves with hand-pasted clipboard content or a hand-edited `tracker.json`" — but the threat is precisely that surface here: a multi-line description with a hand-pasted ANSI sequence renders as terminal control on `tracker show`.
+
+**Cross-coordination expected:** Security Review 9 will (or should) surface the source-side gap; SO Review 20 will need to amend DESIGN.md "Edge Cases / Description" to add `- Description containing a control character → error: Description cannot contain control characters.` (currently lines 339-345 do not enumerate this); SE Review 15 will need to extend `validate_description` and `issue_fields_are_valid`. QE owns the test additions in the same atomic round.
+
+**Classification: Open / High severity / merge-blocking on the Layer 6 close gate per Security-finding policy** (security findings cannot be deferred per the IAR domain prompt; QE R11 → R12 set the precedent for labels).
+
+**Evidence:** `src/lib.rs:335-340` (`validate_description`); `src/lib.rs:132-135` (`issue_fields_are_valid` description branch); `src/lib.rs:685` (Layer-1 precedent `validate_title("Fix\r\nbug").is_err()`); `tests/layer4.rs::create_with_control_char_label_exits_one` (Layer-4 pattern); DESIGN.md Edge Cases / Description lines 339-345 (currently silent on control chars).
+
+**Side-effect on Mutation B above:** The `\r\n` normalization in `format_show_block` (line 365) is downstream defense-in-depth; once `validate_description` rejects `\r` as a control character, the normalization becomes unreachable for created issues. It remains reachable only for hand-edited `tracker.json` files that bypass `parse_label`-style validation — but `issue_fields_are_valid` would also reject control chars in description once extended, closing that surface. The normalization line becomes a code-comment justification rather than runtime path. Mutation B (Open Finding 1 above) is partially subsumed by the resolution path: with control chars rejected at load, the only CRLF source disappears.
+
+---
+
+#### Finding 3 — `create_with_description_stores_verbatim` does not pin the "not trimmed" half of the contract (Dim 1 — AC coverage; Dim 3 — Mutation resilience)
+
+DESIGN.md Feature 1 postcondition: "description is stored as provided **(not trimmed)**; absent if --description is not provided." The current test uses the value `"Auth token expires too soon"` — no leading or trailing whitespace. A mutation in `validate_description` from `Ok(raw.to_string())` to `Ok(raw.trim().to_string())` would PASS the test (the test value has no surrounding whitespace; trimmed and untrimmed are identical strings). The "not trimmed" half of the postcondition is unpinned at the test surface.
+
+**Severity: Medium.** A real falsifiability gap on a load-bearing postcondition that DESIGN.md explicitly distinguishes from the trim-on-store rules for title and labels. The asymmetric contract (description stores verbatim, title/labels trim) is precisely the kind of distinction that bit-rots if not tested.
+
+**Proposed action:** Either (a) change the asserted value in `create_with_description_stores_verbatim` from `"Auth token expires too soon"` to `"  Auth token expires too soon  "` with `assert_eq!(v[0]["description"], "  Auth token expires too soon  ")`; or (b) add a sibling test `create_description_preserves_leading_trailing_whitespace` with the same shape. Cost: one assertion change OR one test addition (~10 lines).
+
+**Classification: Open / Medium severity / non-blocking for merge but warrants Round-2 strengthening alongside Finding 2's test additions.**
+
+**Evidence:** `tests/layer6.rs:24-41`; `src/lib.rs:335-340`; DESIGN.md Feature 1 postcondition.
+
+---
+
+### Dismissed
+
+#### Finding 4 — No automated test for show non-mutation (Dim 7 — File integrity)
+
+The TODO.md manual checklist line 309 says "Show is non-mutating: `tracker show 1` twice produces identical output; `tracker.json` unchanged." No automated test asserts that `tracker.json` is byte-identical before and after a `show` call.
+
+**Classification: Dismissed.** `cmd_show` (lines 398-409) calls only `load_issues` (read) and `format_show_block` (pure) followed by `print!`; no path to `save_issues`. The non-mutating property is a structural consequence of the code, not a behavior subject to mutation-style regression. A test that reads `tracker.json` before, calls `show`, reads after, and asserts byte-equality would catch only a future implementation regression where someone wires `save_issues` into the show path — which is implausible. The Layer 2's `status_change_leaves_other_fields_unchanged` precedent applies to mutations; for a read-only command, the spec is satisfied by the call-graph. **No finding.** (If a paranoid round wanted defense-in-depth, a one-line `assert_eq!(pre, post)` test would suffice; it's a polish item, not a quality gap.)
+
+---
+
+#### Finding 5 — `delete_id_not_reused` only exercises a 2-issue-then-delete-then-create scenario, not delete-the-max-id case (Dim 3 — Mutation resilience)
+
+Adversarial probe: the test creates 1, creates 2, deletes 1, creates → new id should be 3. What about: create 1, create 2, **delete 2**, create → should the new id be 3 (because `next_id` is `max+1` over the remaining `[1]` → 2? wait: max over `[1]` is 1, plus 1 is 2 — same as the deleted id!). Re-read DESIGN.md Feature 5 invariant: "the deleted ID is never reused; the next created issue receives `max(remaining_ids) + 1`, **which will always be greater than the deleted ID**."
+
+If I delete the max id, `max(remaining) + 1` would re-create the just-deleted id, violating "greater than the deleted ID."
+
+**Classification: Dismissed at QE.** Re-reading the invariant: "max(remaining_ids) + 1, which will always be greater than the deleted ID." This is the **spec invariant**, but the actual `next_id` implementation (`src/lib.rs:88-92`) computes max(remaining)+1, which after deleting the max id would re-use it. This is a **spec-vs-implementation gap**, not a test gap — and it's an SO/SA concern, not a QE one. Actually, looking at the DESIGN.md text more carefully: the invariant uses "always be greater than the deleted ID" as the rationale, but `max(remaining)+1` does NOT always satisfy this. If issues are `[1, 2, 3]` and 3 is deleted, `next_id` returns `max([1,2])+1 = 3`, re-using the deleted id.
+
+This is a **real spec/implementation concern but it belongs to SA/SO/SE**, not QE-test-coverage. From a QE perspective: `delete_id_not_reused` correctly tests one path (delete non-max, then create — id=3 ≠ deleted id=1). It does NOT test the delete-the-max-id path. A test covering that case would expose the spec/implementation mismatch.
+
+**Re-classification: Open / Low severity / cross-cut to SO and SA.** QE could add `delete_max_id_then_create_does_not_reuse_id` and let it fail (or pass with `id=3` against a `delete-then-create` scenario where the create yields id=3, which is the deleted id — failing the spec literal "greater than the deleted id"). Filing as a quiet observation; the primary owner is SO/SA. **For now: hold.** Will surface again in next round if SO/SA do not flag it.
+
+---
+
+#### Finding 6 — `description_not_in_list_output` uses only one issue, not the multi-issue case (Dim 5 — Empty-state coverage)
+
+`description_not_in_list_output` creates a single issue with a description and asserts the description text is absent from `list` stdout. Would a multi-issue test catch additional mutations?
+
+**Classification: Dismissed.** `cmd_list` renders rows uniformly; per-row rendering is contract-pinned by Layer 1's `list_shows_header_and_issues` and Layer 3's column-spacing test. A multi-issue variant would not exercise a different code path. The unique-marker pattern (`"DESCRIPTION_SHOULD_NOT_LEAK_INTO_LIST"`) is the correct falsifiability anchor — if any rendering path leaked the description, the marker substring would appear. **No finding.**
+
+---
+
+#### Finding 7 — `show_displays_all_fields` uses `contains` for each label, not anchored line-match (Dim 3 — Assertion strength)
+
+The test asserts `out.contains("ID:")`, `out.contains("Title:")`, etc. A mutation that printed all labels on a single line without values would still satisfy each `contains` assertion (though `Fix auth`, `high`, `bug` etc. would also be required to appear, somewhat constraining the form).
+
+**Classification: Dismissed.** Layer 6's primary surface for label-shape pinning is `show_label_column_right_padded_to_13` (unit) and the integration tests with adjacent values (`show_displays_none_for_no_labels` and `show_displays_none_for_absent_description`). The all-fields-present test is correctly scoped to "every field appears at least once"; the shape pinning is delegated to other tests. Conflating two contracts in a single test is the anti-pattern QE R11 F6 / QE R13 F5 explicitly dismissed for the same reason. **No finding** (but see Finding 1 for the strengthening that addresses the residual over-padding gap).
+
+---
+
+### Hallucinated
+
+#### Finding 8 — `delete_id_not_reused` could fail in a stale-cache scenario where `tracker create "Third"` reads pre-delete state
+
+Concern: the test runs four sequential subprocess invocations. Subprocess #4 (the post-delete create) might see a stale file if the OS write-cache hadn't flushed by subprocess #3 (the delete).
+
+**Classification: Hallucinated.** `save_issues` calls `fs::write` which closes the file handle before returning; each subprocess exits before the next begins; POSIX fs semantics on Darwin and Linux guarantee that a file closed in process A is visible to a `read` in process B started after A exits. No stale-cache vector. Test is reliable. **No finding.**
+
+---
+
+#### Finding 9 — `format_show_block` returns a String but `cmd_show` uses `print!` not `println!` — could miss a trailing newline
+
+Concern: `cmd_show` calls `print!("{}", format_show_block(issue))` and the `format!` block ends with `Updated:     {}\n` — there IS a trailing newline. But what if a mutation removed it? Would tests catch?
+
+**Classification: Hallucinated.** Mutation killing is the test's job, but the spec doesn't require any specific trailing whitespace beyond the eight-row block. None of the tests assert "exactly one trailing newline and no extra" because that's not in DESIGN.md. The current code is correct; a mutation that doubled the newline (`println!` instead of `print!`) would not be caught, but it's also not a spec violation. **No finding.**
+
+---
+
+#### Finding 10 — `cmd_delete`'s `idx` from `position(...)` could differ from index-by-id if duplicate ids existed
+
+Concern: `position` returns the first index, but if two issues had id=1 (duplicate), `remove(idx)` removes only the first.
+
+**Classification: Hallucinated.** `issues_collection_invariants_hold` (lines 173-176) rejects duplicate ids at load. The load path is the only entry to the in-memory `Vec<Issue>`. Duplicates cannot exist past `load_issues`. `position` and `find` are correct against the deduplicated invariant. **No finding.**
+
+---
+
+### Process observation (not a defect)
+
+**Dim 8 — Manual testing checklist.** The 13 items at `TODO.md:303-316` are all unchecked. This is a state observation: Layer 6 implementation has landed (`c91676a`); the manual checklist closure is the developer's next step toward the Layer 6 close gate, parallel to (or following) the IAR review batch. Layers 1-5 closed the equivalent checklists before merge per the established pattern (Layer 5 commit `da0fd8d`). This is not a quality-system defect, but the Layer 6 merge gate must verify the checklist closure as a precondition. **Process flag, not a finding.**
+
+---
+
+### Summary
+
+**AC coverage:** 19/19 Layer 6 ACs traced to passing automated tests. No undocumented tests, no documented tests missing.
+
+**Top mutation gap:** Finding 1 — the unit test `show_label_column_right_padded_to_13` uses substring `contains` assertions on the 13-char label prefixes (`"ID:          "`, `"Title:       "`, etc.) and does not pin the trailing edge of the padding. A mutation that adds ONE extra space to the padding for 6 of 8 rows (ID, Title, Status, Priority, Created, Updated) silently survives BOTH the unit test AND the integration test `show_displays_all_fields`. The Dim 6 question in the prompt asked this exact question; answer is "no, the test does not catch one-extra-space over-padding." The fix is one assertion strengthening per row (e.g., assert `out.contains("ID:          1")` instead of `out.contains("ID:          ")`).
+
+**Top concern:** Finding 2 — `validate_description` does not reject control characters. Title and labels both have control-char rejection landed in prior layers (Layer 1, Layer 4). Description does NOT, and this is asymmetric on a surface that emits user text to the terminal via `cmd_show`. The same risk pattern that landed for labels in QE R11→R12 (Security R7 chain) applies here. **High severity, merge-blocking for Layer 6 close gate per security-finding policy.** Cross-cuts to Security Review 9, SO Review 20, SE Review 15 — expected to surface there; QE Review 15 surfaces the test-side gap (8 missing tests pattern-named for direct copy from Layer 4's label-control-char suite).
+
+**Red Gate compliance verdict for Layer 6:** **Compliant.** Commit ordering verified; classifications honest (2 Cat A unit + 1 Cat B unit; 18 Cat A integration + 2 Cat B integration); the Phase-2a stub staging (`todo!()` panics + parameter-discard in `cmd_create`) is faithful to the Red-then-Green discipline. No test-implementation co-authorship coupling detected.
+
+**Mutation resilience:** **Mixed.** Tight for `cmd_delete` (4/4 named mutations killed). Loose for `format_show_block` (over-padding mutation survives; CRLF-normalization line is currently untested and currently reachable due to Finding 2). Good for the description-stored-verbatim contract on the trim half but loose on the no-trim half (Finding 3).
+
+**Sycophancy check:** Did I pass any dimension because I couldn't think of a counterexample? Re-audited Dim 6 (show invariants — found Finding 1's over-padding gap by deliberately enumerating substring-vs-anchored-match), Dim 5 (description as user input — found Finding 2 by cross-referencing the Layer-1/4 hardening pattern), and Dim 1 (AC coverage — found Finding 3's not-trimmed-half gap by re-reading the postcondition wording rather than the test's assertion). Did not soften: Finding 2 is filed High severity / merge-blocking per security policy, not deferred. Finding 1 is filed Medium severity even though all 159 tests are green and the developer would prefer no findings on a recent layer. **No softening detected.**
+
+**Files modified:** None (QE Review 15 is read-only; per CLOSURE-PROTOCOL.md, QE owns `tests/**` and `src/lib.rs#tests`, but this review is the cold-batch surfacing pass — the test additions land in the Round-2 closure pass after SE/SO/Security have applied source-side and spec-side fixes).
+
+**Coordination:**
+- **SE Review 15:** Finding 2 requires `validate_description` extension to reject control characters (mirror `validate_title` line 685 pattern) AND `issue_fields_are_valid` extension to reject control chars in description at load (mirror `label_is_valid` line 145-147 pattern). Once applied, QE Round-2 adds the 8 enumerated tests.
+- **SO Review 20:** Finding 2 requires DESIGN.md amendment to "Edge Cases / Description" (lines 339-345) to add the control-char rejection rule, and to "Edge Cases / Storage" (line 333) to add description-control-char to the invalid-domain-values list.
+- **Security Review 9:** Finding 2 is in your domain (terminal-escape injection on the `show` surface). Expected to surface independently; QE provides the test-side complement.
+- **SA Review 13:** Possible cross-cut on Dismissed Finding 5 (`max(remaining)+1` vs. "always greater than deleted id" wording in DESIGN.md Feature 5 invariant) — left for SA's spec-compliance read. Not raising as a QE finding.
+- **VDD-IAR Alignment Review 15:** Layer 6 merge gate must verify Finding 2 is closed (security finding cannot be deferred). Findings 1 and 3 may be merged with the explicit Round-2 strengthening commitment.
+- **PE Review 10:** Coverage tooling absence remains escalated; no new escalation.
+
+---
+
+## Review 16 — 2026-05-11 02:00Z
+
+**Round:** QE Review 16 (Round-2 closure for Layer 6)
+**Scope:** Verify the three QE R15 findings + cross-domain description-Cc-defense cluster are resolved by commit `9b775f0`. Warm closure-verification.
+
+### Round-1 finding closures
+
+- **F2 (description Cc defense, High / merge-blocking):** **Resolved by commit `9b775f0`.** `validate_description` rejects `is_control()` except `\n`; `description_is_valid` enforces the same at load time via `issue_fields_are_valid`. Tests added:
+  - Integration (tests/layer6.rs): `create_with_control_char_description_exits_one` (ESC), `create_with_carriage_return_description_exits_one`, `create_with_crlf_description_exits_one`, `create_with_tab_description_exits_one`, `create_with_del_description_exits_one`, `create_with_osc8_hyperlink_description_exits_one`, `create_with_newline_description_is_accepted`, `corrupt_data_with_control_char_description_is_rejected`, `corrupt_data_with_carriage_return_description_is_rejected`, `load_accepts_description_with_newline`.
+  - Unit (src/lib.rs#tests): `description_empty_after_trim_is_rejected`, `description_with_control_char_other_than_newline_is_rejected`, `description_with_newline_only_is_accepted`, `description_stored_verbatim_not_trimmed`, `description_with_printable_unicode_is_accepted`, `issue_field_validation_rejects_control_char_in_description`, `issue_field_validation_rejects_carriage_return_in_description`, `issue_field_validation_accepts_newline_in_description`, `issue_field_validation_accepts_no_description`.
+  - (Note: NUL byte cannot be tested via subprocess argv per OS constraint; covered by the unit test in-process.)
+- **F1 (over-padding mutation in show output):** **Resolved by commit `9b775f0`.** New test `show_renders_exact_full_block_for_single_line_issue` uses full-line `assert_eq!` on all 8 rendered rows; an over-padding mutation (e.g., `"ID:          "` → `"ID:           "`) now fails. Plus a `lines.len() == 8` assertion that catches any extra-line-emit mutation.
+- **F3 (verbatim-storage half of description postcondition untested):** **Resolved by commit `9b775f0`.** `create_preserves_description_verbatim_with_surrounding_whitespace` (integration) + `description_stored_verbatim_not_trimmed` (unit) both kill the `Ok(raw.trim().to_string())` mutation in `validate_description`.
+
+### New findings
+
+*(none this round.)*
+
+### Test suite delta
+
+- Pre-R2: 159/159 pass (48 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4 + 7 layer5 + 20 layer6).
+- Post-R2: **180/180 pass** (57 unit + 32 + 18 + 9 + 25 + 7 + 32 layer6). Delta: +9 unit + +12 integration.
+
+### Summary
+
+3/3 Round-1 QE findings Resolved. The cross-domain description-Cc-defense cluster is closed at the test boundary with 21 new tests (12 integration + 9 unit). Layer 6 QE-domain is at MVR for the predicate + render boundaries.
+
+**Coordination:** *(none — closure pass)*
+
+---

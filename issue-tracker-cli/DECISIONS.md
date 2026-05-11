@@ -13,10 +13,12 @@ Key decisions made during the spec phase, with rationale. Source: IAR review log
 **ID assignment via `max(existing_ids) + 1`** — no `next_id` counter stored in `tracker.json`.
 - SA Review 1, Finding 3
 - Why: a stored `next_id` counter introduces a sync invariant that must be maintained across all writes and can fall out of sync with manual file edits. Computing the next ID from the existing maximum is simpler, has no failure mode, and is fast enough for any realistic issue count.
+- **Reversed by SO Review 22 (Layer 6 spec amendments — SO Review 22).** Director manual-testing surfaced that `max(existing_ids) + 1` reuses the deleted id when the deleted issue was the highest, violating the "never reused, including after deletion" invariant. Persistent `next_id` counter restored.
 
 **Top-level JSON array storage format** — `tracker.json` is a top-level `[Issue]` array, not a wrapped object `{"issues": [...]}`.
 - SO Review 7 (approved), QE Review 2 / Data Engineer Review 2 (raised)
 - Why: the original wrapper object contained two top-level keys (`"issues"` and `"next_id"`). SA Review 1 removed `"next_id"` as unnecessary complexity. After that removal, the wrapper contained a single key with no peers and added no information. A top-level array is simpler to deserialize (`serde_json::from_str::<Vec<Issue>>`) and is more idiomatic for a homogeneous collection.
+- **Reversed by SO Review 22.** When the persistent `next_id` counter was restored, the wrapper object regained a meaningful peer — the rationale for collapsing to a bare array no longer applied.
 
 **`description` field absent (not null) when not provided** — serialize `None` as a missing key, not `"description": null`.
 - Data Engineer Review 1, Finding 2
@@ -105,3 +107,12 @@ Key decisions made during the spec phase, with rationale. Source: IAR review log
 **SE Review 9 DESIGN.md content (lines 218 / 220-225) ratified** — the "exactly 2 spaces" column-separator rule and the example block stand as written.
 - VDD-IAR Review 10 Finding 1 / SO Review 13 Finding 4
 - Why: the content of the SE-9 edits is correct and useful — it specifies the format precisely and the example matches actual implementation output. Process integrity (the SE-9 edits were applied without prior SO approval) remains a separate VDD-IAR finding; SO ratification of the content does not retroactively legitimize the process. The split is intentional: SO owns spec content, VDD-IAR owns process compliance.
+
+---
+
+## Layer 6 spec amendments — SO Review 22
+
+**Persistent `next_id` counter restored to `tracker.json`** — storage shape changes from a bare `[Issue]` array to `{"issues": [Issue], "next_id": u64}`. The counter is initialized to `1`, bumped via `checked_add(1)` on every successful create, and left unchanged by delete. Load-time invariants: `next_id >= 1`; if `issues` is non-empty, `next_id > max(issue.id)`.
+- SO Review 22 Finding 1 (director-raised from Layer 6 manual testing); reverses SA Review 1 Finding 3 and SO Review 7's "bare top-level array" decision.
+- Why: the pre-R22 `max(existing_ids) + 1` implementation did not preserve the DESIGN.md "deleted ID never reused, including after deletion" invariant (stated in three places: Feature 1 Invariants, Feature 5 Invariants, Data Model field invariants). In the high-edge case — delete the highest-id issue, then create — `max(remaining_ids) + 1` equals the just-deleted id, reusing it. Director manual-test reproduction (delete #2 from {#1,#2}, create → reassigned id=2) demonstrated the gap. SA Review 3 Finding 3's threat-model argument that ID non-reuse is unnecessary for an internal-only id space is preserved as accurate; the resolution simplified storage by removing a counter that was needed for a still-binding contract. Option A restores the counter; the spec contract is honored, the false sub-claim at DESIGN.md:152 (`max(remaining_ids) + 1` "will always be greater than the deleted ID") is removed, and the integration test `delete_id_not_reused_high_edge` regresses the prior failure.
+- Trade-off accepted: a load-time invariant (`next_id > max(issue.id)`) replaces SA Review 3 Finding 3's simplicity argument. The cost is a single additional check in `tracker_is_valid` plus one field in the storage shape — proportionate to the contract it preserves. SA Review 3 Finding 3's "the counter can fall out of sync with manual edits" concern is mitigated by the load-time invariant: any out-of-sync state (`next_id <= max(id)`) is rejected as corrupt at load with the standard error path.

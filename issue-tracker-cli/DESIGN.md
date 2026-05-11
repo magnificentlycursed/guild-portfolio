@@ -26,7 +26,7 @@ This is portfolio project #2, per the Phase 1 apprentice program assignment in `
 - `status` is `open`
 - `priority` defaults to `medium` if `--priority` is not provided
 - `labels` is the deduplicated list of `--label` values, with each value trimmed of leading/trailing whitespace; order is preserved (first occurrence retained); case is preserved as provided after trimming; empty if no `--label` flags given
-- `description` is stored as provided (not trimmed); absent if `--description` is not provided
+- `description` is stored as provided (not trimmed); absent if `--description` is not provided. Description must not contain control characters other than newline (`\n`); see Error states.
 - `created_at` and `updated_at` are set to the current UTC timestamp (ISO 8601, second precision)
 - `tracker.json` is updated with the new issue
 - stdout prints exactly: `Created issue #<id>: <title>` (trimmed title)
@@ -36,6 +36,7 @@ This is portfolio project #2, per the Phase 1 apprentice program assignment in `
 - Title is absent or empty after trim → stderr `Error: Title cannot be empty.` → exit 1
 - Title contains a control character → stderr `Error: Title cannot contain control characters.` → exit 1
 - `--description` value is empty or whitespace-only after trim → stderr `Error: Description cannot be empty.` → exit 1
+- `--description` value contains a control character other than newline (`\n`) → stderr `Error: Description cannot contain control characters other than newline.` → exit 1
 - Invalid priority value → stderr `Error: Invalid priority '<v>'. Expected: low, medium, or high.` → exit 1
 - Empty label after trim → stderr `Error: Label cannot be empty.` → exit 1
 - Label contains a control character → stderr `Error: Label cannot contain control characters.` → exit 1
@@ -148,7 +149,7 @@ This is portfolio project #2, per the Phase 1 apprentice program assignment in `
 - Issue not found → stderr `Error: Issue #<id> not found.` → exit 1
 
 **Invariants:**
-- The deleted ID is never reused; the next created issue receives `max(remaining_ids) + 1`, which will always be greater than the deleted ID
+- The deleted ID is never reused. The persistent `next_id` counter (see Data Model / Storage file) is monotonically increasing across the tracker's lifetime and is left unchanged by delete, so the next created issue always receives an id strictly greater than every previously-assigned id — including the just-deleted one, including the case where the deleted issue was the highest id at delete time. (SO Review 22 Option A: the prior `max(remaining_ids) + 1` formulation was incorrect at the high edge and reused the deleted id.)
 - IDs of all remaining issues are unchanged
 - No other issues are affected by the delete
 
@@ -182,12 +183,18 @@ This is portfolio project #2, per the Phase 1 apprentice program assignment in `
 ### Storage file
 
 ```
-[Issue]   // top-level array of issue objects; order is not significant (list sorts on display)
+{
+  "issues":  [Issue],   // order is not significant (list sorts on display)
+  "next_id": u64        // monotonically-increasing counter; the next id to assign
+}
 ```
 
 **Storage invariants:**
-- If the file does not exist, the tracker is treated as empty (empty array)
-- On every create, the new issue's ID is assigned as `max(existing_ids) + 1`, or `1` if the issue list is empty
+- If the file does not exist, the tracker is treated as fresh — equivalent to `{"issues": [], "next_id": 1}`
+- `next_id >= 1` at all times
+- If `issues` is non-empty, `next_id > max(issue.id)` (strictly greater — the counter has been advanced past every assigned id)
+- On every create, the new issue's id is `next_id`; the counter is then bumped via `checked_add(1)` (overflow at `u64::MAX` surfaces a clean "Cannot assign new issue ID" error)
+- On every delete, the counter is NOT modified — `next_id` is monotonically increasing across the tracker's lifetime, so deleted ids are never reassigned, even when the deleted issue was the highest id at delete time (SO Review 22 Option A)
 - `tracker.json` is written directly on every mutation; on I/O failure the file may be in an indeterminate state — the error is reported and the binary exits 1. Atomic writes are the correct production approach and are deferred — implementation cost exceeds the failure risk for a single-user local tool.
 
 **File location:** `tracker.json` in the current working directory at the time the command runs.
@@ -242,7 +249,7 @@ ID    Status       Priority  Labels                Title
 
 Color is applied only to the value text in its column cell, not to the entire row or header.
 
-**Show output format:** labelled key-value block. The label column is right-padded to a fixed width of 13 characters so values align. For multi-line descriptions, the first line follows the `Description:` label; each continuation line is indented by 13 spaces (matching the label column width) so the text block remains visually aligned. Example (single-line description):
+**Show output format:** labelled key-value block. The label column is right-padded to a fixed width of 13 characters so values align. For multi-line descriptions, the first line follows the `Description:` label; each continuation line is indented by 13 spaces (matching the label column width) so the text block remains visually aligned. `\r\n` separators in a stored description are normalized to `\n` before splitting (defensive: bare `\r` and `\r\n` are rejected at create time per Edge Cases / Description, but a legacy stored value or external-editor round-trip should render cleanly). Example (single-line description):
 
 ```
 ID:          3
@@ -330,7 +337,7 @@ Updated:     2026-04-27T15:00:00Z
 
 - `tracker.json` does not exist → treated as empty tracker; first `create` produces `tracker.json`
 - `tracker.json` contains valid JSON but unknown fields → unknown fields are ignored at load (forward-compatible deserialization). They are NOT preserved across writes — any subsequent mutation rewrites `tracker.json` with only the documented schema fields, dropping anything else. Hand-edited `tracker.json` files should not rely on extra keys persisting.
-- `tracker.json` contains valid JSON but invalid domain values (e.g., `"status": "flying"`, `"priority": ""`, `"id": 0`, `"title": ""`, a control-character in `title`, an empty `label`, a control-character or comma in any `label`, a malformed `created_at` / `updated_at`, `updated_at < created_at`, or duplicate `id` across records) → stderr `Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.` → exit 1
+- `tracker.json` contains valid JSON but invalid domain values (e.g., `"status": "flying"`, `"priority": ""`, `"id": 0`, `"title": ""`, a control-character in `title`, an empty `label`, a control-character or comma in any `label`, an empty `description` after trim, a control-character other than newline in `description`, a malformed `created_at` / `updated_at`, `updated_at < created_at`, or duplicate `id` across records) → stderr `Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.` → exit 1
 - `tracker.json` contains malformed JSON → stderr `Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.` → exit 1
 - `tracker.json` exists but is not readable (permissions) → stderr `Error: Could not read tracker data: permission denied.` → exit 1
 - Write fails (disk full, permissions) → stderr `Error: Could not save tracker data: <reason>.` → exit 1
@@ -343,6 +350,9 @@ Updated:     2026-04-27T15:00:00Z
 - Description is not validated for length (no maximum)
 - Description is not trimmed; stored verbatim
 - Description may contain newlines (`\n`). In `show` output, the first line follows the `Description:` label; each subsequent line is indented by 13 spaces to align with the value column. In `list` output, description is never shown.
+- Description may NOT contain any other control character (Unicode general category `Cc`): no carriage return (`\r`), tab (`\t`), NUL, BEL, ESC, DEL, or C1 controls. Rejected at create time with `Error: Description cannot contain control characters other than newline.` and at load time as corrupt data. Rationale parallels title (Edge Cases / Title) and labels (Edge Cases / Labels): description flows to the same `show` rendering pipeline that emits to stdout, and an unescaped ESC byte enables terminal-escape injection. Newline is carved out because the spec explicitly permits multi-line descriptions for `show` continuation rendering.
+- For multi-line descriptions, `\r\n` is normalized to `\n` before splitting in `show` output so a CRLF-stored description (e.g., pasted from a Windows source) renders without a stray `\r` in the first line. Stored descriptions with bare `\r` or `\r\n` are rejected at create time per the control-character rule above; the normalization defends against legacy stored data and round-trips from external editors.
+- Bidi control characters (Unicode general category `Cf`, e.g., U+202E, zero-width joiners) are NOT rejected. Same out-of-threat-model posture as titles and labels (single-user local CLI; risk owner: director). Cross-reference Red Team R6 F3 / R8 (Trojan-Source acceptance).
 
 ### Labels (additional)
 

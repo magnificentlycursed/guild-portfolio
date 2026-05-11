@@ -281,39 +281,39 @@ Unit tests:
 **Goal:** The user can add a description when creating an issue, view full issue details, and delete issues.
 
 **Acceptance Criteria:**
-- [ ] `tracker create "Fix bug" --description "Auth token expires too soon"` stores description verbatim in `tracker.json`
-- [ ] `tracker create "Fix bug" --description ""` exits 1, stderr `Error: Description cannot be empty.`
-- [ ] `tracker create "Fix bug" --description "  "` exits 1, stderr `Error: Description cannot be empty.`
-- [ ] `tracker create "Fix bug"` (no flag) stores no `description` field (absent, not null or empty string)
-- [ ] `tracker show 1` exits 0, stdout shows all fields: ID, Title, Status, Priority, Labels (comma-separated or `(none)`), Description (verbatim or `(none)` if absent), Created, Updated
-- [ ] `tracker show 1` label column is right-padded to 13 characters so values align
-- [ ] `tracker show 1` with a multi-line description: first line follows `Description:` label; each continuation line is indented by 13 spaces
-- [ ] `tracker show 1` displays full untruncated title and labels (no truncation, unlike list)
-- [ ] `tracker show abc` exits 1, stderr `Error: 'abc' is not a valid issue ID. Expected a positive integer.`
-- [ ] `tracker show 0` exits 1, stderr `Error: '0' is not a valid issue ID. Expected a positive integer.`
-- [ ] `tracker show 99` (not found) exits 1, stderr `Error: Issue #99 not found.`
-- [ ] `tracker delete 1` exits 0, prints `Deleted issue #1.`, and removes the issue from `tracker.json`
-- [ ] After `tracker delete 1`, `tracker show 1` exits 1 with not-found error
-- [ ] After deleting issue #1 and creating a new issue, the new issue gets ID #3 (or `max(remaining)+1`), never re-using `#1`
-- [ ] `tracker delete abc` exits 1, stderr `Error: 'abc' is not a valid issue ID. Expected a positive integer.`
-- [ ] `tracker delete 99` exits 1, stderr `Error: Issue #99 not found.`
-- [ ] All other issues are unchanged after a delete
-- [ ] Description is never shown in `tracker list` output
+- [x] `tracker create "Fix bug" --description "Auth token expires too soon"` stores description verbatim in `tracker.json`
+- [x] `tracker create "Fix bug" --description ""` exits 1, stderr `Error: Description cannot be empty.`
+- [x] `tracker create "Fix bug" --description "  "` exits 1, stderr `Error: Description cannot be empty.`
+- [x] `tracker create "Fix bug"` (no flag) stores no `description` field (absent, not null or empty string)
+- [x] `tracker show 1` exits 0, stdout shows all fields: ID, Title, Status, Priority, Labels (comma-separated or `(none)`), Description (verbatim or `(none)` if absent), Created, Updated
+- [x] `tracker show 1` label column is right-padded to 13 characters so values align
+- [x] `tracker show 1` with a multi-line description: first line follows `Description:` label; each continuation line is indented by 13 spaces
+- [x] `tracker show 1` displays full untruncated title and labels (no truncation, unlike list)
+- [x] `tracker show abc` exits 1, stderr `Error: 'abc' is not a valid issue ID. Expected a positive integer.`
+- [x] `tracker show 0` exits 1, stderr `Error: '0' is not a valid issue ID. Expected a positive integer.`
+- [x] `tracker show 99` (not found) exits 1, stderr `Error: Issue #99 not found.`
+- [x] `tracker delete 1` exits 0, prints `Deleted issue #1.`, and removes the issue from `tracker.json`
+- [x] After `tracker delete 1`, `tracker show 1` exits 1 with not-found error
+- [x] After deleting issue #1 and creating a new issue, the new issue gets ID #3 (or `max(remaining)+1`), never re-using `#1`
+- [x] `tracker delete abc` exits 1, stderr `Error: 'abc' is not a valid issue ID. Expected a positive integer.`
+- [x] `tracker delete 99` exits 1, stderr `Error: Issue #99 not found.`
+- [x] All other issues are unchanged after a delete
+- [x] Description is never shown in `tracker list` output
 
 **Manual Testing Checklist:**
-- [ ] Happy path: `tracker create "Fix auth" --description "Token expires after 1 hour"` → `tracker show 1` displays all fields correctly
-- [ ] No description: create without `--description` → `tracker show` shows `Description: (none)`
-- [ ] No labels: issue with no labels → `tracker show` shows `Labels:      (none)`
-- [ ] Multi-line description: create with description containing a newline (`$'line1\nline2'` in shell) → `tracker show` indents continuation line by 13 spaces
-- [ ] Show alignment: verify all value columns align at the same horizontal position (13-char label column)
-- [ ] Show is non-mutating: `tracker show 1` twice produces identical output; `tracker.json` unchanged
-- [ ] Delete: `tracker delete 2` → `Deleted issue #2.` → `tracker list` no longer shows #2 → `tracker show 2` → not-found error → `tracker.json` does not contain issue #2
-- [ ] ID not reused: delete issue #2, create new issue → new ID is #3 (or higher, never #2)
-- [ ] Other issues unchanged after delete: `tracker show 1` after `tracker delete 2` shows issue #1 intact
-- [ ] Error — empty description: `tracker create "Test" --description ""` → exit 1
-- [ ] Error — show invalid ID: `tracker show 0` and `tracker show abc` → exit 1
-- [ ] Error — delete not found: `tracker delete 99` → exit 1
-- [ ] Persistence: create with description, reinstall binary, `tracker show` → description intact
+- [x] Happy path: `tracker create "Fix auth" --description "Token expires after 1 hour"` → `tracker show 1` displays all fields correctly
+- [x] No description: create without `--description` → `tracker show` shows `Description: (none)`
+- [x] No labels: issue with no labels → `tracker show` shows `Labels:      (none)`
+- [x] Multi-line description: create with description containing a newline (`$'line1\nline2'` in shell) → `tracker show` indents continuation line by 13 spaces
+- [x] Show alignment: verify all value columns align at the same horizontal position (13-char label column)
+- [x] Show is non-mutating: `tracker show 1` twice produces identical output; `tracker.json` unchanged
+- [x] Delete: `tracker delete 2` → `Deleted issue #2.` → `tracker list` no longer shows #2 → `tracker show 2` → not-found error → `tracker.json` does not contain issue #2
+- [x] ID not reused: delete issue #2, create new issue → new ID is #3 (or higher, never #2)
+- [x] Other issues unchanged after delete: `tracker show 1` after `tracker delete 2` shows issue #1 intact
+- [x] Error — empty description: `tracker create "Test" --description ""` → exit 1
+- [x] Error — show invalid ID: `tracker show 0` and `tracker show abc` → exit 1
+- [x] Error — delete not found: `tracker delete 99` → exit 1
+- [x] Persistence: create with description, reinstall binary, `tracker show` → description intact
 
 **Red Gate — tests to write first:**
 

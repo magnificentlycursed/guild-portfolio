@@ -1694,3 +1694,395 @@ The Layer 5 implementation is in spec compliance and ready to merge after the do
 3/3 Round-1 SO findings Resolved by commit `7f9bae4`. 0 new findings this round. Layer 5 SO compliance is closed. Layer 5 ready to merge from the SO lens once VDD-IAR R14 confirms the suite-level merge gate.
 
 **Coordination:** *(none — closure pass)*
+
+---
+
+## Review 20 — 2026-05-11 01:07Z
+
+**Round:** SO Review 20 (Layer 6 — Description + Show + Delete)
+**Scope:** Layer 6 spec compliance, scope creep, over-engineering, under-delivery, technology choices, assignment compliance. Two commits to evaluate: `4fb5e67` (Phase 2a Red Gate — 20 integration tests + 3 unit tests + 4 `todo!()` stubs: `validate_description`, `format_show_block`, `cmd_show`, `cmd_delete`) and `c91676a` (Phase 2b — all four stubs replaced; `cmd_create` wires `--description` through; TODO.md ACs flipped).
+**Reference:** `DESIGN.md` Feature 1 / Feature 4 / Feature 5 / Data Model / Interface / "Show output format" / Edge Cases / Description / D1 ("Approved Deviations from Assignment"); `TODO.md` Layer 6 (lines 279-345); assignment Layer 6 ("Detail & delete: show full details; delete with confirmation").
+**Session note:** Cold session, fresh subagent. SO did not participate in Layer 6 scoping or implementation. `cargo test --no-fail-fast --locked` → 159 passing, 0 failing.
+
+---
+
+### Compliance table — Layer 6 acceptance criteria
+
+| AC (TODO.md lines 283-301) | Status | Evidence |
+|---|---|---|
+| `--description "..."` stores verbatim | Met | `tests/layer6.rs:23-41` `create_with_description_stores_verbatim`; `src/lib.rs:335-340` `validate_description` returns input un-trimmed; `cmd_create` writes the value at `src/lib.rs:237-240`. |
+| `--description ""` → empty error exit 1 | Met | `tests/layer6.rs:43-57` `create_with_empty_description_exits_one`. |
+| `--description "  "` → empty error exit 1 | Met | `tests/layer6.rs:59-73` `create_with_whitespace_description_exits_one`. |
+| no flag → description absent in JSON (not null/empty) | Met | `tests/layer6.rs:75-93` `create_without_description_has_no_field_in_json` asserts `obj.contains_key("description") == false`; `src/lib.rs:39` `#[serde(skip_serializing_if = "Option::is_none")]`. |
+| `tracker show 1` displays all fields | Met | `tests/layer6.rs:97-155` `show_displays_all_fields` asserts each of the eight labels; `src/lib.rs:350-387` `format_show_block`. |
+| 13-char right-padded label column | Met | Unit test `src/lib.rs:1101-1126` `show_label_column_right_padded_to_13`; `format_show_block` literal format string. |
+| multi-line description: continuation indented 13 spaces | Met | Unit test `src/lib.rs:1084-1099` `multiline_description_show_format`; integration `tests/layer6.rs:189-219` `show_multiline_description_indents_continuation`; `src/lib.rs:365-366` performs `\n` → `\n` + 13 spaces. |
+| `show` full untruncated title and labels | Met | `tests/layer6.rs:221-254` `show_does_not_truncate_title_or_labels`. |
+| `show abc` → invalid-ID error exit 1 | Met | `tests/layer6.rs:258-272` `show_invalid_id_string_exits_one`. |
+| `show 0` → invalid-ID error exit 1 | Met | `tests/layer6.rs:274-286` `show_zero_id_exits_one`. |
+| `show 99` → not-found error exit 1 | Met | `tests/layer6.rs:288-301` `show_not_found_exits_one`. |
+| `delete 1` → exit 0, `Deleted issue #1.`, JSON updated | Met | `tests/layer6.rs:305-316` `delete_exits_zero_and_prints_confirmation`; `tests/layer6.rs:318-332` `delete_removes_issue`; `src/lib.rs:422-433` `cmd_delete`. |
+| after `delete 1`, `show 1` → not found | Met | `tests/layer6.rs:334-349` `delete_then_show_returns_not_found`. |
+| deleted ID never reused (next = `max(remaining)+1`) | Met | `tests/layer6.rs:351-375` `delete_id_not_reused`; `src/lib.rs:88-92` `next_id` returns `max+1`; unit test `src/lib.rs:1128-1138` `max_id_plus_one_skips_deleted_ids`. |
+| `delete abc` → invalid-ID error exit 1 | Met | `tests/layer6.rs:412-424` `delete_invalid_id_exits_one`. |
+| `delete 99` → not-found error exit 1 | Met | `tests/layer6.rs:426-438` `delete_not_found_exits_one`. |
+| other issues unchanged after delete | Met | `tests/layer6.rs:377-408` `delete_other_issues_unchanged` — byte-identity assertion across pre/post snapshots. |
+| description never shown in `list` | Met | `tests/layer6.rs:442-465` `description_not_in_list_output`. |
+| Manual Testing Checklist (TODO.md lines 303-316) | **Unchecked** | 13/13 boxes still `[ ]`. Process state — see "Manual testing closure" below. |
+| `Cargo.toml` unchanged (no new deps) | Met | `git diff 727aef9..c91676a -- issue-tracker-cli/Cargo.toml issue-tracker-cli/Cargo.lock` returns empty. |
+| Test count: Layer 6 Red Gate plan = 18 int + 3 unit | Over by 2 | Actual: 20 int + 3 unit. See Cat B audit. Both extras (`create_with_whitespace_description_exits_one`, `delete_then_show_returns_not_found`) are AC-faithful coverage of ACs at TODO.md lines 286 and 296 that the Red Gate plan elided. |
+| No Layer 7 surface (color, `--help` polish) | Met | `src/main.rs` adds only `Show` / `Delete` variants and `--description` on `Create`; no `IsTerminal`, no color crate, no `--help` examples beyond clap's default. |
+
+All 18 implementation ACs are Met. The 13-item manual checklist remains unchecked — flagged as a process state for director closure before merge, consistent with the Layer 6 commit message's explicit deferral.
+
+---
+
+### Findings
+
+#### Finding 1: Manual Testing Checklist (TODO.md lines 303-316) is fully unchecked at the layer gate
+
+- **Dimension:** Dim 9 (Assignment compliance — manual testing methodology); "Manual testing closure" per the cold primer.
+- **Severity:** Low (process state, not a code defect).
+- **Evidence:**
+  - `TODO.md:303-316`: 13 manual testing items, all `[ ]`. None are ticked by `c91676a`.
+  - `c91676a` commit message explicitly states: "Manual Testing Checklist is intentionally left unchecked — VSDD Phase 2 completion requires human verification, not satisfied by automated tests."
+  - `DESIGN.md:373` Testing Methodology: "Each layer must be manually tested before the layer gate closes."
+  - Prior layers' closure: Layer 1-5 checklists are all `[x]` at merge time (e.g., `TODO.md:31-39` for Layer 1, `TODO.md:255-261` for Layer 5).
+- **Rationale:** Consistent with the pattern from prior layers (manual checklist is ticked just before merge, not at Phase 2b commit). Surfacing the state for the director's awareness; not a Phase 2 implementation defect. The commit author is honest about leaving it pending.
+- **Classification:** Open — process item for director closure before Layer 6 merge.
+- **Proposed action:** Director executes the 13 manual checklist items against the merged binary, then ticks the boxes in a single TODO.md commit (matching the Layer 5 `da0fd8d` shape).
+- **Spec-creep evaluation:** None.
+
+---
+
+#### Finding 2: `format_show_block` silently normalizes stored `\r\n` to `\n` before rendering — not specified by DESIGN.md
+
+- **Dimension:** Dim 2 (Scope creep — silent data-display transformation), Dim 7 (Design fidelity).
+- **Severity:** Low.
+- **Evidence:**
+  - `src/lib.rs:365`: `let normalized = d.replace("\r\n", "\n");` — every `\r\n` pair in a stored description is replaced with `\n` before the continuation-indent substitution.
+  - `DESIGN.md:345` Edge Cases / Description: "Description may contain newlines (`\n`). In `show` output, the first line follows the `Description:` label; each subsequent line is indented by 13 spaces to align with the value column." The spec names `\n` only; `\r\n` is not mentioned.
+  - `DESIGN.md:344` Edge Cases / Description: "Description is not trimmed; stored verbatim." This binds storage but the show *rendering* path is bound by line 345's "may contain newlines (`\n`)" phrasing, which is consistent with either (a) `\n`-only and `\r` treated as a literal byte, or (b) `\r\n` normalized. The spec does not pick.
+  - The implementation comment (`src/lib.rs:361-364`) self-justifies: "`\r\n` sequences are normalized to `\n` for splitting so a CRLF-stored description renders without a stray `\r` in the first line."
+  - The transformation is display-only — `tracker.json` is unchanged; subsequent `show` runs re-normalize on each render. So this is a display contract, not a storage contract.
+  - Tests do not cover the `\r\n` path. `tests/layer6.rs:189-219` only exercises `"line1\nline2"`.
+- **Rationale:** The spec is silent on `\r\n`. The implementation picks a reasonable behavior (defend against a CRLF-stored description from a hand-edited Windows-line-ending `tracker.json`), but the choice is not anchored in DESIGN.md. Two options exist for closure: (a) ratify the behavior with a DESIGN.md sentence ("`\r\n` is normalized to `\n` for display"), or (b) remove the normalization and let `\r` pass through as a literal character (consistent with "stored verbatim" rendering). Option (a) is the cheaper resolution and matches the implementation. Option (b) preserves the "verbatim" principle but introduces a surprise to a CRLF user.
+- **Classification:** Open — Raised to SO for adjudication. The defect is a small spec gap, not an implementation bug.
+- **Proposed action:** Amend `DESIGN.md` Edge Cases / Description (line 345) to add: "Stored `\r\n` sequences are normalized to `\n` for `show` display so a CRLF-stored description does not render a stray `\r` on the first line; storage is unchanged." Alternatively, remove the `\r\n` → `\n` replace and let `\r` pass through (lower-cost code change, but a worse user experience for hand-edited tracker.json on Windows).
+- **Spec-creep evaluation:** Low-grade scope creep at the rendering layer — the implementation does something the spec does not specify. Categorically distinct from the SO R18 F1 anticipatory-comment creep, which named an out-of-scope *future feature*; this one silently transforms display output. Both are documentation-class clears.
+
+---
+
+#### Finding 3: `validate_description` does not constrain control characters; raw ESC bytes in a stored description reach the terminal verbatim through `tracker show`
+
+- **Dimension:** Dim 1 (Spec coverage — interaction with the stderr-contract escape rationale), Dim 9 (Assignment compliance — security stance).
+- **Severity:** Low (spec-conformant under-delivery, by SO read).
+- **Evidence:**
+  - `DESIGN.md:38` Feature 1 error states: "`--description` value is empty or whitespace-only after trim → stderr `Error: Description cannot be empty.` → exit 1." Description has no control-character preclusion in the spec.
+  - `DESIGN.md:343-345` Edge Cases / Description: empty/trim rules + length unspecified + "Description is not trimmed; stored verbatim" + multi-line support. Control characters are not mentioned for description (in contrast to title at `DESIGN.md:293` and label at `DESIGN.md:309`, which explicitly reject Cc characters with terminal-escape rationale).
+  - `src/lib.rs:335-340` `validate_description` enforces only empty-after-trim. No control-char or ESC check.
+  - `src/lib.rs:125-139` `issue_fields_are_valid` does not check description for control characters either: `issue.description.as_ref().is_none_or(|d| !d.trim().is_empty())`.
+  - `cmd_show` prints `format_show_block` output to stdout via `print!` — a stored description containing ESC `0x1B` will emit a literal escape sequence to the terminal.
+  - Rationale gap: the stderr-contract escape rule (`DESIGN.md:215`) names "the error stream" specifically and excludes data output. Description is data, not error text — so the spec does not bind it. Title/label control-char prohibition is bound to the `list` one-issue-per-line contract — description is *not* shown in `list` (verified by `description_not_in_list_output`), so the `list`-line-break rationale also does not apply. The threat is therefore confined to `tracker show <id>`: a tracker.json containing a description with an ANSI escape sequence will render through the user's terminal as the user's terminal interprets it.
+- **Rationale:** This is a **spec-conformant under-delivery**: the spec deliberately permits newlines in description, so a broader control-character prohibition would contradict line 345. The threat model (DESIGN.md `Cf`-class rationale at line 314: "single-user local tool: the threat surface is bounded to the user attacking themselves with hand-pasted clipboard content or a hand-edited `tracker.json`") arguably covers description too — but Cc characters are categorically more dangerous than Cf characters (terminal escape vs. visual confusion), and the spec's silence on description-Cc is a gap that other domain reviewers may flag (Security R9, Red Team R8). SO surfaces it as a spec-coverage observation, not a Layer 6 implementation defect.
+- **Classification:** Open — Raised to SO/Security/Red Team for cross-domain adjudication. Two resolutions exist: (a) accept-and-document (add an Edge Cases / Description bullet stating description-Cc is out-of-threat-model parallel to the `Cf` stance at line 314), or (b) tighten the spec to reject ESC / Cc-minus-newline in description (analogous to title/label) and add a corresponding `validate_description` check.
+- **Proposed action:** Defer to Security R9 / Red Team R8 for threat-model adjudication. If accepted-as-risk, amend `DESIGN.md` Edge Cases / Description to add a bullet parallel to line 314 explicitly placing Cc-minus-newline-in-description out-of-threat-model with the same single-user / multi-user re-evaluation trigger. If tightened, add Cc-minus-`\n` check to `validate_description` and `issue_fields_are_valid`, plus tests.
+- **Spec-creep evaluation:** Neither creep nor under-delivery against the literal spec — but a coordination item for the Security / Red Team cold-batch in this round.
+
+---
+
+### Spec-creep audit (Dim 2 — additions not in DESIGN.md or TODO.md Layer 6)
+
+Walked the Layer 6 diff (`727aef9..c91676a`) for additions outside Layer 6's named scope:
+
+- **`validate_description`** (`src/lib.rs:335-340`): directly required by DESIGN.md Feature 1 error state line 38. Not creep.
+- **`format_show_block`** (`src/lib.rs:350-387`): directly required by DESIGN.md "Show output format" lines 245-270. The `\r\n` normalization is Finding 2.
+- **`cmd_show`** (`src/lib.rs:398-409`): directly required by DESIGN.md Feature 4. Not creep.
+- **`cmd_delete`** (`src/lib.rs:422-433`): directly required by DESIGN.md Feature 5. Non-interactive shape matches D1 — see Dim 9 audit below. Not creep.
+- **`Issue.description` field unchanged** — already present from Layer 1 with `skip_serializing_if`; Layer 6 only starts writing to it. Not creep.
+- **`Commands::Show` / `Commands::Delete` enum variants and `description: Option<String>` on `Create`** (`src/main.rs:14-55`): directly required by DESIGN.md Interface table line 207-211. Not creep.
+- **No new dependencies** in `Cargo.toml` or `Cargo.lock`. Confirmed unchanged by `git diff`.
+- **No Layer 7 surface leak:** no `IsTerminal`, no `colored` / `anstream` / `ansi_term` crate, no color application to status/priority, no manual `--help` examples added (clap defaults only). The `Delete` doc-comment in `src/main.rs:51` ("no confirmation; deleted IDs are never reused") is helpful contextual text that surfaces only through clap's auto-generated `--help`, which is Layer 7's polish; the wording is a single-line doc-comment, not a Layer 7 `--help` examples block. Border-acceptable; not creep.
+
+One creep-candidate detected: the `\r\n` normalization (Finding 2). No anticipatory code or comment in the Layer 6 diff names a Layer 7 / future feature.
+
+---
+
+### Assignment-compliance audit (Dim 9)
+
+**D1 — `tracker delete <id>` non-interactive (per DESIGN.md "Approved Deviations from Assignment")**
+
+- The implementation matches D1 exactly: `cmd_delete` (`src/lib.rs:422-433`) takes only the id, performs one-shot deletion, prints `Deleted issue #<id>.`, exits 0. No `[y/N]` prompt; no `--yes` flag (which would itself contradict D1's "no bypass flag" clause).
+- The `Delete` clap variant doc-comment (`src/main.rs:51`) reads: "Delete an issue (no confirmation; deleted IDs are never reused)" — this surfaces the deviation to the user via `--help`, anchoring the non-interactive contract in the user-facing surface.
+- **Re-evaluation trigger** (DESIGN.md line 420): "if the tool is used in a multi-user / shared context, reintroduce the confirmation requirement". Layer 6 does not change the threat model — still single-user / local. D1's rationale holds. No new argument for or against.
+- **Layer 6-specific question:** Does the implementation introduce any auxiliary safety net that compensates for the absent confirmation? Examined: no soft-delete, no archive, no `--dry-run`, no undo. The recovery path is exactly as D1 names it — "the user can restore the deleted record by editing the file directly." Consistent with the deviation rationale.
+
+D1 compliance: clean. No Dim 9 finding.
+
+**Assignment Layer 6 text vs. DESIGN.md:** Layer 6 assignment specifies "show full details; delete with confirmation". The `show` half is implemented in full (Feature 4). The `delete with confirmation` half is waived via D1 with director approval. The deviation is documented, dated, and has a re-evaluation trigger — proper assignment-compliance recordkeeping.
+
+---
+
+### Cat B Red Gate disposition audit
+
+The Phase 2a commit (`4fb5e67`) classifies:
+
+- **2 unit tests as Cat A** (fail against `todo!()`): `multiline_description_show_format`, `show_label_column_right_padded_to_13`.
+- **1 unit test as Cat B** (passes at Phase 2a): `max_id_plus_one_skips_deleted_ids`.
+- **18 integration tests as Cat A** (fail at runtime against `todo!()` stubs and the description-discarding `cmd_create`).
+- **2 integration tests as Cat B** (pass at Phase 2a): `create_without_description_has_no_field_in_json`, `description_not_in_list_output`.
+
+Auditing for honesty:
+
+1. **`max_id_plus_one_skips_deleted_ids` Cat B claim:** `next_id(&[1, 3])` returning `4` is the Layer 1 implementation behavior — `next_id` was written in Layer 1 to return `max(existing_ids) + 1` (`src/lib.rs:88-92`). At Phase 2a, the test compiles and passes against the unchanged `next_id`. **Honest.** Classification matches the SO R18 audit pattern (a Layer's AC is structurally emergent from a prior Layer's implementation; the test pins the contract for the new Layer's domain).
+2. **`create_without_description_has_no_field_in_json` Cat B claim:** The `Issue.description: Option<String>` field with `#[serde(skip_serializing_if = "Option::is_none")]` was present from Layer 1 (`git show 727aef9:issue-tracker-cli/src/lib.rs | grep description` confirms). At Phase 2a, `cmd_create` discards `description_raw` but still writes `description: None`, which serializes to no key. The test passes at Phase 2a. **Honest.**
+3. **`description_not_in_list_output` Cat B claim:** `cmd_list` has never rendered description (Layer 1's tabular columns are ID/Status/Priority/Labels/Title only). At Phase 2a, even with `description: None` discarding, the test still passes — no description text could reach stdout regardless. **Honest.**
+4. **No Phase 2a violation:** A Phase 2a violation would be a Layer 6 AC that exists at Phase 2a state without a unit test failing against the Phase 2a state. Every Layer 6 AC for description-storage, show-rendering, and delete-removal has a failing Cat A test at Phase 2a (the four `todo!()` stubs panic; `cmd_create` discards description). The Cat B emergent-from-prior-layer tests are regression coverage, not the sole assertion.
+5. **Consistency with prior layers:** Same shape as Layer 3 (`create_without_priority_defaults_to_medium`), Layer 4 (two Cat B), Layer 5 (multiple Cat B per SO R18 audit). Pattern is established and documented.
+
+**Cat B disposition: honest.** No mis-classification.
+
+---
+
+### Test obligation audit (Dim 4)
+
+- **Red Gate plan:** TODO.md lines 320-343 enumerates 18 integration + 3 unit tests for Layer 6.
+- **Actual:** 20 integration + 3 unit. Over by 2 integration tests.
+- **The two extras:**
+  - `create_with_whitespace_description_exits_one` (`tests/layer6.rs:59-73`) — covers TODO.md AC line 286 (`tracker create "Fix bug" --description "  "` exits 1). The Red Gate plan named only the empty-string variant (`create_with_empty_description_exits_one`); the whitespace variant is an AC-faithful twin test, identical to the Layer 1 / Layer 4 pattern of testing empty + whitespace separately.
+  - `delete_then_show_returns_not_found` (`tests/layer6.rs:334-349`) — covers TODO.md AC line 296 (after `delete 1`, `show 1` returns not-found). The Red Gate plan named `delete_removes_issue` and `delete_id_not_reused` but elided the delete-then-show composition AC. The extra test pins the cross-feature interaction.
+- **Verdict:** Both extras are AC-faithful coverage of ACs the Red Gate plan elided, not over-test or gold-plate. Marginal expansion (~30 LOC across both) for two real AC-mapped assertions. Within tolerance; same shape as SO R18 audit of Layer 5's "7 instead of 4" pattern.
+
+---
+
+### Hallucinated
+
+*(none this round — Findings 1-3 each survive the dismissal test below)*
+
+### Backlogged
+
+*(none this round)*
+
+### Dismissed
+
+*(none this round)*
+
+### Open
+
+- **F1** (manual checklist 13/13 unchecked) — process item for director closure before merge.
+- **F2** (`\r\n` → `\n` normalization in `format_show_block` not in DESIGN.md) — Raised to SO for adjudication (DESIGN.md amendment OR code rollback).
+- **F3** (description has no Cc-character constraint; ESC bytes reach terminal via `show`) — Raised to SO / Security R9 / Red Team R8 for threat-model adjudication.
+
+### Carry-forward (from prior rounds)
+
+- **SA R11 F1** (rendering half of `cmd_list` extraction) — Open per SO R19; deferred to focused pre-Layer-7 PR. Layer 6 does not touch the affected code; carry-forward unchanged.
+- **TW R7 F5** (PROCESS.md Layer 1-4 reflection blocks) — Resolved post-R17 by commit `a226d88` ("PROCESS.md Layer 1-4 developer reflections"). Closes the carry-forward.
+
+---
+
+### Summary
+
+3 Open findings, all Low severity. 0 Hallucinated. 0 Dismissed. 0 Backlogged. 0 Approved deviations.
+
+The Layer 6 implementation matches all 18 implementation ACs with passing tests (159/159 cargo test pass; clean clippy/fmt per commit message). The Cat B Red Gate disposition is honest and consistent with the SO R18 / prior-layer pattern. The two test count extras (20 int vs. 18 planned) are AC-faithful coverage of two TODO.md ACs the Red Gate plan elided. No new dependencies. No Layer 7 surface leak. D1 (non-interactive delete) compliance is clean; assignment-compliance documentation is in place.
+
+The three findings:
+- F1 is a *process state* (manual checklist), not a Phase 2 defect; consistent with the developer's explicit deferral in the Phase 2b commit message.
+- F2 is a *low-grade rendering-layer creep* (`\r\n` → `\n` not in DESIGN.md), resolvable by either ratification or removal.
+- F3 is a *spec-coverage gap* (description-Cc threat-surface), a coordination item for Security R9 / Red Team R8 in this round's cold-batch.
+
+None block Layer 6 closure from the SO lens. F2 is a single sentence in DESIGN.md or a 1-line code revert. F3 will likely be settled by Security R9's stance and a small Edge Cases / Description amendment in Round 2.
+
+**Sycophancy check (self-applied):** I tested whether each finding survives a dismissal attempt.
+
+- **F1 dismissal attempt:** "Manual checklists always close just before merge; flagging it is process pedantry." Counter: the SO domain's job is to track the spec-and-process contract. DESIGN.md line 373 names manual testing as a layer gate. The prior layers close the checklist *as part of* the layer's IAR round, not "always after". Flagging the state at the gate boundary is exactly the SO duty. Real finding (Low severity, process state).
+- **F2 dismissal attempt:** "`\r\n` normalization is obviously sensible; the spec just didn't enumerate every line-ending edge case." Counter: the spec mentions `\n` specifically (`DESIGN.md:345`). The implementation comment self-justifies the normalization, which is the tell — the author knew the spec doesn't bind it. Two layers of evidence (spec text + author's self-justification) confirm the gap. Same defect class as Layer 5 SO R18 F1 (code does something the spec doesn't name). Real finding.
+- **F3 dismissal attempt:** "Description-Cc is out-of-threat-model by parallel with the `Cf` rationale at DESIGN.md:314." Counter: the `Cf` rationale at line 314 is *labels*, not description, and Cc characters are categorically more dangerous than Cf (terminal-escape injection vs. visual confusion). The spec is silent on description-Cc; the silence is the gap. The parallel is plausible but not made explicit, which is the SO's job to flag. Real finding (coordination, not implementation).
+
+Each finding survived. The clean compliance table is real; the three findings are the residue.
+
+**Coordination:**
+- **Security Engineer (Security R9):** F3 (description-Cc threat surface) is in Security's wheelhouse. Recommend Security's pass either accept-as-risk with explicit DESIGN.md bullet, or tighten `validate_description` with a Cc-minus-`\n` check.
+- **Red Team (Red Team R8):** F3 is a candidate Red Team finding — terminal-escape injection through `show` for a hand-edited `tracker.json`. SO defers to RT's threat model.
+- **Data Engineer (DE R9):** F2 (`\r\n` normalization) intersects with stored-form-vs-rendered-form fidelity. DE may have an opinion on whether storage-faithful rendering is a stronger principle than display-clean rendering.
+- **Software Engineer (SE R15):** Owns the implementation choice on F2 if option (b) (remove normalization) is adjudicated.
+- **Technical Writer (TW R9):** F2 may be resolvable by a DESIGN.md amendment (TW co-owns).
+- **Director (SO authority):** F1 is a TODO.md tick after manual execution. F2 / F3 may need DESIGN.md amendments — SO authority. Recommended action: settle F2/F3 in Round 1 cross-domain adjudication; close F1 by manual checklist execution before merge.
+
+The Layer 6 implementation is in spec compliance and merge-ready from the SO lens after F1 is closed by manual testing and F2/F3 are adjudicated in Round 2.
+
+---
+
+## Review 21 — 2026-05-11 02:00Z
+
+**Round:** SO Review 21 (Round-2 SO adjudication for Layer 6 IAR closure)
+**Scope:** Spec amendments + cross-domain finding adjudications for the Round-1 Open cluster.
+**Session context:** Director-orchestrated warm-resolution session; not adversarial-cold per CLOSURE-PROTOCOL.md Section 5 step 3.
+
+### Adjudications
+
+- **R20 F1 (manual testing 13/13 unchecked):** **Open / Pending Director.** Same standard as Layer 4 R11 F2 / Layer 5 final closure — execute the 13 items + commit before merge per `b0a3789` / `da0fd8d` precedent.
+- **R20 F2 (`\r\n` → `\n` normalization undeclared in DESIGN.md):** **Resolved as spec ratification.** DESIGN.md "Show output format" now declares the normalization with rationale.
+- **R20 F3 / Security R9 F1 / RT R8 F1 / DE R9 F1 / SE R15 F1 / QE R15 F2 (description Cc defense — convergent across 7 domains):** **Resolved as Option-A (Layer 4 R2 lineage replay).** Defend at create + load + spec, mirroring the Layer 4 label hardening. DESIGN.md Feature 1 + Edge Cases / Description amended; `validate_description` + `description_is_valid` extended; 12 integration + 10 unit tests added. Same resolution closes the cluster across 7 domains.
+- **RT R8 F2 (Trojan-Source / Cf in description):** **Accepted Risk** per spec ratification. Same posture as RT R6 F3 for title/labels (single-user local-CLI threat model; risk owner: director). DESIGN.md Edge Cases / Description explicitly enumerates the Cf accepted-risk stance.
+- **SA R13 F1 (CreateArgs + module-split tripwires fired):** **Split decision** — Trigger A (CreateArgs refactor) **Resolved inline**; Trigger B (`src/lib.rs` storage/validate/commands split) **Deferred to pre-Layer-7 focused PR** bundled with SA R11 F1 + SA R13 F2. The CreateArgs refactor was specifically scheduled "at the layer that adds the next create flag" by SA R7 F4 / R8 F4 / R10 — Layer 6 is that moment, so it lands now. The module split is real architectural work that benefits from its own focused PR with test scaffolding.
+- **QE R15 F1 (over-padding mutation):** **Resolved** by `show_renders_exact_full_block_for_single_line_issue` (full-line equality across all 8 rendered rows).
+- **QE R15 F3 (verbatim-storage half untested):** **Resolved** by `create_preserves_description_verbatim_with_surrounding_whitespace` + unit equivalent.
+- **SE R15 F2 / DE R9 F2 (bare `\r` overprint):** **Resolved** — subsumed by the broader Cc-except-`\n` rejection rule.
+- **UX R8 F1 / TW R9 F2 (`show` / `delete` `--help` depth):** **Resolved** by expanded doc-comments in `src/main.rs`.
+- **TW R9 F1 (CHANGELOG missing Layer 6):** **Resolved** by Layer 6 retrospective + Round-2 closure entry in CHANGELOG.md.
+- **TW R9 F3 (portfolio README stale across L5+L6):** **Resolved** — Layer 5 → ✅ Complete, Layer 6 → 🟡 In IAR Round 2.
+- **TW R9 F4 (manual checklist unchecked):** Same as R20 F1. **Open / Pending Director.**
+
+### Open
+
+- **R20 F1 / VDD-IAR R15 F1 / TW R9 F4** — Layer 6 manual testing checklist. Director action.
+
+### Backlogged / Dismissed / Hallucinated
+
+*(none this round)*
+
+### Summary
+
+10 Round-1 cross-domain Open findings closed inline in commit `9b775f0`. 1 Accepted Risk (RT R8 F2). 2 architectural concerns Deferred to pre-Layer-7 focused PR (SA R11 F1 + SA R13 F2 rendering; SA R13 F1 Trigger B module split). 1 Open process finding pending director action. DESIGN.md amendments are non-creep — they ratify the description-Cc defense that the title and label hardenings already established at Layers 1 and 4.
+
+**Coordination:**
+- **VDD-IAR R16:** Verify Round-2 closure cadence + Open F1 disposition. Merge-gate verdict pending F1 closure.
+- **Director:** Execute 13 manual checklist items; commit per `b0a3789` / `da0fd8d` precedent.
+
+---
+
+## Review 22 — 2026-05-11 03:36Z
+
+**Round:** SO Review 22 (Round-3 director-raised finding from Layer 6 manual testing)
+**Scope:** A single director-raised finding from manual-testing execution against the Layer 6 binary (TODO.md:303-316 checklist). The finding is a spec-vs-implementation defect surfaced by manual test item line 311 ("ID not reused: delete issue #2, create new issue → new ID is #3 (or higher, never #2)"). Scope is bounded to this defect; the rest of the checklist is not in scope this round.
+**Reference:** `DESIGN.md` Feature 1 invariants (line 47), Feature 5 invariants (line 152), Data Model field invariants (line 176); `TODO.md` Layer 6 manual test line 311; `tests/layer6.rs:351-375` `delete_id_not_reused`; `src/lib.rs:88-92` `next_id`; `src/lib.rs:456-478` `cmd_delete`; SA Review 3 Finding 3 (`SOLUTION-ARCHITECT-REVIEW.md:47-53`) — the architectural decision under whose lineage this defect sits.
+**Session context:** Warm session — same orchestrator session that diagnosed the failure from the director's manual-test transcript. **Sycophancy guard explicit:** I diagnosed and proposed this finding to the director before being asked to raise it. SO's job in this round is to verify the finding survives a dismissal attempt without softening, not to ratify my own diagnosis. The dismissal-test pass is recorded at the end of this entry.
+
+---
+
+### Finding 1: `next_id` reuses the deleted ID when the deleted issue was the highest — violates DESIGN.md "never reused" invariant in three places
+
+- **Dimension:** Dim 1 (Spec coverage — invariant not enforced), Dim 5 (Under-delivery — Layer 6 AC for non-reuse partially fails), Dim 7 (Design fidelity — implementation contradicts spec text).
+- **Severity:** Medium. The defect is a real spec violation, not a doc-only gap; but the impact in this tool's single-user threat model is low (IDs are referenced only in the tracker's own output, per SA R3 F3 rationale).
+
+**Reproduction (director's manual-test transcript, condensed):**
+
+```
+$ rm tracker.json
+$ tracker create "First"   → Created issue #1: First
+$ tracker create "Second"  → Created issue #2: Second
+$ tracker delete 2         → Deleted issue #2.
+$ tracker create "Third"   → Created issue #2: Third    ← BUG: id=2 reused
+$ cat tracker.json | grep '"id"'
+    "id": 1,
+    "id": 2,
+```
+
+The reused id=2 was the id of the just-deleted issue. TODO.md:311 explicitly requires "(or higher, never #2)".
+
+**Spec text the implementation violates (three citations):**
+
+- `DESIGN.md:47` Feature 1 Invariants: "IDs are assigned in strictly ascending order and are never reused, **including after deletion**."
+- `DESIGN.md:152` Feature 5 Invariants: "The deleted ID is never reused; the next created issue receives `max(remaining_ids) + 1`, **which will always be greater than the deleted ID**."
+- `DESIGN.md:176` Data Model field invariants: "`id` is unique across all issues **and never reused**."
+
+The Feature 5 sub-claim that "`max(remaining_ids) + 1` … will always be greater than the deleted ID" is provably false. Counter-example: state `[#1, #2]`; delete `#2`; remaining = `[#1]`; `max(remaining) + 1 = 2`; the new issue receives `id=2` — equal to the deleted id, not greater.
+
+**Implementation evidence:**
+
+- `src/lib.rs:88-92` `next_id` computes `existing_ids.iter().max().copied().unwrap_or(0).checked_add(1)`. The function returns `max+1` against *currently-stored* IDs only. It has no knowledge of historically-assigned-then-deleted IDs.
+- `src/lib.rs:79-81` doc-comment: "IDs are never reused: the next ID is always strictly greater than all existing IDs, including those of deleted issues." This claim is wrong in the same direction as DESIGN.md:152 — `next_id` only sees *existing* (currently-stored) IDs; deleted IDs are not in the input.
+- `src/lib.rs:461-462` `cmd_delete` doc-comment self-justifies: "Deleted IDs are never reused: the next `create` assigns `max(remaining_ids) + 1`, which is strictly greater than any deleted ID." Same false claim — falls in the high-edge case.
+
+**Test-coverage hole (why automated tests did not catch this):**
+
+- `tests/layer6.rs:351-375` `delete_id_not_reused` exercises *only* the middle-gap case: create `#1`, create `#2`, delete `#1` (the lowest), create — asserts new id is `3`. After delete, remaining is `[#2]`; `max+1 = 3` ≠ deleted `1`. The test passes because the deleted id (1) is strictly less than `max+1` of the remaining set.
+- The high-edge case (delete the highest id, then create) is *never* exercised. Mutation analysis: a `next_id` implementation that returns `max(existing_ids) + 1` and a hypothetical implementation that returns "max id ever assigned + 1" produce identical results for the middle-gap reproduction — the test cannot distinguish them. The director's manual test is the first execution that fixes the deleted id at the high edge.
+- `src/lib.rs:1260-1269` unit test `max_id_plus_one_skips_deleted_ids` has the same hole — it asserts `next_id(&[1, 3]) == 4`, again middle-gap. It does not test `next_id(&[1])` after `[1, 2]` produced `2`.
+
+**Historical context (SA Review 3 Finding 3, `SOLUTION-ARCHITECT-REVIEW.md:47-53`):**
+
+SA R3 F3 simplified away a persistent `next_id: u64` storage field, reasoning: "ID non-reuse after deletion is meaningful when IDs are referenced externally (foreign keys, logs, URLs). In this tool, IDs appear only in the tracker's own output." SA's resolution: "Removed `next_id` from the storage file shape. ID assignment now specified as `max(existing_ids) + 1`, or `1` if the issue list is empty. **Delete invariant updated accordingly**."
+
+The "Delete invariant updated accordingly" step kept the "never reused" claim and added the `max(remaining_ids) + 1` formula — but did not notice that the formula does not preserve the invariant for high-edge deletion. The simplification was sound (the persistent counter was over-engineered for this threat model) but the spec text was not reconciled with the simpler implementation's actual behavior. SA R3 produced both DESIGN.md:152's false sub-claim and the current implementation; both ship in the merge candidate.
+
+**Why this is a real finding (sycophancy guard — dismissal attempts):**
+
+1. *"It's a documentation gap. The implementation does what most users will expect — IDs are unique among existing issues."* Counter: DESIGN.md states "never reused" in **three** independent places (lines 47, 152, 176). All three are invariant declarations, not casual prose. TODO.md:311 codifies the contract as a manual test. The Layer 6 acceptance criterion at TODO.md line 296 names "ID not reused" as one of the gate-closing checks. Three spec invariants + one acceptance criterion + one manual test is not a documentation gap — it is a contract.
+
+2. *"SA R3 F3 was approved; the implementation matches SA R3 F3's resolution."* Counter: SA R3 F3 said two things — (a) remove the persistent storage counter, and (b) update the delete invariant accordingly. (a) is correctly implemented. (b) is *not*: the delete invariant text still says "never reused" AND adds a false sub-claim. The implementation matches (a) and contradicts (b). SA's approval covers (a); it does not authorize the contradiction in (b).
+
+3. *"The single-user threat model SA R3 F3 named makes ID-reuse harmless."* Counter: the threat-model argument supports *removing the persistent counter*; it does not support *keeping the "never reused" promise while quietly reusing IDs*. If the spec said "IDs are unique among existing issues at any point in time," the current implementation would be compliant. The spec does not say that. The spec says "never reused, including after deletion." The director executing TODO.md:311 expects #3, not #2 — that expectation is what the spec text creates.
+
+4. *"The defect surfaces only at the high edge — practically rare."* Counter: rarity is not a defense for invariant violation. The director's first manual-test run hit it on a 2-issue tracker — not adversarial input, not a corner case 18.4 quintillion creates deep. The high-edge reproduction is two creates + one delete + one create.
+
+The finding survives all four dismissal attempts.
+
+**Classification:** **Open — Raised to SO for adjudication.** Two resolution paths, each internally coherent:
+
+- **Option A — Honor the contract (implementation change).** Re-introduce a persistent counter that is monotonically increasing across the lifetime of the tracker. Storage shape changes from `[issue, …]` to either `{"issues": [issue, …], "next_id": N}` or an out-of-band sidecar. `next_id` reads from storage instead of computing from existing ids. `load_issues` validates `next_id > max(stored_ids)`. Cost: storage schema break (no existing user data is at risk in this branch since `tracker.json` is gitignored, but the format change is real); reverses half of SA R3 F3's simplification (the half that is breaking the invariant); adds one persistent invariant that must be maintained on every write. Strengthens spec fidelity at the cost of SA R3 F3's simplicity argument.
+
+- **Option B — Weaken the contract (spec amendment).** Amend `DESIGN.md:47`, `DESIGN.md:152`, `DESIGN.md:176`, the `cmd_delete` doc-comment at `src/lib.rs:461-462`, the `next_id` doc-comment at `src/lib.rs:79-81`, and TODO.md:311 to state the *actual* behavior: "IDs assigned to currently-existing issues are unique; an ID equal to the id of the most-recently-deleted issue may be reassigned when that issue was the highest-id at delete time." Update the `delete_id_not_reused` test to remove the high-edge assertion and add a regression test pinning the high-edge *reuse* behavior. Cost: contradicts three invariant declarations the spec made in good faith; contradicts a Layer 6 acceptance criterion the director was about to tick; the assignment brief itself does not require either contract, but Option B is a spec retreat. Cheap in code (~5 spec edits, 1 test update, 0 implementation change) but expensive in contract integrity.
+
+**SO recommendation (subject to director override):** Option A. Rationale: the "never reused" invariant is stated in three places with explicit cross-references between Feature 5 and the Data Model field invariants — the spec was authored deliberately to lock this behavior. SA R3 F3's threat-model argument *supports the simplification* but does not *justify the spec retreat*; the simpler `max+1` implementation is a wrong answer to the question "how do you preserve non-reuse in a flat-file store," not a different answer to "do we need non-reuse at all." Option B is the spec capitulating to a buggy implementation, which is exactly the pattern the SO domain prompt warns against ("Quality does not justify scope … 'Better than asked for' is not a defense" — the inverse also holds: "less than promised, because the implementation found a shortcut" is not a defense). The storage-schema change in Option A is mechanical, scoped, and well-bounded; the test that already exists (`delete_id_not_reused`) extends to cover the high-edge case with one additional `tracker delete <highest> + tracker create` block.
+
+**Proposed action (if Option A approved):**
+- DESIGN.md: amend Data Model storage shape to include `next_id: u64`; specify load-time invariant `next_id > max(id)`; specify cmd_create / cmd_delete write semantics (`cmd_create` reads `next_id`, assigns it, writes `next_id + 1`; `cmd_delete` does not modify `next_id`).
+- `src/lib.rs`: introduce a `Tracker` struct (or equivalent) wrapping `{ issues: Vec<Issue>, next_id: u64 }`; refactor `load_issues` / `save_issues` to round-trip the new shape; refactor `next_id(&[u64])` either to take the stored counter or replace it with a method on the wrapper; add `checked_add` overflow defense (Security R4 F2 lineage); update `cmd_create` and `cmd_delete` call sites.
+- `tests/layer6.rs:351-375` `delete_id_not_reused`: extend to add a high-edge subcase — create #1, create #2, delete #2, create "Third"; assert new id is 3 (not 2).
+- `src/lib.rs:1260-1269` `max_id_plus_one_skips_deleted_ids`: rename and rewrite to match the new contract (either delete it or convert to test the persisted counter's monotonicity).
+- TODO.md:311: unchanged (the manual test was already correct; this is the test the director executed).
+- `cmd_delete` and `next_id` doc-comments: rewrite to match the persistent-counter contract.
+- CHANGELOG.md: Round-3 entry crediting the director's manual-testing finding; SA R3 F3 lineage acknowledged with the spec-vs-implementation reconciliation correction.
+
+**Proposed action (if Option B approved):**
+- DESIGN.md:47, :152, :176: rewrite the "never reused" claims to the weaker contract (uniqueness among existing issues; possible high-edge reuse).
+- `src/lib.rs:79-81`, `src/lib.rs:461-462` doc-comments: rewrite to match.
+- TODO.md:311: amend to remove the high-edge expectation OR delete the manual test outright.
+- `tests/layer6.rs:351-375`: rename `delete_id_not_reused` → `delete_id_not_reused_in_middle_gap`; add a paired test `delete_high_edge_id_may_be_reused` that pins the (now-spec-permitted) high-edge reuse.
+- CHANGELOG.md: Round-3 entry documenting the spec retreat with explicit acknowledgement of which invariants were weakened and why.
+- DECISIONS.md: new entry under "Layer 6 spec amendments — SO Review 22" recording the deliberate retreat from the original contract.
+
+**Coordination:**
+- **Solution Architect (SA — next round):** SA R3 F3's resolution authored the false sub-claim at DESIGN.md:152. If Option A is adjudicated, SA should record that R3 F3's threat-model argument supports the simplification but does not eliminate the non-reuse contract — the two are separable. If Option B is adjudicated, SA should record the retreat with the threat-model rationale promoted from "doesn't need external protection" to "the invariant itself is dropped."
+- **Software Engineer (SE — next round):** Owns the Option A implementation if approved. The change is small but touches the storage schema, which means `load_issues` / `save_issues` shape changes, plus a load-time invariant check that complements the existing `issue_fields_are_valid` and `issues_collection_invariants_hold` checks.
+- **Quality Engineer (QE — next round):** Owns the test extension for both options. The mutation-analysis observation (middle-gap-only coverage cannot distinguish `max+1` from "max-ever+1") is a Cat B Red Gate audit pattern that QE can record as a lessons-learned alongside the test extension.
+- **Data Engineer (DE — next round):** If Option A, the storage schema change is a DE concern. The shape `{issues: [...], next_id: N}` introduces a new load-time invariant (`next_id > max(issues.id)`) that intersects with the existing duplicate-id rejection in `issues_collection_invariants_hold`.
+- **Technical Writer (TW — next round):** If Option B, TW co-owns the spec-retreat documentation in CHANGELOG.md / DECISIONS.md; the retreat must be loud, not quiet.
+- **Director:** Adjudicates A vs. B. Closure expected in Round-4 (or as a same-round inline resolution if Option B and the spec edits are mechanical).
+
+---
+
+### Non-finding note: bonus verification (`--description "line1\rOVER"`)
+
+The director's session also reported a "bonus verification failed" for `tracker create "X" --description "line1\rOVER"` succeeding. This is **not a code defect.** zsh's double-quote rules do not interpret `\r` as carriage return — `"line1\rOVER"` is the literal 11-char string `line1\rOVER` (backslash + 'r'), which is not a control character. The `validate_description` Cc defense (R20 F3 / R21 cluster) correctly rejects an actual `\r` byte; the unit test `description_with_control_char_other_than_newline_is_rejected` (`src/lib.rs:1183-1193`) pins this with `validate_description("a\rb").is_err()` (Rust string-literal escape, which *does* produce a CR). The correct shell incantation to verify the Cc defense end-to-end is `tracker create "X" --description $'line1\rOVER'` (ANSI-C quoting), matching the pattern TODO.md:307 already uses for the multi-line newline check.
+
+The bonus item should be re-run with `$'...'` quoting to complete the manual checklist row. No code, spec, or test change.
+
+---
+
+### Open
+
+- **F1** (`next_id` reuses deleted high-edge id; violates "never reused" invariant) — **Raised to SO for adjudication; A vs. B decision pending director.**
+
+### Hallucinated / Backlogged / Dismissed
+
+*(none this round)*
+
+### Carry-forward (from prior rounds)
+
+- **SO R20 F1 / VDD-IAR R15 F1 / TW R9 F4** (Layer 6 manual testing checklist closure) — **partial progress this round.** The director executed at least items aligned with TODO.md:311 (the trigger for this finding) and the bonus row (resolved as a shell-quoting non-finding above). Full 13/13 closure remains pending.
+- **SA R11 F1 + SA R13 F1 Trigger B + SA R13 F2** (architectural deferrals to pre-Layer-7 focused PR) — unchanged.
+
+### Summary
+
+1 Open finding raised. 0 Hallucinated. 0 Dismissed. 0 Backlogged.
+
+The defect is a spec-vs-implementation contradiction that was latent through Layers 1-6 because the test coverage for non-reuse was scoped narrowly enough to miss the high-edge case. The director's manual execution of TODO.md:311 is the first execution that fixed the deleted id at the high edge and surfaced the gap. The finding has architectural lineage (SA R3 F3 simplified the persistent counter), test-coverage lineage (`delete_id_not_reused` only exercises middle-gap), and spec lineage (DESIGN.md:152's sub-claim is provably false). Two coherent resolutions exist; SO recommends Option A (honor the contract) over Option B (weaken the spec).
+
+**Layer 6 merge gate impact:** F1 blocks merge from the SO lens. The "never reused" promise is a Layer 6 acceptance criterion (TODO.md:296), not a Phase 2+ nice-to-have. Closure requires the director's A/B adjudication and the implementing change. If Option A: one SE round + one QE test extension. If Option B: one round of spec/test/doc edits with explicit retreat documentation.
+
+**Coordination:**
+- **Director (immediate):** Adjudicate Option A vs. Option B. Recommend Option A.
+- **VDD-IAR (next round):** This Round-3 finding extends the Layer 6 IAR cycle beyond Round-2 closure. VDD-IAR should record that the closure was incomplete — director-side manual testing surfaced a real defect that the four-domain Round-1 + adjudication Round-2 missed. The mutation-analysis blind spot in `delete_id_not_reused` is a QE-domain process datum; the spec-vs-implementation contradiction surviving Round 2 is a VDD-IAR-domain process datum. Both worth recording.

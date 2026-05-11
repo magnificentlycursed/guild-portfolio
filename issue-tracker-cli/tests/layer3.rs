@@ -17,7 +17,7 @@ fn create_with_priority_stores_correct_value() {
 
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
-    assert_eq!(v[0]["priority"], "high");
+    assert_eq!(v["issues"][0]["priority"], "high");
 }
 
 #[test]
@@ -27,7 +27,7 @@ fn create_without_priority_defaults_to_medium() {
 
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
-    assert_eq!(v[0]["priority"], "medium");
+    assert_eq!(v["issues"][0]["priority"], "medium");
 }
 
 #[test]

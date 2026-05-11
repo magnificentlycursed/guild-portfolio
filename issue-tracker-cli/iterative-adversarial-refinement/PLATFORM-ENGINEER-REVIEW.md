@@ -743,3 +743,103 @@ Carry-forward state from prior reviews is unchanged: Review 8 F3 (coverage) rema
 
 **Coordination:** None required. No cross-domain raises this session.
 
+---
+
+## Review 10 — 2026-05-11 01:09Z
+
+**Scope:** Layer 6 (description + show + delete) full-suite IAR pass on branch `issue-tracker-cli-compound-filtering` at commits `4fb5e67` (Red Gate) + `c91676a` (implementation). Primary lens: Layer 6 platform impact. Secondary: regression check on every gate landed in Reviews 1–9.
+
+**Session note:** Cold session per primer. Read PE Reviews 8 and 9 plus the post-Review-14 adjudication block; ran every Dim-listed verification.
+
+**Layer 6 platform-touched-files inventory:**
+
+`git diff origin/main...HEAD --name-only` returns exactly four paths — `issue-tracker-cli/TODO.md`, `issue-tracker-cli/src/lib.rs`, `issue-tracker-cli/src/main.rs`, `issue-tracker-cli/tests/layer6.rs`. **Zero** platform-owned files touched: `git diff origin/main...HEAD -- Cargo.toml Cargo.lock rust-toolchain.toml deny.toml .github/workflows/issue-tracker-cli.yml .pre-commit-config.yaml issue-tracker-cli/.pre-commit-hooks/check-no-home-paths.sh` produces zero lines of diff. Layer 6 introduced **no new dependencies, no toolchain change, no CI step change, no `deny.toml` policy change, no hook change**.
+
+**Dimension-by-dimension audit:**
+
+- **Dim 1 — Build system changes:** None. Verified via the seven-path `git diff` above.
+- **Dim 2 — Dependency surface:** None. `Cargo.lock` byte-identical to `origin/main`. No new crates pulled in; `cargo audit`'s "100 crate dependencies" matches Review 9's count exactly.
+- **Dim 3 — Toolchain pinning:** `rust-toolchain.toml` still pins `channel = "1.94.1"` with `clippy` + `rustfmt` components. Unchanged.
+- **Dim 4 — `cargo audit`:** `cargo audit` exit code 0; "Loaded 1068 security advisories"; "Scanning Cargo.lock for vulnerabilities (100 crate dependencies)"; no advisory output emitted. 0 advisories.
+- **Dim 5 — Build verification (all four reproduced locally):**
+  - `cargo build --locked --all-targets`: `Finished dev profile [unoptimized + debuginfo] target(s) in 0.14s` — clean.
+  - `cargo test --locked`: 159/159 pass (48 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4 + 7 layer5 + 20 layer6 + 0 doc-tests). Matches the c91676a commit message claim exactly.
+  - `cargo clippy --all-targets --locked -- -D warnings`: clean, no output.
+  - `cargo fmt --check`: clean, no output.
+- **Dim 6 — Hooks:** Pre-commit hooks active and unmodified. The 4fb5e67 and c91676a commit messages do not contain `--no-verify`, `[skipped]`, or any "hook bypass" pattern. The two Layer 6 source files modified are `.rs` and trigger the `cargo-fmt-check` hook on the project; the fact that `cargo fmt --check` is locally clean confirms the hook would pass on these commits. `detect-private-key`, `no-commit-to-branch`, `no-home-dir-paths`, and the IAR `review-log-anonymization` hook all unchanged at `.pre-commit-config.yaml` rev `v5.0.0` / local script paths.
+- **Dim 7 — CI compatibility / OS portability:** CI matrix runs `ubuntu-latest` only — single OS, no Windows or macOS leg. The PE Review 10 brief's specific concern (multi-line description test stability on Windows under `\r\n` normalization) is addressed at the implementation level (`src/lib.rs:365` `let normalized = d.replace("\r\n", "\n");`) and is **not** a CI concern at the matrix's current shape. Even if a Windows leg were added later, the `show_multiline_description_indents_continuation` test (`tests/layer6.rs:189–219`) passes a literal `"line1\nline2"` via `assert_cmd` which delivers it verbatim to the binary's argv (no shell intermediation, no CRLF transformation), and `assert_cmd::Output.stdout` is `Vec<u8>` captured raw with no newline mangling — the assertion `out.contains("\n             line2")` would hold on Windows because Rust's `println!` macro emits `\n` on every platform unless the binary explicitly opts into CRLF (it does not). No portability finding.
+
+**Self-test via dismissal (per primer):**
+
+I considered raising the absence of a Windows CI leg as a finding given Dim 7's framing in the brief. Dismissed: the SO-adjudicated portfolio scope (PE Review 9 carry-forward state, SO Review 14 dispositions) sets `ubuntu-latest`-only as deliberate; adding a Windows leg would be a Layer 8+ distribution-readiness item adjacent to the `LICENSE-MIT` / `LICENSE-APACHE` text-file gap flagged in Review 8.4. Not a Layer 6 regression. Also considered: does the `replace("\r\n", "\n")` mid-string normalization in `format_show_block` mishandle a lone `\r` (CR-only, classic-Mac line ending)? Dismissed: that line ending is effectively extinct, and a lone `\r` would render in show as a control char in the first line only — a presentation issue, not a Platform-domain concern. Surfaced to UX/SE if they choose to widen normalization.
+
+### Open
+
+*(none)*
+
+### Resolved
+
+*(none — no fixes applied this session; nothing to fix)*
+
+### Deferred
+
+*(none)*
+
+### Dismissed
+
+The "no Windows CI leg" and "lone `\r` normalization" concerns described in the self-test paragraph above are dismissed with stated reasoning; recording here for traceability per the primer's "dismissing without verification" failure mode.
+
+### Hallucinated
+
+*(none — no findings raised this session)*
+
+### Summary
+
+**Layer 6 is platform-clean.** Zero findings, zero open items, zero regressions. Layer 6 (description + show + delete) was implemented as a pure `src/**` + `tests/**` + `TODO.md` change — no new crates, no toolchain bump, no CI/workflow modification, no hook modification, no `deny.toml` policy change. Every gate installed by Reviews 1–9 remains in place and passes locally for the checks reproducible without `cargo-deny` installed on the dev machine (`cargo build --locked --all-targets`, `cargo test --locked` 159/159, `cargo clippy --all-targets --locked -- -D warnings`, `cargo fmt --check`, `cargo audit` exit 0 on 100 crates).
+
+Carry-forward state from prior reviews is unchanged: Review 8 F3 (coverage) remains Backlogged by SO Review 14; Review 8 F7 (CI secret scanning) remains Dismissed by SO Review 14. Layer 6 did not move LOC past the F3 ~1000-LOC source re-raise threshold (the diff is +634 across two implementation commits, of which 465 lines are tests; current source LOC well under 1000) and did not change the threat model (still no network, still no credentials).
+
+**Top concern:** None blocking. The closest thing to a concern is that the Layer 6 CRLF-normalization decision lives inside `format_show_block` (`src/lib.rs:365`) rather than as a shared utility; this is an SE-domain hygiene point, not PE. Surfaced here only as the Dim 7 audit trail.
+
+**Merge-gate verdict:** No platform concerns blocking the Layer 6 merge. Recommend the `issue-tracker-cli-compound-filtering` branch proceed through the remaining IAR domains and merge-gate VDD-IAR Alignment without Platform-side gating.
+
+**Coordination:** None required. No cross-domain raises this session.
+
+---
+
+## Review 11 — 2026-05-11 02:00Z
+
+**Round:** Platform Engineer Review 11 (Round-2 closure for Layer 6)
+**Scope:** Re-verify platform-clean state after Round-2 inline fixes commit `9b775f0`. Warm closure-verification.
+
+### Round-2 platform impact
+
+R10 reported 0 platform-touched files. R2 commit `9b775f0` adds 493 insertions / 35 deletions across 6 files — none of which are platform-owned. Verified via `git diff origin/main...HEAD --name-only`:
+- `issue-tracker-cli/CHANGELOG.md` (doc)
+- `issue-tracker-cli/DESIGN.md` (spec)
+- `issue-tracker-cli/TODO.md` (doc, prior)
+- `issue-tracker-cli/src/lib.rs` (source)
+- `issue-tracker-cli/src/main.rs` (source)
+- `issue-tracker-cli/tests/layer6.rs` (test, prior)
+- `README.md` (portfolio doc)
+
+Cargo.toml, Cargo.lock, rust-toolchain.toml, deny.toml, .pre-commit-config.yaml, .github/workflows/* all byte-identical to `origin/main`.
+
+### Verifications re-run
+
+- `cargo build --locked --all-targets` clean
+- `cargo test --locked --no-fail-fast` 180/180 pass
+- `cargo clippy --all-targets --locked -- -D warnings` clean
+- `cargo fmt --check` clean
+- `cargo audit` clean (0 advisories)
+
+### New findings
+
+*(none this round.)*
+
+### Summary
+
+Layer 6 R2 is platform-clean. Cargo.lock crate count unchanged. No CI changes, no dep changes, no toolchain changes, no hook changes.
+
+**Coordination:** None required. **Merge-gate verdict (PE):** No platform concerns blocking Layer 6 merge.
+

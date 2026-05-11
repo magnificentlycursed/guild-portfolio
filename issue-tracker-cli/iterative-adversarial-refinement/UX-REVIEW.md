@@ -651,3 +651,273 @@ Round-1 F1 + F4 → Round-2 closed. F2 + F3 → Layer 7 polish (deferred with na
 **Files modified:** Only this log appended.
 
 ---
+
+## Review 8 — 2026-05-11 01:09Z
+
+**Round:** UX Review 8 (Layer 6 — `--description` + `tracker show` + `tracker delete`)
+**Scope:** Commits `4fb5e67` + `c91676a`. CLI supplement (replacement) dimensions 1, 2, 3, 4, 5, 6, 7, 8, 9. Release binary built clean; exercised in `/tmp/ux-review-l6` with scenarios for each new command; `--help` captured for all five subcommands and the binary.
+**Session note:** Cold session per primer. Standalone domain run; quality tradeoff acknowledged.
+
+---
+
+### Open
+
+**Finding 1 — `tracker show --help` and `tracker delete --help` are one-line stubs that omit basic Layer 6 facts the user needs (CLI Dim 1 — discoverability; CLI Dim 2 — help text quality)**
+
+Captured (release binary, this commit):
+
+```
+$ tracker show --help
+Show full details for an issue
+
+Usage: tracker show <ID>
+
+Arguments:
+  <ID>  Issue ID
+
+Options:
+  -h, --help  Print help
+```
+
+```
+$ tracker delete --help
+Delete an issue (no confirmation; deleted IDs are never reused)
+
+Usage: tracker delete <ID>
+
+Arguments:
+  <ID>  Issue ID
+
+Options:
+  -h, --help  Print help
+```
+
+Compare to the level of detail the project authored for Layer 1–3 commands:
+
+- `create`: top-level doc names every optional flag ("with optional description, priority, and labels"); each flag has a one-line description with its valid values inline (`Priority: low, medium, high (default: medium)`, `Label (repeatable; deduplicated; case-preserved)`, `Free-form description (stored verbatim; not trimmed)`).
+- `list`: every filter argument names its valid values inline ("Filter by status: open, in-progress, done").
+- `status`: positional argument doc names the valid values (`New status: open, in-progress, done`).
+
+`show` and `delete` are below that bar. Concretely:
+
+1. `show` does not state the value semantics for `<ID>`. The project's existing pattern (`status`) uses `/// Issue ID` as the argument doc — but `status` is paired with an argument that *does* name its valid values inline, so a user reading the two doc strings together gets "positive integer plus a status string" without needing the longer-form spec. `show <ID>` has no such partner doc; the only signal that `<ID>` must be a positive integer comes from running the command with bad input. The error message is clear (`Error: '0' is not a valid issue ID. Expected a positive integer.`), but discovery-via-error is worse UX than discovery-via-help.
+
+2. `delete` has the same `<ID>` gap, *plus* the top-level command doc strings `"Delete an issue (no confirmation; deleted IDs are never reused)"` — which is excellent (it both states the destructive-by-design choice and the ID-reuse rule) — but does not survive being read alongside the rest of the binary. The "no confirmation" hint to the user reading `tracker --help` is the only place in the entire interface that signals the destructive-without-prompt behavior. A user who reads `tracker delete --help` looking for a `--yes` / `-f` flag (because no-confirmation destruction is unusual for software they didn't write) sees the same line they already read and no further help. There is no acknowledgement that the operation is permanent.
+
+3. No usage example for either command. Suite-level commitment `5b95911` only requires examples for compound-flag commands (which `show` / `delete` are not). However: the Layer 4 R6 F3 dismissal-then-deferral pattern was specifically for *compound flag* commands; `show` and `delete` are single-positional and the example value is just a number. Not a violation of the suite commitment; raising for symmetry only.
+
+**Minimum recommended copy** (no clap structure change needed — only doc-comment edits):
+
+```rust
+/// Show full details for an issue.
+///
+/// Renders all fields as a labelled key-value block to stdout. Full title,
+/// labels, and description are shown untruncated (unlike `tracker list`).
+Show {
+    /// Issue ID (positive integer, ≥ 1)
+    id: String,
+},
+/// Delete an issue.
+///
+/// Removes the issue from storage and prints `Deleted issue #<id>.` to stdout.
+/// Destructive without confirmation by design (see DESIGN.md "Approved
+/// Deviations"). Deleted IDs are never reused — the next created issue
+/// receives `max(remaining_ids) + 1`.
+Delete {
+    /// Issue ID (positive integer, ≥ 1)
+    id: String,
+},
+```
+
+Both are doc-comment-only edits in `src/main.rs`. No clap argument structure change. Brings `show` / `delete` help text up to the level the project established for `create` / `list` / `status` in Layer 1–4.
+
+**Classification:** Open. Real defect against CLI Dim 1 (discoverability) and Dim 2 (help text quality). The implementation is correct; the help-text effort is uneven across layers. DESIGN.md `--help` flag contract ("must accurately describe all flags and their valid values") is technically satisfied — there are no flags on `show` / `delete` — but the same contract for the `<id>` argument is the thinnest possible implementation. Recommend the doc-comment uplift as part of Layer 6 polish or roll it into Layer 7. Cross-reference SE.
+
+---
+
+### Dismissed
+
+**Finding 2 — Top-level `tracker --help` lists `show` and `delete` correctly with helpful one-line summaries (CLI Dim 1)**
+
+Verified:
+
+```
+Commands:
+  create  Create a new issue (with optional description, priority, and labels)
+  list    List issues (default: open) with optional status / priority / label filters
+  status  Change an issue's status
+  show    Show full details for an issue
+  delete  Delete an issue (no confirmation; deleted IDs are never reused)
+  help    Print this message or the help of the given subcommand(s)
+```
+
+Both new commands appear in the top-level listing. `create`'s top-line was correctly updated to add `description` to the list of optional flags (was `"Create a new issue (with optional priority and labels)"` at Layer 4; now includes `description`). `delete`'s one-liner is the strongest line in the whole listing — it tells the user two important facts in passing.
+
+**Classification:** Dismissed. Top-level discoverability is correct. The detail-level help (Finding 1) is the gap.
+
+---
+
+**Finding 3 — `show` output exactly matches DESIGN.md example for both single- and multi-line descriptions (CLI Dim 3)**
+
+Reproduction (single-line, no description, no labels — match against DESIGN.md:247-255):
+
+```
+$ tracker show 1
+ID:          1
+Title:       Update README
+Status:      open
+Priority:    low
+Labels:      (none)
+Description: (none)
+Created:     2026-05-11T01:12:44Z
+Updated:     2026-05-11T01:12:44Z
+exit=0
+```
+
+Reproduction (multi-line description — match against DESIGN.md:260-269):
+
+```
+$ tracker show 2
+ID:          2
+Title:       Fix auth flow
+Status:      open
+Priority:    high
+Labels:      bug
+Description: Token refresh fails after 1 hour.
+             Reproduces reliably on Safari.
+Created:     2026-05-11T01:12:49Z
+Updated:     2026-05-11T01:12:49Z
+exit=0
+```
+
+Label column is right-padded to 13 characters. Continuation-line indent of the multi-line description is exactly 13 spaces. `(none)` placeholders for absent labels / description are present. Trailing newline emitted by `print!` of the block (no double-newline because `format_show_block` already adds the final `\n`). Visual alignment matches the spec example character-for-character. `format_show_block` also normalizes `\r\n` → `\n` so a description hand-edited with Windows line endings still renders without a stray `\r` on the first line — defensive beyond what the spec requires.
+
+**Classification:** Dismissed. The most important user-visible new surface (the show block) is exactly to spec.
+
+---
+
+**Finding 4 — `delete` confirmation text is informative on success and follows the spec literal (CLI Dim 5; CLI Dim 7)**
+
+Reproduction:
+
+```
+$ tracker delete 1
+Deleted issue #1.
+exit=0
+```
+
+Names the issue ID, uses past tense (the action is complete), and writes to stdout per the spec's data-output contract. Same family as `Created issue #<id>: <title>.` and `Issue #<id> status → <new_status>.` — the user is told "what just happened" in a single short line. The D1 approved deviation (no confirmation prompt) is recorded in DESIGN.md "Approved Deviations" with rationale; UX position consistent — the `rm` / `git rm` convention does mean a single-user CLI tool should not prompt by default, and the confirmation-on-success text is the right post-action signal.
+
+**Classification:** Dismissed. The success message is informative. The deviation is documented. The user's safety net is the `tracker show <id>` pre-check workflow named in SO Review 6.
+
+---
+
+**Finding 5 — Error messages on the new commands are actionable for the cases where actionability is possible (CLI Dim 8)**
+
+Verified each new error path:
+
+- `tracker create "X" --description ""` → `Error: Description cannot be empty.` (states the rule)
+- `tracker create "X" --description "  "` → same (whitespace-only after trim, same message)
+- `tracker show 99` → `Error: Issue #99 not found.` (names the missing ID)
+- `tracker delete 99` → `Error: Issue #99 not found.` (same; consistent with `tracker status 99 open` from Layer 2)
+- `tracker show abc` → `Error: 'abc' is not a valid issue ID. Expected a positive integer.` (names the bad value and the expected format)
+- `tracker show 0` → `Error: '0' is not a valid issue ID. Expected a positive integer.` (zero rejected at the parser boundary)
+
+The "not-found" messages do not tell the user "what to do next" because there is no remedial action the binary can suggest — the user knows their own ID space better than the tool does. (A `did you mean #1?` hint based on nearest-ID is an SO-level call about ergonomics scope, not a defect against the contract.) The "invalid ID" messages tell the user exactly what the rule is. The "description cannot be empty" message is parallel to `Title cannot be empty.` and `Label cannot be empty.` — same voice, same level of specificity.
+
+**Classification:** Dismissed. Error messages are at the bar the project established in Layer 1–4. No new actionability gap.
+
+---
+
+**Finding 6 — stdout/stderr discipline preserved on all new code paths (CLI Dim 4 / Dim 7)**
+
+Verified by redirecting stdout and stderr separately on each path:
+
+- `tracker show 1` → block on stdout, stderr empty
+- `tracker show 99` → stdout empty, `Error: Issue #99 not found.` on stderr
+- `tracker show abc` → stdout empty, `Error: 'abc' is not a valid issue ID. Expected a positive integer.` on stderr
+- `tracker delete 1` → `Deleted issue #1.` on stdout, stderr empty
+- `tracker delete 99` → stdout empty, `Error: Issue #99 not found.` on stderr
+- `tracker create "X" --description ""` → stdout empty, `Error: Description cannot be empty.` on stderr
+
+Matches the DESIGN.md stdout/stderr contract. Data → stdout, errors → stderr, prefix `Error:` consistent throughout. The `cmd_show` use of `print!` (not `println!`) is correct because `format_show_block` already terminates with `\n` — verified the block ends with one newline, not two, in the captured stdout.
+
+**Classification:** Dismissed. Routing is correct on all new paths.
+
+---
+
+**Finding 7 — Exit codes 0/1 contract preserved on all new code paths (CLI Dim 9)**
+
+Verified: all success paths exit 0; all error paths (invalid ID, not-found, empty description) exit 1. No new exit-101 / clap-exit-2 leakage in the Layer 6 surface. SIGPIPE handler from Layer 3 remains installed (release binary still has the `signal(SIGPIPE, SIG_DFL)` call at process start), so `tracker show <id> | head -1` does not panic.
+
+**Classification:** Dismissed. Exit-code contract holds.
+
+---
+
+### Hallucinated
+
+**Finding 8 — `tracker show` of an issue with a description containing only whitespace should distinguish `(none)` from `(blank)`**
+
+Initial concern: `Description: ` followed by nothing might be visually identical to `Description: (none)` when the stored description is a literal whitespace string. But — the create-side validation rejects empty/whitespace-only descriptions (`validate_description` errors on `raw.trim().is_empty()`). A whitespace-only description cannot enter storage via the binary. (Hand-edited `tracker.json` is a separate concern but would render the actual whitespace, which is the user's responsibility for hand-editing.) The defect path I was reasoning about is unreachable from the CLI.
+
+**Classification:** Hallucinated. The validation boundary prevents the input that would produce the ambiguity.
+
+---
+
+**Finding 9 — `tracker delete` is missing a `--yes` / `--force` flag and should warn the user about deletion**
+
+Initial impulse: destructive commands should require confirmation or a force flag.
+
+**Classification:** Hallucinated *as a Layer 6 defect*. The D1 approved deviation in DESIGN.md is explicit, the SO has signed off, the `rm` / `git rm` family analog is named, and prior UX rounds (Review 1 F2) already dismissed this with cross-reference. Re-raising it without new evidence would be a meta-leak ("I would not have done it this way") rather than a defect against the spec. The user-side mitigation (`tracker show <id>` first) is documented.
+
+---
+
+### Summary
+
+Round 8 finds 1 open, 5 dismissed, 2 hallucinated. The Layer 6 surface (`--description`, `tracker show`, `tracker delete`) is high-quality almost everywhere:
+
+- The most consequential new output (`show` labelled-block) is character-for-character to the DESIGN.md example, including multi-line description indentation.
+- Error messages on the new paths preserve the project's voice and specificity.
+- stdout/stderr discipline and exit codes are preserved.
+- The delete confirmation text is informative without being verbose.
+
+The single open finding is **#1**: the `show` and `delete` `--help` doc-comments are below the bar the project established for `create` / `list` / `status` in earlier layers. The implementation is correct; the help-text effort is uneven. Concretely: `<ID>` is documented as `Issue ID` without naming the "positive integer ≥ 1" rule; the destructive-without-confirmation behavior of `delete` is signalled in the top-level listing but not reinforced in `delete --help`. The fix is doc-comment-only — no clap argument structure change — and brings the two new commands to parity with the existing ones.
+
+**Discoverability assessment:** Top-level `tracker --help` correctly lists both new commands with helpful one-line summaries (`show` and `delete` are present; `create` was correctly updated to mention `--description`). `tracker create --help` correctly lists `--description` with its valid-values gloss ("Free-form description (stored verbatim; not trimmed)"). The gap is in the per-command help for `show` / `delete`, not in the top-level listing.
+
+**Top UX concern:** Finding 1 — `show` / `delete` `--help` text is the thinnest possible implementation rather than the project-standard level of detail established in Layer 1–4. Cosmetic but visible; recommend doc-comment uplift as Layer 6 polish or rolled into Layer 7.
+
+**Coordination:**
+- **Finding 1** → cross-reference [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) for the doc-comment edits in `src/main.rs`. No spec change required; DESIGN.md `--help` contract is already satisfied at the contract level — this is symmetry-with-existing-commands polish.
+
+**Files modified:** Only this log appended.
+
+---
+
+## Review 9 — 2026-05-11 02:00Z
+
+**Round:** UX Review 9 (Round-2 closure for Layer 6)
+**Scope:** Verify Round-1 Open finding is resolved by commit `9b775f0`. Warm closure-verification.
+
+### Round-1 finding closure
+
+- **F1 (`show` / `delete` `--help` one-line stubs vs. Layer 1-4 standard):** **Resolved by commit `9b775f0`.** Doc-comments in `src/main.rs` expanded:
+  - `Show`: now reads "Show full details for an issue: ID, Title, Status, Priority, Labels, Description, Created, Updated"; `<id>` positional documented as "Issue ID (positive integer, >= 1)".
+  - `Delete`: now reads "Delete an issue. No confirmation prompt (see DESIGN.md D1); deleted IDs are never reused."; `<id>` positional same as Show.
+
+Verified via `cargo run --quiet -- show --help` and `cargo run --quiet -- delete --help` against the release binary. Help text now matches the depth of `create --help` / `list --help` / `status --help` (each documents the valid-values surface and the destructive/non-mutating posture of the operation).
+
+### Carry-forward verification
+
+- Trim-asymmetry round-trip (UX R6 F1): no regression at Layer 6.
+- stdout/stderr discipline: confirmed unchanged — `show` data → stdout, `delete` confirmation → stdout, all errors → stderr.
+
+### New findings
+
+*(none this round.)*
+
+### Summary
+
+1/1 Round-1 UX finding Resolved. Layer 6 UX-domain is at MVR. `--help` depth is now uniform across all five subcommands.
+
+**Coordination:** *(none — closure pass)*

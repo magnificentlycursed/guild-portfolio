@@ -1,5 +1,83 @@
 # Changelog
 
+## Layer 6 IAR Round 3 — `next_id` persistent counter (SO Review 22 Option A) — 2026-05-11 04:30Z
+
+**Scope:** Resolves SO Review 22 Finding 1 — a director-raised spec violation surfaced by Layer 6 manual testing (TODO.md:311 "ID not reused"). The pre-R22 `max(existing_ids) + 1` id-assignment did not honor the "deleted ID never reused, including after deletion" invariant in the high-edge case (delete the highest-id issue, then create — reassigned the deleted id). Option A restores the persistent `next_id` counter that SA Review 3 Finding 3 had removed, reversing two prior decisions (SA R3 F3 "no stored counter" and SO R7 "bare top-level array") in favor of honoring the spec contract.
+
+### Changed
+
+- **DESIGN.md** — Data Model / Storage file: shape changes from `[Issue]` to `{"issues": [Issue], "next_id": u64}`. Storage invariants: `next_id >= 1`; if `issues` is non-empty, `next_id > max(issue.id)`; on create the new issue's id is `next_id` and the counter bumps via `checked_add(1)`; on delete the counter is unchanged. Feature 5 Invariants: rewrote the "never reused" sub-claim that previously asserted (falsely) "`max(remaining_ids) + 1` will always be greater than the deleted ID" — now references the persistent counter explicitly with SO R22 lineage citation.
+- **src/lib.rs** — New `pub struct Tracker { issues: Vec<Issue>, next_id: u64 }`. `load_issues` / `save_issues` replaced by `load_tracker` / `save_tracker` (the bare-array shape is rejected at load with the standard corrupt-data message — serde deserializes the wrong shape as a parse error). `next_id(&[u64])` pure helper removed and replaced by `bump_next_id(u64)` (overflow defense via `checked_add(1)` preserved — Security R4 F2 lineage unbroken). `issues_collection_invariants_hold` replaced by `tracker_is_valid` (whole-tracker validation including unique-IDs, per-issue field validity, and counter invariants). `cmd_create` reads `tracker.next_id`, assigns, bumps. `cmd_delete` removes from `tracker.issues`, leaves `next_id` untouched. `cmd_status` / `cmd_show` / `cmd_list` load through the new `Tracker` shape. Doc-comments throughout updated to reflect the new contract (notably `cmd_delete` no longer self-justifies with the false "max + 1 strictly greater than deleted id" claim).
+- **src/lib.rs#tests** — Removed three obsolete unit tests pinning the old `max+1` contract (`id_assignment_first_issue_is_1`, `id_assignment_increments_from_max`, `id_assignment_at_u64_max_returns_error`, `max_id_plus_one_skips_deleted_ids`, `collection_invariants_*`). Added: `bump_next_id_increments_by_one`, `bump_next_id_at_u64_max_returns_error`, `tracker_validation_rejects_duplicate_ids`, `tracker_validation_accepts_unique_ids`, `tracker_validation_rejects_next_id_zero`, `tracker_validation_rejects_next_id_not_greater_than_max_id`, `tracker_validation_accepts_next_id_strictly_greater_than_max`, `tracker_validation_accepts_empty_with_next_id_1`, `tracker_validation_accepts_empty_after_all_deleted_with_retained_counter`, `high_edge_delete_does_not_reuse_id` (the SO R22 regression at the unit level), `middle_gap_delete_does_not_reuse_id` (companion case). Net: +5 unit tests.
+- **tests/layer6.rs** — `delete_id_not_reused` split into two named tests: `delete_id_not_reused_middle_gap` (the prior coverage) and `delete_id_not_reused_high_edge` (the SO R22 director-reproduction case — pins `Created issue #3: Third` after delete of #2 from {#1,#2}, and asserts `next_id == 4` in the persisted JSON). The high-edge test would have failed pre-R22 and pins the regression. Net: +1 integration test.
+- **tests/layer{1,2,3,4,6}.rs** — All `tracker.json` reads updated: `v[0]["x"]` → `v["issues"][0]["x"]`; `v.as_array()` → `v["issues"].as_array()`. All hand-crafted corrupt-data JSON literals re-wrapped from `[{...}]` to `{"issues":[{...}],"next_id":N}` with a valid counter (the per-issue corruption being tested still triggers rejection through the `issue_fields_are_valid` / `tracker_is_valid` path). The `u64_max_id_in_json_blocks_next_create_with_clean_error` test renamed to `u64_max_next_id_in_json_blocks_next_create_with_clean_error` and now plants `next_id: u64::MAX` (with a valid issue) — overflow surfaces one layer earlier (on the counter, not on a derived value) but the error message is unchanged.
+- **DECISIONS.md** — SA Review 1 Finding 3 ("ID assignment via `max(existing_ids) + 1`") and SO Review 7's "bare top-level array" entries annotated as **Reversed by SO Review 22**. New section "Layer 6 spec amendments — SO Review 22" added documenting Option A with rationale, trade-off, and lineage back to SA R3 F3.
+- **TODO.md** — Layer 6 manual-testing checklist tick for "ID not reused" (line 311) — closed by the persistent counter, verified end-to-end. The bonus row's shell-quoting note (`\r` in double-quoted shell string is a literal, not CR) recorded as a non-finding.
+
+### IAR
+
+- **SO Review 22 Finding 1** (director-raised from manual testing) — Resolved via Option A (this commit). The pre-R22 implementation was correct against SA R3 F3's threat-model simplification rationale but incorrect against the spec invariants DESIGN.md asserts in three places. Option A makes the implementation match the spec; the alternative (Option B — weaken the spec to match `max+1`) was considered and rejected per the SO R22 sycophancy-guard dismissal tests.
+
+### Open (process)
+
+- **VDD-IAR (next round)** — Verify the Round-3 closure: spec/code/test/doc consistency around the new counter, regression coverage at the high edge, prior `max+1` mutation surfaces now closed.
+- **Layer 6 manual checklist** — line 311 ticked this round; remaining items (12 of 13 pre-R22) still pending director closure per the standing Round-2 process Open finding (carry-forward).
+
+### Verification
+
+- `cargo test --no-fail-fast --locked` — **186/186 pass** at Round 3 close (62 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4 + 7 layer5 + 33 layer6).
+- `cargo clippy --all-targets --locked -- -D warnings` — clean.
+- `cargo fmt --check` — clean.
+- Director's manual-test reproduction (delete #2 from {#1,#2}, create "Third"): new id = 3 ✓, `tracker.json` shows `next_id: 4` ✓.
+- Bonus `--description $'line1\rOVER'` (ANSI-C quoting for real CR): rejected with `Error: Description cannot contain control characters other than newline.` exit 1 ✓.
+
+---
+
+## Layer 6 IAR Round 2 closure — 2026-05-11 02:00Z
+
+**Scope:** Resolves the substantive Open finding cluster surfaced by Layer 6 Round 1 cold-batch IAR (Security R9 / RT R8 / DE R9 / SE R15 / QE R15 / SO R20 / SA R13 / UX R8 / TW R9). Lands DESIGN.md spec amendments (SO authority), `src/lib.rs` defenses + the `CreateArgs` struct extraction (SE authority), tests (QE authority), `show` / `delete` `--help` parity (UX authority), and doc updates (TW authority).
+
+### Changed
+
+- **DESIGN.md** — Feature 1: description now must reject control characters other than `\n`; new error state `Error: Description cannot contain control characters other than newline.`. Edge Cases / Description: enumerated the rule, the `\n` carve-out rationale, the `\r\n` → `\n` normalization defense, and the bidi (Cf) accepted-risk stance (same posture as title and labels — single-user CLI, risk owner: director). Edge Cases / Storage: control-char-in-description added to corruption triggers. "Show output format": ratified the `\r\n` → `\n` normalization that the implementation does for legacy stored data / external-editor round-trips.
+- **src/lib.rs** — `validate_description` extended to reject `char::is_control()` except `\n`; new `description_is_valid` helper enforces the same rule at load time via `issue_fields_are_valid`. Same lineage as `parse_label` + `label_is_valid` from Layer 4 R2. New public `CreateArgs<'a>` struct bundles the four `cmd_create` inputs (title / description / priority / labels); `cmd_create`'s signature collapses from 5 parameters to 2 (`args: &CreateArgs`, `issues_path: &Path`), discharging SA R13 F1 Trigger A (CreateArgs refactor scheduled at SA R7 F4 / R8 F4 / R10).
+- **src/main.rs** — `Commands::Create` arm constructs `CreateArgs` and passes it through to `tracker::cmd_create`. `Show` and `Delete` doc-comments expanded to match the Layer 1-4 `--help` depth standard (UX R8 F1) — `show` now documents the full set of fields rendered; `delete` references the D1 deviation and the no-confirmation rule.
+- **tests/layer6.rs** — +12 integration tests covering description Cc rejection (ESC, CR, CRLF, tab, DEL, OSC 8 hyperlink), `\n` carve-out acceptance, verbatim-with-whitespace storage (kills the `Ok(raw.trim().to_string())` mutation per QE R15 F3), load-time corruption rejection for control-char and CR in description, `\n` accepted at load, and exact-full-block `show` rendering (kills the over-padding mutation per QE R15 F1).
+- **src/lib.rs#tests** — +10 unit tests covering `validate_description` empty/whitespace/Cc rejection, `\n` carve-out, verbatim-stored-with-whitespace, printable Unicode, and `issue_fields_are_valid` description-Cc rejection + `\n` acceptance + None acceptance.
+- **CHANGELOG.md** — Layer 6 entry retrospective per TW R9 F1 (the cold reader's primary handoff document was stale at Layer 6 landing — repeating the Layer 4 pattern).
+
+### IAR
+
+Round 1 cold-batch — 11 domain reviews (SO 20, SA 13, QE 15, SE 15, Security 9, Platform Engineer 10, UX 8, Data Engineer 9, Red Team 8, Technical Writer 9, VDD-IAR Alignment 15). Verdict: NO-GO-PENDING-MANUAL + Round 2 required. The substantive Open findings resolved in this Round 2 commit:
+
+- **Security R9 F1 / RT R8 F1 / DE R9 F1 / SE R15 F1 / QE R15 F2 / SO R20 F3** (description control-char defense — Open Medium-High; the third consecutive layer to surface the same generalization-failure pattern, the prior two being Title L1 and Labels L4 R7 F1) — resolved by the DESIGN.md amendment + `validate_description` + `description_is_valid` + 12 new tests.
+- **SO R20 F2** (`format_show_block` `\r\n` normalization undeclared in DESIGN.md) — resolved by ratifying the normalization in the "Show output format" spec section.
+- **QE R15 F1** (over-padding mutation survives substring assertions on 6 of 8 show rows) — resolved by the new `show_renders_exact_full_block_for_single_line_issue` test using full-line equality on all 8 rendered rows.
+- **QE R15 F3** (verbatim-storage half of description postcondition untested) — resolved by `create_preserves_description_verbatim_with_surrounding_whitespace` plus the unit test `description_stored_verbatim_not_trimmed`.
+- **SE R15 F2 / DE R9 F2** (bare `\r` overprints `show` alignment) — subsumed by the broader Cc-except-`\n` rejection rule; `\r` is now rejected at create time and at load time.
+- **UX R8 F1 / TW R9 F2** (`show` / `delete` `--help` one-line stubs vs. Layer 1-4 standard) — resolved by expanded doc-comments in `src/main.rs`.
+- **SA R13 F1 Trigger A** (CreateArgs refactor scheduled for Layer 6) — resolved by the new `CreateArgs<'a>` struct.
+- **TW R9 F1** (CHANGELOG missing Layer 6 entry) — resolved by this entry.
+- **RT R8 F2** (Trojan-Source / Cf in description) — Accepted Risk per the DESIGN.md amendment carve-out. Same posture as RT R6 F3 / R8 for title and labels (single-user local CLI threat model; risk owner: director).
+
+### Deferred (named future layer)
+
+- **SA R11 F1 / SA R13 F2** (rendering-half of `cmd_list` extraction; `format_show_block` column-width literals as second instance) — focused pre-Layer-7 PR.
+- **SA R13 F1 Trigger B** (`src/lib.rs` storage/validate/commands module split — 665+ LOC over the 500-line threshold) — bundled into the same pre-Layer-7 PR per SO adjudication (SO Review 21).
+
+### Open (process)
+
+- **VDD-IAR R15 F1 / SO R20 F1 / TW R9 F4** (Layer 6 manual testing checklist 13/13 unchecked) — director must execute the checklist and commit before merge per CLOSURE-PROTOCOL.md merge-gate criterion 3. Same standard as Layer 4 R11 F2.
+
+### Verification
+
+- `cargo test --no-fail-fast --locked` — **180/180 pass** at Round 2 close (57 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4 + 7 layer5 + 32 layer6).
+- `cargo clippy --all-targets --locked -- -D warnings` — clean.
+- `cargo fmt --check` — clean.
+- Manual testing checklist (TODO.md Layer 6) — pending (process Open).
+
+---
+
 ## Layer 5 — compound filtering — 2026-05-07 00:43Z
 
 **Scope:** Closes the layer-shipping commits for Layer 5 of the assignment

@@ -24,13 +24,40 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 
+/// The top-level storage shape persisted to `tracker.json`.
+///
+/// Wraps the list of issues with a monotonically-increasing `next_id` counter so
+/// deleted IDs are never reused, even when the deleted issue was the highest id
+/// at delete time. The counter is bumped on every successful create and is left
+/// unchanged by delete — the spec invariant "deleted ID is never reused"
+/// (DESIGN.md Feature 1 / Feature 5 / Data Model) is enforced by the counter,
+/// not by `max(remaining_ids) + 1`.
+///
+/// Pre-SO-R22 storage was a bare `[Issue, ...]` JSON array (SA Review 3 Finding 3
+/// removed an earlier `next_id` field). That shape did not preserve the contract
+/// in the high-edge case (delete the largest id, then create — `max(remaining) + 1`
+/// equals the just-deleted id). SO Review 22 Option A restores the persistent
+/// counter; the prior array shape is rejected at load with the standard corrupt-data
+/// message.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Tracker {
+    /// All currently-stored issues. Order matches insertion order at write time;
+    /// `cmd_list` sorts a working copy before rendering.
+    pub issues: Vec<Issue>,
+    /// The next ID to be assigned by `cmd_create`. Initialized to `1` for a fresh
+    /// tracker; bumped via `checked_add(1)` on every create; never decreased by
+    /// delete. Invariant at load: `next_id >= 1` and (if `issues` is non-empty)
+    /// `next_id > max(issue.id)`.
+    pub next_id: u64,
+}
+
 /// A single tracked issue, as stored in `tracker.json`.
 ///
 /// All fields except `description` are required. `description` is omitted from
 /// the JSON output when absent (`None`) rather than serialized as `null`.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Issue {
-    /// Unique, monotonically-assigned positive integer; never reused (see `next_id`).
+    /// Unique, monotonically-assigned positive integer; never reused (see `Tracker::next_id`).
     pub id: u64,
     /// Trimmed, non-empty issue title.
     pub title: String,
@@ -76,18 +103,20 @@ pub fn validate_title(raw: &str) -> Result<String, String> {
     Ok(trimmed.to_string())
 }
 
-/// Returns `max(existing_ids) + 1`, or `1` if the slice is empty.
+/// Returns `current + 1` for advancing the persistent `Tracker::next_id` counter.
 ///
-/// IDs are never reused: the next ID is always strictly greater than all existing IDs,
-/// including those of deleted issues.
+/// IDs are never reused: the counter is bumped on every successful create and is
+/// not modified by delete, so the next assigned id is always strictly greater
+/// than every previously-assigned id, deleted or not.
 ///
 /// # Errors
-/// Returns `Err` if `max(existing_ids) == u64::MAX` (overflow). Unreachable through
-/// organic use (the entire 64-bit ID space cannot be exhausted), but defends against
-/// hand-edited `tracker.json` files that plant `u64::MAX` to corrupt subsequent writes.
-pub fn next_id(existing_ids: &[u64]) -> Result<u64, String> {
-    let max = existing_ids.iter().max().copied().unwrap_or(0);
-    max.checked_add(1)
+/// Returns `Err` if `current == u64::MAX` (overflow). Unreachable through organic
+/// use (the entire 64-bit ID space cannot be exhausted), but defends against
+/// hand-edited `tracker.json` files that plant `next_id: u64::MAX` to corrupt
+/// subsequent writes (Security R4 F2 lineage).
+pub fn bump_next_id(current: u64) -> Result<u64, String> {
+    current
+        .checked_add(1)
         .ok_or_else(|| "Cannot assign new issue ID: maximum ID reached.".to_string())
 }
 
@@ -120,8 +149,8 @@ fn parse_timestamp(s: &str) -> Option<DateTime<Utc>> {
 /// Per-record validation: domain values, label hygiene, timestamp parseability,
 /// and the `updated_at >= created_at` invariant.
 ///
-/// Cross-record invariants (ID uniqueness) are enforced separately by
-/// `issues_collection_invariants_hold`.
+/// Whole-tracker invariants (ID uniqueness, `next_id` counter constraints) are
+/// enforced separately by `tracker_is_valid`.
 fn issue_fields_are_valid(issue: &Issue) -> bool {
     issue.id > 0
         && !issue.title.trim().is_empty()
@@ -132,10 +161,21 @@ fn issue_fields_are_valid(issue: &Issue) -> bool {
         && issue
             .description
             .as_ref()
-            .is_none_or(|d| !d.trim().is_empty())
+            .is_none_or(|d| description_is_valid(d))
         && parse_timestamp(&issue.created_at).is_some()
         && parse_timestamp(&issue.updated_at).is_some()
         && issue.updated_at >= issue.created_at
+}
+
+/// Stored-description hygiene predicate. Stored descriptions are verbatim
+/// (not trimmed); this predicate checks the same hygiene rules
+/// `validate_description` enforces at the input boundary, so a hand-edited
+/// `tracker.json` with a description that bypassed `validate_description`
+/// (control character other than `\n`, or whitespace-only) is rejected at
+/// load. Newline is permitted because the spec carves it out for multi-line
+/// `show` rendering.
+fn description_is_valid(description: &str) -> bool {
+    !description.trim().is_empty() && !description.chars().any(|c| c.is_control() && c != '\n')
 }
 
 /// Stored-label hygiene predicate. Stored labels are post-trim; this predicate
@@ -165,98 +205,146 @@ fn display_safe(s: &str) -> String {
     out
 }
 
-/// Cross-record invariants: every ID is unique across the collection.
+/// Whole-tracker invariants: per-issue field validity, unique IDs across the
+/// collection, `next_id >= 1`, and (when `issues` is non-empty) `next_id > max(issue.id)`.
 ///
-/// `issue_fields_are_valid` covers per-record checks; this function covers what
-/// can only be evaluated by walking the whole array. DESIGN.md "no two issues
-/// share the same ID" is enforced here.
-fn issues_collection_invariants_hold(issues: &[Issue]) -> bool {
-    let mut seen = HashSet::with_capacity(issues.len());
-    issues.iter().all(|i| seen.insert(i.id))
+/// `issue_fields_are_valid` covers per-record checks; this function adds the
+/// cross-record uniqueness check (DESIGN.md "no two issues share the same ID")
+/// and the counter invariants enforcing the persistent-counter contract from
+/// SO Review 22. A `next_id` less than or equal to any stored id would mean the
+/// next create reassigns an existing or deleted id — the exact contract violation
+/// SO R22 closed.
+fn tracker_is_valid(tracker: &Tracker) -> bool {
+    if tracker.next_id < 1 {
+        return false;
+    }
+    if !tracker.issues.iter().all(issue_fields_are_valid) {
+        return false;
+    }
+    let mut seen = HashSet::with_capacity(tracker.issues.len());
+    if !tracker.issues.iter().all(|i| seen.insert(i.id)) {
+        return false;
+    }
+    if let Some(max_id) = tracker.issues.iter().map(|i| i.id).max() {
+        if tracker.next_id <= max_id {
+            return false;
+        }
+    }
+    true
 }
 
-/// Loads all issues from `path`.
+/// Loads the tracker from `path`.
 ///
-/// Returns an empty `Vec` if the file does not exist. All loaded data is treated
-/// as untrusted: per-record validation (`issue_fields_are_valid`) and cross-record
-/// invariants (`issues_collection_invariants_hold`) both apply.
+/// Returns a fresh `Tracker { issues: vec![], next_id: 1 }` if the file does not
+/// exist. All loaded data is treated as untrusted: per-record validation
+/// (`issue_fields_are_valid`) and whole-tracker invariants (`tracker_is_valid`,
+/// covering unique-IDs and `next_id > max(issue.id)`) both apply.
+///
+/// The pre-SO-R22 storage shape (bare JSON array `[Issue, ...]`) is no longer
+/// accepted — it deserializes into the `Tracker` struct as a serde error and is
+/// rejected with the standard corrupt-data message.
 ///
 /// # Errors
-/// Returns `Err` if the file cannot be read, contains malformed JSON, contains a
-/// record with invalid domain values (unknown status, zero ID, empty title, empty
-/// label, empty description, malformed timestamp, `updated_at < created_at`), or
-/// contains duplicate IDs across records.
-pub fn load_issues(path: &Path) -> Result<Vec<Issue>, String> {
+/// Returns `Err` if the file cannot be read, contains malformed JSON, has the
+/// wrong top-level shape (e.g., a bare array), contains a record with invalid
+/// domain values (unknown status, zero ID, empty title, empty label, empty
+/// description, malformed timestamp, `updated_at < created_at`), contains
+/// duplicate IDs across records, or has a `next_id` that violates the counter
+/// invariants.
+pub fn load_tracker(path: &Path) -> Result<Tracker, String> {
     if !path.exists() {
-        return Ok(Vec::new());
+        return Ok(Tracker {
+            issues: Vec::new(),
+            next_id: 1,
+        });
     }
     let contents =
         fs::read_to_string(path).map_err(|e| format!("Could not read tracker data: {}.", e))?;
-    let issues: Vec<Issue> =
+    let tracker: Tracker =
         serde_json::from_str(&contents).map_err(|_| CORRUPT_DATA_ERROR.to_string())?;
-    if issues.iter().any(|i| !issue_fields_are_valid(i))
-        || !issues_collection_invariants_hold(&issues)
-    {
+    if !tracker_is_valid(&tracker) {
         return Err(CORRUPT_DATA_ERROR.to_string());
     }
-    Ok(issues)
+    Ok(tracker)
 }
 
-/// Serializes `issues` as pretty-printed JSON and writes it to `path`.
+/// Serializes `tracker` as pretty-printed JSON and writes it to `path`.
 ///
 /// # Errors
 /// Returns `Err` if the file cannot be written (permission denied, disk full,
-/// path is a directory, etc.). Serialization itself is infallible for `Vec<Issue>`.
-pub fn save_issues(path: &Path, issues: &[Issue]) -> Result<(), String> {
+/// path is a directory, etc.). Serialization itself is infallible for `Tracker`.
+pub fn save_tracker(path: &Path, tracker: &Tracker) -> Result<(), String> {
     #[allow(clippy::unwrap_used)]
-    // Vec<Issue> is always serializable: no floats, no cycles, all fields implement Serialize
-    let contents = serde_json::to_string_pretty(issues).unwrap();
+    // Tracker is always serializable: no floats, no cycles, all fields implement Serialize
+    let contents = serde_json::to_string_pretty(tracker).unwrap();
     fs::write(path, contents).map_err(|e| format!("Could not save tracker data: {}.", e))
 }
 
-/// Implements `tracker create "<title>" [--priority <p>] [--label <l>]...`.
+/// Raw `tracker create` inputs as supplied by the CLI layer, before validation.
 ///
-/// Validates the title, optional priority, and each label; assigns the next ID;
-/// appends the new issue to storage; and prints `Created issue #<id>: <title>`
-/// to stdout. Priority defaults to `medium` when not supplied. Labels are
-/// trimmed individually and deduplicated (first occurrence preserved,
-/// case-sensitive).
+/// Bundles the per-field arguments so `cmd_create`'s signature is stable as
+/// the spec adds optional flags (priority added at Layer 3, labels at Layer 4,
+/// description at Layer 6). The struct holds borrows from the CLI parse
+/// result; ownership of the underlying strings stays with the caller.
+///
+/// Field naming uses `_raw` suffix to distinguish CLI-provided input from
+/// validated/parsed values inside `cmd_create`.
+pub struct CreateArgs<'a> {
+    /// Required `<title>` positional argument.
+    pub title_raw: &'a str,
+    /// Optional `--description` value (None if flag absent).
+    pub description_raw: Option<&'a str>,
+    /// Optional `--priority` value (None if flag absent → defaults to `medium`).
+    pub priority_raw: Option<&'a str>,
+    /// Zero or more `--label` values (already collected by clap).
+    pub labels_raw: &'a [String],
+}
+
+/// Implements `tracker create "<title>" [--description <d>] [--priority <p>] [--label <l>]...`.
+///
+/// Validates the title, optional description, optional priority, and each
+/// label; assigns the next ID; appends the new issue to storage; and prints
+/// `Created issue #<id>: <title>` to stdout. Priority defaults to `medium`
+/// when not supplied. Labels are trimmed individually and deduplicated (first
+/// occurrence preserved, case-sensitive). Description is stored verbatim
+/// (not trimmed) when supplied.
 ///
 /// # Errors
-/// Returns `Err` if the title is empty/whitespace, the priority is invalid,
-/// any label is empty after trim, stored data is unreadable or corrupt, the ID
-/// space is exhausted, or persisting the new issue fails.
-pub fn cmd_create(
-    title_raw: &str,
-    priority_raw: Option<&str>,
-    labels_raw: &[String],
-    issues_path: &Path,
-) -> Result<(), String> {
-    let title = validate_title(title_raw)?;
-    let priority = match priority_raw {
+/// Returns `Err` if the title is empty/whitespace, the description is empty
+/// after trim or contains a forbidden control character, the priority is
+/// invalid, any label is empty after trim, stored data is unreadable or
+/// corrupt, the ID space is exhausted, or persisting the new issue fails.
+pub fn cmd_create(args: &CreateArgs, issues_path: &Path) -> Result<(), String> {
+    let title = validate_title(args.title_raw)?;
+    let description = match args.description_raw {
+        Some(d) => Some(validate_description(d)?),
+        None => None,
+    };
+    let priority = match args.priority_raw {
         Some(p) => parse_priority(p)?,
         None => "medium".to_string(),
     };
-    let parsed_labels: Vec<String> = labels_raw
+    let parsed_labels: Vec<String> = args
+        .labels_raw
         .iter()
         .map(|l| parse_label(l))
         .collect::<Result<_, _>>()?;
     let labels = dedupe_labels(&parsed_labels);
-    let mut issues = load_issues(issues_path)?;
-    let ids: Vec<u64> = issues.iter().map(|i| i.id).collect();
-    let id = next_id(&ids)?;
+    let mut tracker = load_tracker(issues_path)?;
+    let id = tracker.next_id;
+    tracker.next_id = bump_next_id(tracker.next_id)?;
     let now = current_timestamp();
-    issues.push(Issue {
+    tracker.issues.push(Issue {
         id,
         title: title.clone(),
-        description: None,
+        description,
         status: "open".to_string(),
         priority,
         labels,
         created_at: now.clone(),
         updated_at: now,
     });
-    save_issues(issues_path, &issues)?;
+    save_tracker(issues_path, &tracker)?;
     println!("Created issue #{}: {}", id, title);
     Ok(())
 }
@@ -306,15 +394,149 @@ pub fn parse_id(raw: &str) -> Result<u64, String> {
 pub fn cmd_status(id_raw: &str, status_raw: &str, issues_path: &Path) -> Result<(), String> {
     let id = parse_id(id_raw)?;
     let new_status = parse_status(status_raw)?;
-    let mut issues = load_issues(issues_path)?;
-    let idx = issues
+    let mut tracker = load_tracker(issues_path)?;
+    let idx = tracker
+        .issues
         .iter()
         .position(|i| i.id == id)
         .ok_or_else(|| format!("Issue #{} not found.", id))?;
-    issues[idx].status = new_status;
-    issues[idx].updated_at = current_timestamp();
-    save_issues(issues_path, &issues)?;
-    println!("Issue #{} status \u{2192} {}.", id, issues[idx].status);
+    tracker.issues[idx].status = new_status;
+    tracker.issues[idx].updated_at = current_timestamp();
+    save_tracker(issues_path, &tracker)?;
+    println!(
+        "Issue #{} status \u{2192} {}.",
+        id, tracker.issues[idx].status
+    );
+    Ok(())
+}
+
+/// Validates an `--description` value against the spec's empty-after-trim and
+/// control-character rules.
+///
+/// Per DESIGN.md Feature 1: `--description` must be non-empty after trim, but
+/// the *stored* value is the input verbatim (not trimmed). This function returns
+/// the un-trimmed input on success so the caller can write it as-is.
+///
+/// Per DESIGN.md Edge Cases / Description: description rejects every control
+/// character (Unicode general category `Cc`) EXCEPT newline (`\n`). The
+/// carve-out exists because the spec explicitly permits multi-line descriptions
+/// for `show` continuation rendering. Bidi controls (`Cf`) are NOT rejected
+/// (same out-of-threat-model posture as title and labels — single-user CLI).
+/// Same lineage as the title (Layer 1) and label (Layer 4) control-character
+/// defenses: free-form text that flows to a terminal-emitting render path
+/// must not carry escape bytes.
+///
+/// # Errors
+/// Returns `Err("Description cannot be empty.")` when `raw` is empty or
+/// whitespace-only after trim.
+/// Returns `Err("Description cannot contain control characters other than newline.")`
+/// when `raw` contains any `char::is_control()` other than `\n`.
+pub fn validate_description(raw: &str) -> Result<String, String> {
+    if raw.trim().is_empty() {
+        return Err("Description cannot be empty.".to_string());
+    }
+    if raw.chars().any(|c| c.is_control() && c != '\n') {
+        return Err(
+            "Description cannot contain control characters other than newline.".to_string(),
+        );
+    }
+    Ok(raw.to_string())
+}
+
+/// Renders a single issue as the `tracker show` labelled key-value block.
+///
+/// Per DESIGN.md "Show output format": each label is right-padded to a fixed
+/// width of 13 characters so values align. For multi-line descriptions, the
+/// first line follows the `Description:` label; each continuation line is
+/// indented by 13 spaces (matching the label-column width).
+///
+/// Returns the formatted block including a trailing newline.
+fn format_show_block(issue: &Issue) -> String {
+    let labels_display = if issue.labels.is_empty() {
+        "(none)".to_string()
+    } else {
+        issue.labels.join(", ")
+    };
+    let description_display = match &issue.description {
+        None => "(none)".to_string(),
+        Some(d) => {
+            // Multi-line descriptions: first line after the label, each
+            // continuation line indented 13 spaces to match the label column.
+            // `\r\n` sequences are normalized to `\n` for splitting so a
+            // CRLF-stored description renders without a stray `\r` in the
+            // first line. The 13-space continuation indent applies to every
+            // line after the first regardless of original separator.
+            let normalized = d.replace("\r\n", "\n");
+            normalized.replace('\n', "\n             ")
+        }
+    };
+    format!(
+        "ID:          {}\n\
+         Title:       {}\n\
+         Status:      {}\n\
+         Priority:    {}\n\
+         Labels:      {}\n\
+         Description: {}\n\
+         Created:     {}\n\
+         Updated:     {}\n",
+        issue.id,
+        issue.title,
+        issue.status,
+        issue.priority,
+        labels_display,
+        description_display,
+        issue.created_at,
+        issue.updated_at,
+    )
+}
+
+/// Implements `tracker show <id>`.
+///
+/// Validates `id_raw`, locates the issue, and prints the full labelled
+/// key-value block (per DESIGN.md "Show output format") to stdout. Show is
+/// non-mutating: storage is read but never written.
+///
+/// # Errors
+/// Returns `Err` if the ID is malformed, the issue does not exist, or
+/// storage I/O fails.
+pub fn cmd_show(id_raw: &str, issues_path: &Path) -> Result<(), String> {
+    let id = parse_id(id_raw)?;
+    let tracker = load_tracker(issues_path)?;
+    let issue = tracker
+        .issues
+        .iter()
+        .find(|i| i.id == id)
+        .ok_or_else(|| format!("Issue #{} not found.", id))?;
+    // `format_show_block` already includes a trailing newline; use `print!`
+    // rather than `println!` to avoid emitting a stray blank line.
+    print!("{}", format_show_block(issue));
+    Ok(())
+}
+
+/// Implements `tracker delete <id>`.
+///
+/// Validates `id_raw`, locates the issue, removes it from storage, persists
+/// the updated tracker (issues without the removed entry; `next_id` unchanged),
+/// and prints `Deleted issue #<id>.` to stdout. Deleted IDs are never reused:
+/// `Tracker::next_id` is monotonically increasing across create/delete, so the
+/// next create always assigns an id strictly greater than every previously-assigned
+/// id, including the just-deleted one (SO Review 22 Option A). Other issues
+/// are not affected.
+///
+/// # Errors
+/// Returns `Err` if the ID is malformed, the issue does not exist, or
+/// storage I/O fails.
+pub fn cmd_delete(id_raw: &str, issues_path: &Path) -> Result<(), String> {
+    let id = parse_id(id_raw)?;
+    let mut tracker = load_tracker(issues_path)?;
+    let idx = tracker
+        .issues
+        .iter()
+        .position(|i| i.id == id)
+        .ok_or_else(|| format!("Issue #{} not found.", id))?;
+    tracker.issues.remove(idx);
+    save_tracker(issues_path, &tracker)?;
+    println!("Deleted issue #{}.", id);
     Ok(())
 }
 
@@ -502,7 +724,7 @@ pub fn cmd_list(
     let extra_filter_active = effective_priority.is_some() || effective_label.is_some();
     let is_default_open_view = effective_status == "open" && !extra_filter_active;
 
-    let mut issues = load_issues(issues_path)?;
+    let mut issues = load_tracker(issues_path)?.issues;
     issues.retain(|i| {
         issue_matches_filters(
             i,
@@ -605,32 +827,75 @@ mod tests {
     }
 
     #[test]
-    fn id_assignment_first_issue_is_1() {
-        assert_eq!(next_id(&[]), Ok(1));
+    fn bump_next_id_increments_by_one() {
+        assert_eq!(bump_next_id(1), Ok(2));
+        assert_eq!(bump_next_id(42), Ok(43));
     }
 
     #[test]
-    fn id_assignment_increments_from_max() {
-        assert_eq!(next_id(&[1, 3, 5]), Ok(6));
+    fn bump_next_id_at_u64_max_returns_error() {
+        // Defends against hand-edited tracker.json planting `next_id: u64::MAX`
+        // to corrupt the next create. checked_add prevents the silent wrap to 0.
+        assert!(bump_next_id(u64::MAX).is_err());
+    }
+
+    fn tracker_with(issues: Vec<Issue>, next_id: u64) -> Tracker {
+        Tracker { issues, next_id }
     }
 
     #[test]
-    fn id_assignment_at_u64_max_returns_error() {
-        // Defends against hand-edited tracker.json planting `id: u64::MAX` to
-        // corrupt the next create. checked_add prevents the silent wrap to 0.
-        assert!(next_id(&[u64::MAX]).is_err());
+    fn tracker_validation_rejects_duplicate_ids() {
+        let t = tracker_with(vec![issue(1, "medium"), issue(1, "high")], 2);
+        assert!(!tracker_is_valid(&t));
     }
 
     #[test]
-    fn collection_invariants_reject_duplicate_ids() {
-        let issues = vec![issue(1, "medium"), issue(1, "high")];
-        assert!(!issues_collection_invariants_hold(&issues));
+    fn tracker_validation_accepts_unique_ids() {
+        let t = tracker_with(vec![issue(1, "medium"), issue(2, "high")], 3);
+        assert!(tracker_is_valid(&t));
     }
 
     #[test]
-    fn collection_invariants_accept_unique_ids() {
-        let issues = vec![issue(1, "medium"), issue(2, "high")];
-        assert!(issues_collection_invariants_hold(&issues));
+    fn tracker_validation_rejects_next_id_zero() {
+        // next_id must be >= 1 (counter starts at 1 for a fresh tracker).
+        let t = tracker_with(Vec::new(), 0);
+        assert!(!tracker_is_valid(&t));
+    }
+
+    #[test]
+    fn tracker_validation_rejects_next_id_not_greater_than_max_id() {
+        // The persistent-counter contract requires next_id > max(issue.id).
+        // A stored tracker where next_id == max(id) would assign a duplicate id
+        // on the next create — the exact SO R22 failure mode at load time.
+        let t = tracker_with(vec![issue(5, "medium")], 5);
+        assert!(!tracker_is_valid(&t));
+        let t = tracker_with(vec![issue(5, "medium")], 4);
+        assert!(!tracker_is_valid(&t));
+    }
+
+    #[test]
+    fn tracker_validation_accepts_next_id_strictly_greater_than_max() {
+        let t = tracker_with(vec![issue(5, "medium")], 6);
+        assert!(tracker_is_valid(&t));
+        // next_id may be much larger than max(id) when intermediate issues were
+        // created then deleted — the counter retains its highest-assigned value.
+        let t = tracker_with(vec![issue(1, "medium")], 99);
+        assert!(tracker_is_valid(&t));
+    }
+
+    #[test]
+    fn tracker_validation_accepts_empty_with_next_id_1() {
+        // Fresh-tracker initial state: no issues, counter at 1.
+        let t = tracker_with(Vec::new(), 1);
+        assert!(tracker_is_valid(&t));
+    }
+
+    #[test]
+    fn tracker_validation_accepts_empty_after_all_deleted_with_retained_counter() {
+        // After creating and deleting every issue, the counter retains its value
+        // (deleted IDs are never reused, including when issues becomes empty).
+        let t = tracker_with(Vec::new(), 7);
+        assert!(tracker_is_valid(&t));
     }
 
     #[test]
@@ -950,6 +1215,181 @@ mod tests {
             Some("high"),
             Some("feature")
         ));
+    }
+
+    // --- Layer 6: description + show + delete (Red Gate) ---
+
+    fn issue_with_full(id: u64, title: &str, description: Option<&str>, labels: &[&str]) -> Issue {
+        Issue {
+            id,
+            title: title.to_string(),
+            description: description.map(|s| s.to_string()),
+            status: "open".to_string(),
+            priority: "medium".to_string(),
+            labels: labels.iter().map(|s| s.to_string()).collect(),
+            created_at: "2026-01-01T00:00:00Z".to_string(),
+            updated_at: "2026-01-01T00:00:00Z".to_string(),
+        }
+    }
+
+    #[test]
+    fn multiline_description_show_format() {
+        // DESIGN.md "Show output format": for multi-line descriptions, the
+        // first line follows the `Description:` label; each continuation
+        // line is indented by 13 spaces (matching the label-column width).
+        let issue = issue_with_full(1, "Fix auth", Some("line1\nline2"), &[]);
+        let out = format_show_block(&issue);
+        assert!(
+            out.contains("Description: line1"),
+            "first line must follow the Description: label:\n{out}"
+        );
+        assert!(
+            out.contains("\n             line2"),
+            "continuation line must be indented by 13 spaces:\n{out:?}"
+        );
+    }
+
+    #[test]
+    fn show_label_column_right_padded_to_13() {
+        // DESIGN.md "Show output format": the label column is right-padded
+        // to a fixed width of 13 characters so values align. Each label
+        // (e.g. `ID:`, `Title:`, `Description:`) occupies the leading 13
+        // chars of its line before the value starts.
+        let issue = issue_with_full(42, "Hello", None, &["bug"]);
+        let out = format_show_block(&issue);
+        // Pick a few representative labels and assert they appear with the
+        // 13-char prefix shape.
+        for prefix in &[
+            "ID:          ", // "ID:" + 10 spaces = 13 chars
+            "Title:       ", // "Title:" + 7 spaces = 13 chars
+            "Status:      ", // "Status:" + 6 spaces = 13 chars
+            "Priority:    ", // "Priority:" + 4 spaces = 13 chars
+            "Labels:      ", // "Labels:" + 6 spaces = 13 chars
+            "Description: ", // "Description:" + 1 space = 13 chars
+            "Created:     ", // "Created:" + 5 spaces = 13 chars
+            "Updated:     ", // "Updated:" + 5 spaces = 13 chars
+        ] {
+            assert!(
+                out.contains(prefix),
+                "expected 13-char label column prefix `{prefix}` in show output:\n{out}"
+            );
+        }
+    }
+
+    // --- Round 2: description Cc defense (Security R9 F1 / RT R8 F1 / DE R9 F1 / SE R15 F1 / QE R15 F2 / SO R20 F3) ---
+
+    #[test]
+    fn description_empty_after_trim_is_rejected() {
+        assert!(validate_description("").is_err());
+        assert!(validate_description("   ").is_err());
+        assert!(validate_description("\n").is_err()); // newline-only is whitespace-only after trim
+    }
+
+    #[test]
+    fn description_with_control_char_other_than_newline_is_rejected() {
+        // ESC, BEL, NUL, DEL, tab, bare CR — all Cc, all not \n. Rejected.
+        assert!(validate_description("a\u{1B}b").is_err());
+        assert!(validate_description("a\u{07}b").is_err());
+        assert!(validate_description("a\u{00}b").is_err());
+        assert!(validate_description("a\u{7F}b").is_err());
+        assert!(validate_description("a\tb").is_err());
+        assert!(validate_description("a\rb").is_err());
+        // CRLF: contains \r, which is Cc-not-\n. Reject.
+        assert!(validate_description("line1\r\nline2").is_err());
+    }
+
+    #[test]
+    fn description_with_newline_only_is_accepted() {
+        // \n is the spec-permitted carve-out.
+        assert_eq!(
+            validate_description("line1\nline2"),
+            Ok("line1\nline2".to_string())
+        );
+        assert_eq!(
+            validate_description("first\nsecond\nthird"),
+            Ok("first\nsecond\nthird".to_string())
+        );
+    }
+
+    #[test]
+    fn description_stored_verbatim_not_trimmed() {
+        // Stored value is the raw input — not trimmed. Pins the
+        // "stored as provided (not trimmed)" half of the spec contract.
+        // Killing the mutation `Ok(raw.trim().to_string())`.
+        assert_eq!(
+            validate_description("  padded  "),
+            Ok("  padded  ".to_string())
+        );
+        assert_eq!(
+            validate_description("trailing-space "),
+            Ok("trailing-space ".to_string())
+        );
+    }
+
+    #[test]
+    fn description_with_printable_unicode_is_accepted() {
+        assert!(validate_description("emoji 🐛").is_ok());
+        assert!(validate_description("中文").is_ok());
+        assert!(validate_description("café").is_ok());
+    }
+
+    #[test]
+    fn issue_field_validation_rejects_control_char_in_description() {
+        let mut bad = issue(1, "medium");
+        bad.description = Some("a\u{1B}[31mPWN".to_string());
+        assert!(!issue_fields_are_valid(&bad));
+    }
+
+    #[test]
+    fn issue_field_validation_rejects_carriage_return_in_description() {
+        let mut bad = issue(1, "medium");
+        bad.description = Some("line1\rOVER".to_string());
+        assert!(!issue_fields_are_valid(&bad));
+    }
+
+    #[test]
+    fn issue_field_validation_accepts_newline_in_description() {
+        // \n is the spec-permitted carve-out at the load boundary too.
+        let mut ok = issue(1, "medium");
+        ok.description = Some("line1\nline2".to_string());
+        assert!(issue_fields_are_valid(&ok));
+    }
+
+    #[test]
+    fn issue_field_validation_accepts_no_description() {
+        // None is always valid (description is optional).
+        let issue = issue(1, "medium"); // helper leaves description = None
+        assert!(issue_fields_are_valid(&issue));
+    }
+
+    #[test]
+    fn high_edge_delete_does_not_reuse_id() {
+        // SO Review 22 Option A: the persistent `next_id` counter is monotonic
+        // across create and delete. After creating #1 and #2 (next_id bumps to
+        // 3), deleting #2 leaves issues=[#1] but next_id stays at 3 — so the
+        // next create assigns 3, NOT 2 (the just-deleted high-edge id).
+        // Pre-SO-R22 implementation (`max(remaining_ids) + 1`) reassigned 2
+        // here; this unit test pins the corrected counter behavior.
+        let t = tracker_with(vec![issue(1, "medium")], 3);
+        // The next assigned id is `tracker.next_id`; cmd_create then bumps via
+        // `bump_next_id(t.next_id)`. Pin both halves of the contract.
+        assert_eq!(t.next_id, 3, "stored counter must be the next-to-assign");
+        assert_eq!(
+            bump_next_id(t.next_id),
+            Ok(4),
+            "after assigning 3, the counter advances to 4 — id 2 (deleted) is unreachable"
+        );
+    }
+
+    #[test]
+    fn middle_gap_delete_does_not_reuse_id() {
+        // Companion to high_edge_delete_does_not_reuse_id: after creating
+        // #1, #2, #3 (next_id at 4) and deleting #2, the next create assigns 4.
+        // The middle-gap id 2 is not reused. Same contract as the high-edge
+        // case; both are subsumed by the monotonic counter.
+        let t = tracker_with(vec![issue(1, "medium"), issue(3, "medium")], 4);
+        assert_eq!(t.next_id, 4);
+        assert_eq!(bump_next_id(t.next_id), Ok(5));
     }
 
     #[test]
