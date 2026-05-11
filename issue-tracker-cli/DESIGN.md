@@ -149,7 +149,7 @@ This is portfolio project #2, per the Phase 1 apprentice program assignment in `
 - Issue not found → stderr `Error: Issue #<id> not found.` → exit 1
 
 **Invariants:**
-- The deleted ID is never reused; the next created issue receives `max(remaining_ids) + 1`, which will always be greater than the deleted ID
+- The deleted ID is never reused. The persistent `next_id` counter (see Data Model / Storage file) is monotonically increasing across the tracker's lifetime and is left unchanged by delete, so the next created issue always receives an id strictly greater than every previously-assigned id — including the just-deleted one, including the case where the deleted issue was the highest id at delete time. (SO Review 22 Option A: the prior `max(remaining_ids) + 1` formulation was incorrect at the high edge and reused the deleted id.)
 - IDs of all remaining issues are unchanged
 - No other issues are affected by the delete
 
@@ -183,12 +183,18 @@ This is portfolio project #2, per the Phase 1 apprentice program assignment in `
 ### Storage file
 
 ```
-[Issue]   // top-level array of issue objects; order is not significant (list sorts on display)
+{
+  "issues":  [Issue],   // order is not significant (list sorts on display)
+  "next_id": u64        // monotonically-increasing counter; the next id to assign
+}
 ```
 
 **Storage invariants:**
-- If the file does not exist, the tracker is treated as empty (empty array)
-- On every create, the new issue's ID is assigned as `max(existing_ids) + 1`, or `1` if the issue list is empty
+- If the file does not exist, the tracker is treated as fresh — equivalent to `{"issues": [], "next_id": 1}`
+- `next_id >= 1` at all times
+- If `issues` is non-empty, `next_id > max(issue.id)` (strictly greater — the counter has been advanced past every assigned id)
+- On every create, the new issue's id is `next_id`; the counter is then bumped via `checked_add(1)` (overflow at `u64::MAX` surfaces a clean "Cannot assign new issue ID" error)
+- On every delete, the counter is NOT modified — `next_id` is monotonically increasing across the tracker's lifetime, so deleted ids are never reassigned, even when the deleted issue was the highest id at delete time (SO Review 22 Option A)
 - `tracker.json` is written directly on every mutation; on I/O failure the file may be in an indeterminate state — the error is reported and the binary exits 1. Atomic writes are the correct production approach and are deferred — implementation cost exceeds the failure risk for a single-user local tool.
 
 **File location:** `tracker.json` in the current working directory at the time the command runs.

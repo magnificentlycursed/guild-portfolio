@@ -37,7 +37,7 @@ fn create_with_description_stores_verbatim() {
 
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
-    assert_eq!(v[0]["description"], "Auth token expires too soon");
+    assert_eq!(v["issues"][0]["description"], "Auth token expires too soon");
 }
 
 #[test]
@@ -85,7 +85,9 @@ fn create_without_description_has_no_field_in_json() {
 
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
-    let obj = v[0].as_object().expect("issue must be a JSON object");
+    let obj = v["issues"][0]
+        .as_object()
+        .expect("issue must be a JSON object");
     assert!(
         !obj.contains_key("description"),
         "description key must be omitted (not null/empty) when --description is absent:\n{obj:#?}"
@@ -324,7 +326,9 @@ fn delete_removes_issue() {
 
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
-    let arr = v.as_array().expect("tracker.json must be a JSON array");
+    let arr = v["issues"]
+        .as_array()
+        .expect("tracker.json must have an issues array");
     assert!(
         arr.iter().all(|i| i["id"] != 1),
         "deleted issue id=1 must not be present in tracker.json:\n{arr:#?}"
@@ -349,11 +353,12 @@ fn delete_then_show_returns_not_found() {
 }
 
 #[test]
-fn delete_id_not_reused() {
-    // DESIGN.md Feature 5 invariant: "the deleted ID is never reused; the
-    // next created issue receives max(remaining_ids) + 1". After deleting
-    // issue #1, a new create must get id=2 (max(remaining=[2]) + 1) — the
-    // next_id assignment must skip the deleted gap, not refill it.
+fn delete_id_not_reused_middle_gap() {
+    // DESIGN.md Feature 5 invariant: "the deleted ID is never reused".
+    // Middle-gap subcase: after deleting issue #1 (the lowest of [#1, #2]), a
+    // new create must NOT reassign id=1. With the persistent `next_id` counter
+    // (SO R22 Option A), `next_id` was bumped past 2 at the previous create,
+    // so the next create gets 3 even though the middle id (1) is free.
     let dir = TempDir::new().unwrap();
     tracker(&dir).args(["create", "First"]).assert().success();
     tracker(&dir).args(["create", "Second"]).assert().success();
@@ -362,7 +367,9 @@ fn delete_id_not_reused() {
 
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
-    let arr = v.as_array().expect("tracker.json must be a JSON array");
+    let arr = v["issues"]
+        .as_array()
+        .expect("tracker.json must have an issues array");
     let ids: Vec<u64> = arr.iter().map(|i| i["id"].as_u64().unwrap()).collect();
     assert!(
         !ids.contains(&1),
@@ -370,7 +377,45 @@ fn delete_id_not_reused() {
     );
     assert!(
         ids.contains(&3),
-        "new issue must receive id=3 (max(remaining=[2]) + 1):\nids={ids:?}"
+        "new issue must receive id=3 (counter has been bumped past 2):\nids={ids:?}"
+    );
+}
+
+#[test]
+fn delete_id_not_reused_high_edge() {
+    // SO Review 22 regression test: the high-edge case the pre-R22
+    // `max(remaining_ids) + 1` implementation silently violated. Director
+    // manual-test reproduction: create #1, create #2 (next_id bumps to 3),
+    // delete #2 (the highest id), create — the new id must be 3, NOT 2.
+    // Pre-R22 this assigned 2 because `max([1]) + 1 == 2`, reusing the
+    // just-deleted id. The persistent `next_id` counter closes the hole.
+    let dir = TempDir::new().unwrap();
+    tracker(&dir).args(["create", "First"]).assert().success();
+    tracker(&dir).args(["create", "Second"]).assert().success();
+    tracker(&dir).args(["delete", "2"]).assert().success();
+    tracker(&dir)
+        .args(["create", "Third"])
+        .assert()
+        .success()
+        .stdout("Created issue #3: Third\n");
+
+    let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
+    let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    let arr = v["issues"]
+        .as_array()
+        .expect("tracker.json must have an issues array");
+    let ids: Vec<u64> = arr.iter().map(|i| i["id"].as_u64().unwrap()).collect();
+    assert_eq!(
+        ids,
+        vec![1, 3],
+        "after deleting the highest id, the new id must skip the deleted value:\nids={ids:?}"
+    );
+    let next_id = v["next_id"]
+        .as_u64()
+        .expect("next_id must be present after Option A");
+    assert_eq!(
+        next_id, 4,
+        "counter must have advanced to 4 after the third create"
     );
 }
 
@@ -388,13 +433,13 @@ fn delete_other_issues_unchanged() {
 
     let pre = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let pre_v: serde_json::Value = serde_json::from_str(&pre).unwrap();
-    let pre_second = pre_v[1].clone();
+    let pre_second = pre_v["issues"][1].clone();
 
     tracker(&dir).args(["delete", "1"]).assert().success();
 
     let post = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let post_v: serde_json::Value = serde_json::from_str(&post).unwrap();
-    let post_second = post_v
+    let post_second = post_v["issues"]
         .as_array()
         .unwrap()
         .iter()
@@ -570,7 +615,7 @@ fn create_with_newline_description_is_accepted() {
 
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
-    assert_eq!(v[0]["description"], "line1\nline2");
+    assert_eq!(v["issues"][0]["description"], "line1\nline2");
 }
 
 #[test]
@@ -590,7 +635,7 @@ fn create_preserves_description_verbatim_with_surrounding_whitespace() {
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
     assert_eq!(
-        v[0]["description"], "  padded  ",
+        v["issues"][0]["description"], "  padded  ",
         "description must be stored verbatim including leading/trailing whitespace (not trimmed)"
     );
 }
@@ -608,7 +653,7 @@ fn corrupt_data_with_control_char_description_is_rejected() {
     let path = dir.path().join("tracker.json");
     fs::write(
         &path,
-        r#"[{"id":1,"title":"Real","description":"a[31mPWN","status":"open","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]"#,
+        r#"{"issues":[{"id":1,"title":"Real","description":"a[31mPWN","status":"open","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}],"next_id":2}"#,
     )
     .unwrap();
 
@@ -631,7 +676,7 @@ fn corrupt_data_with_carriage_return_description_is_rejected() {
     let path = dir.path().join("tracker.json");
     fs::write(
         &path,
-        r#"[{"id":1,"title":"Real","description":"line1\rOVER","status":"open","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]"#,
+        r#"{"issues":[{"id":1,"title":"Real","description":"line1\rOVER","status":"open","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}],"next_id":2}"#,
     )
     .unwrap();
 
@@ -656,7 +701,7 @@ fn load_accepts_description_with_newline() {
     let path = dir.path().join("tracker.json");
     fs::write(
         &path,
-        r#"[{"id":1,"title":"Real","description":"line1\nline2","status":"open","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]"#,
+        r#"{"issues":[{"id":1,"title":"Real","description":"line1\nline2","status":"open","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}],"next_id":2}"#,
     )
     .unwrap();
 

@@ -1949,3 +1949,140 @@ The Layer 6 implementation is in spec compliance and merge-ready from the SO len
 **Coordination:**
 - **VDD-IAR R16:** Verify Round-2 closure cadence + Open F1 disposition. Merge-gate verdict pending F1 closure.
 - **Director:** Execute 13 manual checklist items; commit per `b0a3789` / `da0fd8d` precedent.
+
+---
+
+## Review 22 — 2026-05-11 03:36Z
+
+**Round:** SO Review 22 (Round-3 director-raised finding from Layer 6 manual testing)
+**Scope:** A single director-raised finding from manual-testing execution against the Layer 6 binary (TODO.md:303-316 checklist). The finding is a spec-vs-implementation defect surfaced by manual test item line 311 ("ID not reused: delete issue #2, create new issue → new ID is #3 (or higher, never #2)"). Scope is bounded to this defect; the rest of the checklist is not in scope this round.
+**Reference:** `DESIGN.md` Feature 1 invariants (line 47), Feature 5 invariants (line 152), Data Model field invariants (line 176); `TODO.md` Layer 6 manual test line 311; `tests/layer6.rs:351-375` `delete_id_not_reused`; `src/lib.rs:88-92` `next_id`; `src/lib.rs:456-478` `cmd_delete`; SA Review 3 Finding 3 (`SOLUTION-ARCHITECT-REVIEW.md:47-53`) — the architectural decision under whose lineage this defect sits.
+**Session context:** Warm session — same orchestrator session that diagnosed the failure from the director's manual-test transcript. **Sycophancy guard explicit:** I diagnosed and proposed this finding to the director before being asked to raise it. SO's job in this round is to verify the finding survives a dismissal attempt without softening, not to ratify my own diagnosis. The dismissal-test pass is recorded at the end of this entry.
+
+---
+
+### Finding 1: `next_id` reuses the deleted ID when the deleted issue was the highest — violates DESIGN.md "never reused" invariant in three places
+
+- **Dimension:** Dim 1 (Spec coverage — invariant not enforced), Dim 5 (Under-delivery — Layer 6 AC for non-reuse partially fails), Dim 7 (Design fidelity — implementation contradicts spec text).
+- **Severity:** Medium. The defect is a real spec violation, not a doc-only gap; but the impact in this tool's single-user threat model is low (IDs are referenced only in the tracker's own output, per SA R3 F3 rationale).
+
+**Reproduction (director's manual-test transcript, condensed):**
+
+```
+$ rm tracker.json
+$ tracker create "First"   → Created issue #1: First
+$ tracker create "Second"  → Created issue #2: Second
+$ tracker delete 2         → Deleted issue #2.
+$ tracker create "Third"   → Created issue #2: Third    ← BUG: id=2 reused
+$ cat tracker.json | grep '"id"'
+    "id": 1,
+    "id": 2,
+```
+
+The reused id=2 was the id of the just-deleted issue. TODO.md:311 explicitly requires "(or higher, never #2)".
+
+**Spec text the implementation violates (three citations):**
+
+- `DESIGN.md:47` Feature 1 Invariants: "IDs are assigned in strictly ascending order and are never reused, **including after deletion**."
+- `DESIGN.md:152` Feature 5 Invariants: "The deleted ID is never reused; the next created issue receives `max(remaining_ids) + 1`, **which will always be greater than the deleted ID**."
+- `DESIGN.md:176` Data Model field invariants: "`id` is unique across all issues **and never reused**."
+
+The Feature 5 sub-claim that "`max(remaining_ids) + 1` … will always be greater than the deleted ID" is provably false. Counter-example: state `[#1, #2]`; delete `#2`; remaining = `[#1]`; `max(remaining) + 1 = 2`; the new issue receives `id=2` — equal to the deleted id, not greater.
+
+**Implementation evidence:**
+
+- `src/lib.rs:88-92` `next_id` computes `existing_ids.iter().max().copied().unwrap_or(0).checked_add(1)`. The function returns `max+1` against *currently-stored* IDs only. It has no knowledge of historically-assigned-then-deleted IDs.
+- `src/lib.rs:79-81` doc-comment: "IDs are never reused: the next ID is always strictly greater than all existing IDs, including those of deleted issues." This claim is wrong in the same direction as DESIGN.md:152 — `next_id` only sees *existing* (currently-stored) IDs; deleted IDs are not in the input.
+- `src/lib.rs:461-462` `cmd_delete` doc-comment self-justifies: "Deleted IDs are never reused: the next `create` assigns `max(remaining_ids) + 1`, which is strictly greater than any deleted ID." Same false claim — falls in the high-edge case.
+
+**Test-coverage hole (why automated tests did not catch this):**
+
+- `tests/layer6.rs:351-375` `delete_id_not_reused` exercises *only* the middle-gap case: create `#1`, create `#2`, delete `#1` (the lowest), create — asserts new id is `3`. After delete, remaining is `[#2]`; `max+1 = 3` ≠ deleted `1`. The test passes because the deleted id (1) is strictly less than `max+1` of the remaining set.
+- The high-edge case (delete the highest id, then create) is *never* exercised. Mutation analysis: a `next_id` implementation that returns `max(existing_ids) + 1` and a hypothetical implementation that returns "max id ever assigned + 1" produce identical results for the middle-gap reproduction — the test cannot distinguish them. The director's manual test is the first execution that fixes the deleted id at the high edge.
+- `src/lib.rs:1260-1269` unit test `max_id_plus_one_skips_deleted_ids` has the same hole — it asserts `next_id(&[1, 3]) == 4`, again middle-gap. It does not test `next_id(&[1])` after `[1, 2]` produced `2`.
+
+**Historical context (SA Review 3 Finding 3, `SOLUTION-ARCHITECT-REVIEW.md:47-53`):**
+
+SA R3 F3 simplified away a persistent `next_id: u64` storage field, reasoning: "ID non-reuse after deletion is meaningful when IDs are referenced externally (foreign keys, logs, URLs). In this tool, IDs appear only in the tracker's own output." SA's resolution: "Removed `next_id` from the storage file shape. ID assignment now specified as `max(existing_ids) + 1`, or `1` if the issue list is empty. **Delete invariant updated accordingly**."
+
+The "Delete invariant updated accordingly" step kept the "never reused" claim and added the `max(remaining_ids) + 1` formula — but did not notice that the formula does not preserve the invariant for high-edge deletion. The simplification was sound (the persistent counter was over-engineered for this threat model) but the spec text was not reconciled with the simpler implementation's actual behavior. SA R3 produced both DESIGN.md:152's false sub-claim and the current implementation; both ship in the merge candidate.
+
+**Why this is a real finding (sycophancy guard — dismissal attempts):**
+
+1. *"It's a documentation gap. The implementation does what most users will expect — IDs are unique among existing issues."* Counter: DESIGN.md states "never reused" in **three** independent places (lines 47, 152, 176). All three are invariant declarations, not casual prose. TODO.md:311 codifies the contract as a manual test. The Layer 6 acceptance criterion at TODO.md line 296 names "ID not reused" as one of the gate-closing checks. Three spec invariants + one acceptance criterion + one manual test is not a documentation gap — it is a contract.
+
+2. *"SA R3 F3 was approved; the implementation matches SA R3 F3's resolution."* Counter: SA R3 F3 said two things — (a) remove the persistent storage counter, and (b) update the delete invariant accordingly. (a) is correctly implemented. (b) is *not*: the delete invariant text still says "never reused" AND adds a false sub-claim. The implementation matches (a) and contradicts (b). SA's approval covers (a); it does not authorize the contradiction in (b).
+
+3. *"The single-user threat model SA R3 F3 named makes ID-reuse harmless."* Counter: the threat-model argument supports *removing the persistent counter*; it does not support *keeping the "never reused" promise while quietly reusing IDs*. If the spec said "IDs are unique among existing issues at any point in time," the current implementation would be compliant. The spec does not say that. The spec says "never reused, including after deletion." The director executing TODO.md:311 expects #3, not #2 — that expectation is what the spec text creates.
+
+4. *"The defect surfaces only at the high edge — practically rare."* Counter: rarity is not a defense for invariant violation. The director's first manual-test run hit it on a 2-issue tracker — not adversarial input, not a corner case 18.4 quintillion creates deep. The high-edge reproduction is two creates + one delete + one create.
+
+The finding survives all four dismissal attempts.
+
+**Classification:** **Open — Raised to SO for adjudication.** Two resolution paths, each internally coherent:
+
+- **Option A — Honor the contract (implementation change).** Re-introduce a persistent counter that is monotonically increasing across the lifetime of the tracker. Storage shape changes from `[issue, …]` to either `{"issues": [issue, …], "next_id": N}` or an out-of-band sidecar. `next_id` reads from storage instead of computing from existing ids. `load_issues` validates `next_id > max(stored_ids)`. Cost: storage schema break (no existing user data is at risk in this branch since `tracker.json` is gitignored, but the format change is real); reverses half of SA R3 F3's simplification (the half that is breaking the invariant); adds one persistent invariant that must be maintained on every write. Strengthens spec fidelity at the cost of SA R3 F3's simplicity argument.
+
+- **Option B — Weaken the contract (spec amendment).** Amend `DESIGN.md:47`, `DESIGN.md:152`, `DESIGN.md:176`, the `cmd_delete` doc-comment at `src/lib.rs:461-462`, the `next_id` doc-comment at `src/lib.rs:79-81`, and TODO.md:311 to state the *actual* behavior: "IDs assigned to currently-existing issues are unique; an ID equal to the id of the most-recently-deleted issue may be reassigned when that issue was the highest-id at delete time." Update the `delete_id_not_reused` test to remove the high-edge assertion and add a regression test pinning the high-edge *reuse* behavior. Cost: contradicts three invariant declarations the spec made in good faith; contradicts a Layer 6 acceptance criterion the director was about to tick; the assignment brief itself does not require either contract, but Option B is a spec retreat. Cheap in code (~5 spec edits, 1 test update, 0 implementation change) but expensive in contract integrity.
+
+**SO recommendation (subject to director override):** Option A. Rationale: the "never reused" invariant is stated in three places with explicit cross-references between Feature 5 and the Data Model field invariants — the spec was authored deliberately to lock this behavior. SA R3 F3's threat-model argument *supports the simplification* but does not *justify the spec retreat*; the simpler `max+1` implementation is a wrong answer to the question "how do you preserve non-reuse in a flat-file store," not a different answer to "do we need non-reuse at all." Option B is the spec capitulating to a buggy implementation, which is exactly the pattern the SO domain prompt warns against ("Quality does not justify scope … 'Better than asked for' is not a defense" — the inverse also holds: "less than promised, because the implementation found a shortcut" is not a defense). The storage-schema change in Option A is mechanical, scoped, and well-bounded; the test that already exists (`delete_id_not_reused`) extends to cover the high-edge case with one additional `tracker delete <highest> + tracker create` block.
+
+**Proposed action (if Option A approved):**
+- DESIGN.md: amend Data Model storage shape to include `next_id: u64`; specify load-time invariant `next_id > max(id)`; specify cmd_create / cmd_delete write semantics (`cmd_create` reads `next_id`, assigns it, writes `next_id + 1`; `cmd_delete` does not modify `next_id`).
+- `src/lib.rs`: introduce a `Tracker` struct (or equivalent) wrapping `{ issues: Vec<Issue>, next_id: u64 }`; refactor `load_issues` / `save_issues` to round-trip the new shape; refactor `next_id(&[u64])` either to take the stored counter or replace it with a method on the wrapper; add `checked_add` overflow defense (Security R4 F2 lineage); update `cmd_create` and `cmd_delete` call sites.
+- `tests/layer6.rs:351-375` `delete_id_not_reused`: extend to add a high-edge subcase — create #1, create #2, delete #2, create "Third"; assert new id is 3 (not 2).
+- `src/lib.rs:1260-1269` `max_id_plus_one_skips_deleted_ids`: rename and rewrite to match the new contract (either delete it or convert to test the persisted counter's monotonicity).
+- TODO.md:311: unchanged (the manual test was already correct; this is the test the director executed).
+- `cmd_delete` and `next_id` doc-comments: rewrite to match the persistent-counter contract.
+- CHANGELOG.md: Round-3 entry crediting the director's manual-testing finding; SA R3 F3 lineage acknowledged with the spec-vs-implementation reconciliation correction.
+
+**Proposed action (if Option B approved):**
+- DESIGN.md:47, :152, :176: rewrite the "never reused" claims to the weaker contract (uniqueness among existing issues; possible high-edge reuse).
+- `src/lib.rs:79-81`, `src/lib.rs:461-462` doc-comments: rewrite to match.
+- TODO.md:311: amend to remove the high-edge expectation OR delete the manual test outright.
+- `tests/layer6.rs:351-375`: rename `delete_id_not_reused` → `delete_id_not_reused_in_middle_gap`; add a paired test `delete_high_edge_id_may_be_reused` that pins the (now-spec-permitted) high-edge reuse.
+- CHANGELOG.md: Round-3 entry documenting the spec retreat with explicit acknowledgement of which invariants were weakened and why.
+- DECISIONS.md: new entry under "Layer 6 spec amendments — SO Review 22" recording the deliberate retreat from the original contract.
+
+**Coordination:**
+- **Solution Architect (SA — next round):** SA R3 F3's resolution authored the false sub-claim at DESIGN.md:152. If Option A is adjudicated, SA should record that R3 F3's threat-model argument supports the simplification but does not eliminate the non-reuse contract — the two are separable. If Option B is adjudicated, SA should record the retreat with the threat-model rationale promoted from "doesn't need external protection" to "the invariant itself is dropped."
+- **Software Engineer (SE — next round):** Owns the Option A implementation if approved. The change is small but touches the storage schema, which means `load_issues` / `save_issues` shape changes, plus a load-time invariant check that complements the existing `issue_fields_are_valid` and `issues_collection_invariants_hold` checks.
+- **Quality Engineer (QE — next round):** Owns the test extension for both options. The mutation-analysis observation (middle-gap-only coverage cannot distinguish `max+1` from "max-ever+1") is a Cat B Red Gate audit pattern that QE can record as a lessons-learned alongside the test extension.
+- **Data Engineer (DE — next round):** If Option A, the storage schema change is a DE concern. The shape `{issues: [...], next_id: N}` introduces a new load-time invariant (`next_id > max(issues.id)`) that intersects with the existing duplicate-id rejection in `issues_collection_invariants_hold`.
+- **Technical Writer (TW — next round):** If Option B, TW co-owns the spec-retreat documentation in CHANGELOG.md / DECISIONS.md; the retreat must be loud, not quiet.
+- **Director:** Adjudicates A vs. B. Closure expected in Round-4 (or as a same-round inline resolution if Option B and the spec edits are mechanical).
+
+---
+
+### Non-finding note: bonus verification (`--description "line1\rOVER"`)
+
+The director's session also reported a "bonus verification failed" for `tracker create "X" --description "line1\rOVER"` succeeding. This is **not a code defect.** zsh's double-quote rules do not interpret `\r` as carriage return — `"line1\rOVER"` is the literal 11-char string `line1\rOVER` (backslash + 'r'), which is not a control character. The `validate_description` Cc defense (R20 F3 / R21 cluster) correctly rejects an actual `\r` byte; the unit test `description_with_control_char_other_than_newline_is_rejected` (`src/lib.rs:1183-1193`) pins this with `validate_description("a\rb").is_err()` (Rust string-literal escape, which *does* produce a CR). The correct shell incantation to verify the Cc defense end-to-end is `tracker create "X" --description $'line1\rOVER'` (ANSI-C quoting), matching the pattern TODO.md:307 already uses for the multi-line newline check.
+
+The bonus item should be re-run with `$'...'` quoting to complete the manual checklist row. No code, spec, or test change.
+
+---
+
+### Open
+
+- **F1** (`next_id` reuses deleted high-edge id; violates "never reused" invariant) — **Raised to SO for adjudication; A vs. B decision pending director.**
+
+### Hallucinated / Backlogged / Dismissed
+
+*(none this round)*
+
+### Carry-forward (from prior rounds)
+
+- **SO R20 F1 / VDD-IAR R15 F1 / TW R9 F4** (Layer 6 manual testing checklist closure) — **partial progress this round.** The director executed at least items aligned with TODO.md:311 (the trigger for this finding) and the bonus row (resolved as a shell-quoting non-finding above). Full 13/13 closure remains pending.
+- **SA R11 F1 + SA R13 F1 Trigger B + SA R13 F2** (architectural deferrals to pre-Layer-7 focused PR) — unchanged.
+
+### Summary
+
+1 Open finding raised. 0 Hallucinated. 0 Dismissed. 0 Backlogged.
+
+The defect is a spec-vs-implementation contradiction that was latent through Layers 1-6 because the test coverage for non-reuse was scoped narrowly enough to miss the high-edge case. The director's manual execution of TODO.md:311 is the first execution that fixed the deleted id at the high edge and surfaced the gap. The finding has architectural lineage (SA R3 F3 simplified the persistent counter), test-coverage lineage (`delete_id_not_reused` only exercises middle-gap), and spec lineage (DESIGN.md:152's sub-claim is provably false). Two coherent resolutions exist; SO recommends Option A (honor the contract) over Option B (weaken the spec).
+
+**Layer 6 merge gate impact:** F1 blocks merge from the SO lens. The "never reused" promise is a Layer 6 acceptance criterion (TODO.md:296), not a Phase 2+ nice-to-have. Closure requires the director's A/B adjudication and the implementing change. If Option A: one SE round + one QE test extension. If Option B: one round of spec/test/doc edits with explicit retreat documentation.
+
+**Coordination:**
+- **Director (immediate):** Adjudicate Option A vs. Option B. Recommend Option A.
+- **VDD-IAR (next round):** This Round-3 finding extends the Layer 6 IAR cycle beyond Round-2 closure. VDD-IAR should record that the closure was incomplete — director-side manual testing surfaced a real defect that the four-domain Round-1 + adjudication Round-2 missed. The mutation-analysis blind spot in `delete_id_not_reused` is a QE-domain process datum; the spec-vs-implementation contradiction surviving Round 2 is a VDD-IAR-domain process datum. Both worth recording.

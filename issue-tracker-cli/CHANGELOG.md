@@ -1,5 +1,38 @@
 # Changelog
 
+## Layer 6 IAR Round 3 — `next_id` persistent counter (SO Review 22 Option A) — 2026-05-11 04:30Z
+
+**Scope:** Resolves SO Review 22 Finding 1 — a director-raised spec violation surfaced by Layer 6 manual testing (TODO.md:311 "ID not reused"). The pre-R22 `max(existing_ids) + 1` id-assignment did not honor the "deleted ID never reused, including after deletion" invariant in the high-edge case (delete the highest-id issue, then create — reassigned the deleted id). Option A restores the persistent `next_id` counter that SA Review 3 Finding 3 had removed, reversing two prior decisions (SA R3 F3 "no stored counter" and SO R7 "bare top-level array") in favor of honoring the spec contract.
+
+### Changed
+
+- **DESIGN.md** — Data Model / Storage file: shape changes from `[Issue]` to `{"issues": [Issue], "next_id": u64}`. Storage invariants: `next_id >= 1`; if `issues` is non-empty, `next_id > max(issue.id)`; on create the new issue's id is `next_id` and the counter bumps via `checked_add(1)`; on delete the counter is unchanged. Feature 5 Invariants: rewrote the "never reused" sub-claim that previously asserted (falsely) "`max(remaining_ids) + 1` will always be greater than the deleted ID" — now references the persistent counter explicitly with SO R22 lineage citation.
+- **src/lib.rs** — New `pub struct Tracker { issues: Vec<Issue>, next_id: u64 }`. `load_issues` / `save_issues` replaced by `load_tracker` / `save_tracker` (the bare-array shape is rejected at load with the standard corrupt-data message — serde deserializes the wrong shape as a parse error). `next_id(&[u64])` pure helper removed and replaced by `bump_next_id(u64)` (overflow defense via `checked_add(1)` preserved — Security R4 F2 lineage unbroken). `issues_collection_invariants_hold` replaced by `tracker_is_valid` (whole-tracker validation including unique-IDs, per-issue field validity, and counter invariants). `cmd_create` reads `tracker.next_id`, assigns, bumps. `cmd_delete` removes from `tracker.issues`, leaves `next_id` untouched. `cmd_status` / `cmd_show` / `cmd_list` load through the new `Tracker` shape. Doc-comments throughout updated to reflect the new contract (notably `cmd_delete` no longer self-justifies with the false "max + 1 strictly greater than deleted id" claim).
+- **src/lib.rs#tests** — Removed three obsolete unit tests pinning the old `max+1` contract (`id_assignment_first_issue_is_1`, `id_assignment_increments_from_max`, `id_assignment_at_u64_max_returns_error`, `max_id_plus_one_skips_deleted_ids`, `collection_invariants_*`). Added: `bump_next_id_increments_by_one`, `bump_next_id_at_u64_max_returns_error`, `tracker_validation_rejects_duplicate_ids`, `tracker_validation_accepts_unique_ids`, `tracker_validation_rejects_next_id_zero`, `tracker_validation_rejects_next_id_not_greater_than_max_id`, `tracker_validation_accepts_next_id_strictly_greater_than_max`, `tracker_validation_accepts_empty_with_next_id_1`, `tracker_validation_accepts_empty_after_all_deleted_with_retained_counter`, `high_edge_delete_does_not_reuse_id` (the SO R22 regression at the unit level), `middle_gap_delete_does_not_reuse_id` (companion case). Net: +5 unit tests.
+- **tests/layer6.rs** — `delete_id_not_reused` split into two named tests: `delete_id_not_reused_middle_gap` (the prior coverage) and `delete_id_not_reused_high_edge` (the SO R22 director-reproduction case — pins `Created issue #3: Third` after delete of #2 from {#1,#2}, and asserts `next_id == 4` in the persisted JSON). The high-edge test would have failed pre-R22 and pins the regression. Net: +1 integration test.
+- **tests/layer{1,2,3,4,6}.rs** — All `tracker.json` reads updated: `v[0]["x"]` → `v["issues"][0]["x"]`; `v.as_array()` → `v["issues"].as_array()`. All hand-crafted corrupt-data JSON literals re-wrapped from `[{...}]` to `{"issues":[{...}],"next_id":N}` with a valid counter (the per-issue corruption being tested still triggers rejection through the `issue_fields_are_valid` / `tracker_is_valid` path). The `u64_max_id_in_json_blocks_next_create_with_clean_error` test renamed to `u64_max_next_id_in_json_blocks_next_create_with_clean_error` and now plants `next_id: u64::MAX` (with a valid issue) — overflow surfaces one layer earlier (on the counter, not on a derived value) but the error message is unchanged.
+- **DECISIONS.md** — SA Review 1 Finding 3 ("ID assignment via `max(existing_ids) + 1`") and SO Review 7's "bare top-level array" entries annotated as **Reversed by SO Review 22**. New section "Layer 6 spec amendments — SO Review 22" added documenting Option A with rationale, trade-off, and lineage back to SA R3 F3.
+- **TODO.md** — Layer 6 manual-testing checklist tick for "ID not reused" (line 311) — closed by the persistent counter, verified end-to-end. The bonus row's shell-quoting note (`\r` in double-quoted shell string is a literal, not CR) recorded as a non-finding.
+
+### IAR
+
+- **SO Review 22 Finding 1** (director-raised from manual testing) — Resolved via Option A (this commit). The pre-R22 implementation was correct against SA R3 F3's threat-model simplification rationale but incorrect against the spec invariants DESIGN.md asserts in three places. Option A makes the implementation match the spec; the alternative (Option B — weaken the spec to match `max+1`) was considered and rejected per the SO R22 sycophancy-guard dismissal tests.
+
+### Open (process)
+
+- **VDD-IAR (next round)** — Verify the Round-3 closure: spec/code/test/doc consistency around the new counter, regression coverage at the high edge, prior `max+1` mutation surfaces now closed.
+- **Layer 6 manual checklist** — line 311 ticked this round; remaining items (12 of 13 pre-R22) still pending director closure per the standing Round-2 process Open finding (carry-forward).
+
+### Verification
+
+- `cargo test --no-fail-fast --locked` — **186/186 pass** at Round 3 close (62 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4 + 7 layer5 + 33 layer6).
+- `cargo clippy --all-targets --locked -- -D warnings` — clean.
+- `cargo fmt --check` — clean.
+- Director's manual-test reproduction (delete #2 from {#1,#2}, create "Third"): new id = 3 ✓, `tracker.json` shows `next_id: 4` ✓.
+- Bonus `--description $'line1\rOVER'` (ANSI-C quoting for real CR): rejected with `Error: Description cannot contain control characters other than newline.` exit 1 ✓.
+
+---
+
 ## Layer 6 IAR Round 2 closure — 2026-05-11 02:00Z
 
 **Scope:** Resolves the substantive Open finding cluster surfaced by Layer 6 Round 1 cold-batch IAR (Security R9 / RT R8 / DE R9 / SE R15 / QE R15 / SO R20 / SA R13 / UX R8 / TW R9). Lands DESIGN.md spec amendments (SO authority), `src/lib.rs` defenses + the `CreateArgs` struct extraction (SE authority), tests (QE authority), `show` / `delete` `--help` parity (UX authority), and doc updates (TW authority).

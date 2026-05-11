@@ -301,19 +301,19 @@ Unit tests:
 - [x] Description is never shown in `tracker list` output
 
 **Manual Testing Checklist:**
-- [ ] Happy path: `tracker create "Fix auth" --description "Token expires after 1 hour"` → `tracker show 1` displays all fields correctly
-- [ ] No description: create without `--description` → `tracker show` shows `Description: (none)`
-- [ ] No labels: issue with no labels → `tracker show` shows `Labels:      (none)`
-- [ ] Multi-line description: create with description containing a newline (`$'line1\nline2'` in shell) → `tracker show` indents continuation line by 13 spaces
-- [ ] Show alignment: verify all value columns align at the same horizontal position (13-char label column)
-- [ ] Show is non-mutating: `tracker show 1` twice produces identical output; `tracker.json` unchanged
-- [ ] Delete: `tracker delete 2` → `Deleted issue #2.` → `tracker list` no longer shows #2 → `tracker show 2` → not-found error → `tracker.json` does not contain issue #2
-- [ ] ID not reused: delete issue #2, create new issue → new ID is #3 (or higher, never #2)
-- [ ] Other issues unchanged after delete: `tracker show 1` after `tracker delete 2` shows issue #1 intact
-- [ ] Error — empty description: `tracker create "Test" --description ""` → exit 1
-- [ ] Error — show invalid ID: `tracker show 0` and `tracker show abc` → exit 1
-- [ ] Error — delete not found: `tracker delete 99` → exit 1
-- [ ] Persistence: create with description, reinstall binary, `tracker show` → description intact
+- [x] Happy path: `tracker create "Fix auth" --description "Token expires after 1 hour"` → `tracker show 1` displays all fields correctly
+- [x] No description: create without `--description` → `tracker show` shows `Description: (none)`
+- [x] No labels: issue with no labels → `tracker show` shows `Labels:      (none)`
+- [x] Multi-line description: create with description containing a newline (`$'line1\nline2'` in shell) → `tracker show` indents continuation line by 13 spaces
+- [x] Show alignment: verify all value columns align at the same horizontal position (13-char label column)
+- [x] Show is non-mutating: `tracker show 1` twice produces identical output; `tracker.json` unchanged
+- [x] Delete: `tracker delete 2` → `Deleted issue #2.` → `tracker list` no longer shows #2 → `tracker show 2` → not-found error → `tracker.json` does not contain issue #2
+- [x] ID not reused: delete issue #2, create new issue → new ID is #3 (or higher, never #2)
+- [x] Other issues unchanged after delete: `tracker show 1` after `tracker delete 2` shows issue #1 intact
+- [x] Error — empty description: `tracker create "Test" --description ""` → exit 1
+- [x] Error — show invalid ID: `tracker show 0` and `tracker show abc` → exit 1
+- [x] Error — delete not found: `tracker delete 99` → exit 1
+- [x] Persistence: create with description, reinstall binary, `tracker show` → description intact
 
 **Red Gate — tests to write first:**
 

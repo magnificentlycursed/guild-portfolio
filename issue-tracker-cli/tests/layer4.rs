@@ -17,7 +17,7 @@ fn create_with_label_stores_label() {
 
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
-    assert_eq!(v[0]["labels"], serde_json::json!(["bug"]));
+    assert_eq!(v["issues"][0]["labels"], serde_json::json!(["bug"]));
 }
 
 #[test]
@@ -31,7 +31,7 @@ fn create_with_multiple_labels_stores_all() {
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
     assert_eq!(
-        v[0]["labels"],
+        v["issues"][0]["labels"],
         serde_json::json!(["bug", "auth"]),
         "labels must preserve insertion order"
     );
@@ -50,7 +50,7 @@ fn create_with_duplicate_labels_deduplicates() {
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
     assert_eq!(
-        v[0]["labels"],
+        v["issues"][0]["labels"],
         serde_json::json!(["bug", "auth"]),
         "duplicates must be collapsed; first occurrence wins"
     );
@@ -93,7 +93,7 @@ fn create_without_labels_stores_empty_array() {
 
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
-    assert_eq!(v[0]["labels"], serde_json::json!([]));
+    assert_eq!(v["issues"][0]["labels"], serde_json::json!([]));
 }
 
 // --- list: label display ---
@@ -258,7 +258,7 @@ fn create_preserves_label_case_at_storage() {
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
     assert_eq!(
-        v[0]["labels"],
+        v["issues"][0]["labels"],
         serde_json::json!(["Bug", "BUG", "bug"]),
         "case must be preserved as provided; case-distinct labels are not deduplicated"
     );
@@ -354,7 +354,7 @@ fn corrupt_data_with_control_char_label_is_rejected() {
     let path = dir.path().join("tracker.json");
     fs::write(
         &path,
-        r#"[{"id":1,"title":"Real","status":"open","priority":"medium","labels":["bug\nfake"],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]"#,
+        r#"{"issues":[{"id":1,"title":"Real","status":"open","priority":"medium","labels":["bug\nfake"],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}],"next_id":2}"#,
     )
     .unwrap();
 
@@ -375,7 +375,7 @@ fn corrupt_data_with_comma_label_is_rejected() {
     let path = dir.path().join("tracker.json");
     fs::write(
         &path,
-        r#"[{"id":1,"title":"Real","status":"open","priority":"medium","labels":["a,b"],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]"#,
+        r#"{"issues":[{"id":1,"title":"Real","status":"open","priority":"medium","labels":["a,b"],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}],"next_id":2}"#,
     )
     .unwrap();
 

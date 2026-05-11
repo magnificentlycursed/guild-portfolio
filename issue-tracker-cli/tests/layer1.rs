@@ -25,10 +25,10 @@ fn create_stores_issue_in_json() {
 
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
-    assert_eq!(v[0]["title"], "Fix bug");
-    assert_eq!(v[0]["id"], 1);
-    assert_eq!(v[0]["status"], "open");
-    assert_eq!(v[0]["priority"], "medium");
+    assert_eq!(v["issues"][0]["title"], "Fix bug");
+    assert_eq!(v["issues"][0]["id"], 1);
+    assert_eq!(v["issues"][0]["status"], "open");
+    assert_eq!(v["issues"][0]["priority"], "medium");
 }
 
 #[test]
@@ -96,7 +96,7 @@ fn control_char_title_in_json_causes_error_exit() {
     let dir = TempDir::new().unwrap();
     fs::write(
         dir.path().join("tracker.json"),
-        br#"[{"id":1,"title":"Sneaky\nbreak","status":"open","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]"#,
+        br#"{"issues":[{"id":1,"title":"Sneaky\nbreak","status":"open","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}],"next_id":2}"#,
     )
     .unwrap();
     tracker(&dir)
@@ -131,7 +131,7 @@ fn create_trims_title() {
 
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
-    assert_eq!(v[0]["title"], "Fix bug");
+    assert_eq!(v["issues"][0]["title"], "Fix bug");
 }
 
 #[test]
@@ -152,20 +152,26 @@ fn create_first_issue_unchanged_after_second_create() {
 
     let raw_after_first = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v1: serde_json::Value = serde_json::from_str(&raw_after_first).unwrap();
-    let first_created_at = v1[0]["created_at"].as_str().unwrap().to_string();
-    let first_updated_at = v1[0]["updated_at"].as_str().unwrap().to_string();
+    let first_created_at = v1["issues"][0]["created_at"].as_str().unwrap().to_string();
+    let first_updated_at = v1["issues"][0]["updated_at"].as_str().unwrap().to_string();
 
     tracker(&dir).args(["create", "Second"]).assert().success();
 
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
-    assert_eq!(v[0]["id"], 1);
-    assert_eq!(v[0]["title"], "First");
-    assert_eq!(v[0]["status"], "open");
-    assert_eq!(v[0]["priority"], "medium");
-    assert_eq!(v[0]["labels"], serde_json::json!([]));
-    assert_eq!(v[0]["created_at"].as_str().unwrap(), first_created_at);
-    assert_eq!(v[0]["updated_at"].as_str().unwrap(), first_updated_at);
+    assert_eq!(v["issues"][0]["id"], 1);
+    assert_eq!(v["issues"][0]["title"], "First");
+    assert_eq!(v["issues"][0]["status"], "open");
+    assert_eq!(v["issues"][0]["priority"], "medium");
+    assert_eq!(v["issues"][0]["labels"], serde_json::json!([]));
+    assert_eq!(
+        v["issues"][0]["created_at"].as_str().unwrap(),
+        first_created_at
+    );
+    assert_eq!(
+        v["issues"][0]["updated_at"].as_str().unwrap(),
+        first_updated_at
+    );
 }
 
 #[test]
@@ -175,8 +181,8 @@ fn create_timestamps_equal_on_fresh_issue() {
 
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
-    let created = v[0]["created_at"].as_str().unwrap();
-    let updated = v[0]["updated_at"].as_str().unwrap();
+    let created = v["issues"][0]["created_at"].as_str().unwrap();
+    let updated = v["issues"][0]["updated_at"].as_str().unwrap();
     assert_eq!(created, updated);
 }
 
@@ -316,7 +322,7 @@ fn zero_id_in_json_causes_error_exit() {
     let dir = TempDir::new().unwrap();
     fs::write(
         dir.path().join("tracker.json"),
-        br#"[{"id":0,"title":"Fix bug","status":"open","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]"#,
+        br#"{"issues":[{"id":0,"title":"Fix bug","status":"open","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}],"next_id":1}"#,
     )
     .unwrap();
     tracker(&dir)
@@ -336,7 +342,7 @@ fn invalid_domain_values_in_json_causes_error_exit() {
     let dir = TempDir::new().unwrap();
     fs::write(
         dir.path().join("tracker.json"),
-        br#"[{"id":1,"title":"Fix bug","status":"flying","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]"#,
+        br#"{"issues":[{"id":1,"title":"Fix bug","status":"flying","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}],"next_id":2}"#,
     )
     .unwrap();
     tracker(&dir)
@@ -372,10 +378,10 @@ fn duplicate_ids_in_json_causes_error_exit() {
     let dir = TempDir::new().unwrap();
     fs::write(
         dir.path().join("tracker.json"),
-        br#"[
+        br#"{"issues":[
             {"id":1,"title":"First","status":"open","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"},
             {"id":1,"title":"Duplicate","status":"open","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}
-        ]"#,
+        ],"next_id":2}"#,
     )
     .unwrap();
     tracker(&dir)
@@ -396,7 +402,7 @@ fn empty_label_in_json_causes_error_exit() {
     let dir = TempDir::new().unwrap();
     fs::write(
         dir.path().join("tracker.json"),
-        br#"[{"id":1,"title":"x","status":"open","priority":"medium","labels":["bug",""],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]"#,
+        br#"{"issues":[{"id":1,"title":"x","status":"open","priority":"medium","labels":["bug",""],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}],"next_id":2}"#,
     )
     .unwrap();
     tracker(&dir)
@@ -416,7 +422,7 @@ fn malformed_timestamp_in_json_causes_error_exit() {
     let dir = TempDir::new().unwrap();
     fs::write(
         dir.path().join("tracker.json"),
-        br#"[{"id":1,"title":"x","status":"open","priority":"medium","labels":[],"created_at":"yesterday","updated_at":"2026-01-01T00:00:00Z"}]"#,
+        br#"{"issues":[{"id":1,"title":"x","status":"open","priority":"medium","labels":[],"created_at":"yesterday","updated_at":"2026-01-01T00:00:00Z"}],"next_id":2}"#,
     )
     .unwrap();
     tracker(&dir)
@@ -436,7 +442,7 @@ fn updated_before_created_in_json_causes_error_exit() {
     let dir = TempDir::new().unwrap();
     fs::write(
         dir.path().join("tracker.json"),
-        br#"[{"id":1,"title":"x","status":"open","priority":"medium","labels":[],"created_at":"2026-05-01T00:00:00Z","updated_at":"2026-04-30T23:59:59Z"}]"#,
+        br#"{"issues":[{"id":1,"title":"x","status":"open","priority":"medium","labels":[],"created_at":"2026-05-01T00:00:00Z","updated_at":"2026-04-30T23:59:59Z"}],"next_id":2}"#,
     )
     .unwrap();
     tracker(&dir)
@@ -463,7 +469,7 @@ fn list_does_not_panic_on_broken_pipe() {
     // Build a tracker.json large enough to overflow the OS pipe buffer
     // (64 KiB Linux, 16 KiB macOS), so the writer is still emitting when the
     // reader closes. ~600 rows × ~120 bytes ≈ 70 KiB of list output.
-    let mut json = String::from("[");
+    let mut json = String::from(r#"{"issues":["#);
     for i in 1..=600u64 {
         if i > 1 {
             json.push(',');
@@ -474,7 +480,7 @@ fn list_does_not_panic_on_broken_pipe() {
         )
         .unwrap();
     }
-    json.push(']');
+    json.push_str(r#"],"next_id":601}"#);
     fs::write(dir.path().join("tracker.json"), json.as_bytes()).unwrap();
 
     let bin = assert_cmd::cargo::cargo_bin("tracker");
@@ -503,16 +509,21 @@ fn list_does_not_panic_on_broken_pipe() {
 }
 
 #[test]
-fn u64_max_id_in_json_blocks_next_create_with_clean_error() {
-    // Hand-edited tracker.json plants id: u64::MAX. On the next create, the
-    // unguarded `next_id` would overflow (debug: panic; release: wrap to 0,
+fn u64_max_next_id_in_json_blocks_next_create_with_clean_error() {
+    // Hand-edited tracker.json plants `next_id: u64::MAX`. On the next create,
+    // `bump_next_id(u64::MAX)` would overflow (debug: panic; release: wrap to 0,
     // bricking the tracker). With `checked_add`, the user sees a clean error
     // and the file is unchanged.
+    //
+    // SO Review 22 / Option A note: pre-R22 this test planted `id: u64::MAX`
+    // against the legacy `max(existing_ids) + 1` overflow path. With the
+    // persistent `next_id` counter the overflow is now on the counter, not on
+    // a derived value — same defense, surfaced one layer earlier.
     let dir = TempDir::new().unwrap();
     fs::write(
         dir.path().join("tracker.json"),
         format!(
-            r#"[{{"id":{},"title":"sentinel","status":"open","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}}]"#,
+            r#"{{"issues":[{{"id":1,"title":"sentinel","status":"open","priority":"medium","labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}}],"next_id":{}}}"#,
             u64::MAX
         )
         .as_bytes(),

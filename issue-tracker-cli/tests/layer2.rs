@@ -30,7 +30,7 @@ fn status_change_updates_json() {
 
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
-    assert_eq!(v[0]["status"], "in-progress");
+    assert_eq!(v["issues"][0]["status"], "in-progress");
 }
 
 #[test]
@@ -40,7 +40,10 @@ fn status_change_refreshes_updated_at() {
 
     let raw_before = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let before: serde_json::Value = serde_json::from_str(&raw_before).unwrap();
-    let updated_at_before = before[0]["updated_at"].as_str().unwrap().to_string();
+    let updated_at_before = before["issues"][0]["updated_at"]
+        .as_str()
+        .unwrap()
+        .to_string();
 
     // Sleep 1 second to guarantee a different timestamp at second precision
     std::thread::sleep(std::time::Duration::from_secs(1));
@@ -52,7 +55,10 @@ fn status_change_refreshes_updated_at() {
 
     let raw_after = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let after: serde_json::Value = serde_json::from_str(&raw_after).unwrap();
-    let updated_at_after = after[0]["updated_at"].as_str().unwrap().to_string();
+    let updated_at_after = after["issues"][0]["updated_at"]
+        .as_str()
+        .unwrap()
+        .to_string();
 
     assert!(
         updated_at_after > updated_at_before,
@@ -78,11 +84,17 @@ fn status_change_leaves_other_fields_unchanged() {
     let raw_after = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let after: serde_json::Value = serde_json::from_str(&raw_after).unwrap();
 
-    assert_eq!(after[0]["id"], before[0]["id"]);
-    assert_eq!(after[0]["title"], before[0]["title"]);
-    assert_eq!(after[0]["priority"], before[0]["priority"]);
-    assert_eq!(after[0]["labels"], before[0]["labels"]);
-    assert_eq!(after[0]["created_at"], before[0]["created_at"]);
+    assert_eq!(after["issues"][0]["id"], before["issues"][0]["id"]);
+    assert_eq!(after["issues"][0]["title"], before["issues"][0]["title"]);
+    assert_eq!(
+        after["issues"][0]["priority"],
+        before["issues"][0]["priority"]
+    );
+    assert_eq!(after["issues"][0]["labels"], before["issues"][0]["labels"]);
+    assert_eq!(
+        after["issues"][0]["created_at"],
+        before["issues"][0]["created_at"]
+    );
 }
 
 #[test]
@@ -100,7 +112,10 @@ fn status_is_case_insensitive_on_input() {
 
     let raw = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
-    assert_eq!(v[0]["status"], "done", "stored value should be lowercase");
+    assert_eq!(
+        v["issues"][0]["status"], "done",
+        "stored value should be lowercase"
+    );
 }
 
 #[test]
@@ -114,7 +129,10 @@ fn status_idempotent_same_value_succeeds() {
 
     let raw_before = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let before: serde_json::Value = serde_json::from_str(&raw_before).unwrap();
-    let updated_at_before = before[0]["updated_at"].as_str().unwrap().to_string();
+    let updated_at_before = before["issues"][0]["updated_at"]
+        .as_str()
+        .unwrap()
+        .to_string();
 
     std::thread::sleep(std::time::Duration::from_secs(1));
 
@@ -126,7 +144,10 @@ fn status_idempotent_same_value_succeeds() {
 
     let raw_after = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let after: serde_json::Value = serde_json::from_str(&raw_after).unwrap();
-    let updated_at_after = after[0]["updated_at"].as_str().unwrap().to_string();
+    let updated_at_after = after["issues"][0]["updated_at"]
+        .as_str()
+        .unwrap()
+        .to_string();
 
     assert!(
         updated_at_after > updated_at_before,
@@ -141,7 +162,10 @@ fn status_change_does_not_modify_created_at() {
 
     let raw_before = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let before: serde_json::Value = serde_json::from_str(&raw_before).unwrap();
-    let created_at_before = before[0]["created_at"].as_str().unwrap().to_string();
+    let created_at_before = before["issues"][0]["created_at"]
+        .as_str()
+        .unwrap()
+        .to_string();
 
     tracker(&dir)
         .args(["status", "1", "done"])
@@ -150,7 +174,10 @@ fn status_change_does_not_modify_created_at() {
 
     let raw_after = fs::read_to_string(dir.path().join("tracker.json")).unwrap();
     let after: serde_json::Value = serde_json::from_str(&raw_after).unwrap();
-    let created_at_after = after[0]["created_at"].as_str().unwrap().to_string();
+    let created_at_after = after["issues"][0]["created_at"]
+        .as_str()
+        .unwrap()
+        .to_string();
 
     assert_eq!(
         created_at_after, created_at_before,
