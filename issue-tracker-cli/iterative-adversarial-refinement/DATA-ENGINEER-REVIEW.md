@@ -844,3 +844,69 @@ The forward-compat invariant established at Layer 1 (DE R1 F2, DE R3 F2) holds t
 
 **Coordination:** *(none — closure pass)*
 
+---
+
+## Review 11 — 2026-05-11 22:30Z
+
+**Round:** Data Engineer Review 11 (Round 1 for Layer 7)
+**Scope:** Layer 7 polish — `--help` content, TTY-detected color emission in `cmd_list` / `cmd_show` / `format_show_block`, error specificity. **Layer 7 is presentation-only; data layer untouched.** Cold session.
+
+### Diff evidence that the data layer is untouched
+
+Range: `8962b7f..603c689` (Layer 7 inclusive of Red Gate, implementation, and manual closure).
+
+- `git diff 8962b7f..603c689 --stat`: 4 files touched — `CHANGELOG.md`, `TODO.md`, `src/lib.rs`, `tests/layer7.rs`. **`src/main.rs` diff: 0 lines.**
+- `git diff 8962b7f..603c689 -- src/lib.rs | grep -E '(struct Tracker|struct Issue|fn load_tracker|fn save_tracker|fn issue_fields_are_valid|fn tracker_is_valid|fn parse_|fn validate_|next_id|PRIORITY_ORDER|STATUS_ORDER|serde|Serialize|Deserialize)'`: **0 matches.** No diff line touches any data-layer identifier.
+- The `src/lib.rs` net additions are: `use std::io::IsTerminal;`, four pure presentation helpers (`priority_ansi`, `status_ansi`, `wrap_color`, `pad_after_color`), one new constant (`ANSI_RESET`), a `use_color` parameter threaded into `format_show_block`, and two `is_terminal()` decisions in `cmd_list` / `cmd_show`. None of these read, write, validate, serialize, or migrate `tracker.json`.
+- The `\r\n` → `\n` description normalization (`src/lib.rs` line 541) is unchanged. The hardcoded path (`src/main.rs:84`), `Tracker::next_id` field, `bump_next_id`, `PRIORITY_ORDER`, `STATUS_ORDER`, `issue_fields_are_valid`, `tracker_is_valid`, `load_tracker`, `save_tracker`, and the `#[serde(skip_serializing_if = "Option::is_none")]` attribute on `description` are byte-identical to the post-Layer-6 R3 state.
+
+### Regression check (whole-suite verification)
+
+`cargo test` against `603c689`: **9/9 layer7 tests pass; 195 tests total across the full suite pass; 0 failures.** Test counts by binary (`cargo test 2>&1 | grep "test result"`): 62 + 32 + 18 + 9 + 25 + 7 + 33 + 9 + doc 0.
+
+Empirical round-trip (cold, fresh `tracker.json` in `/tmp/de-r11`):
+- `create "First" --priority high` → id=1, `next_id: 2`.
+- `create "Second" --priority medium` → id=2, `next_id: 3`.
+- `create "Third" --priority low` → id=3, `next_id: 4`.
+- `delete 2` → file contains `{issues: [{id:1},{id:3}], next_id: 4}`. **`next_id` not regressed — persistent counter from SO R22 closure (Layer 6 R3) intact.**
+- `create "Fourth"` → id=4 (not 3 — deleted ID not reused), `next_id: 5`. SO R22 invariant holds across Layer 7.
+
+### Sycophancy probe — color emission as a derivative of data
+
+**Probe:** can a corrupted `tracker.json` planting an ANSI sequence inside `status` or `priority` cause `cmd_show` / `cmd_list` to emit unescaped ANSI through the new color helpers?
+
+**Test (`/tmp/de-r11/tracker.json` hand-edited to `"status": "high[31m"`):**
+```
+$ ./tracker list
+Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.
+EXIT=1
+```
+
+`issue_fields_are_valid` (`src/lib.rs:226`) checks `STATUS_ORDER.contains(&issue.status.as_str())` and `PRIORITY_ORDER.contains(&issue.priority.as_str())`. `"high\x1b[31m"` is not in either enum slice, so `tracker_is_valid` rejects at load time before `priority_ansi` / `status_ansi` ever see the value. The two functions in `src/lib.rs:48-76` then receive only the validated `&issue.status` and `&issue.priority`, both of which are guaranteed members of `STATUS_ORDER` / `PRIORITY_ORDER`. The data-to-presentation mapping is **airtight by load-time enum validation**, not by anything the new color helpers themselves do. Defense holds.
+
+The `description` field is rendered with the existing `\r\n` → `\n` normalization and 13-space indent (unchanged from Layer 6 R2). `description_is_valid` continues to reject Cc-other-than-`\n` at load (DE R9 F1 / R10 closure), so a description cannot smuggle ANSI either.
+
+### Findings by classification
+
+**Resolved:** *(none — no fix needed)*
+**Deferred:** *(none)*
+**Dismissed:** *(none)*
+**Hallucinated:** *(none)*
+**Raised to SO:** *(none)*
+
+Total findings: **0 substantive.** Per IAR README, a domain with zero findings is a valid outcome — the data layer was not modified by Layer 7, the existing validation invariants continue to protect the new presentation surface, and the persistent-counter regression check passes.
+
+### Cross-domain flags
+
+- No PII / sensitive-data surface change. `title` / `description` are still free-form user text; TTY-only color emission writes nothing back to storage. No escalation to [PRIVACY-REVIEW.md](PRIVACY-REVIEW.md).
+- The escape-injection-via-storage defense rests on `STATUS_ORDER` / `PRIORITY_ORDER` enum membership at load (`tracker_is_valid`) plus the description Cc check (DE R9 F1). [SECURITY-REVIEW.md](SECURITY-REVIEW.md) / [RED-TEAM-REVIEW.md](RED-TEAM-REVIEW.md) may wish to independently verify the same probe with their own adversarial framing — flagging only because the new color path makes the "storage-to-TTY" pipeline newly load-bearing for output-channel safety, not because a defect was found here.
+- No new domain proposal.
+
+### Summary
+
+Layer 7 is presentation-only. Diff evidence (0 lines in `src/main.rs`; 0 grep matches for data-layer identifiers in the `src/lib.rs` diff) confirms `Tracker`, `Issue`, `load_tracker`, `save_tracker`, `issue_fields_are_valid`, `tracker_is_valid`, `next_id`, and the `description` Cc validator are byte-identical to post-Layer-6-R3. Whole-suite tests pass (195/195). The empirical create/delete/create round-trip preserves the persistent `next_id` counter (SO R22 invariant intact). The corrupt-status ANSI-injection probe is rejected at `load_tracker` by enum-membership validation, so the new color helpers never receive untrusted values. Schema evolution: no change to evaluate. **0 substantive findings; MVR reached for Layer 7 DE-domain on Round 1.**
+
+**Coordination:** *(none required; informational cross-reference to SECURITY-REVIEW.md / RED-TEAM-REVIEW.md noted above.)*
+
+**Files modified:** Only this log appended.
+

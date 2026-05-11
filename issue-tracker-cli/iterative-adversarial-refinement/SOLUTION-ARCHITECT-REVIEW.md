@@ -1198,3 +1198,264 @@ Three findings I tried to elevate but couldn't:
 1/2 SA R13 findings Resolved by commit `9b775f0` (Trigger A). 1 Deferred (Trigger B). R13 F2 also Deferred. SA R11 F1 carry-forward unchanged. Pre-Layer-7 PR scope: (a) `cmd_list` rendering extraction, (b) `format_show_block` constants, (c) `lib.rs` module split.
 
 **Coordination:** *(none — closure pass)*
+
+---
+
+## Review 15 — 2026-05-11 22:30Z
+
+**Round:** SA Review 15 (Layer 7 — Polish: `--help` + TTY color output)
+**Scope:** Cold-session adversarial SA review of the Layer 7 implementation. Commits under review: `7b461aa` Phase 2a Red Gate (`tests/layer7.rs`, 9 tests), `a2b8062` Phase 2b color implementation (color helpers, `is_terminal()` plumbing, `format_show_block` signature change, `cmd_list` pad-after-color rewrite), `603c689` manual closure. Code under review: `src/lib.rs` (1506 LOC total — note: prompt cited 1411; actual measured count is 1506 incl. `#[cfg(test)]`; non-test count remains the relevant Trigger B threshold and is now substantially higher than Layer 6's 665), `src/main.rs` (121 LOC), `tests/layer7.rs` (193 LOC).
+**Session note:** Cold session per IAR primer. Adversarial framing intact. Sycophancy guards specifically pressed against (a) the now-third-layer deferral of the lib.rs module split, (b) the unverified "VT100 universality" claim in the implementation rationale, and (c) the `&'static str` typing of ANSI escape constants. Regression check: every Round-12-through-14 carry-forward (SA R11 F1 / R13 F1 Trigger B / R13 F2) was re-evaluated against the Layer 7 source.
+
+---
+
+### Open
+
+**Finding 1 — Pre-Layer-7 focused PR (SA R11 F1 + SA R13 F1 Trigger B + SA R13 F2) was the SO-adjudicated disposition condition for those deferrals, and Layer 7 shipped without it (Dim 2 — Cohesion / Dim 9 — Complexity budget / Carry-forward — explicit named-layer disposition not honored)**
+
+SO Review 21 (cited in CHANGELOG L104-105 and SA R14 L1185-1190) recorded the disposition as: "Deferred to pre-Layer-7 focused PR." Not "deferred to a future layer," not "deferred indefinitely" — *pre-Layer-7*. The deferral was conditional on a named action landing before Layer 7 began. That action did not land. Layer 7's Phase 2b commit `a2b8062` is the next code change after the Layer 6 Round 3 closure (`8ed7db3`); no intervening focused-PR commit exists on the current branch's history, and the CHANGELOG between the Layer 6 Round 3 entry (L42) and the Layer 7 entry (L3) records no architectural-prep step.
+
+This is now the **third consecutive layer** where the lib.rs module split has been deferred:
+
+- Layer 5 close — SA R9 F3 dismissed with revised re-raise condition "Layer 5 or 6"
+- Layer 6 R1 — SA R13 F1 Trigger B fired (non-test code crossed 500-line threshold at 665, 33% over); deferred to pre-Layer-7 PR (SO R21)
+- Layer 6 R2 — SA R14 carry-forward confirmed the deferral
+- **Layer 7 — deferral expired and the action did not occur**
+
+The Layer 7 change made the deferred work materially harder rather than easier. Measurement against the Layer 6 R3 baseline (`src/lib.rs` ~735 LOC per SA R14 L1185):
+
+- Layer 7 adds a new top-of-file "color helpers" section (`src/lib.rs:28-97`) — 4 free functions + 1 const + ~70 LOC of comment + implementation. This is a *new architectural concern* (presentation-layer rendering) injected at the top of an already-overweight module, placed above the data-model types (`Tracker`, `Issue`) that should structurally come first in any storage-or-domain-led layering.
+- `format_show_block` (one of the two render functions targeted by SA R11 F1 + R13 F2) gained a `use_color: bool` parameter (`src/lib.rs:526`) — i.e., the deferred render-extraction target *received a signature change* without being extracted, increasing the diff churn the eventual extraction will absorb.
+- `cmd_list` (the other render function targeted by SA R11 F1) received the pad-after-color rewrite (`src/lib.rs:850-863`) — i.e., the deferred extraction target *received a rendering complexity expansion* without being extracted.
+
+Net: the pre-Layer-7 PR's surface area is now larger than it would have been if the PR had landed when scheduled. Every Layer 7 line of color-helper / `pad_after_color` / `format_show_block` signature work will need to be re-touched (or re-tested) by the eventual split PR. The cost-amortization argument that justified the original deferral has inverted.
+
+**Self-test (sycophancy guard):** Could I dismiss this as "Layer 7 is polish, the deferral can extend to post-Layer-7 because no further functional change is planned"? The reasoning is plausible but moves the goalposts. SO R21 set the deferral condition as "pre-Layer-7"; SO has the authority to revise that condition (Raised to SO below), but SA cannot self-grant the revision. Could I dismiss as "the focused PR may still land before Layer 7 *merges* to main, only the implementation commits ran first"? The branch is `issue-tracker-cli-polish` and the work product is the Layer 7 implementation itself; no architectural-prep PR is in the change-set queued for the same merge boundary. If such a PR is queued separately, the disposition needs an explicit pointer (a commit ref, a branch name, or a CHANGELOG entry) — none exists in the artifacts read. Could I dismiss as "the threshold was a heuristic, the deferral is acceptable as a long-running Open"? The auto-Backlog rule (CLOSURE-PROTOCOL.md §3) explicitly excludes process / security findings from auto-Backlog, but SA findings are subject to it: a finding Open across three consecutive SA reviews should be auto-Backlogged. SA R13, R14, and now R15 are three consecutive reviews where this carry-forward stands Open. The auto-Backlog rule fires *here* unless SO adjudicates differently.
+
+**Severity:** Medium-high. The architectural cost is real (color helpers placed where domain types should be; deferred render-extraction targets received new complexity); the process integrity cost is real (third-layer-running deferral of a triggered re-raise without explicit SO trigger-revision).
+
+**Classification: Open.** Disposition options for SO/SE:
+- (a) Land the focused PR before Layer 7 merges to main (the original disposition condition, restored).
+- (b) Auto-Backlog under CLOSURE-PROTOCOL.md §3 with an explicit re-raise condition (e.g., "if Layer 8 is opened without the split landing, re-raise as a merge-gate finding").
+- (c) Explicit SO trigger-revision moving the deferral to a new named layer with rationale.
+
+**Proposed action (if (a)):** Same scope as recorded in SA R14 L1198 — (a) `cmd_list` rendering extraction with width constants, (b) `format_show_block` `LABEL_WIDTH` constant + helper, (c) `lib.rs` module split (`storage` / `validate` / `commands` / **new:** `color` for the Layer 7 helpers — the color section now adds a natural fourth module). The fourth module candidate is itself the architectural argument: by splitting, the color concerns get their own ~70-LOC home with a clear public surface (or pub(crate) surface if not exported); by not splitting, they sit at the top of a 1500-LOC file above the data model.
+
+**Coordination:** Raised to SO for trigger-revision authority. Raised to SE for action if (a). Cross-reference [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md), [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md).
+
+---
+
+**Finding 2 — TTY detection (`std::io::stdout().is_terminal()`) is called at function entry in both `cmd_show` (`src/lib.rs:591`) and `cmd_list` (`src/lib.rs:835`); the same environmental check is performed twice per process and is not threaded from a single decision point in `main.rs` (Dim 5 — State management / Dim 12 — VSDD purity boundary map)**
+
+DESIGN.md "Interface / color output" (L239) specifies: "Color is suppressed when stdout is piped or redirected (detect with `std::io::IsTerminal`)." The detection is correctly placed (stdout is the right stream), but it is duplicated at two sites and embedded inside two functions that are otherwise treatable as pure-with-thin-I/O-wrapper.
+
+Architectural shape concerns:
+
+1. **Purity boundary violation (Dim 12).** `cmd_show` already has a clean pure-shell split: `format_show_block` (pure, takes an `Issue` and returns a `String`) is wrapped by `cmd_show` (effectful — parses, loads, finds, prints). The Layer 7 change added an `is_terminal()` call to `cmd_show` and a `use_color: bool` plumb-through to `format_show_block` — preserving the boundary. Good. But `cmd_list` does *not* have an analogous split (the rendering is still inline per SA R11 F1's standing deferral). The `is_terminal()` call in `cmd_list` is mixed in among the loop body, the empty-state branching, the header print, and the per-issue row format calls. The TTY detection is itself effectful (queries the process's stdout file descriptor); placing it inside a function that has not yet been split means the eventual split will need to thread it correctly. If `cmd_list` had been extracted per SA R11 F1, the natural shape would be `let use_color = stdout_is_tty(); render_list(&issues, use_color)` — a single boundary call, with the renderer pure. The duplication argument and the SA R11 F1 deferral argument compound.
+
+2. **State management (Dim 5).** TTY state is a global, monotonic property of the process: stdout is either connected to a terminal at startup or it is not, and that does not change. Calling `is_terminal()` twice per process is harmless but represents the same architectural smell as repeated `env::var()` calls in handler bodies — an environmental decision that should be made once at the boundary and passed inward. The cohesive shape is: `main()` reads stdin/stdout state once, builds an `IoEnvironment` value, and threads it into `cmd_*` calls.
+
+3. **The Layer 7 spec change made `format_show_block`'s signature less pure.** The function gained a `use_color: bool` parameter, which is correct from the "thread state from boundary inward" perspective — but the boundary-detection call (`is_terminal()`) lives in `cmd_show`, not in `main.rs`. A future change that needs `use_color` in any other rendering site (e.g., a hypothetical `tracker show --json` flag with color-suppressed JSON, or a `--color=always|auto|never` override per Finding 3) would need to re-thread the decision from a new site. Centralizing in `main.rs` would avoid that.
+
+**Self-test (sycophancy guard):** Could I dismiss this as "two `is_terminal()` calls is cheap; the spec doesn't require a `--color` override; YAGNI"? The cost argument holds at the runtime level — two syscalls is nothing. But the architectural cost (state-thread shape, eventual `--color=auto|always|never` flag if the spec evolves, the cmd_list rendering-half split that will need to know where to put the call) is real. Could I dismiss as "Rust convention is to call `is_terminal()` per-command, see `clap_complete` etc."? I have no specific evidence for that convention; the convention in larger CLIs (e.g., `cargo`, `rustc`) is to centralize color decisions in a config struct passed inward. Dismissal-attempt unconvincing. Could I dismiss as "this is identical-pattern-applied-symmetrically; no defect"? The symmetry is the *defect* shape, not the defense — duplicated environmental detection across handler bodies is the smell, not the fix.
+
+**Severity:** Low-medium. The runtime cost is negligible; the architectural cost is the threading shape of an environmental decision that will be touched again if the spec evolves toward color-mode flags or per-command override.
+
+**Classification: Open / Deferred** — bundle into the same pre-Layer-7 focused PR (or the post-Layer-7 architectural PR per Finding 1's disposition) as the rendering-half extraction. The natural shape after the rendering split: `main.rs` builds `let use_color = std::io::stdout().is_terminal()` once, passes it to `cmd_show(id, path, use_color)` and `cmd_list(filters, path, use_color)`.
+
+**Coordination:** Raised to SE. Cross-reference [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md).
+
+---
+
+**Finding 3 — `format_show_block(issue, use_color: bool)` introduces a boolean-trap parameter on a public-or-public-adjacent function signature; a `ColorChoice` / `ColorMode` enum (or even a typed `UseColor(bool)` newtype) would be self-documenting at the call site (Dim 4 — Interface contracts)**
+
+`src/lib.rs:526`: `fn format_show_block(issue: &Issue, use_color: bool) -> String`. The function is `pub(crate)`-equivalent (not marked `pub`, but called from `cmd_show` which is `pub`). Call sites read:
+
+- `src/lib.rs:592` — `format_show_block(issue, use_color)` — named variable, clear.
+- `src/lib.rs:1336` — `format_show_block(&issue, false)` — bare-`false` literal. The reader of the test must consult the function signature to know what `false` means.
+- `src/lib.rs:1354` — `format_show_block(&issue, false)` — same.
+
+Boolean parameters on rendering-policy decisions are a recognized API ergonomics anti-pattern (Dim 21 — API design ergonomics) precisely because the call-site reads `false` without naming what `false` controls. The Rust idiom for this case is:
+
+```rust
+enum ColorChoice { Always, Auto, Never }
+// or
+enum ColorMode { Color, NoColor }
+```
+
+A typed enum at the boundary buys:
+- self-documenting call sites (`format_show_block(&issue, ColorMode::NoColor)`)
+- forward-compatibility for a `--color=auto|always|never` flag if the spec ever amends DESIGN.md L239 (currently auto-only)
+- exhaustive matching in the renderer (`match color { Color => …, NoColor => … }`) instead of `if use_color`
+
+The same anti-pattern applies to `priority_ansi(priority, use_color)` and `status_ansi(status, use_color)` (`src/lib.rs:51, 65`). All three carry the `bool` through.
+
+**Self-test (sycophancy guard):** Could I dismiss this as "bool is fine for a binary decision; introducing an enum is over-engineering for a single-user CLI"? The over-engineering argument has force at this scope. But the cost of the enum is trivial (5 lines: enum + Display impl + From<bool> if needed) and the asymmetry with the rest of the codebase (which already uses typed enums for `status` and `priority` — though stored as `String`, parsed via dedicated functions returning canonical lowercase strings) is jarring. Could I dismiss as "the call sites are all internal; a `bool` is acceptable for internal call sites per the SA R11 F4 doc-comment-as-contract precedent"? That precedent dismissed a `Result<String, String>` shape concern where the asymmetry was *the spec's*. Here the asymmetry is purely a code-organization choice — the spec doesn't dictate the boolean. The R11 F4 precedent does not extend cleanly. Could I dismiss as "the spec is auto-only (no `--color=always|never`), so the binary is sufficient"? The spec is auto-only *today*. The architectural argument is about the next spec amendment — if `--color` is ever added (it's a common request for CLI tools), the boolean signature becomes a refactor target. The enum form absorbs the change without a signature break.
+
+**Severity:** Low. Internal API, three call sites, easily refactorable. The finding is about API hygiene and forward-compatibility, not about a functional defect.
+
+**Classification: Open.** SE may choose to (a) refactor now in a Round-2 inline fix, (b) bundle with the Finding 1 disposition, or (c) dismiss with rationale ("we accept the bool until a `--color` flag is introduced"). Option (c) is defensible at this scope; the finding records the pattern.
+
+**Coordination:** Raised to SE. Cross-reference [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md). Informational to UX — if `--color=auto|always|never` is ever surfaced as a feature request, this finding is the architectural prep.
+
+---
+
+### Dismissed
+
+**Finding 4 — Raw ANSI escape constants typed as `&'static str` rather than `&'static [u8]` or a typed `AnsiSeq` newtype represent an under-typed boundary; ANSI sequences are byte protocol, not text (Dim 4 — Interface contracts)**
+
+`src/lib.rs:46`: `const ANSI_RESET: &str = "\x1b[0m";`. Same shape for the four sequences in `priority_ansi` / `status_ansi`. The values are *technically* valid UTF-8 (every byte is < 0x80 except none — every ANSI escape used here is ASCII), so `&str` deserializes correctly. But the protocol they encode is a byte-level escape sequence, not Unicode-bearing text. A reader of the constant who doesn't know the ANSI protocol cannot distinguish `"\x1b[1;31m"` from a string the user typed.
+
+Initial concern: a `&[u8]` typing, or even a `struct AnsiSeq(&'static [u8])` newtype with `Display` and `impl AsRef<str>`, would make the byte-vs-text boundary explicit at the type level.
+
+**Classification: Dismissed.** Demonstration that the control holds:
+
+1. **`&'static str` is the right type for stdout-bound output.** The values flow through `format!(...)` and `print!(...)` / `println!(...)`, which are `Display`/`Write`-based and require `&str` (or a `Display` impl). Typing the constants as `&[u8]` would force a `std::str::from_utf8` conversion at every use site, which is heavier than the typing problem it solves.
+
+2. **The byte-vs-text distinction is real for *parsers* and *terminal-emulator implementations*, not for *emitters*.** This code emits — it never parses ANSI sequences. The byte-level shape only matters when something might misinterpret a sub-byte sequence. `print!` writes the bytes as-is to stdout; the terminal interprets them. There is no parsing on this side.
+
+3. **The typed-newtype alternative (`struct AnsiSeq`) buys nothing this tool needs.** The newtype's invariants would be "valid ANSI CSI" — and the only enforcement that matters (don't emit invalid sequences) is satisfied by the *literal* values being correct, not by a runtime check. A newtype would add boilerplate (Display impl, From<&str> impl, possibly a const constructor) with no defect-prevention benefit at this scope.
+
+4. **The `unwrap_used` / `expect_used` clippy lints catch the runtime conversion shape.** If the constants were typed `&[u8]`, the conversion site would either `.unwrap()` (which is `#![deny]`'d crate-wide per DECISIONS.md L75-77) or use `from_utf8_unchecked` (which requires an `unsafe` block — a separate audit burden). The `&str` typing avoids both.
+
+The control holds: `&'static str` is the idiomatic type for emit-only ANSI sequences in Rust. Dismissal-attempt to elevate: I tried to argue the `&[u8]` form would surface the byte-level protocol at the type level. But the protocol *is* ASCII-safe by construction (every escape used is in 0x00-0x7F), and the emission path is `Display`-based — `&str` is the right type. Re-raise condition: if the project ever adds an ANSI *parser* (e.g., for stripping color from third-party tool output), the byte-vs-text distinction becomes relevant on the parser side; the emitter side remains `&str`.
+
+---
+
+**Finding 5 — The claim "raw ANSI escapes... are universally supported by VT100-compatible terminals" (`src/lib.rs:42-44` comment + CHANGELOG L9) is presented as architectural justification but is not verified — terminal compatibility is a deceptively complex space (Dim 10 — Decision documentation / Dim 8 — Technology fitness)**
+
+Initial concern: "VT100-compatible" is the historical CRT-terminal specification (DEC 1978). Modern Unix terminals (Terminal.app, iTerm2, GNOME Terminal, Konsole, Alacritty, Wezterm) implement varying supersets — VT100 + VT220 + xterm extensions + truecolor extensions. The specific sequences used (`\x1b[1;31m`, `\x1b[33m`, `\x1b[36m`, `\x1b[32m`, `\x1b[0m`) are SGR (Select Graphic Rendition) sequences — these are technically *xterm-color-256* / *ECMA-48* sequences, *not* original VT100. Original VT100 SGR support was limited to bold/underline/blink/inverse; the 8 ANSI color codes (30-37, 40-47) appeared in xterm and were later codified in ECMA-48.
+
+So the comment's "VT100-compatible" framing is technically imprecise. The sequences used *are* universally supported by modern Unix terminals targeted by this tool (macOS Terminal.app and iTerm2 per the project's macOS target), but they are not strictly "VT100" sequences.
+
+**Classification: Dismissed.** Demonstration that the control holds:
+
+1. **The imprecision is at the comment level, not at the code level.** The actual sequences emitted are correct for every terminal the tool runs in. The five sequences (`\x1b[1;31m`, `\x1b[33m`, `\x1b[36m`, `\x1b[32m`, `\x1b[0m`) are subsets of ECMA-48 SGR that are universally implemented in xterm, the macOS Terminal.app, iTerm2, tmux, screen, and every common Linux terminal. The comment's "VT100-compatible" is the *colloquial* term for "terminals that handle ANSI escape sequences" — a defensible plain-English shorthand even if not strictly accurate against the DEC VT100 spec.
+
+2. **The tool's target is `script -q /dev/null tracker list ...` on macOS (per CHANGELOG L27 manual verification).** That target's compatibility is verified in CHANGELOG L28-32. The "universally supported" claim is not a fragility — the verification at the manual checklist level confirms the specific sequences work on the specific target. Imprecise framing in a comment is a documentation-quality concern, not a technology-fitness defect.
+
+3. **The alternative (`anstyle` / `termcolor` crate) was the SO Review 3 architecture decision to *not* take** (DECISIONS.md L51-53 records the "color included" decision; it does not record the *implementation* choice between raw-ANSI and a typed color crate, but the spec L239 says "detect with `std::io::IsTerminal`" — i.e., spec-prescribes the boundary detection, leaves the rendering library-choice open per "library-agnostic" DECISIONS.md L47-49). Raw-ANSI is consistent with the library-agnostic posture for a single-user macOS CLI.
+
+4. **Cross-platform compatibility is out of scope.** DECISIONS.md L83-85 explicitly scopes the target to macOS. Windows console-without-VT-mode (cmd.exe pre-Windows 10 build 14931) does not interpret ANSI by default, but Windows is out of scope. The "universally supported" claim is true *within the project's stated scope*.
+
+The control holds: the comment is colloquially correct within scope; the implementation is verified against the actual target. Dismissal-attempt to elevate: I tried to argue that imprecise terminology in the comment is a fragility — a future contributor adding Windows support would read "universally" and miss the cmd.exe ANSI-mode requirement. But (a) Windows is out of scope per DECISIONS.md, and (b) the re-evaluation trigger for Windows support would surface the comment along with the other line-ending and TTY-detection assumptions. Re-raise condition: if Windows or BSD support is ever added, the "VT100-compatible" comment should be revisited alongside the SA R1 F5 / DECISIONS.md L83-85 line-ending stance.
+
+---
+
+**Finding 6 — DESIGN.md "Interface / color output" specifies the color mapping (L242-249) and the TTY-detection rule (L239); the implementation matches the spec exactly; no contract drift (Dim 13 — Contract documentation / Dim 4 — Interface contracts)**
+
+Initial concern (raised for pressure-test, not as a real finding): verify the code-to-spec mapping is exact for the six values.
+
+Verification:
+
+| DESIGN.md L242-249 | `src/lib.rs:51-74` | Match? |
+|---|---|---|
+| `high` priority → Red / bold | `"high" => Some("\x1b[1;31m")` — `\x1b[1;31m` is SGR 1 (bold) + 31 (red) | ✓ |
+| `medium` priority → Yellow | `"medium" => Some("\x1b[33m")` — SGR 33 (yellow) | ✓ |
+| `low` priority → Default | falls to `_ => None`, `wrap_color` returns the value as-is | ✓ |
+| `open` status → Default | falls to `_ => None`, value as-is | ✓ |
+| `in-progress` status → Cyan | `"in-progress" => Some("\x1b[36m")` — SGR 36 (cyan) | ✓ |
+| `done` status → Green | `"done" => Some("\x1b[32m")` — SGR 32 (green) | ✓ |
+
+DESIGN.md L250: "Color is applied only to the value text in its column cell, not to the entire row or header." Implementation: `wrap_color(&issue.status, ...)` wraps only the bare value string; the header `println!("{:<4}  {:<11}  ...", "ID", "Status", ...)` is unwrapped; the label column (`"Status:      "`) in `format_show_block` is unwrapped. ✓
+
+DESIGN.md L239: "detect with `std::io::IsTerminal`." Implementation uses `std::io::stdout().is_terminal()`. ✓ (DESIGN.md mentions `IsTerminal` — the trait — and the code uses the trait method; correct.)
+
+**Classification: Dismissed (hallucinated as a finding; recorded as Dismissed for completeness of the pressure-test).** The implementation matches the spec exactly across all six color values and the value-only-not-row-not-header rule.
+
+---
+
+### Hallucinated
+
+**Finding 7 — The "color helpers placed at top of file above the data model" layout choice is itself an SA finding under Dim 1 (separation of concerns) — domain types (`Tracker`, `Issue`) should come first; presentation helpers should come last (or in a separate module)**
+
+Initial concern: `src/lib.rs:28-97` places the color section above `Tracker` (L114) and `Issue` (L131). Conventional Rust module layout is: types first, then implementations, then helpers, with private helpers near their callers. Placing 4 free functions + 1 const + 70 LOC of color-related comment-and-code above the data model inverts the usual reading order — a reader scanning the module top-down meets presentation concerns before domain concerns.
+
+**Classification: Hallucinated.** Demonstration that the control holds:
+
+1. **Module-order is a convention, not a contract.** Rust has no enforced ordering of items within a module. The `clippy::items_after_statements` lint affects statements within functions, not top-level items.
+
+2. **The color helpers are private (`fn priority_ansi`, `fn status_ansi`, `fn wrap_color`, `fn pad_after_color` are all `fn`, not `pub fn`).** Their placement is a private-implementation choice. Reader-order matters more for *public* surface area (which should be discoverable in the docs) than for private helpers.
+
+3. **The placement is *defensible* as "shared utility at the top, used by many sites below."** Both `cmd_show` (L579) and `cmd_list` (L771) call into the color helpers — placing them at the top puts them ahead of their first call site. The alternative (helpers next to first use) would scatter them. The alternative (helpers at the bottom) would force the reader to scroll past `cmd_list` to find the helpers it uses.
+
+4. **The real architectural complaint is that they exist *in `lib.rs` at all* rather than in a `color` module** — which is Finding 1's concern (module split), not a separate layout concern. Trying to file this as a separate finding double-counts the same root cause.
+
+5. **The dismissal-attempt to elevate:** I tried to argue that the layout choice signals "presentation thinking polluted the module." But the placement is content-driven (these are helpers used by two below-them functions) and the module-split argument is the real architectural fix. Filing this as a separate Layer 7 finding inflates the finding count without adding signal. Hallucinated.
+
+---
+
+### Deferred
+
+*(no new findings deferred this round; carry-forward Findings 1 and 2 carry an explicit Open/Deferred dual classification with disposition decisions pending SO/SE.)*
+
+---
+
+### Raised to
+
+- **Raised to SO (Finding 1):** Trigger-revision authority for the pre-Layer-7 focused PR deferral. Three consecutive SA reviews (R13, R14, R15) have left this Open; the auto-Backlog rule per CLOSURE-PROTOCOL.md §3 fires unless SO adjudicates explicitly. Options: (a) restore the pre-Layer-7 PR as a pre-merge condition, (b) auto-Backlog with new re-raise condition, (c) trigger-revision with new named layer.
+- **Raised to SE (Finding 1, Finding 2, Finding 3):** SE has the implementation authority for the module split, the `is_terminal()` consolidation, and the `bool`-vs-`enum` refactor. All three are bundle candidates for a single architectural PR if the disposition is to land it before Layer 7 merges to main.
+
+---
+
+### Summary
+
+Three real findings, all Open, all carry forward of or extensions to the pre-Layer-7 focused PR scope:
+
+1. **Finding 1 — Pre-Layer-7 focused PR deferral expired without action.** SO R21 set the disposition as "Deferred to pre-Layer-7 focused PR" for SA R11 F1 + SA R13 F1 Trigger B + SA R13 F2. Layer 7 shipped without that PR. Third-consecutive-SA-review carry-forward triggers the CLOSURE-PROTOCOL.md §3 auto-Backlog rule. Layer 7 made the deferred work materially harder: `lib.rs` grew further (1506 LOC total, ~865 non-test estimated), `format_show_block` gained a `use_color: bool` parameter without being extracted, `cmd_list` gained pad-after-color rendering without being extracted. The cost-amortization argument that justified the original deferral has inverted.
+2. **Finding 2 — `is_terminal()` called twice at function entry rather than once at `main.rs` boundary.** Environmental state should be threaded inward from the binary's entry point, not re-detected per-command. Coupled with `cmd_list`'s unextracted rendering (SA R11 F1), the duplication is the smell rather than the fix. Architectural: thread `use_color` from `main.rs` once.
+3. **Finding 3 — `format_show_block(issue, use_color: bool)` boolean-trap signature.** Internal API; three call sites; bare `false` literals at two test call sites read opaquely. `ColorMode { Color, NoColor }` enum would self-document and forward-compatibly absorb a future `--color=auto|always|never` flag.
+
+Three findings reviewed and Dismissed (one a verification, two pressure-test-survivors):
+
+- **Finding 4 (Dismissed) — `&'static str` typing of ANSI constants.** `&str` is the right type for Display-based emit paths; `&[u8]` adds conversion friction without preventing the (non-existent) parse defect; `AnsiSeq` newtype is over-engineering for emit-only ASCII-safe escape sequences. The control holds.
+- **Finding 5 (Dismissed) — "VT100-compatible terminals" claim in the implementation comment.** Colloquially imprecise (the sequences used are ECMA-48 SGR, not strictly VT100), but factually correct within scope: the macOS Terminal.app / iTerm2 / `script` targets verify in CHANGELOG L28-32. Re-raise on Windows/BSD scope expansion.
+- **Finding 6 (Dismissed) — Spec-to-code mapping verification.** All six DESIGN.md L242-249 color values, the value-only rule (L250), and the `IsTerminal` detection (L239) match the implementation exactly. No contract drift.
+
+One Hallucinated:
+
+- **Finding 7 (Hallucinated) — Color helpers placed above data model is a layout / separation-of-concerns defect.** Module ordering is convention, not contract; the helpers are private; the placement is "shared utility above first-use" which is defensible; the real architectural fix is the module split (Finding 1), not a layout-only reordering. Trying to file this separately double-counts the root cause.
+
+**Complexity budget (Dim 9):** `src/lib.rs` is now 1506 LOC total — the prompt cited 1411, the measured value is higher, possibly because the prompt was written against a checkpoint before the final closure commit `603c689`. The non-test count (the relevant Trigger B threshold value) is approximately 870 LOC by extrapolation from the Layer 6 R3 baseline of 735 plus the Layer 7 additions (color section + signature plumbing + pad-after-color rewrite). The Trigger B threshold of 500 LOC is now exceeded by ~74%. The trigger is materially exceeded, not borderline.
+
+**Layer boundary (Dim 1):** Mostly respected — the color helpers are scoped to Layer 7's stated concern (DESIGN.md L239-250); the `is_terminal()` calls are scoped to TTY-detection-for-color. No surface leak into earlier-layer concerns. The boundary violation noted in Finding 2 is intra-Layer-7 (TTY-detection-as-state-management), not cross-layer.
+
+**Separation of concerns (Dim 2):** Partial. `format_show_block` is still a mostly-pure render function (now takes a `bool` extra parameter; still no I/O); `cmd_show` remains the thin effectful wrapper — good. But `cmd_list` still does rendering inline, and the Layer 7 change *expanded* its inline rendering complexity (pad-after-color logic for status and priority cells). The SA R11 F1 deferral is now visibly costly.
+
+**Coupling and cohesion (Dim 2 / Dim 3):** Color helpers couple to bare priority/status string values (`match priority { "high" => ..., "medium" => ... }`) — same coupling shape as `priority_rank` (L629) and `parse_priority` (L642). Consistent with the project's "stored as `String`, parsed via dedicated functions, matched on canonical lowercase" pattern. No new coupling smell introduced; the consistency argument holds.
+
+**Interface contracts (Dim 4):** `format_show_block` signature change from `(issue: &Issue)` to `(issue: &Issue, use_color: bool)` is the boolean-trap concern of Finding 3. `priority_ansi(priority, use_color)` and `status_ansi(status, use_color)` carry the same `bool` through. The `Option<&'static str>` return type from the `*_ansi` helpers is a clean "no color, default rendering" / "this prefix" carrier — that part of the contract is well-typed.
+
+**Decision documentation (Dim 10):** No DECISIONS.md entry was added for the raw-ANSI-vs-anstyle choice or the `is_terminal()`-per-command-vs-once-in-main choice. The CHANGELOG L9 mentions the "no `anstyle` / `termcolor` dependency" framing — but a CHANGELOG entry is the wrong venue for a durable architectural decision (it's chronological, not topical). DECISIONS.md should record: "Raw ANSI escapes (not `anstyle` / `termcolor`) — six emit-only ECMA-48 SGR sequences, universally supported by the project's macOS terminal targets; no dependency cost. Re-evaluate if Windows or BSD support is added, or if a `--color=auto|always|never` flag is requested." This is the same lineage argument as DECISIONS.md L47-49 ("library-agnostic CLI and JSON crates"): the choice is consistent with the established pattern, and recording it explicitly closes the documentation gap.
+
+**Session continuity (Dim 11):** The Layer 7 architectural choices (raw ANSI, `is_terminal()`-per-command, `bool` parameter) are documented in the CHANGELOG and in the function-level comments. A new AI session can reconstruct the rationale — but the raw-ANSI-vs-anstyle decision and the `is_terminal()`-placement decision are not load-bearing enough to require DECISIONS.md elevation *if* the project remains scoped to macOS auto-only color. If the spec evolves toward a `--color` override or cross-platform support, both decisions become spec-amendment-class.
+
+**VSDD purity boundary map (Dim 12):** `format_show_block` is pure (good — Layer 7 preserved its pure shape by threading state inward). `cmd_show` is the thin effectful wrapper (good — `is_terminal()` is correctly placed at the boundary). `cmd_list` is *not* yet split into pure-render + effectful-wrapper (SA R11 F1 carry-forward); the Layer 7 change embedded the `is_terminal()` call directly into the unsplit function. The boundary is partial: half the renderers (show) follow the pattern; half (list) don't. The Finding 1 disposition (focused PR) is the right corrective.
+
+**Sycophancy check:** Three findings I tried to dismiss but could not:
+
+- **Finding 1 (pre-Layer-7 PR deferral expired)** — I tried to dismiss as "deferred again to a later focused PR." But the disposition condition was explicitly "pre-Layer-7" per SO R21, and Layer 7 shipped without it. Dismissing again would invalidate the prior disposition contract. The auto-Backlog rule per CLOSURE-PROTOCOL.md §3 fires after three SA reviews; this is review 3 (R13, R14, R15). Dismissal unconvincing → Open / Raised to SO.
+- **Finding 2 (TTY-detection duplicated at function entry)** — I tried to dismiss as "two syscalls is cheap, YAGNI." But the architectural shape (environmental decision should be made once at the boundary) is a real concern, especially with cmd_list's unsplit rendering and the natural threading-from-main shape. Dismissal unconvincing → Open / Deferred to focused PR.
+- **Finding 3 (boolean-trap `use_color: bool`)** — I tried to dismiss as "internal API, bool is fine." But the test-site call sites read `format_show_block(&issue, false)` opaquely, and the enum form is trivially cheaper than the documentation cost of naming the parameter at every call site. Dismissal unconvincing → Open.
+
+Three findings I tried to elevate but could not:
+
+- **Finding 4 (`&'static str` typing of ANSI constants)** — I tried to argue byte-vs-text boundary discipline. But the emit-only path is `Display`-based and `&str` is the right type. Re-raise on parser introduction. Elevation unconvincing → Dismissed.
+- **Finding 5 ("VT100-compatible" claim)** — I tried to argue documentation imprecision is a fragility. But the actual sequences used are correct within scope, and CHANGELOG L27-32 verifies the targets. Elevation unconvincing → Dismissed.
+- **Finding 7 (color helpers above data model)** — I tried to argue separation-of-concerns layout defect. But module ordering is convention, helpers are private, the placement is defensible as shared-utility-above-first-use, and the real fix is the module split (Finding 1). Elevation unconvincing → Hallucinated.
+
+**Carry-forward status (explicit):**
+
+- **SA R11 F1 / SA R13 F2** (`cmd_list` rendering extraction; `format_show_block` column-width literals): **Unchanged Open / Deferred.** Deferral condition (pre-Layer-7 focused PR) expired without action. Third consecutive review where this stands Open. Auto-Backlog rule fires (CLOSURE-PROTOCOL.md §3) unless SO adjudicates.
+- **SA R13 F1 Trigger B** (`src/lib.rs` module split, ≥500 LOC threshold): **Unchanged Open / Deferred.** Same deferral; same auto-Backlog trigger. Trigger materially exceeded — non-test code now ~870 LOC vs. 500 threshold (74% over).
+- **SA R13 F1 Trigger A** (`CreateArgs` refactor): **Remains Resolved** by commit `9b775f0` (closed at R14). No regression — Layer 7 did not touch `cmd_create`'s signature.
+
+**External interface contracts (Dim 13 / Dim 22):** The `--help` text (verified via `tests/layer7.rs` `help_flag_*_exits_zero`) accurately enumerates the valid values per DESIGN.md. The TTY contract (`--help` to stdout, errors to stderr, exit 0/1) is preserved through `main.rs`'s `Cli::try_parse()` arm (L72-83). The Layer 7 change did not modify the external contract beyond color output; color is correctly suppressed when piped (verified by `list_piped_has_no_ansi_codes` and `show_piped_has_no_ansi_codes`). No contract drift.
+
+**Coordination:**
+- **Raised to SO (Finding 1):** Trigger-revision authority. Three-review auto-Backlog trigger fired; SO adjudication required.
+- **Raised to SE (Finding 1, Finding 2, Finding 3):** Implementation authority for the module split, `is_terminal()` consolidation, and `bool`-vs-enum refactor. Bundle candidates for a single focused PR if disposition is to land before Layer 7 merges to main.
+- **For QE (informational):** The Layer 7 Red Gate tests (`tests/layer7.rs`) correctly pin the contract; the `*_piped_has_no_ansi_codes` tests pass against the implementation. The test-site `format_show_block(&issue, false)` boolean call sites (Finding 3 evidence) are an internal test ergonomics concern, not a test correctness concern.
+- **For UX (informational):** If `--color=auto|always|never` is ever requested as a feature, Finding 3's enum refactor is the architectural prep.
+- **For Platform Engineer (informational):** Raw ANSI escapes vs. `anstyle` / `termcolor` is library-agnostic per DECISIONS.md L47-49; the choice is documented in the function-level comment + CHANGELOG but not in DECISIONS.md. Optional DECISIONS.md entry recommended (see Dim 10 commentary).
+- **For VDD-IAR (informational):** The pre-Layer-7 focused PR was the SO-adjudicated condition (SO R21, recorded in SA R14 L1184-1186); Layer 7 shipped without it. VDD-IAR should verify whether this constitutes a process-compliance gap (closure-protocol auto-Backlog rule firing) or an SO-authority disposition still in flight.

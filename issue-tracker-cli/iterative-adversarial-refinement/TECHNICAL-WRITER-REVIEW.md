@@ -829,3 +829,189 @@ Suspected the new `pub` functions might have skimpy rustdoc. Re-read (lines 389�
 
 **Coordination:** *(none — closure pass)*
 ---
+
+## Review 11 — 2026-05-11 22:30Z
+
+**Round:** Technical Writer Review 11 — Layer 7 Round 1 cold-batch (polish layer: `--help`, TTY color, error specificity).
+**Scope:** All public-facing documentation against Layer 7 implementation (Phase 2a Red Gate `7b461aa`; Phase 2b implementation `a2b8062`; manual-checklist closure `603c689`). Inputs: `issue-tracker-cli/README.md`, `guild-portfolio/README.md`, `DESIGN.md`, `DECISIONS.md`, `TODO.md`, `CHANGELOG.md` head entry, `iterative-adversarial-refinement/CLOSURE-PROTOCOL.md` §1, `tests/layer7.rs` top-comment block, `src/lib.rs` Layer 7 helper section + `format_show_block` / `cmd_show` / `cmd_list` doc-comments + module-level `//!`, `src/main.rs` clap doc-comments, and TW Reviews 9–10 for carry-forward.
+
+**Session note:** Cold session per primer; reviewer did not participate in Layer 7 build.
+
+---
+
+**Regression check (whole-suite doc state):** Reviews 1–10 closed all prior TW findings except R7 F5 (PROCESS.md retrospective placeholders, developer-only) and R9 F4 / R10 F4 (TODO.md manual-checklist gate, director-owned — `603c689` flips Layer 7's 7/7). The recurring "CHANGELOG missing layer entry" defect class (TW R7 F2 / R9 F1) **does not recur** at Layer 7: `CHANGELOG.md` head is the Layer 7 entry at `2026-05-11 22:00Z`, written by the implementation commit. This is the first layer since at least Layer 4 where the CHANGELOG is current at landing — a real break in the documentation-currency pattern. The other recurring defect class (issue-tracker-cli/README.md staleness at every layer close — TW R7 F1 / R9 F3) **does recur** and is now spanning four layers (5/6/7 still claim `Available now (Layer 4)`).
+
+---
+
+### Resolved
+
+*(none this round — Round 1 is the surfacing pass; fixes land Round 2.)*
+
+### Open
+
+**Finding 1 — `issue-tracker-cli/README.md` "Available now (Layer 4)" block stale across four layers (Dim 1 — README completeness; recurring TW R7 F1 / R9 F3 defect class)**
+
+README.md L11 still reads `Available now (Layer 4):`. L19–25 list `--description`, `show`, `delete` under `Planned (not yet implemented — see Status):` annotated `# Layer 6`. L66–80 Status block: L68 reads `**Layer 4 implementation complete. Layer 5 not started.**`; L78–80 list Layers 5, 6, 7 all unchecked. As of HEAD: Layer 5 shipped at `bd15a9d` (2026-05-07), Layer 6 shipped at `c91676a` (2026-05-11 02:00Z), Layer 7 shipped at `a2b8062` (2026-05-11 22:00Z). All three commands previously gated as "Planned (Layer 6)" — `--description`, `show`, `delete` — are implemented and tested (180+ tests pass, including the layer6 and layer7 integration suites).
+
+Additionally, the README does **not** describe the new Layer 7 surface at all: no mention that priority/status values render in color when stdout is a TTY, no mention that color is suppressed when stdout is piped/redirected (the `IsTerminal` rule). A cold reader cloning the repo today reads a project that is described as Layer-4-complete with three years of unmentioned feature work.
+
+TW R9 F3 raised this for Layer 5 + Layer 6 staleness and was *partially* resolved in R10: the **portfolio** README (guild-portfolio/README.md) was updated, but the **project** README (issue-tracker-cli/README.md) was explicitly deferred ("Synopsis-block / Commands-block deferred — those are project-README concerns... which TW will re-check at Layer 7 polish per the established cadence"). Layer 7 is the named target; this is the moment.
+
+**Classification:** Open. TW direct-edit authority per CLOSURE-PROTOCOL §1 (`README.md: Technical Writer; any domain (for accuracy fixes) — Edit directly to correct stale claims`). To land in Round 2: bump heading to `Available now (Layer 7):`; add `[--description "<desc>"]` to the create synopsis; add `tracker show <id>` and `tracker delete <id>` synopsis lines; remove the entire `Planned (not yet implemented)` block; flip Status block to `**Layer 7 implementation complete.**`; tick all six layer checkboxes; add a short "Color output" paragraph that documents the TTY-only rule (and cross-references DESIGN.md "Interface / color output"). NO_COLOR env-var support is out-of-scope (not implemented; not in DESIGN.md) — explicitly do not document it unless UX/SO raise it.
+
+---
+
+**Finding 2 — `guild-portfolio/README.md` Layer 7 row mis-marked 🔲 Not started (Dim 2 — documentation accuracy)**
+
+`guild-portfolio/README.md` L36 reads `| 7 | Polish (color, `--help`) | 🔲 Not started |`. As of HEAD: the Layer 7 Red Gate (`7b461aa`), implementation (`a2b8062`), and manual-checklist closure (`603c689`) are all committed. CHANGELOG.md has a Layer 7 entry. The current state matches the convention used at the Layer 6 row (`🟡 In IAR Round 2`) at the moment Layer 6 cold-batch was active — Layer 7 should read `🟡 In IAR Round 1` while this review and the parallel domain reviews are in flight.
+
+TW R10 F3 cited the established cadence — portfolio README is updated by the layer-shipping commit when a layer enters IAR. Layer 7's shipping commit didn't update it. Same defect class as R9 F3 portfolio half (which was resolved), now regressing one round later.
+
+**Classification:** Open. TW direct-edit authority. Fix in Round 2: flip Layer 7 to `🟡 In IAR Round 1`. (Layer 6 row currently reads `🟡 In IAR Round 2` — but Layer 6 shipped via merged PR #18 per the git log, so Layer 6 is arguably ✅ Complete; flag for SO to adjudicate the Layer 6 row update too.)
+
+---
+
+**Finding 3 — `src/lib.rs` module-level `//!` doc-comment names functions that no longer exist (Dim 2 — documentation accuracy; Dim 5 — inline comment quality; Rust supplement — rustdoc fidelity)**
+
+`src/lib.rs` L11–13 reads:
+
+> ...the command implementations (`cmd_create`, `cmd_list`, `cmd_status`), the parsing/validation helpers (`validate_title`, `parse_status`, `parse_priority`, `parse_id`), and the storage primitives (`load_issues`, `save_issues`).
+
+Three accuracies fail:
+
+1. `load_issues` and `save_issues` were renamed to `load_tracker` and `save_tracker` in the SO R22 Option A commit (`8ed7db3`). The names `load_issues`/`save_issues` do not exist in the current source (`grep -n` confirms zero matches). The module-level rustdoc — the very first thing `cargo doc` shows a caller browsing the crate — names a nonexistent function.
+2. `cmd_show` and `cmd_delete` (Layer 6 — landed `c91676a`) and the new Layer 7 helpers (`priority_ansi`, `status_ansi`, `wrap_color`, `pad_after_color`, `ANSI_RESET`) are missing entirely from the module-level enumeration. A cold reader using rustdoc as the crate's table of contents finds an out-of-date map.
+3. `validate_description`, `parse_label`, `Tracker`, `Issue`, `CreateArgs`, `bump_next_id` — all part of the public surface — are likewise missing.
+
+The pattern is the same TW R7/R9 documentation-currency class but at the rustdoc layer rather than CHANGELOG/README. Notably this is a *Layer 6* regression that survived TW R9 (which dismissed F8 declaring "rustdoc parity met") — the module-level doc was not part of R9's per-function check. The Layer 7 commit gave a clean reason to refresh the enumeration and didn't.
+
+**Classification:** Open. Raised to SE (src/lib.rs is SE authority per CLOSURE-PROTOCOL §1). Proposed text: rewrite the L8–19 module comment to enumerate the current public surface (`Tracker`, `Issue`, `CreateArgs`; `cmd_create`, `cmd_list`, `cmd_status`, `cmd_show`, `cmd_delete`; `validate_title`, `validate_description`, `parse_status`, `parse_priority`, `parse_id`, `parse_label`, `bump_next_id`, `current_timestamp`; `load_tracker`, `save_tracker`). Add a one-line Layer 7 note: "Color helpers (`priority_ansi`, `status_ansi`, `wrap_color`, `pad_after_color`) are private — see the Layer 7 block above `Tracker` for the TTY-detected color contract."
+
+---
+
+**Finding 4 — DECISIONS.md missing the "raw ANSI escapes, no `anstyle` dependency" decision (Dim 4 — decision rationale)**
+
+`CHANGELOG.md` Layer 7 entry L9 captures the rationale (`Raw ANSI escapes (no anstyle / termcolor dependency) — the six sequences ... are universally supported by VT100-compatible terminals, the only environment this single-user portfolio CLI targets.`) and `src/lib.rs` L41–44 carries the same justification inline. But DECISIONS.md has no entry. A future developer asking "why did we hand-roll ANSI escapes instead of using `anstyle`?" must reverse-engineer the answer from the CHANGELOG or the source comment — neither is the canonical artifact for design-rationale lookup.
+
+DECISIONS.md already includes the *prior* color decision (the "Color output included" entry at line 50, citing SO Review 3 Finding 1), but that entry is scoped to **whether** to color, not **how**. The how-decision — minimal-dependency raw ANSI vs. `anstyle`/`termcolor` — is a real choice with a real trade-off (no parsing safety net, no Windows-conpty compatibility, no graceful degradation on legacy terminals), and the rationale (single-user macOS portfolio CLI, VT100-compatible target) is exactly the kind of context DECISIONS.md is meant to preserve. The Layer 7 IAR brief flagged this anticipatorily: "DECISIONS.md: Layer 7 included a deliberate 'raw ANSI escapes, no anstyle dependency' decision. Was it recorded? If not, raise to SO Review 23 for a DECISIONS.md entry." It was not.
+
+**Classification:** Open. Raised to SO (DECISIONS.md authority is SO primary per CLOSURE-PROTOCOL §1, with rationale-citing append allowed by any domain — but a SO-owned new entry is the cleaner closure path given this is a new section "Layer 7 — implementation decisions"). Proposed entry: title "Raw ANSI escapes, no `anstyle` / `termcolor` dependency"; cite the CHANGELOG Layer 7 entry and `src/lib.rs` L41–44; rationale: "VT100-compatible terminals universally support the six sequences used (`\x1b[1;31m`, `\x1b[33m`, `\x1b[36m`, `\x1b[32m`, `\x1b[0m`); the six-string surface is small enough that a parsing/portability dependency adds more risk (CVE surface, version churn) than it removes for a single-user macOS portfolio CLI; revisit if Windows or legacy-terminal support is added."
+
+---
+
+**Finding 5 — `CHANGELOG.md` Layer 7 entry "Open (process)" half-claims a contradicted state (Dim 8 — CHANGELOG quality)**
+
+CHANGELOG.md L37 reads:
+
+> **Layer 7 manual testing checklist** (TODO.md L368-374) — 7 unchecked items. Director must execute and commit per CLOSURE-PROTOCOL.md merge-gate criterion 3 (same standing process Open as Layers 4 / 6). Carry-forward for the IAR session.
+
+This was written by commit `a2b8062`. The very next commit, `603c689` ("Layer 7 manual testing complete — 7/7 ticked"), closes the items. As of HEAD the manual-checklist is fully ticked — TODO.md L370–376 all show `[x]`. The CHANGELOG entry has not been updated to reflect that the Open-process item is now Closed. A cold reader reading the CHANGELOG head sees an Open process finding that no longer applies.
+
+This is mild: a reader who reads `603c689`'s commit message resolves the contradiction quickly, and the manual-checklist gate is correctly closed at the TODO.md / commit-history level. But the CHANGELOG entry's own "Open (process)" subsection is now misleading.
+
+**Classification:** Open. Any domain may edit CHANGELOG to record a change per CLOSURE-PROTOCOL §1. Fix in Round 2: amend the L37 bullet to reflect closure — e.g. "**Layer 7 manual testing checklist** — Closed by `603c689` (2026-05-11 22:30Z). All 7 items ticked per TODO.md L370–376." Or restructure to a Closed (process) sub-bullet to match the precedent of Layer 6 entries.
+
+---
+
+**Finding 6 — `tests/layer7.rs` top-comment is excellent for AI-session-independence (Dim 10) — verified, no action**
+
+(Recording the verification, not a finding.) The 26-line top-comment block at L1–25 explains the unusual "tests pass against pre-Phase-2b code" framing in three named-failure-mode terms: (a) Layer 7 is polish; clap and the Layer 1 `try_parse` already satisfy most help / unknown-subcommand acceptance criteria *against current code*; (b) the tests pin the *contract* (valid-value enumerations, exit codes, stderr routing) that prior layers established only by convention — a future refactor would now fail named tests; (c) TTY-positive rendering is intentionally manual-only (subprocess `assert_cmd` produces a non-TTY stdout by construction). A cold reader (or a future AI session) reading the test file in isolation can reconstruct the Red Gate framing without git history or prior IAR logs. Cross-references TODO.md ("Manual only (TTY-detection cannot be automated in subprocess tests)") which is reachable from the comment.
+
+This is the right level of context preservation for AI-session independence. The comment is durable, scoped to the file, and explains both *what* (the Red Gate contract test) and *why* (polish-layer redundancy with clap defaults) without inviting the reader to read elsewhere.
+
+**Classification:** Verified — recorded for the durable record, not a finding.
+
+---
+
+### Dismissed
+
+**Finding 7 — `format_show_block` doc-comment fails to document the `use_color` parameter (Dim 6 — API documentation)**
+
+Suspected: the function signature gained a `use_color: bool` parameter in `a2b8062` (CHANGELOG L14 confirms). If the doc-comment was updated for Layer 6 but not Layer 7, the cold reader sees a stale `# Parameters`-or-equivalent description.
+
+Read `src/lib.rs` L518–525:
+
+> Renders a single issue as the `tracker show` labelled key-value block.
+>
+> Per DESIGN.md "Show output format": each label is right-padded to a fixed width of 13 characters so values align. For multi-line descriptions, the first line follows the `Description:` label; each continuation line is indented by 13 spaces (matching the label-column width).
+>
+> Returns the formatted block including a trailing newline.
+
+The doc-comment does **not** explicitly document `use_color`. But on closer inspection: (a) `format_show_block` is a **private** function (`fn`, not `pub fn`); (b) the inline comment block at L545–547 immediately above the call to `wrap_color` documents the parameter's behavior in context (`Layer 7: color the status and priority values when use_color is true. The label column ... is uncolored — color applies to value text only per DESIGN.md "Interface / color output".`); (c) rustdoc convention does not require parameter-level docs for private functions, and the IAR Rust supplement Technical Writer dim 1 explicitly carves out private items from the public-surface coverage requirement ("For binary-only crates, exported functions in `lib.rs` must be documented; internal functions in `main.rs` may be omitted" — `format_show_block` is closer to the latter category as a `pub`-crate helper). The behavior is documented at the call site, not the function definition, but it is documented and accurate.
+
+**Classification:** Dismissed. Function-level doc-comment is at parity with the rest of the file's private-function convention; the use_color contract is documented at the call site where it is non-obvious, not at the signature where it would duplicate the bool semantic.
+
+---
+
+**Finding 8 — `cmd_list` / `cmd_show` doc-comments fail to mention TTY-detection / color (Dim 2 — documentation accuracy)**
+
+Suspected: the Layer 7 color rule should appear in the `pub fn cmd_list` and `pub fn cmd_show` rustdoc per the "describe the current implementation" rule.
+
+Read `src/lib.rs` L752–770 (`cmd_list`) and L570–578 (`cmd_show`). Neither doc-comment mentions color or TTY. But (a) the color rule is documented in DESIGN.md "Interface / color output" (canonical spec); (b) it is documented in the Layer 7 helper block at L28–44 (where the implementation lives); (c) it is documented at the call sites (L832–835 cmd_list, L589–591 cmd_show) with explicit inline comments tying back to DESIGN.md; (d) coloring is a presentation-layer concern that does not change the function's *behavioral contract* (`Errors`, postconditions, valid arguments) — those are all unchanged by Layer 7. Adding color-rule prose to the `pub fn` rustdoc would duplicate DESIGN.md without changing the caller-relevant contract.
+
+**Classification:** Dismissed. The function rustdoc documents behavior the caller must understand; color rendering is implementation detail of the rendering path, covered in DESIGN.md and at the call sites.
+
+---
+
+**Finding 9 — clap `--help` text "valid values" coverage incomplete for Layer 7 (Dim 1 — README/help completeness; CLI supplement UX dim 1)**
+
+Suspected: Layer 7's "all error messages reviewed for specificity" and "help is accurate" criteria might miss a value-enumeration in `src/main.rs` clap doc-comments. Re-read L13–55 against `tests/layer7.rs` content assertions:
+
+- `Create.priority` (L20–22): doc-comment `Priority: low, medium, high (default: medium)` — matches `tests/layer7.rs::help_flag_create_exits_zero` assertion `"low, medium, high"`. ✓
+- `List.status` (L29–31): doc-comment `Filter by status: open, in-progress, done` — matches `tests/layer7.rs::help_flag_list_exits_zero` assertion `"open, in-progress, done"`. ✓
+- `List.priority` (L32–34): doc-comment `Filter by priority: low, medium, high` — matches. ✓
+- `List.label` (L35–37): doc-comment `Filter by label (case-sensitive exact match; single value only)` — DESIGN.md-current; documents the multi-`--label` rejection rule.
+- `Status.status` (L43–45): doc-comment `New status: open, in-progress, done` — matches `tests/layer7.rs::help_flag_status_exits_zero` assertion. ✓
+- `Show` / `Delete` (L46–55): doc-comments expanded in `9b775f0` (Layer 6 R2) per TW R9 F2 closure — confirmed at current parity.
+
+All help-text valid-value enumerations match the tests and DESIGN.md. The `Create.description` doc-comment `Free-form description (stored verbatim; not trimmed)` is the only one without an explicit "valid values" enumeration, but this is correct — the description is free-form (no enum), and the doc-comment names the surprising property (verbatim, not trimmed). Layer 7 help is current.
+
+**Classification:** Dismissed. `tracker [subcommand] --help` text is accurate and at parity across all six subcommands.
+
+---
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Deferred
+
+*(none — Round 1 surfaces; Round 2 dispositions.)*
+
+---
+
+### Summary
+
+**6 findings (5 actionable Open + 1 Verified-recorded):**
+- F1 — issue-tracker-cli/README.md "Available now (Layer 4)" stale across four layers (TW direct-edit) — *recurring TW R7 F1 / R9 F3 defect, now four layers deep and the named "Layer 7 polish moment" promised in R10 F3*
+- F2 — guild-portfolio/README.md Layer 7 row mis-marked 🔲 Not started (TW direct-edit)
+- F3 — src/lib.rs module-level `//!` doc names nonexistent `load_issues` / `save_issues`; misses entire Layer 6+7 public surface (Raised to SE)
+- F4 — DECISIONS.md missing the "raw ANSI escapes, no anstyle" rationale (Raised to SO; flagged in Layer 7 IAR brief)
+- F5 — CHANGELOG Layer 7 entry's "Open (process)" half-claims a contradicted state — manual checklist closed by `603c689` but the entry was not updated (Any-domain edit)
+- F6 — `tests/layer7.rs` top-comment AI-session-independence: **Verified excellent**, no action
+
+**3 Dismissed (with specific verification):**
+- F7 — `format_show_block` use_color doc — private function, documented at call site, follows file convention
+- F8 — `cmd_list` / `cmd_show` color rule — implementation detail, covered in DESIGN.md and inline at call sites; behavioral contract unchanged
+- F9 — clap `--help` valid-value enumerations — verified against tests and DESIGN.md across all six subcommands
+
+**0 Hallucinated.**
+
+**Doc-currency assessment:** Layer 7 is the first layer since at least Layer 4 where CHANGELOG.md is current at landing (TW R7 F2 / R9 F1 pattern broken — credit where due). The remaining doc-currency defects cluster around the *project README* (four-layer-stale) and the *module-level rustdoc* (one-layer-stale after the SO R22 rename); these are the same defect class as before, just in different artifacts. F4 (DECISIONS.md ANSI rationale) is a fresh decision-rationale gap, not a recurrence — Layer 7 introduced the first new architectural choice since Layer 4 (label rules) that warrants a DECISIONS.md entry, and the Layer 7 CHANGELOG entry captured the rationale but the canonical decisions log did not.
+
+**Top concern:** Finding 1 (project README stale four layers deep). The cold reader's primary handoff document fails at Layer 7 in the exact same shape it failed at Layers 5 / 6 — TW R10's "deferred to Layer 7 polish per the established cadence" disposition makes this the named moment. Sycophancy check: I considered marking this a soft "informational" finding given the portfolio README is current, but the project README is the artifact a cold cloner reads first (per Dim 1's "clone the repo into a fresh environment and follow the README" test), and four layers of staleness in the synopsis block actively misleads.
+
+**Coordination:**
+- F1 (project README) → TW direct-edit in Round 2.
+- F2 (portfolio README) → TW direct-edit in Round 2.
+- F3 (src/lib.rs module doc) → **Raised to SE** for the `//!` rewrite. Coordinates with SE Review (Layer 7 cold-batch).
+- F4 (DECISIONS.md raw-ANSI entry) → **Raised to SO** for the new Layer 7 decisions section. Coordinates with SO Review 23.
+- F5 (CHANGELOG Open-process line) → Any-domain edit; bundle with TW direct edits in Round 2.
+- F6 (tests/layer7.rs verified) → No coordination; recorded for the durable record.
+- Cross-domain: F3 overlaps with SE Review (stale inline doc); F4 overlaps with SO Review 23 (DECISIONS.md authority) and SA Review (architectural-choice rationale not documented).
+
+**Files modified:** Only this log appended.
+
+---

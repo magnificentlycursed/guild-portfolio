@@ -1078,3 +1078,256 @@ The "new free-form text field added without explicit Cc contract" pattern surfac
 1/1 Round-1 Open finding Resolved across 5 attack reproducers. 1 Accepted-Risk preserved (F2 / Trojan-Source) with explicit spec stance. Layer 6 RT-domain is at MVR. No exploitable surface remains.
 
 **Coordination:** *(none — closure pass)*
+
+---
+
+## Review 10 — 2026-05-11 22:30Z
+
+**Round:** Red Team Review 10 (cold-batch, Layer 7 — polish: `--help`, TTY-detected color output, error specificity)
+**Scope:** New Layer 7 surface (commit `c305ae5` and follow-ups through `8ed7db3`): TTY-detected color emission via `priority_ansi` / `status_ansi` / `wrap_color` / `pad_after_color` in `src/lib.rs`; `format_show_block(issue, use_color)` and `cmd_list` colored cells; `cmd_show` TTY-detection branch; the `unknown_subcommand_exits_one` Red Gate path which routes through clap's "unrecognized subcommand" error. Regression-check the title / label / description `Cc` defenses, error-message `display_safe` interpolation, and the `tracker.json` corruption-rejection at load. Confidentiality: payload bytes abstracted as `<ESC>`, `<CR>`, `<TAB>`, `<LF>`, `<FF>`, `<RLO>`, `<C1>`; reproducer CWD as `<tmp>`.
+**Session context:** Cold session. Built `cargo build --release --locked` against HEAD `8ed7db3` (Layer 6 IAR R3 SO R22 Option A persistent `next_id`). Attacks run from `<tmp>` with a fresh `tracker.json` between probes. Bytes verified with `od -c` and `python3` `subprocess.run(capture_output=True)` (the latter to bypass shell argv-stripping for ESC and C1 controls).
+
+### Regression check
+
+| Surface | Pre-existing control | Verdict |
+| --- | --- | --- |
+| `validate_title` Cc rejection (L1 / RT R6 carry-forward) | `Err("Title cannot contain control characters.")` on ESC, tab, CR, LF | Holds. ESC + tab + CR + LF + bell + NUL all rejected. |
+| `parse_label` Cc / comma rejection (L4 / RT R7) | `Err("Label cannot contain control characters.")` | Holds. ESC injected via `printf` subshell rejected; bare whitespace rejected. |
+| `validate_description` Cc-except-`\n` rejection (L6 / RT R8 F1) | `Err("Description cannot contain control characters other than newline.")` | Holds. ESC, CRLF, bare CR, tab, DEL all rejected. `\n` accepted (multi-line carve-out). |
+| `issue_fields_are_valid` load-time Cc rejection (L6) | Plant `status: "open\x1b[31m"`, `priority: "high\x1b[m"`, `title: "Real\x1b[31m"`, `description: "Hello\x1b[31mWorld"`, `labels: ["evil\x1b[31m"]` directly into `tracker.json` | Holds for all five. Every planted record rejected with `Could not read tracker data. The file may be corrupt.` exit 1. The new Layer 7 `Tracker` envelope (`{"issues": [...], "next_id": N}`) does not weaken the per-record validation chain. |
+| `display_safe` error-message interpolation (RT R6 F2) | `tracker show $'<ESC>[31mabc'` → `'\u{1B}[31mabc'` (literal escape, not raw byte) | Holds. `parse_id` / `parse_priority` / `parse_status` all still `display_safe`-wrap the reflected raw input. |
+| `next_id` persistent-counter overflow guard (Security R4 F2 / SO R22) | Plant `next_id: 18446744073709551615` (`u64::MAX`) + valid issue, run `tracker create` | Holds. `bump_next_id` `checked_add` surfaces `Cannot assign new issue ID: maximum ID reached.` exit 1. No panic, no overflow wrap. |
+| TTY suppression of ANSI (Layer 7 contract) | `tracker list` and `tracker show` piped to `od -c` | Holds. Zero `\x1b` bytes in either piped stdout, even with a high-priority + in-progress issue present that would emit four ANSI sequences on TTY. |
+| TTY-positive ANSI emission (Layer 7 contract) | `script -q /dev/null tracker list` → expected `\x1b[1;31mhigh\x1b[0m` cell + reset | Holds. `\x1b[1;31m` (bold red) wraps `high`; column alignment preserved (visible-width padding via `pad_after_color` correct). |
+| Trojan-Source / `Cf` (Accepted Risk RT R6 F3 / R8 F2) | `tracker create "abc<RLO>def"` and description with `<RLO>` | Holds as Accepted Risk. Cf bytes (`342 200 256` = U+202E) flow through `format_show_block` byte-for-byte; Layer 7 color path does NOT alter this surface. |
+
+### Attack transcripts
+
+**Attack A — control-character injection via every documented entry boundary (regression of Title L1, Labels L4, Description L6).**
+
+```
+$ tracker create $'<ESC>[31mEVIL'                       → exit 1, Error: Title cannot contain control characters.
+$ tracker create "real" --label $'<ESC>[31mevil'        → exit 1, Error: Label cannot contain control characters.
+$ tracker create "real" --description $'<ESC>[1;31mEVIL' → exit 1, Error: Description cannot contain control characters other than newline.
+$ tracker create "real" --label "$(printf '\033[31mevil')" → exit 1, Error: Label cannot contain control characters.
+```
+
+No Cc input reached storage. The three boundary validators all hold.
+
+**Attack B — direct `tracker.json` planting (load-boundary Cc).**
+
+```
+$ python3 -c "import json; d=json.load(open('tracker.json')); d['issues'][0]['status']='open\\u001b[31m'; json.dump(d, open('tracker.json','w'))"
+$ tracker list                                           → exit 1, Error: Could not read tracker data...
+[planted in title, priority, description, labels — each plant individually triggers corrupt-data rejection]
+```
+
+`issue_fields_are_valid` (via `STATUS_ORDER` / `PRIORITY_ORDER` membership + `label_is_valid` + `description_is_valid` + title `is_control` check) catches every plant. The Layer 7 commit did not modify these predicates.
+
+**Attack C — Trojan-Source / Cf bidi (Accepted Risk carry-forward).**
+
+```
+$ tracker create $'abc<RLO>def'           → exit 0, Created issue #1
+$ tracker create "moar" --description $'attack<RLO>suoicilam' → exit 0
+$ script -q /dev/null tracker show 1
+  Title:       abc<RLO>def    ← rendered visually as 'abcfed'
+  Description: attack<RLO>suoicilam ← rendered visually as 'attackmalicious'
+```
+
+Identical exposure pre-Layer 7 (RT R6 F3 / R8 F2). Risk owner: director. Re-evaluation trigger: multi-user/shared `tracker.json` (DESIGN.md "Edge Cases / Title" / "Edge Cases / Description").
+
+**Attack D — TTY suppression.**
+
+```
+$ tracker create "real" --priority high
+$ tracker list | od -c | head -10        → zero \x1b bytes
+$ script -q /dev/null tracker list       → \x1b[1;31m high \x1b[0m, alignment preserved
+```
+
+`std::io::stdout().is_terminal()` branches correctly. Pipe-consumer hygiene confirmed: a downstream `tracker list | grep` will never see embedded ANSI when stdout is not a TTY.
+
+**Attack E — unknown-subcommand stderr reflection (Layer 7 new test surface).** Sent via `python3` `subprocess.run(['tracker', 'pre' + payload + 'post'], capture_output=True)` to bypass shell-level stripping:
+
+| Payload | clap's stderr (bytes, repr) | Renders on TTY as |
+| --- | --- | --- |
+| ESC (`\x1b`) | `Error: unrecognized subcommand 'prepost'` | ESC stripped by clap — safe. |
+| BEL (`\x07`) | `Error: unrecognized subcommand 'prepost'` | Stripped — safe. |
+| BS (`\x08`) | `Error: unrecognized subcommand 'prepost'` | Stripped — safe. |
+| VT (`\x0b`) | `Error: unrecognized subcommand 'prepost'` | Stripped — safe. |
+| DEL (`\x7f`) | `Error: unrecognized subcommand 'prepost'` | Stripped — safe. |
+| **TAB (`\x09`)** | `Error: unrecognized subcommand 'pre\tpost'` | Column-skip on terminal. |
+| **LF (`\x0a`)** | `Error: unrecognized subcommand 'pre\npost'` | Line break mid-error; `post'` floats on its own line. |
+| **CR (`\x0d`)** | `Error: unrecognized subcommand 'pre\rpost'` | Cursor returns to column 0; `post'` overwrites `Error: unrecognized subcommand 'pre`. **Result on TTY: only `post'` is visible.** |
+| **FF (`\x0c`)** | `Error: unrecognized subcommand 'pre\x0cpost'` | Form-feed; some terminals page/clear. |
+| **C1 NEL (U+0085)** | `Error: unrecognized subcommand 'pre\xc2\x85post'` | NEL is a C1 control (Cc); some terminals treat as next-line. |
+| **C1 (U+0080..U+009F)** | `Error: unrecognized subcommand 'pre\xc2\x80post'` | Raw C1 byte. |
+
+DESIGN.md "stderr contract" (DESIGN.md line 222): *"Error messages that interpolate user-supplied values ... MUST escape any control character (Unicode general category `Cc`) in the interpolated value as `\u{XX}` before rendering — the error stream is not a transparent pipe for arbitrary terminal sequences."* The Layer 1 `try_parse` transform in `src/main.rs:72-83` only does `replacen("error:", "Error:", 1)` — it does NOT call `display_safe` on clap's reflected `'pre<Cc>post'` payload. The `unknown_subcommand_exits_one` Red Gate test (`tests/layer7.rs:111-122`) asserts the substring `frobnicate` is present in stderr but does NOT exercise control-character payloads, so the contract gap is uncovered by tests.
+
+**Attack F — chained: `u64::MAX` next_id + create.**
+
+```
+$ python3 -c "import json; json.dump({'issues':[<valid>],'next_id':18446744073709551615}, open('tracker.json','w'))"
+$ tracker create "new"  → exit 1, Error: Cannot assign new issue ID: maximum ID reached.
+```
+
+`bump_next_id` `checked_add` holds (Security R4 F2 lineage). No panic.
+
+**Attack G — concurrent `tracker create` × 20, five trials (Layer 5 surface — confirm Layer 7 didn't reopen).**
+
+```
+trial 1: stored=19, unique_ids=19, next_id=20, max_id=19
+trial 2-5: stored=20, unique_ids=20, next_id=21
+```
+
+Trial 1: one creation's commit was clobbered by a parallel write (classic last-writer-wins). `next_id > max(id)` invariant survived in every trial — `tracker_is_valid` will accept the post-race file. The lost write is the spec-Accepted no-locking behavior (DESIGN.md "Out of Scope" line 413, "Constraints" line 282). Layer 7 added no I/O changes; this is the same surface that has been present since Layer 1, not a Layer 7 regression.
+
+**Attack H — information-leak surface area.**
+
+```
+$ touch tracker.json && chmod 000 tracker.json && tracker list
+  → Error: Could not read tracker data: Permission denied (os error 13).
+$ mkdir tracker.json && tracker list
+  → Error: Could not read tracker data: Is a directory (os error 21).
+$ tracker create "x" (in a read-only directory)
+  → Error: Could not save tracker data: Permission denied (os error 13).
+```
+
+DESIGN.md line 343 specifies the permission case as: `Error: Could not read tracker data: permission denied.` — but the implementation emits the OS message verbatim with capitalization (`Permission denied`) and an appended errno tag (`(os error 13)`). This is a low-severity spec drift (the spec wording is not exactly matched) and a low-severity information leak (the errno is platform-specific reconnaissance signal: errno 13 = EACCES on Linux/macOS, hints at the OS family). No filesystem-path leak: the implementation never logs absolute paths.
+
+**Attack I — `--label "  "` whitespace bypass.**
+
+```
+$ tracker create "x" --label "   " → exit 1, Error: Label cannot be empty.
+$ tracker create "x" --label ""    → exit 1, Error: Label cannot be empty.
+```
+
+`parse_label` trims first and rejects empty. Layer 4 control intact.
+
+**Attack J — color-rendering side-channel via `format_show_block` (does Cf get exposed differently now?).**
+
+```
+$ script -q /dev/null tracker show 1   (issue with priority=high + Cf in description)
+  Priority:    \x1b[1;31mhigh\x1b[0m
+  Description: attack<RLO>suoicilam
+```
+
+The priority cell is wrapped in ANSI; the description (which contains the Cf RLO) is emitted byte-for-byte without color wrapping. `wrap_color` is only applied to the `status` and `priority` fields, never the description field. Cf rendering posture identical pre-Layer 7. No new exposure surface.
+
+### Findings
+
+#### Open
+
+**F1 — clap's `unrecognized subcommand` error reflects raw control characters to stderr (Dim 6 / Dim 7 — display-class injection; DESIGN.md "stderr contract" violation; uncovered by `unknown_subcommand_exits_one` Red Gate.)**
+
+clap reflects the unrecognized subcommand name verbatim into its `error: unrecognized subcommand 'X'` message (`src/main.rs:72-83` transforms only the leading `error:` → `Error:` prefix). For 6 of the 11 control-character payloads tested (TAB, LF, CR, FF, NEL, generic C1), the raw byte reaches stderr.
+
+The DESIGN.md stderr contract (line 222) is **explicit and absolute**: *"Error messages that interpolate user-supplied values ... MUST escape any control character (Unicode general category `Cc`) in the interpolated value as `\u{XX}` before rendering — the error stream is not a transparent pipe for arbitrary terminal sequences."* This is a spec-conformance gap.
+
+PoC (most-impactful single byte, CR):
+
+```
+$ python3 -c "import subprocess; subprocess.run(['tracker', 'pre\rpost'])"
+  ← stderr line: Error: unrecognized subcommand 'pre\rpost'
+  ← on TTY: rendered as "post'" only (CR resets cursor; `post'` overwrites `Error: unrecognized subcommand 'pre`)
+```
+
+A user-pasted clipboard with `\r` in it (e.g. from a Windows source) gets a confusing error display: the diagnostic `Error: unrecognized subcommand 'pre` is invisibly overwritten by `post'`. A scripted caller's log file captures the literal CR + raw control bytes.
+
+Severity: **Low-Medium**. Lower than the description-Cc finding (RT R8 F1) because:
+- The attack is bounded to a TTY display anomaly, not a stored-data injection.
+- The user supplied the attack payload to themselves (single-user threat model, RT R6 F3 / R8 F2 same-class).
+- Spec-conformance is the strongest claim, not exploitability.
+
+Higher than a documentation-only spec drift because:
+- DESIGN.md "stderr contract" is unambiguous on the rule.
+- The pattern is the same generalization-failure that surfaced 3× in this project (Title L1, Labels L4, Description L6) and that VDD-IAR R16 proposed as a Layer-N Red Gate criterion (RT R9 / Security R10). This is the 4th instance, on a path NOT predicted by the prior 3 — clap's error pipeline, not a `validate_*` function.
+- The `unknown_subcommand_exits_one` Red Gate test (`tests/layer7.rs:111-122`) asserts `'frobnicate'` substring presence but does NOT inject a Cc-bearing payload, so the contract gap survives current QE coverage.
+
+Recommended remediation:
+
+- **SO:** Confirm the DESIGN.md stderr-contract clause applies to clap-generated errors as well as application-generated errors (which is the literal reading; flagging here to make the SO call explicit). If yes, the implementation gap is real.
+- **SE:** In `src/main.rs`, after `e.to_string().replacen("error:", "Error:", 1)`, also run the result through a `display_safe`-equivalent for Cc bytes. Cleanest: extract `display_safe` as a pub helper from `src/lib.rs` and apply it to the entire clap error string before `eprint!`. (Alternative: scan only the quoted region between the first pair of `'`s — narrower but more fragile.)
+- **QE:** Add `unknown_subcommand_with_cc_payload_escapes_in_stderr` (assert `\r`, `\t`, `\n`, `\x0c`, `\u{0085}`, raw C1 NEVER appear raw in stderr).
+
+**Classification:** Open. Raised to SO (spec adjudication, possibly trivial — read DESIGN.md line 222 literally), Raised to SE (remediation), Raised to QE (regression coverage). Cannot be Hallucinated — 6 of 11 payloads produce raw Cc bytes in `subprocess.run` stderr capture. Cannot be Deferred (Red Team findings are not deferrable per CLOSURE-PROTOCOL.md §2). The pattern (Security R7 / RT R8 / RT R9 named: *defense scoped by-field instead of by-property*) recurs here on a path nobody had named — clap's error pipeline — extending the lineage from `validate_*` boundaries to *every* stderr write site.
+
+Self-dismissal test (sycophancy guard): can I demonstrate this is hallucinated? No. The byte-level reproducer is reproducible (`python3 subprocess.run` with `capture_output=True` records the raw bytes in `r.stderr`). The DESIGN.md clause is unambiguous. The Red Gate test does not exercise this case. Finding stands.
+
+**F2 — Spec drift in OS-error message wording (DESIGN.md line 343 vs. actual emit) + low-severity errno information leak (Dim 8 — Information leakage for reconnaissance).**
+
+DESIGN.md line 343 specifies: `Error: Could not read tracker data: permission denied.` — note the lowercase `permission denied`, no parenthetical. The actual emit:
+
+```
+Error: Could not read tracker data: Permission denied (os error 13).
+Error: Could not read tracker data: Is a directory (os error 21).
+Error: Could not save tracker data: Permission denied (os error 13).
+```
+
+Capitalization differs (`Permission denied`); errno tag appended (`(os error 13)`). The errno tag is `std::io::Error`'s default `Display` format — the `format!("...: {}.", e)` template at `src/lib.rs:334` (`load_tracker`) and `src/lib.rs:352` (`save_tracker`) interpolates the OS-level error message verbatim.
+
+Severity: **Low**. The errno value (13 / 21) is platform-specific reconnaissance signal (EACCES / EISDIR on Linux/macOS), but no path / username / filesystem-layout data leaks. The spec wording drift is a literal contract mismatch; no operational harm.
+
+PoC:
+
+```
+$ chmod 000 tracker.json && tracker list
+  → Error: Could not read tracker data: Permission denied (os error 13).
+                                         ^ capitalization differs from DESIGN.md line 343
+                                                            ^^^^^^^^^^^^^^ errno reconnaissance
+```
+
+Recommended remediation:
+
+- **SO:** Either ratify the actual emit format in DESIGN.md (broaden line 343 to allow OS-level error verbatim) or reaffirm the spec wording (lowercase, no errno tag — requires SE fix).
+- **SE:** If SO ratifies the spec, no fix. If SO holds the spec, change `format!("Could not read tracker data: {}.", e)` to format only `e.kind()` or a sanitized variant.
+
+**Classification:** Open. Raised to SO (spec adjudication; possibly trivial — broaden the spec). The spec contract is the lower-effort fix path; the SE-side fix is also straightforward but loses the errno signal that aids the user diagnosing OS-level access issues. Cannot be Hallucinated — the byte comparison is direct.
+
+#### Dismissed
+
+**F3 — TTY-fake attack via controlled pty (does color leak to a piped consumer indirectly?).** Concern: an attacker who controls a wrapper script that allocates a pty and pipes the tracker's output to a parser could trick `is_terminal()` into believing stdout is a TTY, causing ANSI codes to leak to a downstream parser. Verified: `script -q /dev/null tracker list` does cause `is_terminal()` to return `true` and ANSI codes emit. **But** in this scenario, the user (or the script the user wrote) made the choice to interpose a pty — the user *intended* TTY behavior. This is the user attacking themselves; no third-party adversary controls the pty allocation. Out-of-threat-model for the single-user local CLI (DESIGN.md Constraints). **Dismissed.** Same rationale class as RT R6 F3 (user attacks themselves with clipboard content).
+
+**F4 — Layer 7 ANSI hardcoding (`\x1b[1;31m` etc.) bypasses an environment hardening like `NO_COLOR`.** Concern: the spec-compliant TTY-detect heuristic does not honor `NO_COLOR`, `TERM=dumb`, or `CLICOLOR=0`. Out of DESIGN.md scope — the spec specifies TTY-only as the discriminator (DESIGN.md "Interface / color output", line 240). A user with a non-VT100 terminal could see literal `\x1b[1;31m` text, but that is a TTY-claims-VT100 misconfiguration on the user's side; spec compliance is preserved. **Dismissed.** Out of spec. (Note: a future spec amendment to honor `NO_COLOR` would be a portfolio-grade improvement; not a finding.)
+
+**F5 — `format_show_block` exposes Cf differently with color.** Concern: the new `wrap_color` could change how Cf bytes flow through `show`. Verified: `wrap_color` only wraps `status` and `priority` — both ASCII, no Cf possible. Description is rendered verbatim regardless of `use_color`. **Dismissed.** No new exposure surface; Cf carry-forward unchanged (Accepted Risk RT R8 F2).
+
+**F6 — `pad_after_color` integer underflow.** Concern: `format!("{}{}", colored, " ".repeat(total_width - visible_chars))` could underflow if `visible_chars > total_width`. Verified: the function guards `if visible_chars >= total_width { return colored.to_string(); }` at the top (`src/lib.rs:91-97`). The subtraction is unreachable when underflow would occur. **Dismissed.** Defense-in-depth holds.
+
+**F7 — TOCTOU between `load_tracker` and `save_tracker` (Layer 5 surface — did Layer 7 reopen?).** Verified by 5-trial × 20-parallel-create stress test: one trial showed a lost write (last-writer-wins on the unfocused write); `next_id > max(id)` invariant survived. DESIGN.md "Out of Scope" line 413 declares concurrency undefined; DESIGN.md "Constraints" line 282 names this Accepted. Layer 7 added zero new I/O. **Dismissed.** Pre-existing Accepted Risk (RT R8 F3 carry-forward).
+
+**F8 — `.unwrap()` panic-as-DoS.** Audit: `src/lib.rs:351` `serde_json::to_string_pretty(tracker).unwrap()`. Justified with comment (no floats, no cycles, all fields implement `Serialize` — infallible). No user-influenced unwrap path. **Dismissed.** Single unwrap is provably safe.
+
+#### Accepted Risk
+
+**F9 (carry-forward from RT R6 F3 / R8 F2) — Trojan-Source / Cf in title, label, description.** Unchanged stance. DESIGN.md "Edge Cases / Title" line 314 (and equivalent for Description), risk owner: director, re-evaluation trigger: any future multi-user / shared `tracker.json` use case.
+
+**F10 (carry-forward from RT R6 F10 / R7 F10 / R8 F8) — Plaintext `tracker.json`.** Unchanged. Risk owner: the user/developer (DESIGN.md "Constraints").
+
+**F11 (carry-forward from RT R8 F3 + this round F7) — Concurrent-write TOCTOU.** Unchanged Accepted Risk. DESIGN.md "Out of Scope" line 413, "Constraints" line 282, "Storage" line 198 (Atomic writes deferred). Risk owner: director.
+
+**F12 (NEW, threat-model boundary documentation) — Insider-threat / cosmic-ray `tracker.json` modification.** A sysadmin (or any party with write access to the user's filesystem) can hand-edit `tracker.json`. The load-time `tracker_is_valid` + `issue_fields_are_valid` chain catches every Cc-injection plant tested in Attack B above, so the *display-injection class* of insider attack is closed. The remaining insider-threat surface is: (a) plant valid-shape data with adversarial-but-spec-compliant content (a fake "Done" status, an attacker-attributed title); (b) corrupt `tracker.json` to cause a denial-of-service via the corrupt-data rejection. Both are out-of-scope for the single-user local-CLI threat model (DESIGN.md Constraints) — the attacker already owns the user's filesystem, and there is no integrity boundary the CLI is positioned to enforce against that level of access. **Accepted Risk.** Risk owner: director. Re-evaluation trigger: any future use case where `tracker.json` is shared across trust boundaries (multi-user mounts, networked filesystems, version-controlled with adversarial contributors). Documents the boundary that the Cc-defense work (RT R6 / R7 / R8) does NOT extend across.
+
+#### Hallucinated
+
+None this round. Every candidate finding produced (or failed to produce) reproducible bytes; no finding was advanced without a byte-level demonstration.
+
+### Summary
+
+Round **10** logged. Cold-session cold-batch produced **2 Open findings** (F1 stderr Cc reflection in clap's unknown-subcommand error — DESIGN.md stderr-contract violation; F2 spec-wording drift + errno reconnaissance leak in OS-error messages), **6 Dismissed** (F3 user-controlled pty; F4 NO_COLOR out-of-spec; F5 Cf rendering through color path unchanged; F6 pad_after_color underflow guarded; F7 TOCTOU Layer 5 surface unchanged; F8 unwrap proven safe), **4 Accepted Risk** (F9 Trojan-Source carry-forward; F10 plaintext storage carry-forward; F11 TOCTOU carry-forward; F12 NEW — insider-threat / cosmic-ray boundary explicitly documented). **0 Hallucinated.**
+
+**Top exploitable finding:** F1 — clap's `unrecognized subcommand` error pipeline reflects raw `\r`, `\t`, `\n`, `\x0c`, `\u{0085}`, C1 bytes to stderr; DESIGN.md "stderr contract" (line 222) is unambiguous that Cc-bytes MUST be `\u{XX}`-escaped on interpolated values; the `unknown_subcommand_exits_one` Red Gate test does not exercise Cc payloads. PoC: `python3 -c "import subprocess; subprocess.run(['tracker', 'pre\rpost'])"` — TTY renders only `post'`, the rest is cursor-overwritten.
+
+**Second exploitable finding:** F2 — `Error: Could not read tracker data: Permission denied (os error 13).` differs from DESIGN.md line 343's `permission denied.` (capitalization + errno tag). Low-severity errno reconnaissance leak; primary nature is spec-wording drift. PoC: `chmod 000 tracker.json && tracker list`.
+
+**Sycophancy-guard reflection.** Going into this review I expected the pre-existing Cc-defense feels-like-a-strong-control was the right place to challenge. The review primer named this explicitly. What I found: the validator-based defenses (Title / Label / Description / `*_is_valid` predicates) do all hold against direct attacks. The chained / surface-class drift the primer warned about did surface — but on a *different* surface than I would have predicted: clap's error pipeline, NOT a future validator. Security 7's named pattern ("defense scoped by-field rather than by-property") generalized one more level than I'd internalized: it's not just about adding validators to new schema members, it's about every stderr write site that interpolates user-supplied bytes. The strategic fix would be: `display_safe` applied as the LAST step on every stderr write, not as the FIRST step on every error-construction. The `validate_*` work plus the `display_safe` interpolation in domain errors are a strong control on the application's error pipeline; the missing instance is clap's error pipeline, which the application code does not control directly but does emit to stderr from. F1 is exactly that: the control as designed does not extend to the bytes clap produces. The defense felt strong because every direct test of the Cc-rejection rules passed; the chained / surface-class drift was the one I had to actively look for, and it was on the path none of the prior reviews exercised.
+
+**Coordination:**
+
+- [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) — F1 requires SO confirmation that DESIGN.md line 222's stderr-contract clause applies to clap-generated errors as well as application errors (literal reading: yes). F2 requires SO adjudication between (a) broaden DESIGN.md line 343 to accept the actual OS-error verbatim form, (b) reaffirm the spec wording and require SE to strip the errno tag. F12 documented as Accepted Risk for the insider-threat threat-model boundary (DESIGN.md "Constraints" already implicitly covers this; flagging here for explicit documentation if SO wishes to formalize).
+- [SECURITY-REVIEW.md](SECURITY-REVIEW.md) — F1 is independently a Security Dim 6 (Injection / display-class) finding and a Dim 8 (Information disclosure via terminal-control reflection on stderr) finding. Cross-reference R7 / R10's "defense scoped by-field instead of by-property" pattern: this is the 4th instance, on a path none of the prior 3 predicted (clap's error pipeline, not a `validate_*` function). The strategic fix (`display_safe` applied at every stderr write site, not at every error construction) is the same fix Security 7 already named at a higher level of abstraction.
+- [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) — F1 fix in `src/main.rs:72-83` clap-error transform: extract `display_safe` as `pub` from `src/lib.rs` and apply it to the entire clap error string (cleanest), or scan the quoted region between `'` markers (narrower). F2 fix in `src/lib.rs:334` / `:352` `format!` templates: either trim the `(os error N)` suffix from `std::io::Error`'s Display or use `e.kind()` (loses the errno but matches spec wording).
+- [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) — F1 regression coverage gap: `unknown_subcommand_exits_one` (`tests/layer7.rs:111-122`) tests substring presence but not Cc-escape. Add `unknown_subcommand_with_control_bytes_escapes_in_stderr` (assert `\r`, `\t`, `\n`, `\x0c`, `\u{0085}`, raw C1 NEVER appear raw in stderr for the unrecognized-subcommand error path).
+- [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md) — The "every new free-form text field needs an explicit Cc contract" Red Gate criterion proposed in RT R9 (and forwarded to VDD-IAR R16) needs broadening: the criterion should extend from "schema member" to "every stderr write site that interpolates user-supplied bytes," including clap-generated errors and any other library-level error pipeline. F12 (insider-threat boundary) is a documentation-only addition; flag for VDD-IAR's CLOSURE-PROTOCOL review.
+
+**Files modified:** Only this review log appended. No source, tests, or DESIGN.md changes per IAR domain authority boundaries (CLOSURE-PROTOCOL.md §1).

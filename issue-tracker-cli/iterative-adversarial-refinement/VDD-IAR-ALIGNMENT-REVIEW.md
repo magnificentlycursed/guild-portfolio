@@ -2028,3 +2028,247 @@ Only this log appended.
 
 ---
 
+## Review 17 — 2026-05-11 22:30Z
+
+**Round:** VDD-IAR Alignment Review 17 (Layer 7 — Polish: --help + TTY color + error specificity — IAR Round 1, cold-batch parallel session).
+
+**Scope:** Layer 7 process compliance from the Layer 6 merge to `main` through HEAD on the `issue-tracker-cli-polish` branch. Three commits in scope: `7b461aa` (Phase 2a Red Gate — tests/layer7.rs, 9 tests, no src changes), `a2b8062` (Phase 2b implementation — TTY-detected color in src/lib.rs + CHANGELOG entry), `603c689` (manual testing closure — TODO.md 7/7 checkbox flips). Inputs: DESIGN.md "Interface / color output" (lines 239-250) + --help references at lines 209-225; TODO.md Layer 7 (lines 349-392); tests/layer7.rs full file; src/lib.rs color helpers (lines 28-91, 526-560, 583-595, 833-863); CHANGELOG.md Layer 7 entry; DECISIONS.md "Color output included" + "Library-agnostic CLI" entries; CLOSURE-PROTOCOL.md Sections 1-6; README.md merging gate; prompts/{review-session,implementation,decomposition,spec-crystallization}.md; prior VDD-IAR Reviews 15 + 16.
+
+**Session note:** Cold-session per `prompts/review-session.md`. Cold-batch parallel peer with the Layer 7 substantive-domain reviewers (SO 23 / SA 15 / QE 17 / SE 17 / UX 10 / Platform 12 / VDD-IAR 17 — the active IAR set for Layer 7 per TODO.md:392). Per `prompts/review-session.md` § "Session isolation" the parallel-batch arrangement is the gold standard — this reviewer accepts independence as the methodological asset and does not soften pressure. This reviewer did not author the Layer 7 commits.
+
+**Program phase:** Phase 1 (Crosslink not introduced; dim 11 N/A). Governing methodology: `apprentice-onboarding/02-the-methodology/01-how-we-build.md` + project-scoped `iterative-adversarial-refinement/CLOSURE-PROTOCOL.md`.
+
+**Regression check on Reviews 15-16:** Review 16 issued NO-GO-PENDING-MANUAL with one Open process gate (Layer 6 manual checklist). The Layer 6 manual-testing commit completed and the substantive Round-2 closure landed via `9b775f0` (R16 cluster fixes), `3800dae` (R16 review log entries), `8ed7db3` (R3 persistent next_id, Option A). Layer 6 closed cleanly before Layer 7 opened. Carry-forward dispositions from Review 16: SA R13 F1 Trigger B (lib.rs storage/validate/commands split) + SA R13 F2 (format_show_block column-width literals second site) were Deferred to "pre-Layer-7 focused PR" with explicit re-raise condition. See Finding 4 below for disposition at Layer 7 opening.
+
+---
+
+### Layer 7 commit-pattern audit
+
+| Commit | Time (local) | Phase signal |
+|---|---|---|
+| `7b461aa` Layer 7 Red Gate — --help, color, error-specificity tests | 2026-05-11 14:54:35 -0700 | Phase 2a: 9 integration tests in `tests/layer7.rs`; commit-message explicitly discloses "all 9 tests pass at this commit before any Phase 2b work begins" — full-suite polish-layer Red Gate deviation. NO src/ changes. |
+| `a2b8062` Layer 7 implementation — TTY color output | 2026-05-11 15:04:36 -0700 | Phase 2b: substantive src/lib.rs changes (priority_ansi, status_ansi, wrap_color, pad_after_color, format_show_block use_color param, cmd_show/cmd_list TTY detection via std::io::stdout().is_terminal()) + CHANGELOG entry. 9-minute gap between 2a and 2b. NO tests/ changes (clean Phase 2b). |
+| `603c689` Layer 7 manual testing complete — 7/7 ticked | 2026-05-11 15:20:31 -0700 | Manual-testing closure: TODO.md lines 368-374 flipped from `[ ]` to `[x]`. 16-minute gap from 2b. Commit body enumerates observed behaviors (Layer-4 "Verified in terminal" framing as VDD-IAR Reviews 13/15 polish-suggested). |
+
+Boundary verifications:
+- `git diff 7b461aa~ 7b461aa -- src/` → empty. ✓ Red Gate did not touch implementation.
+- `git diff 7b461aa a2b8062 -- tests/` → empty. ✓ tests/ unchanged across Phase 2b.
+- `cargo test --no-fail-fast --locked` at HEAD → 195/195 pass (62 unit + 32+18+9+25+7+33 layers 1-6 + 9 layer 7). ✓
+- I independently ran the Layer 7 test suite against `7b461aa` content (pre-implementation): 9/9 pass. ✓ Confirms the commit-message disclosure.
+
+---
+
+### Resolved
+
+*(none — VDD-IAR owns its log + may amend CLOSURE-PROTOCOL.md; no process-change artifact applied this session.)*
+
+---
+
+### Open
+
+**Finding 1 — Layer 7 Red Gate primary signal is absent: all 9 Phase-2a tests pass against pre-implementation code; the polish-layer-deviation framing is honest disclosure but does not satisfy `prompts/implementation.md` § Phase 2a (Dim 4 — Red Gate compliance, CRITICAL)**
+
+Direct evidence: I checked out `7b461aa` content and ran `cargo test --test layer7 --locked`. Result: 9 passed, 0 failed. The commit message states this plainly ("all 9 tests pass at this commit before any Phase 2b work begins"). This is not a Cat B / partial-deviation situation as in Layers 3-6. In those layers the Red Gate **primary signal** was always one or more failing unit tests on a `todo!()` stub or unimplemented predicate — the Cat B tests pinned emergent prior-layer behavior alongside that primary signal. Layer 7 has **no failing Red Gate primary signal whatsoever.**
+
+Walking the rule literally. `prompts/implementation.md:11` ("Tests before code. For every feature, the test must exist and be failing before the first line of implementation… A test that passes against an empty function body was not written first."). `prompts/implementation.md:32` ("Run the test suite. Every new test must fail. A new test that passes against a stub or empty function body was not written first — revise it."). `prompts/implementation.md:34` ("If implementation begins before this commit, the commit history cannot distinguish test-first from test-after, and VDD-IAR Alignment dim 4 cannot be verified."). The standard text is unambiguous; the test set must fail before Phase 2b begins. Layer 7's 9-test set did not.
+
+Walking the retroactive-Red-Gate carve-out at `prompts/implementation.md:56`: "If you discover a missing test [during Phase 2b], note it; add it in a separate commit after the current feature is working, so the Red Gate record is clean. A retroactive test cannot satisfy the Red Gate (the implementation exists before the test fails), so log it as a **Red Gate deviation** in the commit message and review log: 'retroactive Red Gate: [behavior name] — discovered during Phase 2b, test added post-implementation, confirmed passes against current implementation.' This is a known limitation, not a workaround. Do not silently add retroactive tests without the label." This carve-out is framed around tests *discovered during Phase 2b* and *added post-implementation* — a narrow exception that preserves the Red Gate by quarantining the violation and disclosing it. Layer 7's situation does not fit the carve-out cleanly: the tests were planned upfront in TODO.md (not discovered during Phase 2b), and were committed before any Phase 2b work (not post-implementation). But the underlying condition — "test passes against the pre-implementation code; the implementation exists before the test would fail" — is the same condition the carve-out names. Layer 7 generalizes the carve-out from "single retroactive test" to "entire layer's Red Gate."
+
+The commit message frames this as "polish-layer Red Gate deviation" — applying the sycophancy guard from the review brief, this is exactly the self-justifying language the brief warns about. The framing has two defensible properties: (a) transparency (the deviation is named in the commit message, not hidden — better than the silent-deviation failure mode); (b) the two `*_piped_has_no_ansi_codes` tests, while they pass at Red Gate trivially against pre-color code, do become real Phase 2b regression guards — a naive Phase 2b implementation that always emits ANSI (without TTY check) would break them. So those two tests have a forward-looking Red Gate-like function even though they did not provide a failing primary signal at the Phase 2a commit.
+
+But two defensible properties do not equal "satisfies the rule." The seven --help / unknown-subcommand tests pin clap-default behavior already present from Layer 1; the implementation predates the tests by six layers' worth of accreted work. They are pure contract-pinning regression coverage — valuable, but not Red Gate primary signal. The two no-ANSI-codes tests assert the **absence** of behavior, against code that genuinely lacks the behavior — they would fail a future naive impl, but they did not fail at the Phase 2a commit and do not on their own justify the layer's Phase 2a/2b boundary. The aggregate effect: Layer 7's Red Gate provided 0 failing primary signals at the Phase 2a commit. The commit history at HEAD cannot distinguish test-first from test-after for this layer's *new behavior* (the TTY color path), because no test would have failed prior to a2b8062 — only a hypothetical naive implementation choice would.
+
+What a satisfying Red Gate would have looked like for Layer 7: a positive assertion against a TTY-positive code path — e.g., a unit test on a pure `wrap_color(value, ansi)` helper that asserts `wrap_color("high", Some("\x1b[1;31m")) == "\x1b[1;31mhigh\x1b[0m"`. Such a unit test would have failed at Red Gate (no `wrap_color` function existed) by compile error, providing the Phase 2a primary signal. The architectural decision to keep all color logic in private helpers and assert only the negative (no ANSI in piped output) is what eliminated the positive Red Gate signal. The decomposition primer at `prompts/decomposition.md:38-42` warns against the "polish layer that touches everything" anti-pattern and the "tests that could only have been written after seeing the implementation" anti-pattern — Layer 7's 7-of-9-tests-pin-existing-behavior shape touches both.
+
+Sycophancy guard: "but TTY-positive rendering can't be automated in subprocess tests — TODO.md:389 says so." Inverse: a pure-function unit test on `wrap_color` / `priority_ansi` / `status_ansi` is fully automatable and would have provided primary Red Gate signal. The "TTY-detection cannot be automated" constraint is a real constraint on the **end-to-end** color path, not on the **decomposed** color primitives. The decomposition primer's guidance applies: decompose to expose the testable surface. Layer 7's Phase 2a commit did not include such a unit test set — `git show 7b461aa --stat` shows only `tests/layer7.rs` (193 lines, integration only), no `src/lib.rs#tests` Layer 7 unit-test set. This was a missed Phase 2a opportunity that, had it been taken, would have produced a clean Red Gate primary signal.
+
+Sycophancy guard 2: "the precedent is Layer 5 Cat B (7 integration tests as emergent behavior) — Layer 7 just extends that precedent." Inverse: Layer 5 had 5 unit tests on `issue_matches_filters` that did fail at Red Gate by `todo!()` panic — that was the primary signal; the 7 integration tests were Cat B around it. Layer 6 had 18 of 20 integration tests fail at Red Gate by `todo!()` panic + 2 Cat A unit tests fail — primary signal. Layer 4 had 13 of 15 tests fail at Red Gate (10 by clap unknown-arg + 3 by `todo!()`) — primary signal. Layer 3 had 6 of 7 integration + 4 of 4 unit tests fail at Red Gate — primary signal. Every prior layer's Cat B was a minority of the test set surrounding a clear failing primary signal. Layer 7 inverts this: 100% Cat-B-like (zero failing tests at Red Gate). The precedent does not extend; Layer 7 is qualitatively different.
+
+Sycophancy guard 3: "polish layers are inherently this way — testing absence of behavior and contract-pinning is the right shape for polish." This is a reasonable methodological argument but it is not a property of `prompts/implementation.md`. The rule does not carve out a "polish layer" exception. If the methodology should have one, that is a CLOSURE-PROTOCOL.md or implementation.md amendment — which VDD-IAR Alignment owns, but cannot apply retroactively to this layer without a process artifact. The Coordination section below proposes a suite-level amendment path.
+
+**Classification: Open (Dim 4 — Red Gate compliance).** VDD-IAR Alignment cannot Defer or Dismiss this — the rule and the artifact disagree, and the disagreement is documented for the project record. The commit-message disclosure is the right transparency discipline (better than silent deviation) and meaningfully mitigates the dim-4 severity, but does not satisfy the rule. Recommended remediations (any one suffices to close):
+
+- **Option A (preferred, smallest):** Add a Phase-2b-companion unit-test commit landing 6+ unit tests on `priority_ansi`, `status_ansi`, and `wrap_color` that assert the literal ANSI sequences for each value (red/bold for high, yellow for medium, None for low, cyan for in-progress, green for done, None for open). The tests cannot reach Red Gate primary-signal status retroactively, but they would expose the testable surface that should have been the Phase 2a focus, and they document the methodological gap explicitly. Pair with an entry in this log (or DECISIONS.md "Color output unit tests retrofitted post-Red-Gate") explaining the retrofit.
+- **Option B (process-amendment path):** Amend CLOSURE-PROTOCOL.md (or propose an `iterative-adversarial-refinement/prompts/implementation.md` suite-level amendment) to codify a "polish-layer Red Gate exception": a layer that adds no new public function or CLI surface but only TTY-detected presentation may use entirely-passing Red Gate tests as contract-pinning regression coverage, with the constraint that the layer's commit message must disclose the deviation explicitly and that the implementation must be decomposed to expose testable primitives (priority_ansi, etc.) for future regression. VDD-IAR Alignment has authority over CLOSURE-PROTOCOL.md per the protocol's Section 1 self-reference.
+- **Option C (accept-and-document):** Director accepts the deviation as a known limitation of the polish layer, documented in DECISIONS.md as a methodological compromise, with a "do not repeat for non-polish layers" annotation. The honest disclosure in the commit message is then promoted to a project-level decision record.
+
+Whichever option is chosen, the finding is Open at this round; closure is conditional on the artifact landing.
+
+---
+
+### Dismissed
+
+**Finding 2 — Design before code (Dim 1)**
+
+DESIGN.md anchors every Layer 7 surface in spec text that predates the Layer 7 implementation. The "Color output (polish layer — Layer 7)" section at DESIGN.md:239-250 specifies: TTY detection via `std::io::IsTerminal`; color suppression when piped; exact value-to-color mapping (high → red/bold, medium → yellow, low → default, open → default, in-progress → cyan, done → green); "Color is applied only to the value text in its column cell, not to the entire row or header." This is a complete spec for the layer's new behavior — value-color mapping, scope (value cells only), TTY detection mechanism, and pipe behavior are all named.
+
+The --help / unknown-subcommand contract is anchored at DESIGN.md:209-225 (command table + flag enumeration). The error-message contract (`Error:` prefix, control-character escaping, stderr routing) is anchored at DESIGN.md:222 + 300 + Edge Cases throughout. All Layer 7 acceptance criteria in TODO.md:353-366 trace to DESIGN.md sections.
+
+DECISIONS.md entry "Color output included" (lines 51-53) records the spec-history: this was originally an SO Review 3 ratification, pre-Layer-7, not a Layer-7-era reinterpretation. The decision predates implementation. The "Library-agnostic CLI and JSON crates" entry (lines 47-49) provides the spec-level frame for the raw-ANSI vs. anstyle choice — DESIGN.md is explicit that crate-level choices are not in the spec, which makes the implementation's raw-ANSI choice an SE-domain decision rather than a spec-divergence.
+
+Sycophancy guard: "the raw ANSI vs. anstyle decision is significant and should have a DECISIONS.md entry." Inverse: the SO Review 3 ratification at DECISIONS.md:47-49 explicitly says crate choices are not spec-level. Adding a "raw ANSI was chosen over anstyle" entry would re-litigate a settled question. The implementation commit message at a2b8062 documents the choice ("the six sequences are universally supported by VT100-compatible terminals") which is the right place for an SE-domain rationale that does not require spec-level capture. Not a finding.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 3 — Layered decomposition (Dim 2)**
+
+TODO.md Layer 7 section (lines 349-392) has the goal statement, 13 acceptance criteria, 7-item manual testing checklist, and Red Gate test plan listing 8 integration tests (the test file ships 9 — `unknown_subcommand_exits_one` is the 9th, in scope per AC 13). All in place before any Layer 7 implementation (TODO.md predates 7b461aa; only checkbox flips happened in 603c689, which is post-implementation).
+
+Layer 7 scope (--help, color, error specificity) was respected. No Layer 8 or post-portfolio work crept in. `git show a2b8062 --stat` shows changes only to `src/lib.rs` + `CHANGELOG.md` — no Layer 1-6 refactors, no SA R13 F1 Trigger B / SA R13 F2 architectural splits absorbed (see Finding 4 for those).
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 4 — Carry-forward disposition for SA R11 F1 + SA R13 F1 Trigger B + SA R13 F2 (Dim 7 — IAR iteration / feedback routing)**
+
+Review 16 documented two architectural findings as "Open / Deferred to pre-Layer-7 focused PR" with explicit re-raise condition: "SA may re-raise at Layer 7 opening if the PR has not landed." Layer 7 opened at `7b461aa` without that focused PR landing — `git log main..HEAD` shows only three commits, all Layer 7 work, no architectural refactor PR.
+
+This is a recurring deferral pattern. SA R11 F1 (cmd_list rendering extraction) was Deferred at Layer 4 close to "focused PR before Layer 7"; that deferral persisted through Layer 5 (Review 12) and Layer 6 (Review 15 Finding 7 flagged the deadline approaching). Review 16 absorbed SA R13 F1 Trigger B and SA R13 F2 into the same "pre-Layer-7 focused PR" with the same deadline. The deadline has now passed without the PR landing.
+
+This is not a VDD-IAR Alignment-domain finding per the review brief: "SA R13 F1 Trigger B deferral, etc. — these are SA-domain Open findings, not VDD-IAR Alignment domain — but a deferral that recurs across 3 layers without action is a process pattern." The pattern is a process observation; the substantive findings remain SA-domain. The process question is whether the deferral pattern indicates a CLOSURE-PROTOCOL.md gap.
+
+Applied to CLOSURE-PROTOCOL.md Section 3 (auto-Backlog after 3 consecutive reviews of the originating domain without adjudication): SA R11 F1 has now persisted across Layer 4 close (SA review 11), Layer 5 close (SA review 12), Layer 6 close (SA review 13-14), with the deadline missed at Layer 7 opening. SA R13 F1/F2 have persisted across Layer 6 close (SA review 13-14) and Layer 7 opening (SA review 15 — the parallel-batch peer at this round). The Section 3 auto-Backlog rule applies to the SA-domain log, not this log; my role is to flag the pattern for the SA reviewer's attention this round.
+
+The process observation: the "focused PR before next layer" deferral pattern works only if the deadline is enforced. When the deadline is missed without action, the deferral degrades to a silent-drop unless the originating domain explicitly re-raises. Per CLOSURE-PROTOCOL.md Section 3, **SA Review 15 (this round) should re-raise these findings as hard Open (no further deferral)** or invoke the auto-Backlog rule. Either disposition is acceptable; silent continuation is not.
+
+**Classification:** Dismissed (the process question is correctly handled by SA Review 15 this round; no CLOSURE-PROTOCOL.md amendment is needed — the protocol's Section 3 rule covers this case and the rule should be exercised). Recorded here as a Coordination flag for the SA peer.
+
+---
+
+**Finding 5 — Test discipline / no Phase 2b test modifications (Dim 5)**
+
+`git diff 7b461aa a2b8062 -- tests/` is empty. Phase 2b added zero tests and modified zero tests. This is the strict-discipline pattern. The cargo-fmt pre-commit hook concern (mentioned in the review brief) does not apply at this layer: I diffed the test file in Phase 2a vs HEAD and there is no fmt drift. The Phase 2a commit message states "cargo fmt --check clean" — fmt is clean at the boundary.
+
+The 9-minute Phase 2a → Phase 2b gap is short but not anomalous (Layer 3 was 4 minutes; Layer 4 was 7 minutes; Layer 5 was ~8 minutes; Layer 6 was 2 minutes). The gap is consistent with the established cadence.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 6 — Human verification (Dim 6)**
+
+`603c689` lands 16 minutes after the implementation commit `a2b8062`. The commit body enumerates per-checklist-item observed behaviors — Layer-4 "Verified in terminal" framing as VDD-IAR Reviews 13/15 polish-suggested. Specifically: `tracker --help` + each subcommand `--help` (flags + valid-value enumerations); `tracker list` in terminal (high → bold red, in-progress → cyan, done → green; low / open → default per spec); `tracker list | cat -v` (no `^[[` escapes); `tracker show <id>` in terminal (status / priority colored, label column uncolored); `tracker show <id> | cat -v` (no escapes); error-message review across prior layers (every error path begins with `Error:`); `tracker frobnicate` (exit 1, stderr usage error).
+
+The commit message claims: "Director executed the Layer 7 manual testing checklist (TODO.md L368-374) against the release binary built from a2b8062 in a scratch /tmp directory." Timeline check: a2b8062 at 15:04:36, 603c689 at 15:20:31 — 16 minutes. Sufficient time for `cargo build --release` + 7 checklist items against the release binary in /tmp. Plausible.
+
+Sycophancy guard: "the 16-minute gap is short — could this be a rubber-stamp commit, not a real director run?" Inverse: the commit body enumerates specific observed outputs ("low priority value cells render in default color per spec" — a specific observation, not a checkbox restatement; "Duplicate-label on create (`--label bug --label bug`) succeeds silently with one stored 'bug' — spec-correct dedup behavior per DESIGN.md Feature 1 / Layer 4, not an error case" — this is the kind of specificity that arises from actually running the command and reading output, not from re-reading the checklist). The error-message-review claim across all prior layers is broader than the literal 7 items in the checklist; this is over-delivery on the "review each error message" item, indicating actual cross-layer engagement rather than checkbox-flipping. Standard cleared.
+
+Sycophancy guard 2: "the commit message says 'no Round 2+ director-pause required for the manual-testing gate — same closure cadence as the Layer 6 R3 commit 8ed7db3 once manual was complete' — is this self-justifying?" Inverse: this is honest disclosure of the chosen closure cadence (manual before Round 1 IAR), not a shortcut. Layer 7 lands the manual-testing before the IAR Round 1, which is actually stronger discipline than Layer 6 (no IAR-Round-2 gate dependency). Standard cleared, and in fact slightly exceeded vs. prior layers.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 7 — Issue tracking (Dim 11)**
+
+Phase 1 project. Crosslink not introduced. Dim 11 N/A per the review brief carve-out and prior Layers 1-6 VDD-IAR review consistent application.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 8 — IAR fresh context for this round (Dim 7 — IAR integrity)**
+
+Per the review brief: "this Round 1 review is dispatched as a cold-batch parallel session — note the quality tradeoff per review-session.md § Session isolation." Acknowledged for the record. The cold-batch parallel arrangement is the gold standard per the primer (§ "Session isolation": "Parallel independent sessions are the gold standard."); the only tradeoff named in the primer is the batching-within-one-session degradation, which does not apply here (this is one session, one domain). My session has not loaded other Layer 7 review prompts and has not seen the other Layer 7 cold-batch peers' findings.
+
+**Classification:** Dismissed.
+
+---
+
+**Finding 9 — Retrospective quality (Dim 10) and Decision documentation (Dim 1b)**
+
+DECISIONS.md has not been updated for Layer 7. The two Layer-7-relevant decisions implicit in the implementation:
+
+1. Raw ANSI escapes vs. anstyle / termcolor — per Finding 2, this is covered by the pre-existing "Library-agnostic CLI" entry which establishes that crate choices are SE-domain, not spec-level. The implementation commit message documents the rationale. No DECISIONS.md gap.
+2. The `pad_after_color` byte-vs-display-width handling — this is a tactical implementation detail (Rust's `{:<width}` counts bytes; ANSI escape bytes are zero-width when rendered), not a portfolio-level decision. Captured in the implementation commit message; no DECISIONS.md entry needed.
+
+PROCESS.md retrospective placeholders for Layer 7 are developer-authored per CLOSURE-PROTOCOL.md Section 1; not in VDD-IAR Alignment's authority to fill or audit at this round (only to flag empty placeholders at merge gate — and the merge gate per CLOSURE-PROTOCOL.md Section 6 item 7 says PROCESS.md placeholders block portfolio assessment but not technical merge). Not a Layer 7 process finding at this round.
+
+**Classification:** Dismissed.
+
+---
+
+### Hallucinated
+
+*(none)*
+
+---
+
+### Process integrity audit
+
+Authority chain for Layer 7 commits (per CLOSURE-PROTOCOL.md Section 1):
+
+| File | Authority | Layer 7 modifier | OK? |
+|---|---|---|---|
+| `tests/layer7.rs` (new) | QE primary; SE for parity | Co-authored at Red Gate (`7b461aa`); test plan in TODO.md is authority signal | ✓ |
+| `src/lib.rs` (color helpers + use_color threading) | SE primary | Co-authored at Phase 2b (`a2b8062`) | ✓ |
+| `src/main.rs` | SE primary | NOT modified at Layer 7 (no CLI surface changes — color is presentation-only, no flag added) | ✓ |
+| `CHANGELOG.md` | Any domain that produced the change | Co-authored at Phase 2b — appropriately bundled into the implementation commit (Layer 7 entry visible in a2b8062 diff) | ✓ |
+| `TODO.md` | SO (scope); director (sequencing) | Checkbox flips at `603c689` by director — in-policy | ✓ |
+| `DESIGN.md` | SO only | Not modified in any Layer 7 commit | ✓ |
+| `DECISIONS.md` | SO primary; any domain w/ rationale | Not modified — see Finding 9 (no gap) | ✓ |
+| `iterative-adversarial-refinement/CLOSURE-PROTOCOL.md` | VDD-IAR Alignment | Not modified at Layer 7 (Finding 1 proposes Option B as a future amendment path; not applied this round) | ✓ |
+
+No DESIGN.md edits by non-SO domains. No CLOSURE-PROTOCOL.md self-amendments without explicit finding. Authority chain clean.
+
+---
+
+### Summary
+
+Layer 7 process compliance is **clean across seven of eight evaluated dimensions** with one Open finding on dim 4 (Red Gate compliance — CRITICAL).
+
+- **Dim 1 (Design before code):** ✓ DESIGN.md "Color output (polish layer — Layer 7)" at lines 239-250 fully specifies TTY detection, value-to-color mapping, value-cell scope; --help + error contracts anchored at lines 209-225. No spec drift in Layer 7.
+- **Dim 2 (Layered decomposition):** ✓ TODO.md Layer 7 (lines 349-392) has goal + 13 ACs + 7-item manual checklist + 8 Red Gate tests in plan (file ships 9 — `unknown_subcommand_exits_one` is in scope per AC 13). No Layer 8 / post-portfolio creep.
+- **Dim 3 (Layer gate compliance):** ✓ Layer 6 closed by Reviews 15-16 + manual-testing commit + Round-2 cluster (9b775f0, 3800dae, 8ed7db3). Layer 7 Red Gate (7b461aa) opened after Layer 6 closure. Prior-layer test baseline preserved (186 → 195).
+- **Dim 4 (Red Gate compliance — CRITICAL):** ✗ **Open — Finding 1.** All 9 Phase-2a tests pass against pre-implementation code (verified by running cargo test --test layer7 against 7b461aa: 9/9 pass). The commit-message disclosure framing as "polish-layer Red Gate deviation" is honest transparency (better than silent deviation) and the two no-ANSI-codes tests have forward-looking regression-guard value, but the layer's Red Gate provided zero failing primary signals at the Phase 2a commit. `prompts/implementation.md:11+32+34+56` standard does not soften for polish layers. The architectural decision to keep color logic in private helpers (no `wrap_color` / `priority_ansi` / `status_ansi` unit tests) eliminated the testable positive-assertion surface that would have produced a clean Red Gate primary signal. Three remediation options (A retrofit unit tests; B amend CLOSURE-PROTOCOL.md / implementation.md to codify polish-layer Red Gate exception; C director accepts-and-documents in DECISIONS.md).
+- **Dim 5 (Test discipline):** ✓ `git diff 7b461aa a2b8062 -- tests/` is empty. Phase 2b added zero tests. No fmt drift.
+- **Dim 6 (Human verification):** ✓ `603c689` lands manual-testing closure with Layer-4 "Verified in terminal" framing — per-checklist-item observed-output enumeration including the error-message-review cross-layer pass. 16-minute gap from Phase 2b is plausible for 7 items + release-build setup in /tmp. Standard exceeded vs. prior layers (manual landed before IAR Round 1, not after).
+- **Dim 7 (IAR iteration / feedback routing):** ✓ This round is the IAR Round 1; cadence intact. Finding 4 flags the SA R11/R13 carry-forward deferral pattern for SA Review 15 (this round's peer) to handle via CLOSURE-PROTOCOL.md Section 3 auto-Backlog rule.
+- **Dim 8 (Issue tracking compliance):** N/A — Phase 1 project per the program-phase carve-out.
+
+**Sycophancy guard self-applied.** The most adversarial reading of Layer 7 is the one in Finding 1: the polish-layer-Red-Gate-deviation framing is precisely the kind of self-justifying language the review brief warned about. I have not softened it. The transparency mitigates severity but does not satisfy the rule, and the architectural decomposition gap (no `wrap_color` unit tests) is the actionable counter-evidence to the "polish layers are inherently this way" rationalization. Layer 7 is qualitatively different from Layers 3-6's Cat B precedent — every prior layer had a failing Red Gate primary signal; Layer 7 has none.
+
+A second adversarial reading: "the manual-testing commit at 603c689 was suspiciously fast (16 minutes) — could it be a rubber-stamp?" Sycophancy guard 2 on Finding 6 walked through this: the per-item observed-output specificity (the "duplicate-label silent dedup is spec-correct, not an error case" observation in particular) is not derivable from re-reading the checklist. The standard is cleared.
+
+A third adversarial reading: "the 9-minute Phase 2a → 2b gap suggests the implementation was already drafted in a working tree before the Red Gate commit landed." Sycophancy guard 3: `git diff 7b461aa~ 7b461aa -- src/` is empty, the strongest available evidence that no implementation crept into Phase 2a. The Red Gate **commit-pattern** is clean; the Red Gate **primary-signal** is the dim-4 gap, not the commit pattern.
+
+---
+
+### Coordination
+
+- **VDD-IAR Alignment Round 17 of the Layer 7 cold-batch peers** (SO 23 / SA 15 / QE 17 / SE 17 / UX 10 / Platform 12 / VDD-IAR 17 — per TODO.md:392 active set). Each domain runs cold per `prompts/review-session.md`. This VDD-IAR pass evaluates the artifact set as it stands at start-of-round.
+- **One Open process finding raised (Finding 1, dim 4 Red Gate).** Three remediation options (A: retrofit unit tests; B: amend CLOSURE-PROTOCOL.md or implementation.md to codify polish-layer Red Gate exception; C: director-accept as known limitation w/ DECISIONS.md entry). Closure conditional on artifact landing. Per the review brief: VDD-IAR Alignment cannot Defer or Dismiss process findings; this remains Open until artifact closure.
+- **Coordination flag to SA Review 15 (parallel-batch peer this round):** SA R11 F1 (cmd_list rendering extraction) + SA R13 F1 Trigger B (lib.rs storage/validate/commands split) + SA R13 F2 (format_show_block column-width literals second site) all had "pre-Layer-7 focused PR" as the named deferral target. The deadline has passed at Layer 7 opening; the focused PR did not land. CLOSURE-PROTOCOL.md Section 3 auto-Backlog rule applies. SA Review 15 should either re-raise these as hard Open or invoke auto-Backlog. The substantive findings are SA-domain; this is a process pattern flag, not a VDD-IAR-domain finding.
+- **Coordination flag to SO Review 23 (parallel-batch peer):** If Option B (CLOSURE-PROTOCOL.md / implementation.md amendment) is the chosen remediation for Finding 1, the methodology amendment may benefit from SO ratification given its cross-project applicability. If Option C is chosen, SO is the natural authority for the DECISIONS.md entry per CLOSURE-PROTOCOL.md Section 1.
+- **Suite-level escalation candidate:** Finding 1's Option B amendment is a candidate for promotion to `iterative-adversarial-refinement/prompts/implementation.md` at the suite level — polish layers are likely to recur in future portfolio projects and the methodology should not depend on retroactive director acceptance each time. Per CLOSURE-PROTOCOL.md Section 7, this project-scoped finding may motivate a suite-level prompt amendment if other projects find it useful.
+- **No cross-domain duplicates from this VDD-IAR round.** Finding 1 may overlap with QE Review 17 if QE independently surfaces the Red Gate primary-signal gap; the resolution applies once per CLOSURE-PROTOCOL.md Section 4.
+
+---
+
+### Merge-gate verdict
+
+**NO-GO-PENDING-RED-GATE.** Layer 7 Phase-2 process compliance is sound on 7 of 8 dimensions, but the merge gate cannot close until Finding 1 reaches a terminal state via one of the three remediation options. If Option C (director accept-and-document) is chosen, the gate can close with a one-paragraph DECISIONS.md entry and an SO review entry recording the call; this is the lightest-touch path. If Option A (retrofit unit tests) is chosen, the gate closes once the unit-test commit lands and this log entry is amended with the closure cross-reference. If Option B (process-amendment path) is chosen, the amendment must land in CLOSURE-PROTOCOL.md or be raised to the suite-level prompts/ before the gate closes.
+
+If the substantive-domain parallel-batch (SO 23 / SA 15 / QE 17 / SE 17 / UX 10 / Platform 12) produces additional real findings, the merge gate further requires the standard CLOSURE-PROTOCOL.md Section 5 cadence (warm-resolution → SO-adjudication if needed → round-2 cold-batch → Review 18 closure). If the substantive batch produces only Hallucinated or Dismissed findings, the merge gate may close after Finding 1 closes plus a final Review 18 closure round verifying the gate items in CLOSURE-PROTOCOL.md Section 6.
+
+Specifically required before the gate can close:
+
+- [ ] Finding 1 disposition: Option A artifact, or Option B amendment, or Option C director-accept-with-DECISIONS.md-entry. Recorded here on closure.
+- [ ] Warm-resolution + SO-adjudication + round-2 cold-batch as required by the substantive-domain findings (downstream of this VDD-IAR round; not yet known).
+- [ ] Final VDD-IAR closure round (Review 18) verifies all gate items in CLOSURE-PROTOCOL.md Section 6 are checked.
+- [ ] SA R11 F1 + SA R13 F1 Trigger B + SA R13 F2 carry-forward dispositions (auto-Backlog or hard-Open) recorded in SA Review 15 — not a VDD-IAR merge-gate item, but a CLOSURE-PROTOCOL.md Section 3 expectation.
+
+Layer 7's design-before-code, layered decomposition, layer-gate compliance, test discipline, human verification, IAR iteration discipline, and process artifact integrity are all clean. The dim-4 Red Gate compliance gap is the sole outstanding process question, and it is honestly disclosed in the commit message — the disclosure is the right discipline, but disclosure does not equal completion.
+
+**Refinement may continue on substantive (non-process) dimensions in parallel** with the Finding 1 disposition outstanding. The merge gate closes after Finding 1 closes and any substantive-domain findings reach terminal states.
+
+---
+
+### Files modified
+
+Only this log appended.
+
+---

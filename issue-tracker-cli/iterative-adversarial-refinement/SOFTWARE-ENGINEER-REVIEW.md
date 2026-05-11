@@ -1693,3 +1693,192 @@ Cold-session SE Review 15 outcome on Layer 6 (Description + Show + Delete): **0 
 **Coordination:** *(none — closure pass)*
 
 ---
+
+## Review 17 — 2026-05-11 22:30Z
+
+**Round:** SE Review 17 (Layer 7 IAR Round 1 — Polish: `--help`, TTY color output, error specificity).
+**Scope:** Cold-batch surfacing pass on the Layer 7 change set on branch `issue-tracker-cli-polish`:
+- Phase 2a Red Gate commit (9 integration tests in `tests/layer7.rs`)
+- Phase 2b implementation commit — `src/lib.rs` gains `const ANSI_RESET`, `priority_ansi`, `status_ansi`, `wrap_color`, `pad_after_color`, `std::io::IsTerminal` import; `format_show_block` gains `use_color: bool`; `cmd_list` per-row format rewritten with `status_cell` / `priority_cell` pre-padding; `cmd_show` calls `std::io::stdout().is_terminal()`
+- Manual-closure commit (test-suite / CHANGELOG / TODO.md bookkeeping; no `src/**/*.rs` deltas verified by inspection)
+
+Code surface reviewed: `src/lib.rs:1-7` (crate-level `#![deny(...)]`), `src/lib.rs:21-26` (imports), `src/lib.rs:28-97` (Layer 7 color helpers + `ANSI_RESET`), `src/lib.rs:526-568` (`format_show_block` with `use_color`), `src/lib.rs:579-594` (`cmd_show` + IsTerminal call), `src/lib.rs:771-867` (`cmd_list` with status_cell / priority_cell rewrite); `tests/layer7.rs` (9 tests); `src/main.rs:1-120` (no Layer 7 deltas); `rust-toolchain.toml` (1.94.1); `DESIGN.md` Interface / color output (lines 239-250). Prior R15 (Layer 6 cold), R16 (Layer 6 closure) read in full.
+
+**Session note:** Cold-batch surfacing pass per CLOSURE-PROTOCOL.md §5 step 1. No fixes applied this round; fixes land in Round 2. SE owns `src/**/*.rs`. Test/clippy state verified at session start: `cargo clippy --all-targets --locked -- -D warnings` clean against R16 closure baseline (next_id counter landing); branch-tip status not re-run since Phase 2b commit is recorded as clippy-clean in CHANGELOG.
+
+**Regression check:** Layer 7 does not touch any prior-layer validation predicate, storage path, or sort/filter logic. `validate_title`, `validate_description`, `parse_label`, `parse_priority`, `parse_status`, `parse_id`, `bump_next_id`, `load_tracker`, `save_tracker`, `cmd_create`, `cmd_status`, `cmd_delete`, `issue_fields_are_valid`, `tracker_is_valid`, `description_is_valid`, `label_is_valid`, `display_safe`, `sort_issues`, `truncate_with_ellipsis`, `issue_matches_filters`, `dedupe_labels`, `label_matches` are byte-identical to R16 closure (verified by grep + read). `cmd_list` filter-and-empty-state logic (status default + extra_filter_active disjunction + empty-state stderr routing) is unchanged; only the per-row rendering block was rewritten. `cmd_show` core flow is unchanged; only an `is_terminal()` check + signature widening of `format_show_block`. No prior-layer SE quality property has regressed at the behavior level: piped output still byte-stable (verified by `list_piped_has_no_ansi_codes` / `show_piped_has_no_ansi_codes`); clippy deny set unchanged at the crate root.
+
+**Assumption surfacing (G-20):** `std::io::IsTerminal` — stable since Rust 1.70 per std docs; project pins 1.94.1 in `rust-toolchain.toml`, so the trait import compiles cleanly. The trait is consumed by method-call syntax (`std::io::stdout().is_terminal()`) which requires the trait to be in scope — `use std::io::IsTerminal;` at the top of `lib.rs` is therefore load-bearing (not dead) even though the identifier `IsTerminal` doesn't appear at the call site. ANSI VT100 sequences `\x1b[1;31m` (bold red), `\x1b[33m` (yellow), `\x1b[36m` (cyan), `\x1b[32m` (green), `\x1b[0m` (reset) are universally supported on VT100-compatible terminals; this is consistent with the design note at `src/lib.rs:43-44` and the spec at DESIGN.md "Interface / color output".
+
+---
+
+### Open
+
+**Finding 1 — `format_show_block(issue, use_color: bool)` is a boolean-trap argument; `cmd_show` and `cmd_list` each independently call `std::io::stdout().is_terminal()` (Dim 4 — Flag-argument antipattern; Dim 5 — TTY-detection duplication; Dim 11 — Future-self maintainability)**
+
+`src/lib.rs:526` — `fn format_show_block(issue: &Issue, use_color: bool) -> String`. Two call sites: `cmd_show` (`src/lib.rs:591-592`) and (transitively, via the same shape inside `cmd_list`) the per-row block at `src/lib.rs:835`. At each call site the boolean is derived inline:
+
+```rust
+let use_color = std::io::stdout().is_terminal();
+print!("{}", format_show_block(issue, use_color));
+```
+
+This pattern fails on three independent code-review dimensions:
+
+1. **Flag-argument antipattern (Dim 4).** The CLI-supplement SE check explicitly names this: `render(item, true)` vs. `render(item, false)` is two functions sharing one body, with the boolean controlling fundamentally bifurcated behavior (color vs. no-color is exactly the canonical example in the SE standard dimension list, line 36). `format_show_block(&issue, false)` at any call site reads as "show without color" — the reader has to look up the signature to learn what `false` means; a more idiomatic Rust shape is either `ColorMode::Auto | On | Off` enum, a `ShowFormatter` builder that captures the mode at construction, or two thin wrappers (`format_show_block_color`, `format_show_block_plain`). The unit tests already pass `false` at multiple call sites (`src/lib.rs:1336`, `:1354`) — they read as magic-constant noise rather than intent.
+
+2. **TTY-detection duplication (Dim 5).** `std::io::stdout().is_terminal()` is called once in `cmd_show` (line 591) and once in `cmd_list` (line 835). It is a global property of the process's stdout — it does not change between the two invocations within a single process run. The right architectural place for this detection is `main.rs`, where the result can be threaded into the command dispatch as a typed `ColorMode` value or stored at a process-singleton level. The current shape duplicates the syscall (cheap, but unnecessary) and forces every future command that emits color to re-derive the same boolean independently — a pattern the SA review explicitly calls out as "decisions that should be centralized in main.rs leaking into business logic."
+
+3. **Testability (Dim 11).** `format_show_block`'s unit tests (`multiline_description_show_format`, `show_label_column_right_padded_to_13`) pass `use_color: false` because there's no way to assert against TTY-true output in a non-TTY test environment. The function's color path is exercised only by manual TTY testing per TODO.md line 391. A `ColorMode::Off` enum variant or a builder with an explicit `.with_color(false)` method would make the test-side intent self-documenting; the `false` literal is opaque.
+
+**Proposed action (SE Round 2):** Refactor TTY detection out of `cmd_show` / `cmd_list` into `main.rs`. Introduce a `pub enum ColorMode { On, Off }` (or `Auto` if you anticipate a future `--no-color` / `NO_COLOR` env flag — Layer 7 spec doesn't require it, but the enum costs nothing extra). Thread `ColorMode` through `format_show_block` and the list-row helpers. Two-line change at each call site; widens the `cmd_show` / `cmd_list` signatures by one parameter (matched by the SA R13 F1 CreateArgs precedent — the same project preferred a struct over a long parameter list, so a `ListArgs { color: ColorMode, ... }` or a thin `format_show_block(&issue, ColorMode::Off)` is consistent).
+
+**Severity:** Medium. Idiomaticity / API design concern, not a correctness bug — every test passes today. But this is exactly the pattern SE Standard dimension 4 calls out as worth flagging in code review, and the file has 5 new top-level items added in one commit without addressing it. Holding as Open for Round 2 SE work.
+
+**Sycophancy check:** Was the boolean dismissed because "the function is small and the boolean is obvious in context"? Pushed back: the SE-standard line 36 specifically distinguishes "minor variation (`includeTimestamp: boolean`)" — acceptable — from "switches between fundamentally different code paths" — not acceptable. Color vs. no-color is the canonical example of the latter (the entire ANSI-emission code path is bypassed). Held.
+
+**Classification:** Open. SE Round 2 refactor candidate; not applied this round per Round 1 cold-batch surfacing rule.
+
+---
+
+**Finding 2 — `pad_after_color(colored, visible_chars, total_width)` exposes a `visible_chars` parameter that the caller must compute correctly; an off-by-one in either call site silently mis-aligns columns with no test catching it (Dim 3 — Naming and type precision / Dim 8 — Defensive coding, API misuse surface)**
+
+`src/lib.rs:91` — `fn pad_after_color(colored: &str, visible_chars: usize, total_width: usize) -> String`. Two call sites in `cmd_list` (lines 856, 859):
+
+```rust
+let status_cell = pad_after_color(&status_colored, issue.status.chars().count(), 11);
+...
+let priority_cell = pad_after_color(&priority_colored, issue.priority.chars().count(), 8);
+```
+
+The function correctly computes pad bytes from `visible_chars`, but the *contract* is that the caller has correctly counted the visible-width budget of the *bare* value that's now embedded inside `colored`. Three failure modes:
+
+1. **Caller passes the wrong source for `visible_chars`.** A future maintainer adding a `cmd_show` colored-cell call site could plausibly write `pad_after_color(&colored, colored.chars().count(), 8)` (counting the ANSI-wrapped string by mistake) and silently get the wrong pad amount. The function's doc comment warns about this ("`visible_chars` is the character count of the bare value (no ANSI codes)") but the type signature does not enforce it — `usize` is a `usize`, and the compiler accepts either source.
+2. **Future non-ASCII value introduces a count-vs-display-width gap.** Today all status / priority values are ASCII (`high`, `medium`, `low`, `open`, `in-progress`, `done`), so `chars().count()` equals visual column width. If a future spec amendment localizes these values (out of current spec scope, but the SE-supplement section on i18n flags this as a planned hazard) and a value contains a wide-character glyph or a zero-width joiner, `chars().count()` no longer equals the visible column width and the cell mis-aligns. The function name suggests width-awareness; the implementation is character-count-aware.
+3. **The API conflates two concepts.** A more idiomatic Rust shape passes the *bare value* + *the ansi prefix* + *the total width*, and the function internally computes `value.chars().count()`, wraps, and pads — eliminating the caller's bookkeeping. E.g. `fn render_padded_color_cell(bare: &str, ansi: Option<&str>, total_width: usize) -> String`. The current two-function split (`wrap_color` then `pad_after_color`) leaks the visible-width count from the wrap step to the pad step, requiring the caller to remember the bare value's length across two calls.
+
+**Proposed action (SE Round 2):** Collapse `wrap_color` + `pad_after_color` into a single `render_color_cell(bare: &str, ansi: Option<&str>, width: usize) -> String` that computes the visible width internally. The `wrap_color` shape is preserved for `format_show_block` (which doesn't pad — the value occupies whatever width it needs and the next field follows on a new line). Optionally introduce a `VisibleWidth(usize)` newtype if the i18n hazard becomes load-bearing; that's a Layer 8+ concern, not Layer 7.
+
+**Severity:** Medium. API design concern; today's two call sites both pass `issue.status.chars().count()` and `issue.priority.chars().count()` correctly, so no live bug. But this is exactly the SE-standard dim 3 "primitive obsession" pattern — a `usize` parameter that the caller could plausibly compute from the wrong source produces silent column drift, and no unit test exists for the padded-cell width function (the integration tests assert on stdout but only against the piped non-color path).
+
+**Sycophancy check:** Was this dismissed because "all call sites currently pass the right value"? Pushed back: the dim-3 standard explicitly names this as a "hole where two values can be confused" — the typing question is whether the API forces correctness, not whether the current callers happen to be correct. Held.
+
+**Classification:** Open. SE Round 2 refactor candidate.
+
+---
+
+**Finding 3 — Five new top-level items added to `src/lib.rs` (already 870+ lines pre-Layer 7) without addressing the four-round-Open `lib.rs` module-split carry-forward (SA R13 F2); the file is now even longer and harder to navigate (Dim 6 — Complexity; Dim 11 — Future-self; cross-domain SA)**
+
+The Phase 2b commit adds:
+- `const ANSI_RESET: &str` (`src/lib.rs:46`)
+- `fn priority_ansi` (lines 51-60)
+- `fn status_ansi` (lines 65-74)
+- `fn wrap_color` (lines 79-84)
+- `fn pad_after_color` (lines 91-97)
+
+…all at the crate-level top, with a single 20-line doc-comment block (`src/lib.rs:28-44`) introducing them as "Layer 7: TTY-detected color output." The R16 closure documented SA R13 F2 (`lib.rs` module split) as "Open / Deferred to pre-Layer-7 focused PR per SO R21." Layer 7 landed *without* that focused PR. The file is now ~30 lines longer for the color helpers + signature widening + per-row rewrite, and the color helpers are interleaved with data-model types (`Tracker`, `Issue` start at line 114), validation helpers (`validate_title` at 167), parsing helpers (`parse_status` at 430), and command handlers (`cmd_create`, `cmd_status`, `cmd_show`, `cmd_delete`, `cmd_list`). The color helpers are a natural module — `mod render` or `mod color` — but they were added to the same flat namespace.
+
+**Why this is real and not a quibble:** The R15 / R16 entries cite SE R11 F2 / SA R9 F1 / SA R11 F1 / SA R13 F2 as recurring `lib.rs` cohesion concerns. Each layer that adds new top-level items without addressing the split makes the eventual split harder (more renames, more visibility decisions, more import churn). Layer 7's color helpers are the cleanest candidate for a first split (they have no inbound dependencies on the data model and three outbound dependencies — `format_show_block`, the `cmd_list` per-row block, and the `ANSI_RESET` constant). Landing them inline normalizes "add to lib.rs top-level" as the project pattern.
+
+**Proposed action:** SA Round 2 should explicitly carry SA R13 F2 forward to a Layer 7 closure round (or formally re-defer to Layer 8 with rationale). SE Round 2 should not split unilaterally — the split is SA-domain authority. If SA Round 2 elects to do the split, the color helpers and `format_show_block` / list-row rendering are the natural first extraction. Flagged here so the SA cold session has a concrete Layer 7 trigger rather than another silent carry-forward.
+
+**Severity:** Medium. Architectural drift, not a correctness bug. The pattern of "defer the split, add to the file" has now repeated across Layers 5, 6, and 7.
+
+**Classification:** Open. Raised to SA (SE does not own module structure per CLOSURE-PROTOCOL.md §1).
+
+---
+
+### Dismissed
+
+**Finding 4 — `wrap_color` allocates `value.to_string()` even when `ansi: None`; a `Cow<str>` return would avoid the allocation on the piped path (Dim — Performance Engineer / Allocation patterns; deliberately scoped out)**
+
+`src/lib.rs:79-84` returns `String` unconditionally. On the piped path (`use_color == false`), both `priority_ansi` and `status_ansi` return `None`, and `wrap_color` falls through to `value.to_string()` — one `String` allocation per status cell and per priority cell, per issue, per `cmd_list` call. `cmd_list` then calls `pad_after_color` which conditionally allocates another `String` if the value is shorter than the column width. For a tracker with N issues, this is `4N` allocations on the hot list-render path that a `Cow<str>` shape could reduce to `0–2N` (the bare-value cases borrow from the issue field).
+
+**Classification:** Dismissed — premature optimization for this project. (a) The CLI-supplement notes "for simple local tools with no network dependency and trivial data volumes, scope down significantly or skip" the performance dimension. (b) `cmd_list` runs once per command invocation; a single-user portfolio CLI is bounded at tens-to-low-hundreds of issues; `4N` × `String::with_capacity(8 bytes)` is microseconds, dominated by the I/O round-trip on `tracker.json`. (c) Introducing `Cow<str>` propagates a lifetime parameter through `wrap_color` → `format_show_block` → the per-row format string, adding signature noise for an unmeasured gain. The right time to revisit is if a future N grows the data set significantly (DESIGN.md Out of Scope already excludes archiving, so the issue count is unbounded long-term — but until profile data shows an allocation hot spot, this is speculative). Logged for future-self if `cmd_list` ever becomes a measurable hot path.
+
+---
+
+**Finding 5 — `use std::io::IsTerminal;` is imported but the identifier never appears in source; could be more explicit (Dim — Style preference, not a defect)**
+
+The import is load-bearing (the trait must be in scope for the `.is_terminal()` method-call syntax on `Stdout` to resolve) but the identifier `IsTerminal` doesn't textually appear elsewhere in `lib.rs`. A reader could plausibly think the import is dead and remove it.
+
+**Classification:** Dismissed. (a) This is idiomatic Rust — trait imports for method-call syntax look "dead" but are not, and the compiler will error loudly if the trait is removed (the call fails to resolve). (b) Cargo + clippy do not warn about it because the trait is in fact used. (c) Adding a comment (`// Trait imported for method-call syntax: stdout().is_terminal()`) would clarify, but the call site is 130+ lines below the import and the cost-benefit is marginal. The Rust idiom is widely understood. Not a defect.
+
+---
+
+**Finding 6 — The bool gate at the top of `priority_ansi` / `status_ansi` could collapse to `use_color.then(|| match …).flatten()` idiomatic form (Dim — Idiomaticity, style preference)**
+
+`src/lib.rs:51-60` and `:65-74` both have the shape:
+```rust
+if !use_color {
+    return None;
+}
+match priority { … }
+```
+
+A more "rustic" form is `use_color.then(|| match priority { "high" => Some("..."), ... _ => None }).flatten()`, or — more cleanly — collapse to `if use_color { match … } else { None }` as a single expression.
+
+**Classification:** Dismissed. The current early-return form is **more** readable than the `.then(|| ...).flatten()` chain, which inverts the parsing order (the gate now sits between the closure return type and the match expression, making the reader work harder to identify the bypass case). The clippy lint `needless_bool` does not flag this pattern; nor does `redundant_closure`. The early-return is a common Rust idiom and aligns with project style elsewhere in `lib.rs` (e.g., `validate_title` line 169, `validate_description` line 507). No change.
+
+---
+
+**Finding 7 — Four String allocations per list row (`status_colored`, `status_cell`, `priority_colored`, `priority_cell`) instead of a write-into-a-buffer pattern (Dim — Performance, deliberately scoped out)**
+
+`cmd_list` (`src/lib.rs:855-859`) allocates a new `String` per cell per row. A `write!` into a pre-allocated `String` buffer or an `io::BufWriter<Stdout>` would reduce allocation pressure.
+
+**Classification:** Dismissed for the same reasons as Finding 4. CLI-supplement scope-down for trivial-volume tools applies. Logged for future-self if a profile shows allocation-pressure on the list path.
+
+---
+
+### Hallucinated
+
+*(none. Findings 1-3 each have a concrete reproducer / structural argument; Findings 4-7 are real-but-deliberately-scoped-out observations with stated rationale.)*
+
+---
+
+### Carry-over check (prior-finding closure status)
+
+- **SE R11 F2 / SA R9 F1 / SA R11 F1 / SA R13 F2** (`cmd_list` rendering extraction + `format_show_block` constants + `lib.rs` module split): **Still Open / Deferred.** Layer 7 *touches* the `cmd_list` rendering block (rewrites per-row format to use `status_cell` / `priority_cell`) but does not address the extraction. The header-row format string at line 838 (`"{:<4}  {:<11}  {:<8}  {:<20}  Title"`) and the data-row format string at line 861 are still divergent shape literals — the column-width drift surface SA R11 F1 named is unchanged. Finding 3 above re-flags the architectural carry-forward; SA cold session for Layer 7 should formally address.
+- **SE R13 F1** (rustdoc trim-normalization caller obligation on `issue_matches_filters`): Closed in SE R14. No regression at Layer 7 (predicate untouched).
+- **SE R15 F1 / F2** (description Cc defense + bare-`\r` rendering): Closed in SE R16 / commit `9b775f0`. No regression at Layer 7 (description validation untouched; `format_show_block`'s `\r\n` → `\n` normalization stays as defense-in-depth, ratified in DESIGN.md per R16).
+- **SO R22 / Option A persistent counter:** Closed in commit `8ed7db3` and verified at the start of this round. No regression at Layer 7 (`bump_next_id` / `Tracker::next_id` / `cmd_create` untouched).
+- **Doc-coverage on new public surface:** The Layer 7 additions (`ANSI_RESET`, `priority_ansi`, `status_ansi`, `wrap_color`, `pad_after_color`) are all `pub(crate)` / private (no `pub` modifier — verified by re-reading lines 46-97). The crate-level `#![deny(clippy::missing_errors_doc)]` does not apply (none return `Result`); `missing_docs` is not in the deny set so private items without `///` are not flagged. The four functions and `format_show_block`'s `use_color` parameter *are* documented (each has a `///` comment). No doc regression.
+
+---
+
+### Summary
+
+Cold-session SE Review 17 outcome on Layer 7 (Polish: `--help`, TTY color output, error specificity): **0 Resolved, 3 Open (boolean-trap on `format_show_block` + duplicated TTY detection; `pad_after_color` error-prone API; `lib.rs` keeps accumulating top-level items without the long-pending module split), 4 Dismissed-with-rationale, 0 Hallucinated.**
+
+**Top SE concerns:**
+1. **Finding 1 — boolean-trap + TTY-detection duplication.** `format_show_block(issue, use_color: bool)` is the canonical SE-standard-dim-4 antipattern (flag argument controlling fundamentally bifurcated behavior), and `std::io::stdout().is_terminal()` is called independently inside `cmd_show` and `cmd_list` rather than centralized in `main.rs`. The fix is structural: introduce a `ColorMode` enum, detect once in `main.rs`, thread through. Round-2 SE refactor.
+2. **Finding 2 — `pad_after_color(colored, visible_chars, total_width)` is an error-prone API.** The caller passes a `usize` that must equal the character count of the bare value (not of the ANSI-wrapped string the function actually receives). Today's two call sites happen to be correct, but the type system does not enforce correctness — a future maintainer who passes `colored.chars().count()` by mistake gets silent column drift, and no unit test covers the padded-cell width function. Refactor to `render_color_cell(bare, ansi, width)` that computes visible width internally.
+
+**Layer 7 correctness verdict:** Implementation is sound on every spec-internal path inspected this round.
+- `priority_ansi` / `status_ansi`: correct match on the two non-default values per priority/status; `None` for default-color values; gated by `use_color`. ✓
+- `wrap_color`: correctly emits prefix + value + `ANSI_RESET` on Some, returns bare value on None. ✓
+- `pad_after_color`: correctly computes pad bytes from `visible_chars`; handles the `visible_chars >= total_width` overflow case by returning the colored string unmodified (which is the spec-intended behavior — values exceeding column width are not truncated by the pad function; the only Layer 7-relevant overflow is unreachable since all priority / status values are bounded by the longest valid value `"in-progress"` at 11 chars, matching the column width). ✓
+- `format_show_block`: color wrap correctly applied only to status / priority values; label column uncolored per DESIGN.md "color applies to value text only" (line 250). ✓
+- `cmd_show` / `cmd_list` TTY detection: `is_terminal()` on `stdout()` correctly gates color emission; piped path (verified by `*_piped_has_no_ansi_codes` integration tests) emits no ANSI bytes. ✓
+- MSRV: `IsTerminal` is stable since 1.70; project pins 1.94.1 in `rust-toolchain.toml`. ✓
+- Trait import (`use std::io::IsTerminal`) is load-bearing for method-call syntax resolution. ✓
+
+The three Open findings are idiomaticity / API design / architectural concerns — they would not block correctness, but they are exactly the dimensions (Dim 4 flag-argument, Dim 3 type precision, Dim 6 complexity) that the SE-domain prompt instructs to push hardest on. "Code compiles and tests pass" is not a defense against any of them.
+
+**Maintainability verdict:** Layer 7 SE-domain at MVR for correctness; not at MVR for idiomaticity. The boolean-trap and the error-prone `pad_after_color` shape are both Round-2-SE-fixable in a focused refactor; the `lib.rs` module-split carry-forward (Finding 3) is the SA-domain decision that has now been deferred across four layers and is the largest source of architectural debt in the SE log.
+
+**Sycophancy check:** Three softenings considered and pushed back on:
+1. *Was Finding 1 softened because "the boolean is small and the call sites are obvious"?* — Pushed back by quoting SE-standard line 36 verbatim: color vs. no-color is the canonical fundamentally-bifurcated-behavior example. Held.
+2. *Was Finding 2 dismissed because "the current callers are correct"?* — Pushed back: dim 3 asks whether the type system forces correctness, not whether current callers happen to be correct. Held.
+3. *Was Finding 3 ("more stuff in lib.rs") deflected as "not SE-domain"?* — Partially: SA owns the module structure, so the finding is correctly classified as Raised-to-SA. But SE flagging the pattern is the right escalation; the fourth layer of carry-forward is itself a finding worth surfacing in the SE log rather than only in the SA log.
+
+**Coordination:**
+- **SA Review 14 (or equivalent Layer 7 SA round):** Finding 3 — `lib.rs` module split is now four layers Open. The Layer 7 color helpers (`priority_ansi`, `status_ansi`, `wrap_color`, `pad_after_color`, `ANSI_RESET`, plus `format_show_block` and the `cmd_list` per-row rendering) are the cleanest first-extraction candidate (no inbound deps on data model; tight internal cohesion). SA should formally close to Resolved (do the split) or to Deferred-with-explicit-Layer-N (preferably with the SO R21 deferral re-justified for Layer 7's expanded surface).
+- **QE Review 17:** SE-side test gap — no unit tests cover the four new helper functions (`priority_ansi`, `status_ansi`, `wrap_color`, `pad_after_color`). The integration tests `list_piped_has_no_ansi_codes` / `show_piped_has_no_ansi_codes` cover the `use_color == false` aggregate behavior but not the per-function unit contract. Suggested unit tests: `priority_ansi_returns_none_when_use_color_false`, `priority_ansi_returns_bold_red_for_high`, `priority_ansi_returns_yellow_for_medium`, `priority_ansi_returns_none_for_low_or_unknown`, `status_ansi_returns_none_when_use_color_false`, `status_ansi_returns_cyan_for_in_progress`, `status_ansi_returns_green_for_done`, `status_ansi_returns_none_for_open_or_unknown`, `wrap_color_returns_bare_value_on_none`, `wrap_color_wraps_with_prefix_and_reset_on_some`, `pad_after_color_pads_when_shorter_than_width`, `pad_after_color_returns_unchanged_when_at_or_over_width`. SE Round 2 (or QE if QE wants the test ownership) lands these in parallel with any refactor.
+- **UX Review:** Defer to UX cold session for color-rendering correctness in TTY (the spec's bold-red / yellow / cyan / green palette matches the DESIGN.md table; SE has verified the byte sequences but not the visual rendering — that's UX's manual checklist). No SE concern raised; just a note that UX should explicitly verify the priority="low" / status="open" default-color cases produce no ANSI bytes (the `wrap_color(None)` path), which the integration tests already cover indirectly.
+- **VDD-IAR Review 17:** Layer 7 Phase 2a → Phase 2b → manual closure cadence is intact (3 commits in order: 7b461aa Red Gate, a2b8062 implementation, 603c689 closure). No process concern from the SE lens. CHANGELOG entry at line 3 of CHANGELOG.md records Layer 7 implementation with the correct timestamp shape (`2026-05-11 22:00Z`).
+- **No DESIGN.md amendments required.** Spec is silent on whether color detection lives in `main.rs` vs. command handlers, and the "color applies to value text only" requirement is satisfied. SO not engaged this round.
+
+**Files modified this session:** `iterative-adversarial-refinement/SOFTWARE-ENGINEER-REVIEW.md` only (this entry). No `src/**/*.rs` changes (cold-batch surfacing — Round 1 does not apply fixes per CLOSURE-PROTOCOL.md §5 step 1). No test, DESIGN.md, TODO.md, or CHANGELOG changes.
+
+---
