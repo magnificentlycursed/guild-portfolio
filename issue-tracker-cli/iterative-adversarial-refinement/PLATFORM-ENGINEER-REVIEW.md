@@ -1178,3 +1178,6 @@ Layer 7 R3 is platform-clean on the four-gate cold-batch: 237/237 tests pass, cl
 
 **Files modified:** This log appended only. No source, workflow, hook, or manifest changes proposed or applied this session.
 
+
+
+**Round-3 finding closure — see [SO Review 26 ledger](SOLUTION-OWNER-REVIEW.md#review-26--2026-05-12-1500z--closure-ledger-closure-protocol-2c-reconciliation).** F1: Dismissed (`fbc8da6` DECISIONS.md entry; SO ratification of the prior PE R8 F3 dismissal; coverage tooling is ceremony at this single-developer-portfolio-CLI scale). F2: Dismissed (`fbc8da6` DECISIONS.md entry; out-of-tree director-side GitHub-settings task, not a working-tree defect).

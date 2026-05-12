@@ -1525,3 +1525,6 @@ Round **12** logged. Cold-session pass on the R3 change set produced **1 Open fi
 - [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md) — Pattern broadening: the R10/R11 "every stderr write site Cc-escapes" rule generalizes one further level — every site where a defense is conditional on env-var state must satisfy the contract independent of developer intent ("test seam" vs. "production"). The byte-level behavior, not the developer's labeling, is what binds the spec. Candidate for CLOSURE-PROTOCOL.md amendment.
 
 **Files modified:** Only this review log appended. No source, tests, or DESIGN.md changes per IAR domain authority boundaries (CLOSURE-PROTOCOL.md §1).
+
+
+**Round-3 finding closure — see [SO Review 26 ledger](SOLUTION-OWNER-REVIEW.md#review-26--2026-05-12-1500z--closure-ledger-closure-protocol-2c-reconciliation).** F1: Resolved (`ecec07f` SO R25 F2 DESIGN.md amendment — cross-domain duplicate of SA R17 F4 / UX R12 F1; same closing change).

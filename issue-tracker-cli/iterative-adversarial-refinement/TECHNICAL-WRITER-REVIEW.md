@@ -1275,3 +1275,6 @@ A contributor reading the source instead gets a thorough module map from `cargo 
 - Cross-domain: F1 also flags SA (R3 closed three SA-originating findings — SA may want to verify the CHANGELOG entry's SA-finding-closure citations); F2 overlaps with SA R16-equivalent (module-split documentation accuracy).
 
 **Files modified:** Only this log appended. Per the IAR brief, R3 is the surfacing pass; the CHANGELOG R3 entry / `lib.rs` `//!` refinement / commands.rs rustdoc-URL fix / portfolio + project README round-number flips / TODO.md manual-checklist additions all land in a follow-up (or at R4 / Layer 7 terminal close) if at all.
+
+
+**Round-3 finding closure — see [SO Review 26 ledger](SOLUTION-OWNER-REVIEW.md#review-26--2026-05-12-1500z--closure-ledger-closure-protocol-2c-reconciliation).** F1: Resolved (`e458fb9` Layer 7 R3 CHANGELOG entry). F2: Resolved (`e458fb9` `//!` rewrite distinguishing public-API from `pub(crate)` surface). F3: Resolved (`e458fb9` rustdoc `bare_urls` URL wrapped in angle brackets). F4: Resolved (`ecec07f` SO R25 F1 DECISIONS.md supersedure annotation). F5: Resolved (cross-domain duplicate of UX R12 F2; same closing change).

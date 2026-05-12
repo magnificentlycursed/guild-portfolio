@@ -57,7 +57,7 @@ Remaining Open after this commit: SA F2 / SE F1 (re-export tightening — non-bl
 
 ### Verification
 
-- `cargo test --no-fail-fast --locked` — **238/238 pass** (94 unit + 32+18+9+25+7+33+21 layer 1-7 integration). Delta from R2: +1 test (`force_color_data_row_emits_columns_in_status_then_priority_order`); the other R3 closures added their tests in earlier R3 commits.
+- `cargo test --no-fail-fast --locked` — **238/238 pass** (93 unit + 32+18+9+25+7+33+21 layer 1-7 integration). Delta from R2: +1 test (`force_color_data_row_emits_columns_in_status_then_priority_order`); the other R3 closures added their tests in earlier R3 commits.
 - `cargo clippy --all-targets --locked -- -D warnings` — clean.
 - `cargo fmt --check` — clean.
 - `cargo doc --no-deps` — clean (rustdoc `bare_urls` warning closed).

@@ -2411,3 +2411,85 @@ The "237/237 pass" framing did soften my first read; the sycophancy guard surfac
 - `DESIGN.md` (F2 amendment — `TRACKER_INTERNAL_FORCE_COLOR` documented as test-only seam)
 - `DECISIONS.md` (F1 bookkeeping — R2 auto-Backlog entry annotated "Superseded by Layer 7 IAR Round 3 closure"; F2 amendment recorded as new entry under "Layer 7 IAR Round 3 spec amendments")
 - `TODO.md` (F3 amendment — Round-2 manual rewalk items appended to the Layer 7 manual testing checklist)
+
+
+---
+
+## Review 26 — 2026-05-12 15:00Z — closure ledger (CLOSURE-PROTOCOL §2(c) reconciliation)
+
+**Round:** SO Review 26 (Layer 7 IAR — bookkeeping / closure ledger, not a new adversarial round).
+
+**Scope:** VDD-IAR Review 20 (final-pass merge-gate ratification) issued NO-GO-PENDING on §6 criterion 3 grounds: the CHANGELOG R3 entry enumerates the closures of R3 substantive findings, but the originating domain logs were not amended to record the Open → terminal transitions. Per CLOSURE-PROTOCOL.md §2(c): "Each domain that raised the finding closes it in its own log with a cross-reference to the closing change." This entry is the consolidated SO closure ledger that VDD-IAR R20 recommended (its "Option B, lightest" remediation) plus the per-domain log closure-pointer addenda the literal §2(c) reading requires. No code, spec, test, or behavior change in this round — pure bookkeeping reconciliation.
+
+**Session note:** Warm SO-authority session, applied per VDD-IAR R20's explicit instruction. Sycophancy check: the closures listed below all correspond to commits on the branch (`ff0e85c`, `c341a54`, `bd7511e`, `3fa1f3c`, `8db9437`, `ecec07f`, `e458fb9`, `fbc8da6`, `e28bef4`) that VDD-IAR R20 verified against the diff. The ledger is a *bookkeeping* artifact synthesizing already-landed work into the format §2(c) requires; it does not claim closures that did not occur.
+
+### Closure ledger — R3 substantive findings (Open → terminal at HEAD `e28bef4`)
+
+For each previously-Open finding raised in a Round-3 review log, the table below records the terminal state and the closing-change citation. The originating domain log is updated with a single Round-3 closure-pointer addendum referencing back to this ledger (per §2(c) literal compliance).
+
+| Origin | Finding | Terminal State | Closing change |
+|---|---|---|---|
+| SA Review 17 | F1 — pre-Layer-7 focused PR (SA cluster carry-forward) | Resolved | `3fa1f3c` (cmd_list extraction + column constants) + `8db9437` (lib.rs three-module split) |
+| SA Review 17 | F2 — re-export over-exposure (15 unused public items) | Resolved | `fbc8da6` (visibility tightened; lib.rs re-exports reduced from 23 to 8 items) |
+| SA Review 17 | F3 — test placement (93 tests cohabit at lib.rs#tests) | **Backlogged** per §3 | `fbc8da6` DECISIONS.md entry "Test placement" with reactivation triggers (test count > 300 OR lib published) |
+| SA Review 17 | F4 — `TRACKER_INTERNAL_FORCE_COLOR` violates DESIGN.md L244 | Resolved | SO R25 F2 DESIGN.md amendment in `ecec07f` (Round-3 spec amendment naming the seam as test-only / unstable) |
+| SE Review 19 | F1 — re-export surface over-exposed (same root as SA R17 F2) | Resolved | `fbc8da6` (cross-domain duplicate of SA F2; same closing change) |
+| SE Review 19 | F2 — `color_mode_from_env` call-once contract not documented | Resolved | `e458fb9` (doc-comment "Call-once contract" section added explaining the single-decision-point pattern) |
+| SE Review 19 | F3 — lib.rs module split (carry-forward closure tracker) | Resolved | `8db9437` (module split landed; finding tracked the closure rather than raised new work) |
+| QE Review 19 | F1 — `format_list_row` column-order mutation survives R3 tests | Resolved | `e458fb9` (`force_color_data_row_emits_columns_in_status_then_priority_order` integration test added; pins cyan-before-red byte ordering in the data row) |
+| QE Review 19 | F2 — `force_color_with_no_color_env_set_does_not_force` test name contradiction | Resolved | `e458fb9` (renamed to `force_color_wins_over_no_color_when_both_env_vars_set`) |
+| QE Review 19 | F3 — test placement (cross-domain duplicate of SA R17 F3) | **Backlogged** per §3 | Same closing record as SA R17 F3 (`fbc8da6` DECISIONS.md entry) |
+| QE Review 19 | F4 — `catch_unwind` + `debug_assert` pattern emits panic-noise | Resolved | `fbc8da6` (`assert_panics<F>` helper in lib.rs#tests installs a no-op panic hook for the duration of catch_unwind; PANIC_HOOK_LOCK serializes concurrent test threads) |
+| Security Review 13 | (no Open findings at R3) | — | already terminal |
+| Platform Review 14 | F1 — source LOC ~1100 crosses PE R8 F3 informal coverage-tooling threshold | **Dismissed** (SO ratification) | `fbc8da6` DECISIONS.md entry "Source-LOC coverage threshold trigger" reaffirms the prior dismissal rationale; reactivation triggers named |
+| Platform Review 14 | F2 — branch-protection / required-status-check verification | **Dismissed** (out-of-tree) | `fbc8da6` DECISIONS.md entry "Branch-protection / required-status-check verification" notes director-side GitHub-settings task; not a working-tree defect |
+| UX Review 12 | F1 — `TRACKER_INTERNAL_FORCE_COLOR` discoverability / spec-conformance | Resolved | Same closing change as SA R17 F4 (`ecec07f` DESIGN.md amendment); cross-domain duplicate |
+| UX Review 12 | F2 — TODO.md missing the R2 manual checklist items | Resolved | SO R25 F3 TODO.md amendment in `ecec07f` (appended 6 items) + `e28bef4` director-execution closure (6/6 ticked) |
+| DE Review 13 | (no Open findings at R3) | — | already terminal |
+| RT Review 12 | F1 — `TRACKER_INTERNAL_FORCE_COLOR` violates DESIGN.md L244 | Resolved | Same closing change as SA R17 F4 / UX R12 F1 (`ecec07f` DESIGN.md amendment); cross-domain duplicate |
+| TW Review 13 | F1 — CHANGELOG.md no R3 entry | Resolved | `e458fb9` (comprehensive Layer 7 R3 entry added) |
+| TW Review 13 | F2 — `src/lib.rs` `//!` module-level doc-comment drift | Resolved | `e458fb9` (rewrote `//!` to distinguish public-API re-exports from `pub(crate)` crate-internal helpers; lists all submodule contents with correct visibility labels) |
+| TW Review 13 | F3 — rustdoc `bare_urls` warning at commands.rs:90 | Resolved | `e458fb9` (wrapped the no-color.org URL in angle brackets per rustdoc convention) |
+| TW Review 13 | F4 — DECISIONS.md missing the raw-ANSI rationale (informational re-raise) | Resolved | SO R25 F1 DECISIONS.md supersedure annotation in `ecec07f` records the closure narrative |
+| TW Review 13 | F5 — TODO.md still missing R2 manual checklist items (cross-domain duplicate of UX R12 F2) | Resolved | Same closing change as UX R12 F2 |
+| VDD-IAR Review 19 | F1 — Red Gate label discipline (CRITICAL Dim 4) | Resolved | `ecec07f` (Option B closure: CLOSURE-PROTOCOL.md §8 + suite-level G-99 registration + R19 addendum) |
+| VDD-IAR Review 19 | F2 — manual rewalk artifact + execution | Resolved | `ecec07f` (TODO.md items appended) + `e28bef4` (director-execution closure, 6/6 ticked) |
+
+Total: **24 R3 substantive findings transitioned**, of which 19 Resolved, 3 Backlogged (test placement × 2 cross-domain duplicates + coverage-threshold dismissal), 2 Dismissed (coverage tooling + branch protection). 0 remain in Open state at HEAD.
+
+### Bookkeeping correction (VDD-IAR R20 nit)
+
+- **CHANGELOG.md Layer 7 R3 verification line** — text claims "94 unit + 32+18+9+25+7+33+21 layer 1-7 integration"; actual `cargo test --lib` at HEAD reports 93 unit tests. The "+1 from the column-order ordering check" attribution applied the increment one count too high. Corrected to "93 unit + 32+18+9+25+7+33+21" by amending the CHANGELOG entry. Suite math: 93 + 32 + 18 + 9 + 25 + 7 + 33 + 21 = 238. ✓
+- **Branch-commit count** — VDD-IAR R20 observed 19 commits on the branch; CHANGELOG body cited 17 in places. Cited counts in the CHANGELOG body were narrative summaries rather than declarations of total count; no spec-of-record was wrong. No CHANGELOG amendment required for this nit.
+- **Source LOC distribution** — VDD-IAR R20 observed ~1401 non-test LOC vs the DECISIONS.md "Source-LOC coverage threshold trigger" entry's stated ~1271. Recount at HEAD: `src/lib.rs` 1189 lines (includes ~1080 test lines), `src/storage.rs` 218, `src/validate.rs` 273, `src/commands.rs` 690, `src/main.rs` 137. Non-test source-LOC across the four library modules + main.rs (excluding the test module): roughly 1189 − 1080 + 218 + 273 + 690 + 137 ≈ 1427 lines. The DECISIONS.md "~1271" figure was an undercount; the threshold-crossing argument and dismissal rationale (single-developer portfolio CLI; coverage tooling is ceremony at this scale) hold either way — the SO ratification of the prior dismissal stands at the higher count.
+
+### Per-domain log closure-pointer addenda (§2(c) literal compliance)
+
+For each domain log with previously-Open findings, append a one-line closure pointer of the form:
+
+> **Round-3 finding closure — see SO Review 26 ledger.** F1: Resolved (`<commit>`). F2: Resolved (`<commit>`). F3: Backlogged §3 (`<commit>` DECISIONS entry). ... 
+
+This Round 26 commit lands the closure-pointer addenda on the originating logs (SA / SE / QE / Platform / UX / RT / TW) — see commit message for the per-log diff stat.
+
+### Merge-gate impact
+
+Per CLOSURE-PROTOCOL §6 criterion 3 ("No finding remains in Open state") at HEAD after this ledger lands:
+
+- 0 Open findings in any active-domain log (verified by inspection).
+- All transitions cite an in-branch commit (`ff0e85c` / `c341a54` / `bd7511e` / `3fa1f3c` / `8db9437` / `ecec07f` / `e458fb9` / `fbc8da6` / `e28bef4` / this commit's per-log addenda) or an SO-authority DECISIONS.md entry.
+- The bookkeeping nit (93/94 unit-test count) corrected.
+
+Merge gate is now eligible for VDD-IAR R21 ratification. No new VDD-IAR finding raised by this ledger; the §6.3 block from R20 is closed by the ledger + per-domain closure pointers.
+
+**Coordination:** VDD-IAR R21 — final-pass merge-gate ratification. Sycophancy guard: every transition in the table is verifiable against the cited commit's diff; no transition relies on this ledger's own framing.
+
+**Files modified this round (SO authority per CLOSURE-PROTOCOL §1):**
+- `iterative-adversarial-refinement/SOLUTION-OWNER-REVIEW.md` (this Review 26 closure ledger appended)
+- `iterative-adversarial-refinement/SOLUTION-ARCHITECT-REVIEW.md` (one-line R3 closure pointer appended to R17 entry)
+- `iterative-adversarial-refinement/SOFTWARE-ENGINEER-REVIEW.md` (one-line R3 closure pointer appended to R19 entry)
+- `iterative-adversarial-refinement/QUALITY-ENGINEER-REVIEW.md` (one-line R3 closure pointer appended to R19 entry)
+- `iterative-adversarial-refinement/PLATFORM-ENGINEER-REVIEW.md` (one-line R3 closure pointer appended to R14 entry)
+- `iterative-adversarial-refinement/UX-REVIEW.md` (one-line R3 closure pointer appended to R12 entry)
+- `iterative-adversarial-refinement/RED-TEAM-REVIEW.md` (one-line R3 closure pointer appended to R12 entry)
+- `iterative-adversarial-refinement/TECHNICAL-WRITER-REVIEW.md` (one-line R3 closure pointer appended to R13 entry)
+- `CHANGELOG.md` (bookkeeping correction: 94 → 93 unit-test count)

@@ -2573,3 +2573,127 @@ The 17 R3 test bodies in `c341a54` / `bd7511e` / `3fa1f3c` are now in-spec per t
 **Coordination:** Suite-level G-99 routes to the suite-development primer (`iterative-adversarial-refinement/prompts/suite-development.md`) custodian if a second project encounters the warm-finding-closure pattern. No new VDD-IAR finding raised by this addendum.
 
 **Files modified:** This log (addendum appended); `issue-tracker-cli/iterative-adversarial-refinement/CLOSURE-PROTOCOL.md` (§8 added, §7 preserved, Change history updated — VDD-IAR Alignment process-change authority per CLOSURE-PROTOCOL.md §1); `iterative-adversarial-refinement/GAP-ANALYSIS-LOG.md` (G-99 row appended); `iterative-adversarial-refinement/SUITE-REVIEW-INDEX.md` (Review 37 row prepended); `iterative-adversarial-refinement/review-log/2026-05-12-suite-review.md` (new session file with Review 37).
+
+---
+
+## Review 20 — 2026-05-12 14:30Z
+
+**Round:** VDD-IAR Alignment Review 20 (Layer 7 final-pass merge-gate ratification). Cold session per `prompts/review-session.md`. HEAD `e28bef4`. Did not author any of the closure work under review. Authority: own this log; may amend `CLOSURE-PROTOCOL.md` (§1). May not Defer or Dismiss process findings.
+
+**Scope:** Ratify (or refuse to ratify) the GO verdict implied by `e28bef4`'s commit body ("Closes the only remaining standing block on the Layer 7 merge gate. VDD-IAR R20 final-pass ratification is the natural next step"). 19-commit chain since `main` (the brief stated 17; actual `git log main..HEAD --oneline | wc -l` = 19, including `7b461aa` Red Gate and `a2b8062` implementation — bookkeeping discrepancy, not a defect; flagged for the durable record).
+
+**Pipeline gates verified at HEAD `e28bef4`:**
+- `cargo test --no-fail-fast --locked` — **238/238 pass** (93 unit + 32 + 18 + 9 + 25 + 7 + 33 + 21 integration). The CHANGELOG L42/L60 and `fbc8da6` commit body both claim **94 unit**; actual is **93**. Off-by-one bookkeeping error; total 238 is correct.
+- `cargo clippy --all-targets --locked -- -D warnings` — clean.
+- `cargo fmt --check` — clean.
+- `cargo audit` — 0 advisories (100 crate deps).
+
+**Evidence-chain integrity checks:**
+
+- **R17 F1 Option A.** Verified. `// retroactive Red Gate:` labels present at `src/lib.rs` L853/L874/L878/L880/L882. Survived the `8db9437` module split. ✓
+- **R19 F1 Option B.** Verified. CLOSURE-PROTOCOL.md §8 present at L136-231 with Change history entry at L238. Each of `c341a54` / `bd7511e` / `3fa1f3c` cites originating finding by domain + review + finding number in commit subject. Citation-to-scope match plausible per direct diff inspection. ✓
+- **§8 three-condition test applied to `c341a54` / `bd7511e` / `3fa1f3c`.** All three cite a previously-logged finding from a separate, earlier commit; tests are regression-scoped to the closure; bundling is genuinely required (refactor-introduces-symbol, debug_assert+assertion-fires test, helper-extraction+contract test). ✓
+- **Bold-redundancy claim.** Verified at `src/commands.rs:160-184`: `priority_ansi` returns `"\x1b[1;31m"` / `"\x1b[1;33m"`; `status_ansi` returns `"\x1b[1;36m"` / `"\x1b[1;32m"`. All four highlighted values are bold per the R2 amendment. ✓
+- **G-99 + Review 37.** Verified in `iterative-adversarial-refinement/GAP-ANALYSIS-LOG.md` L138, `SUITE-REVIEW-INDEX.md` L25, and `review-log/2026-05-12-suite-review.md`. Deferred-pending-natural-recurrence registration is defensible — symmetric application of the same "earned by recurrence" doctrine that the R19 addendum invoked to invoke Option B at the project scope. ✓
+- **Manual rewalk evidence.** TODO.md L378-383 = 6/6 ticked; original L369-375 = 7/7 ticked; combined 13/13. `e28bef4` commit body enumerates per-item observed behavior with specificity. ✓
+- **Source LOC.** Total non-test source ≈ 1401 LOC (lib.rs ~83 non-test + commands 690 + main 137 + storage 218 + validate 273). The `fbc8da6` commit body claims "1271 non-test LOC across four files" — that figure is ~10% low. Approximation, not a defect, but the durable record now corrects it.
+- **`pub` → `pub(crate)` tightening (`fbc8da6`).** Inspected: visibility-only changes plus a `use crate::validate::*;` in the test module to compensate for dropped re-exports, plus the `assert_panics` test helper. Zero observable runtime behavior change; cargo test count unchanged at 238. ✓
+
+### Findings
+
+#### Open
+
+**Finding 1 — Multiple R3 Open findings remain Open in the originating domain logs at HEAD; CLOSURE-PROTOCOL §6.3 ("No finding remains in Open state") is not satisfied (Dim 7 — feedback routing fidelity; Dim 3 — layer gate compliance).**
+
+CLOSURE-PROTOCOL §2 specifies the Open→Resolved transition requires "(c) the closure recorded in the log of the domain that raised the finding." `fbc8da6` and `e28bef4` together claim to close the residual R3 Opens, but neither commit touches any `*-REVIEW.md` log. `git show --name-only fbc8da6` lists `DECISIONS.md` + `src/*.rs` only; `git show --name-only e28bef4` lists `TODO.md` only.
+
+Per direct inspection of each R3 entry's terminal classification at HEAD:
+
+- **SA R17:** F2 (`pub` visibility leak), F3 (test placement), F4 (TRACKER_INTERNAL_FORCE_COLOR architectural soundness) — all classified **Open** in the SA log. The SA log itself ends at L1696 with merge-gate-impact verdict `NO-GO-PENDING-{Finding 4 disposition}`. No closure addendum in SA-REVIEW.md.
+- **SE R19:** F1, F2, F3 — all **Open** per L1975/L2005/L2023 in SE-REVIEW.md. No addendum.
+- **QE R19:** F1, F2 (Open/Medium), F3 (test placement), F4 (catch_unwind pattern) — all **Open** per L1921/L1935/L1953/L1969. No addendum.
+- **TW R13:** F1 (CHANGELOG R3 entry), F2 (`//!` hub), F3 (rustdoc URL), F4 (READMEs), F5 (TODO.md manual checklist) — all **Open** per L1094-L1164. No addendum.
+- **UX R12:** F1 (TRACKER_INTERNAL_FORCE_COLOR disclosure), F2 (TODO.md re-walk) — **Open** per L1250/L1287. No addendum.
+- **RT R12:** F1 (TRACKER_INTERNAL_FORCE_COLOR contract drift) — **Open** per L1483. No addendum.
+- **Platform R14:** F1 (coverage threshold), F2 (branch protection) — **Open** per L1124/L1134. No addendum.
+
+The CHANGELOG L42 "IAR Round 3 closure tracking" table itself enumerates remaining Opens at L56: "Remaining Open after this commit: SA F2 / SE F1 ... SA F3 / QE F3 ... QE F4 ... Platform F1 ... Platform F2." The CHANGELOG candidly admits Opens persist.
+
+Two distinct sub-defects:
+
+1. **Transition not recorded per §2(c).** Even granting that `fbc8da6`'s code changes substantively resolve SA F2 + SE F1 + QE F4, the originating domain logs were not updated. A future cold-context reviewer reading SA-REVIEW.md will see SA R17 F2 as Open. The closure protocol's "the closing domain notes... in its Coordination section" (§4) and "the closure recorded in the log of the domain that raised the finding" (§2) were not honored.
+2. **Findings explicitly admitted as Open in the merge-gate artifact itself.** The CHANGELOG R3 entry at L56 names five findings as remaining Open after the commit. Per §6.3, "No finding remains in Open state. Every finding is in one of the terminal states." Backlog is a terminal state; Open is not. Several of these candidly "non-blocking" findings (Platform F1, Platform F2, QE F3, SA F3) could plausibly be Backlogged by SO with explicit rationale (§3 + §6 director-judgment clause), but the Backlog transitions have not been applied.
+
+Sycophancy guard 1: "the substantive work is done; the log housekeeping is a paperwork question, not a real gate." Inverse: the entire purpose of CLOSURE-PROTOCOL.md (introduced at VDD-IAR R10 specifically to solve "findings closing by director judgment at merge time without an explicit protocol") is to make the paperwork load-bearing. Treating §6.3 as a paperwork question is exactly the failure mode the protocol exists to prevent.
+
+Sycophancy guard 2: "the CHANGELOG table at L56 acknowledges the Opens and labels them non-blocking; that is the SO ratification." Inverse: SO authority over Backlog transitions per §2 requires an explicit Backlog disposition in the SO log (R25) with re-raise conditions. R25's "Open: 0 at round close" claim (L2385) is contradicted by the CHANGELOG's L56 enumeration of remaining Opens — these were not Backlogged by SO at R25; they were left Open with a CHANGELOG annotation.
+
+Sycophancy guard 3: "this is the final-pass review — soften it so the layer can close." Inverse: VDD-IAR Alignment cannot Defer or Dismiss process findings. The R19 reviewer applied the same rigor against itself (R19 body declined Option B, R19 addendum reversed under earned-by-recurrence; R19 NO-GO-PENDING was honest). A R20 GO that papers over five-to-seven remaining Open findings would reproduce the exact sycophancy failure mode the R19 reviewer guarded against.
+
+Sycophancy guard 4: "the off-by-one test count (93 vs 94 unit) and the LOC bookkeeping (1271 vs ~1401) are nits; the layer is in good shape." Agreed these are nits in isolation; they are flagged for the durable record but are not blocking. The blocking finding is the unrecorded transitions.
+
+**Classification:** **Open.** Remediation paths (any one closes):
+
+- **Option A (per-log addendum pass).** Each originating domain (SA, SE, QE, TW, UX, RT, Platform) appends a brief "R3 closure addendum" to its R3 entry transitioning each Open to its terminal state (Resolved by `fbc8da6` for SA F2 / SE F1 / QE F4; Resolved by SO inline at R25 for SA F4 / RT F1 / UX F1; Resolved by SO TODO.md edit for UX F2 / TW F5; Resolved by `e28bef4` for the manual-rewalk; Backlogged with §3 rationale for SA F3 / QE F3 / Platform F1 / Platform F2). Cost: 7-10 short appends, no code change. This is the closure shape the §2 protocol prescribes.
+- **Option B (single SO ratification ledger).** SO authors an R26 entry that explicitly Backlogs the non-merge-blocking residuals (Platform F1, Platform F2, SA F3 / QE F3) and records Resolved transitions for the substantively-fixed items, with cross-links to each originating domain log. Single artifact; transitions still recorded.
+- **Option C (CLOSURE-PROTOCOL.md amendment to weaken §6.3).** Codify "non-blocking Open findings explicitly enumerated in the CHANGELOG closure entry under an SO-authored rationale paragraph satisfy §6.3." Not recommended this round — the R19 doctrine (one deviation is not a pattern) applies; if a second project encounters this shape, the amendment becomes appropriate.
+
+#### Resolved
+
+**Finding 2 — R17 F1 + R19 F1 evidence chain integrity is sound.** Verified above. Recording as Resolved-this-round (the R19 addendum's evidence chain holds under cold-session inspection).
+
+#### Dismissed
+
+**Finding 3 — Suite-level G-99 Deferred status.** Symmetric application of the project-level "earned by recurrence" doctrine to the suite scope is defensible. The recurrence trigger (a second project encountering the warm-finding-closure pattern) is the right gate for amending `prompts/implementation.md` directly. No process finding.
+
+**Finding 4 — Bookkeeping nits (19 commits vs 17 stated; 93 vs 94 unit tests; ~1401 vs 1271 non-test LOC).** Flagged for the durable record. Not blocking; not amenable to merge-gate disposition.
+
+#### Hallucinated
+
+*(none — F1 is the load-bearing finding; the sycophancy guards above represent dismissal attempts I tried and rejected.)*
+
+### Merge-gate audit per CLOSURE-PROTOCOL.md §6
+
+| # | Criterion | Verdict | Evidence |
+|---|---|---|---|
+| 6.1 | Every active IAR domain has at least one cold-session pass | **Met** | All 11 domains (SO 25, SA 17, QE 19, SE 19, Security 13, Platform 14, UX 12, DE 13, RT 12, TW 13, VDD-IAR 19) have R3 entries timestamped 2026-05-12 12:00Z |
+| 6.2 | Cold-batch + warm-resolution + SO-adjudication + VDD-IAR-closure cadence ran at least once | **Met** | Layer 7 ran R1, R2, R3 — three full cycles |
+| 6.3 | No finding remains in Open state | **NOT MET** | Per F1 above: SA F2/F3/F4, SE F1/F2/F3, QE F1-F4, TW F1-F5, UX F1/F2, RT F1, Platform F1/F2 are all Open at HEAD in their originating logs. CHANGELOG L56 explicitly enumerates remaining Opens. |
+| 6.4 | CHANGELOG accurately describes what changed | **Met** (modulo bookkeeping nit on unit-test count 94 vs 93) | CHANGELOG L1-69 covers each R3 commit |
+| 6.5 | Cargo build / test / clippy / fmt green with `--locked` | **Met** | 238/238, clippy clean, fmt clean, audit 0 |
+| 6.6 | Any DESIGN.md changes have explicit SO authorship | **Met** | SO R23 covers DESIGN.md R2 amendments; SO R25 F2 covers the R3 `TRACKER_INTERNAL_FORCE_COLOR` amendment. DESIGN.md last modified by SO at R25 (per CHANGELOG L25). |
+| 6.7 | PROCESS.md retrospective at least started | **Met** | Layer 6 and Layer 7 both have director-authored prose at PROCESS.md L451-465 and L530-548 (one Layer-7 placeholder at L546 unfilled, but substantive prose at L534/L540/L548 satisfies "at least started"; §6.7 itself says empty placeholders are PA-blocking, not merge-blocking) |
+
+**6 of 7 Met. §6.3 NOT MET.** Per CLOSURE-PROTOCOL.md §6 plain text, all criteria must hold; §6 grants the director final-adjudicator authority on (3) — but that adjudication has not been recorded (an SO R26 or director DECISIONS.md entry Backlogging the residuals is the §6 director-judgment-explicit path).
+
+### Merge-gate verdict
+
+**NO-GO-PENDING-{R3-OPEN-FINDINGS-TERMINAL-CLOSURE}.**
+
+Specifically required before merge:
+
+- [ ] **F1 disposition:** any of Option A (per-log addenda), Option B (SO R26 ratification ledger), or Option C (CLOSURE-PROTOCOL.md §6.3 amendment). Lightest path = Option B: a single SO R26 entry that records Resolved transitions for the substantively-fixed items and Backlogs the residuals with re-raise conditions.
+- [ ] **Final VDD-IAR closure round (Review 21)** verifies the F1 terminal-state transitions and re-checks §6 gate items at the (new) HEAD.
+
+The substantive work is genuinely sound. The pipeline is green. The retroactive-Red-Gate labels survived the module split. §8 codifies a legitimate methodological refinement. The 13/13 manual checklist is executed and recorded with specificity. The closure chain itself is honest. **What is missing is the §2(c) recording — the closing transition in the originating domain log.** That is one-to-two commits of work, no code change required.
+
+### Coordination
+
+- **SO R26 (recommended):** Author the single-ledger closure entry per F1 Option B above. Faster than 7 per-log addenda; consolidates the Backlog dispositions for Platform F1 / F2, SA F3 / QE F3.
+- **Director / SO judgment on §6.3:** the CHANGELOG L56 framing ("non-blocking, may close in a follow-up commit") signals the director's working interpretation that these Opens are merge-compatible. The protocol's §6 final-adjudicator clause permits this — but the adjudication has to be explicit in an SO log, not implicit in a CHANGELOG note.
+- **Per-domain logs (alternative path):** if Option B is declined, each of SA / SE / QE / TW / UX / RT / Platform appends a brief R3 closure addendum transitioning its findings.
+- **G-99 / Review 37:** no further action; Deferred-pending-natural-recurrence is the right disposition.
+
+### Summary
+
+Pipeline green (238/238, clippy clean, fmt clean, audit 0). 11 domains cold-batched at R3. R17 F1 retroactive-Red-Gate labels survived the module split intact. R19 F1 Option B closure (CLOSURE-PROTOCOL.md §8 warm-finding-closure carve-out) is correctly applied to the three R3 closure commits — each cites its originating finding by domain + review + finding number; each test addition is regression-scoped; bundling is genuinely required for each. G-99 + Review 37 + SUITE-REVIEW-INDEX row landed. Manual rewalk 13/13 ticked with director-authored per-item observation prose at `e28bef4`. DESIGN.md `TRACKER_INTERNAL_FORCE_COLOR` test-seam amendment landed under SO authority at R25.
+
+**One blocking process finding raised:** the closing transitions for the R3-surfaced Open findings in SA / SE / QE / TW / UX / RT / Platform were not recorded in the originating domain logs (CLOSURE-PROTOCOL §2(c)). The CHANGELOG R3 entry candidly enumerates the residuals at L56 ("Remaining Open after this commit:..."). Five-to-seven domain logs still show their R3 findings as Open at HEAD. Per §6.3 plain text, this blocks the merge gate.
+
+Bookkeeping nits flagged for the durable record (not blocking): 19 commits since main (brief stated 17); 93 unit tests (CHANGELOG + `fbc8da6` commit body state 94); ~1401 non-test LOC (commit body states 1271). Total test count 238 is correct.
+
+**Sycophancy-guard discharge.** The throughput at R3 close (5 deferred items closed + 1 CRITICAL meta closed + 4 new substantive findings closed inline within ~24h of R2 close) is exactly the result that lulls ratification reviewers. The R19 reviewer named this and held the line on F1+F2 Open verdict. R20 holds the line on F1 (transitions-not-recorded) per the same discipline. The work itself is good. The protocol around it is incomplete.
+
+**Final verdict: NO-GO-PENDING-{R3-OPEN-FINDINGS-TERMINAL-CLOSURE}.** A single SO R26 ledger entry (or seven brief per-log addenda) closes the gate; a R21 final-pass verifies. No code change required.
+
+**Files modified:** Only this log appended.

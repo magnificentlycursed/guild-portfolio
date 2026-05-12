@@ -2108,3 +2108,6 @@ Cold-session SE Review 19 outcome on Layer 7 IAR Round 3 (clippy hook + ASCII de
 - **No DESIGN.md amendments required.** Spec is silent on `lib.rs` API surface visibility (correctly — it's an implementation concern). No SO engagement this round.
 
 **Files modified this session:** `iterative-adversarial-refinement/SOFTWARE-ENGINEER-REVIEW.md` only (this entry). No `src/**/*.rs` changes (cold-batch surfacing — Round 3 does not apply fixes per CLOSURE-PROTOCOL.md §5 step 1). No DESIGN.md / TODO.md / CHANGELOG changes.
+
+
+**Round-3 finding closure — see [SO Review 26 ledger](SOLUTION-OWNER-REVIEW.md#review-26--2026-05-12-1500z--closure-ledger-closure-protocol-2c-reconciliation).** F1: Resolved (`fbc8da6` — same closing change as SA R17 F2 cross-domain duplicate). F2: Resolved (`e458fb9` doc-comment Call-once contract section). F3: Resolved (`8db9437` lib.rs module split; finding tracked the SA carry-forward closure).

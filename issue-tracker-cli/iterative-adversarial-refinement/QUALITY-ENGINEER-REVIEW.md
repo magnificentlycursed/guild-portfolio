@@ -2027,3 +2027,6 @@ The test (`src/lib.rs:513-523`) asserts `out.len() == 1` and `out[0].status == "
 - **Platform Engineer (next):** Finding 7 (Dismissed) is a forward-looking PE consideration if the hook trigger needs widening; not actionable now.
 
 **Files modified:** This log appended only. No source / test changes proposed for R3 closure beyond the proposed-action sections above; classification owner (Solution Owner) decides whether R3 Open findings merit a Round 4 or are deferred to a later polish layer.
+
+
+**Round-3 finding closure — see [SO Review 26 ledger](SOLUTION-OWNER-REVIEW.md#review-26--2026-05-12-1500z--closure-ledger-closure-protocol-2c-reconciliation).** F1: Resolved (`e458fb9` `force_color_data_row_emits_columns_in_status_then_priority_order` integration test). F2: Resolved (`e458fb9` test rename to `force_color_wins_over_no_color_when_both_env_vars_set`). F3: Backlogged §3 (cross-domain duplicate of SA R17 F3; same closing record). F4: Resolved (`fbc8da6` `assert_panics<F>` helper with no-op panic-hook + `PANIC_HOOK_LOCK` serialization).

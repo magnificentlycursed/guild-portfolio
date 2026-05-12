@@ -1351,3 +1351,6 @@ The two Open findings are both about the *artifact surface around* the R3 work, 
 - **No findings raised to Security, Platform, or SA for code-only action this round.**
 
 **Files modified:** This log appended only.
+
+
+**Round-3 finding closure — see [SO Review 26 ledger](SOLUTION-OWNER-REVIEW.md#review-26--2026-05-12-1500z--closure-ledger-closure-protocol-2c-reconciliation).** F1: Resolved (`ecec07f` SO R25 F2 DESIGN.md amendment naming `TRACKER_INTERNAL_FORCE_COLOR` as test-only / unstable). F2: Resolved (`ecec07f` SO R25 F3 TODO.md inline edit + `e28bef4` director-execution closure 6/6 ticked).
