@@ -843,3 +843,341 @@ Layer 6 R2 is platform-clean. Cargo.lock crate count unchanged. No CI changes, n
 
 **Coordination:** None required. **Merge-gate verdict (PE):** No platform concerns blocking Layer 6 merge.
 
+---
+
+## Review 12 — 2026-05-11 22:30Z
+
+**Round:** Platform Engineer Review 12 (Layer 7 Round 1)
+**Scope:** Layer 7 (polish — `--help`, TTY color, error specificity) full-suite IAR pass on branch `issue-tracker-cli-polish` at commits `7b461aa` (Red Gate), `a2b8062` (implementation), `603c689` (manual closure). Primary lens: Layer 7 platform impact, with explicit pressure on MSRV declaration since `a2b8062` introduces `std::io::IsTerminal` (stable in Rust 1.70). Secondary: regression check on every gate landed in Reviews 1–11. Cold session.
+
+### Regression check (verified this session)
+
+- `rust-toolchain.toml` still pins `channel = "1.94.1"` with `clippy` + `rustfmt` components (line 2-3) — unchanged.
+- `Cargo.lock` package count = 100 — byte-identical to `main`. Layer 7 added zero crates (verified by `git diff main..HEAD -- issue-tracker-cli/Cargo.toml issue-tracker-cli/Cargo.lock` returning empty).
+- `Cargo.toml` still carries `license = "MIT OR Apache-2.0"` (line 7), `description`, `readme`, `repository`, `publish = false`.
+- `deny.toml` still has all four required sections — `[advisories]`, `[licenses]`, `[bans]`, `[sources]` — plus `[graph]` and `[output]`. Unmodified.
+- CI workflow (`.github/workflows/<project>.yml`) still SHA-pins `actions/checkout` (v4), `dtolnay/rust-toolchain`, `Swatinem/rust-cache` (v2); all four cargo invocations carry `--locked`; `cargo install cargo-audit --locked --version 0.22.1` and `cargo install cargo-deny --locked --version 0.19.4` remain version-pinned.
+- `.pre-commit-config.yaml`'s `cargo-fmt-check` hook still uses `cd "$(git rev-parse --show-toplevel)/<project>"` (R8 F8 fix preserved).
+- `.pre-commit-hooks/check-no-home-paths.sh` reads `$HOME` at runtime; no hardcoded username.
+
+### Pipeline gate verification (Layer 7 commits, local)
+
+- `cargo test --no-fail-fast --locked` — **195/195 pass** (62 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4 + 7 layer5 + 33 layer6 + 9 layer7 + 0 doc-tests). Layer 7 adds 9 new tests in `tests/layer7.rs` (Red Gate Phase 2a).
+- `cargo clippy --all-targets --locked -- -D warnings` — clean (no output beyond `Finished` line).
+- `cargo fmt --check` — clean (exit 0).
+- `cargo audit` — clean: 1069 advisories loaded; 100 crate dependencies scanned; **0 advisories**.
+
+**Tests:** 195/195 pass; clippy clean; fmt clean; audit 0 advisories.
+
+### Layer 7 platform-touched-files inventory
+
+`git log main..HEAD --stat` shows three commits touching exactly four paths:
+- `issue-tracker-cli/CHANGELOG.md` (doc; layer summary entry)
+- `issue-tracker-cli/TODO.md` (doc; checklist ticking)
+- `issue-tracker-cli/src/lib.rs` (+111 -8; color helpers, `IsTerminal` usage)
+- `issue-tracker-cli/tests/layer7.rs` (+193 net new)
+
+**Zero** platform-owned files (per CLOSURE-PROTOCOL §1: `deny.toml`, `.github/workflows/*`, `.pre-commit-config.yaml`, `.pre-commit-hooks/*`) touched. **Zero** dependency-graph mutations (`Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml` byte-identical to `main`). The "raw ANSI vs. `anstyle`" decision (documented at `src/lib.rs` color-helper preamble, lines 40-44) holds dependency surface flat — applauded as deliberate dep-minimization, not flagged.
+
+### Dimension-by-dimension audit
+
+- **Dim 1 (pipeline completeness):** CI runs build, test, clippy, fmt-check, cargo-audit, cargo-deny. No coverage gate (carry-forward F3 from R8, SO-Backlogged R14). Layer 7 does not move source LOC past the ~1000-LOC re-raise threshold; F3 stays Backlogged.
+- **Dim 2 (gate enforcement):** CI is `on: pull_request` to `main` + `on: push: branches: ['**']` — every gate runs on every push to the polish branch. Branch protection enforcement (whether all six steps are *required*-to-merge on `main`) is a repository setting not visible from the working tree; the workflow file alone cannot confirm required-status-check configuration. **Flagging as F1 (open question).**
+- **Dim 3 (deterministic install):** `--locked` on every cargo invocation. Unchanged.
+- **Dim 4 (environment pinning):** Toolchain pinned via `rust-toolchain.toml` (1.94.1) + workflow `toolchain: 1.94.1` (explicit match). Tool versions pinned. Unchanged.
+- **Dim 5 (cache correctness):** `Swatinem/rust-cache@<sha>` keys on `Cargo.lock` by default; Layer 7 did not touch `Cargo.lock`, so cache reuses cleanly. Unchanged.
+- **Dim 6 (coverage):** Not enforced. Carry-forward.
+- **Dim 7 (action pinning):** All three actions SHA-pinned with tag comment. Refresh date noted in workflow (master at 2026-05-04). Acceptable.
+- **Dim 8 (artifact hygiene):** `/target` ignored; `/tracker.json` ignored. Confirmed.
+- **Dim 9 (left-shift opportunities):** Layer 7's manual TTY-color verification step (TODO.md L368-374, "manual only") is a documented inability to automate TTY-positive rendering in a subprocess test. The piped-negative branch is automated by `list_piped_has_no_ansi_codes` and `show_piped_has_no_ansi_codes`. The remaining manual step (TTY-positive color rendering) could in principle be left-shifted via a pseudo-TTY harness (`ptyprocess`, `expect`-style); the cost is meaningful for a single-user portfolio CLI and not pursued. Noted, not flagged.
+- **Dim 10 (pre-commit hooks):** Hook set unchanged. Layer 7 touched `*.rs` files; `cargo-fmt-check` hook ran during the `a2b8062` commit (per session brief — "fired during the Phase 2a commit"). Fire-event is the hook working as intended, not a regression. **However**, hook coverage of the new Layer 7 surface deserves a closer look — see F2 below.
+- **Dim 11 (security scanning):** `cargo audit` + `cargo deny` both in CI. Confirmed.
+- **Dim 12 (secrets):** No secrets in code; spec forbids the category (DESIGN.md Constraints "No network"). Unchanged.
+- **Dim 22-33 (observability):** Single-user local CLI; no logging surface, no metrics, no alerting, no health checks. Inapplicable by deployment context per the standard PE review framing. Verified `src/lib.rs` and `src/main.rs` for accidental observability additions: error path emits `Error: <msg>` to stderr and exits 1 (Dim 27 error-surfacing); no `eprintln!` swallowed-error pattern; no log crates added. Inapplicability is genuine, not rationalized.
+
+### Pressure point: MSRV declaration
+
+The session brief explicitly directs pressure on `Cargo.toml`'s missing `rust-version` field. `a2b8062` introduces `std::io::IsTerminal` at `src/lib.rs:25` and uses `stdout().is_terminal()` for the TTY-detection branch. `IsTerminal` has been stable in `std::io` since **Rust 1.70.0** (released 2023-06-01). The project's `rust-toolchain.toml` pins `1.94.1`, so the local + CI build is fine; but `Cargo.toml` has **no `[package].rust-version` declaration**. The relevance:
+
+1. `rust-toolchain.toml` controls the *toolchain* used when this checkout is built. `rust-version` declares the *minimum supported Rust version* in package metadata — it is checked by `cargo` (since 1.56) and is the canonical answer to "what Rust version does this crate require?" for any consumer (including downstream tooling that reads `Cargo.toml` directly, e.g. cargo-msrv, cargo-info, dependabot's compat hints, distro packagers).
+2. The package is `publish = false`, which mitigates the crates.io-consumer risk (no published metadata to misalign). But the field is still the spec contract for "what is this crate's MSRV?" — and the repository ships a `Cargo.toml` that asserts no minimum at all, even after a commit that demonstrably raises the floor to 1.70.
+3. Searching `iterative-adversarial-refinement/` for prior `rust-version` / MSRV discussion: SE Review log L1341 / L1461 and QE Review log L1180 reference "MSRV is satisfied" / "(stable since Rust 1.82, present in this MSRV per `Cargo.toml`)" — that QE phrasing is **factually wrong**: `Cargo.toml` declares no MSRV. The QE reviewer inferred MSRV from `rust-toolchain.toml`. The PE log itself has no prior raise of `rust-version` absence — this is the **first PE-domain raise**, despite the floor having moved across multiple layers.
+
+This is a real Platform finding, not a stylistic preference. **F2 below.**
+
+### Pressure point: pre-commit hook coverage of the new surface
+
+`.pre-commit-config.yaml` runs four hooks: `detect-private-key`, `no-commit-to-branch` (blocks direct commits to `main`), `no-home-dir-paths` (custom), `review-log-anonymization` (custom), and `cargo-fmt-check` (custom; `files: ^<project>/.*\.rs$`).
+
+Layer 7's new code in `src/lib.rs` includes raw ANSI escape literals (`\x1b[1;31m`, `\x1b[33m`, etc.) as `&'static str` constants. These are not credentials, not PII, not home-dir paths, not absolute paths — none of the hook patterns match them, correctly. The cargo-fmt-check hook ran and presumably passed (file is fmt-clean per local verification).
+
+The `no-commit-to-branch` hook is configured `args: ['--branch', 'main']`; the polish branch is not `main`, so commits to the branch are permitted — working as designed. No hook bypass observed in the three commit messages (no `--no-verify`, no `[skipped]` markers).
+
+One genuine question: is there a hook covering `cargo clippy` or `cargo test` so that CI is not the first stop where a clippy-warning regression in `*.rs` shows up? Currently only `cargo fmt --check` runs pre-commit. **F3 below — left-shift opportunity.**
+
+### Pressure point: CI YAML coverage of the new layer7.rs
+
+`cargo test --all-targets --locked` (workflow line 48) discovers test binaries via Cargo's `tests/*.rs` convention; `tests/layer7.rs` is picked up automatically with no workflow edit needed. Locally verified: `cargo test` ran 9 layer7 tests as a separate binary, alongside layer1-layer6. CI coverage of the new tests is **complete and automatic** — no finding.
+
+### Pressure point: no new deps + cargo-deny posture
+
+Layer 7 added zero deps (verified above). `cargo-deny` re-runs in CI against the unchanged `Cargo.lock`. Advisory DB is fetched on each run (`db-path = "~/.cargo/advisory-db"`; `db-urls = ["https://github.com/rustsec/advisory-db"]` in `deny.toml` L23-24). **Rolling baseline accepted by design** — fetching the latest advisory DB is the right posture for a tracker that sits on a developer machine and gets re-run sporadically; pinning a stale baseline would mask freshly-disclosed CVEs. Trade-off: a sudden advisory landing in `rustsec/advisory-db` between commits can fail an otherwise-clean CI run. Acceptable for a portfolio project; would be re-evaluated for any application that needs CI determinism guarantees across long windows. **Not a finding.**
+
+### Open
+
+#### F1 — Branch-protection / required-status-check verification is outside the working tree
+
+`gate enforcement` (Dim 2) requires that all CI gates be required-to-merge to `main`. The workflow YAML lists six gates (build, test, clippy, fmt, audit, deny) but **the workflow file alone cannot confirm whether GitHub's branch-protection rules mark these as required checks**. If only some gates are required, a flaky run on a non-required gate can be merged around; if branch protection is absent entirely, a direct push to `main` could bypass all of them (mitigated by the `no-commit-to-branch` pre-commit hook on the local machine, but not by CI).
+
+**Evidence:** workflow file shows the gates exist; no artifact in this checkout demonstrates required-status-check configuration on the `main` branch.
+
+**Recommendation:** Confirm (via `gh api repos/<owner>/<repo>/branches/main/protection` or repository Settings → Branches) that all six CI steps are marked required-status-checks for merge to `main`. If not, configure them. If branch protection is not enabled at all, enable it with `Require status checks` + `Require pull request before merging` + `Restrict who can push to matching branches`.
+
+**Classification:** Open. Requires action outside the working tree.
+
+#### F2 — `Cargo.toml` declares no `rust-version` / MSRV; floor raised to 1.70 this layer
+
+`a2b8062` adopts `std::io::IsTerminal` (stable since Rust 1.70.0), raising the package's effective minimum Rust version to 1.70. `Cargo.toml` (verified L1-32) has no `[package].rust-version` key. The de-facto MSRV is now ≥ 1.70, but the manifest does not record it.
+
+**Why this matters even though `publish = false`:**
+
+- The QE log already contains the incorrect inference "(stable since Rust 1.82, present in this MSRV per `Cargo.toml`)" — a reviewer reading `Cargo.toml` for MSRV would find nothing, and the misinference propagated.
+- `cargo` itself uses `rust-version` to provide actionable errors when a consumer's toolchain is too old. Without it, a future contributor on Rust 1.69 would see an opaque "`is_terminal` not found in `std::io`" rather than "this crate requires Rust 1.70+".
+- The field is metadata, not enforcement — adding it is one line. The cost is zero; the documentation value is real.
+
+**Recommendation:** add `rust-version = "1.70"` (the actual floor introduced by this layer's `IsTerminal` usage) to `[package]` in `Cargo.toml`. Alternative: `rust-version = "1.94"` to match `rust-toolchain.toml` if the project's intent is "build with the pinned toolchain only" — but that conflates "toolchain pin for reproducibility" with "minimum supported Rust", which are different concepts. The 1.70 value is the correct semantic for "minimum required to compile".
+
+**Prior raise check:** searched `iterative-adversarial-refinement/PLATFORM-ENGINEER-REVIEW.md` and `**/CHANGELOG.md` for `rust-version` / `msrv` / `IsTerminal`; no prior PE raise. This is genuinely a new floor introduced by Layer 7, not a re-raise.
+
+**Classification:** Open. Single-line fix; PE-domain authority (`Cargo.toml` "Platform Engineer (CI metadata)" per CLOSURE-PROTOCOL §1, though `[package]` metadata is ambiguous between SE and SO authority for license-class fields). Defensible for PE to apply in a Round-2 closure pass per session-brief authority statement; will note coordination with SE/SO before applying if Round-2 fires.
+
+#### F3 — Pre-commit gate covers fmt but not clippy or test; CI is the first stop for either
+
+`.pre-commit-config.yaml` currently runs `cargo fmt --check` on `*.rs` changes (registered as the `cargo-fmt-check` hook) but **does not run `cargo clippy` or `cargo test`** locally. A developer can land a commit that fails clippy or breaks a test, and CI is the first signal — which round-trips through GitHub Actions queueing time.
+
+**Left-shift framing:** the standard PE Dim 9 lens. The cargo-fmt-check hook fires per-commit and is reportedly fast (per session brief: "fired during the Phase 2a commit"); a `cargo clippy --all-targets --locked -- -D warnings` hook would catch the same regressions clippy catches in CI, locally, in a few seconds on cached state. `cargo test --locked` is more expensive (subprocess tests + 195 cases) and may not be worth a pre-commit gate; clippy is the higher-value addition.
+
+**Counter-argument considered:** pre-commit overhead has UX cost; a 5-10s clippy run per commit may discourage small commits or get bypassed with `--no-verify`. The current four-hook config is intentionally minimal. Reasonable to leave as-is for a single-user portfolio project; would be reconsidered for any project with multi-contributor onboarding cost.
+
+**Recommendation:** Consider adding a `cargo-clippy-check` hook mirroring the `cargo-fmt-check` shape (same `cd "$(git rev-parse --show-toplevel)/<project>"` form, `files: ^<project>/.*\.rs$`, `entry: bash -c '... && cargo clippy --all-targets --locked -- -D warnings'`). If declined, document the decline rationale in PROCESS.md or CLOSURE-PROTOCOL so a future PE review does not re-raise.
+
+**Classification:** Open. Left-shift opportunity; defer-or-implement decision is PE-authority + director judgment.
+
+### Resolved
+
+*(none — no fixes applied this session)*
+
+### Deferred
+
+*(none — F1/F2/F3 are Open pending Round-2 action or director decision)*
+
+### Dismissed
+
+- **"Raw ANSI vs. `anstyle` dependency"** — considered as a finding (supply-chain hygiene: a vetted color crate is more robust than hand-rolled escapes). Dismissed: the six ANSI sequences in use (`\x1b[1;31m`, `\x1b[33m`, `\x1b[36m`, `\x1b[32m`, `\x1b[0m`) are VT100-universal; the target environment is "developer terminal on macOS / Linux" per DESIGN.md; `anstyle` would add ~3 transitive crates and zero functional benefit for this surface; the project's dependency-minimization posture is explicit (`src/lib.rs` color-helper preamble L40-44). Working as designed; dep-minimization is itself the platform-relevant decision.
+- **"Rolling `cargo audit` advisory-db baseline"** — considered as a finding (CI determinism: a freshly-published advisory between two commits can fail a clean tree). Dismissed: for a portfolio CLI with sporadic re-runs, rolling-baseline is the correct posture (a stale baseline would mask new CVEs in transitive deps); the trade-off is documented above. Acceptable.
+- **"No Windows / macOS CI leg"** — considered, dismissed for the same reason as R10's identical self-test: `ubuntu-latest`-only is the SO-adjudicated portfolio scope per R9 / R10 / R14 carry-forward. Layer 7's TTY-detection code uses cross-platform `std::io::IsTerminal` (returns `false` for piped on every platform); no Windows-specific code path added.
+
+### Hallucinated
+
+*(none — no findings retracted as adversary-invented)*
+
+### Summary
+
+Layer 7 is functionally platform-clean on the four-gate cold-batch: 195/195 tests pass, clippy clean, fmt clean, audit 0 advisories. **Three Open findings** surface real platform gaps that prior reviews did not raise:
+
+- **F1** (branch-protection enforcement outside the working tree) is the strongest substantive finding — the workflow exists, but whether all six gates are required-status-checks for merge to `main` is a repository-setting question that cannot be answered from the checkout. If branch protection is misconfigured, every prior PE review's "merge-gate verdict: no platform concerns" is conditional on a control that has never been verified.
+- **F2** (missing `rust-version` MSRV declaration) is a genuine new gap introduced by Layer 7's `IsTerminal` adoption. The QE log's incorrect "stable since Rust 1.82, present in this MSRV per `Cargo.toml`" inference demonstrates that the absence already misled one reviewer. One-line fix; PE authority over `Cargo.toml` CI metadata.
+- **F3** (clippy not in pre-commit hooks) is a defensible-either-way left-shift opportunity; raising as Open rather than Dismissed because the session brief explicitly pressed on hook coverage and the answer "fmt is covered, clippy and test are CI-only" is a real-but-acceptable gap that warrants explicit adjudication rather than silent acceptance.
+
+The "no new deps + raw ANSI" choice is applauded as deliberate dependency minimization, not flagged. CI YAML coverage of `tests/layer7.rs` is automatic via the `--all-targets` flag; no finding there. `cargo deny` rolling-baseline posture is correct for this project's scope; no finding.
+
+**Sycophancy-check self-audit:** the session brief warned that "all four gates pass + no new deps" can soften the reviewer. I pressed on MSRV (F2), hook coverage (F3), and branch protection (F1) precisely because those are the dimensions that a green-pipeline-pass + clean-diff state most easily rationalizes away. F2 in particular is a finding that would be invisible to a reviewer who reads `rust-toolchain.toml` and stops there — the manifest is the canonical answer to "MSRV?" and the manifest is silent. That silence is the finding.
+
+**Cross-domain coordination flags:**
+
+- **QE** — the SE/QE log inference "stable since Rust 1.82, present in this MSRV per `Cargo.toml`" should be corrected after F2 lands; the inference was MSRV-from-`rust-toolchain.toml`, not from `Cargo.toml`. QE log L1180 cited specifically.
+- **SO** — F2's `rust-version` value (1.70 vs. 1.94) is partially a scope question (what MSRV does this project commit to supporting?); raising to SO for the value, while PE applies the field. If the SO call is "no MSRV commitment, this is `publish = false`", F2 closes with that rationale documented. PE owns the file; SO owns the policy.
+- **SE** — F3 (pre-commit clippy hook) overlaps `src/**` authority because the hook would block SE commits that fail clippy. SE concurrence appropriate before adding.
+- **VDD-IAR Alignment** — F1's "verify branch protection" task lives outside the working tree, which is the same shape as VDD-IAR Review 10 F1 (authority-record violation invisible until process review). Recommend VDD-IAR's next pass include a "branch protection configuration matches CI workflow gate set" check.
+
+**Carry-forward state:** R8 F3 (coverage in CI) remains Backlogged by SO R14 — Layer 7 added 111 net source lines (+103 if you discount the inline doc comments); source LOC remains under the ~1000-LOC re-raise threshold. R8 F7 (CI secret scanning) remains Dismissed by SO R14 — Layer 7 introduced no credential surface. Neither carry-forward Open is reactivated.
+
+**Coordination:** F1 outside-tree verification → SO + VDD-IAR Alignment. F2 `rust-version` value choice → SO; field application → PE. F3 clippy pre-commit hook → SE concurrence before PE applies. No new IAR domain proposed.
+
+**Merge-gate verdict (PE, Layer 7 R1):** Three Open findings; none block functional merge, but F1 (branch protection) and F2 (`rust-version`) warrant Round-2 closure action before the Layer 7 merge per CLOSURE-PROTOCOL §6 criterion 3 ("No finding remains in Open state"). F3 may close via Round-2 implementation or via SO/director rationale documenting decline.
+
+---
+
+## Review 13 — 2026-05-12 00:00Z
+
+**Round:** PE Review 13 (Layer 7 IAR Round 2 closure pass). Warm verification per CLOSURE-PROTOCOL.md §5; not a new adversarial round.
+
+**Scope:** Verify R12 Open findings closed by commit `09b1905`. Inputs: `Cargo.toml` (now declares `rust-version = "1.82"`); local pipeline gate runs.
+
+### Round-1 finding closures
+
+- **F1 — Branch-protection / required-status-check verification is outside the working tree:** **Dismissed.** The GitHub repository configuration is not part of the source tree; the workflow file declaring six gates and the local pre-commit hooks are the working-tree artifacts. Verification of which gates are required-to-merge on `main` is a director-level GitHub-settings task. Recorded as a process-pattern observation for VDD-IAR R18's "tree-external verification" coordination flag (suggested CLOSURE-PROTOCOL.md amendment: add a checklist item to require director-verification of branch-protection settings before each layer merge — out of scope for this round).
+- **F2 — `Cargo.toml` declares no `rust-version` / MSRV; floor raised to 1.70 this layer:** **Resolved by `09b1905`.** `Cargo.toml` now declares `rust-version = "1.82"`. The actual MSRV is governed by usage: the codebase uses `Option::is_none_or` (stable Rust 1.82), and the `clippy::incompatible_msrv` lint correctly flagged 1.70 as insufficient when SE attempted that value first. The declared 1.82 matches actual usage. The pinned toolchain (`rust-toolchain.toml`) remains 1.94.1 for local development consistency; the `rust-version` manifest field is the redistribution / cargo-install-from-source MSRV declaration.
+- **F3 — Pre-commit gate covers fmt but not clippy or test; CI is the first stop for either:** **Deferred.** SE concurrence recorded in SE R18 coordination; the clippy pre-commit hook would block SE commits that fail clippy and is a small ergonomic gain. The hook addition is a focused pre-commit-config commit deferred to a future PE-domain round (or a Layer-8 polish pass if one occurs). Cost-benefit not high enough to schedule mid-Layer-7 closure.
+
+### Pipeline gate verification (Layer 7 HEAD `09b1905`)
+
+- `cargo test --no-fail-fast --locked` — **220/220 pass.**
+- `cargo clippy --all-targets --locked -- -D warnings` — clean (after the rust-version=1.82 bump unblocked `is_none_or`).
+- `cargo fmt --check` — clean.
+- `cargo audit` — **0 advisories** (100 crate dependencies scanned, 1069 advisories loaded).
+
+### New findings
+
+*(none — closure pass.)*
+
+### Summary
+
+F2 (MSRV) Resolved cleanly via the manifest declaration; F1 (branch protection) Dismissed as out-of-tree; F3 (pre-commit clippy hook) Deferred to a future focused commit. All four pipeline gates pass at HEAD. The QE R17 carry-forward note about an incorrect MSRV inference is now closed by the explicit `rust-version` value.
+
+**Coordination:** SE R18 — concurrence on `rust-version = "1.82"` matching `Option::is_none_or` usage; SO R24 — MSRV value choice ratified (no scope debate); VDD-IAR R18 — pattern note on tree-external verification (informational).
+
+**Files modified:** This log appended only. The `Cargo.toml` rust-version edit landed in `09b1905` under PE authority per CLOSURE-PROTOCOL.md §1.
+
+---
+
+## Review 14 — 2026-05-12 12:00Z
+
+**Round:** PE Review 14 (Layer 7 IAR Round 3 cold pass).
+
+**Scope:** Five-commit R3 change set on the polish branch — `ff0e85c` (cargo-clippy pre-commit hook, R12 F3 closure), `c341a54` (render_cell ASCII debug_assert, QE R17 F5 closure), `bd7511e` (FORCE_COLOR test seam, QE R17 F1 closure), `3fa1f3c` (cmd_list rendering extraction + column constants, SA R11 F1 / R13 F2 closure), `8db9437` (three-module split storage/validate/commands, SA R13 F1 Trigger B closure). Primary lens: verify the new clippy pre-commit hook satisfies the PE R12 F3 contract; secondary lens: regression-check that the three-module split did not perturb any existing platform gate (CI workflow, Cargo.lock, MSRV declaration, hook coverage). Cold session.
+
+### Pipeline gate verification (HEAD `8db9437`, local)
+
+- `cargo test --no-fail-fast --locked` — **237/237 pass** (93 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4 + 7 layer5 + 33 layer6 + 20 layer7 + 0 doc-tests). Layer-7 binary test count rose to 20 with the R1/R2 additions; module split preserved every test.
+- `cargo clippy --all-targets --locked -- -D warnings` — clean (no output beyond `Finished` line).
+- `cargo fmt --check` — clean (exit 0).
+- `cargo audit` — clean: 1069 advisories loaded; 100 crate dependencies scanned; **0 advisories**.
+
+**Tests:** 237/237 pass; clippy clean; fmt clean; audit 0 advisories.
+
+### Regression check (R3-specific)
+
+- `git diff b853a81..HEAD --stat -- .github/` returns empty — **no CI YAML changes in R3.** Per session-brief item 8, confirmed.
+- `git diff b853a81..HEAD --stat -- issue-tracker-cli/Cargo.toml issue-tracker-cli/Cargo.lock issue-tracker-cli/rust-toolchain.toml` returns empty — **zero dependency-graph mutations.** `rust-version = "1.82"` unchanged from R12 F2 closure; `rust-toolchain.toml` still `1.94.1`; `Cargo.lock` byte-identical. Per session-brief items 3 and 4, confirmed.
+- `Cargo.toml` `[lib]` and `[[bin]]` table arrangement unchanged; no per-module manifest plumbing required for the three-module split (Cargo discovers submodules from `src/lib.rs` `mod` declarations). Verified.
+- Workflow `paths:` filter is `issue-tracker-cli/**` (lines 7-8 and 12-13); the three new `src/*.rs` paths are covered automatically. `cargo test --all-targets` and `cargo clippy --all-targets` likewise walk the crate graph rather than enumerate paths; no workflow edit was required for the new modules. Per session-brief item 5, confirmed — no hard-coded `src/lib.rs` path anywhere in `.github/workflows/issue-tracker-cli.yml`.
+
+### Pressure point: cargo-clippy-check pre-commit hook (R12 F3 closure verification)
+
+Inspected `.pre-commit-config.yaml` lines 38-50. The new `cargo-clippy-check` hook:
+
+- Uses `cd "$(git rev-parse --show-toplevel)/issue-tracker-cli"` — matches the `cargo-fmt-check` shape (R8 F8 / Platform R8 F8 lineage). Sub-directory-invocation-safe. **Pass.**
+- `pass_filenames: false` — clippy operates against the workspace, not individual files. **Pass.**
+- `files: ^issue-tracker-cli/.*\.rs$` — fires only when Rust source changes (skips docs/log-only commits). **Pass.**
+- Invocation `cargo clippy --all-targets --locked -- -D warnings` — byte-for-byte match with workflow line 50. **Pass.**
+- Comment block cites "Platform Engineer Review 12 Finding 3 closure" + "SE Review 18 concurrence recorded" — the authority chain is documented in the file itself. **Pass.**
+
+Empirically verified the hook fires on `*.rs` changes via `pre-commit run --files issue-tracker-cli/src/commands.rs --hook-stage commit`: detect-private-key Passed; no-commit-to-branch Passed; block local home directory paths Passed; review-log anonymization Skipped (no files match); cargo fmt Passed; **cargo clippy Passed**. The hook is wired correctly and runs on every R3 `*.rs` commit (`c341a54`, `bd7511e`, `3fa1f3c`, `8db9437`).
+
+R12 F3 closes cleanly. The "Deferred to a future focused commit" classification in R13 was honored with a focused single-purpose commit (`ff0e85c`: `.pre-commit-config.yaml` +14 lines, zero source changes).
+
+### Pressure point: pre-commit hook coverage of the three new `*.rs` files
+
+The hook set covering `src/storage.rs`, `src/validate.rs`, `src/commands.rs`:
+
+- `block local home directory paths` (`pass_filenames: true`, `types: [text]`) — fires on every staged text file; each new `.rs` file is text. Per-file `grep -qF -- "$HOME"` is the check. Empirically verified above on `src/commands.rs`. **Pass.**
+- `cargo-fmt-check` (`files: ^issue-tracker-cli/.*\.rs$`, `pass_filenames: false`) — regex matches all three new paths (tested locally). **Pass.**
+- `cargo-clippy-check` (same regex shape) — **Pass.**
+- `review-log anonymization` — by design does not match `src/**`, only IAR review-log markdown. Correct exclusion. **Pass.**
+
+Per session-brief item 6, hook coverage of the new files is complete.
+
+### Pressure point: did the new hook fire on subsequent R3 commits?
+
+The R3 commit chain after `ff0e85c` is: `c341a54`, `bd7511e`, `3fa1f3c`, `8db9437`. All four touch `*.rs` files (verified via `git show --stat` per commit: `src/lib.rs` in three of them, plus `tests/layer7.rs` in `bd7511e` and the new `src/{storage,validate,commands}.rs` in `8db9437`). The `cargo-clippy-check` `files: ^issue-tracker-cli/.*\.rs$` filter matches every touched path. The commits landed, and `cargo clippy --all-targets --locked -- -D warnings` is clean at HEAD — which is exactly the post-condition the hook enforces. Indirect but sufficient evidence the hook fired on each of the four follow-on commits without blocking them. Per session-brief item 1's final sub-question, confirmed.
+
+### Pressure point: MSRV consistency across the split
+
+`Cargo.toml` line 5: `rust-version = "1.82"` (unchanged from R12 F2 closure in `09b1905`). The new modules `storage.rs`, `validate.rs`, `commands.rs` do not introduce any `std`/syntax usage post-1.82 — verified by `cargo clippy --all-targets --locked -- -D warnings` passing under the declared MSRV with the `clippy::incompatible_msrv` lint active (this lint is what flagged the 1.70 value in R12 F2 closure, so a regression would surface). **Pass.**
+
+`rust-toolchain.toml` still pins `channel = "1.94.1"`; the spread between toolchain pin (1.94.1) and manifest MSRV (1.82) is intentional and consistent with the R13 closure log's framing ("the pinned toolchain remains 1.94.1 for local development consistency; the `rust-version` manifest field is the redistribution / cargo-install-from-source MSRV declaration"). No new inconsistency introduced.
+
+### Pressure point: module-split blast radius on Cargo.lock
+
+Per session-brief item 4: pure code reorganization should not touch `Cargo.lock`. `git diff b853a81..HEAD --stat -- issue-tracker-cli/Cargo.lock` empty; verified. No phantom dependency added by the split. Re-exports in `lib.rs` (`pub use crate::storage::*`) are zero-cost at the dependency graph layer. **Pass.**
+
+### Dimension-by-dimension audit (delta from R12)
+
+- **Dim 1 (pipeline completeness):** Unchanged — six gates in CI (build, test, clippy, fmt, audit, deny). Coverage still not enforced; R8 F3 remains Backlogged per SO R14. Layer 7 R3 brought source LOC well past the 1000-line threshold (storage+validate+commands sum to ~1100 lines, plus the residual lib.rs hub), but the threshold was for re-raising the coverage finding, not auto-resolving it; SO authority retains the call. **Not a new finding** (re-raise still requires SO ratification); flagging informationally — see F1 below.
+- **Dim 2 (gate enforcement):** Branch-protection verification remains out-of-tree (R12 F1 Dismissed, R13 confirmed). Carry-forward — see F2 below.
+- **Dim 3-8:** Unchanged from R12/R13 verification.
+- **Dim 9 (left-shift):** R12 F3 now closed by the cargo-clippy-check hook. The remaining gap — `cargo test` not in pre-commit — was explicitly considered and declined in R12 F3's analysis ("`cargo test --locked` is more expensive ... may not be worth a pre-commit gate"). The decline rationale is recorded in R12 lines 958-960. Not re-raised.
+- **Dim 10 (pre-commit hooks):** Hook set expanded by one (cargo-clippy-check). All five hooks verified above. The `no-commit-to-branch` hook continues to block direct commits to `main`; the polish branch remains writeable.
+- **Dim 11-33:** Unchanged from R12/R13.
+
+### Open
+
+#### F1 — Coverage threshold not enforced in CI; source LOC now ~1100 lines post-split (informational re-raise)
+
+**Status:** Informational re-raise. R8 F3 was Backlogged by SO R14 with the rationale that source LOC sat under a ~1000-line threshold. The three-module split (`storage.rs` ~200 LOC + `validate.rs` ~250 LOC + `commands.rs` ~660 LOC, plus the residual lib.rs ~50 LOC of module glue + ~1080 LOC of tests) crosses that informal threshold for the first time. PE-domain authority to re-raise; SO-domain authority to ratify or dismiss.
+
+**Evidence:** `wc -l issue-tracker-cli/src/storage.rs issue-tracker-cli/src/validate.rs issue-tracker-cli/src/commands.rs` totals ~1100 source lines (excluding lib.rs hub). CI workflow `.github/workflows/issue-tracker-cli.yml` runs no coverage step; `cargo tarpaulin` / `cargo llvm-cov` not invoked.
+
+**Recommendation:** Raise to SO R-next for ratification. Either confirm Backlog with the new LOC value documented, or schedule a coverage-instrumentation commit. PE neutral on the call; the cost-benefit is genuinely director judgment for a single-user portfolio CLI.
+
+**Classification:** Open (re-raise pending SO ratification per CLOSURE-PROTOCOL §3). Not a fresh finding; not a hallucination either — the threshold-trip is real and warrants explicit re-adjudication rather than silent acceptance.
+
+#### F2 — Branch-protection verification carry-forward (R12 F1, R13 dismissal, R14 re-flag per session-brief item 7)
+
+**Status:** Informational carry-forward. R12 F1 (whether all six CI gates are required-status-checks for merge to `main`) was Dismissed in R13 as out-of-tree. The session brief item 7 directs an explicit re-flag this round.
+
+**Evidence:** No artifact in the checkout proves the GitHub branch-protection configuration matches the workflow's six-gate surface. The pre-commit `no-commit-to-branch` hook blocks direct commits to `main` *locally*; the GitHub-side enforcement (required reviews, required status checks, restrict pushes) is invisible from the working tree.
+
+**Recommendation:** Director or repo-admin runs `gh api repos/<owner>/<repo>/branches/main/protection --jq '.required_status_checks.contexts'` and confirms the six contexts (Build, Test, Clippy, Format check, Dependency audit, cargo deny check) are present. If absent, configure them. Documentation of the verification belongs in a director-maintained operational note (out of any in-tree audit log).
+
+**Classification:** Open — carry-forward, re-flagged per session-brief authority. Not a regression; remains genuinely outside the working tree. VDD-IAR Alignment coordination flag re-issued for the "tree-external verification" pattern noted in R13.
+
+### Resolved
+
+*(none — closure events from R12 F3 already landed in `ff0e85c`; R3 itself is the implementation round, not a closure round. The verification this session confirms the closure is valid; the resolution itself was logged in R13 as Deferred-to-future-commit and is now retired.)*
+
+### Deferred
+
+*(none — F1 and F2 are Open re-raises, not deferrals; no new R3-introduced finding requires future scheduling.)*
+
+### Dismissed
+
+- **"Module split should have a `pub use` audit to verify no symbol was accidentally privatized or accidentally exposed"** — considered as a finding (the three-module split is API-surface-sensitive; an accidental visibility change would not necessarily break the build but could break downstream usage). Dismissed: this is SA-domain territory (SA R13 F1 Trigger B closure), not PE; verified via the platform-relevant check that `cargo build --release --locked` and the integration test suite (which uses unqualified `tracker::*` paths) both pass under the new module layout. The platform contract holds. SA-domain audit of the `pub use` re-export list is logged in the SA review.
+- **"New `*.rs` files should each have a module-level `//!` doc comment to support `cargo doc`"** — considered, dismissed: this is Technical Writer / `rustdoc` coverage territory per the Rust supplement, not PE. Flagging to TW for next pass rather than logging as a PE finding.
+- **"cargo-clippy-check hook should also cover `Cargo.toml` since `[lints]` table changes could change clippy output"** — considered, dismissed: the current `files: ^issue-tracker-cli/.*\.rs$` regex skips `Cargo.toml`; a `[lints]` table edit would not trigger the hook. However: the project has no `[lints]` table (verified `grep -n '\[lints' Cargo.toml` returns nothing), and the clippy deny set is currently passed via the CLI invocation rather than the manifest. The hook would not benefit from broader file coverage absent a `[lints]` table. If a future change introduces `[lints.clippy]`, broaden the regex to `^issue-tracker-cli/.*\.(rs|toml)$`. Acceptable as-is.
+
+### Hallucinated
+
+*(none — every finding considered above was either substantiated (F1, F2), or had a specific articulated reason for dismissal. No adversary-invented complaints retracted.)*
+
+### Summary
+
+Layer 7 R3 is platform-clean on the four-gate cold-batch: 237/237 tests pass, clippy clean, fmt clean, audit 0 advisories. The PE R12 F3 closure (cargo-clippy-check hook) is verified wired correctly — sub-directory-safe `cd` pattern, `pass_filenames: false`, correct file regex, byte-identical invocation to CI, fires empirically on `*.rs` files, no false-positive on docs-only commits. The three-module split (`8db9437`) is platform-neutral: zero `Cargo.lock` churn, zero workflow edits required, MSRV declaration unchanged at 1.82.
+
+**Two Open findings** surface from R3, both informational re-raises rather than fresh R3-introduced defects:
+
+- **F1** (coverage threshold not enforced; source LOC now ~1100 lines crossing R8 F3's informal threshold) — PE re-raises to SO for ratification per CLOSURE-PROTOCOL §3. Director judgment; PE neutral.
+- **F2** (branch-protection verification carry-forward) — re-flagged per session-brief item 7. Genuinely outside the working tree; no in-checkout artifact can answer it.
+
+**Sycophancy-check self-audit:** the session brief warned that "all four gates pass + new clippy hook works" is the kind of result that softens reviewers. I pressed on three angles: (1) does the hook *actually* fire correctly on subsequent commits (verified empirically via `pre-commit run` and indirectly via the clean clippy state at HEAD across four follow-on `*.rs`-touching commits); (2) did the module split introduce hidden dependency-graph or MSRV mutations (no — `Cargo.lock`, `Cargo.toml`, `rust-toolchain.toml` all byte-identical); (3) is the hook regex correctly scoped to the new files (yes, all three `src/{storage,validate,commands}.rs` paths match `^issue-tracker-cli/.*\.rs$`). The R3 result is genuinely a clean pass on the R3-specific lens; the only Open findings are the two carry-forward re-raises (coverage threshold, branch protection) that exist independent of the R3 change set.
+
+**Cross-domain coordination flags:**
+
+- **SO** — F1 re-raise: coverage threshold ratification (Backlog or schedule). PE neutral on the call.
+- **VDD-IAR Alignment** — F2 re-flag: tree-external verification pattern note carried forward from R12/R13. Recommend VDD-IAR's next pass include the "branch protection configuration matches CI workflow gate set" check in CLOSURE-PROTOCOL.md §6.
+- **TW** — informational: the three new `src/*.rs` modules currently have no `//!` module-level doc comments; flagged in Dismissed above as TW-domain territory, not PE.
+- **SA** — informational: the three-module split is SA-authored; PE confirms platform-neutrality. Any `pub use` re-export audit belongs in the SA log.
+- **SE** — informational: the cargo-clippy-check hook now blocks SE commits that fail clippy locally; SE R18 concurrence was recorded in advance per R12 F3 coordination.
+
+**Carry-forward state:** R8 F3 (coverage threshold) re-raised as R14 F1; R12 F1 (branch protection) re-flagged as R14 F2. R12 F2 (MSRV) and R12 F3 (clippy hook) both Resolved and verified. R8 F7 (CI secret scanning) remains Dismissed by SO R14.
+
+**Coordination:** F1 → SO ratification. F2 → VDD-IAR Alignment + director. No new IAR domain proposed.
+
+**Merge-gate verdict (PE, Layer 7 R3):** All four gates pass at HEAD; the R3 commit set is platform-clean. F1 and F2 are informational re-raises that do not block Layer 7 merge — F1 is a Backlog re-ratification question for SO; F2 is a director-level out-of-tree verification. Neither blocks the layer per CLOSURE-PROTOCOL §6.
+
+**Files modified:** This log appended only. No source, workflow, hook, or manifest changes proposed or applied this session.
+
+
+
+**Round-3 finding closure — see [SO Review 26 ledger](SOLUTION-OWNER-REVIEW.md#review-26--2026-05-12-1500z--closure-ledger-closure-protocol-2c-reconciliation).** F1: Dismissed (`fbc8da6` DECISIONS.md entry; SO ratification of the prior PE R8 F3 dismissal; coverage tooling is ceremony at this single-developer-portfolio-CLI scale). F2: Dismissed (`fbc8da6` DECISIONS.md entry; out-of-tree director-side GitHub-settings task, not a working-tree defect).

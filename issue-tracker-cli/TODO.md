@@ -366,13 +366,21 @@ Unit tests:
 - [ ] An unknown subcommand (`tracker frobnicate`) exits 1 with a usage error on stderr
 
 **Manual Testing Checklist:**
-- [ ] Run `tracker --help` and each subcommand `--help` → verify flags and valid values are accurately described
-- [ ] Run `tracker list` in terminal → verify `high` priority is red/bold, `in-progress` is cyan, `done` is green
-- [ ] Run `tracker list | cat` → verify output contains no `\033[` escape sequences
-- [ ] Run `tracker show <id>` in terminal with an `in-progress`/`high` issue → verify coloring in show output
-- [ ] Run `tracker show <id>` piped → no ANSI codes
-- [ ] Review each error message from all prior layers manually: does it say what went wrong and what the valid alternatives are?
-- [ ] `tracker frobnicate` → exit 1, stderr usage error
+- [x] Run `tracker --help` and each subcommand `--help` → verify flags and valid values are accurately described
+- [x] Run `tracker list` in terminal → verify `high` priority is red/bold, `in-progress` is cyan, `done` is green
+- [x] Run `tracker list | cat` → verify output contains no `\033[` escape sequences
+- [x] Run `tracker show <id>` in terminal with an `in-progress`/`high` issue → verify coloring in show output
+- [x] Run `tracker show <id>` piped → no ANSI codes
+- [x] Review each error message from all prior layers manually: does it say what went wrong and what the valid alternatives are?
+- [x] `tracker frobnicate` → exit 1, stderr usage error
+
+**Manual Testing Checklist — Round 2 rewalk (added by SO Review 25 Finding 3, carry-forward of R24 GO-PENDING-MANUAL-REWALK):**
+- [x] `NO_COLOR=1 tracker list` in TTY → verify NO color emitted (priority and status values render in default color)
+- [x] `CLICOLOR=0 tracker list` in TTY → verify NO color emitted
+- [x] `CLICOLOR_FORCE=1 tracker list | cat` → verify output still has no ANSI codes (the spec deliberately declines to honor `CLICOLOR_FORCE`)
+- [x] `tracker list` in TTY with a `medium` priority issue → verify `medium` renders with `bold` attribute (not plain yellow); `in-progress` and `done` also render bold (Round-2 bold-redundancy amendment, WCAG 1.4.1)
+- [x] `tracker list` in TTY when no open issues exist → verify the `No open issues. Nice work!` stderr message has no ANSI escapes (color suppression is symmetric across stderr regardless of TTY)
+- [x] `tracker pre$'\r'mid$'\t'tab` → verify the clap `unrecognized subcommand` error on stderr Cc-escapes the CR / TAB as `\u{D}` / `\u{9}` while preserving the structural `\n\nUsage:` block (Round-2 stderr Cc-escape rule extended to clap pipeline)
 
 **Red Gate — tests to write first:**
 

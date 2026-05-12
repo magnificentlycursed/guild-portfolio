@@ -921,3 +921,436 @@ Verified via `cargo run --quiet -- show --help` and `cargo run --quiet -- delete
 1/1 Round-1 UX finding Resolved. Layer 6 UX-domain is at MVR. `--help` depth is now uniform across all five subcommands.
 
 **Coordination:** *(none — closure pass)*
+
+---
+
+## Review 10 — 2026-05-11 22:30Z
+
+**Round:** UX Review 10 (Layer 7 — Polish: `--help`, color, error specificity). Cold session per `prompts/review-session.md`.
+**Scope:** Layer 7 surface as committed at `8ed7db3` and prior. CLI supplement (replacement) dimensions 1, 2, 3, 4, 5, 6, 7, 8, 10, 11. Whole-application regression check across all five subcommands and every error path from Layers 1–6. Release binary built clean (`cargo build --release`, `Finished` only); exercised in `/tmp/uxr10` against a fresh `tracker.json` for the happy paths, and with redirected stdout / `script -q /dev/null` TTY simulation / `cat -v` escape-rendering for the color and pipe paths.
+**Sycophancy disclosure:** Reviewer cannot perceive color directly — verifications below rely on `cat -v` rendering of the ANSI sequences emitted to a `script(1)`-allocated PTY. Color values, contrast, and accessibility for users with color-vision deficiency are reasoned about from the spec's color choices, not from observation. Flagged where applicable.
+
+### Regression check
+
+- Trim-asymmetry round-trip (UX R6 F1, R7 F1): re-verified — `tracker list --label "  bug  "` matches stored `bug`; `tracker list --label ""` errors. No regression.
+- stdout/stderr discipline (UX R1 F1 / Dismissed; R8 F6 / Dismissed): re-verified on every new-and-prior code path. Empty-state messages route to stderr (`tracker list | wc -l` returns `0`). Color output is suppressed on piped stdout for both `list` and `show`. No regression.
+- Show block format (UX R8 F3): re-verified byte-for-byte against DESIGN.md examples. No regression.
+- Delete confirmation deviation (D1) (UX R1 F2, R8 F4 / R8 F9): re-verified that the SO-approved deviation is documented and the success-message convention is preserved. Not re-raised on its own; see Finding 1 below for an adjacent disclosure concern.
+
+### Open
+
+**Finding 1 — `NO_COLOR` / `CLICOLOR` / `CLICOLOR_FORCE` environment variables are not honored; users have no way to suppress color on a TTY (CLI Dim 11 — verbose/quiet; CLI Dim 8 — error/control surface; cross-cuts Accessibility)**
+
+Reproduction (release binary, `script -q /dev/null` to allocate a PTY so `IsTerminal::is_terminal()` returns true):
+
+```
+$ NO_COLOR=1 script -q /dev/null tracker list --status open | cat -v
+... 1     open         ^[[1;31mhigh^[[0m      bug                   High thing ...
+
+$ CLICOLOR=0 script -q /dev/null tracker list --status open | cat -v
+... 1     open         ^[[1;31mhigh^[[0m      bug                   High thing ...
+```
+
+`NO_COLOR=1` and `CLICOLOR=0` both leave the ANSI sequences in place. The implementation in `src/lib.rs:591` and `src/lib.rs:835` gates color exclusively on `std::io::stdout().is_terminal()` — no env-var override exists.
+
+`NO_COLOR` is the de-facto cross-tool standard documented at <https://no-color.org/> and honored by `git`, `ls --color=auto` (via `LS_COLORS`), `ripgrep`, `bat`, `fd`, `eza`, `delta`, `cargo` itself (since 1.70), and most modern Rust CLIs that emit color. It is a single-line check at the call sites (`use_color &= std::env::var_os("NO_COLOR").is_none()`). `CLICOLOR_FORCE=1` (BSD convention) and `CLICOLOR=0` are the secondary convention pair; `NO_COLOR` alone covers the most important opt-out case.
+
+Why this matters for a portfolio CLI:
+
+1. **Accessibility opt-out is the user's bargaining position with a color-blind palette.** The spec ratifies `red high` + `green done` — the canonical deuteranopia/protanopia pitfall (≈5% of men cannot reliably distinguish these). The asymmetry below (Finding 2) is the in-band mitigation; `NO_COLOR` is the out-of-band mitigation. A user who cannot disambiguate the colors cannot turn them off.
+2. **Low-color terminals (`TERM=dumb`, `screen-256color` over flaky SSH, basic `vt100`) emit literal escape bytes as garbage.** The user has no recourse.
+3. **Test/CI environments where `is_terminal()` returns true** (some terminal multiplexers, `expect`, `script`) cannot opt out of color even when a downstream consumer needs clean text.
+4. **The implementation cost is one line each at the two call sites**, plus a small unit test that the helper returns `None` when `NO_COLOR` is set. This is well inside Layer 7 polish scope.
+
+DESIGN.md does not currently mention `NO_COLOR` or any color-suppression env var. The spec is silent — neither requires nor forbids honoring it. A literal reading therefore says "the implementation matches the spec." A user-experience reading says "the spec's silence is itself a defect against an accessibility convention every comparable tool follows."
+
+**Classification:** Open — Raised to SO (proposal: amend DESIGN.md "Interface / Color output" to add a paragraph: "When stdout is a TTY, color is also suppressed if the environment variable `NO_COLOR` is set to any non-empty value, per <https://no-color.org/>. `CLICOLOR=0` is honored equivalently. `CLICOLOR_FORCE=1` is not honored — color is never emitted to a non-TTY stdout regardless of env vars, to preserve the pipe-cleanness contract."). If SO ratifies, the implementation is a one-line edit to each of the two `is_terminal()` call sites and a unit test. If SO declines, the rationale should be documented in DESIGN.md to make the deliberate omission visible.
+
+Cross-reference: this affects the same color path that Finding 2 raises; resolving Finding 1 (env-var opt-out) also gives users with color-vision deficiency a clean escape hatch even before Finding 2 (in-band redundancy) is addressed.
+
+---
+
+**Finding 2 — Color asymmetry between `priority` (partial bold redundancy) and `status` (no redundancy): `high` is bold-red but `done` is plain green, leaving deuteranopia/protanopia users with no non-color signal to distinguish `done` from `open` (CLI Dim 3 — output scannability; cross-cuts Accessibility)**
+
+Reproduction (release binary, `script -q /dev/null`):
+
+```
+priority=high     → ^[[1;31m...^[[0m   (bold + red)
+priority=medium   → ^[[33m...^[[0m    (plain yellow)
+priority=low      → (no escape)        (default)
+status=in-progress → ^[[36m...^[[0m   (plain cyan)
+status=done       → ^[[32m...^[[0m    (plain green)
+status=open       → (no escape)        (default)
+```
+
+Implementation: `priority_ansi` at `src/lib.rs:51` returns `\x1b[1;31m` for `high` (bold+red). `status_ansi` at `src/lib.rs:65` returns `\x1b[32m` (plain green) for `done` and `\x1b[36m` (plain cyan) for `in-progress`. The asymmetry is unintentional from the spec — DESIGN.md "Color output" table reads:
+
+| Value | Color |
+|---|---|
+| `high` priority | Red / bold |
+| `medium` priority | Yellow |
+| ... |
+| `in-progress` status | Cyan |
+| `done` status | Green |
+
+The "Red / bold" cell is the only cell with a non-color attribute. The other "highlight a special state" cell (`done`) does not have a parallel non-color attribute. This is a spec gap that the implementation faithfully reproduces.
+
+Why this is a real UX defect, not a cosmetic one:
+
+1. **Deuteranopia (red-green color blindness) is the most common form of CVD**, affecting roughly 5% of men. The pair `red high` + `green done` is the textbook miss case — both render as near-identical muddy yellow-brown to a deuteranope.
+2. **`high` already has the boldness fallback** because the spec spelled "Red / bold" — a deuteranope cannot tell the priority is red, but the bold weight is unambiguous. This is the *correct* design pattern: never rely on color alone (WCAG 1.4.1 "Use of Color", the SC most directly applicable to terminal output).
+3. **`done` does NOT have this fallback.** `status=done` is `\x1b[32m` only. A deuteranope reading `tracker list --status done` vs. `tracker list --status open` sees identical-weight uncolored-looking values in the same column position. The user cannot rely on the status column to disambiguate at a glance.
+4. **`in-progress` is partially saved** by being a six-syllable word in the column, but only because the text content differs from `open`/`done`. Color adds no information for a CVD user; it adds visual clutter without payload.
+
+The fix has two natural shapes:
+
+- **A. Symmetric boldness.** Apply `bold` to every non-default value (`done`, `in-progress`, `medium`), so the bold attribute consistently means "this is not the default state." This makes the implementation read uniformly and gives every value a non-color cue. ANSI: `\x1b[1;32m`, `\x1b[1;36m`, `\x1b[1;33m`. Spec update: change the four "highlight" rows to "<color> / bold".
+- **B. Symmetric plain.** Drop the `bold` from `high` so the spec describes pure color throughout. Easier to implement (one-byte edit). Weaker accessibility. Not recommended.
+
+Option A is the accessibility-correct choice and matches the established pattern of `high`. The implementation cost is two extra `1;` prefixes in the ANSI strings.
+
+**Classification:** Open — Raised to SO (proposal: amend DESIGN.md "Color output" table to read "Cyan / bold" for `in-progress`, "Green / bold" for `done`, and "Yellow / bold" for `medium`. The single source of truth becomes "every highlighted value is bold-plus-color"). SE follow-up: update `status_ansi` and `priority_ansi` accordingly; the existing piped-no-ANSI tests (`list_piped_has_no_ansi_codes`, `show_piped_has_no_ansi_codes`) still pass; the manual TTY-rendering checklist item should be re-walked.
+
+Cross-reference: Finding 1 (NO_COLOR) is the out-of-band mitigation for the same accessibility surface. Both can land in the same SO round.
+
+---
+
+### Dismissed
+
+**Finding 3 — `tracker` (no args) routes the help block to stderr and exits 1 (CLI Dim 4 — stdout/stderr discipline)**
+
+Reproduction:
+
+```
+$ tracker 1>/tmp/out 2>/tmp/err ; echo exit=$?
+exit=1
+$ cat /tmp/out   # empty
+$ cat /tmp/err   # the Usage block
+Personal issue tracker
+...
+```
+
+`tracker` with no subcommand emits the help text on stderr (not stdout) and exits 1. The contrast with `tracker --help` (which exits 0 and routes to stdout) is by design in clap and the `try_parse` transform in `src/main.rs:72-83`: a missing-subcommand error is a usage error, which routes to stderr with `Error:` prefix-rewriting and exits 1. An explicit `--help` request is a help action, which routes to stdout with exit 0. The user who runs `tracker` with no args gets the help content they need to recover, in the channel that conventionally carries error/diagnostic output. This matches the convention of `git` (exit 1, help on stderr) and is well-behaved.
+
+**Classification:** Dismissed. The dual behavior is the correct CLI convention. The help content is the same. The user who pipes `tracker | cat` correctly sees nothing on stdout and the usage block on the terminal.
+
+---
+
+**Finding 4 — `tracker help` and `tracker help <subcommand>` work and route to stdout, providing a third discoverability path (CLI Dim 1)**
+
+Verified:
+
+- `tracker help` → exit 0, full top-level help on stdout (matches `tracker --help`).
+- `tracker help create` → exit 0, `create`'s help on stdout (matches `tracker create --help`).
+
+Clap provides this for free. The spec only requires `--help`; the additional `help` subcommand is a bonus discoverability path. The top-level help also lists `help` as a command, so a user who types `tracker` and reads the output learns about both routes.
+
+**Classification:** Dismissed. The help surface is over-delivered, not under-delivered.
+
+---
+
+**Finding 5 — Error messages are at or above the bar across all six subcommands and all error categories (CLI Dim 8)**
+
+Manual walk of every L1–L7 error path (matches the Layer 7 AC "Review each error message from all prior layers manually"):
+
+| Path | Reproduction | Message | Verdict |
+|---|---|---|---|
+| empty title | `create ""` | `Error: Title cannot be empty.` | states the rule |
+| title control | `create $'a\nb'` (would be) | `Error: Title cannot contain control characters.` | states the rule |
+| invalid priority | `create X --priority urgent` | `Error: Invalid priority 'urgent'. Expected: low, medium, or high.` | names bad value + valid set |
+| empty label | `create X --label ""` | `Error: Label cannot be empty.` | states the rule |
+| comma in label | `create X --label "a,b"` | `Error: Label cannot contain a comma.` | states the rule |
+| empty description | `create X --description ""` | `Error: Description cannot be empty.` | states the rule |
+| desc ESC | `create X --description $'a\x1bb'` | `Error: Description cannot contain control characters other than newline.` | states the rule |
+| invalid status | `status 1 closed` | `Error: Invalid status 'closed'. Expected: open, in-progress, or done.` | names bad value + valid set |
+| non-int ID | `show abc` | `Error: 'abc' is not a valid issue ID. Expected a positive integer.` | names bad value + rule |
+| zero ID | `show 0` | `Error: '0' is not a valid issue ID. Expected a positive integer.` | names bad value + rule |
+| negative ID | `delete -1` | `Error: unexpected argument '-1' found` + tip + usage | clap-level; states the tip (`use '-- -1'`) |
+| not found | `show 99` | `Error: Issue #99 not found.` | names the missing ID |
+| multi-label-list | `list --label a --label b` | `Error: the argument '--label <LABEL>' cannot be used multiple times` + usage | clap-level |
+| unknown subcmd | `frobnicate` | `Error: unrecognized subcommand 'frobnicate'` + usage | clap-level; names bad value |
+| empty label filter | `list --label ""` | `Error: Label cannot be empty.` | round-trip symmetric |
+| corrupt JSON | hand-edit | `Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.` | states the recovery action |
+| permission | (not exercised this round) | `Error: Could not read tracker data: <reason>.` | per spec |
+| write fail | (not exercised this round) | `Error: Could not save tracker data: <reason>.` | per spec |
+
+All errors begin with `Error:` per the spec. All errors are on stderr. All errors exit 1. All errors that interpolate user input go through `display_safe`, which escapes Cc characters as `\u{XX}` so a pasted ANSI sequence cannot cross from stderr to the terminal as raw bytes — verified by code review at `src/lib.rs:268-278`. The clap-level errors (negative ID, multiple `--label`, unknown subcommand) include the standard usage block and a recovery tip when applicable. Two of those messages (`unrecognized subcommand 'frobnicate'` and `unexpected argument '-1' found`) do not include `Expected: ...` enumerations because clap does not know the value space; the project's hand-rolled validators do enumerate.
+
+**Classification:** Dismissed. The Layer 7 manual review AC is genuinely satisfied. The message bar is consistent across all six subcommands. No specificity gaps.
+
+---
+
+**Finding 6 — `--help` text is complete and accurate across all six surfaces; valid-value enumerations are inline for every flag that has them (CLI Dim 1, Dim 2)**
+
+Verified:
+
+- `tracker --help` lists every subcommand with a one-line summary; `delete`'s line signals the no-confirmation behavior and the no-id-reuse rule.
+- `tracker create --help` lists `--description`, `--priority` (with `low, medium, high (default: medium)` inline), `--label` (with the `repeatable; deduplicated; case-preserved` semantics inline).
+- `tracker list --help` lists `--status` (with `open, in-progress, done`), `--priority` (with `low, medium, high`), `--label` (with `case-sensitive exact match; single value only` — the asymmetry with create's repeatable `--label` is correctly signposted, closing UX R1 F4).
+- `tracker status --help` lists both positionals with valid values inline.
+- `tracker show --help` and `tracker delete --help` both document `<ID>` as `Issue ID (positive integer, >= 1)` — at the bar set by `create` / `list` / `status` after the R8 F1 → R9 closure.
+
+**Classification:** Dismissed. UX R1 F4 (label-asymmetry visibility) is also definitively closed by the inline single-value-only docstring on `list --label`. No new gaps.
+
+---
+
+**Finding 7 — Empty-state messages route to stderr; piped consumers see clean stdout (CLI Dim 4, Dim 6)**
+
+Reproduction:
+
+```
+$ tracker list | wc -l    # default-open view, empty tracker
+No open issues. Nice work!
+       0
+```
+
+The `0` from `wc -l` confirms stdout is empty; the message goes to stderr (visible to the user but not piped). Same for `No issues match the given filters.` Verified for both the default-open empty case (no `tracker.json`) and the filter-no-match case (all-done tracker, default-open view).
+
+**Classification:** Dismissed. The stderr routing of empty-state messages is correct and was the right call relative to UX R1 F1 (which dismissed the alternative). Pipe-cleanness is preserved.
+
+---
+
+**Finding 8 — Color is applied only to the value text in its cell, not to the row or header (CLI Dim 3)**
+
+`script -q /dev/null` rendering shows the header line `ID    Status       Priority  Labels                Title` with no ANSI escapes; only the value cells in subsequent rows are wrapped. Both the `\x1b[1;31m` prefix and `\x1b[0m` reset hug the value text — surrounding padding (the `pad_after_color` helper at `src/lib.rs:91`) is uncolored. Matches the spec contract "Color is applied only to the value text in its column cell, not to the entire row or header."
+
+**Classification:** Dismissed. The value-only color rule holds for both `list` and `show`.
+
+---
+
+### Hallucinated
+
+**Finding 9 — Show output's 13-char label column plus value can exceed 80 cols on narrow terminals (responsive-design concern)**
+
+Initial concern: a 60-col terminal would wrap the table output. Verified by visual measurement: `tracker list` of a long title plus long labels produces a ~99-col line; on a 60-col terminal this wraps to a second line and breaks tabular alignment.
+
+But: the spec's column-width contract explicitly fixes the widths (`ID` 4, `Status` 11, `Priority` 8, `Labels` 20, `Title` up to 50, with two-space separators) and the truncation rules (`Labels` at 20 with `…`, `Title` at 50 with `…`). The minimum line is 4 + 2 + 11 + 2 + 8 + 2 + 20 + 2 + 1 = 52 cols for a title with one character, and 99 cols at maximum (50-char title). 99 cols exceeds 80 — the conventional terminal default — but the design choice is explicit: the spec ratifies the column widths and would have had to specify a narrower variant or a `--narrow` mode to address this. DESIGN.md "Out of Scope" does not name this but the spirit ("interactive interactive macOS CLI") makes a 80+ terminal a fair assumption.
+
+`tracker show` has a similar concern — long titles or descriptions can exceed a narrow terminal — but the per-line break is on the description's own newlines, which the user controls, and the show block is by design for full-detail viewing where wrapping is acceptable.
+
+**Classification:** Hallucinated. The column widths and truncation rules are deliberate spec choices. The portfolio-CLI target (a developer's wide terminal) is reasonable. Re-raising as a real defect would require either evidence that a target user runs in a sub-80-col terminal habitually or a spec amendment to add a narrow variant — neither is present.
+
+---
+
+**Finding 10 — `tracker delete <id>` should reintroduce a confirmation prompt at Layer 7 polish**
+
+Initial concern: Layer 7 is the polish layer; this is the moment to revisit "no confirmation" since it is the most user-visible irreversibility.
+
+But: D1 in DESIGN.md "Approved Deviations" is the documented SO ratification with rationale (consistency with the rest of the binary, `git rm` / `rm` family precedent, recoverable via JSON edit, single-user threat model). UX R1 F2, R8 F4, and R8 F9 have all reached the same dismissal. The Layer 7 AC list does not mention confirmation, by design. Re-raising it without new evidence would be a meta-leak ("I would have built it with a prompt") rather than a defect against the spec.
+
+**Classification:** Hallucinated. The deviation is documented, the SO has ratified, prior UX rounds agree. The user-side workflow (`tracker show <id>` before `tracker delete <id>`) is the documented mitigation. No new evidence to re-open.
+
+---
+
+### Summary
+
+Review 10 finds **2 Open (both Raised to SO), 6 Dismissed, 2 Hallucinated**. Layer 7 polish is largely successful at the contract level: `--help` is uniformly informative across all six subcommands, color rendering on a TTY is correct and is correctly suppressed on a pipe, error messages are consistent in voice and specificity across every L1–L7 path, stdout/stderr discipline is preserved, and `display_safe` defends the error stream against ANSI-injection via interpolated user input. The Layer 7 AC list is technically satisfied.
+
+The two real Open findings both surface the same root cause: **color is the user's only signal in two places where it should not be the only signal.** Finding 1 (no `NO_COLOR` opt-out) is the out-of-band mitigation that every comparable Rust CLI provides; Finding 2 (asymmetric bold redundancy between `priority=high` and `status=done`/`in-progress`) is the in-band mitigation half the spec already provides for `high` but does not extend to the other highlighted values. Both are spec-level findings raised to SO with concrete proposals; both have minimal implementation cost; both improve accessibility for a real user population (deuteranopia ≈5% of men, plus `TERM=dumb` / SSH / multiplexer cases).
+
+**Top UX concerns:**
+1. **Finding 1** — `NO_COLOR` / `CLICOLOR` env-var opt-out. The spec is silent; every comparable tool honors `NO_COLOR`. One-line fix per call site after SO ratifies.
+2. **Finding 2** — `done` and `in-progress` lack the bold-redundancy `high` already has, so red-green color-blind users cannot disambiguate `done` from `open` in the status column without reading the text. Spec table should be amended to "Cyan / bold" + "Green / bold" + "Yellow / bold" for the three highlighted values.
+
+**Coordination:**
+- **Finding 1** → Raised to SO (DESIGN.md "Interface / Color output" amendment). On SO ratification, cross-reference [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) for the call-site edits and [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) for a regression test (a `script(1)`-allocated PTY plus `NO_COLOR=1` env var, asserting no `\x1b[` in stdout).
+- **Finding 2** → Raised to SO (DESIGN.md "Color output" table amendment). On SO ratification, cross-reference [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) for the `status_ansi` / `priority_ansi` edits and [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) for the manual TTY-rendering checklist re-walk.
+- **No findings raised to QE, Security, Platform, or SA for code-only action this round.**
+
+**Files modified:** Only this log appended.
+
+---
+
+## Review 11 — 2026-05-12 00:00Z
+
+**Round:** UX Review 11 (Layer 7 IAR Round 2 closure pass). Warm verification per CLOSURE-PROTOCOL.md §5; not a new adversarial round.
+
+**Scope:** Verify R10 Open findings closed by commit `09b1905`. Inputs: DESIGN.md "Interface / Color output" amendments (NO_COLOR / CLICOLOR honoring + bold-redundancy spec); `src/lib.rs` `color_mode_from_env` + `priority_ansi` / `status_ansi` (now bold-on-highlighted); integration test `no_color_env_does_not_break_piped_invocation`; manual TTY re-walk pending.
+
+### Round-1 finding closures
+
+- **F1 — `NO_COLOR` / `CLICOLOR` / `CLICOLOR_FORCE` not honored:** **Resolved by `09b1905`.** DESIGN.md amendment ratifies the de-facto cross-tool standard (https://no-color.org/) — NO_COLOR (any non-empty value) and CLICOLOR=0 both force ColorMode::Off; CLICOLOR_FORCE deliberately not honored to preserve pipe-cleanness. `color_mode_from_env()` implements the precedence: TTY check → NO_COLOR → CLICOLOR=0 → On. Integration test `no_color_env_does_not_break_piped_invocation` verifies env-var passthrough on the piped path (TTY-positive verification deferred to manual checklist re-walk). The cross-tool consistency principle is now honored: user has the same opt-out lever in `tracker` that they have in `git`, `cargo`, `ripgrep`, `bat`, `fd`, `eza`, `delta`.
+- **F2 — Color asymmetry: `high` is bold-red but `done` / `in-progress` / `medium` are plain:** **Resolved by `09b1905`.** DESIGN.md amendment changes the color table to "Red / bold" / "Yellow / bold" / "Cyan / bold" / "Green / bold" for the four highlighted values, leaving `low` and `open` plain so the highlighted-vs-unhighlighted dichotomy reads at a glance. `priority_ansi("medium", On)` returns `\x1b[1;33m`; `status_ansi("in-progress", On)` returns `\x1b[1;36m`; `status_ansi("done", On)` returns `\x1b[1;32m`. WCAG 1.4.1 *Use of Color* is now honored: every color cue carries a non-color cue (bold weight) so deuteranopia/protanopia users have a non-color signal to distinguish highlighted states.
+
+### Manual checklist re-walk needed (carry-forward)
+
+The Round-2 spec and implementation changes introduce new behaviors that the existing 7-item manual checklist (TODO.md L368-374) does not cover. Director should add and execute:
+
+- **`NO_COLOR=1 tracker list` in terminal → no ANSI rendered** (CVD/accessibility opt-out).
+- **`CLICOLOR=0 tracker list` in terminal → no ANSI rendered.**
+- **`CLICOLOR_FORCE=1 tracker list | cat -v` → still no ANSI** (pipe-cleanness contract preserved).
+- **`tracker list` in terminal with done / in-progress / medium values → bold weight visible** (CVD redundancy).
+- **`tracker list | cat -v` with no issues matching → stderr empty-state has no ANSI** (R2 symmetric-stderr commitment).
+
+### New findings
+
+*(none — closure pass.)*
+
+### Summary
+
+Both R1 UX findings Resolved by R2 spec amendments + implementation: F1 NO_COLOR / CLICOLOR honoring is now in-spec and tested at the env-var level; F2 bold-redundancy gives every highlighted value a non-color cue per WCAG 1.4.1. The CVD-correctness gap that the original Layer-7 spec carried is closed. Manual TTY re-walk for the new behaviors is the standing carry-forward to merge gate.
+
+**Coordination:** SO R24 — spec amendments ratified; Security R12 — NO_COLOR cross-domain coordination verified; QE R18 — integration coverage for env-var path acknowledged as partial (TTY-positive deferred to manual / future force_color seam).
+
+**Files modified:** This log appended only. The DESIGN.md amendments and `src/lib.rs` implementation landed in `09b1905` under SO + SE authority per CLOSURE-PROTOCOL.md §1.
+
+---
+
+## Review 12 — 2026-05-12 12:00Z
+
+**Round:** UX Review 12 (Layer 7 IAR Round 3 — five-commit refactor cluster: `ff0e85c` clippy pre-commit hook, `c341a54` render_cell ASCII debug_assert, `bd7511e` TRACKER_INTERNAL_FORCE_COLOR test seam, `3fa1f3c` cmd_list rendering extraction + column constants, `8db9437` three-module split). Cold session per `prompts/review-session.md`.
+
+**Scope:** Whole-application UX surface re-verification. The R3 change set is documented as "pure refactor + test seam + ASCII guard + clippy hook"; the adversarial premise is that "no user-visible change" must be verified at the binary, not assumed from commit titles. Release binary built fresh from HEAD (`cargo build --release` → `Finished release [optimized]`); exercised in `/tmp/uxr12` against a fresh `tracker.json` for golden path, all six `--help` surfaces, all major error paths, and the four color-suppression / TTY / forced-color permutations. CLI supplement (replacement) dimensions 1, 2, 3, 4, 5, 6, 7, 8, 11.
+
+**Sycophancy disclosure:** Reviewer cannot directly perceive color; ANSI bytes were verified by `cat -v` rendering of output captured through `script -q /dev/null` PTY allocation. Color appearance, contrast, and accessibility for users with CVD are reasoned from emitted byte sequences, not from observation. The R3 set claims "no user-visible change" — this review applies binary-level diff pressure to that claim rather than accepting it.
+
+### Regression check (full L1-L7 surface against R3 HEAD)
+
+- **Golden path lifecycle.** `create` x3 → `list` → `status 2 in-progress` → `show 2` → `delete 3` → `list`: stdout output byte-identical in shape to the Layer 7 manual checklist outputs (TODO.md L368-374 ticks). `Created issue #N: <title>`, the labelled-key `show` block (13-char label column, label-aligned multi-line description indent), `Issue #2 status → in-progress.` (with the `\u{2192}` rightwards-arrow), `Deleted issue #3.` — all exact-match to spec. No regression.
+- **Persistent next_id counter.** Created issue #4 after deleting #3: `next_id: 5` in `tracker.json`, the SO R22 Option A invariant ("monotonically increasing, deleted IDs never reused") preserved by R3. No regression.
+- **All six `--help` surfaces.** `tracker --help`, `tracker create --help`, `tracker list --help`, `tracker status --help`, `tracker show --help`, `tracker delete --help` all match the R10 F6 verified content byte-for-byte. `Issue ID (positive integer, >= 1)` still on `show` / `delete`; `repeatable; deduplicated; case-preserved` still on `create --label`; `case-sensitive exact match; single value only` still on `list --label`; valid-value enumerations still inline for `--priority` / `--status` / `<STATUS>` positionals. No clap-derived doc-comment regression from the module split. No regression.
+- **Error paths.** `create ""` → `Error: Title cannot be empty.`; `show abc` → `Error: '<v>' is not a valid issue ID. Expected a positive integer.`; `show 99` → `Error: Issue #99 not found.`; `frobnicate` → `Error: unrecognized subcommand 'frobnicate'` + clap usage block + `try '--help'` tip. All begin with `Error:`, all on stderr, all exit 1. Cc-escape rule still active (the R10 F5 sweep stands). No regression.
+- **Color env-var matrix.** All six relevant permutations re-verified against R3 HEAD via `script -q /dev/null` PTY allocation:
+  - TTY, no env: `^[[1;31mhigh^[[0m`, `^[[1;33mmedium^[[0m`, `^[[1;36min-progress^[[0m`, `^[[1;32mdone^[[0m` — bold-redundancy preserved (R11 closure verification reaffirmed).
+  - TTY + `NO_COLOR=1`: no ANSI on stdout. Preserved.
+  - TTY + `CLICOLOR=0`: no ANSI on stdout. Preserved.
+  - Piped stdout (no env): no ANSI. Preserved.
+  - Piped + `CLICOLOR_FORCE=1`: still no ANSI (pipe-cleanness contract preserved; DESIGN.md "Interface / Color output" deliberate non-honor). Preserved.
+  - Piped + `TRACKER_INTERNAL_FORCE_COLOR=1`: ANSI emitted (the test seam works). Documented behavior.
+- **Color is applied only to value text in its cell.** R3 extraction into `render_cell(value, ansi, total_width)` (`commands.rs:218`) preserves the value-only color rule. Header row in `format_list_header` (`commands.rs:533`) carries no ANSI; padding bytes after `wrap_color` carry no ANSI. R10 F8 verification stands. No regression.
+
+### Open
+
+**Finding 1 — `TRACKER_INTERNAL_FORCE_COLOR` env-var, while documented as "test seam only, not part of the public CLI contract," is discoverable to a user who runs `strings target/release/tracker | grep -i color` and creates an undocumented "force color on pipe" surface with no help text, no graceful failure mode, and no rejection of the value `=1` if accidentally exported in a CI environment (CLI Dim 1 — discoverability; CLI Dim 11 — verbose/quiet modes; cross-cuts QE / Security)**
+
+Reproduction (release binary):
+
+```
+$ strings /Users/<user>/.../target/release/tracker | grep -i 'force_color\|tracker_internal'
+TRACKER_INTERNAL_FORCE_COLOR
+... (binary string table entry)
+
+$ TRACKER_INTERNAL_FORCE_COLOR=1 tracker list | cat -v
+ID    Status       ...
+1     open         ^[[1;31mhigh^[[0m      ...
+```
+
+The env var is bona-fide hidden from `tracker --help`, `tracker <sub> --help`, README.md, DESIGN.md, and CHANGELOG.md — confirmed by exhaustive grep. The doc-comment in `commands.rs:107-113` explicitly says "deliberately ugly, namespaced env var" and "not documented in `--help`, README.md, or DESIGN.md." Good. The R3 introduction (`bd7511e`) is mechanically correct against the QE R17 F1 deferral — TTY-positive color now has integration coverage.
+
+But: the name `TRACKER_INTERNAL_FORCE_COLOR` appears in the binary string table (any `strings` invocation surfaces it), in source comments (`grep -r TRACKER_INTERNAL_FORCE_COLOR src/` returns 17 hits), and in the Round-2 R3 closure commit message (`bd7511e`). A user who discovers it has no documented escape hatch ("this is not a public flag") *inside the binary* — `--help` won't mention it, but `--help` also won't explain why setting it produces unexpected color on piped output. A future polish-layer reader will see the env var, recognize the namespace as "internal," but have no in-binary signal that the value `=1` is the *only* trigger or that the var is test-only. The R10 F3 finding (`tracker` with no args routes help to stderr and exits 1) was dismissed because clap's "missing subcommand → stderr help, exit 1" is the standard convention. The R12 analogue here — "binary surface includes a test seam discoverable via `strings`" — has no comparable standard convention. The closest analogue is `CARGO_INCREMENTAL_TEST_STUB` / `RUSTC_BOOTSTRAP` style internal-only env vars in `cargo` / `rustc`: there the convention is the variable is undocumented BUT setting it to a wrong value produces a clear "this is unsupported" message. Here, setting `TRACKER_INTERNAL_FORCE_COLOR=0` or `=true` silently falls through to default behavior, which is consistent with the doc-comment but offers no user-visible "you found an internal seam" signal.
+
+Three orthogonal mitigations are possible; any one (or none, if SO ratifies the current posture) addresses the UX surface:
+
+- **A. Add a stderr warning when the env var is set on a non-test invocation.** When `TRACKER_INTERNAL_FORCE_COLOR=1` is detected, emit `Warning: TRACKER_INTERNAL_FORCE_COLOR is an internal test seam and is not a supported public flag. Color is forced on for this invocation.` on stderr. Cost: 3 lines in `color_mode_from_env`. Side effect: contaminates the stderr stream that `assert_cmd` tests assert against. Probably not worth the test-side disruption.
+- **B. Add a one-line stanza to README.md "Color output" section.** "An internal `TRACKER_INTERNAL_FORCE_COLOR=1` env var exists for integration test purposes only; it is not part of the supported CLI contract and may change without notice." Cost: one paragraph. Trade-off: violates the explicit doc-comment claim ("not documented in `--help`, README.md, or DESIGN.md"). The doc-comment's claim is itself a UX choice — if the variable is genuinely discoverable via `strings` and is in the commit history and source, the "no documentation anywhere" posture is more of a fig leaf than a hidden-by-default property.
+- **C. Rename to a more aggressively-hostile-to-discovery name.** E.g., a SHA-prefixed `TRACKER_FORCE_COLOR_TEST_ONLY_d8f3e1b2=1` so the value is non-guessable. Cost: every test updates. Marginal benefit: a user running `strings` still sees it. The actual security/safety property is "this is an internal seam," and a strings-grep can always find it; the question is what the discoverer should be told. Probably overengineered.
+
+DESIGN.md's "Interface / Color output" section currently does not name the test seam. The cleanest pattern is probably (B): add the README disclosure and update the `commands.rs:108-110` doc-comment to reflect the disclosure. The doc-comment's "not documented in README.md" claim is currently true at HEAD; the R12 raise is that this is the *wrong* posture given the variable is discoverable.
+
+**Classification:** Open — Raised to SO. Decision request: ratify current "hide-via-naming-only" posture (and update commands.rs doc-comment to remove the "not documented in README.md" claim, which is true but UX-defective), OR ratify a one-paragraph README disclosure (mitigation B). The technical implementation is unaffected; only the disclosure surface changes.
+
+---
+
+**Finding 2 — TODO.md manual testing checklist (L368-374) has NOT been updated with the 5 carry-forward items introduced by R11 (Round-2 spec/behavior changes); the director's Round-2 manual TTY re-walk for `NO_COLOR` / `CLICOLOR` / `CLICOLOR_FORCE` / bold-redundancy / stderr-empty-state remains unverified at the checklist level (CLI Dim 1 — discoverability of behavior to a future maintainer; cross-cuts QE)**
+
+Reproduction:
+
+```
+$ grep -n "NO_COLOR\|CLICOLOR\|TRACKER_INTERNAL" issue-tracker-cli/TODO.md
+(no output)
+
+$ sed -n '368,375p' issue-tracker-cli/TODO.md
+**Manual Testing Checklist:**
+- [x] Run `tracker --help` and each subcommand `--help` ...
+- [x] Run `tracker list` in terminal → verify `high` priority is red/bold, `in-progress` is cyan, `done` is green
+- [x] Run `tracker list | cat` → verify output contains no `\033[` escape sequences
+- [x] Run `tracker show <id>` in terminal with an `in-progress`/`high` issue → verify coloring in show output
+- [x] Run `tracker show <id>` piped → no ANSI codes
+- [x] Review each error message from all prior layers manually: does it say what went wrong and what the valid alternatives are?
+- [x] `tracker frobnicate` → exit 1, stderr usage error
+```
+
+The checklist still reflects the pre-R2 spec wording — `in-progress is cyan, done is green` (no mention of bold for these values, which R2's bold-redundancy amendment introduced). The 5 items the R11 entry explicitly told the director to add:
+
+1. `NO_COLOR=1 tracker list` in terminal → no ANSI rendered
+2. `CLICOLOR=0 tracker list` in terminal → no ANSI rendered
+3. `CLICOLOR_FORCE=1 tracker list | cat -v` → still no ANSI (pipe-cleanness)
+4. `tracker list` in terminal with `done` / `in-progress` / `medium` values → bold weight visible
+5. `tracker list | cat -v` with no matching issues → stderr empty-state has no ANSI
+
+...are missing from TODO.md. R3 (`ff0e85c` clippy hook + `c341a54` ASCII assert + `bd7511e` test seam + `3fa1f3c` extraction + `8db9437` split) did not address this — every R3 commit is code/test/hook; none touched TODO.md.
+
+The CHANGELOG R2-closure entry says explicitly: "Director to add the new manual items to TODO.md and re-tick." This is an explicit director action item that has not landed. The R3 binary-level re-verification this session performs (Regression check above) does confirm the behaviors, so the *behavioral* property is fine — but the *artifact* (TODO.md as the project's manual-testing source of truth) has drifted from the spec at HEAD. A future reader walking TODO.md will not exercise the env-var matrix, the bold-redundancy, or the stderr-empty-state cleanness, because those items don't appear.
+
+This is a UX defect against the maintainer-as-user surface (TODO.md is the canonical "how do I sanity-test this layer" document). The portfolio-CLI target audience explicitly includes "agents resuming work between sessions" (per README.md L5), so a drifted checklist will mis-teach the next maintainer about what L7 covers.
+
+**Classification:** Open. Suggested fix: append items 1-5 above to TODO.md L368-374 under a new "Layer 7 Round 2 / Round 3 carry-forward" subhead with checkboxes for the director to tick after a manual re-walk. Round 3 itself doesn't add new manual items beyond what Round 2 introduced, but Round 2's items still need to land. The 6 items the R12 prompt names ("manual checklist re-walk note. R2 created 6 new manual checklist items that the director needs to add to TODO.md and execute") aligns with R11's 5 items plus arguably the show-block-bold-redundancy item (currently bundled into item 4); a 6-item slate is reasonable.
+
+### Dismissed
+
+**Finding 3 — `c341a54` introduced a `debug_assert!(value.is_ascii(), ...)` in `render_cell` that would panic in `cargo test` on a non-ASCII colored value, but cannot panic on any spec-legal input (CLI Dim 2)**
+
+The `render_cell` debug-assert (`commands.rs:219-226`) panics if `value` is not ASCII. Both current call sites pass `issue.status` or `issue.priority`, which are validated against closed enums (`STATUS_ORDER` / `PRIORITY_ORDER`) at parse and load time — every legal value is ASCII (`open`, `in-progress`, `done`, `low`, `medium`, `high`). The debug-assert exists to surface a spec amendment that would relax the ASCII constraint (e.g., non-ASCII status labels), at which point the panic prompts replacing `chars().count()` with `UnicodeWidthStr::width(value)`. In release builds the assert is compiled out, so user-visible behavior is unchanged. No regression from R2.
+
+**Classification:** Dismissed. The assert is defensive coding against a future spec change; user impact is zero in release builds. R3 stance is correct.
+
+---
+
+**Finding 4 — `8db9437` three-module split (`commands.rs` / `storage.rs` / `validate.rs`) might have changed `cargo doc` rendering for public surfaces (`cmd_*`, `Issue`, `Tracker`, `CreateArgs`, `ColorMode`, `color_mode_from_env`, `display_safe`, `sanitize_quoted_values`, etc.)**
+
+Initial concern: a pure-API user of the crate (running `cargo doc`) would see different module paths after the split (e.g., `tracker::commands::cmd_list` vs. the prior `tracker::cmd_list`). However, `src/lib.rs:43` re-exports the public surface from the submodules: `cmd_create, cmd_delete, cmd_list, cmd_show, cmd_status, color_mode_from_env, label_matches, ...` are all surfaced at the crate root, preserving the previous flat-namespace contract. The `tracker::cmd_list` path that `main.rs` uses works exactly as before.
+
+For a `cargo doc` reader, the rendered surface is unchanged at the crate root; the submodules show up as additional documentation surfaces but the canonical paths are preserved. No clap-derived `--help` text touches submodule paths.
+
+**Classification:** Dismissed. The re-exports in `src/lib.rs` preserve the API path contract. R3 module split is a refactor that maintains the public surface.
+
+---
+
+**Finding 5 — The `ff0e85c` clippy pre-commit hook landing is internal-only and has no user-visible UX surface (CLI Dim 11 — verbose/quiet)**
+
+The clippy pre-commit hook runs at `git commit` time on the developer's machine, not at end-user invocation. End-user `tracker` behavior is unaffected. The hook is documented as PE R12 F3 closure.
+
+**Classification:** Dismissed. The hook is a developer-tooling change with zero end-user UX surface.
+
+---
+
+**Finding 6 — `3fa1f3c` `cmd_list` extraction into `filter_issues` / `sort_issues` / `format_list_header` / `format_list_row` pure helpers might have changed the output of `tracker list`**
+
+Initial concern: a pure-function extraction risks subtle off-by-one or reordering. Verified via golden-path lifecycle: header row `ID    Status       Priority  Labels                Title` (4 + 2 + 11 + 2 + 8 + 2 + 20 + 2 + 5 = 56 byte-positions through the start of Title) matches the DESIGN.md "Interface / Color output / List output format" example byte-for-byte. Row content for #1 (high/bug,auth/Fix login bug) and #2 (open/medium/feature/Add search bar) matches the column-width contract. Truncate-with-ellipsis behavior at `LABELS_WIDTH=20` and `TITLE_WIDTH=50` preserved.
+
+**Classification:** Dismissed. The extraction is byte-preserving against the spec. R3 stance is correct.
+
+### Hallucinated
+
+**Finding 7 — The R3 module split should have introduced module-level `--help` text describing the module organization to users**
+
+Initial concern: a multi-module crate ought to surface its organization somehow. But: `tracker --help` is the user-facing surface; the module organization is an implementation detail of the crate, not of the binary. A user reading `tracker --help` does not need to know whether the subcommand handlers live in `commands.rs` or `lib.rs`. Surfacing module structure in `--help` would be category-misuse of the user-facing documentation surface.
+
+**Classification:** Hallucinated. Module structure is implementation detail; the user-facing `--help` correctly omits it.
+
+---
+
+**Finding 8 — `tracker.json` at `/tmp/uxr12/tracker.json` appears in the working directory after this session ran, contaminating subsequent reviewer sessions in the same directory**
+
+Initial concern: the session left a `tracker.json` behind. But: the spec explicitly says `tracker.json` lives "in the current working directory at the time the command runs," and `/tmp/uxr12` is a per-session temporary directory created by this review. Subsequent reviewer sessions should `rm -f tracker.json` (or `mkdir /tmp/uxr<N>` with the next session number) per the suite's standard review-directory hygiene. Not a UX defect — a session-hygiene practice.
+
+**Classification:** Hallucinated. Per-session directory creation is the documented convention.
+
+### Summary
+
+Review 12 finds **2 Open, 4 Dismissed, 2 Hallucinated**. The R3 "pure refactor + test seam + ASCII guard + clippy hook" claim holds at the binary level: golden-path output, all six `--help` surfaces, error messages, color env-var matrix, bold-redundancy, pipe-cleanness, stderr-empty-state cleanness — every Layer 1-7 behavior verified against the release binary byte-for-byte. No user-visible regression from the five R3 commits.
+
+The two Open findings are both about the *artifact surface around* the R3 work, not the behavior itself:
+
+1. **Finding 1** — `TRACKER_INTERNAL_FORCE_COLOR` is discoverable via `strings` and the source tree but lacks any in-binary signal that it is a test-only seam. The "deliberately ugly, namespaced, undocumented" posture works against a casual reader but does not address the `strings`-discovery vector. Raised to SO with three mitigation options (warning on stderr / README disclosure / SHA-prefixed name); SO chooses.
+2. **Finding 2** — TODO.md's manual testing checklist has not been updated with the 5 carry-forward items the R11 closure entry explicitly told the director to add. R3 binary-level verification confirms the behaviors, but the TODO.md drift means the next maintainer walking the manual checklist will not exercise the env-var matrix, bold-redundancy, or stderr-empty-state cleanness. Cross-cuts QE (manual-checklist-as-test-surface).
+
+**Coordination:**
+- **Finding 1** → Raised to SO (decide between "ratify current hide-via-naming posture and remove the inaccurate doc-comment claim" vs. "add README disclosure"). SE follow-up minimal regardless.
+- **Finding 2** → Raised to SO / director (TODO.md is a planning artifact; the R11 closure entry explicitly tagged this as a director action). Cross-reference [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) — manual-checklist-as-test-surface aligns with QE R17 F1's "TTY-positive verification deferred to manual" stance; QE may want to acknowledge this carry-forward in its own R3 round.
+- **No findings raised to Security, Platform, or SA for code-only action this round.**
+
+**Files modified:** This log appended only.
+
+
+**Round-3 finding closure — see [SO Review 26 ledger](SOLUTION-OWNER-REVIEW.md#review-26--2026-05-12-1500z--closure-ledger-closure-protocol-2c-reconciliation).** F1: Resolved (`ecec07f` SO R25 F2 DESIGN.md amendment naming `TRACKER_INTERNAL_FORCE_COLOR` as test-only / unstable). F2: Resolved (`ecec07f` SO R25 F3 TODO.md inline edit + `e28bef4` director-execution closure 6/6 ticked).

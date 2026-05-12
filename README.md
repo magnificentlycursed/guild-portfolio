@@ -32,5 +32,5 @@ A personal issue tracker for the terminal. Single user, no network, no accounts.
 | 3 | Priority | ✅ Complete |
 | 4 | Labels | ✅ Complete |
 | 5 | Compound filtering | ✅ Complete |
-| 6 | Description, show, delete | 🟡 In IAR Round 2 |
-| 7 | Polish (color, `--help`) | 🔲 Not started |
+| 6 | Description, show, delete | ✅ Complete |
+| 7 | Polish (color, `--help`) | ✅ Complete |

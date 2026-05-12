@@ -1693,3 +1693,421 @@ Cold-session SE Review 15 outcome on Layer 6 (Description + Show + Delete): **0 
 **Coordination:** *(none — closure pass)*
 
 ---
+
+## Review 17 — 2026-05-11 22:30Z
+
+**Round:** SE Review 17 (Layer 7 IAR Round 1 — Polish: `--help`, TTY color output, error specificity).
+**Scope:** Cold-batch surfacing pass on the Layer 7 change set on branch `issue-tracker-cli-polish`:
+- Phase 2a Red Gate commit (9 integration tests in `tests/layer7.rs`)
+- Phase 2b implementation commit — `src/lib.rs` gains `const ANSI_RESET`, `priority_ansi`, `status_ansi`, `wrap_color`, `pad_after_color`, `std::io::IsTerminal` import; `format_show_block` gains `use_color: bool`; `cmd_list` per-row format rewritten with `status_cell` / `priority_cell` pre-padding; `cmd_show` calls `std::io::stdout().is_terminal()`
+- Manual-closure commit (test-suite / CHANGELOG / TODO.md bookkeeping; no `src/**/*.rs` deltas verified by inspection)
+
+Code surface reviewed: `src/lib.rs:1-7` (crate-level `#![deny(...)]`), `src/lib.rs:21-26` (imports), `src/lib.rs:28-97` (Layer 7 color helpers + `ANSI_RESET`), `src/lib.rs:526-568` (`format_show_block` with `use_color`), `src/lib.rs:579-594` (`cmd_show` + IsTerminal call), `src/lib.rs:771-867` (`cmd_list` with status_cell / priority_cell rewrite); `tests/layer7.rs` (9 tests); `src/main.rs:1-120` (no Layer 7 deltas); `rust-toolchain.toml` (1.94.1); `DESIGN.md` Interface / color output (lines 239-250). Prior R15 (Layer 6 cold), R16 (Layer 6 closure) read in full.
+
+**Session note:** Cold-batch surfacing pass per CLOSURE-PROTOCOL.md §5 step 1. No fixes applied this round; fixes land in Round 2. SE owns `src/**/*.rs`. Test/clippy state verified at session start: `cargo clippy --all-targets --locked -- -D warnings` clean against R16 closure baseline (next_id counter landing); branch-tip status not re-run since Phase 2b commit is recorded as clippy-clean in CHANGELOG.
+
+**Regression check:** Layer 7 does not touch any prior-layer validation predicate, storage path, or sort/filter logic. `validate_title`, `validate_description`, `parse_label`, `parse_priority`, `parse_status`, `parse_id`, `bump_next_id`, `load_tracker`, `save_tracker`, `cmd_create`, `cmd_status`, `cmd_delete`, `issue_fields_are_valid`, `tracker_is_valid`, `description_is_valid`, `label_is_valid`, `display_safe`, `sort_issues`, `truncate_with_ellipsis`, `issue_matches_filters`, `dedupe_labels`, `label_matches` are byte-identical to R16 closure (verified by grep + read). `cmd_list` filter-and-empty-state logic (status default + extra_filter_active disjunction + empty-state stderr routing) is unchanged; only the per-row rendering block was rewritten. `cmd_show` core flow is unchanged; only an `is_terminal()` check + signature widening of `format_show_block`. No prior-layer SE quality property has regressed at the behavior level: piped output still byte-stable (verified by `list_piped_has_no_ansi_codes` / `show_piped_has_no_ansi_codes`); clippy deny set unchanged at the crate root.
+
+**Assumption surfacing (G-20):** `std::io::IsTerminal` — stable since Rust 1.70 per std docs; project pins 1.94.1 in `rust-toolchain.toml`, so the trait import compiles cleanly. The trait is consumed by method-call syntax (`std::io::stdout().is_terminal()`) which requires the trait to be in scope — `use std::io::IsTerminal;` at the top of `lib.rs` is therefore load-bearing (not dead) even though the identifier `IsTerminal` doesn't appear at the call site. ANSI VT100 sequences `\x1b[1;31m` (bold red), `\x1b[33m` (yellow), `\x1b[36m` (cyan), `\x1b[32m` (green), `\x1b[0m` (reset) are universally supported on VT100-compatible terminals; this is consistent with the design note at `src/lib.rs:43-44` and the spec at DESIGN.md "Interface / color output".
+
+---
+
+### Open
+
+**Finding 1 — `format_show_block(issue, use_color: bool)` is a boolean-trap argument; `cmd_show` and `cmd_list` each independently call `std::io::stdout().is_terminal()` (Dim 4 — Flag-argument antipattern; Dim 5 — TTY-detection duplication; Dim 11 — Future-self maintainability)**
+
+`src/lib.rs:526` — `fn format_show_block(issue: &Issue, use_color: bool) -> String`. Two call sites: `cmd_show` (`src/lib.rs:591-592`) and (transitively, via the same shape inside `cmd_list`) the per-row block at `src/lib.rs:835`. At each call site the boolean is derived inline:
+
+```rust
+let use_color = std::io::stdout().is_terminal();
+print!("{}", format_show_block(issue, use_color));
+```
+
+This pattern fails on three independent code-review dimensions:
+
+1. **Flag-argument antipattern (Dim 4).** The CLI-supplement SE check explicitly names this: `render(item, true)` vs. `render(item, false)` is two functions sharing one body, with the boolean controlling fundamentally bifurcated behavior (color vs. no-color is exactly the canonical example in the SE standard dimension list, line 36). `format_show_block(&issue, false)` at any call site reads as "show without color" — the reader has to look up the signature to learn what `false` means; a more idiomatic Rust shape is either `ColorMode::Auto | On | Off` enum, a `ShowFormatter` builder that captures the mode at construction, or two thin wrappers (`format_show_block_color`, `format_show_block_plain`). The unit tests already pass `false` at multiple call sites (`src/lib.rs:1336`, `:1354`) — they read as magic-constant noise rather than intent.
+
+2. **TTY-detection duplication (Dim 5).** `std::io::stdout().is_terminal()` is called once in `cmd_show` (line 591) and once in `cmd_list` (line 835). It is a global property of the process's stdout — it does not change between the two invocations within a single process run. The right architectural place for this detection is `main.rs`, where the result can be threaded into the command dispatch as a typed `ColorMode` value or stored at a process-singleton level. The current shape duplicates the syscall (cheap, but unnecessary) and forces every future command that emits color to re-derive the same boolean independently — a pattern the SA review explicitly calls out as "decisions that should be centralized in main.rs leaking into business logic."
+
+3. **Testability (Dim 11).** `format_show_block`'s unit tests (`multiline_description_show_format`, `show_label_column_right_padded_to_13`) pass `use_color: false` because there's no way to assert against TTY-true output in a non-TTY test environment. The function's color path is exercised only by manual TTY testing per TODO.md line 391. A `ColorMode::Off` enum variant or a builder with an explicit `.with_color(false)` method would make the test-side intent self-documenting; the `false` literal is opaque.
+
+**Proposed action (SE Round 2):** Refactor TTY detection out of `cmd_show` / `cmd_list` into `main.rs`. Introduce a `pub enum ColorMode { On, Off }` (or `Auto` if you anticipate a future `--no-color` / `NO_COLOR` env flag — Layer 7 spec doesn't require it, but the enum costs nothing extra). Thread `ColorMode` through `format_show_block` and the list-row helpers. Two-line change at each call site; widens the `cmd_show` / `cmd_list` signatures by one parameter (matched by the SA R13 F1 CreateArgs precedent — the same project preferred a struct over a long parameter list, so a `ListArgs { color: ColorMode, ... }` or a thin `format_show_block(&issue, ColorMode::Off)` is consistent).
+
+**Severity:** Medium. Idiomaticity / API design concern, not a correctness bug — every test passes today. But this is exactly the pattern SE Standard dimension 4 calls out as worth flagging in code review, and the file has 5 new top-level items added in one commit without addressing it. Holding as Open for Round 2 SE work.
+
+**Sycophancy check:** Was the boolean dismissed because "the function is small and the boolean is obvious in context"? Pushed back: the SE-standard line 36 specifically distinguishes "minor variation (`includeTimestamp: boolean`)" — acceptable — from "switches between fundamentally different code paths" — not acceptable. Color vs. no-color is the canonical example of the latter (the entire ANSI-emission code path is bypassed). Held.
+
+**Classification:** Open. SE Round 2 refactor candidate; not applied this round per Round 1 cold-batch surfacing rule.
+
+---
+
+**Finding 2 — `pad_after_color(colored, visible_chars, total_width)` exposes a `visible_chars` parameter that the caller must compute correctly; an off-by-one in either call site silently mis-aligns columns with no test catching it (Dim 3 — Naming and type precision / Dim 8 — Defensive coding, API misuse surface)**
+
+`src/lib.rs:91` — `fn pad_after_color(colored: &str, visible_chars: usize, total_width: usize) -> String`. Two call sites in `cmd_list` (lines 856, 859):
+
+```rust
+let status_cell = pad_after_color(&status_colored, issue.status.chars().count(), 11);
+...
+let priority_cell = pad_after_color(&priority_colored, issue.priority.chars().count(), 8);
+```
+
+The function correctly computes pad bytes from `visible_chars`, but the *contract* is that the caller has correctly counted the visible-width budget of the *bare* value that's now embedded inside `colored`. Three failure modes:
+
+1. **Caller passes the wrong source for `visible_chars`.** A future maintainer adding a `cmd_show` colored-cell call site could plausibly write `pad_after_color(&colored, colored.chars().count(), 8)` (counting the ANSI-wrapped string by mistake) and silently get the wrong pad amount. The function's doc comment warns about this ("`visible_chars` is the character count of the bare value (no ANSI codes)") but the type signature does not enforce it — `usize` is a `usize`, and the compiler accepts either source.
+2. **Future non-ASCII value introduces a count-vs-display-width gap.** Today all status / priority values are ASCII (`high`, `medium`, `low`, `open`, `in-progress`, `done`), so `chars().count()` equals visual column width. If a future spec amendment localizes these values (out of current spec scope, but the SE-supplement section on i18n flags this as a planned hazard) and a value contains a wide-character glyph or a zero-width joiner, `chars().count()` no longer equals the visible column width and the cell mis-aligns. The function name suggests width-awareness; the implementation is character-count-aware.
+3. **The API conflates two concepts.** A more idiomatic Rust shape passes the *bare value* + *the ansi prefix* + *the total width*, and the function internally computes `value.chars().count()`, wraps, and pads — eliminating the caller's bookkeeping. E.g. `fn render_padded_color_cell(bare: &str, ansi: Option<&str>, total_width: usize) -> String`. The current two-function split (`wrap_color` then `pad_after_color`) leaks the visible-width count from the wrap step to the pad step, requiring the caller to remember the bare value's length across two calls.
+
+**Proposed action (SE Round 2):** Collapse `wrap_color` + `pad_after_color` into a single `render_color_cell(bare: &str, ansi: Option<&str>, width: usize) -> String` that computes the visible width internally. The `wrap_color` shape is preserved for `format_show_block` (which doesn't pad — the value occupies whatever width it needs and the next field follows on a new line). Optionally introduce a `VisibleWidth(usize)` newtype if the i18n hazard becomes load-bearing; that's a Layer 8+ concern, not Layer 7.
+
+**Severity:** Medium. API design concern; today's two call sites both pass `issue.status.chars().count()` and `issue.priority.chars().count()` correctly, so no live bug. But this is exactly the SE-standard dim 3 "primitive obsession" pattern — a `usize` parameter that the caller could plausibly compute from the wrong source produces silent column drift, and no unit test exists for the padded-cell width function (the integration tests assert on stdout but only against the piped non-color path).
+
+**Sycophancy check:** Was this dismissed because "all call sites currently pass the right value"? Pushed back: the dim-3 standard explicitly names this as a "hole where two values can be confused" — the typing question is whether the API forces correctness, not whether the current callers happen to be correct. Held.
+
+**Classification:** Open. SE Round 2 refactor candidate.
+
+---
+
+**Finding 3 — Five new top-level items added to `src/lib.rs` (already 870+ lines pre-Layer 7) without addressing the four-round-Open `lib.rs` module-split carry-forward (SA R13 F2); the file is now even longer and harder to navigate (Dim 6 — Complexity; Dim 11 — Future-self; cross-domain SA)**
+
+The Phase 2b commit adds:
+- `const ANSI_RESET: &str` (`src/lib.rs:46`)
+- `fn priority_ansi` (lines 51-60)
+- `fn status_ansi` (lines 65-74)
+- `fn wrap_color` (lines 79-84)
+- `fn pad_after_color` (lines 91-97)
+
+…all at the crate-level top, with a single 20-line doc-comment block (`src/lib.rs:28-44`) introducing them as "Layer 7: TTY-detected color output." The R16 closure documented SA R13 F2 (`lib.rs` module split) as "Open / Deferred to pre-Layer-7 focused PR per SO R21." Layer 7 landed *without* that focused PR. The file is now ~30 lines longer for the color helpers + signature widening + per-row rewrite, and the color helpers are interleaved with data-model types (`Tracker`, `Issue` start at line 114), validation helpers (`validate_title` at 167), parsing helpers (`parse_status` at 430), and command handlers (`cmd_create`, `cmd_status`, `cmd_show`, `cmd_delete`, `cmd_list`). The color helpers are a natural module — `mod render` or `mod color` — but they were added to the same flat namespace.
+
+**Why this is real and not a quibble:** The R15 / R16 entries cite SE R11 F2 / SA R9 F1 / SA R11 F1 / SA R13 F2 as recurring `lib.rs` cohesion concerns. Each layer that adds new top-level items without addressing the split makes the eventual split harder (more renames, more visibility decisions, more import churn). Layer 7's color helpers are the cleanest candidate for a first split (they have no inbound dependencies on the data model and three outbound dependencies — `format_show_block`, the `cmd_list` per-row block, and the `ANSI_RESET` constant). Landing them inline normalizes "add to lib.rs top-level" as the project pattern.
+
+**Proposed action:** SA Round 2 should explicitly carry SA R13 F2 forward to a Layer 7 closure round (or formally re-defer to Layer 8 with rationale). SE Round 2 should not split unilaterally — the split is SA-domain authority. If SA Round 2 elects to do the split, the color helpers and `format_show_block` / list-row rendering are the natural first extraction. Flagged here so the SA cold session has a concrete Layer 7 trigger rather than another silent carry-forward.
+
+**Severity:** Medium. Architectural drift, not a correctness bug. The pattern of "defer the split, add to the file" has now repeated across Layers 5, 6, and 7.
+
+**Classification:** Open. Raised to SA (SE does not own module structure per CLOSURE-PROTOCOL.md §1).
+
+---
+
+### Dismissed
+
+**Finding 4 — `wrap_color` allocates `value.to_string()` even when `ansi: None`; a `Cow<str>` return would avoid the allocation on the piped path (Dim — Performance Engineer / Allocation patterns; deliberately scoped out)**
+
+`src/lib.rs:79-84` returns `String` unconditionally. On the piped path (`use_color == false`), both `priority_ansi` and `status_ansi` return `None`, and `wrap_color` falls through to `value.to_string()` — one `String` allocation per status cell and per priority cell, per issue, per `cmd_list` call. `cmd_list` then calls `pad_after_color` which conditionally allocates another `String` if the value is shorter than the column width. For a tracker with N issues, this is `4N` allocations on the hot list-render path that a `Cow<str>` shape could reduce to `0–2N` (the bare-value cases borrow from the issue field).
+
+**Classification:** Dismissed — premature optimization for this project. (a) The CLI-supplement notes "for simple local tools with no network dependency and trivial data volumes, scope down significantly or skip" the performance dimension. (b) `cmd_list` runs once per command invocation; a single-user portfolio CLI is bounded at tens-to-low-hundreds of issues; `4N` × `String::with_capacity(8 bytes)` is microseconds, dominated by the I/O round-trip on `tracker.json`. (c) Introducing `Cow<str>` propagates a lifetime parameter through `wrap_color` → `format_show_block` → the per-row format string, adding signature noise for an unmeasured gain. The right time to revisit is if a future N grows the data set significantly (DESIGN.md Out of Scope already excludes archiving, so the issue count is unbounded long-term — but until profile data shows an allocation hot spot, this is speculative). Logged for future-self if `cmd_list` ever becomes a measurable hot path.
+
+---
+
+**Finding 5 — `use std::io::IsTerminal;` is imported but the identifier never appears in source; could be more explicit (Dim — Style preference, not a defect)**
+
+The import is load-bearing (the trait must be in scope for the `.is_terminal()` method-call syntax on `Stdout` to resolve) but the identifier `IsTerminal` doesn't textually appear elsewhere in `lib.rs`. A reader could plausibly think the import is dead and remove it.
+
+**Classification:** Dismissed. (a) This is idiomatic Rust — trait imports for method-call syntax look "dead" but are not, and the compiler will error loudly if the trait is removed (the call fails to resolve). (b) Cargo + clippy do not warn about it because the trait is in fact used. (c) Adding a comment (`// Trait imported for method-call syntax: stdout().is_terminal()`) would clarify, but the call site is 130+ lines below the import and the cost-benefit is marginal. The Rust idiom is widely understood. Not a defect.
+
+---
+
+**Finding 6 — The bool gate at the top of `priority_ansi` / `status_ansi` could collapse to `use_color.then(|| match …).flatten()` idiomatic form (Dim — Idiomaticity, style preference)**
+
+`src/lib.rs:51-60` and `:65-74` both have the shape:
+```rust
+if !use_color {
+    return None;
+}
+match priority { … }
+```
+
+A more "rustic" form is `use_color.then(|| match priority { "high" => Some("..."), ... _ => None }).flatten()`, or — more cleanly — collapse to `if use_color { match … } else { None }` as a single expression.
+
+**Classification:** Dismissed. The current early-return form is **more** readable than the `.then(|| ...).flatten()` chain, which inverts the parsing order (the gate now sits between the closure return type and the match expression, making the reader work harder to identify the bypass case). The clippy lint `needless_bool` does not flag this pattern; nor does `redundant_closure`. The early-return is a common Rust idiom and aligns with project style elsewhere in `lib.rs` (e.g., `validate_title` line 169, `validate_description` line 507). No change.
+
+---
+
+**Finding 7 — Four String allocations per list row (`status_colored`, `status_cell`, `priority_colored`, `priority_cell`) instead of a write-into-a-buffer pattern (Dim — Performance, deliberately scoped out)**
+
+`cmd_list` (`src/lib.rs:855-859`) allocates a new `String` per cell per row. A `write!` into a pre-allocated `String` buffer or an `io::BufWriter<Stdout>` would reduce allocation pressure.
+
+**Classification:** Dismissed for the same reasons as Finding 4. CLI-supplement scope-down for trivial-volume tools applies. Logged for future-self if a profile shows allocation-pressure on the list path.
+
+---
+
+### Hallucinated
+
+*(none. Findings 1-3 each have a concrete reproducer / structural argument; Findings 4-7 are real-but-deliberately-scoped-out observations with stated rationale.)*
+
+---
+
+### Carry-over check (prior-finding closure status)
+
+- **SE R11 F2 / SA R9 F1 / SA R11 F1 / SA R13 F2** (`cmd_list` rendering extraction + `format_show_block` constants + `lib.rs` module split): **Still Open / Deferred.** Layer 7 *touches* the `cmd_list` rendering block (rewrites per-row format to use `status_cell` / `priority_cell`) but does not address the extraction. The header-row format string at line 838 (`"{:<4}  {:<11}  {:<8}  {:<20}  Title"`) and the data-row format string at line 861 are still divergent shape literals — the column-width drift surface SA R11 F1 named is unchanged. Finding 3 above re-flags the architectural carry-forward; SA cold session for Layer 7 should formally address.
+- **SE R13 F1** (rustdoc trim-normalization caller obligation on `issue_matches_filters`): Closed in SE R14. No regression at Layer 7 (predicate untouched).
+- **SE R15 F1 / F2** (description Cc defense + bare-`\r` rendering): Closed in SE R16 / commit `9b775f0`. No regression at Layer 7 (description validation untouched; `format_show_block`'s `\r\n` → `\n` normalization stays as defense-in-depth, ratified in DESIGN.md per R16).
+- **SO R22 / Option A persistent counter:** Closed in commit `8ed7db3` and verified at the start of this round. No regression at Layer 7 (`bump_next_id` / `Tracker::next_id` / `cmd_create` untouched).
+- **Doc-coverage on new public surface:** The Layer 7 additions (`ANSI_RESET`, `priority_ansi`, `status_ansi`, `wrap_color`, `pad_after_color`) are all `pub(crate)` / private (no `pub` modifier — verified by re-reading lines 46-97). The crate-level `#![deny(clippy::missing_errors_doc)]` does not apply (none return `Result`); `missing_docs` is not in the deny set so private items without `///` are not flagged. The four functions and `format_show_block`'s `use_color` parameter *are* documented (each has a `///` comment). No doc regression.
+
+---
+
+### Summary
+
+Cold-session SE Review 17 outcome on Layer 7 (Polish: `--help`, TTY color output, error specificity): **0 Resolved, 3 Open (boolean-trap on `format_show_block` + duplicated TTY detection; `pad_after_color` error-prone API; `lib.rs` keeps accumulating top-level items without the long-pending module split), 4 Dismissed-with-rationale, 0 Hallucinated.**
+
+**Top SE concerns:**
+1. **Finding 1 — boolean-trap + TTY-detection duplication.** `format_show_block(issue, use_color: bool)` is the canonical SE-standard-dim-4 antipattern (flag argument controlling fundamentally bifurcated behavior), and `std::io::stdout().is_terminal()` is called independently inside `cmd_show` and `cmd_list` rather than centralized in `main.rs`. The fix is structural: introduce a `ColorMode` enum, detect once in `main.rs`, thread through. Round-2 SE refactor.
+2. **Finding 2 — `pad_after_color(colored, visible_chars, total_width)` is an error-prone API.** The caller passes a `usize` that must equal the character count of the bare value (not of the ANSI-wrapped string the function actually receives). Today's two call sites happen to be correct, but the type system does not enforce correctness — a future maintainer who passes `colored.chars().count()` by mistake gets silent column drift, and no unit test covers the padded-cell width function. Refactor to `render_color_cell(bare, ansi, width)` that computes visible width internally.
+
+**Layer 7 correctness verdict:** Implementation is sound on every spec-internal path inspected this round.
+- `priority_ansi` / `status_ansi`: correct match on the two non-default values per priority/status; `None` for default-color values; gated by `use_color`. ✓
+- `wrap_color`: correctly emits prefix + value + `ANSI_RESET` on Some, returns bare value on None. ✓
+- `pad_after_color`: correctly computes pad bytes from `visible_chars`; handles the `visible_chars >= total_width` overflow case by returning the colored string unmodified (which is the spec-intended behavior — values exceeding column width are not truncated by the pad function; the only Layer 7-relevant overflow is unreachable since all priority / status values are bounded by the longest valid value `"in-progress"` at 11 chars, matching the column width). ✓
+- `format_show_block`: color wrap correctly applied only to status / priority values; label column uncolored per DESIGN.md "color applies to value text only" (line 250). ✓
+- `cmd_show` / `cmd_list` TTY detection: `is_terminal()` on `stdout()` correctly gates color emission; piped path (verified by `*_piped_has_no_ansi_codes` integration tests) emits no ANSI bytes. ✓
+- MSRV: `IsTerminal` is stable since 1.70; project pins 1.94.1 in `rust-toolchain.toml`. ✓
+- Trait import (`use std::io::IsTerminal`) is load-bearing for method-call syntax resolution. ✓
+
+The three Open findings are idiomaticity / API design / architectural concerns — they would not block correctness, but they are exactly the dimensions (Dim 4 flag-argument, Dim 3 type precision, Dim 6 complexity) that the SE-domain prompt instructs to push hardest on. "Code compiles and tests pass" is not a defense against any of them.
+
+**Maintainability verdict:** Layer 7 SE-domain at MVR for correctness; not at MVR for idiomaticity. The boolean-trap and the error-prone `pad_after_color` shape are both Round-2-SE-fixable in a focused refactor; the `lib.rs` module-split carry-forward (Finding 3) is the SA-domain decision that has now been deferred across four layers and is the largest source of architectural debt in the SE log.
+
+**Sycophancy check:** Three softenings considered and pushed back on:
+1. *Was Finding 1 softened because "the boolean is small and the call sites are obvious"?* — Pushed back by quoting SE-standard line 36 verbatim: color vs. no-color is the canonical fundamentally-bifurcated-behavior example. Held.
+2. *Was Finding 2 dismissed because "the current callers are correct"?* — Pushed back: dim 3 asks whether the type system forces correctness, not whether current callers happen to be correct. Held.
+3. *Was Finding 3 ("more stuff in lib.rs") deflected as "not SE-domain"?* — Partially: SA owns the module structure, so the finding is correctly classified as Raised-to-SA. But SE flagging the pattern is the right escalation; the fourth layer of carry-forward is itself a finding worth surfacing in the SE log rather than only in the SA log.
+
+**Coordination:**
+- **SA Review 14 (or equivalent Layer 7 SA round):** Finding 3 — `lib.rs` module split is now four layers Open. The Layer 7 color helpers (`priority_ansi`, `status_ansi`, `wrap_color`, `pad_after_color`, `ANSI_RESET`, plus `format_show_block` and the `cmd_list` per-row rendering) are the cleanest first-extraction candidate (no inbound deps on data model; tight internal cohesion). SA should formally close to Resolved (do the split) or to Deferred-with-explicit-Layer-N (preferably with the SO R21 deferral re-justified for Layer 7's expanded surface).
+- **QE Review 17:** SE-side test gap — no unit tests cover the four new helper functions (`priority_ansi`, `status_ansi`, `wrap_color`, `pad_after_color`). The integration tests `list_piped_has_no_ansi_codes` / `show_piped_has_no_ansi_codes` cover the `use_color == false` aggregate behavior but not the per-function unit contract. Suggested unit tests: `priority_ansi_returns_none_when_use_color_false`, `priority_ansi_returns_bold_red_for_high`, `priority_ansi_returns_yellow_for_medium`, `priority_ansi_returns_none_for_low_or_unknown`, `status_ansi_returns_none_when_use_color_false`, `status_ansi_returns_cyan_for_in_progress`, `status_ansi_returns_green_for_done`, `status_ansi_returns_none_for_open_or_unknown`, `wrap_color_returns_bare_value_on_none`, `wrap_color_wraps_with_prefix_and_reset_on_some`, `pad_after_color_pads_when_shorter_than_width`, `pad_after_color_returns_unchanged_when_at_or_over_width`. SE Round 2 (or QE if QE wants the test ownership) lands these in parallel with any refactor.
+- **UX Review:** Defer to UX cold session for color-rendering correctness in TTY (the spec's bold-red / yellow / cyan / green palette matches the DESIGN.md table; SE has verified the byte sequences but not the visual rendering — that's UX's manual checklist). No SE concern raised; just a note that UX should explicitly verify the priority="low" / status="open" default-color cases produce no ANSI bytes (the `wrap_color(None)` path), which the integration tests already cover indirectly.
+- **VDD-IAR Review 17:** Layer 7 Phase 2a → Phase 2b → manual closure cadence is intact (3 commits in order: 7b461aa Red Gate, a2b8062 implementation, 603c689 closure). No process concern from the SE lens. CHANGELOG entry at line 3 of CHANGELOG.md records Layer 7 implementation with the correct timestamp shape (`2026-05-11 22:00Z`).
+- **No DESIGN.md amendments required.** Spec is silent on whether color detection lives in `main.rs` vs. command handlers, and the "color applies to value text only" requirement is satisfied. SO not engaged this round.
+
+**Files modified this session:** `iterative-adversarial-refinement/SOFTWARE-ENGINEER-REVIEW.md` only (this entry). No `src/**/*.rs` changes (cold-batch surfacing — Round 1 does not apply fixes per CLOSURE-PROTOCOL.md §5 step 1). No test, DESIGN.md, TODO.md, or CHANGELOG changes.
+
+---
+
+## Review 18 — 2026-05-12 00:00Z
+
+**Round:** SE Review 18 (Layer 7 IAR Round 2 closure pass). Warm verification per CLOSURE-PROTOCOL.md §5; not a new adversarial round.
+
+**Scope:** Verify R17 Open findings closed by commits `fbbb8a3` + `09b1905`. Inputs: `src/lib.rs` (now with `ColorMode`, `color_mode_from_env`, `render_cell`, `sanitize_quoted_values`, public `display_safe`); `src/main.rs` (centralized TTY decision + `sanitize_quoted_values` application to clap errors).
+
+### Round-1 finding closures
+
+- **F1 — `format_show_block(issue, use_color: bool)` boolean-trap + duplicated TTY detection:** **Resolved by `09b1905`.** `pub enum ColorMode { On, Off }` with `is_on()` accessor replaces the bool parameter. `cmd_show(id_raw, issues_path, color: ColorMode)` and `cmd_list(..., color: ColorMode)` take the decision as parameter. `std::io::stdout().is_terminal()` no longer called inside library functions — single decision point in `src/main.rs` L88 via `tracker::color_mode_from_env()`. The flag-argument antipattern is closed; environmental state is threaded explicitly.
+- **F2 — `pad_after_color(colored, visible_chars, total_width)` exposes a caller-must-compute-visible-chars API surface:** **Resolved by `09b1905`.** `render_cell(value, ansi, total_width)` replaces it: caller passes the bare value + optional ANSI prefix + width; visible_chars is computed internally from `value.chars().count()`. The off-by-one API-misuse surface is eliminated by construction. Unit tests on `render_cell` pin the new contract: padding for narrow value, no padding when at-or-over width, ANSI bytes not counted against the width budget.
+- **F3 — Five new top-level items added to `src/lib.rs` without addressing the four-round-Open module split:** **Backlogged with SA R16 F1 / SO R24 F1 per CLOSURE-PROTOCOL.md §3.** The module split remains the right architectural move but the cost-benefit hasn't shifted to schedule it in any specific upcoming layer. `src/lib.rs` LOC at HEAD: ~1908 (Round-1 was 1506; +402 from test additions + `sanitize_quoted_values` + `color_mode_from_env_*` tests). Non-test code is still under the SA R13 F1 Trigger B threshold.
+
+### Round-2 implementation review (added since R17)
+
+- **`ColorMode` enum:** clean. `#[derive(Debug, Clone, Copy, PartialEq, Eq)]` appropriate. `is_on()` accessor sugar reads better than `matches!(c, ColorMode::On)` at call sites.
+- **`color_mode_from_env`:** clean. Short-circuits at TTY check first (cheapest), then NO_COLOR, then CLICOLOR. `var_os` over `var` avoids UTF-8-validation panic on non-UTF-8 env values. Returns `ColorMode::Off` consistently when any opt-out fires.
+- **`wrap_color` debug_assert! byte-hygiene** (Security R11 F1 closure): `debug_assert!` is the right vehicle — fires on the test surface to catch refactor-introduced free-form colored fields, compiles out in release. Message includes the offending value for diagnostic.
+- **`sanitize_quoted_values`** (RT R10 F1 closure): clean two-buffer state machine; defensive on unbalanced trailing `'`; unit tests cover passthrough / single-quoted / unbalanced / multiple-quoted cases. `pub` exposure is appropriate (sibling to `display_safe`).
+- **`render_cell`** (SE R17 F2 closure): clean; reuses `wrap_color` internally for the color step; padding computed against bare-value char count.
+- **`#![deny(clippy::unwrap_used, expect_used, panic, missing_errors_doc)]` discipline:** unchanged. All new pub functions have doc-comments; the new env-helper tests use `unwrap_or_else(|e| e.into_inner())` to recover from a poisoned mutex (defensive) rather than `unwrap()`.
+
+### New findings
+
+*(none — closure pass.)*
+
+### Summary
+
+2 of 3 R1 findings Resolved by R2 code changes (F1 ColorMode enum + main.rs centralization; F2 render_cell API refactor). F3 (lib.rs module split) Backlogged with the SA carry-forward cluster. Round-2 implementation is idiomatic Rust: ColorMode enum follows the type-safety idiom over bool flags; `sanitize_quoted_values` is a clean pure function; `display_safe` exposure to `pub` is the correct cross-crate API decision. No regression on the lint deny-set or on the public-API surface contract.
+
+**Coordination:** QE R18 — render_cell + ColorMode + sanitize_quoted_values test coverage verified. SA R16 — F3 Backlog ratification. Platform R13 — MSRV declaration consistent with `Option::is_none_or` usage.
+
+**Files modified:** This log appended only. The `src/lib.rs` + `src/main.rs` edits landed in `09b1905` under SE authority per CLOSURE-PROTOCOL.md §1.
+
+---
+
+## Review 19 — 2026-05-12 12:00Z
+
+**Round:** SE Review 19 (Layer 7 IAR Round 3 — cold adversarial pass on the post-R2 change set).
+**Scope:** Cold-session, no prior involvement in the R3 commits. Five-commit change set since `b853a81`:
+
+- `ff0e85c` — cargo clippy pre-commit hook (Platform-domain, but the hook is the only failure surface that gates SE-owned `src/**/*.rs` from a clippy regression at commit time)
+- `c341a54` — `render_cell` ASCII `debug_assert!`
+- `bd7511e` — `TRACKER_INTERNAL_FORCE_COLOR` test seam
+- `3fa1f3c` — `cmd_list` rendering extraction (`filter_issues`, `format_list_header`, `format_list_row`, `show_label`) + module-level column-width constants
+- `8db9437` — three-module split (`src/lib.rs` → `commands.rs` + `storage.rs` + `validate.rs`)
+
+Code reviewed in full: `src/lib.rs` (62 lines + tests mod), `src/storage.rs` (219 lines), `src/validate.rs` (273 lines), `src/commands.rs` (675 lines), `src/main.rs` (137 lines), `Cargo.toml`, `DESIGN.md` (re-read for SE-relevant deltas), prior R17 + R18 entries (cold-then-warm pair for Layer 7).
+
+**Session note:** Cold-batch surfacing per CLOSURE-PROTOCOL.md §5 step 1; no fixes applied this round. The R3 prompt foregrounded the SE sycophancy risk explicitly ("the refactor compiles + 237/237 tests pass + clippy clean is exactly the kind of result that softens reviewers") — I held that as a posture filter throughout. The change set is genuinely clean by the obvious axes (the split compiles, tests pass, clippy is green, doc-comments expanded for each new module). The findings below are the gaps that remain *after* granting all of that.
+
+**Regression check:** No behavioral regressions. Pre/post-split public function bodies are byte-identical for `cmd_create`, `cmd_status`, `cmd_show`, `cmd_delete`, `cmd_list`, `validate_*`, `parse_*`, `load_tracker`, `save_tracker`. The rendering extraction (`3fa1f3c`) refactored `cmd_list`'s inline rendering into `filter_issues` / `format_list_header` / `format_list_row` but the byte output of `cmd_list` is unchanged — the unit tests `format_list_header_uses_width_constants` and `format_list_row_uncolored_when_color_off` pin the new helpers against the pre-extraction literal strings. The `c341a54` `render_cell` `debug_assert!` is compiled out in release; release-build behavior is unchanged. The `bd7511e` env-var seam adds a single-branch path at the top of `color_mode_from_env` — the production path (env var unset) is unchanged.
+
+**Assumption surfacing (G-20):**
+- `std::env::var_os(...).is_some_and(|v| v == "1")` — `OsString::eq` against `&str` is stable; the `"1"` comparison falls back to byte-equality on `OsStr`, so a multi-byte non-UTF-8 env value that decodes to "1" is not a concern (no valid OS path produces this).
+- `chars().count()` vs visible terminal width: addressed by the `render_cell` `is_ascii()` `debug_assert!`. Verified that every legal call-site value (`"high"`, `"medium"`, `"low"`, `"open"`, `"in-progress"`, `"done"`) is ASCII per `PRIORITY_ORDER` / `VALID_STATUSES` membership.
+- `pre-commit` clippy hook uses `--locked`: requires `Cargo.lock` committed to the binary crate (matches the rust supplement's "`Cargo.lock` commitment" check for binary crates — verified consistent with project state).
+
+---
+
+### Open
+
+**Finding 1 — `lib.rs` re-export surface is over-exposed: 15 of 23 re-exported items are unreachable from `main.rs` and tests, making the public API artificially wide (Dim 7 — Type safety / API surface discipline; Dim 11 — Future-self maintainability)**
+
+`src/lib.rs:42-50` re-exports 23 items via three `pub use` blocks. Cross-referencing against the actual consumers:
+
+- **`src/main.rs` uses 8 items**: `cmd_create`, `cmd_delete`, `cmd_list`, `cmd_show`, `cmd_status`, `CreateArgs`, `ColorMode` (typed parameter only — variant constructors not used), `color_mode_from_env`, `sanitize_quoted_values`.
+- **`tests/*.rs` integration tests import zero `tracker::*` items** — verified by `grep -rE "tracker::[A-Za-z_]+" issue-tracker-cli/tests/` returning empty. The Layer 1-7 integration tests invoke the binary via `assert_cmd::Command` and never touch the library API.
+- **`#[cfg(test)] mod tests` inside `lib.rs` uses items through `use crate::commands::*; use crate::storage::*;`** — that is, through the module paths, not through the re-exports.
+
+The 15 over-exposed items: `label_matches`, `sort_issues`, `Issue`, `Tracker`, `load_tracker`, `save_tracker`, `bump_next_id`, `current_timestamp`, `dedupe_labels`, `display_safe`, `parse_id`, `parse_label`, `parse_priority`, `parse_status`, `validate_description`, `validate_title`. None of these are reached by `main.rs` or by any integration test. They are part of the `tracker::*` public API only because the `pub fn ...` declarations in `commands.rs` / `storage.rs` / `validate.rs` plus the `pub use ...` re-exports together promote them to crate-level public.
+
+Why this matters:
+
+1. **Public-API contract drift.** Semver discipline (when the project eventually publishes — `Cargo.toml` says `publish = false`, but the module is named `pub mod`) treats any item reachable from the crate root as part of the contract. A future change to `validate_title`'s signature, or a rename of `load_tracker`, becomes a breaking change to any downstream consumer that happened to import it — even though no real consumer was supposed to. The crate's actual consumed surface is 8 items; the documented surface is 23.
+2. **`pub` documents intent.** A reviewer reading `pub fn validate_title` in `validate.rs` infers "this is a designed extension point." A reviewer reading `pub(crate) fn validate_title` infers "this is a crate-internal helper that tests can reach." Today every helper carries the stronger semantic without earning it.
+3. **The doc-comment in `lib.rs:25-28` explicitly states the intent**: *"Selective `pub use` re-exports below preserve the pre-split public API surface (`tracker::cmd_create`, `tracker::Tracker`, `tracker::ColorMode`, etc.) so the `tracker` binary in `src/main.rs` and the integration tests in `tests/` need no changes when the modules move."* But the integration tests *don't consume any of these* and `main.rs` only consumes 8 — so "preserve the pre-split public API surface" preserves a public surface that was never load-bearing in the first place. The pre-split `lib.rs` had every function `pub`; that was a Layer-1-through-Layer-7 accumulation, not a designed API.
+
+**Sycophancy check:** Was this dismissed because "the prior `lib.rs` had everything `pub`, so the split is preserving status quo"? Pushed back: the split was the *moment* to apply visibility discipline (every module move is a free re-evaluation of each item's reach). The R3 prompt explicitly asked "is its visibility the minimum that compiles?" — for 15 items the answer is no, `pub(crate)` would compile and would tighten the contract.
+
+**Proposed action (SE Round 2-on-R3 or deferred to a follow-up SE pass):**
+- Tighten `validate.rs`: `validate_title`, `validate_description`, `parse_status`, `parse_priority`, `parse_label`, `parse_id`, `dedupe_labels`, `bump_next_id`, `current_timestamp`, `display_safe` → `pub(crate)`. (Keep `sanitize_quoted_values` `pub` — used by `main.rs:85`.)
+- Tighten `commands.rs`: `sort_issues`, `label_matches` → `pub(crate)`. (Keep `cmd_*`, `CreateArgs`, `ColorMode`, `color_mode_from_env` as `pub`.)
+- Tighten `storage.rs`: `Issue`, `Tracker`, `load_tracker`, `save_tracker` → `pub(crate)`. (Confirm by spot-check that no integration test imports them; the cold grep above confirms.)
+- Drop the corresponding entries from the three `pub use` blocks in `lib.rs:42-50`.
+
+Net: `tracker::*` shrinks from 23 to ~8 items; tests still pass because they reach modules directly; `main.rs` only touches the items that remain `pub`.
+
+**Severity:** Medium. Not a correctness bug; an API-discipline finding. The kind of structural drift that the rust supplement's "*Lifetimes and cloning … masking a design issue*" lens generalizes to all visibility decisions — `pub` is masking the design at the boundary between the binary crate and a hypothetical library consumer that has never existed.
+
+**Classification:** Open.
+
+---
+
+**Finding 2 — `color_mode_from_env` reads `var_os` at every call rather than caching, despite the doc-comment indicating it is meant to be called once per process; the `pub` surface invites misuse (Dim 8 — Defensive coding / API misuse surface; Dim 11 — Future-self maintainability)**
+
+`src/commands.rs:119-139` — `pub fn color_mode_from_env() -> ColorMode`. The implementation reads `TRACKER_INTERNAL_FORCE_COLOR`, then `is_terminal()`, then `NO_COLOR`, then `CLICOLOR` on every call. Cost: ~4 syscalls per invocation (env lookups go to libc `getenv`, plus one `isatty(STDOUT_FILENO)`).
+
+The function is `pub` and the doc-comment at `src/commands.rs:82-118` is 36 lines long — most of it describing the test seam, the de-facto opt-out env-var conventions, and the `CLICOLOR_FORCE`-deliberately-not-honored decision. What the doc-comment does **not** say is: "*this function must only be called once at process startup; calling it inside a hot loop or after stdout has been replaced is incorrect*." The R3 prompt named this directly: "*The function reads env at every call — is that the right pattern? Alternative: read once at startup, cache. Is the doc-comment sufficient to prevent misuse?*"
+
+The R18 closure entry (line 1894) records the design rationale: "*single decision point in `src/main.rs` L88 via `tracker::color_mode_from_env()`. The flag-argument antipattern is closed; environmental state is threaded explicitly.*" That decision was correct — but the *enforcement* lives entirely in the convention of `main.rs` calling it exactly once. A future maintainer who adds a new command handler and reaches for `color_mode_from_env()` directly inside the command (rather than threading `ColorMode` through from `main.rs`) gets:
+
+1. **Subtle correctness drift if stdout state changes mid-process.** A future change that swaps stdout (test scenarios, sub-process orchestration, structured-logging frameworks) makes the cached decision and the per-call decision diverge. The current contract is "ColorMode is decided once and threaded"; the API doesn't carry that contract — `color_mode_from_env()` looks like a getter, not a one-shot.
+2. **Test-seam leakage.** `TRACKER_INTERNAL_FORCE_COLOR` is read at every call. If a test sets the env var, runs `color_mode_from_env()` once, then the production code calls `color_mode_from_env()` again later (after the test has cleaned up the env var), the two calls return different results. The unit tests at `src/lib.rs:982-1103` already serialize via `ENV_TEST_LOCK` because of this — but that mutex protects *test-internal* env mutation; nothing protects a production code path that called the function twice. Today no path does; the API allows it.
+3. **The doc-comment is not sufficient.** The doc-comment names the test seam in detail but says nothing about call frequency. A reader who finds the function via `cargo doc` (the `pub` declaration generates rustdoc) sees a well-documented "compute the color mode" function and has no signal that it is conceptually a `OnceLock<ColorMode>`.
+
+Three options, in increasing order of structural change:
+
+- **Minimum**: add a doc-comment line stating "*Call this exactly once at process startup; thread the returned `ColorMode` through to command handlers. Do not call inside command logic.*" Costs nothing; closes the misuse-by-misreading path.
+- **Better**: cache via `OnceLock<ColorMode>` internally so repeat calls are idempotent. Costs one `OnceLock` and a `.get_or_init()` call site; the cached value matches the call-time decision exactly because the env-var snapshot is taken at the first call (matching the current `main.rs` pattern).
+- **Strictest**: rename to `decide_color_mode_at_startup` and document the call-once contract in the name. Costs a rename; renders the misuse near-impossible.
+
+The R3 prompt asked the right question; the answer today is "the doc-comment is not sufficient."
+
+**Sycophancy check:** Was this dismissed because "main.rs calls it once and that's the only consumer, so it's fine in practice"? Pushed back: the question is whether the API enforces the contract or relies on the caller remembering. The "single decision point" claim in R18's closure is true at the call-site level but not at the API level — anyone reading just `commands.rs` sees a function that purports to be safe to call repeatedly. The R18 reviewer (and I) granted the closure because the call site in `main.rs` was correct; the *function* wasn't audited for repeat-call safety. That's the gap.
+
+**Proposed action:** Apply the "Minimum" option immediately (one doc-comment line) and queue the "Better" option (`OnceLock`) for an SE pass when the project takes on its next user-facing change to the color pipeline.
+
+**Severity:** Medium. Not a correctness bug today (single call site); an API-discipline finding for future-self.
+
+**Classification:** Open.
+
+---
+
+**Finding 3 — `render_cell` `debug_assert!` for ASCII fires on *every* call site that passes non-ASCII issue titles or labels in the future without `render_cell` being involved — but the call sites passing titles/labels DO NOT use `render_cell` (Dim 8 — Defensive coding; the assertion is correctly scoped, but the doc-comment over-claims its protection)**
+
+`src/commands.rs:218-234` — `render_cell` has `debug_assert!(value.is_ascii(), ...)`. The doc-comment at lines 204-217 claims this protects against "*a future caller passing a non-ASCII value (e.g., a spec amendment permitting non-ASCII status/priority labels, or a free-form colored field)*." Verified the two current call sites at `src/commands.rs:562-571` (in `format_list_row`): both pass `&issue.status` and `&issue.priority`, both ASCII-bounded by the closed enums.
+
+The doc-comment correctly identifies the today-state — but the protection only fires when `render_cell` is the rendering path. The title and labels columns in `format_list_row` go through `truncate_with_ellipsis` + format-string `{:<labels_width$}` padding, NOT through `render_cell`. So if a future spec amendment introduces color on the title column (DESIGN.md does not, but the R18 entry mentions "free-form colored field" as a hypothetical), and a future maintainer adds `render_cell(&issue.title, title_ansi, TITLE_WIDTH)` for that, the `debug_assert!` fires — good. But if they instead inline the color wrap into the existing `{:<labels_width$}` path (the path the title and labels currently use), the `debug_assert!` does not fire, and the column drift happens silently.
+
+The finding is narrow: **the doc-comment over-claims the safety net.** The assertion does protect the path it covers; it does not protect *every* future colored-field addition, only those that route through `render_cell`. A more precise doc-comment line: "*This assertion protects `render_cell` callers; the same constraint also applies to any future inline-rendering path that pads a colored cell and is not covered by this assertion.*"
+
+**Sycophancy check:** Was this softened to "the assertion is fine"? Pushed back: the prompt explicitly asked "*are the assertions narrow enough that they don't fire on legitimate edge cases? Are the messages actionable?*" The assertion *is* narrow enough and the message *is* actionable — but the framing as "protects all future non-ASCII colored fields" is the over-claim. The defensive coding pattern is sound; the documentation around it is what needs the tightening.
+
+**Proposed action:** Add one clarifying line to the doc-comment block in `commands.rs:204-217` explicitly stating "*the assertion guards `render_cell` callers only; any future inline-rendered colored cell must replicate the constraint.*" Low-cost; closes the doc/code mismatch.
+
+**Severity:** Low-to-Medium. Documentation-precision finding; the code itself is correct.
+
+**Classification:** Open.
+
+---
+
+### Dismissed
+
+**Finding 4 — `pub(crate)` column-width constants (`ID_WIDTH`, `STATUS_WIDTH`, `PRIORITY_WIDTH`, `LABELS_WIDTH`, `TITLE_WIDTH`, `LABEL_COLUMN_WIDTH`) at `commands.rs:42-61` are exposed crate-wide rather than private to the rendering helpers (Dim — Visibility hygiene, deliberately scoped out)**
+
+The R3 prompt asked: "*Reasonable? Or should they be `const` private with named accessor fns?*" Reviewed each consumer: `ID_WIDTH`, `STATUS_WIDTH`, `PRIORITY_WIDTH`, `LABELS_WIDTH`, `TITLE_WIDTH` are referenced only in `format_list_header` and `format_list_row` (same module). `LABEL_COLUMN_WIDTH` is referenced in `format_show_block`, `show_label`, AND in the test `show_label_pads_to_label_column_width` at `lib.rs:583` (test reaches into the constant for an assertion on the width invariant). Two options: (a) make all six `const` and write accessor functions; (b) leave at `pub(crate)`.
+
+**Classification:** Dismissed. (a) Accessor functions add zero type safety for `usize` constants — they would be `pub(crate) const fn label_column_width() -> usize { LABEL_COLUMN_WIDTH }`, which is purely a syntactic indirection with no compile-time benefit. (b) The constants are conceptually crate-internal layout decisions; `pub(crate)` correctly scopes them. (c) The test referenced above explicitly asserts on the constant value, which is the right way to pin the layout contract; switching to accessor functions would make the test read `assert_eq!(show_label(name).chars().count(), label_column_width())` — equivalent to today's `LABEL_COLUMN_WIDTH`. Not a defect.
+
+---
+
+**Finding 5 — `filter_issues` takes `Vec<Issue>` by value rather than `&[Issue]`, forcing the caller (`cmd_list`) to first allocate the intermediate vec (Dim — Performance Engineer / Allocation patterns)**
+
+`src/commands.rs:516-526` — `pub(crate) fn filter_issues(issues: Vec<Issue>, ...) -> Vec<Issue>`. The function consumes the input vec, iterates with `into_iter()`, filters with `issue_matches_filters`, and collects into a new `Vec<Issue>`. The caller path is `cmd_list` at line 646: `let issues = load_tracker(issues_path)?.issues; let mut issues = filter_issues(issues, ...);` — the input `Vec<Issue>` is the loaded tracker's `issues` field, which is consumed by `filter_issues`. A `&[Issue]` + `.iter().filter().cloned().collect()` shape would clone each retained `Issue` rather than moving it; for the current pattern (consume-and-replace) the move is cheaper.
+
+**Classification:** Dismissed. The current consume-by-value shape is correct for the only call site (`cmd_list` loads the tracker, filters, sorts, renders, drops — no other use of the original vec). A `&[Issue]` shape would force per-issue clones of every retained record, which is strictly more allocation for the same result. The signature is fine; rust supplement's "*Is data cloned where a reference or borrow would work without lifetime complexity?*" lens points the other direction here — reference would *introduce* clones. Not a defect.
+
+---
+
+**Finding 6 — `truncate_with_ellipsis` at `commands.rs:500-508` allocates `Vec<char>` even when the input does not need truncation (Dim — Performance, deliberately scoped out)**
+
+When `chars.len() <= max_chars`, the function returns `s.to_string()` after having already materialized `chars: Vec<char>`. A short-circuit that checks `s.chars().count() <= max_chars` (or, more correctly, checks against the byte length and only materializes the `Vec<char>` if truncation is needed) would avoid the allocation on the common path.
+
+**Classification:** Dismissed. (a) CLI supplement's "*for simple local tools with no network dependency and trivial data volumes, scope down significantly*" applies. (b) `cmd_list` calls this twice per row × N rows; N is bounded at tens-to-hundreds for a single-user portfolio CLI; the allocation is `Vec<char>` of length ≤ 50 (title) or ≤ 20 (labels), single-byte ASCII for current inputs. (c) The pre-existing R17 / R18 reviews already dismissed `wrap_color` and per-cell allocations on the same grounds. No new defect.
+
+---
+
+**Finding 7 — The three-module split moved the `#[cfg(test)] mod tests` block to `lib.rs` but left the helper `fn issue(id: u64, priority: &str) -> Issue` declared at `lib.rs:245` *inside* the tests module — which means it has to take `Issue` from a re-export (Dim — Test architecture, QE-owned)**
+
+`src/lib.rs:245-256` declares an `issue` test helper that constructs an `Issue`. It works because `use super::*; use crate::commands::*; use crate::storage::*;` brings `Issue` into scope. If `storage::Issue` were tightened to `pub(crate)` per Finding 1, the helper still compiles (the test module is `mod tests` inside `lib.rs` which has crate-level access).
+
+**Classification:** Dismissed. Not an SE defect — the test architecture works. The R3 prompt asked "*Is the test mod still able to reach every item it needs?*" The answer is yes via the glob imports. QE owns the broader question of whether the test module should be split per-module (`#[cfg(test)]` blocks colocated with each `commands.rs` / `storage.rs` / `validate.rs`) rather than consolidated at `lib.rs`. That's a QE Review 19 question; not an SE finding.
+
+---
+
+### Hallucinated
+
+*(none. Findings 1-3 each have a concrete reproducer / structural argument. Findings 4-7 are real-but-deliberately-scoped-out with stated rationale.)*
+
+---
+
+### Carry-over check (prior-finding closure status)
+
+- **SE R17 F1 (ColorMode boolean-trap + TTY centralization):** Resolved in R18. R3 verified no regression — `format_show_block` / `format_list_row` / `cmd_show` / `cmd_list` all take `color: ColorMode` explicitly; `is_terminal()` lives only inside `color_mode_from_env`, called once from `main.rs:100`. No regression.
+- **SE R17 F2 (`pad_after_color` caller-must-compute-visible-chars API):** Resolved in R18 by `render_cell`. R3 verified: `render_cell` takes the bare value, computes `chars().count()` internally, asserts ASCII in debug builds. Finding 3 above flags a doc-precision gap, not a regression.
+- **SE R17 F3 (`lib.rs` module split deferral):** Resolved by commit `8db9437` this round. Finding 1 above is the new wave of visibility discipline that the split itself enabled — closing F3 didn't close every visibility question, only the file-size-cohesion question.
+- **SE R15 F1 / F2 (description Cc defense + bare-`\r` rendering):** Closed in SE R16 / commit `9b775f0`. No regression at Layer 7 R3 (`validate_description` lives in `validate.rs` unchanged; `format_show_block`'s `\r\n` → `\n` normalization lives in `commands.rs:357`, semantically unchanged).
+- **SO R22 Option A persistent counter:** Closed in commit `8ed7db3`. R3 verified no regression — `bump_next_id`, `tracker_is_valid` constraints, and `cmd_create` counter-bump path all intact across the module move.
+- **Clippy deny-set discipline:** Unchanged at `lib.rs:1-6` — `clippy::unwrap_used`, `expect_used`, `panic`, `missing_errors_doc` all denied. The one `#[allow(clippy::unwrap_used)]` exception at `storage.rs:214` (the `serde_json::to_string_pretty` call on `Tracker`) is justified with a comment per the rust supplement's "*Suppressed lints with no comment are a finding*" rule.
+- **Doc-coverage on new public surface:** Verified each `pub fn` and `pub struct` in the three modules has a `///` doc-comment. `CreateArgs` field doc-comments preserved through the move (`commands.rs:247-256`). Lifetime parameter `'a` correctly preserved (`pub struct CreateArgs<'a>` with `title_raw: &'a str`, `description_raw: Option<&'a str>`, `priority_raw: Option<&'a str>`, `labels_raw: &'a [String]`). Re-export at `lib.rs:43` is `CreateArgs` (lifetime parameter elided in the `pub use` — correct Rust syntax; lifetime is part of the type, not the path).
+
+---
+
+### Summary
+
+Cold-session SE Review 19 outcome on Layer 7 IAR Round 3 (clippy hook + ASCII debug_assert + test seam + cmd_list extraction + three-module split): **0 Resolved, 3 Open (re-export surface over-exposed; `color_mode_from_env` doc-comment does not enforce call-once contract; `render_cell` `debug_assert!` doc-comment over-claims its protection scope), 4 Dismissed-with-rationale, 0 Hallucinated.**
+
+**Top SE concerns:**
+
+1. **Finding 1 — `lib.rs` re-export surface is over-exposed.** The three-module split was the right moment to tighten visibility, and the split kept the pre-split flat `pub` discipline rather than re-evaluating each item against actual reach. 15 of 23 re-exported items have zero external consumers (neither `main.rs` nor any integration test). Tightening to `pub(crate)` would compile, would shrink the documented `tracker::*` surface from 23 to ~8, and would correctly signal "crate-internal helper that tests can reach" rather than "designed extension point."
+2. **Finding 2 — `color_mode_from_env` reads env at every call; doc-comment does not enforce the call-once contract.** The R18 closure documented "single decision point in `main.rs`" — true at the call-site level today, but the API doesn't carry that contract. A future maintainer who calls the function from inside a command handler gets ~4 syscalls per invocation and a test-seam leakage surface where two calls in the same process could return different results if env state changes between them. Minimum fix: one doc-comment line. Better fix: cache via `OnceLock<ColorMode>`.
+
+**Layer 7 R3 correctness verdict:** Implementation is sound on every spec-internal path inspected. The clippy hook landed correctly (mirrors the cargo-fmt-check pattern). The `render_cell` ASCII `debug_assert!` is correctly scoped (fires only in debug builds; message is actionable). The `TRACKER_INTERNAL_FORCE_COLOR` test seam is correctly placed at the top of `color_mode_from_env` and is intentionally undocumented in user-facing artifacts. The `cmd_list` rendering extraction is a clean pure-function refactor (no behavioral change; new helpers unit-tested). The three-module split preserves all public API behavior; `CreateArgs<'a>` lifetime parameter preserved correctly through the move.
+
+**Idiomaticity verdict:** Mostly idiomatic. `filter_issues` uses `into_iter().filter().collect()` — idiomatic. `format_list_header` uses positional + named format args — idiomatic for the multi-width-arg case. `format_list_row` likewise. `show_label` uses `{:<width$}` named-width formatter — idiomatic. `color_mode_from_env`'s `is_some_and(|v| v == "1")` is idiomatic Rust 1.70+ (project pins 1.94.1, well above). The early-return form in `priority_ansi` / `status_ansi` was dismissed in R17 F6 and remains correct. No unnecessary clones detected in the new code; `bump_next_id`'s `checked_add(1)` is the right idiom for overflow-safe arithmetic.
+
+**Maintainability verdict:** SE-domain at MVR for correctness on the R3 surface. The three Open findings are visibility / API-discipline / doc-precision concerns — exactly the dimensions the R3 prompt instructed to push hardest on. "the refactor compiles + 237/237 tests pass + clippy clean" is true and was held as the sycophancy trigger throughout; none of the three Open findings rely on a test failure or a clippy warning to be real.
+
+**Sycophancy check:** Five softenings considered and pushed back on:
+
+1. *Was Finding 1 softened because "the prior `lib.rs` had every function `pub`, so the split preserved that"?* — Pushed back: the split was the moment to apply visibility discipline; preserving status quo when the status quo was Layer-1-through-Layer-7 accumulation rather than designed surface is the *definition* of architectural drift. Held.
+2. *Was Finding 2 softened because "main.rs calls it once and is the only consumer"?* — Pushed back: the question is whether the API enforces the contract; today it does not. Held.
+3. *Was Finding 3 softened because "the assertion does work"?* — Pushed back narrowly: the assertion is correct; the doc-comment over-claim is the finding. Logged as Low-to-Medium rather than Medium-to-High to reflect the documentation-only nature. Held.
+4. *Was Finding 4 (`pub(crate)` constants) escalated because "the prompt asked about them"?* — Pushed back: `usize` constants don't benefit from accessor functions; the prompt was correct to ask, and the correct answer is the current state. Genuinely dismissed.
+5. *Was Finding 7 (test-mod placement) escalated because the prompt asked about visibility hygiene?* — Pushed back: the question is QE-owned, not SE. Correctly classified as a Coordination note rather than an SE finding.
+
+**Coordination:**
+
+- **SA Review 17 (Layer 7 R3 SA pass, if/when run):** Finding 1 (re-export surface) is partially structural — the choice of *what* to re-export at `lib.rs` is an API-architecture decision, and SE flagging it is the right escalation. SA cold session should ratify whether the public surface is intentional or accidental; if intentional, document the rationale in `DECISIONS.md` (the `tracker::*` surface is currently undocumented at the decision level — the doc-comment at `lib.rs:25-28` describes the *mechanism* of preservation but not the *intent* of which items belong on the public side).
+- **QE Review 19:** Finding 7 (test module placement) is QE-owned. The current architecture (`#[cfg(test)] mod tests` at `lib.rs` reaching across `crate::commands::*` and `crate::storage::*`) works but is unusual — Rust idiom is `#[cfg(test)] mod tests` colocated with each module. QE should evaluate whether the consolidated test module is intentional (faster compile? easier to navigate?) or a leftover from the pre-split state.
+- **Platform Engineer Review 14 (if/when run on R3):** The clippy pre-commit hook landed cleanly; verify CI pipeline still runs `cargo clippy -- -D warnings` (hook is a left-shift, not a replacement for CI gating per the rust supplement's "*Clippy as idiom proxy*" line). No SE concern; flagging so PE has a confirmation point.
+- **Security Review 13 (if/when run on R3):** The `TRACKER_INTERNAL_FORCE_COLOR` test seam is a deliberately-undocumented env var. Security should sanity-check that the seam is not exploitable as a TOCTOU between the env-var read and a sensitive operation. SE has no concern (the only effect is forcing color emission, which has no security boundary); flagging for Security cold-session due-diligence.
+- **No DESIGN.md amendments required.** Spec is silent on `lib.rs` API surface visibility (correctly — it's an implementation concern). No SO engagement this round.
+
+**Files modified this session:** `iterative-adversarial-refinement/SOFTWARE-ENGINEER-REVIEW.md` only (this entry). No `src/**/*.rs` changes (cold-batch surfacing — Round 3 does not apply fixes per CLOSURE-PROTOCOL.md §5 step 1). No DESIGN.md / TODO.md / CHANGELOG changes.
+
+
+**Round-3 finding closure — see [SO Review 26 ledger](SOLUTION-OWNER-REVIEW.md#review-26--2026-05-12-1500z--closure-ledger-closure-protocol-2c-reconciliation).** F1: Resolved (`fbc8da6` — same closing change as SA R17 F2 cross-domain duplicate). F2: Resolved (`e458fb9` doc-comment Call-once contract section). F3: Resolved (`8db9437` lib.rs module split; finding tracked the SA carry-forward closure).

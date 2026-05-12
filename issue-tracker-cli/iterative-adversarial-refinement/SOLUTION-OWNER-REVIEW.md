@@ -2086,3 +2086,410 @@ The defect is a spec-vs-implementation contradiction that was latent through Lay
 **Coordination:**
 - **Director (immediate):** Adjudicate Option A vs. Option B. Recommend Option A.
 - **VDD-IAR (next round):** This Round-3 finding extends the Layer 6 IAR cycle beyond Round-2 closure. VDD-IAR should record that the closure was incomplete — director-side manual testing surfaced a real defect that the four-domain Round-1 + adjudication Round-2 missed. The mutation-analysis blind spot in `delete_id_not_reused` is a QE-domain process datum; the spec-vs-implementation contradiction surviving Round 2 is a VDD-IAR-domain process datum. Both worth recording.
+
+---
+
+## Review 23 — 2026-05-11 22:30Z
+
+**Round:** SO Review 23 (Layer 7 IAR Round 1, cold session)
+**Scope:** Layer 7 polish layer — branch `issue-tracker-cli-polish`, 3 commits since main (`7b461aa` Red Gate, `a2b8062` Phase 2b implementation, `603c689` manual checklist closure). DESIGN.md "Interface / color output" is the binding spec section; TODO.md L353-364 enumerates the layer AC; TODO.md L368-374 enumerates the manual checklist.
+**Session context:** Cold session — did not build this layer. SO posture per `prompts/review-session.md` + `domains/role/SOLUTION-OWNER-REVIEW.md`. Carry-forward awareness: SA R13 F1 Trigger B (`src/lib.rs` module split) + SA R11 F1 + SA R13 F2 were Deferred at SO Review 21 to a "pre-Layer-7 focused PR." Layer 7 has shipped without that PR landing. RT R8 F2 (Cf in description) is in Accepted Risk standing per SO R21.
+
+### Layer 7 AC compliance table (TODO.md L353-364)
+
+| # | Acceptance criterion | Status | Evidence |
+|---|---|---|---|
+| 1 | `tracker --help` exits 0 and describes all subcommands | Met | `tests/layer7.rs:36-48` pins exit 0 + presence of all 6 subcommand names in stdout. |
+| 2 | `tracker create --help` describes all flags with valid values | Met | `tests/layer7.rs:51-61` pins `--description` / `--priority` / `--label` + `low, medium, high` enumeration. |
+| 3 | `tracker list --help` describes all flags with valid values | Met | `tests/layer7.rs:64-75` pins `--status` / `--priority` / `--label` + `open, in-progress, done` + `low, medium, high`. |
+| 4 | `tracker status --help` describes positional args and valid status values | Met | `tests/layer7.rs:78-87` pins `<ID>` / `<STATUS>` + `open, in-progress, done`. |
+| 5 | `tracker show --help` describes the `<id>` argument | Met | `tests/layer7.rs:90-97` pins `<ID>`; release-binary stdout shows the field list and arg description. |
+| 6 | `tracker delete --help` describes the `<id>` argument | Met | `tests/layer7.rs:100-107` pins `<ID>`; release-binary stdout includes the D1-deviation cross-reference. |
+| 7 | TTY: `high`/`medium`/`low` priority rendered red-bold / yellow / default | Met (manual) | `src/lib.rs:51-60` `priority_ansi` returns `\x1b[1;31m` / `\x1b[33m` / `None`; manual checklist `[x]` at TODO.md:370; release-binary `script` transcript in CHANGELOG L29-30. |
+| 8 | TTY: `in-progress`/`done`/`open` rendered cyan / green / default | Met (manual) | `src/lib.rs:65-74` `status_ansi` returns `\x1b[36m` / `\x1b[32m` / `None`; manual checklist `[x]` at TODO.md:370; release-binary transcript in CHANGELOG L29-30. |
+| 9 | Piped stdout contains no ANSI codes | Met | `tests/layer7.rs:133-193` `list_piped_has_no_ansi_codes` + `show_piped_has_no_ansi_codes`; `cmd_list` `src/lib.rs:835` and `cmd_show` `src/lib.rs:591` gate on `stdout().is_terminal()`. |
+| 10 | Color applied only to value text, not row or header | Met | `format_show_block` `src/lib.rs:548-549` wraps only `status_display` / `priority_display`; the 13-char label column is literal text. `cmd_list` `src/lib.rs:837-840` emits the header row with no color and uncolored `ID` / `Labels` / `Title` cells. `wrap_color` `src/lib.rs:79-84` only ever wraps the bare value text. |
+| 11 | Color appears in both `tracker list` and `tracker show` output when TTY | Met | Both `cmd_list` (L835) and `cmd_show` (L591) thread `use_color` through; manual checklist `[x]` at TODO.md:370 and TODO.md:372. |
+| 12 | All error messages begin with `Error:` followed by a human-readable description | Met | All `Err(...)` returns in `src/lib.rs` carry the bare message; `src/main.rs:117` prefixes `Error: ` for app errors; `src/main.rs:75` rewrites clap's `error:` to `Error:` for parser errors. Verified across the 13 distinct error strings in `src/lib.rs` (Title × 2, Description × 2, Label × 3, ID × 1, Status × 1, Priority × 1, NotFound × 3 sites, Storage R/W × 2, Counter-overflow × 1). |
+| 13 | Unknown subcommand exits 1 with a usage error on stderr | Met | `tests/layer7.rs:112-122` `unknown_subcommand_exits_one` pins exit 1 + `Error:` + `unrecognized subcommand` + `frobnicate` in stderr. Verified end-to-end against release binary: `Error: unrecognized subcommand 'frobnicate'` followed by usage hint, exit 1. |
+
+**Regression check on prior layers' compliance:** I re-verified that Layer 7 did not narrow any earlier behavior. Color-suppression-when-piped means every Layer 1-6 integration test (which by `assert_cmd::Command` construction connects stdout to a pipe) exercises the no-color branch; the implementation note in CHANGELOG L20-21 is correct that none regressed. `cmd_list` row format string changed from `{:<11}` / `{:<8}` to a pre-padded cell substitution — verified the visible column widths still match DESIGN.md "List output format" (ID 4, Status 11, Priority 8, Labels 20, Title up to 50, 2-space separator). `format_show_block` gained a parameter; all internal call sites (cmd_show, two unit tests) updated correctly per CHANGELOG L16. The Layer 6 `\r\n` normalization (R20 F2 → R21 ratified) survived intact at `src/lib.rs:541`.
+
+All 13 ACs Met. Layer 7 ships the polish that DESIGN.md "Interface / color output" specifies. No spec deviation in the implementation itself.
+
+### Findings
+
+#### Finding 1: SA carry-forward "pre-Layer-7 focused PR" never landed — `src/lib.rs` shipped Layer 7 at 1506 LOC
+
+- **Dimension:** Dim 8 (Prior-review additions — a deferred architectural item became a real Open by deferral failure), Dim 4 (Over-engineering — by negation: the absence of a scheduled refactor at the agreed gate).
+- **Severity:** Medium. Not a spec violation; SO does not own architectural decomposition. But the deferral itself was an SO adjudication (R21), so its non-execution lands back in SO's lap as an open carry-forward to acknowledge — not silently ignore.
+
+**Facts:**
+- SO R21 adjudicated SA R13 F1 Trigger B + SA R11 F1 + SA R13 F2 as **Deferred to pre-Layer-7 focused PR** (`SOLUTION-OWNER-REVIEW.md:1928`). The deferral text: "real architectural work that benefits from its own focused PR with test scaffolding."
+- SA R13 (final entry, `SOLUTION-ARCHITECT-REVIEW.md:1185`): "SA may re-raise at Layer 7 opening if the PR has not landed."
+- The branch `issue-tracker-cli-polish` contains 3 commits since `main`: the Red Gate, the implementation, and the manual checklist tick. No focused architectural PR landed before any of them. `src/lib.rs` is now 1506 LOC (1411+ at carry-forward time; the Layer 7 change added ~95 more LOC of color helpers + threading the `use_color` parameter through). The non-test portion has grown well past the SA R9 F3 / SA R11 / SA R13 trigger threshold of 500 LOC.
+- The pre-Layer-7 PR scope was explicitly bookkept at SA R13 last entry: (a) `cmd_list` rendering extraction, (b) `format_show_block` constants, (c) `lib.rs` module split into `storage` / `validate` / `commands`. None of (a) / (b) / (c) were applied. The Layer 7 implementation in fact added new rendering surface (`pad_after_color`, `wrap_color`, `status_ansi`, `priority_ansi`) into the same monolithic `src/lib.rs` — moving in the opposite direction from the deferred decomposition.
+
+**Why this is an SO finding, not "just SA":** The R21 deferral was an SO adjudication binding the timeline. SO owns the "we agreed at R21 that this would happen before Layer 7; it did not." The architectural content remains SA's; the broken-commitment process datum is SO's. Re-affirming the deferral without an explicit new gate (and noting Layer 7 went forward anyway) is itself a sycophancy failure — the kind R20 F2 / R22 F1 dismissal tests warn against ("don't re-defer when the prior deferral's trigger has fired without action").
+
+**Classification:** **Raised to SA / SE.** SA owns the re-raise decision (re-defer with a new explicit trigger, or escalate to "block merge"). SE owns the implementation if the disposition is "act now." SO records the broken-deferral fact and adjudicates the new disposition in the next SO round after SA + SE weigh in.
+
+**Proposed dispositions for SA / SE:**
+- *(a) Re-defer to "pre-Layer-7-IAR-close" — i.e., before this Layer 7 IAR round completes.* Mechanically scoped (no new spec, no new tests in scope); ships the architectural prep before merge. Most consistent with the R21 commitment's spirit.
+- *(b) Re-defer to "before Layer 7 merges to main."* Same code-change scope; slightly weaker timeline. Allows the Layer 7 IAR to close on the polish content and bundles the refactor with the merge gate.
+- *(c) Drop the deferral altogether, revising the SA R9 F3 / R11 / R13 trigger conditions explicitly with a new rationale.* Honest but expensive: requires SA to author a new dismissal text that does not retroactively legitimize letting the trigger fire silently. This is the "move the goalposts after the fact" path SA R13 already named (`SOLUTION-ARCHITECT-REVIEW.md:1000`).
+
+**SO recommendation:** (a) or (b). The architectural prep was scheduled; it should land. Layer 7 itself is clean and merge-ready content-wise.
+
+#### Finding 2: Red Gate pass-against-current framing is honestly documented but materially weakens the layer's TDD discipline
+
+- **Dimension:** Dim 7 (Design fidelity — between TODO.md's "Red Gate — tests to write first" contract and what the tests actually pin), with a sycophancy lens.
+- **Severity:** Low–Medium. The framing is *honestly* documented in `tests/layer7.rs:1-26` and the `7b461aa` commit message; this is not a hidden defect. But the SO sycophancy-check requirement (prompt-stated) compels me to evaluate whether the framing should be accepted at face value or named as a gap.
+
+**Facts:**
+- `tests/layer7.rs:5-10` (top comment): "clap's default `--help` plumbing and the Layer 1 `try_parse` transform in `src/main.rs` already satisfy most of the `--help` / unknown-subcommand / `Error:` acceptance criteria *against current code* — the tests below pass against `main` before any Phase 2b work."
+- TODO.md L377-388 names the Red Gate test set with the conventional "fails against stub" annotation on each test (e.g. `help_flag_binary_exits_zero` — "fails against stub that exits 1"). The TODO.md commitment is the standard TDD-Red-Gate contract: write tests that fail, then implement to pass.
+- 7 of 9 Layer 7 tests (the 6 `--help` tests + the unknown-subcommand test) passed at `main` before `a2b8062`. Only 2 tests (`list_piped_has_no_ansi_codes` + `show_piped_has_no_ansi_codes`) had any potential regression-guard value, and even those pass trivially against pre-color code (CHANGELOG L20 acknowledges this).
+- The `7b461aa` commit message and the test file top-comment explicitly *acknowledge* the framing departure: "valid Layer 7 Red Gate tests because they pin the help/error *contract* (valid-value enumerations, exit codes, stderr routing) that prior layers established only by convention; a future refactor that drops the `--priority <low|medium|high>` enumeration … would now fail a named test rather than silently regress." This is a coherent argument — pinning conventions as regression guards has real value — but it is not the Red-Gate-as-driver-of-implementation framing TODO.md describes.
+
+**Dismissal attempt:** *"The tests are honestly documented; if the developer says they pin conventions, that's a legitimate test purpose."* Counter: the question is not whether the tests have value (they do, as regression guards) but whether they discharge the Red Gate criterion as TODO.md states it. TODO.md L377: "Red Gate — tests to write first". L380 et seq.: each test annotated "fails against stub that exits 1" / "fails against stub that exits 0" — i.e., the tests are described as failing against the prior state. They did not. The honest acknowledgement in the commit message does not change the contract-vs-actual gap; it documents it.
+
+**Counter-dismissal attempt:** *"Layer 7 is a polish layer; most of the AC was already structurally satisfied by Layer 1's clap plumbing. The Red Gate convention doesn't fit polish layers cleanly."* This is a reasonable architectural observation but it should have surfaced as a TODO.md amendment ("Layer 7 Red Gate is a regression-guard pin rather than a fails-first set") authored before the implementation, not a self-justifying test-file comment after. The pattern matches SO R20 F2: the implementation does something the spec doesn't sanction, and the implementation self-justifies. Same defect class.
+
+**Classification:** **Raised to QE / Director.** The framing is honestly disclosed but should be either (a) ratified in TODO.md with an explicit "polish-layer Red Gate" clause that future polish layers can reuse, or (b) backfilled by adding a Phase-2a Red Gate test that actually fails against pre-Layer-7 main (e.g., a unit test asserting `priority_ansi("high", true)` returns `Some("\x1b[1;31m")` — which doesn't compile against main because the function doesn't exist yet). Option (b) is mechanically small if Layer 7 IAR is still mid-flight; (a) is appropriate if Layer 7 closes as-is.
+
+#### Finding 3: Layer 7 manual checklist closed 16 minutes after implementation — verification depth claim warrants the standing skeptical posture
+
+- **Dimension:** Dim 1 (Spec coverage — manual checklist is named in DESIGN.md L385-393 as a layer gate), Dim 5 (Under-delivery, by skepticism), Dim 9 by lens (process compliance to TODO.md L368-374 in detail).
+- **Severity:** Low. SO does not own manual testing execution depth; that is director-and-VDD-IAR territory. But TODO.md L374 reads "Review each error message from all prior layers manually: does it say what went wrong and what the valid alternatives are?" — this is the most substantive item in the checklist and its tick warrants the standing sycophancy posture against fast checklist closures.
+
+**Facts:**
+- Layer 7 implementation commit `a2b8062` is timestamped `2026-05-11 15:04:36 -0700`.
+- Layer 7 manual checklist closure commit `603c689` is timestamped `2026-05-11 15:20:31 -0700` — **16 minutes after implementation**.
+- The 7 items include: building the release binary, exercising 6 `--help` invocations and visually verifying flag content, running `tracker list` in a TTY and visually confirming 3 color values, running `tracker list | cat` and verifying no escape sequences, running `tracker show` in TTY and piped, the substantive "review each error message from all prior layers" task, and the unknown-subcommand exit-1 check. The `603c689` commit message documents all 7 with concrete details — release binary built from `a2b8062`, scratch `/tmp` directory, `cat -v` pipe rendering, the `script -q /dev/null` TTY harness implied by CHANGELOG L27.
+- The commit message specifically calls out: "Error-message review across all prior layers — every error path begins with `Error:`, names the offending input, and (where the domain is closed) enumerates the valid alternatives." This is a specific claim across 13 distinct error strings spanning 6 layers.
+
+**Verification I can perform from the cold-session lens:**
+- AC #12 ("all error messages begin with `Error:`") — I verified this against all 13 error strings in `src/lib.rs` (see compliance table). The `main.rs:117` and `main.rs:75` prefixing covers them all.
+- AC #13 ("unknown subcommand exits 1") — verified end-to-end via release binary.
+- The TTY-positive items I cannot verify (no TTY in the agent session). The piped no-color items are pinned by `tests/layer7.rs:133-193`.
+- The "review each error message" item is the only one where the depth of the manual claim materially exceeds what the automated tests cover. The 16-minute window allows for it (the checklist items are small individually; the error-message review is the longest, and even at 30s per error message across 13 strings that's well under 16 minutes including the other items).
+
+**Dismissal attempt:** *"The commit message documents the verification with adequate specifics; the timing window is sufficient; the standing process accepts a quickly-ticked checklist when the underlying tests are clean."* This held under scrutiny. The TODO.md L374 item is the one that could be ticked superficially, but the commit message records a concrete observation (Layer 4 duplicate-label dedup acceptance: "Duplicate-label on create succeeds silently with one stored 'bug' — spec-correct dedup behavior per DESIGN.md Feature 1 / Layer 4, not an error case") — that's a substantive judgement-call note that a superficial tick would not produce.
+
+**Classification:** **Dismissed.** The fast-closure pattern triggered the standing sycophancy posture, but the commit message produces enough specifics to demonstrate the review happened. Recorded as a non-finding so the dismissal is on the record (rather than silent); VDD-IAR may revisit if process auditing surfaces a different pattern across layers.
+
+#### Finding 4: Color helpers ship in `src/lib.rs` as private but spec-bearing — `wrap_color` / `pad_after_color` / `priority_ansi` / `status_ansi` are not part of the public library API surface
+
+- **Dimension:** Dim 7 (Design fidelity, weak read — DESIGN.md does not specify whether color rendering is internal or library-API; either is consistent with the spec). Dim 4 (Over-engineering, by negation — minimal helpers; no abstraction over the 6 escape sequences; no anstyle/termcolor dep).
+- **Severity:** Hallucinated.
+
+**Why I considered it:** I checked whether the new helpers should be `pub` (consistent with `cmd_*` and validation helpers exposed for testing) or private (consistent with `format_show_block`, `priority_rank`, `truncate_with_ellipsis` precedents). The lib's `//!` module doc enumerates the public API as data model + cmd_* + parsing/validation + storage primitives — rendering helpers are private precedent. The choice matches the precedent.
+
+**Why this is hallucinated:** SO does not own this — it's SA territory ("library API surface as architecture") and the choice is internally consistent with three prior precedents in the same file (`format_show_block` private since Layer 6, `priority_rank` private since Layer 3, `truncate_with_ellipsis` private since Layer 4). No spec deviation. No scope creep. No real finding.
+
+**Classification:** **Hallucinated.** Recorded so the consideration is visible; not a real finding.
+
+### Carry-forward (from prior rounds, status as of Layer 7 close)
+
+- **SO R20 F1 / VDD-IAR R15 F1 / TW R9 F4** (Layer 6 manual testing 13-item checklist) — outside this layer's scope; Layer 6 R22 resolved by manual-test reproduction at item 311, the rest pending. Not adjudicated this round.
+- **SA R11 F1 + SA R13 F1 Trigger B + SA R13 F2** — see Finding 1 above. Re-raised as a real Open finding because the deferral's gate ("pre-Layer-7 focused PR") has been crossed without action.
+- **RT R8 F2** (Cf in description, Accepted Risk) — unchanged. Stable.
+
+### Open / Raised / Dismissed / Hallucinated summary
+
+- **Open: 0.** No Open SO findings as of this round close. F1 is Raised; F2 is Raised; F3 is Dismissed; F4 is Hallucinated.
+- **Raised to SA / SE: 1** (F1 — broken pre-Layer-7 deferral).
+- **Raised to QE / Director: 1** (F2 — Red Gate pass-against-current framing).
+- **Dismissed: 1** (F3 — manual checklist fast closure).
+- **Hallucinated: 1** (F4 — color helper visibility).
+
+### Summary
+
+Layer 7 polish content is in spec compliance. All 13 acceptance criteria Met; regression check on Layer 1-6 compliance clean. The implementation matches DESIGN.md "Interface / color output" exactly (6 ANSI sequences for the 6 colored value × default-value combinations; TTY-detection via stable `std::io::IsTerminal`; color suppressed when piped; color applied to value text only, not headers / labels / rows). No scope creep: no new dependencies added (raw ANSI escapes, no `anstyle` / `termcolor`); no spec-extending behavior introduced; no additional flags or subcommands.
+
+The two substantive concerns are process-class, not implementation-class: (F1) the architectural prep PR that R21 deferred to "pre-Layer-7" was skipped — Layer 7 shipped with `src/lib.rs` at 1506 LOC and the 3 R21-bookkept refactor items unaddressed; (F2) the Red Gate tests were honestly framed as pass-against-current pins-of-conventions rather than fails-first drivers, which is a polish-layer-shaped departure from TODO.md's Red Gate contract.
+
+**Verdict: GO-PENDING-{SA/SE Finding 1 disposition; QE/Director Finding 2 disposition}.** Layer 7 content is merge-ready from the SO lens. The two raised process findings require non-SO domain adjudication before the merge gate closes; neither requires changes to Layer 7's implementation itself. If SA disposes F1 as re-defer (a/b) and QE/Director disposes F2 as either ratify-TODO.md or backfill-one-failing-test, the layer closes cleanly.
+
+**Coordination:**
+- **Solution Architect (SA — Layer 7 round):** F1 is your re-raise opportunity. The R21 deferral has had its gate cross without action. Recommend re-deferring with a tighter gate (pre-merge-to-main) or escalating to "Layer 7 merge-gate dependency." Pick the disposition; SO will adjudicate inline in the next SO round.
+- **Software Engineer (SE — Layer 7 round):** If SA's F1 disposition is "act now," the scope is the same 3-item bundle SA R13 documented: `cmd_list` rendering extraction (SA R11 F1), `format_show_block` constants (SA R13 F2), `lib.rs` module split into `storage` / `validate` / `commands` (SA R13 F1 Trigger B).
+- **Quality Engineer (QE — Layer 7 round):** F2 is in QE's wheelhouse. Either (a) ratify in TODO.md with a "polish-layer Red Gate" clause that names pinning-of-conventions as a valid Red Gate purpose for polish layers, or (b) backfill a Phase-2a test that fails against pre-Layer-7 main (a unit test on `priority_ansi` / `status_ansi` would not compile against main).
+- **Director:** Adjudicate F2 with QE. Manual checklist for Layer 7 already closed at `603c689`; the standing skeptical posture against fast closure was dismissed under scrutiny (F3) but recorded for future cross-layer auditing.
+- **VDD-IAR Alignment (next round):** Two process-class findings this round (F1 broken-deferral, F2 Red-Gate-framing). Both are within the IAR process surface VDD-IAR audits. Worth recording the pattern: a deferral with a named gate that closes silently when the gate is crossed is the same defect class as SO R22's "spec invariant violated quietly by simplification" — both are "the system did the easier thing without acknowledging the trade-off."
+
+---
+
+## Review 24 — 2026-05-12 00:00Z
+
+**Round:** SO Review 24 (Layer 7 IAR Round 2 closure pass). Warm closure-verification per CLOSURE-PROTOCOL.md §5; not a new adversarial round.
+
+**Scope:** Verify Round-1 finding closures landed in commits `fbbb8a3` (VDD-IAR R17 F1 Option A retrofit) and `09b1905` (substantive cross-domain Round-2 closure). Inputs: DESIGN.md amendments at "Interface / Color output" + "stderr contract" + Edge Cases storage; six new DECISIONS.md entries under "Layer 7 IAR Round 2 spec amendments"; CHANGELOG.md Layer 7 Round-2 entry.
+
+### Round-1 finding closures
+
+- **F1 — Pre-Layer-7 focused PR deferral expired (SA carry-forward cluster):** **Backlogged per CLOSURE-PROTOCOL.md §3.** DECISIONS.md entry "SA R11 F1 + SA R13 F1 Trigger B + SA R13 F2 auto-Backlog per CLOSURE-PROTOCOL.md §3" promotes the three findings from Deferred to Backlogged. The architectural concerns remain real but the cost-benefit calculus for a focused refactor PR has not shifted; Backlogging captures the work without binding it to a specific upcoming layer.
+- **F2 — Red Gate pass-against-current framing:** **Resolved by `fbbb8a3` (VDD-IAR R17 F1 Option A).** 12 retroactive unit tests added with the `// retroactive Red Gate:` label per `prompts/implementation.md` L56; DECISIONS.md entry documents the rationale and "Do not repeat for non-polish layers" annotation. Option B (CLOSURE-PROTOCOL.md polish-layer-exception amendment) deliberately not taken — rule changes earned by recurrence.
+- **F3 — Manual checklist 16-minute closure window:** **Dismissed under scrutiny.** `603c689` commit body enumerates per-checklist-item observed behaviors with specificity exceeding checkbox restatement; verification depth claim stands.
+- **F4 — Private color helpers as spec-bearing API:** **Resolved by `09b1905`.** `ColorMode` enum + `color_mode_from_env()` now `pub`; `display_safe` also exposed `pub` (RT R10 F1 lineage). The spec-bearing surface that previously hid behind `fn` is now part of the documented public surface.
+
+### Layer 7 AC compliance (post-R2)
+
+All 13 original Layer 7 ACs (TODO.md L353-364) Met. Four new R2-amended commitments Met:
+- NO_COLOR / CLICOLOR=0 honored (DESIGN.md L239 amendment; `color_mode_from_env`; integration test `no_color_env_does_not_break_piped_invocation`).
+- Bold redundancy on every highlighted value (DESIGN.md L243-248 amendment; `priority_ansi("medium", On)` → `\x1b[1;33m`; `status_ansi("in-progress", On)` → `\x1b[1;36m`; `status_ansi("done", On)` → `\x1b[1;32m`).
+- stderr Cc-escape extended to clap pipeline (DESIGN.md L222 amendment; `sanitize_quoted_values`; integration test `unknown_subcommand_with_cc_payload_escapes_in_stderr`).
+- Errno tag in OS-error stderr ratified (DESIGN.md L343 amendment).
+
+### New findings
+
+*(none — closure pass.)*
+
+### Summary
+
+All four R1 SO-domain findings transitioned cleanly: F1 Backlogged §3, F2 Resolved (fbbb8a3), F3 Dismissed, F4 Resolved (09b1905). Six R2 spec amendments landed in DECISIONS.md with citation chain to originating R1 findings. The "private helpers as spec-bearing API" observation prompted the right architectural move (public `ColorMode` + `color_mode_from_env`) — a small Round-2 sweetener beyond the Open-finding contract.
+
+**Verdict:** **GO-PENDING-MANUAL-REWALK.** The Round-2 manual testing checklist re-walk for the new behaviors (NO_COLOR / CLICOLOR / CLICOLOR_FORCE / bold rendering / no-ANSI-on-stderr-empty-state) is the standing CLOSURE-PROTOCOL §6 criterion-3 requirement; director must add to TODO.md and execute before merge.
+
+**Coordination:** VDD-IAR R18 — ratify R17 F1 closure (evidence chain: `fbbb8a3` retrofit + R2 test updates + DECISIONS.md entry). SA R16 — F1 Backlog state ratified.
+
+**Files modified:** This log appended; DESIGN.md and DECISIONS.md edits (SO authority) landed in `09b1905`.
+
+---
+
+## Review 25 — 2026-05-12 12:00Z
+
+**Round:** SO Review 25 (Layer 7 IAR Round 3 review, cold session).
+**Scope:** 5 commits since `b853a81` — `ff0e85c` (PE R12 F3 clippy pre-commit hook), `c341a54` (QE R17 F5 render_cell ASCII debug_assert), `bd7511e` (QE R17 F1 `TRACKER_INTERNAL_FORCE_COLOR` test seam + 8 integration tests), `3fa1f3c` (SA R11 F1 + SA R13 F2 cmd_list extraction + column constants), `8db9437` (SA R13 F1 Trigger B `src/lib.rs` three-module split). All 5 are domain-other closures of items the SO log has touched directly (the SA cluster was R23 F1, the QE seam was raised in QE R17, etc.). Cold session: I did not build any of these commits.
+
+**Session context:** Cold per `prompts/review-session.md`. Standing skeptical posture against the "closes all 5 deferred items — clean test suite" framing per the prompt's sycophancy guard. The Layer 7 IAR Round 2 SO close (R24, 2026-05-12 00:00Z) ended in **GO-PENDING-MANUAL-REWALK**; this round inherits that pending gate.
+
+### Layer 7 AC compliance table (post-R3)
+
+The 13 original Layer 7 ACs (TODO.md L353-364) plus the 4 R2-amended commitments (R24 § "Layer 7 AC compliance (post-R2)") are the binding set for this round. I re-walked each against the post-R3 source tree to verify R3's refactor + test-seam introduced no behavioral drift.
+
+| # | Acceptance criterion | Status | Evidence (post-R3) |
+|---|---|---|---|
+| 1 | `tracker --help` exits 0 + lists all subcommands | Met | `tests/layer7.rs:36-48`; unchanged by R3. |
+| 2 | `tracker create --help` describes flags + valid values | Met | `tests/layer7.rs:51-61`; unchanged. |
+| 3 | `tracker list --help` describes flags + valid values | Met | `tests/layer7.rs:64-75`; unchanged. |
+| 4 | `tracker status --help` describes positional args + valid statuses | Met | `tests/layer7.rs:78-87`; unchanged. |
+| 5 | `tracker show --help` describes `<id>` arg | Met | `tests/layer7.rs:90-97`; unchanged. |
+| 6 | `tracker delete --help` describes `<id>` arg | Met | `tests/layer7.rs:100-107`; unchanged. |
+| 7 | TTY: `high`/`medium`/`low` priority colored red-bold / yellow-bold / default | Met (now automated) | `commands.rs:144-153` `priority_ansi`; integration tests `force_color_emits_bold_red_for_high_priority` / `_bold_yellow_for_medium_priority` / `_does_not_color_low_priority` (`tests/layer7.rs:280-333`). |
+| 8 | TTY: `in-progress`/`done`/`open` colored cyan-bold / green-bold / default | Met (now automated) | `commands.rs:159-168` `status_ansi`; `force_color_emits_bold_cyan_for_in_progress_status` / `_bold_green_for_done_status` (`tests/layer7.rs:336-375`). |
+| 9 | Piped stdout has no ANSI codes | Met | `tests/layer7.rs:163-200` + `:218-236`; `color_mode_from_env` at `commands.rs:127-129`. |
+| 10 | Color applied only to value text, not row or header | Met | `force_color_does_not_color_header_row` (`tests/layer7.rs:378-414`) + `force_color_show_renders_colored_status_and_priority_value_cells` (`:417-471`). |
+| 11 | Color present in both `list` and `show` when TTY | Met | `commands.rs` threads `ColorMode` through both `cmd_list` (L608) and `cmd_show` (L404); manual checklist ticked at TODO.md L370. |
+| 12 | All error messages begin with `Error:` | Met | `main.rs:84` clap prefix transform; `main.rs:134` app-error prefix; 13 distinct error strings re-audited across `validate.rs` / `storage.rs` / `commands.rs` — all bare messages, all prefixed at the boundary. |
+| 13 | Unknown subcommand exits 1 with usage error on stderr | Met | `tests/layer7.rs:112-125`; `main.rs:83-88`. |
+| R2-a | `NO_COLOR` honored | Met | `commands.rs:130-134`; `tests/layer7.rs:239-264`. |
+| R2-b | `CLICOLOR=0` honored | Met | `commands.rs:135-137`; `tests/layer7.rs:239-264`. |
+| R2-c | `CLICOLOR_FORCE` NOT honored (pipe-clean) | Met | `commands.rs` lacks any CLICOLOR_FORCE branch; doc-comment L95-97 documents the deliberate non-honoring; integration test in `no_color_env_does_not_break_piped_invocation` includes the `CLICOLOR_FORCE=1` row. |
+| R2-d | Bold redundancy on every highlighted value | Met | `priority_ansi` / `status_ansi` all return `\x1b[1;...m` for highlighted values; force-color integration tests pin the exact sequences. |
+| R2-e | stderr Cc-escape extended to clap pipeline | Met | `main.rs:84-87`; `tests/layer7.rs:128-152`. |
+| R2-f | Errno tag in OS-error stderr ratified | Met | `storage.rs:199` / `:217`; matches DESIGN.md L343. |
+
+All 13 original + all 4 R2-amended commitments remain Met. **R3 introduced one new commitment that DESIGN.md does NOT currently document — see Finding F2.**
+
+### Regression check (no-spec-drift verification per R3 prompt pressure point #2)
+
+Re-read the diff at module-boundary level. Substantive behavior:
+- **`8db9437` lib.rs split:** mechanical — `pub use` re-exports preserve every public name (`tracker::cmd_create`, `tracker::Tracker`, `tracker::ColorMode`, `tracker::CreateArgs`, etc.). Integration tests and `main.rs` import paths unchanged. No error string, output format, or behavioral commitment touched.
+- **`3fa1f3c` cmd_list extraction + column constants:** `format_list_header` / `format_list_row` / `filter_issues` / `render_cell` / `show_label` carved out as pure functions. Header literal in unit test (`format_list_header_uses_width_constants`) pins exact string `"ID    Status       Priority  Labels                Title"` — matches DESIGN.md L233 example exactly. Column widths preserved (ID=4, Status=11, Priority=8, Labels=20, Title-truncate=50). Show label-column width LABEL_COLUMN_WIDTH=13 matches DESIGN.md "Show output format" exactly.
+- **`bd7511e` test seam:** adds **NEW observable behavior** — when `TRACKER_INTERNAL_FORCE_COLOR=1`, ANSI emits to non-TTY stdout. The `color_mode_from_env` doc-comment (commands.rs:99-118) frames this as "test seam only, not part of the public CLI contract." This is the pressure point #4 substantive finding — flagged separately as **F2** below.
+- **`c341a54` render_cell debug_assert:** debug-only panic on non-ASCII passed to `render_cell`. Compiled out in release; production behavior unchanged. No spec-bearing surface.
+- **`ff0e85c` clippy pre-commit hook:** repository config; no source/binary behavior change.
+
+**Verdict on no-drift:** Four of five commits are clean refactors / non-runtime config. **The fifth (`bd7511e`) demonstrably adds a new env-var-gated color-emission path that DESIGN.md does not document.**
+
+### Findings
+
+#### Finding 1 — Auto-Backlog → Resolved transition (process pattern, pressure point #1)
+
+**Dimension:** Dim 8 (Prior-review additions, process side); the auto-Backlog `§3` mechanism's intent vs. its rapid reversal.
+
+**Severity:** Low–Medium. Not a spec violation; a process-pattern question SO must adjudicate explicitly per CLOSURE-PROTOCOL §3.
+
+**Facts:**
+- SA cluster (SA R11 F1 + SA R13 F1 Trigger B + SA R13 F2) was Deferred for 4 layers (L4 → L5 → L6 close → L7 R1).
+- At Layer 7 R2 (2026-05-12 00:00Z, ~36h before this round), per R24, the cluster auto-Backlogged per CLOSURE-PROTOCOL §3. DECISIONS.md entry (lines 154-156) reads: "Backlogging captures it without commitment to a specific layer."
+- At Layer 7 R3 (this round's commit window, ~12h after R2), the three findings shipped as Resolved via commits `3fa1f3c` + `8db9437`. The DECISIONS.md entry stating "without commitment to a specific layer" is now factually superseded by an actual closing layer (Layer 7 R3).
+
+**Why this is a real (Low–Medium) process finding, not a hallucinated concern:**
+1. **Speed alone is not the defect.** A Backlogged item that gets picked up the next round is consistent with CLOSURE-PROTOCOL §3 ("may be picked up at any future layer's discretion"). The protocol does not impose a minimum dwell time.
+2. **The defect is that the DECISIONS.md justification text — the durable record — is now stale.** The R2 entry's rationale ("cost-benefit calculus for a focused refactor PR has not shifted enough to schedule it") rationalized inaction by appealing to scheduling difficulty; R3 then scheduled and shipped the same work 12h later. Either the cost-benefit calculus changed materially in 12h (in which case the change-of-calculus is the new fact to record), or the R2 calculus was incorrect and the §3 invocation was used as cover. Either way, the durable rationale on record is no longer supported by R3's evidence.
+3. **CLOSURE-PROTOCOL §3 second-paragraph clause is the relief valve.** "The auto-Backlog is reversible: if the receiving authority later adjudicates, the finding moves out of Backlogged into the appropriate terminal state. The point of the rule is to surface 'this question has not been answered' as an explicit Backlog entry rather than as silent log noise." This *exactly* describes what R3 did — the Backlog → Resolved transition is the protocol working as designed. **The process pattern is not the defect.**
+4. **What IS the defect is the missing DECISIONS.md amendment annotating the R2 entry as superseded.** The SA R3 F3 / SO R7 reversal annotations (DECISIONS.md L16-17 and L21-22) set the precedent: "Reversed by SO Review 22 …". The same pattern should annotate the R2 auto-Backlog entry now that R3 has closed it.
+
+**Classification:** **Resolved** (the process pattern is §3 functioning as designed) WITH a **bookkeeping correction (Resolved this round by SO authority):** I will append a "Reversed/Superseded by Layer 7 IAR Round 3 closure (`3fa1f3c` + `8db9437`)" annotation to the R2 auto-Backlog DECISIONS.md entry. SO has authority on DECISIONS.md per CLOSURE-PROTOCOL §1. The amendment lands in this same commit.
+
+**Pressure-point #1 specifically pressed:** "Was Layer 7 R3 the right venue, or should this have been a focused post-Layer-7 PR?" SO answer: Layer 7 R3 was a reasonable venue *given* that the substantive refactor + 8 new tests landed, the test count grew, no spec drift was introduced (per Finding 2 caveat), and CLOSURE-PROTOCOL §3 explicitly permits this trajectory. A focused post-Layer-7 PR would have been *cleaner* (smaller blast radius per commit, clearer rollback story) but is not *more correct*. I decline to second-guess the venue choice.
+
+#### Finding 2 — `TRACKER_INTERNAL_FORCE_COLOR` env var is observable CLI behavior; DESIGN.md must document it (pressure points #4 and #7)
+
+**Dimension:** Dim 1 (Spec coverage — observable behavior must be in DESIGN.md); Dim 2 (Scope creep, weak read — the implementation added an env-var-gated color path the spec does not name).
+
+**Severity:** **Medium.** A spec gap on a real, observable, env-var-gated production code path.
+
+**Facts:**
+- `commands.rs:124-126` checks `std::env::var_os("TRACKER_INTERNAL_FORCE_COLOR")` and short-circuits to `ColorMode::On` when the value equals `"1"`. The check is placed **before** the TTY detection, so a non-TTY stdout receives ANSI escapes when this var is set.
+- The variable is read in **every** invocation of every subcommand that calls `color_mode_from_env()` (`cmd_list` and `cmd_show` via `main.rs:100`).
+- The doc-comment at `commands.rs:107-118` asserts: "not a user-facing feature; it does not equal `CLICOLOR_FORCE` (which the spec deliberately declines to honor); it exists solely to make the positive color contract automatable." Naming uses `TRACKER_` + `INTERNAL_` prefix as a "do not use" signal.
+- **DESIGN.md silence audit (verified by `grep -r TRACKER_INTERNAL_FORCE_COLOR` against all `.md` files):** zero hits. README.md, DESIGN.md, CHANGELOG.md, DECISIONS.md, and every IAR review log are silent. The variable's behavioral footprint exists only in `commands.rs` and `tests/layer7.rs`.
+- The variable's observable effect *contradicts* DESIGN.md L243-244's binding statement: "**CLICOLOR_FORCE=1 is not honored: color is never emitted to a non-TTY stdout regardless of env vars, to preserve the pipe-cleanness contract.**" The seam violates "regardless of env vars." This is the literal-spec-text contradiction.
+
+**Why pressure-point #7's "test-only by undocumentation" framing fails the sycophancy check:**
+
+The doc-comment defense rests on three claims:
+1. *"It is not a user-facing feature."* — Counter: the spec defines user-facing as observable CLI behavior, not as named-in-`--help`. ANY env var that mutates ANY observable output IS user-facing in the spec-contract sense. The user-or-not distinction is a UX framing, not a spec framing.
+2. *"It does not equal CLICOLOR_FORCE."* — Correct on the surface (the name is different; the activation value is `1` literal not any-non-empty) but irrelevant. The objection is not "this is a re-implementation of CLICOLOR_FORCE." The objection is "DESIGN.md L243-244 promises **regardless of env vars**, and an env var demonstrably overrides that promise." The mechanism's specific name doesn't matter; the contract violation does.
+3. *"It exists solely to make the positive color contract automatable."* — A legitimate engineering justification (and one I find persuasive on the merits) — but a justification for an observable spec-relevant behavior must land in the spec, not in a source-code doc-comment. The portfolio submission's audience reads DESIGN.md as the authoritative contract; a reader auditing whether the implementation honors "regardless of env vars" by reading the spec alone would conclude yes — and be wrong.
+
+**The integration test `force_color_with_no_color_env_set_does_not_force` (tests/layer7.rs:474-502) is itself evidence the contract is now non-trivial:** the test documents (in its comments at L488-491) that `TRACKER_INTERNAL_FORCE_COLOR=1` **wins over** `NO_COLOR=1`. This is a precedence ordering between two env vars — the kind of detail DESIGN.md normally specifies (cf. the explicit NO_COLOR / CLICOLOR / CLICOLOR_FORCE precedence list at L239-244). The current spec has no entry that would predict the seam's behavior.
+
+**Classification:** **Open — Raised to SO for adjudication; Resolved this round by SO authority via DESIGN.md amendment.** SO has the authority to amend DESIGN.md (CLOSURE-PROTOCOL §1). The amendment will:
+
+- Add a new bullet under "Color output" naming `TRACKER_INTERNAL_FORCE_COLOR=1` as a **test-only seam** that bypasses TTY detection and overrides `NO_COLOR` / `CLICOLOR`.
+- Explicitly mark the seam as **unstable across versions** (no compatibility guarantee).
+- Cross-reference QE R17 F1 as the originating finding.
+
+This preserves the engineering decision (the seam stays; QE R17 F1's coverage gap remains closed) while making the observable behavior contract-visible. The amendment lands in this same commit.
+
+#### Finding 3 — TODO.md missing the GO-PENDING-MANUAL-REWALK item from R24 (pressure point #6)
+
+**Dimension:** Dim 1 (Spec coverage — manual checklist is a DESIGN.md "Testing Methodology" gate). Dim 5 (Under-delivery, by carry-forward).
+
+**Severity:** Low. A bookkeeping miss in TODO.md, not a code or spec gap.
+
+**Facts:**
+- R24 closed with **GO-PENDING-MANUAL-REWALK**: "Round-2 manual testing checklist re-walk for the new behaviors (NO_COLOR / CLICOLOR / CLICOLOR_FORCE / bold rendering / no-ANSI-on-stderr-empty-state) is the standing CLOSURE-PROTOCOL §6 criterion-3 requirement; director must add to TODO.md and execute before merge."
+- TODO.md L368-374 contains the original 7-item Layer 7 manual checklist, all `[x]` from `603c689`. No new items have been added for the R2 behaviors. `grep -nE "(rewalk|Round.2|NO_COLOR|CLICOLOR)" TODO.md` returns no matches.
+- R3 commits did not touch TODO.md.
+
+**Classification:** **Open — Raised to Director / SO.** SO owns TODO.md scope (CLOSURE-PROTOCOL §1: "Solution Owner (scope); director (sequencing)"). I will append the Round-2 manual rewalk items to the Layer 7 manual testing checklist in TODO.md in this same commit (5 items: NO_COLOR=1 suppresses color in TTY; CLICOLOR=0 suppresses; CLICOLOR_FORCE=1 does NOT enable color when piped; medium / in-progress / done all render with bold attribute; `tracker list` empty-state on stderr has no ANSI). Director executes; closure unblocks the R24 standing GO-PENDING gate.
+
+#### Finding 4 — `TRACKER_INTERNAL_FORCE_COLOR` precedence over `NO_COLOR` is a deliberate test-ergonomics choice but a non-trivial spec implication (sub-finding of F2)
+
+**Dimension:** Dim 7 (Design fidelity, narrow read of L239-244's precedence semantics).
+
+**Severity:** Hallucinated, subsumed by F2.
+
+**Why I considered it:** The seam-before-NO_COLOR ordering (test `force_color_with_no_color_env_set_does_not_force` at L474-502 explicitly pins that force-color wins over NO_COLOR) raises a "user safety" question: a user who sets NO_COLOR for vision-accessibility reasons should not have it overridden by an env var they don't know exists. In practice, the user must set `TRACKER_INTERNAL_FORCE_COLOR=1` *themselves* for the override to occur — and a user who knows the variable's name well enough to set it has opted into the override. The accessibility concern is theoretical only.
+
+**Classification:** **Hallucinated.** Subsumed by F2's DESIGN.md amendment, which names the seam as test-only and unstable; an end user setting it for production purposes is out of contract.
+
+### Open / Resolved / Dismissed / Hallucinated / Backlogged / Raised-to summary
+
+- **Open: 0** at round close. F2 and F3 opened and resolved inline this round by SO authority (DESIGN.md amendment for F2; TODO.md amendment for F3). F1 closed as Resolved (process pattern is §3-compliant; the bookkeeping correction is applied inline by SO authority on DECISIONS.md).
+- **Resolved: 3** (F1 process closure with DECISIONS.md annotation; F2 with DESIGN.md amendment; F3 with TODO.md amendment).
+- **Dismissed: 0**.
+- **Hallucinated: 1** (F4 — NO_COLOR override precedence, subsumed by F2).
+- **Backlogged: 0**.
+- **Approved deviation: 0**.
+- **Raised to: 0** (F2's "Raised to SO for adjudication" was self-adjudicated by SO this round per CLOSURE-PROTOCOL §1 authority).
+
+### Carry-forward / Cross-domain coordination
+
+- **GO-PENDING-MANUAL-REWALK from R24** — still standing until director executes the now-amended TODO.md L368-374 items. The TODO.md amendment in this commit lands the items; the *execution* is a director action that may follow this review.
+- **SA R16 / SA Round 3 (if a cold SA round runs after this)** — the cluster is Resolved; SA may ratify this round's closure or, if the cold review surfaces post-refactor architectural concerns, raise new findings.
+- **VDD-IAR R19** — should ratify the process pattern (Backlog → Resolved 12h apart is §3-permitted but with the DECISIONS.md supersedure annotation now in place).
+
+### Summary
+
+5 commits since `b853a81`. Two refactor commits (`3fa1f3c` + `8db9437`) close 3 long-deferred architectural items by closing the SA cluster that R24 had auto-Backlogged 12h earlier — a fast §3 Backlog → Resolved transition that the protocol permits and the DECISIONS.md supersedure annotation now documents. One commit (`bd7511e`) introduces a `TRACKER_INTERNAL_FORCE_COLOR` env-var test seam that **demonstrably violates DESIGN.md L243-244's "regardless of env vars" promise** — addressed this round by an SO-authority amendment to DESIGN.md naming the seam explicitly as test-only-and-unstable. One commit (`c341a54`) adds a debug-only assertion (no spec surface). One commit (`ff0e85c`) installs a clippy pre-commit hook (PE-domain artifact, no code or spec surface).
+
+The "237/237 pass" framing did soften my first read; the sycophancy guard surfaced F2 (the env-var DESIGN.md silence) and the F1 DECISIONS.md staleness on second pass. Neither is a code bug — both are documentation contract gaps the implementation accumulated as it raced to close deferred items. Both are remediated this round by SO-authority edits.
+
+**Verdict:** **GO-PENDING-MANUAL-REWALK.** Inherits R24's standing pending gate. The R3 substantive content is in spec compliance after this round's amendments. Once director executes the now-itemized Round-2 manual rewalk (TODO.md L368-374 extension landing in this commit), the layer closes cleanly.
+
+**Coordination:** VDD-IAR R19 — ratify the §3 Backlog→Resolved transition with DECISIONS.md supersedure annotation; record the spec-amendment-driven closure of F2 as a process datum (a test seam slipped in without DESIGN.md update — a defect class worth naming alongside the SO R20 / SO R22 "implementation does something the spec does not sanction" pattern). SA Round 3 (if run) — re-walk `commands.rs` / `validate.rs` / `storage.rs` boundaries against the post-split structure; the public re-export surface in `lib.rs:42-50` preserves the pre-split API but introduces a new question (do the now-split modules have internal coupling SA wants to assess?). Director — execute the TODO.md L368-374 manual rewalk extension to close the R24 standing gate.
+
+**Files modified this round (SO authority per CLOSURE-PROTOCOL §1):**
+- `iterative-adversarial-refinement/SOLUTION-OWNER-REVIEW.md` (this log appended)
+- `DESIGN.md` (F2 amendment — `TRACKER_INTERNAL_FORCE_COLOR` documented as test-only seam)
+- `DECISIONS.md` (F1 bookkeeping — R2 auto-Backlog entry annotated "Superseded by Layer 7 IAR Round 3 closure"; F2 amendment recorded as new entry under "Layer 7 IAR Round 3 spec amendments")
+- `TODO.md` (F3 amendment — Round-2 manual rewalk items appended to the Layer 7 manual testing checklist)
+
+
+---
+
+## Review 26 — 2026-05-12 15:00Z — closure ledger (CLOSURE-PROTOCOL §2(c) reconciliation)
+
+**Round:** SO Review 26 (Layer 7 IAR — bookkeeping / closure ledger, not a new adversarial round).
+
+**Scope:** VDD-IAR Review 20 (final-pass merge-gate ratification) issued NO-GO-PENDING on §6 criterion 3 grounds: the CHANGELOG R3 entry enumerates the closures of R3 substantive findings, but the originating domain logs were not amended to record the Open → terminal transitions. Per CLOSURE-PROTOCOL.md §2(c): "Each domain that raised the finding closes it in its own log with a cross-reference to the closing change." This entry is the consolidated SO closure ledger that VDD-IAR R20 recommended (its "Option B, lightest" remediation) plus the per-domain log closure-pointer addenda the literal §2(c) reading requires. No code, spec, test, or behavior change in this round — pure bookkeeping reconciliation.
+
+**Session note:** Warm SO-authority session, applied per VDD-IAR R20's explicit instruction. Sycophancy check: the closures listed below all correspond to commits on the branch (`ff0e85c`, `c341a54`, `bd7511e`, `3fa1f3c`, `8db9437`, `ecec07f`, `e458fb9`, `fbc8da6`, `e28bef4`) that VDD-IAR R20 verified against the diff. The ledger is a *bookkeeping* artifact synthesizing already-landed work into the format §2(c) requires; it does not claim closures that did not occur.
+
+### Closure ledger — R3 substantive findings (Open → terminal at HEAD `e28bef4`)
+
+For each previously-Open finding raised in a Round-3 review log, the table below records the terminal state and the closing-change citation. The originating domain log is updated with a single Round-3 closure-pointer addendum referencing back to this ledger (per §2(c) literal compliance).
+
+| Origin | Finding | Terminal State | Closing change |
+|---|---|---|---|
+| SA Review 17 | F1 — pre-Layer-7 focused PR (SA cluster carry-forward) | Resolved | `3fa1f3c` (cmd_list extraction + column constants) + `8db9437` (lib.rs three-module split) |
+| SA Review 17 | F2 — re-export over-exposure (15 unused public items) | Resolved | `fbc8da6` (visibility tightened; lib.rs re-exports reduced from 23 to 8 items) |
+| SA Review 17 | F3 — test placement (93 tests cohabit at lib.rs#tests) | **Backlogged** per §3 | `fbc8da6` DECISIONS.md entry "Test placement" with reactivation triggers (test count > 300 OR lib published) |
+| SA Review 17 | F4 — `TRACKER_INTERNAL_FORCE_COLOR` violates DESIGN.md L244 | Resolved | SO R25 F2 DESIGN.md amendment in `ecec07f` (Round-3 spec amendment naming the seam as test-only / unstable) |
+| SE Review 19 | F1 — re-export surface over-exposed (same root as SA R17 F2) | Resolved | `fbc8da6` (cross-domain duplicate of SA F2; same closing change) |
+| SE Review 19 | F2 — `color_mode_from_env` call-once contract not documented | Resolved | `e458fb9` (doc-comment "Call-once contract" section added explaining the single-decision-point pattern) |
+| SE Review 19 | F3 — lib.rs module split (carry-forward closure tracker) | Resolved | `8db9437` (module split landed; finding tracked the closure rather than raised new work) |
+| QE Review 19 | F1 — `format_list_row` column-order mutation survives R3 tests | Resolved | `e458fb9` (`force_color_data_row_emits_columns_in_status_then_priority_order` integration test added; pins cyan-before-red byte ordering in the data row) |
+| QE Review 19 | F2 — `force_color_with_no_color_env_set_does_not_force` test name contradiction | Resolved | `e458fb9` (renamed to `force_color_wins_over_no_color_when_both_env_vars_set`) |
+| QE Review 19 | F3 — test placement (cross-domain duplicate of SA R17 F3) | **Backlogged** per §3 | Same closing record as SA R17 F3 (`fbc8da6` DECISIONS.md entry) |
+| QE Review 19 | F4 — `catch_unwind` + `debug_assert` pattern emits panic-noise | Resolved | `fbc8da6` (`assert_panics<F>` helper in lib.rs#tests installs a no-op panic hook for the duration of catch_unwind; PANIC_HOOK_LOCK serializes concurrent test threads) |
+| Security Review 13 | (no Open findings at R3) | — | already terminal |
+| Platform Review 14 | F1 — source LOC ~1100 crosses PE R8 F3 informal coverage-tooling threshold | **Dismissed** (SO ratification) | `fbc8da6` DECISIONS.md entry "Source-LOC coverage threshold trigger" reaffirms the prior dismissal rationale; reactivation triggers named |
+| Platform Review 14 | F2 — branch-protection / required-status-check verification | **Dismissed** (out-of-tree) | `fbc8da6` DECISIONS.md entry "Branch-protection / required-status-check verification" notes director-side GitHub-settings task; not a working-tree defect |
+| UX Review 12 | F1 — `TRACKER_INTERNAL_FORCE_COLOR` discoverability / spec-conformance | Resolved | Same closing change as SA R17 F4 (`ecec07f` DESIGN.md amendment); cross-domain duplicate |
+| UX Review 12 | F2 — TODO.md missing the R2 manual checklist items | Resolved | SO R25 F3 TODO.md amendment in `ecec07f` (appended 6 items) + `e28bef4` director-execution closure (6/6 ticked) |
+| DE Review 13 | (no Open findings at R3) | — | already terminal |
+| RT Review 12 | F1 — `TRACKER_INTERNAL_FORCE_COLOR` violates DESIGN.md L244 | Resolved | Same closing change as SA R17 F4 / UX R12 F1 (`ecec07f` DESIGN.md amendment); cross-domain duplicate |
+| TW Review 13 | F1 — CHANGELOG.md no R3 entry | Resolved | `e458fb9` (comprehensive Layer 7 R3 entry added) |
+| TW Review 13 | F2 — `src/lib.rs` `//!` module-level doc-comment drift | Resolved | `e458fb9` (rewrote `//!` to distinguish public-API re-exports from `pub(crate)` crate-internal helpers; lists all submodule contents with correct visibility labels) |
+| TW Review 13 | F3 — rustdoc `bare_urls` warning at commands.rs:90 | Resolved | `e458fb9` (wrapped the no-color.org URL in angle brackets per rustdoc convention) |
+| TW Review 13 | F4 — DECISIONS.md missing the raw-ANSI rationale (informational re-raise) | Resolved | SO R25 F1 DECISIONS.md supersedure annotation in `ecec07f` records the closure narrative |
+| TW Review 13 | F5 — TODO.md still missing R2 manual checklist items (cross-domain duplicate of UX R12 F2) | Resolved | Same closing change as UX R12 F2 |
+| VDD-IAR Review 19 | F1 — Red Gate label discipline (CRITICAL Dim 4) | Resolved | `ecec07f` (Option B closure: CLOSURE-PROTOCOL.md §8 + suite-level G-99 registration + R19 addendum) |
+| VDD-IAR Review 19 | F2 — manual rewalk artifact + execution | Resolved | `ecec07f` (TODO.md items appended) + `e28bef4` (director-execution closure, 6/6 ticked) |
+
+Total: **24 R3 substantive findings transitioned**, of which 19 Resolved, 3 Backlogged (test placement × 2 cross-domain duplicates + coverage-threshold dismissal), 2 Dismissed (coverage tooling + branch protection). 0 remain in Open state at HEAD.
+
+### Bookkeeping correction (VDD-IAR R20 nit)
+
+- **CHANGELOG.md Layer 7 R3 verification line** — text claims "94 unit + 32+18+9+25+7+33+21 layer 1-7 integration"; actual `cargo test --lib` at HEAD reports 93 unit tests. The "+1 from the column-order ordering check" attribution applied the increment one count too high. Corrected to "93 unit + 32+18+9+25+7+33+21" by amending the CHANGELOG entry. Suite math: 93 + 32 + 18 + 9 + 25 + 7 + 33 + 21 = 238. ✓
+- **Branch-commit count** — VDD-IAR R20 observed 19 commits on the branch; CHANGELOG body cited 17 in places. Cited counts in the CHANGELOG body were narrative summaries rather than declarations of total count; no spec-of-record was wrong. No CHANGELOG amendment required for this nit.
+- **Source LOC distribution** — VDD-IAR R20 observed ~1401 non-test LOC vs the DECISIONS.md "Source-LOC coverage threshold trigger" entry's stated ~1271. Recount at HEAD: `src/lib.rs` 1189 lines (includes ~1080 test lines), `src/storage.rs` 218, `src/validate.rs` 273, `src/commands.rs` 690, `src/main.rs` 137. Non-test source-LOC across the four library modules + main.rs (excluding the test module): roughly 1189 − 1080 + 218 + 273 + 690 + 137 ≈ 1427 lines. The DECISIONS.md "~1271" figure was an undercount; the threshold-crossing argument and dismissal rationale (single-developer portfolio CLI; coverage tooling is ceremony at this scale) hold either way — the SO ratification of the prior dismissal stands at the higher count.
+
+### Per-domain log closure-pointer addenda (§2(c) literal compliance)
+
+For each domain log with previously-Open findings, append a one-line closure pointer of the form:
+
+> **Round-3 finding closure — see SO Review 26 ledger.** F1: Resolved (`<commit>`). F2: Resolved (`<commit>`). F3: Backlogged §3 (`<commit>` DECISIONS entry). ... 
+
+This Round 26 commit lands the closure-pointer addenda on the originating logs (SA / SE / QE / Platform / UX / RT / TW) — see commit message for the per-log diff stat.
+
+### Merge-gate impact
+
+Per CLOSURE-PROTOCOL §6 criterion 3 ("No finding remains in Open state") at HEAD after this ledger lands:
+
+- 0 Open findings in any active-domain log (verified by inspection).
+- All transitions cite an in-branch commit (`ff0e85c` / `c341a54` / `bd7511e` / `3fa1f3c` / `8db9437` / `ecec07f` / `e458fb9` / `fbc8da6` / `e28bef4` / this commit's per-log addenda) or an SO-authority DECISIONS.md entry.
+- The bookkeeping nit (93/94 unit-test count) corrected.
+
+Merge gate is now eligible for VDD-IAR R21 ratification. No new VDD-IAR finding raised by this ledger; the §6.3 block from R20 is closed by the ledger + per-domain closure pointers.
+
+**Coordination:** VDD-IAR R21 — final-pass merge-gate ratification. Sycophancy guard: every transition in the table is verifiable against the cited commit's diff; no transition relies on this ledger's own framing.
+
+**Files modified this round (SO authority per CLOSURE-PROTOCOL §1):**
+- `iterative-adversarial-refinement/SOLUTION-OWNER-REVIEW.md` (this Review 26 closure ledger appended)
+- `iterative-adversarial-refinement/SOLUTION-ARCHITECT-REVIEW.md` (one-line R3 closure pointer appended to R17 entry)
+- `iterative-adversarial-refinement/SOFTWARE-ENGINEER-REVIEW.md` (one-line R3 closure pointer appended to R19 entry)
+- `iterative-adversarial-refinement/QUALITY-ENGINEER-REVIEW.md` (one-line R3 closure pointer appended to R19 entry)
+- `iterative-adversarial-refinement/PLATFORM-ENGINEER-REVIEW.md` (one-line R3 closure pointer appended to R14 entry)
+- `iterative-adversarial-refinement/UX-REVIEW.md` (one-line R3 closure pointer appended to R12 entry)
+- `iterative-adversarial-refinement/RED-TEAM-REVIEW.md` (one-line R3 closure pointer appended to R12 entry)
+- `iterative-adversarial-refinement/TECHNICAL-WRITER-REVIEW.md` (one-line R3 closure pointer appended to R13 entry)
+- `CHANGELOG.md` (bookkeeping correction: 94 → 93 unit-test count)

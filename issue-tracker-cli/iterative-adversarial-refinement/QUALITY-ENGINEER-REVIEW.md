@@ -1648,3 +1648,385 @@ Concern: `position` returns the first index, but if two issues had id=1 (duplica
 **Coordination:** *(none — closure pass)*
 
 ---
+
+## Review 17 — 2026-05-11 22:30Z
+
+**Round:** QE Review 17 (Round 1 — Layer 7 cold-batch surfacing pass)
+**Scope:** Layer 7 polish (branch `issue-tracker-cli-polish`, commits `7b461aa` Red Gate + `a2b8062` impl + `603c689` manual closure). Whole-app regression baseline. Read-only surfacing — Round-2 closure pass owns test additions per CLOSURE-PROTOCOL.md §1 (QE owns `tests/**`).
+
+### Regression check (whole-suite)
+
+- `cargo test --no-fail-fast --locked` — **195/195 pass** (62 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4 + 7 layer5 + 33 layer6 + 9 layer7). Re-run locally this session, confirmed.
+- No prior-layer test removed or weakened in the Layer 7 commits; the `format_show_block(false)` call-site updates to the two pre-existing unit tests preserve uncolored-layout pinning and do not loosen any assertion. No regression detected at the test boundary.
+
+### AC coverage map for Layer 7
+
+DESIGN.md / TODO.md Layer 7 ACs (L353-366) mapped to tests:
+
+| AC | Test | Category |
+|---|---|---|
+| AC 1 — `tracker --help` exits 0, describes all subcommands | `help_flag_binary_exits_zero` (asserts `Usage: tracker` + each of `create`/`list`/`status`/`show`/`delete`) | Cat B (clap default) |
+| AC 2 — `tracker create --help` exits 0, describes `--description`/`--priority`/`--label` with valid values | `help_flag_create_exits_zero` (incl. `"low, medium, high"`) | Cat B (clap default) |
+| AC 3 — `tracker list --help` exits 0, describes filters with valid values | `help_flag_list_exits_zero` (incl. both enumerations) | Cat B (clap default) |
+| AC 4 — `tracker status --help` exits 0, describes positional args + valid statuses | `help_flag_status_exits_zero` | Cat B (clap default) |
+| AC 5 — `tracker show --help` exits 0, describes `<ID>` | `help_flag_show_exits_zero` | Cat B (clap default) |
+| AC 6 — `tracker delete --help` exits 0, describes `<ID>` | `help_flag_delete_exits_zero` | Cat B (clap default) |
+| AC 7 — TTY: `high` red/bold, `medium` yellow, `low` default | **Manual checklist only** (TODO.md L370) | No automated coverage |
+| AC 8 — TTY: `in-progress` cyan, `done` green, `open` default | **Manual checklist only** (TODO.md L370/L372) | No automated coverage |
+| AC 9 — Piped: no ANSI escape codes | `list_piped_has_no_ansi_codes` + `show_piped_has_no_ansi_codes` (stdout-only) | Cat A regression guard for Phase 2b |
+| AC 10 — Color is value-only, not row/header | **Manual checklist only** (TODO.md L370) | No automated coverage; relies on `wrap_color` contract |
+| AC 11 — Color appears in both `list` and `show` (TTY) | **Manual checklist only** (TODO.md L370/L372) | No automated coverage |
+| AC 12 — All error messages begin with `Error:` | Inherited from Layer 1-6 (`main.rs` `try_parse` transform) | Cat B (pre-existing) |
+| AC 13 — Unknown subcommand exits 1 with usage error on stderr | `unknown_subcommand_exits_one` | Cat A |
+
+**Coverage verdict:** 13/13 ACs traced to a passing test or named manual-only item. 4 of 13 ACs (the TTY-positive ACs 7, 8, 10, 11) have **zero automated coverage** — the entire color-rendering surface is gated only by the manual checklist. See Open Finding 1.
+
+### Red Gate compliance — Phase 2a (`7b461aa`) — process deviation
+
+The Layer 7 Red Gate commit message and `tests/layer7.rs` top-comment (L1-25) explicitly disclose that **all 9 tests pass against pre-implementation code**. The framing is: clap defaults and the Layer 1 `try_parse` transform already satisfy the help/error contract; the two piped tests exercise the non-TTY branch (which is the only branch reachable from a subprocess test) and pass trivially against pre-color code, becoming regression guards in Phase 2b.
+
+The framing is **honest about the deviation** (the comment is verbatim accurate against `git show 7b461aa`), but the deviation itself is a real process gap, not a virtue. Three sub-points:
+
+1. **Tests that *could* have been written failing-first but were not.** `unknown_subcommand_exits_one` asserts exit code **1**. Pre-Layer-1, clap's default for an unrecognized subcommand is exit **2**; the `try_parse` transform in `src/main.rs:74-78` is the code that converts to exit 1. That transform predates Layer 7 — but if the test were authored against a hypothetical "naive" stub (raw `Cli::parse()` with no transform), it would Red on exit code. The fact that it passes today reflects that the contract was already pinned by Layer 1's behavior, not that the test is meaningless — it is correctly a regression guard. **Honest framing.**
+2. **Tests that *could not* have been Red.** The 6 help-flag tests are Cat B: clap's `--help` plumbing is the entire implementation. No "stub that exits 1" stage of Layer 7 was ever planned. The comment acknowledges this.
+3. **The deviation that is real.** The piped-no-ANSI tests would have been Red against a *strictly correct* Phase 2a stub: one that emitted ANSI unconditionally (the naive implementation the spec warns against). The Red Gate discipline says "write the test, watch it fail, then implement." Here the test was written and watched to *pass* — because no stub existed. The test serves its intended purpose (regression guard against the naive Phase 2b implementation), but the **Red-then-Green discipline was not exercised on the color contract**. There was no point at which a developer could have shipped color-always and discovered the test broken.
+
+**Verdict:** Red Gate compliance is **deviation-disclosed, not enforced.** The disclosure makes the deviation auditable; that is the floor, not the ceiling. A genuinely Red-first approach to the color contract would have introduced a `force_color()` test seam (env var or constructor parameter) so that TTY-positive rendering became automatable — see Finding 1.
+
+### Findings
+
+#### Open
+
+##### Finding 1 — TTY-positive color rendering has zero automated coverage; a `force_color` test seam would have made it automatable (Dim 1, Dim 2, Dim 4, Dim 13)
+
+ACs 7, 8, 10, 11 — all four TTY-positive ACs — are gated by manual checklist only (TODO.md L370-373). The implementation chose `std::io::stdout().is_terminal()` as the sole TTY signal. There is no override seam — no env-var check (e.g., `FORCE_COLOR`, `CLICOLOR_FORCE`, `NO_COLOR` honored bidirectionally), no constructor parameter on `cmd_list` / `cmd_show` injecting `use_color`. As a consequence:
+
+- A mutation that flips `priority_ansi("high", true)` from `Some("\x1b[1;31m")` to `Some("\x1b[31m")` (drop the bold) survives every automated test.
+- A mutation that swaps the cyan and green sequences in `status_ansi` survives every automated test.
+- A mutation that colors the **label column** instead of the value (violating AC 10's "value only, not entire row or header") survives every automated test, because the only color-related automated tests assert the **absence** of `\x1b[` from piped output.
+- A mutation that colors the **header row** of `cmd_list` (violating AC 10) survives every automated test for the same reason.
+
+The piped-no-ANSI tests pin the *suppression* contract; they cannot pin the *application* contract because `assert_cmd::Command` connects stdout to a pipe by construction. The four TTY-positive ACs depend on the human-eyeball manual checklist to catch any of the above mutations.
+
+A `force_color` seam (env var honored at TTY-detection time, like `cargo` itself does with `CARGO_TERM_COLOR=always`) would make TTY-positive rendering automatable: a test sets `CLICOLOR_FORCE=1`, invokes `tracker list`, and asserts `predicate::str::contains("\x1b[1;31mhigh\x1b[0m")` on stdout. The TODO.md L389 comment ("TTY-detection cannot be automated in subprocess tests") is true given the current implementation but false in principle — the seam is the standard idiom for exactly this case.
+
+**Severity: Medium-High.** Quality-system gap: the four TTY-positive ACs are CI-invisible. A future refactor that breaks color application is detected only when a human runs through the manual checklist — which is exactly the kind of "manual gate that a passing CI run could miss" the QE Standard Dim 13 names as a finding.
+
+**Evidence:** `tests/layer7.rs:1-25` (top-comment disclosure); `src/lib.rs:591` (`cmd_show` TTY detection); `src/lib.rs:835` (`cmd_list` TTY detection); TODO.md L370-373, L389 (manual-only carve-out); DESIGN.md L239-250 (color contract).
+
+**Proposed action (Round 2):** Add a `force_color` env-var seam in the TTY-detection paths (e.g., `is_terminal() || env::var("TRACKER_FORCE_COLOR").is_ok()`). Add integration tests setting the env var that assert the exact ANSI sequences appear on stdout for each priority and status value and **do not** appear in the header row or label column. Cost: ~2 lines in lib.rs, ~6 integration tests. Cross-cuts SE (env-var consumption) and UX (env-var name follows community convention).
+
+**Classification:** Open / Medium-High severity / non-blocking for Layer 7 merge (manual checklist closure satisfies the floor) but a real quality-system gap that should not survive a second cold-batch round.
+
+---
+
+##### Finding 2 — No unit tests for `priority_ansi` / `status_ansi` / `wrap_color` / `pad_after_color`; the exact-sequence contract for color helpers is unpinned (Dim 2 Mutation testing, Dim 13 Coverage)
+
+Four new pure functions were added to `src/lib.rs` in commit `a2b8062`: `priority_ansi` (L51-60), `status_ansi` (L65-74), `wrap_color` (L79-84), and `pad_after_color` (L91-97). The `src/lib.rs#tests` module gained zero tests for any of them. They are private (no `pub`), so the QE supplement's "100% public API coverage" floor does not literally apply, but they are the implementation of a load-bearing spec contract (DESIGN.md L239-250 color table) and they are pure — they are exactly the functions that unit tests are designed for.
+
+Named mutations that survive every test in the current 195-suite:
+
+1. `priority_ansi("high", true)` returns `Some("\x1b[1;31m")` → mutation to `Some("\x1b[31m")` (drop the `1;` bold marker). Spec says "Red / bold." Survives.
+2. `priority_ansi("medium", true)` returns `Some("\x1b[33m")` → mutation to `Some("\x1b[32m")` (yellow → green). Survives.
+3. `status_ansi("in-progress", true)` returns `Some("\x1b[36m")` → mutation to `Some("\x1b[35m")` (cyan → magenta). Survives.
+4. `status_ansi("done", true)` returns `Some("\x1b[32m")` → mutation to `Some("\x1b[31m")` (green → red). Survives.
+5. `priority_ansi("low", true)` returns `None` → mutation to `Some("\x1b[31m")` (color the default-color value). Survives.
+6. `status_ansi("open", true)` returns `None` → mutation to `Some("\x1b[33m")` (color the default-color value). Survives.
+7. `wrap_color(value, Some(prefix))` returns `format!("{}{}{}", prefix, value, ANSI_RESET)` → mutation that drops the reset (`format!("{}{}", prefix, value)`). Survives — and is a real bug shape (leaked color onto subsequent rows in `cmd_list`).
+8. `pad_after_color` `if visible_chars >= total_width` → `>` (drop equality) mutation. For a value whose visible width exactly equals the column width (e.g., `in-progress` at 11 chars vs. column width 11), the mutated branch falls through to `" ".repeat(total_width - visible_chars)` = `" ".repeat(0)` — still correct in this case, so the mutation is functionally equivalent on the current values. Hallucinated for this exact code, but flagged because the boundary is fragile against a future column-width change.
+9. `pad_after_color` `total_width - visible_chars` → `total_width.saturating_sub(visible_chars + 1)` (off-by-one). Survives at the unit level entirely.
+
+Mutations 1-7 are real coverage gaps. They are killable by ~8 unit tests (one per mutation class) of about 3 lines each.
+
+**Severity: Medium-High.** Pure-function mutation gaps on a load-bearing spec contract. The QE Standard Dim 2 mutation-testing prompt names exactly this case ("a mutation that no test catches is a coverage gap regardless of reported coverage percentage").
+
+**Evidence:** `src/lib.rs:51-97` (the four helpers); the `src/lib.rs#tests` module (L869-1506) has no tests referencing any of the four function names.
+
+**Proposed action (Round 2):** Add unit tests pinning each helper's exact return for each input. Pattern:
+
+```rust
+#[test]
+fn priority_ansi_high_returns_bold_red() {
+    assert_eq!(priority_ansi("high", true), Some("\x1b[1;31m"));
+}
+```
+
+…one per (value, color) pair, plus tests for `use_color=false` returning `None` for every value, plus `wrap_color` round-trip with reset, plus `pad_after_color` boundary cases (visible < total, visible == total, visible > total). ~10-12 unit tests, ~40 LOC.
+
+**Classification:** Open / Medium-High severity / non-blocking for Layer 7 merge but the most-mutable surface in the layer; pairs with Finding 1 for the Round-2 closure pass.
+
+---
+
+##### Finding 3 — `unknown_subcommand_exits_one` does not assert stdout is empty; `help_flag_*_exits_zero` tests do not assert stderr is clean (Dim 3 — selector / assertion strength; cross-cut to UX stdout/stderr discipline)
+
+DESIGN.md "stdout contract" / "stderr contract" (L220-222) is explicit: error messages go to stderr, data to stdout. AC 13 routes the unknown-subcommand usage error to stderr. The Layer 7 test asserts `.stderr(contains("Error:"))` + `.stderr(contains("unrecognized subcommand"))` + `.stderr(contains("frobnicate"))` — but does **not** assert `.stdout(predicate::str::is_empty())`. A mutation that prints the usage error to **both** streams (a common refactor regression) would pass.
+
+Symmetrically, the six `help_flag_*_exits_zero` tests assert content on stdout (clap routes `--help` to stdout per CLI convention) but do not assert stderr is clean. A mutation that leaked the help text to stderr — or that emitted a stray informational message to stderr alongside the help text — would survive every test. This matters for the `--help | head -1` pipeline shape: a non-empty stderr surfaces in the user's terminal even when stdout is captured.
+
+**Severity: Medium.** The stdout/stderr separation is a DESIGN.md contract (L220-222) and a CLI supplement Dim ("stdout / stderr / exit code assertions" — supplements/cli.md L26-27 specifically: "A test that only checks stdout will miss error-path regressions"). The current Layer 7 tests assert *positively* on one stream per test but never *negatively* on the other.
+
+**Evidence:** `tests/layer7.rs:36-107` (help flag tests, no stderr negative assertion); `tests/layer7.rs:111-122` (`unknown_subcommand_exits_one`, no stdout negative assertion); DESIGN.md L220-222 (stdout/stderr contract); supplements/cli.md L26-27.
+
+**Proposed action (Round 2):** Add `.stdout(predicate::str::is_empty())` to `unknown_subcommand_exits_one`. Add `.stderr(predicate::str::is_empty())` to each `help_flag_*_exits_zero` test (clap routes `--help` to stdout; stderr should be empty for a successful help invocation). Cost: 7 added lines.
+
+**Classification:** Open / Medium severity.
+
+---
+
+##### Finding 4 — `list_piped_has_no_ansi_codes` and `show_piped_has_no_ansi_codes` check only stdout; ANSI on stderr is not validated (Dim 3, Dim 5 — empty-state messages route to stderr per DESIGN.md)
+
+Empty-state messages (`No open issues. Nice work!` and `No issues match the given filters.`) route to **stderr** per DESIGN.md L222. If a future implementation extended color application to those informational messages (e.g., a green "Nice work!" celebration coloring), it would emit ANSI to stderr. The piped-stdout tests do not catch this. Neither does any other test in the suite.
+
+The current implementation does not color stderr messages, so this is a latent-risk finding, not a present bug. But the **automated regression boundary for "no ANSI codes when piped"** is asymmetric: it pins stdout and silently allows stderr. A reasonable contract reading of DESIGN.md L239 ("Color is suppressed when stdout is piped or redirected") is that color suppression applies to user-visible output channels in general — `tracker list | cat 2>&1` would mix the streams and re-introduce ANSI through the back door.
+
+**Severity: Low-Medium.** Latent / preventive. The exact form depends on whether the spec intends "no ANSI on stderr when stderr-is-piped" as a separate rule (currently DESIGN.md is silent on stderr coloring). If so, the test gap is real; if not, this is a documentation gap (SO-raisable).
+
+**Evidence:** `tests/layer7.rs:163-173` and `:191-192` (stdout-only assertions); `src/lib.rs:822-827` (`eprintln!` empty-state messages, uncolored, no TTY check); DESIGN.md L222, L239.
+
+**Proposed action (Round 2):** Extend the piped tests to also assert `.stderr(predicate::str::contains("\x1b[").not())`. Cost: 4 added lines. If SO confirms stderr-color is out of scope, this becomes a doc clarification instead.
+
+**Classification:** Open / Low-Medium severity / cross-cut to SO (spec scope).
+
+---
+
+##### Finding 5 — `pad_after_color`'s `visible_chars` is computed by the caller as `issue.status.chars().count()`; relies on chars-count equaling display-width, which is true for the current ASCII values but not in general (Dim 6 — validation gaps; latent risk)
+
+`cmd_list` (L856, L859) calls `pad_after_color(&status_colored, issue.status.chars().count(), 11)` and analogously for priority. The `pad_after_color` doc-comment (L91-97) and the code-site comment (L851-854) both acknowledge "All status/priority values are ASCII so visible character count equals byte count of the bare value" — but `chars().count()` is the **character count**, not the **display width**. For the current valid set (`open`, `in-progress`, `done`, `low`, `medium`, `high`) all values are ASCII so character count equals display columns; the current code is correct.
+
+But: `issue_fields_are_valid` validates the *set* of valid status/priority strings against `VALID_STATUSES` / `PRIORITY_ORDER`, so a non-ASCII value cannot reach this code path through any legitimate flow. The defense is layered. **However**: the comment treats this as "fine for current values" — if a future spec amendment added a CJK status value (the prompt's `"完成"` hypothetical), `chars().count()` would return 2 while display width would be 4, mis-aligning columns. The `unicode-width` crate is the standard fix.
+
+**Severity: Low / Latent.** Not a present bug — the validated value set is ASCII-only and `tracker_is_valid` rejects anything else at load. Flagging because: (a) the comment frames the constraint as a coincidence ("All ... values are ASCII") rather than as a *validated invariant*, which is fragile to a future spec amendment; (b) there is no unit test asserting that `pad_after_color` aligns correctly for the current value set (i.e., that `chars().count() == display_columns` for every member of `VALID_STATUSES` and `PRIORITY_ORDER`).
+
+**Evidence:** `src/lib.rs:851-859` (caller comment); `src/lib.rs:91-97` (helper doc); `src/lib.rs:203-207` (`VALID_STATUSES`, `PRIORITY_ORDER`).
+
+**Proposed action (Round 2):** Add a unit test enumerating each valid status and priority value and asserting `chars().count() == <expected ASCII width>`. If the project adopts CJK status values in the future, the test breaks loudly and points at the fix (`unicode-width::UnicodeWidthStr::width`). Cost: 1 unit test, ~15 LOC.
+
+**Classification:** Open / Low severity / latent risk.
+
+---
+
+#### Dismissed
+
+##### Finding 6 — Manual checklist closure of 7/7 in a single commit (`603c689`) may have been performative
+
+The manual checklist (TODO.md L368-376) shows all 7 items checked. Commit `603c689` closed them together. Adversarial question: was each item materially executed, or batch-ticked?
+
+**Classification: Dismissed.** Cross-referencing the CHANGELOG.md L27-32 "Manual TTY verification" section, the developer recorded specific evidence: `script -q /dev/null tracker list ...` invocations for each priority/status combination, with the exact ANSI sequences observed (`\x1b[1;31mhigh\x1b[0m`, `\x1b[33mmedium\x1b[0m`, etc.). The `tracker frobnicate` exit-1 case is independently covered by the integration test. The `tracker show <id>` piped case is covered by `show_piped_has_no_ansi_codes`. The remaining items (error-message review, TTY show with high/in-progress) are described with detail consistent with actual execution. The shape of the CHANGELOG narrative — specific escape sequences, column-alignment claim across all 9 status × priority combinations — would be hard to fabricate plausibly. **No finding.** (Caveat: the developer is the same agent that wrote the tests and implementation. The closure-validation chain ultimately depends on director trust. This is a process-level concern, not a QE-domain finding — surfacing only as a cross-domain flag to VDD-IAR Alignment.)
+
+---
+
+##### Finding 7 — `help_flag_create_exits_zero` asserts the literal `"low, medium, high"` ordering of the priority enumeration in the help text; a refactor reordering to `"high, medium, low"` would break the test even though the AC is satisfied (Dim 5 — test bound to implementation, not behavior)
+
+The test asserts `predicate::str::contains("low, medium, high")`. DESIGN.md L21 specifies the valid values as `low`, `medium`, `high` but does not pin the help-text rendering order. A reader could reasonably order them by priority severity (`high, medium, low`) and the test would fail despite no AC regression.
+
+**Classification: Dismissed.** The assertion is on the substring; if a future refactor changes the order, the test fails *loudly* and the developer can choose whether the spec means to pin order or not. This is appropriate falsifiability — looser than a regex would allow the test to silently pass against a re-ordering, which is *less* useful as a regression guard. The test correctly reflects current behavior; any future re-ordering surfaces the ambiguity for SO adjudication. **No finding.**
+
+---
+
+#### Hallucinated
+
+##### Finding 8 — `wrap_color` allocates a `String` on every call; in a 1000-issue list this is 1000 allocations on the hot path
+
+**Classification: Hallucinated.** `cmd_list` is the only caller; it runs at human-interactive cadence on a personal tracker. Performance is not a Layer 7 dimension and DESIGN.md does not specify allocation budgets. The `String::to_string()` fallback in the `None` branch already commits to allocation. This is a non-issue for the spec's threat model (single user, <1000 issues, terminal-interactive use). **No finding.**
+
+---
+
+### Mutation-resilience verdict
+
+**Mixed-to-loose.** The color-helper surface (Findings 1, 2) is the most mutation-vulnerable in the project: 7+ named mutations on `priority_ansi` / `status_ansi` / `wrap_color` survive every test in the 195-suite. The piped-no-ANSI integration tests pin the *suppression* half of the contract (which is the genuinely new Layer 7 risk surface for regression) but cannot pin the *application* half because of the structural TTY-detection limitation that the implementation chose to leave unautomatable. The stdout/stderr separation contract (Finding 3) is asserted positively per stream but not negatively, which is a Dim 3 assertion-strength gap.
+
+The `--help` / unknown-subcommand surface is appropriately covered by Cat B regression-guard tests (Red Gate compliance disclosed, not enforced).
+
+**Compared to Layer 6 (Review 15):** Layer 6's QE round surfaced 3 substantive findings (1 High security-cross-cut + 2 Medium) that landed in Round 2. Layer 7 surfaces 5 (3 Medium-High / Medium on the test surface + 2 Low latent), all of which are quality-system gaps rather than security findings — none merge-blocking, but Findings 1-3 should not survive a second cold-batch round.
+
+### Summary
+
+**Verdict:** **MVR-pending.** Layer 7 implementation is correct against DESIGN.md per manual testing, but the automated test boundary is loose on the color contract. 5 Open findings / 2 Dismissed / 1 Hallucinated. Findings 1-3 are recommended for a Round-2 QE closure pass (adding ~20 unit tests + a `force_color` env-var test seam in `src/lib.rs` co-authored with SE).
+
+**Top mutation gap:** Finding 2 — `priority_ansi` / `status_ansi` / `wrap_color` have no unit tests; 7 named mutations on the color-sequence contract survive the suite.
+
+**Top concern:** Finding 1 — the entire TTY-positive rendering surface (ACs 7, 8, 10, 11 — 4 of 13 Layer 7 ACs) has zero automated coverage. The TODO.md "Manual only" carve-out is true for the current implementation but is a structural choice, not a constraint — a `force_color` seam is the standard idiom.
+
+**Sycophancy check:** 195/195 + clippy clean is the result that softens reviewers. Re-audited Dim 1 (AC coverage — found 4 ACs at zero automated coverage by enumerating the AC list rather than reading the test list and reverse-mapping); Dim 2 (mutation testing — enumerated 7 surviving mutations on pure functions rather than asserting "tests pass = mutation resilience"); Dim 13 (quality gates — flagged manual-only checklist as a CI-invisible gate per the Standard Dim's literal text). Did not soften any finding to Dismissed without specific control demonstration; Finding 6 demonstrates the control via cross-reference to CHANGELOG evidence with shape-of-narrative reasoning. **No softening detected.**
+
+**Red Gate verdict:** Deviation disclosed in tests/layer7.rs L1-25 and in the `7b461aa` commit message; framing is honest. The deviation is real, not a hallucinated process gap — Finding 1's `force_color` seam is the concrete alternative that would have enabled a Red-first approach to the color contract. Logged as a process observation cross-cut to VDD-IAR Alignment.
+
+**Coordination:**
+- **SE Review (next):** Finding 1's `force_color` env-var seam is a `src/lib.rs` change (one line in each of `cmd_list` / `cmd_show`); QE provides the test additions in Round 2 once the seam lands. Finding 5's `unicode-width` defense is SE's call on whether to adopt the dependency or document the ASCII-invariant.
+- **UX Review (next):** Finding 1's env-var name choice (`TRACKER_FORCE_COLOR` vs. `CLICOLOR_FORCE` vs. `NO_COLOR` honored) is a UX-convention question. Finding 3 (stdout/stderr separation) cross-cuts to UX dim 4 (CLI supplement).
+- **SO Review (next):** Finding 4 (ANSI-on-stderr) is silent in DESIGN.md L239 — needs SO adjudication on whether color suppression applies to stderr empty-state messages or whether stderr is out of scope for the color contract. Finding 5 (CJK / display-width) is a spec-amendment question if status values ever widen beyond ASCII.
+- **Platform Engineer Review (next):** No new escalation. The 195/195 green CI run does not change the standing Platform finding on coverage-gating absence (Layer 7 does not move that needle).
+- **VDD-IAR Alignment (next):** Process observation — the Red Gate deviation is disclosed in the commit and test file (compliant disclosure); the deviation itself is a process gap that the `force_color` seam (Finding 1) would close architecturally. Manual checklist closure (Finding 6 dismissed) materially executed per CHANGELOG narrative review.
+- **Security / Red Team:** No new escalation; no security-class findings this round.
+
+---
+
+## Review 18 — 2026-05-12 00:00Z
+
+**Round:** QE Review 18 (Layer 7 IAR Round 2 closure pass). Warm verification per CLOSURE-PROTOCOL.md §5; not a new adversarial round.
+
+**Scope:** Verify R17 Open findings closed by commits `fbbb8a3` (12 retroactive unit tests) and `09b1905` (test tightening + Round-2 unit and integration tests). Inputs: `tests/layer7.rs` (now 12 tests, was 9); `src/lib.rs#tests` (now 84 tests, was 62).
+
+### Round-1 finding closures
+
+- **F1 — TTY-positive color rendering has zero automated coverage; `force_color` test seam would have made it automatable:** **Deferred (Round-2 partial mitigation applied).** A `force_color` test seam still requires refactoring (a public `set_color_mode_for_test` hook or env-var override path that bypasses TTY detection). Partial mitigation in `09b1905`: 4 new `color_mode_from_env_*` unit tests pin the env-var precedence logic (NO_COLOR / NO_COLOR-empty / CLICOLOR=0 / piped-stdout-wins-over-CLICOLOR_FORCE), serialized via `ENV_TEST_LOCK` mutex to avoid env-var races. The unit-level color contract is now comprehensively covered; the integration-level TTY-positive path remains manual-only per TODO.md. Deferred to a future polish layer with a force_color seam.
+- **F2 — No unit tests for `priority_ansi` / `status_ansi` / `wrap_color` / `pad_after_color`:** **Resolved by `fbbb8a3` (12 retroactive tests) + `09b1905` (test updates).** Tests now reflect Round-2 ColorMode enum signatures and bold-redundancy values: `priority_ansi("medium", On)` → `\x1b[1;33m`, `status_ansi("in-progress", On)` → `\x1b[1;36m`, `status_ansi("done", On)` → `\x1b[1;32m`. The previously enumerated 7 mutation-survival permutations are now killed: bold-drop on high, bold-drop on medium, yellow↔green swap, reset-drop in `wrap_color`, color-emitted-when-Off, missing color when value highlighted, padding miscalculated under color.
+- **F3 — `unknown_subcommand_exits_one` does not assert stdout empty; `help_flag_*` tests don't assert stderr clean:** **Resolved by `09b1905`.** `unknown_subcommand_exits_one` now asserts `stdout("")`. The new `unknown_subcommand_with_cc_payload_escapes_in_stderr` test additionally asserts `stdout("")` while pinning the Cc-escape rule on stderr.
+- **F4 — `list_piped_has_no_ansi_codes` / `show_piped_has_no_ansi_codes` check only stdout:** **Resolved by `09b1905`.** Both tests now assert `stderr(predicate::str::contains("\x1b[").not())`. New `list_empty_state_stderr_has_no_ansi_codes` test pins the symmetric stderr cleanliness when `list` emits the "No open issues. Nice work!" empty-state message — closing the previously-untested stderr ANSI-leak surface.
+- **F5 — `pad_after_color`'s `visible_chars` arg relies on chars-count-equals-display-width:** **Deferred — latent risk only.** No current status/priority value exercises non-ASCII (all enum values are ASCII); the SE R17 F2 refactor renamed the helper to `render_cell` with the bare value passed directly (visible_chars computed internally), reducing the API surface that could mis-handle wide characters, but the helper still uses `.chars().count()` rather than `unicode-width`. Re-evaluation trigger: any future spec amendment allowing non-ASCII status/priority values.
+
+### Test delta
+
+- Pre-R2: 195/195 pass (62 unit + 32+18+9+25+7+33+9 layer 1-7 integration).
+- Post-R2: **220/220 pass** (84 unit + 32+18+9+25+7+33+12 layer 1-7 integration). Delta: +22 unit (12 retrofit in `fbbb8a3` + 6 ColorMode/env-var/debug_assert + 4 sanitize_quoted_values); +3 integration (unknown_subcommand_with_cc_payload_escapes_in_stderr, list_empty_state_stderr_has_no_ansi_codes, no_color_env_does_not_break_piped_invocation).
+
+### New findings
+
+*(none — closure pass.)*
+
+### Summary
+
+3 of 5 R1 findings Resolved (F2, F3, F4); 2 Deferred with rationale (F1 force_color seam, F5 CJK display-width latent). Mutation resilience materially improved: the 7 enumerated R1 mutation-survival permutations on the color-helper contract are now killed by the retrofit + R2 update tests. Stderr discipline tightened symmetrically with the previously-stdout-only piped tests.
+
+**Coordination:** VDD-IAR R18 — Red Gate retroactive-test evidence chain documented per implementation.md L56 (12 retrofit tests labelled `// retroactive Red Gate:` in source comments); SE R18 — `render_cell` refactor verified by the rewritten `render_cell_*` unit tests.
+
+**Files modified:** This log appended only. The test additions and tightenings landed in `09b1905` under QE authority (tests/** + src/lib.rs#tests per CLOSURE-PROTOCOL.md §1).
+
+---
+
+## Review 19 — 2026-05-12 12:00Z
+
+**Round:** QE Review 19 (Layer 7 IAR Round 3). Cold adversarial session.
+
+**Scope:** R3 change set (5 commits since `b853a81`): clippy pre-commit hook (`ff0e85c`), `render_cell` ASCII debug_assert + unit test (`c341a54`), `TRACKER_INTERNAL_FORCE_COLOR` seam + 8 integration + 2 unit tests (`bd7511e`), cmd_list rendering extraction + column-width constants + 6 unit tests (`3fa1f3c`), three-module split (`8db9437`). Test count 195 → 237 (+42). Regression check across all 7 layer suites.
+
+**Verdict:** R3 closes the R17 Deferred items materially (F1 force_color seam + 8 integration tests, F5 debug_assert + 1 unit test). Mutation resilience on the colored-cell surface is materially better than R2. Three new substantive Open findings on the R3 commits — none merge-blocking, but each surfaces a gap the cold session's adversarial pressure surfaced that the warm closure pass did not.
+
+### Findings
+
+#### Open
+
+##### Finding 1 — `format_list_row_colors_high_priority_when_color_on` uses unanchored substring containment; a column-order swap (status ↔ priority) survives the test (Dim 2 mutation testing, Dim 3 assertion strength)
+
+`src/lib.rs:551-560` asserts `row.contains("\x1b[1;31mhigh\x1b[0m")` and the absence of cyan/green sequences. The format string at `src/commands.rs:572-582` is `"{:<id_width$}  {}  {}  {:<labels_width$}  {}"` where positionals are `issue.id`, `status_cell`, `priority_cell`, `labels_display`, `title_display`. A mutation that swaps the `status_cell` and `priority_cell` positional arguments (a one-character refactor regression) produces a row where the priority value renders in the status column and vice versa. `row.contains("\x1b[1;31mhigh\x1b[0m")` is true under the mutation; absence-of-cyan/green is also true (the test issue is `open` + `high`, neither carries cyan or green). The mutation survives.
+
+Companion test `format_list_row_uncolored_when_color_off` (`src/lib.rs:540-549`) asserts `row.starts_with("1   ")` and `row.ends_with("x")` — the title and ID columns are pinned, but the status/priority cells between them are unanchored. Same mutation survives.
+
+The R3 integration tests in `tests/layer7.rs:280-501` partially compensate at the integration boundary (`force_color_emits_bold_red_for_high_priority` etc.) but use `predicate::str::contains` — same unanchored-substring shape. Only `force_color_show_renders_colored_status_and_priority_value_cells` uses a positionally-anchored assertion (`"Status:      \x1b[1;36min-progress\x1b[0m"` — the label prefix pins where the colored value appears). The `list` integration tests have no equivalent positional anchor.
+
+**Severity: Medium.** Real mutation gap on the load-bearing column-ordering contract from DESIGN.md "List output format" (the example shows `ID Status Priority Labels Title` order). A future refactor that re-orders columns silently passes the R3 unit + integration tests; the only catch is the manual checklist.
+
+**Proposed action:** Add positional assertions to `format_list_row_colors_high_priority_when_color_on` — e.g., assert `row` matches a regex anchored at column boundaries, or assert the full row equals a known-good string for a fixed test issue. Mirror on the integration side: `force_color_emits_bold_red_for_high_priority` should assert the colored `high` value appears at the priority column offset (after status, before labels), not just somewhere in the row.
+
+**Classification:** Open / Medium severity.
+
+##### Finding 2 — `force_color_with_no_color_env_set_does_not_force` test name is contradictory to its assertion; the body comment acknowledges this but the function-name reads opposite to what is tested (Dim 3 — assertion strength / behavioral naming; TDD proxy indicator dim 14)
+
+`tests/layer7.rs:474-502` is named `force_color_with_no_color_env_set_does_not_force` — the natural English reading is "when NO_COLOR is set, force-color does NOT win." The assertion is `.stdout(predicate::str::contains("\x1b[1;31m"))` — force-color DID win and ANSI WAS emitted. The body comment from L481-485 explicitly acknowledges: "Actual current behavior: the seam... DOES win over NO_COLOR. This test documents that fact and pins it as the deliberate test-ergonomics choice."
+
+The naming-vs-behavior inversion is a real falsifiability hazard. A future reader scanning the test list (e.g., a developer reading `cargo test -- --list` or a reviewer auditing AC coverage) sees a test name that says force-color is suppressed by NO_COLOR — exactly the opposite of what the test pins. If the precedence were later reversed (NO_COLOR wins over the seam, which is arguably the user-safer default), the test name would suddenly become accurate but the test body would fail — the test that should have changed to match the new contract is the one whose name was already right. This is the structural inverse of "behavioral naming" — the QE Standard Dim 14 specifically asks "Are tests named for expected behavior rather than code structure?"
+
+The body comment is honest and shows the developer noticed the inversion. The correct remedy is renaming, not commenting around the inversion.
+
+**Severity: Low-Medium.** Documentation / naming bug, not a logic bug. But the test is documenting a deliberate precedence choice (seam wins over user opt-out) that is the kind of choice that should be unambiguous in its test surface, since the precedence itself is a security-adjacent decision (a test-only env var overruling a documented user-safety opt-out).
+
+**Proposed action:** Rename to `force_color_seam_wins_over_no_color_in_tests` or `force_color_precedence_seam_first_then_no_color`. The body comment becomes redundant once the name accurately describes the assertion. Cross-cut to Security R12 (the precedence ordering itself).
+
+**Classification:** Open / Low-Medium severity.
+
+##### Finding 3 — Unit tests post-split live in `lib.rs#tests` accessing `commands.rs` and `storage.rs` internals via `pub(crate)` + glob imports; the module split widened the test-visible API surface and broke the rust supplement's "colocated `#[cfg(test)]` modules" idiom (rust supplement Quality Engineering / Test structure)
+
+The Rust supplement names: "Are unit tests colocated with the code they test (`#[cfg(test)]` modules)?" Post-split (`8db9437`), every unit test still lives in `lib.rs#tests` (L51-1133) — 93 tests testing items that now live in `commands.rs` (filter / sort / render helpers, `ColorMode`, color_mode_from_env, etc.) and `storage.rs` (Tracker / Issue / issue_fields_are_valid / tracker_is_valid). The tests reach those items via `use crate::commands::*; use crate::storage::*;` (L54-55) glob imports.
+
+Two consequences:
+
+1. **Test-target colocation lost.** A maintainer modifying `commands.rs::format_list_row` does not see the test in the same file. The split's stated purpose (SA R13 F1 Trigger B closure — separating concerns) is undermined for the test surface: the tests are no longer concern-aligned with the implementation they exercise.
+
+2. **Test-visible API surface widened.** Items that were previously module-private (`fn issue_matches_filters`, `fn priority_rank`, `fn truncate_with_ellipsis`, `fn format_show_block`, `fn show_label`, `fn priority_ansi`, `fn status_ansi`, `fn wrap_color`, `fn render_cell`, `fn filter_issues`, `fn format_list_header`, `fn format_list_row`, const `ID_WIDTH`/`STATUS_WIDTH`/etc., `const LABEL_COLUMN_WIDTH`) now all carry `pub(crate)` to be accessible from `lib.rs#tests`. The split did not introduce a new public API — but it did promote every previously-private item to crate-visible. A future contributor inspecting the module's surface sees ~15 `pub(crate)` items where there were ~0 before. The rust supplement's intent — colocated tests against truly private items — is silently inverted.
+
+The Round-2 closure rationale at SA R13 F1 was that lib.rs exceeded a threshold and concerns should be separated. The split achieves that for production code. The test surface should follow: each module's `#[cfg(test)] mod tests` accessing items via `use super::*` (without `pub(crate)`), and `lib.rs#tests` retaining only cross-module integration-style unit tests.
+
+**Severity: Medium.** Quality-system architectural finding. The 93 tests still pass; this is not a correctness gap. It is a maintainability + idiom-compliance gap that the cold session surfaces against the rust supplement's named criterion. The fact that 237/237 pass against a structurally degraded test layout is exactly the "passing test suite + clippy clean lulls the reviewer" trap.
+
+**Proposed action:** Move tests by target module: `commands.rs`-targeted tests (filter, sort, render, color helpers, ColorMode, color_mode_from_env, debug_assert tests) into `src/commands.rs` `#[cfg(test)] mod tests`. `storage.rs`-targeted tests (issue_fields_are_valid, tracker_is_valid, description_is_valid, label_is_valid, parse_timestamp) into `src/storage.rs`. `validate.rs`-targeted tests (parse_status, parse_priority, parse_label, parse_id, validate_title, validate_description, bump_next_id, display_safe, sanitize_quoted_values, dedupe_labels) into `src/validate.rs`. Demote `pub(crate)` markers on items that are now reachable from a same-module test via `use super::*` (specifically: the rendering helpers, the column-width constants, `priority_rank`, `truncate_with_ellipsis`, `issue_matches_filters`, `format_show_block`, `format_list_header`, `format_list_row`, `filter_issues`, `show_label`, `LABEL_COLUMN_WIDTH`). Cost: ~93 test-move operations + ~15 visibility-marker reductions. No test logic changes. Cross-cut to SA (the split's intent) and SE (the visibility changes).
+
+**Classification:** Open / Medium severity. Deferrable to a follow-up layer; the R3 split was net-positive even with this gap.
+
+##### Finding 4 — `wrap_color_debug_assert_active_in_debug_builds` and `render_cell_debug_assert_on_non_ascii_value` rely on `catch_unwind` + a panicking `debug_assert!`; both tests print panic-noise to test stderr and tie the test contract to the default `panic=unwind` strategy (Dim 5 — test architecture / flakiness; Dim 2 — falsifiability)
+
+`src/lib.rs:1106-1117` and `src/lib.rs:1119-1132` both use the pattern `std::panic::catch_unwind(|| <call>); assert!(result.is_err(), ...)`. Two structural concerns:
+
+1. **Panic-noise in `cargo test` output.** A `debug_assert!` panic, even under `catch_unwind`, prints the panic message to stderr unless a custom panic hook silences it. Running `cargo test -- wrap_color_debug_assert_active_in_debug_builds 2>&1` shows the `thread '...' panicked at...` line in the test output. This is cosmetic but degrades the "237 tests; 0 failed" signal — a developer scanning for unexpected output sees panic stderr that is part of the test's expected behavior. The standard remedy is `std::panic::set_hook(Box::new(|_| {}))` + restore-after, but the current tests skip this.
+
+2. **Contract bound to `panic=unwind`.** Cargo.toml (`issue-tracker-cli/Cargo.toml:1-33`) does not set a panic strategy — the default for test binaries is `unwind`, so `catch_unwind` works. If a future contributor adds `[profile.test] panic = "abort"` (common in embedded / no_std contexts; explicitly compatible with `cargo test --release` benchmarks), `catch_unwind` no longer catches — the test process aborts on the `debug_assert!` and the test framework records it as a non-test-failure crash. Neither test surfaces this constraint in its body comment.
+
+Reliability across threads: the closures are self-contained and do not mutate shared state, so cross-thread races are not the concern. The concerns are noise + future-portability of the test contract.
+
+**Severity: Low-Medium.** Tests pass today and reliably. The pattern is fragile to (a) panic-strategy changes and (b) developer attention budget when a clean test run includes panic stderr that has to be cognitively filtered. Both are real but small.
+
+**Proposed action:** Wrap the catch_unwind calls in `set_hook` + restore, or — preferred — refactor `wrap_color` and `render_cell` to return `Result<String, &'static str>` for the contract-violation case, eliminating the panic surface entirely. The latter is a SE-domain refactor (it changes a private API); the former is a QE-domain test fix.
+
+**Classification:** Open / Low-Medium severity.
+
+#### Resolved
+
+##### Finding 5 — R17 F1 closure verification: TTY-positive color rendering coverage
+
+The R17 deferred F1 (force_color seam) is closed by `bd7511e`. The 8 new integration tests in `tests/layer7.rs:280-501` exercise: bold-red on high priority (L280-294), bold-yellow on medium (L297-311), no-color on low (L314-333), bold-cyan on in-progress (L336-354), bold-green on done (L357-375), header-uncolored (L378-414), show-renders-colored-value-cells (L417-471), force-color-precedence (L474-502 — but see Finding 2 for the name issue). The 2 new unit tests in `src/lib.rs` (`color_mode_from_env_on_when_internal_force_color_set`, `color_mode_from_env_force_color_ignored_for_non_one_values`) pin the env-var precedence logic.
+
+Mutation analysis: the prior R17 unkilled mutations (bold-drop on high, yellow↔green swap, color-leaked-to-header) are now killed. Coverage covers every color value in the DESIGN.md table (high, medium, low, open, in-progress, done — 6/6). Open gap: column ordering (Finding 1 above) — a position-swap survives.
+
+**Classification:** Resolved with residual mutation gap captured in Finding 1.
+
+##### Finding 6 — R17 F5 closure verification: CJK display-width debug_assert
+
+The R17 deferred F5 (`render_cell` `chars().count()` correctness for non-ASCII) is closed by `c341a54`. `src/commands.rs:218-234` adds a `debug_assert!(value.is_ascii(), ...)` with a doc-comment naming the constraint and the remediation path (`unicode-width` crate). The accompanying unit test `render_cell_debug_assert_on_non_ascii_value` (`src/lib.rs:1119-1132`) verifies the panic fires.
+
+Honest closure analysis: the debug_assert is debug-only — release builds compile it out, so the latent risk in a release binary remains. But the call-site invariant (`render_cell` is called only with `issue.status` or `issue.priority`, both validated against ASCII enums at parse and load time) means the constraint cannot be violated in production by current code. The debug_assert is defense-in-depth, not a fix — and the doc-comment is honest about that.
+
+The closure is appropriate for the latent risk: a future spec amendment permitting non-ASCII status/priority values would (a) require validating the new value set, (b) hit the debug_assert in the test suite first (current path is to extend `VALID_STATUSES` / `PRIORITY_ORDER` first, which would surface the gap before the new value reaches `render_cell`), and (c) trigger the named remediation (introduce `unicode-width`).
+
+**Classification:** Resolved as defense-in-depth; production risk surface unchanged (already gated by upstream validation).
+
+#### Dismissed
+
+##### Finding 7 — clippy pre-commit hook does not fire on Cargo.toml changes; a dependency-version bump or feature-flag toggle that affects clippy output is missed
+
+The hook fires on `^issue-tracker-cli/.*\.rs$` (`.pre-commit-config.yaml:50`). A change to `Cargo.toml` (e.g., enabling a new feature flag, bumping `clap` major version, adding a new dependency) can change clippy's analysis surface — new lints become applicable, or existing suppressions silently no-op. The hook would not fire on a Cargo.toml-only commit.
+
+**Classification: Dismissed.** Verified the R3 commit set: no Cargo.toml changes in any R3 commit (`git diff b853a81..HEAD --stat` shows only `.pre-commit-config.yaml`, `PROCESS.md`, `PORTFOLIO-ASSESSMENT-REVIEW.md`, `src/*.rs`, `tests/layer7.rs`, and the lib.rs split). The hypothetical Cargo.toml-only commit is not in scope for R3. The hook's narrow `*.rs` filter is a deliberate ergonomic choice — running cargo clippy on every docs commit would be wasteful. A future Cargo.toml bump that broke clippy would fail in CI (`cargo clippy -- -D warnings` runs there) within the same PR cycle. Cross-cut to PE for a wider hook trigger if Cargo.toml-related clippy regressions ever land.
+
+#### Hallucinated
+
+##### Finding 8 — `filter_issues_returns_only_matching` does not pin the issue identity in the returned vec; a mutation that returns the wrong matching issue passes
+
+The test (`src/lib.rs:513-523`) asserts `out.len() == 1` and `out[0].status == "open"` and `out[0].priority == "high"`. A mutation that returns a different issue with the same (status, priority) signature could pass.
+
+**Classification: Hallucinated.** The three test inputs are `("open", "high")`, `("done", "high")`, `("open", "low")`. The filter is `(status="open", priority="high")`. Only the first input matches — there is exactly one issue with that (status, priority) signature in the test. The test assertion `len==1 && status="open" && priority="high"` uniquely identifies the right issue against the test's specific input set. A mutation that returned the wrong issue would either change the count or change the asserted fields. No real coverage gap. **No finding.**
+
+### Mutation-resilience verdict
+
+**Materially improved over R2.** The 8 force_color integration tests + 2 force_color unit tests close the most-mutable surface from R17 (color application on TTY-positive path). The retroactive Red Gate tests on color helpers from R2 remain. New gaps surfaced by cold session: column-order mutation in `format_list_row` (Finding 1) survives. The 6 newly extracted `filter_issues`/`format_list_header`/`format_list_row`/`show_label` unit tests are mostly sound; `show_label` has the strongest mutation resilience (exact-string + width-invariant loop); `filter_issues` has 2 tests covering a 4-dim filter space (status × priority × label × issue-list-shape) — adequate floor, not exhaustive.
+
+### Summary
+
+**Verdict:** R17 deferred items materially closed; R3 introduces 3 new substantive findings (Finding 1 column-ordering mutation gap, Finding 2 test-name inversion, Finding 3 post-split test colocation) + 1 latent (Finding 4 debug_assert + catch_unwind pattern). 237/237 + clippy clean + fmt clean is the result that lulls reviewers — the cold session specifically pressed on coverage *meaningfulness* and surfaced mutation gaps the warm closure pass did not. None merge-blocking.
+
+**Top mutation gap:** Finding 1 — `format_list_row` column-order swap survives every R3 unit and integration test for the colored-row case.
+
+**Top architectural concern:** Finding 3 — post-split tests still live in `lib.rs#tests` with widened `pub(crate)` surface; the rust supplement's "colocated `#[cfg(test)]` modules" criterion is silently inverted by the split.
+
+**Sycophancy check:** Cold session explicitly searched for mutations the warm R18 closure pass did not enumerate — found 2 real ones (column-order in Finding 1, panic-noise + panic-strategy fragility in Finding 4). Did not pass any dimension because "tests exist and pass"; mutation-enumerated where the supplement names mutation testing. Re-read R3's integration tests against the *contract* (column ordering per DESIGN.md "List output format" example), not against the *implementation* (the format string positional order); Finding 1 surfaced from that gap. Finding 3 required reading the supplement criterion in conflict with the split's stated rationale rather than accepting the doc-comment's framing. **No softening detected.**
+
+**Coordination:**
+- **SE Review (next):** Finding 3 cross-cuts SE — the test-relocation + visibility reduction is a src/** change. Finding 4's preferred remediation (Result-returning helpers replacing debug_assert) is SE-authored.
+- **SA Review (next):** Finding 3 directly cross-cuts SA — the split's stated rationale (SA R13 F1 Trigger B) is undermined for the test surface. SA should adjudicate whether the test relocation is part of the split's intent.
+- **UX Review (next):** Finding 2 is a behavioral-naming question; UX may have a view on whether the test name conveys the correct user-facing contract about NO_COLOR honoring.
+- **Security Review (next):** Finding 2 names a security-adjacent precedence (test-only env var overrides user-safety opt-out); Security R12 may want to verify the precedence is correctly scoped to the test-only seam and cannot leak into production.
+- **VDD-IAR Alignment (next):** No new escalation. The R17 deferred items closed materially; the Red Gate retroactive-test framing from R2 is unchanged.
+- **Platform Engineer (next):** Finding 7 (Dismissed) is a forward-looking PE consideration if the hook trigger needs widening; not actionable now.
+
+**Files modified:** This log appended only. No source / test changes proposed for R3 closure beyond the proposed-action sections above; classification owner (Solution Owner) decides whether R3 Open findings merit a Round 4 or are deferred to a later polish layer.
+
+
+**Round-3 finding closure — see [SO Review 26 ledger](SOLUTION-OWNER-REVIEW.md#review-26--2026-05-12-1500z--closure-ledger-closure-protocol-2c-reconciliation).** F1: Resolved (`e458fb9` `force_color_data_row_emits_columns_in_status_then_priority_order` integration test). F2: Resolved (`e458fb9` test rename to `force_color_wins_over_no_color_when_both_env_vars_set`). F3: Backlogged §3 (cross-domain duplicate of SA R17 F3; same closing record). F4: Resolved (`fbc8da6` `assert_panics<F>` helper with no-op panic-hook + `PANIC_HOOK_LOCK` serialization).

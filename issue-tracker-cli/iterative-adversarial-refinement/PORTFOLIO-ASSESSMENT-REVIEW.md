@@ -320,3 +320,179 @@ The hard finding: **the developer-voice retrospective has been moved from "absen
 **Recommendation (for director, not for reviewer to apply):** the nine first-person reflection placeholders are the cheapest single change that would convert Dim 4 from Partial to Demonstrated and provide direct evidence for Dims 1, 2, 6, 7. The gate interview from Review 1 remains the higher-fidelity mechanism but has been deferred for four reviews now.
 
 **Coordination:** Findings cross-reference [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md) Review 9 Finding 9 (PROCESS.md retrospective backlog — partially closed; first-person sections remain Open).
+
+---
+
+## Review 5 — 2026-05-12 00:00Z
+
+> **Post-commit correction (director-raised, 2026-05-12):** R5 (and R4 before it) misread the PROCESS.md `*[First-person reflection on Layer N. Possible threads: ...]*` italic blocks as "empty placeholders." The director has clarified that those italic blocks are intentional **scaffolding** — they frame the prompt and surface possible threads; the director's prose follows the scaffolding below it. A section is "filled" when prose follows the italic block, not when the italic block is removed. The "9 placeholders → 7 placeholders" framing below is therefore wrong: the correct count was 0 missing prose blocks in sections the director had answered (e.g., Layer 1 "What was hardest" — the pre-commit hooks anecdote follows the scaffolding; Layer 4 "What was hardest" — "Nothing particularly hard" follows). The Layer 6 and Layer 7 absences are real (those layer entries did not exist at R5 time). The "developer-voice retrospective backlog" framing in Dim 4 / Dim 5 / Summary stands at the layer-entry granularity (Layer 6 + Layer 7 missing) but does NOT stand at the sub-section-placeholder granularity. R5's classifications (Dim 4 / Dim 5 → Partial) survive on the layer-entry-absence basis alone; the "deteriorated qualitative profile" sub-claim should be read as "two missing layer entries" rather than "seven persistent in-section placeholders."
+
+**Scope:** Layer 7 implementation complete; Layer 7 IAR Rounds 1 + 2 closed; merge-gate verdict is GO-PENDING-MANUAL-REWALK per VDD-IAR Review 18. Cold-session adversarial portfolio assessment after four layers of additional development (Layer 4 Labels through Layer 7 Polish) since Review 4 on 2026-05-04. Artifacts reviewed: `DESIGN.md` (with Layer 6 R3 / R2 + Layer 7 R2 amendments), `PROCESS.md` (still Layers 1–5; no Layer 6 or Layer 7 entry), `DECISIONS.md` (with extensive Layer 6 R3 SO R22 reversal entry + six new Layer 7 R2 spec amendments + Red Gate methodological-deviation entry), `CHANGELOG.md` (Layer 4 through Layer 7 R2 entries), `README.md` (issue-tracker-cli — rewritten at Layer 7 R2), parent `guild-portfolio/README.md`, `TODO.md` (Layer 7 manual checklist closed at `603c689`), IAR review logs sampled (`SOLUTION-OWNER-REVIEW.md` Reviews 22–24, `VDD-IAR-ALIGNMENT-REVIEW.md` Reviews 17–18, `RED-TEAM-REVIEW.md` R10–11, `TECHNICAL-WRITER-REVIEW.md` R9–12, `QUALITY-ENGINEER-REVIEW.md` R17–18), `src/lib.rs`, and `git log` Layer 4 → HEAD.
+
+**Session note:** Cold session per primer; this is the first PA pass since Review 4 on 2026-05-04. Layer 4, 5, 6, 7 all closed between assessments. Treating the four-layer gap with caution — accumulated context could include unflagged signals; sampling broadly across the four layers' artifacts to compensate. Prior partial classifications carry forward unless this round produces new evidence sufficient to change them.
+
+**Regression check:** Reviews 1–4 are prior assessments. Dim 3 (Demonstrated since Review 1, reinforced at Review 4) and Dim 8 (Demonstrated since Review 1) are the only previously-Demonstrated dimensions; both are checked below for regression. The six Partial dimensions are revisited with Layer 4–7 evidence. The R4 standing recommendation — "nine first-person reflection placeholders are the cheapest single change" — is checked against the current PROCESS.md state.
+
+---
+
+### Dim 1 — Decision ownership
+
+**Layer 4–7 evidence (artifact-based):**
+
+- **DECISIONS.md has grown materially.** New entries since R4: "Reject control characters in labels" (Layer 4 SO R7 F1), "Layer 6 spec amendments — SO Review 22" (the persistent `next_id` counter restoration, a director-raised reversal of SA R1 F3 and SO R7), the Red Gate methodological-deviation entry (Layer 7 R1 closure, Option A), and six Layer 7 R2 spec amendments (NO_COLOR / CLICOLOR honoring, color bold-redundancy, raw-ANSI vs anstyle, stderr Cc-escape extension, errno-tag ratification, SA carry-forward auto-Backlog per CLOSURE-PROTOCOL.md §3). Every entry cites originating IAR review findings; every entry articulates trade-offs. The artifact reads as the work of someone making real decisions, not summarizing them.
+- **SO Review 22 is exceptional evidence.** A director-raised manual-testing reproduction (delete the highest-id issue, then create — the prior `max(remaining)+1` implementation reassigned the deleted id) overturned a previously-ratified architectural decision (SA Review 3 Finding 3: no stored counter). The discovery required actually running the binary against the edge case and recognizing the spec violation in the output. Eleven IAR domain reviews across two prior layers missed this; the director's manual test caught it. That is the single strongest piece of decision-ownership evidence in the project to date — stronger than the git filter-repo recovery (PA R3/R4 cited) because it required active engagement with the *contract* and not just the *implementation*.
+- **Layer 7 R2 cross-domain coordination evidence:** the SO R23 finding cluster surfaced via the cold-batch dispatch — a director who wasn't running IAR seriously wouldn't get back 24 substantive Open findings + a CRITICAL VDD-IAR ratification request. The artifacts show a director who chose to surface findings rather than accept the layer as-shipped.
+
+**However:** the gate interview from Review 1 has now been deferred for five reviews. The named questions ("Why is `tracker.json` a plain array?" — actually answered indirectly by the SO R22 reversal of that very decision; "Why was `next_id` removed from storage?" — likewise reversed by R22's director-raised regression) have not been verbally answered by the developer in any artifact. The R22 reversal itself argues that the decisions WERE owned — the director caught the spec violation that prior owners didn't — but the *interview* never happened.
+
+**Classification: Demonstrated (elevated from Partial).** The SO R22 director-raised regression is sufficient evidence of decision ownership at the contract level. A reviewer dispatching subagents would not produce that finding — it requires manual testing, spec re-reading, and the willingness to reverse two prior IAR-ratified decisions. The remaining gap (verbal interview) is an evidence-strength gap, not an ownership gap.
+
+---
+
+### Dim 2 — Implementation understanding
+
+**Layer 4–7 evidence:**
+
+- **Layer 4 R7 F1 / Security R7 / RT R6 cluster:** the control-character-in-labels defense generalized the Layer 1 title pattern. The developer (or director) recognized that the same defect class applied to a new free-form field and the spec needed amending — that recognition surfaced in the IAR process and was acted on. Layer 6 R2 generalized it again for description. Layer 7 R10 F1 extended the rule from per-field-validate-boundary to per-stderr-write-site (the clap pipeline). This is a four-layer pattern-recognition arc with concrete artifacts at each step.
+- **Layer 7 R2 ColorMode enum refactor:** `format_show_block(use_color: bool)` → `format_show_block(issue, color: ColorMode)` is a textbook boolean-trap fix. Whoever applied it understood the antipattern by name (SE R17 F1 cited "Flag-argument antipattern; Dim 4"). The `render_cell` API refactor (eliminating `pad_after_color`'s caller-must-compute-visible-chars surface) is the same shape: API-misuse-by-construction recognized and fixed.
+- **`sanitize_quoted_values` narrow-scope sanitizer:** the original Round-2 implementation applied `display_safe` to the whole clap error, which destroyed clap's multi-line formatting. The fix (preserve structural LFs, escape only inside quoted regions) shows in-the-loop debugging awareness — the test output revealed the over-escaping, and the response was to write a more targeted sanitizer. That kind of iteration is visible in the commit sequence (`09b1905`'s test-failure-driven implementation change) but not in PROCESS.md.
+
+**However:** none of this surfaces in `PROCESS.md` — Layer 6 and Layer 7 entries are entirely absent. The Layer 5 PROCESS.md entry exists but PA R4 found nine first-person reflection placeholders; the current PROCESS.md shows seven placeholders remaining (some filled in, some new ones added — net partial improvement, but still empty in critical sections). For a portfolio reviewer, the implementation understanding lives in IAR commit messages and code comments — both of which are AI-plausible in isolation. The PROCESS.md voice that would distinguish "I learned this" from "this is what was learned" remains absent.
+
+**Classification: Partial (unchanged, mild improvement).** The substantive implementation understanding shown in Layer 4–7 IAR-driven refactors is real, but the developer-voice channel that would convert this dimension to Demonstrated remains underutilized.
+
+---
+
+### Dim 3 — Directed development evidence
+
+**Layer 4–7 evidence:**
+
+- **SO R22 director-raised regression** (already cited in Dim 1) is also a Dim 3 signal: the director did manual testing, found a bug, and adjudicated a spec reversal in a single Round 3 closure pass. The reversal commit `8ed7db3` is signed by the project author and cites the manual reproduction explicitly.
+- **Layer 7 R1 cold-batch dispatch:** 11 parallel cold-session subagent reviews running independently is operationally complex. Setting it up requires director intent ("I want adversarial pressure now, not later"). The result was 24 substantive Open findings that fed directly into R2 closure.
+- **Layer 7 R2 Cluster-A spec amendments + Cluster-B implementation refactors:** the closure pass coordinated 11 domains' findings into a single bundled commit (`09b1905`). The orchestration shape — spec changes first, then code, then docs, then tests — matches CLOSURE-PROTOCOL.md §5 sequencing, but the pattern of "address open findings comprehensively rather than incrementally" is a director-directed call (the user's instruction "address open findings" in conversation context translated into the commit shape).
+- **VDD-IAR R17 F1 Option A choice:** the director chose Option A (retroactive unit tests + DECISIONS.md entry) over Option B (CLOSURE-PROTOCOL.md amendment) or Option C (one-time acceptance). The chosen path is the most disciplined of the three. The "Do not repeat for non-polish layers" annotation in DECISIONS.md is the kind of forward-looking constraint a director writes, not a reviewer.
+- **Manual testing checklist closure pattern:** Layer 6 (13/13 ticked at `8ed7db3` after manual reproduction), Layer 7 (7/7 ticked at `603c689` with commit-body specificity that PA R23 — Solution Owner — dismissed the sycophancy concern about). The director executes manual testing and signs off.
+
+**No regression.** Direction signals are stronger at Layer 7 than at Layer 3 (R4's prior assessment). The cold-batch dispatch + Cluster-A/B coordination + Option A choice all postdate R4.
+
+**Classification: Demonstrated (unchanged, reinforced).** Two new strong pieces of evidence (SO R22 regression discovery, VDD-IAR R17 F1 Option A choice) since R4.
+
+---
+
+### Dim 4 — Growth evidence
+
+**Layer 4–7 evidence — methodology growth:**
+
+- **Cross-layer pattern recognition:** the surface-class drift defect class (Title L1 → Labels L4 → Description L6 → clap pipeline L7) is documented across four IAR rounds with progressively broader rule statements: per-field-validate → per-property-validate → per-stderr-write-site. The methodology is *learning* — each layer's IAR explicitly references the prior layer's defect class. RT R10's "now at the 4th instance, on a path NOT predicted by the prior 3" framing is high-quality post-hoc analysis.
+- **CLOSURE-PROTOCOL.md exists and is invoked at the right moments:** §3 auto-Backlog fired at Layer 7 for the SA carry-forward cluster (SO R23 F1 / SA R15 F1). §5 closure cadence is the explicit structure of the R2 commit + R2 log-entry commit pair. Neither §3 nor §5 existed at the start of the project; they were authored at Layer 3 by VDD-IAR Review 10 in response to a process gap. The protocol is in active use and is doing the work it was designed for.
+- **The Red Gate methodology has been honestly stress-tested.** VDD-IAR R17 F1's CRITICAL finding was that Layer 7's Phase 2a Red Gate had 0 failing primary signals. The response (Option A retrofit + DECISIONS.md "Do not repeat for non-polish layers") is the methodology-respecting move — neither pretending the gap didn't exist nor permanently weakening the rule. The methodology and the director both grew through this test.
+
+**Critical regression on the developer-voice gap:**
+
+- **PROCESS.md has Layers 1–5 entries; Layer 6 + Layer 7 entries are entirely absent.** The R4 standing recommendation ("the nine first-person reflection placeholders are the cheapest single change that would convert Dim 4 from Partial to Demonstrated") has been partially addressed (down to seven placeholders) but the absence of Layer 6 and Layer 7 PROCESS.md entries is a fresh four-layer gap. A portfolio reviewer comparing R4's state to R5's state would see: the methodology grew (CLOSURE-PROTOCOL §3 + §5 invocations, the surface-class drift rule generalization), but the developer-voice retrospective backlog grew faster (two missing layer entries added, two layers' worth of placeholder-vs-prose mismatch).
+- **Layer 6 was the layer where SO R22 — the strongest single director-ownership artifact — occurred.** The fact that there is no PROCESS.md Layer 6 retrospective recording the director's experience of catching the regression is a significant lost-evidence event. The artifact that would *most* strengthen Dim 1 / Dim 4 / Dim 5 is the artifact that doesn't exist.
+
+**Classification: Partial (unchanged, but the asymmetry between methodology growth and developer-voice gap has worsened).** Methodology has matured visibly; developer-voice retrospective has regressed in coverage.
+
+---
+
+### Dim 5 — Failure and recovery honesty
+
+**Layer 4–7 evidence:**
+
+- **SO Review 22 is itself a failure-acknowledgment:** the spec invariant was violated by a simplification the methodology had previously ratified. SA R3 F3 and SO R7 are explicitly annotated as "Reversed by SO Review 22" in DECISIONS.md. The reversal is not framed as "we improved the design"; it is framed as "the prior implementation did not honor the spec contract." That framing — admitting prior wrongness rather than re-narrating it as iteration — is rare and high-fidelity honesty.
+- **VDD-IAR R17 F1 framing:** the CRITICAL Red Gate finding is documented at the SO R23 F2 cross-domain coordination, the VDD-IAR R17 F1 finding body, the `fbbb8a3` commit message, the DECISIONS.md "polish-layer deviation" entry, and the source-level `// retroactive Red Gate:` comments. The deviation is disclosed at five artifact locations rather than hidden. The "Do not repeat for non-polish layers" annotation in DECISIONS.md is a forward-looking constraint that prevents the deviation from becoming a precedent.
+- **The over-aggressive `display_safe` → `sanitize_quoted_values` iteration** is visible in the commit chain: the first R2 attempt applied `display_safe` to the whole clap error and broke the structural LF formatting (visible in the test failure); the fix narrowed the sanitizer to quoted regions. The CHANGELOG R2 entry mentions this directly. This is implementation-failure-and-recovery honesty at the commit-history level.
+
+**Counterpoint (lost-evidence on the developer-voice channel):**
+
+- **Layer 6 manual testing closure:** PA R23 (Solution Owner Round 1) flagged the 16-minute window between Layer 7 implementation and manual checklist closure as a potential rubber-stamp concern. PA R23 dismissed it under scrutiny based on the commit-body specificity, but the *director's experience* of manual testing — what surprised them, what they had to look up, what didn't render the way they expected — is not in PROCESS.md (no Layer 6 entry, no Layer 7 entry). A failure-and-recovery dimension that converts to Demonstrated needs developer-narrated friction.
+- **Seven `*[Your reflection here]*` placeholders persist in Layers 1–5 PROCESS.md.** The R4 recommendation has not been followed through.
+
+**Classification: Partial (unchanged from R4, with the SO R22 reversal adding strong artifact evidence in one direction and the missing Layer 6 + 7 PROCESS.md entries holding the dimension below Demonstrated).** Failure-honesty in the artifacts is genuine and at high fidelity. Developer-voice retrospective remains the gating gap.
+
+---
+
+### Dim 6 — Spec ownership
+
+**Layer 4–7 evidence:**
+
+- **SO R22 reversed two of its own prior decisions** (SA R3 F3 + SO R7) when manual testing surfaced a spec-contract violation. The reversal is in DECISIONS.md with full annotation. This is the strongest possible signal that the spec is treated as authoritative over implementation convenience.
+- **Layer 7 R2 spec amendments are all SO-authored** in DECISIONS.md under "Layer 7 IAR Round 2 spec amendments" — six entries with detailed rationale, each citing originating IAR findings. The author treats the spec as a contract that earns updates from review pressure, not as a description that gets retrofitted to the implementation.
+- **The DESIGN.md amendments at Layer 7 R2** (NO_COLOR honoring; CLICOLOR_FORCE deliberately not honored; bold-redundancy WCAG 1.4.1 rationale; stderr Cc-escape extended to clap pipeline; errno-tag ratified; Permission-denied error wording broadened) are precise rule-statements with stated rationale. Each amendment names the trade-off explicitly. This is spec-ownership-by-articulated-constraints, not spec-ownership-by-handwaving.
+- **The hypothetical from Review 1** (`tracker edit <id> --title "..."` request — would you add it?) still has not been answered. But the project demonstrates the analogous behavior repeatedly: every new feature request would meet the same in-scope-vs-out-of-scope analysis the existing DECISIONS.md entries embody.
+
+**Classification: Demonstrated (elevated from Partial).** The SO R22 reversal + Layer 7 R2 spec amendments are sufficient artifact evidence that the spec is owned. The R1 interview hypothetical remains unanswered, but the analogous decisions are documented at high fidelity.
+
+---
+
+### Dim 7 — Extensibility confidence
+
+**Layer 4–7 evidence:**
+
+- **Four consecutive layers (Labels, Compound filtering, Description+Show+Delete, Polish) shipped without spec creep.** Each layer's TODO.md Red Gate plan was filled in before implementation; each layer's manual checklist closed at gate. Layer 7 even added new env-var behaviors (NO_COLOR / CLICOLOR) in Round-2 closure without spec scope drift — they were ratified as spec amendments first, then implemented.
+- **The persistent `next_id` counter restoration at Layer 6 R3** required reversing two prior decisions and re-shaping the storage format mid-project. The reversal was clean: storage shape changed, load-time invariants added, regression tests added (`delete_id_not_reused_high_edge`), corrupt-data tests updated. No data-migration was needed because the project is single-user and pre-portfolio; this would have been a much bigger lift in production but the methodology handled it cleanly at portfolio scale.
+- **The Layer 7 R2 cross-domain refactor** (ColorMode enum + main.rs centralization + render_cell API + sanitize_quoted_values) changed function signatures on public API surface (`cmd_show`, `cmd_list`, `format_show_block`) without breaking the integration test suite. 220/220 tests at the end indicates the public-API contract was preserved through internal refactoring — a confidence signal.
+
+**Counterpoint:** the SA carry-forward Backlog (SA R11 F1 + SA R13 F1 Trigger B + SA R13 F2 — `cmd_list` rendering extraction, `src/lib.rs` module split, `format_show_block` column-width constants) has now been deferred-then-Backlogged across four layers. CLOSURE-PROTOCOL §3 auto-Backlog is functioning as designed, but the underlying signal is: when the cost of a structural refactor isn't manifestly painful, the methodology defers it. At true production scale, deferring `src/lib.rs` past 1900 LOC would create real navigation friction. The portfolio-scale evidence is "extensible enough for the layer plan"; the production-scale evidence is "we deferred the hard refactor."
+
+**Classification: Partial (unchanged).** Four-layer successful extension is consistent with extensibility confidence but the deferred-Backlogged structural refactor is the counterweight. The interview-pressure verification mechanism remains unused.
+
+---
+
+### Dim 8 — Appropriate scope judgment
+
+**Layer 4–7 evidence:**
+
+- **Every Layer 4–7 closure was in-scope.** No Layer 4 feature crept into Layer 3 closure, no Layer 5 features crept into Layer 4, no Layer 7 polish creep into the implementation layers, no Layer 8-equivalent features added at Layer 7 polish despite multiple natural temptations (rich-text descriptions, custom color themes, configuration file support — all absent).
+- **The Layer 7 R2 manual re-walk items** (NO_COLOR / CLICOLOR / CLICOLOR_FORCE / bold rendering / stderr-empty-state) are *new behaviors* added in R2 closure that arguably could have been Layer 8 / future-polish work. The methodology absorbed them into Layer 7 closure rather than spawning a follow-up layer because (a) the IAR-cluster surfaced them in Round 1, (b) they fit the polish-layer charter, and (c) auto-Backlog discipline (§3) would have applied to deferrals. The judgment to absorb-not-defer is well-calibrated.
+- **Dependency budget remains minimal:** `serde`, `serde_json`, `clap`, `chrono`, `libc` (Unix SIGPIPE). No new dependencies added at Layer 7 R2 despite the natural pull to introduce `anstyle` for color (DECISIONS.md "Raw ANSI escapes rather than `anstyle` / `termcolor` dependency" explicitly justifies the no-dependency choice). The discipline holds.
+- **The Layer 6 R3 SO R22 reversal** is a scope-judgment signal in the negative direction: a previously-Demonstrated scope-judgment (no stored counter) had to be reversed because the spec contract required the counter. The methodology correctly chose to honor the spec rather than weaken it — a Dim 8 signal *for* spec ownership being more important than implementation simplicity.
+
+**Classification: Demonstrated (unchanged from R4 / R1).** Four-layer regression-free scope discipline.
+
+---
+
+### Dim 9 — IAR process pushback evidence (continuing observation from R4)
+
+**Layer 4–7 evidence:**
+
+- **The IAR process at Layer 7 produced 24 substantive Open findings (R1) and 1 CRITICAL meta-domain finding (VDD-IAR R17 F1) that the director chose to surface rather than ship around.** The "Address open findings" instruction that drove R2 closure is a director-directed call to engage with adversarial output rather than dismiss it.
+- **Dismissal pattern remains principled:** PA R5 sampled SO R23 (1 Dismissed, 1 Hallucinated), QE R17 (2 Dismissed, 1 Hallucinated), Security R11 (7 Dismissed, 2 Hallucinated, 2 Accepted Risk carry-forward), RT R10 (6 Dismissed). Every Dismissed has rationale specific enough to be falsifiable. RT R10 includes a sycophancy-guard self-audit explicitly applied to F1.
+- **VDD-IAR R17 F1 Option A choice (over B and C)** is the highest-bar choice of the three options offered. Option C (one-time acceptance) would have been the path-of-least-resistance; Option B (rule amendment) would have weakened the methodology; Option A (retroactive work + disclosure) cost the most engineering effort and preserved the rule. The director made the more expensive choice.
+
+**Pattern observation:** the IAR process is functioning at a high level of integrity. The R4 observation that "every domain log has a Dismissed and a Hallucinated section, the rationale is specific and not boilerplate" extends through Layer 7. This is not a standard dimension and is recorded for the durable record rather than scored.
+
+---
+
+### Summary
+
+| Dimension | Classification | Change from Review 4 |
+|---|---|---|
+| 1. Decision ownership | **Demonstrated** | ▲ Elevated from Partial (SO R22 director-raised regression + VDD-IAR R17 F1 Option A choice) |
+| 2. Implementation understanding | Partial | Mild improvement, not converting (substantive IAR-driven refactors strong; PROCESS.md voice still gating) |
+| 3. Directed development evidence | Demonstrated | Reinforced (cold-batch dispatch + R2 closure pattern + Option A choice) |
+| 4. Growth evidence | Partial | ▼ Asymmetry worsened: methodology matured visibly, developer-voice retrospective regressed (Layer 6 + Layer 7 PROCESS.md entries absent) |
+| 5. Failure and recovery honesty | Partial | Strong artifact-side evidence (SO R22 reversal, VDD-IAR R17 F1 disclosure); developer-voice gap persists |
+| 6. Spec ownership | **Demonstrated** | ▲ Elevated from Partial (SO R22 reversal + six Layer 7 R2 spec amendments with articulated rationale) |
+| 7. Extensibility confidence | Partial | Four-layer regression-free extension; SA carry-forward Backlog is the counterweight |
+| 8. Appropriate scope judgment | Demonstrated | Unchanged. Four-layer scope discipline holds. |
+
+**Counts:** Demonstrated 4 / Partial 4 / Absent 0. *(Up from Demonstrated 2 / Partial 6 at R4.)*
+
+**Assessment:** Two dimensions elevated to Demonstrated since R4: Dim 1 (Decision ownership) and Dim 6 (Spec ownership), both driven by the Layer 6 R3 SO Review 22 director-raised regression. The SO R22 event is the most consequential single piece of evidence to date — it required the director to manually test a contract invariant, recognize a violation that 11 IAR domain reviews missed, and reverse two previously-ratified architectural decisions. No reasonable artifact-fabricating AI would invent that workflow; it tracks with a human director actively engaging with their own spec.
+
+The methodology growth signals are strong: CLOSURE-PROTOCOL.md §3 auto-Backlog fired correctly at Layer 7; §5 closure cadence drove the bundle-then-log-entries commit pair; the Red Gate exemption was handled via the disciplined Option A path with disclosure at five artifact locations. The project has graduated from "running IAR" to "having a maturing process that catches gaps in itself."
+
+**The hard finding (carried from R4 and reinforced):** the developer-voice retrospective channel — PROCESS.md first-person reflection sections — remains the gating constraint on the four remaining Partial dimensions. The R4 recommendation (fill the nine placeholders) was partially addressed (down to seven) but **two entire layers (Layer 6, Layer 7) have no PROCESS.md retrospective entry whatsoever**. Layer 6 is precisely the layer that contains the strongest single director-ownership artifact (SO R22); its absence in PROCESS.md is a significant lost-evidence event. A portfolio reviewer comparing the project to R4 would see strong methodology growth on the IAR-process side and a *widening* gap on the developer-voice side.
+
+**Portfolio readiness as of 2026-05-12:** the project demonstrates high-quality methodology adherence at a level appreciably above R4. SO R22 is the kind of director-ownership artifact that an external reviewer would specifically value. The four Demonstrated dimensions cover the questions external reviewers ask first ("did you make the decisions? do you own the spec? did you direct the work? was scope appropriate?"). The four Partial dimensions cluster around developer-voice retrospective; they remain answerable but require artifact additions the reviewer cannot apply.
+
+**Recommendation (for director, not for reviewer to apply):**
+
+1. **Highest-value single change:** write PROCESS.md Layer 6 retrospective. The SO R22 director-raised regression is the strongest unrepresented director-ownership signal. A 200-word first-person account of manually testing the delete-the-highest-id case, recognizing the spec violation, and choosing Option A over Option B would convert Dim 4 (Growth) and reinforce Dim 1 (Decision ownership) and Dim 5 (Failure-and-recovery honesty) simultaneously.
+2. **Second-highest:** write PROCESS.md Layer 7 retrospective. The Round-2 cross-domain closure orchestration + the VDD-IAR R17 F1 Option A choice + the Round-2 manual re-walk are three dense pieces of methodology-growth evidence that PROCESS.md is the right venue for narrating.
+3. **Third:** fill the remaining seven Layer 1–5 PROCESS.md placeholders. R4 estimated nine; current state is seven. The progress is real but incomplete.
+4. **Highest-fidelity mechanism:** the gate interview from Review 1 remains the strongest unused mechanism. With Layer 7 IAR closed, a gate interview at portfolio-closeout would convert four Partial dimensions simultaneously. Five reviews of deferral suggests this won't happen via this channel; the artifact additions (1, 2, 3 above) are the realistic substitute.
+
+**Coordination:** Findings cross-reference [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md) Review 9 Finding 9 (PROCESS.md retrospective backlog — partially closed across Layers 1–5, fully Open for Layers 6–7). SO R22 reversal lineage in [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) Review 22 is the strongest cross-referenced single piece of evidence in this assessment.

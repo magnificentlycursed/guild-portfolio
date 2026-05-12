@@ -38,3 +38,17 @@ repos:
         entry: bash -c 'cd "$(git rev-parse --show-toplevel)/issue-tracker-cli" && cargo fmt --check'
         pass_filenames: false
         files: ^issue-tracker-cli/.*\.rs$
+
+      - id: cargo-clippy-check
+        name: cargo clippy (issue-tracker-cli)
+        language: system
+        # Platform Engineer Review 12 Finding 3 closure: left-shift the
+        # clippy gate from CI to pre-commit so a clippy regression in
+        # `*.rs` files is caught locally before the commit lands. Same
+        # `cd "$(git rev-parse --show-toplevel)"` pattern as cargo-fmt-check
+        # for sub-directory invocation safety. SE Review 18 concurrence
+        # recorded — SE owns src/**/*.rs and confirms blocking commits
+        # on clippy warnings is the right developer-ergonomic posture.
+        entry: bash -c 'cd "$(git rev-parse --show-toplevel)/issue-tracker-cli" && cargo clippy --all-targets --locked -- -D warnings'
+        pass_filenames: false
+        files: ^issue-tracker-cli/.*\.rs$

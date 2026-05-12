@@ -1,5 +1,162 @@
 # Changelog
 
+## Layer 7 IAR Round 3 closure — 2026-05-12 13:00Z
+
+**Scope:** Closes the five Round-1 / Round-2 deferred items (Platform R12 F3, QE R17 F5, QE R17 F1, SA R11 F1 + SA R13 F2, SA R13 F1 Trigger B). Lands the Round 3 cold-batch (11 domains) and the inline closures the cold-batch surfaced. The SO subagent acted inline under SO authority for three convergent findings (DESIGN.md test-seam ratification, DECISIONS.md supersedure annotation, TODO.md manual-checklist extension). VDD-IAR R19 Finding 1 (CRITICAL Dim 4 — Red Gate label discipline) closed via Option B (CLOSURE-PROTOCOL.md §8 amendment + suite-level gap registration as G-99).
+
+### Added
+
+- **`.pre-commit-config.yaml`** — `cargo-clippy-check` hook (Platform R12 F3 closure). Left-shifts the clippy gate from CI to pre-commit. SE Review 18 concurrence recorded.
+- **`src/commands.rs#render_cell`** — `debug_assert!(value.is_ascii())` (QE R17 F5 closure). Pins the chars().count() visible-width assumption that the current ASCII-only `status` / `priority` enums satisfy by construction; surfaces any future spec amendment permitting non-ASCII colored fields as a debug-build panic with a doc-comment naming the `unicode-width` remediation path. Production builds compile out the assertion (zero release-mode cost).
+- **`src/commands.rs#color_mode_from_env` `TRACKER_INTERNAL_FORCE_COLOR=1` test seam** (QE R17 F1 closure). Deliberately-ugly, namespaced, test-only env var that bypasses the TTY check to force `ColorMode::On`. Not part of the public CLI contract; not documented in `--help`, `README.md`, or `DESIGN.md`. Spec-level documentation in `DESIGN.md` "Interface / Color output" (Round 3 SO amendment) names the seam as test-only / unstable across versions, closing the convergent SA R17 F4 / RT R12 F1 / UX R12 F1 / SO R25 F2 spec-conformance gap. Round 3 SO amendment added.
+- **8 new integration tests in `tests/layer7.rs`** exercising the TTY-positive color rendering surface via the seam (4 of 13 Layer 7 ACs previously had zero automated coverage). Plus 2 new unit tests on the seam's env-var precedence in `src/lib.rs#tests`.
+- **`src/commands.rs` extracted helpers (SA R11 F1 + SA R13 F2 closure):**
+  - `filter_issues(issues, status, priority, label) -> Vec<Issue>` — pure function; replaces cmd_list's inline `retain` closure.
+  - `format_list_header() -> String` — pure formatter using the new column-width constants.
+  - `format_list_row(issue, color) -> String` — pure formatter modulo color application.
+  - `show_label(name) -> String` — single source of truth for the show-block label-column shape.
+  - Module-level constants: `ID_WIDTH = 4`, `STATUS_WIDTH = 11`, `PRIORITY_WIDTH = 8`, `LABELS_WIDTH = 20`, `TITLE_WIDTH = 50`, `LABEL_COLUMN_WIDTH = 13`. Replace 4 inline literal sites in `cmd_list`'s rendering and 8 inline literal sites in `format_show_block`'s labelled-key format string.
+- **6 new unit tests in `src/lib.rs#tests`** pinning the extracted helpers (`filter_issues_*`, `format_list_header_*`, `format_list_row_*`, `show_label_*`).
+- **`src/storage.rs`, `src/validate.rs`, `src/commands.rs` (NEW modules)** — Three-module split of `src/lib.rs` (SA R13 F1 Trigger B closure). Pure code reorganization with no behavior change. `storage.rs` (~218 lines) owns the data layer (`Tracker`, `Issue`, persistence, load-time invariants, domain enums `VALID_STATUSES` / `PRIORITY_ORDER`). `validate.rs` (~273 lines) owns user-input validation (`validate_*`, `parse_*`, `dedupe_labels`, `bump_next_id`, `current_timestamp`) and stderr-safety transforms (`display_safe`, `sanitize_quoted_values`). `commands.rs` (~700 lines) owns the command implementations + rendering layer. `src/lib.rs` shrinks to a hub (~80 lines) plus the existing 93-test `#[cfg(test)] mod tests` block.
+
+### Changed
+
+- **`Cargo.toml`** — no changes in Round 3.
+- **`DESIGN.md` "Interface / Color output"** — names the `TRACKER_INTERNAL_FORCE_COLOR` test seam (Round 3 SO amendment).
+- **`DECISIONS.md`** — Round 3 SO supersedure annotation on the R2 "SA R11 F1 + SA R13 F1 Trigger B + SA R13 F2 auto-Backlog per CLOSURE-PROTOCOL.md §3" entry, noting the §3 Backlog state was reversed by the R3 closure commits.
+- **`TODO.md` Layer 7 manual checklist** — 6 new items appended (NO_COLOR, CLICOLOR=0, CLICOLOR_FORCE, bold-redundancy rendering, stderr ANSI-clean on empty-state, clap stderr Cc-escape) routed from VDD-IAR R18's standing GO-PENDING-MANUAL-REWALK.
+- **`iterative-adversarial-refinement/CLOSURE-PROTOCOL.md` §8 (NEW)** — Warm-finding-closure Red Gate carve-out (VDD-IAR R19 F1 Option B closure). Earned by the R17 → R19 recurrence of the polish-layer / warm-closure pattern. §7 (Suite adoption) preserved in place; §8 added without renumbering to preserve cross-references in CHANGELOG / VDD-IAR R10 / VDD-IAR R17 / SE R18 that point to "Section 7."
+- **`src/lib.rs` module-level `//!` doc-comment** (TW R13 F2 closure) — distinguishes public-API re-exports from `pub(crate)` crate-internal helpers; lists all submodule contents with correct visibility labels.
+- **`src/commands.rs#color_mode_from_env` doc-comment** (SE R19 F2 closure) — adds the call-once contract section explaining the single-decision-point pattern (decided at process startup in `main.rs`, threaded to `cmd_*` invocations).
+- **`tests/layer7.rs#force_color_wins_over_no_color_when_both_env_vars_set`** (QE R19 F2 closure) — renamed from `force_color_with_no_color_env_set_does_not_force` (the prior name read contradictorily against its assertion).
+- **`tests/layer7.rs#force_color_data_row_emits_columns_in_status_then_priority_order`** (NEW — QE R19 F1 closure) — pins the data-row column ordering by asserting cyan-status ANSI appears before red-priority ANSI; a `format_list_row` mutation that swapped the status / priority positional args would now fail this test (prior unanchored `contains` assertions in the other `force_color_*` tests would have survived the swap).
+- **`src/commands.rs` rustdoc `bare_urls` warning** (TW R13 F3 closure) — wrapped the no-color.org URL in `<>` per rustdoc convention.
+
+### Suite-level
+
+- **`iterative-adversarial-refinement/GAP-ANALYSIS-LOG.md` G-99 (NEW)** — Methodology-gap registry entry: `prompts/implementation.md` Red Gate framework does not name the warm-finding-closure mode that recurs during IAR Round 2+ cadence. Project-scoped resolution applied at this project's CLOSURE-PROTOCOL.md §8. Suite-level promotion (amend `prompts/implementation.md` directly) Deferred per the recommended natural-recurrence trigger (a second project encountering the pattern).
+- **`iterative-adversarial-refinement/review-log/2026-05-12-suite-review.md` Review 37 (NEW session file)** — full G-99 narrative with three resolution options + recommended deferral rationale; indexed in `SUITE-REVIEW-INDEX.md`.
+
+### IAR Round 3 closure tracking
+
+| Domain | R3 | Open at R3 close | Transitions |
+|---|---|---|---|
+| SO | 25 | 0 | 3 inline-Resolved (DESIGN.md, DECISIONS.md, TODO.md amendments by SO authority); 1 Hallucinated |
+| SA | 17 | 3 | 1 Resolved (full SA cluster carry-forward); 1 Dismissed; SA F2 + SA F3 remain Open (re-export tightening + test placement); SA F4 Resolved by SO amendment |
+| QE | 19 | 3 → 1 | F1 Resolved by new column-order test; F2 Resolved by rename; F3 (test placement) remains Open; F4 (catch_unwind pattern) remains Open |
+| SE | 19 | 3 → 2 | F2 Resolved by call-once doc-comment; F1 (re-export tightening) + F3 (lib.rs split — already done) remain Open |
+| Security | 13 | 0 | clean |
+| Platform | 14 | 2 | both informational re-raises (coverage threshold + branch protection); neither merge-blocking |
+| UX | 12 | 2 → 0 | F1 Resolved by SO amendment; F2 Resolved by SO TODO.md inline edit |
+| DE | 13 | 0 | MVR; no substantive findings |
+| RT | 12 | 1 → 0 | F1 Resolved by SO amendment |
+| TW | 13 | 5 → 1 | F1 Resolved by this CHANGELOG entry; F2 Resolved by `//!` rewrite; F3 Resolved by rustdoc fix; F4 Resolved by SO DECISIONS amendment; F5 Resolved by SO TODO.md edit |
+| VDD-IAR | 19 | 1 → 0 | F1 (CRITICAL Red Gate) Resolved by Option B (CLOSURE-PROTOCOL.md §8 + G-99); F2 (manual rewalk) artifact Resolved by SO TODO.md edit, director-execution pending |
+
+Remaining Open after this commit: SA F2 / SE F1 (re-export tightening — non-blocking, may close in a follow-up commit); SA F3 / QE F3 (test placement — Backlog candidate); QE F4 (catch_unwind pattern — non-blocking); Platform F1 (coverage threshold — informational, no SO ratification yet); Platform F2 (branch protection — out of tree).
+
+### Verification
+
+- `cargo test --no-fail-fast --locked` — **238/238 pass** (93 unit + 32+18+9+25+7+33+21 layer 1-7 integration). Delta from R2: +1 test (`force_color_data_row_emits_columns_in_status_then_priority_order`); the other R3 closures added their tests in earlier R3 commits.
+- `cargo clippy --all-targets --locked -- -D warnings` — clean.
+- `cargo fmt --check` — clean.
+- `cargo doc --no-deps` — clean (rustdoc `bare_urls` warning closed).
+- `cargo audit` — 0 advisories (100 crate deps).
+
+### Open (process)
+
+- **Manual checklist execution** — TODO.md L368-381 (the 6 new R2 items now landed at L376-381) requires director execution against the release binary built from HEAD. Once executed and ticked, VDD-IAR R20 can close the merge gate.
+- **VDD-IAR R20** — Round-3 ratification of the F1 Option B closure + final merge-gate verdict.
+
+---
+
+## Layer 7 IAR Round 2 closure — 2026-05-11 23:30Z
+
+**Scope:** Resolves the substantive Open finding cluster surfaced by Layer 7 Round 1 cold-batch IAR (SO R23 / SA R15 / QE R17 / SE R17 / Security R11 / Platform R12 / UX R10 / RT R10 / TW R11 — VDD-IAR R17 F1 was already addressed in commit `fbbb8a3`). Lands spec amendments (SO authority), src/lib.rs / src/main.rs refactors (SE authority), test additions and tightening (QE authority), Cargo.toml MSRV (PE authority), and doc updates (TW authority) in a single coordinated commit. Carry-forward SA R11 F1 + SA R13 F1 Trigger B + SA R13 F2 auto-Backlogged per CLOSURE-PROTOCOL.md §3.
+
+### Changed
+
+- **DESIGN.md** — "Interface / Color output" amended (UX R10 F1 + F2; Security R11 F2): adds `NO_COLOR` / `CLICOLOR=0` honoring with `CLICOLOR_FORCE` deliberately not honored (preserves pipe-cleanness contract); adds `bold` SGR to `medium` / `in-progress` / `done` for WCAG 1.4.1 *Use of Color* symmetry (the red/green deuteranopia miss-case is the canonical accessibility pitfall — bold-on-all-highlighted-values gives every state a non-color cue); strengthens "Color suppression is symmetric — ANSI never emitted to stderr". "stderr contract" amended (RT R10 F1): the Cc-escape rule explicitly extends to clap's argument-parsing pipeline (`Error: unrecognized subcommand '<X>'`) — every stderr write site, including the parser's, must Cc-escape reflected user values. Permission-denied error wording broadened (RT R10 F2): the spec now ratifies the platform `std::io::Error` Display verbatim (e.g. `Permission denied (os error 13)`), preserving the diagnostic errno tag that the prior spec wording omitted.
+- **DECISIONS.md** — six new entries under "Layer 7 IAR Round 2 spec amendments": NO_COLOR / CLICOLOR honoring rationale and CLICOLOR_FORCE exclusion; color bold-redundancy rationale (UX R10 F2); raw-ANSI vs. anstyle SE-domain choice captured at last (TW R11 F4); stderr Cc-escape extension to clap pipeline (RT R10 F1); errno-tag-in-stderr ratification (RT R10 F2); SA R11 F1 + SA R13 F1 Trigger B + SA R13 F2 auto-Backlog per CLOSURE-PROTOCOL §3 (SO R23 F1 / SA R15 F1 / VDD-IAR R17 F4).
+- **src/lib.rs / color helpers (SE R17 F1 / SA R15 F2 + F3)** — `use_color: bool` parameter replaced by `ColorMode` enum (`On` / `Off`) with `is_on()` accessor; eliminates the boolean-trap antipattern at call sites. New `pub fn color_mode_from_env() -> ColorMode` centralizes the TTY + `NO_COLOR` + `CLICOLOR=0` decision in one helper. `priority_ansi("medium", On)` now `\x1b[1;33m`, `status_ansi("in-progress", On)` now `\x1b[1;36m`, `status_ansi("done", On)` now `\x1b[1;32m` (bold-redundancy per the spec amendment). `pad_after_color(colored, visible_chars, total_width)` replaced by `render_cell(value, ansi, total_width)` (SE R17 F2 — eliminates the caller-must-compute-visible-chars-correctly API surface). `wrap_color` gains a `debug_assert!` byte-hygiene check (Security R11 F1 — defense-in-depth on the output boundary; a future refactor introducing a free-form colored field whose validation was missed would panic on debug builds before shipping). New `pub fn sanitize_quoted_values(s: &str) -> String` narrow-scope clap-error sanitizer: walks the input, applies `display_safe` only to substrings inside `'<value>'` quoted regions, leaves structural LFs and the rest of the message unchanged (RT R10 F1 — narrow-scope replacement for the over-aggressive whole-error `display_safe` that was destroying clap's multi-line formatting). `display_safe` now `pub` so other crates can apply value-level Cc-escape.
+- **src/lib.rs / `cmd_show` + `cmd_list`** — signatures gain a `color: ColorMode` parameter; internal `std::io::stdout().is_terminal()` calls removed (single decision point now in main.rs).
+- **src/lib.rs / `format_show_block`** — `use_color: bool` → `color: ColorMode`; bold-redundancy automatically propagates through `priority_ansi` / `status_ansi`.
+- **src/lib.rs / module-level `//!` doc-comment** (TW R11 F3) — fully refreshed: `load_issues` / `save_issues` (renamed at Layer 6 R3) corrected to `load_tracker` / `save_tracker`; missing `cmd_show` / `cmd_delete` / `validate_description` / `CreateArgs` / `Tracker` / `display_safe` added; doc reflects current public surface.
+- **src/main.rs** — TTY-decision moved here: `let color = tracker::color_mode_from_env();` once at process startup, threaded to `cmd_list(..., color)` and `cmd_show(..., color)`. Clap error transform now applies `sanitize_quoted_values(&raw)` instead of `display_safe(&raw)` so structural LFs survive while user-reflected quoted payloads are Cc-escaped (RT R10 F1).
+- **Cargo.toml** — `rust-version = "1.82"` declared (Platform R12 F2). The codebase uses `Option::is_none_or` (stable 1.82) which clippy's `incompatible_msrv` lint flagged once the field was added; declaring 1.82 matches actual usage. The pinned toolchain (`rust-toolchain.toml`) remains 1.94.1.
+- **tests/layer7.rs** — `unknown_subcommand_exits_one` now asserts `stdout("")` (QE R17 F3). `list_piped_has_no_ansi_codes` + `show_piped_has_no_ansi_codes` now assert stderr is also ANSI-clean (QE R17 F4). Three new integration tests: `unknown_subcommand_with_cc_payload_escapes_in_stderr` (RT R10 F1 regression — plants `\r` + `\t` in subcommand name, asserts `\u{D}` / `\u{9}` escapes inside the quoted region while clap's `\n\nUsage:` structural LFs survive); `list_empty_state_stderr_has_no_ansi_codes` (QE R17 F4 — pins symmetric stderr cleanliness when `list` emits "No open issues. Nice work!"); `no_color_env_does_not_break_piped_invocation` (UX R10 F1 / Security R11 F2 — NO_COLOR / CLICOLOR / CLICOLOR_FORCE env-var passthrough sanity check).
+- **src/lib.rs#tests** — Round-2 unit-test additions: `ColorMode::is_on` accessor; four `color_mode_from_env_*` tests (NO_COLOR set / NO_COLOR empty-string / CLICOLOR=0 / stdout-piped-precedence over CLICOLOR_FORCE), serialized via `ENV_TEST_LOCK` mutex to avoid env-var races between parallel unit tests; `wrap_color_debug_assert_active_in_debug_builds` (Security R11 F1 — verifies the debug_assert panics on control-bearing input); four `sanitize_quoted_values_*` tests (pass-through / inside-quotes-only escape / unbalanced trailing quote / multiple quoted regions). The 12 Round-1 retrofit tests on `priority_ansi` / `status_ansi` / `wrap_color` / `pad_after_color` updated to the new `ColorMode` enum signature and the new bold-redundancy color values (`pad_after_color` renamed to `render_cell` with the simplified API).
+- **issue-tracker-cli/README.md** (TW R11 F1) — fully rewritten to reflect Layer 7 state: all 5 subcommands documented; new "Color output" section explaining the TTY rule, NO_COLOR / CLICOLOR honoring, and the WCAG bold-redundancy rationale; `rust-version` install note; Status block updated to "Layer 7 implementation complete; Layer 7 IAR Round 2 closure in progress" with all 7 layer checkboxes; IAR domain count corrected (11 active).
+- **guild-portfolio/README.md** (TW R11 F2) — issue-tracker-cli Layer 6 row → ✅ Complete; Layer 7 row → 🟡 In IAR Round 2.
+
+### IAR Round 2 closure tracking
+
+Round-1 Open findings landed in this commit by domain:
+
+- **SO Review 23** — F1 (pre-Layer-7 deferral) Backlogged per CLOSURE-PROTOCOL §3; F2 already Resolved by `fbbb8a3` (VDD-IAR R17 Option A); F3 (manual closure speed) Dismissed (verification depth claim stands); F4 (private helpers as public-bearing API) — addressed by `ColorMode` + `color_mode_from_env` becoming `pub`.
+- **SA Review 15** — F1 Backlogged with SO R23 F1; F2 (TTY duplication) Resolved by main.rs centralization; F3 (boolean trap) Resolved by `ColorMode` enum.
+- **QE Review 17** — F1 (TTY-positive zero coverage) Open / Deferred: a `force_color` test seam would require additional refactoring; deferred to a future polish layer with the unit-level `color_mode_from_env_*` tests as partial mitigation; F2 already Resolved by `fbbb8a3`; F3 (stdout/stderr discipline in tests) Resolved by tightened assertions in `unknown_subcommand_exits_one` and new `list_empty_state_stderr_has_no_ansi_codes`; F4 (stderr ANSI not asserted) Resolved; F5 (CJK chars-vs-display-width) Deferred — latent risk, no current value exercises it.
+- **SE Review 17** — F1 Resolved by `ColorMode` enum + main.rs centralization; F2 Resolved by `render_cell` API refactor; F3 (lib.rs split) Backlogged with SA R11 F1.
+- **Security Review 11** — F1 Resolved by `wrap_color` debug_assert!; F2 Resolved by `color_mode_from_env` NO_COLOR / CLICOLOR support.
+- **Platform Review 12** — F1 (branch protection) Dismissed (outside working tree, informational); F2 Resolved by `rust-version = "1.82"`; F3 (clippy pre-commit hook) Deferred — SE concurrence noted, hook addition is a future PE-domain commit.
+- **UX Review 10** — F1 Resolved by NO_COLOR + CLICOLOR honoring; F2 Resolved by bold-redundancy spec amendment + implementation.
+- **RT Review 10** — F1 Resolved by `sanitize_quoted_values` + main.rs application; F2 Resolved by DESIGN.md errno-tag ratification.
+- **TW Review 11** — F1 Resolved by README rewrite; F2 Resolved by guild-portfolio/README Layer 7 row update; F3 Resolved by `//!` doc-comment refresh; F4 (raw-ANSI rationale) Resolved by new DECISIONS.md entry; F5 (CHANGELOG Open/process claim) Resolved by this entry (the prior Open process item — manual checklist closure — landed in `603c689` before Round 1).
+- **VDD-IAR Review 17** — F1 (CRITICAL Red Gate) Resolved-pending-Round-2-ratification by `fbbb8a3` + this commit's color-helper test updates; remaining process Dismisseds carry forward unchanged.
+
+### Verification
+
+- `cargo test --no-fail-fast --locked` — **220/220 pass** (84 unit + 32+18+9+25+7+33 layers 1-6 + 12 layer 7).
+- `cargo clippy --all-targets --locked -- -D warnings` — clean.
+- `cargo fmt --check` — clean.
+- `cargo audit` — 0 advisories (100 crate deps, 1069 advisories loaded).
+
+### Open (process)
+
+- **VDD-IAR Round 2 (next round)** — Verify Round-1 finding-closure evidence chain: spec/code/test/doc consistency around `ColorMode` + env-var color suppression + bold-redundancy + clap-error sanitization, and ratify VDD-IAR R17 F1's Option A resolution as closed.
+- **Layer 7 manual testing checklist** — Re-walk: NO_COLOR / CLICOLOR / CLICOLOR_FORCE behaviors, bold-redundancy rendering in terminal, no ANSI on stderr empty-state. Director to add the new manual items to TODO.md and re-tick.
+
+---
+
+## Layer 7 implementation — TTY color output — 2026-05-11 22:00Z
+
+**Scope:** Phase 2b implementation of the polish layer per TODO.md L350-396. Adds TTY-detected color output for `priority` and `status` value cells in `tracker list` and `tracker show`. Per DESIGN.md "Interface / color output": color applies only to value text (header rows and label columns are uncolored), only when stdout is a TTY; piped stdout (`tracker list | cat`) suppresses ANSI codes entirely.
+
+### Added
+
+- **src/lib.rs** — Color helper section above the `Tracker` definition: `ANSI_RESET` constant; `priority_ansi(priority, use_color)` and `status_ansi(status, use_color)` return `Option<&'static str>` ANSI start sequences (None for default-color values `low` / `open` and when `use_color` is false); `wrap_color(value, ansi)` centralizes the value-only wrapping contract; `pad_after_color(colored, visible_chars, total_width)` sidesteps Rust's byte-count padding bug for ANSI-wrapped strings. Raw ANSI escapes (no `anstyle` / `termcolor` dependency) — the six sequences (`\x1b[1;31m` bold red, `\x1b[33m` yellow, `\x1b[36m` cyan, `\x1b[32m` green, `\x1b[0m` reset) are universally supported by VT100-compatible terminals, the only environment this single-user portfolio CLI targets.
+
+### Changed
+
+- **src/lib.rs / `cmd_show`** — TTY detection via `std::io::stdout().is_terminal()` (stable since Rust 1.70). Result threaded through to `format_show_block(issue, use_color)`.
+- **src/lib.rs / `format_show_block`** — Signature gains `use_color: bool`. Value text for `status` and `priority` rows is wrapped via `wrap_color`; the 13-char label column ("Status:      ", "Priority:    ") remains uncolored.
+- **src/lib.rs / `cmd_list`** — TTY detection at the top of the function. Header row (`ID Status Priority Labels Title`) is never colored. Per-issue row formatting now emits status and priority as pre-padded cells (`pad_after_color`) instead of relying on Rust's `{:<width}` formatter — the latter pads by byte length and would over-count ANSI escape bytes, mis-aligning the Labels column when color is active.
+- **src/lib.rs#tests** — `multiline_description_show_format` and `show_label_column_right_padded_to_13` updated to pass `false` for the new `use_color` parameter of `format_show_block` (both tests verify uncolored layout; coloring is verified by the integration `*_piped_has_no_ansi_codes` tests and the manual TTY checklist).
+
+### Tests
+
+- **tests/layer7.rs** — Already added in the Phase 2a Red Gate commit (7b461aa). All 9 tests continue to pass against this implementation. The two `*_piped_has_no_ansi_codes` tests now serve their intended regression-guard role: a `println!("\x1b[...")` without TTY detection would break them. `assert_cmd::Command` invokes the binary with stdout connected to a pipe (non-TTY), so the piped branch of `is_terminal()` is exercised by every existing integration test across layers 1-7 — none regressed.
+
+### Verification
+
+- `cargo test --no-fail-fast --locked` — **195/195 pass** (62 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4 + 7 layer5 + 33 layer6 + 9 layer7).
+- `cargo clippy --all-targets --locked -- -D warnings` — clean.
+- `cargo fmt --check` — clean.
+- Manual TTY verification via `script -q /dev/null tracker list ...`:
+  - `list --status open` (issue with priority=low): no escape sequences ✓
+  - `list --status in-progress` (priority=high): `\x1b[36min-progress\x1b[0m` cyan, `\x1b[1;31mhigh\x1b[0m` bold red ✓
+  - `list --status done` (priority=medium): `\x1b[32mdone\x1b[0m` green, `\x1b[33mmedium\x1b[0m` yellow ✓
+  - `show 1` piped: no escape sequences; `show 1` via `script`: status / priority value cells colored, label column uncolored ✓
+  - Column alignment preserved across all colored / uncolored combinations (visible-width padding correct in all 9 status × priority combinations).
+- `cargo audit` — pending pre-IAR check.
+
+### Open (process)
+
+- **Layer 7 manual testing checklist** (TODO.md L368-374) — 7 unchecked items. Director must execute and commit per CLOSURE-PROTOCOL.md merge-gate criterion 3 (same standing process Open as Layers 4 / 6). Carry-forward for the IAR session.
+- **IAR** — Layer 7 active domains per TODO.md: SO, SA, QE, SE, UX, Platform, VDD-IAR Alignment.
+
+---
+
 ## Layer 6 IAR Round 3 — `next_id` persistent counter (SO Review 22 Option A) — 2026-05-11 04:30Z
 
 **Scope:** Resolves SO Review 22 Finding 1 — a director-raised spec violation surfaced by Layer 6 manual testing (TODO.md:311 "ID not reused"). The pre-R22 `max(existing_ids) + 1` id-assignment did not honor the "deleted ID never reused, including after deletion" invariant in the high-edge case (delete the highest-id issue, then create — reassigned the deleted id). Option A restores the persistent `next_id` counter that SA Review 3 Finding 3 had removed, reversing two prior decisions (SA R3 F3 "no stored counter" and SO R7 "bare top-level array") in favor of honoring the spec contract.
