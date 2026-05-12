@@ -56,6 +56,39 @@ use std::path::Path;
 
 const ANSI_RESET: &str = "\x1b[0m";
 
+// --- Column-width constants (SA Review 13 Finding 2 + SA Review 11 Finding 1 closure) ---
+//
+// Magic-number column widths previously occurred at 4 inline literal sites
+// across the rendering layer (the `cmd_list` header `println!`, the
+// per-row `println!`, the two `truncate_with_ellipsis` calls, and the
+// `render_cell` width arguments). The 13-char `show` label column
+// occurred at 8 inline literal sites in `format_show_block`'s
+// labelled-key format string. SA R13 F2 + SA R11 F1 named the
+// extraction; landed at this commit per the SA carry-forward cluster
+// closure.
+
+/// Width of the `ID` column in `tracker list` output.
+const ID_WIDTH: usize = 4;
+/// Width of the `Status` column in `tracker list` output. Sized for
+/// `"in-progress"` (11 chars), the widest legal value.
+const STATUS_WIDTH: usize = 11;
+/// Width of the `Priority` column in `tracker list` output. Sized for
+/// `"medium"` (6 chars) plus 2 chars of trailing padding for visual
+/// breathing room before the next column.
+const PRIORITY_WIDTH: usize = 8;
+/// Width of the `Labels` column in `tracker list` output. Truncates with
+/// an ellipsis (`...`) past this many chars.
+const LABELS_WIDTH: usize = 20;
+/// Width of the `Title` column in `tracker list` output. Truncates with
+/// an ellipsis past this many chars. The title column is the right-most
+/// column and is not padded — the constant governs only the truncation
+/// threshold.
+const TITLE_WIDTH: usize = 50;
+/// Width of the labelled-key column in `tracker show` output. The format
+/// `Description:` is the longest legal label (12 chars + trailing colon
+/// space → 13 total).
+const LABEL_COLUMN_WIDTH: usize = 13;
+
 /// Whether the rendering layer should emit ANSI color escapes.
 ///
 /// Replaces the prior `use_color: bool` parameter with a self-documenting enum
@@ -706,28 +739,33 @@ pub fn validate_description(raw: &str) -> Result<String, String> {
 /// Renders a single issue as the `tracker show` labelled key-value block.
 ///
 /// Per DESIGN.md "Show output format": each label is right-padded to a fixed
-/// width of 13 characters so values align. For multi-line descriptions, the
-/// first line follows the `Description:` label; each continuation line is
-/// indented by 13 spaces (matching the label-column width).
+/// width of `LABEL_COLUMN_WIDTH` (= 13) characters so values align. For
+/// multi-line descriptions, the first line follows the `Description:` label;
+/// each continuation line is indented by `LABEL_COLUMN_WIDTH` spaces.
 ///
 /// Returns the formatted block including a trailing newline.
 fn format_show_block(issue: &Issue, color: ColorMode) -> String {
+    // SA R13 F2 closure: the prior format string contained 8 inline literal
+    // padded labels ("ID:          ", "Title:       ", ...). They are now
+    // computed via `show_label` so the LABEL_COLUMN_WIDTH constant is the
+    // single source of truth for label-column width.
     let labels_display = if issue.labels.is_empty() {
         "(none)".to_string()
     } else {
         issue.labels.join(", ")
     };
+    // Continuation-line indent for multi-line descriptions: a `\n` followed
+    // by LABEL_COLUMN_WIDTH spaces. Computed from the constant so any future
+    // amendment to the label-column width propagates here automatically.
+    let continuation_indent = format!("\n{:<width$}", "", width = LABEL_COLUMN_WIDTH);
     let description_display = match &issue.description {
         None => "(none)".to_string(),
         Some(d) => {
-            // Multi-line descriptions: first line after the label, each
-            // continuation line indented 13 spaces to match the label column.
             // `\r\n` sequences are normalized to `\n` for splitting so a
             // CRLF-stored description renders without a stray `\r` in the
-            // first line. The 13-space continuation indent applies to every
-            // line after the first regardless of original separator.
+            // first line.
             let normalized = d.replace("\r\n", "\n");
-            normalized.replace('\n', "\n             ")
+            normalized.replace('\n', &continuation_indent)
         }
     };
     // Layer 7: color the status and priority values when `color` is `On`.
@@ -736,23 +774,32 @@ fn format_show_block(issue: &Issue, color: ColorMode) -> String {
     let status_display = wrap_color(&issue.status, status_ansi(&issue.status, color));
     let priority_display = wrap_color(&issue.priority, priority_ansi(&issue.priority, color));
     format!(
-        "ID:          {}\n\
-         Title:       {}\n\
-         Status:      {}\n\
-         Priority:    {}\n\
-         Labels:      {}\n\
-         Description: {}\n\
-         Created:     {}\n\
-         Updated:     {}\n",
+        "{}{}\n{}{}\n{}{}\n{}{}\n{}{}\n{}{}\n{}{}\n{}{}\n",
+        show_label("ID"),
         issue.id,
+        show_label("Title"),
         issue.title,
+        show_label("Status"),
         status_display,
+        show_label("Priority"),
         priority_display,
+        show_label("Labels"),
         labels_display,
+        show_label("Description"),
         description_display,
+        show_label("Created"),
         issue.created_at,
+        show_label("Updated"),
         issue.updated_at,
     )
+}
+
+/// Formats a `show` block label with trailing colon, right-padded to
+/// `LABEL_COLUMN_WIDTH`. Single source of truth for the label-column
+/// shape per SA R13 F2 closure.
+fn show_label(name: &str) -> String {
+    let with_colon = format!("{}:", name);
+    format!("{:<width$}", with_colon, width = LABEL_COLUMN_WIDTH)
 }
 
 /// Implements `tracker show <id>`.
@@ -937,6 +984,80 @@ fn truncate_with_ellipsis(s: &str, max_chars: usize) -> String {
     }
 }
 
+/// Filters an issue list down to those matching the AND-combined filter
+/// set. Pure function: no I/O, no allocations beyond the resulting `Vec`.
+/// Extracted from `cmd_list`'s inline `retain` per SA R11 F1 closure so
+/// the filter logic is unit-testable in isolation and a future filter
+/// dimension lands as a parameter addition rather than a fourth inline
+/// `retain` call.
+fn filter_issues(
+    issues: Vec<Issue>,
+    status: &str,
+    priority: Option<&str>,
+    label: Option<&str>,
+) -> Vec<Issue> {
+    issues
+        .into_iter()
+        .filter(|i| issue_matches_filters(i, status, priority, label))
+        .collect()
+}
+
+/// Renders the `tracker list` header row. Pure function — uses the
+/// module-level column-width constants so a future spec amendment that
+/// changes column widths touches one site (the constants) rather than
+/// the format string. The header row is never colored per DESIGN.md
+/// "Interface / Color output" (color applies to value cells only).
+fn format_list_header() -> String {
+    format!(
+        "{:<id_width$}  {:<status_width$}  {:<priority_width$}  {:<labels_width$}  Title",
+        "ID",
+        "Status",
+        "Priority",
+        "Labels",
+        id_width = ID_WIDTH,
+        status_width = STATUS_WIDTH,
+        priority_width = PRIORITY_WIDTH,
+        labels_width = LABELS_WIDTH,
+    )
+}
+
+/// Renders a single `tracker list` data row. Pure function modulo color
+/// application — status and priority value cells are wrapped in their
+/// respective ANSI sequences when `color` is `On`. The labels column
+/// truncates with an ellipsis past `LABELS_WIDTH`; the title column
+/// truncates past `TITLE_WIDTH`. Padding for status / priority is done
+/// against *visible* character count (via `render_cell`) so ANSI bytes
+/// do not consume column budget.
+fn format_list_row(issue: &Issue, color: ColorMode) -> String {
+    let labels_raw = if issue.labels.is_empty() {
+        "(none)".to_string()
+    } else {
+        issue.labels.join(", ")
+    };
+    let labels_display = truncate_with_ellipsis(&labels_raw, LABELS_WIDTH);
+    let title_display = truncate_with_ellipsis(&issue.title, TITLE_WIDTH);
+    let status_cell = render_cell(
+        &issue.status,
+        status_ansi(&issue.status, color),
+        STATUS_WIDTH,
+    );
+    let priority_cell = render_cell(
+        &issue.priority,
+        priority_ansi(&issue.priority, color),
+        PRIORITY_WIDTH,
+    );
+    format!(
+        "{:<id_width$}  {}  {}  {:<labels_width$}  {}",
+        issue.id,
+        status_cell,
+        priority_cell,
+        labels_display,
+        title_display,
+        id_width = ID_WIDTH,
+        labels_width = LABELS_WIDTH,
+    )
+}
+
 /// Implements `tracker list [--status <s>] [--priority <p>] [--label <l>]`.
 ///
 /// With no flags (the *default open view*): shows only `open` issues; prints
@@ -993,15 +1114,19 @@ pub fn cmd_list(
     let extra_filter_active = effective_priority.is_some() || effective_label.is_some();
     let is_default_open_view = effective_status == "open" && !extra_filter_active;
 
-    let mut issues = load_tracker(issues_path)?.issues;
-    issues.retain(|i| {
-        issue_matches_filters(
-            i,
-            &effective_status,
-            effective_priority.as_deref(),
-            effective_label.as_deref(),
-        )
-    });
+    // cmd_list is now a thin orchestrator per SA R11 F1 closure:
+    // load → filter (pure) → empty-state branch → sort (pure) →
+    // format header + rows (pure) → println. Each step is independently
+    // testable; column-width literals are centralized in the module-level
+    // constants (ID_WIDTH / STATUS_WIDTH / PRIORITY_WIDTH / LABELS_WIDTH /
+    // TITLE_WIDTH); color injection is delegated to `format_list_row`.
+    let issues = load_tracker(issues_path)?.issues;
+    let mut issues = filter_issues(
+        issues,
+        &effective_status,
+        effective_priority.as_deref(),
+        effective_label.as_deref(),
+    );
 
     if issues.is_empty() {
         // Empty-state messages route to stderr per DESIGN.md "stderr contract" /
@@ -1017,34 +1142,9 @@ pub fn cmd_list(
     }
 
     sort_issues(&mut issues);
-
-    // Header row is never colored (color applies to value cells only per
-    // DESIGN.md "Interface / color output"). TTY decision is made once in
-    // main.rs and threaded as `color`; no in-function env access here.
-
-    println!(
-        "{:<4}  {:<11}  {:<8}  {:<20}  Title",
-        "ID", "Status", "Priority", "Labels"
-    );
-
+    println!("{}", format_list_header());
     for issue in &issues {
-        let labels_raw = if issue.labels.is_empty() {
-            "(none)".to_string()
-        } else {
-            issue.labels.join(", ")
-        };
-        let labels_display = truncate_with_ellipsis(&labels_raw, 20);
-        let title_display = truncate_with_ellipsis(&issue.title, 50);
-        // render_cell wraps the bare value with the optional ANSI prefix and
-        // pads to the column width by *visible* characters — ANSI bytes do
-        // not consume padding budget. All status/priority values are ASCII;
-        // visible-char count equals byte count of the bare value.
-        let status_cell = render_cell(&issue.status, status_ansi(&issue.status, color), 11);
-        let priority_cell = render_cell(&issue.priority, priority_ansi(&issue.priority, color), 8);
-        println!(
-            "{:<4}  {}  {}  {:<20}  {}",
-            issue.id, status_cell, priority_cell, labels_display, title_display
-        );
+        println!("{}", format_list_row(issue, color));
     }
 
     Ok(())
@@ -1494,6 +1594,92 @@ mod tests {
             Some("high"),
             Some("feature")
         ));
+    }
+
+    // --- SA R11 F1 closure: cmd_list extraction unit tests ---
+
+    #[test]
+    fn filter_issues_returns_empty_when_no_matches() {
+        let issues = vec![issue_with("open", "high", &["bug"])];
+        let out = filter_issues(issues, "done", None, None);
+        assert!(out.is_empty());
+    }
+
+    #[test]
+    fn filter_issues_returns_only_matching() {
+        let issues = vec![
+            issue_with("open", "high", &["bug"]),
+            issue_with("done", "high", &["bug"]),
+            issue_with("open", "low", &["bug"]),
+        ];
+        let out = filter_issues(issues, "open", Some("high"), None);
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].status, "open");
+        assert_eq!(out[0].priority, "high");
+    }
+
+    #[test]
+    fn format_list_header_uses_width_constants() {
+        // Header column boundaries must match the module-level width
+        // constants exactly. A regression that changes one constant but
+        // not the header rendering would surface here.
+        let header = format_list_header();
+        // "ID" padded to ID_WIDTH=4, then 2 spaces; "Status" padded to
+        // STATUS_WIDTH=11, then 2 spaces; etc.
+        assert_eq!(
+            header,
+            "ID    Status       Priority  Labels                Title"
+        );
+    }
+
+    #[test]
+    fn format_list_row_uncolored_when_color_off() {
+        let issue = issue_with("open", "low", &["bug"]);
+        let row = format_list_row(&issue, ColorMode::Off);
+        // No ANSI sequences when color is Off, regardless of value.
+        assert!(!row.contains("\x1b["));
+        // ID column padded to ID_WIDTH=4 ("1" + 3 spaces).
+        assert!(row.starts_with("1   "));
+        // Title appears at the end uncolored.
+        assert!(row.ends_with("x")); // issue_with default title is "x"
+    }
+
+    #[test]
+    fn format_list_row_colors_high_priority_when_color_on() {
+        let issue = issue_with("open", "high", &[]);
+        let row = format_list_row(&issue, ColorMode::On);
+        // Bold-red high priority embedded; status `open` is default-color
+        // so the status cell remains plain.
+        assert!(row.contains("\x1b[1;31mhigh\x1b[0m"));
+        assert!(!row.contains("\x1b[1;36m")); // no cyan (in-progress)
+        assert!(!row.contains("\x1b[1;32m")); // no green (done)
+    }
+
+    #[test]
+    fn show_label_pads_to_label_column_width() {
+        // Single source of truth for label-column shape: SA R13 F2 closure.
+        // Every label rendered as `<name>:` then right-padded to
+        // LABEL_COLUMN_WIDTH=13.
+        assert_eq!(show_label("ID"), "ID:          "); // 2+1+10=13
+        assert_eq!(show_label("Title"), "Title:       "); // 5+1+7=13
+        assert_eq!(show_label("Description"), "Description: "); // 11+1+1=13
+                                                                // Width invariant.
+        for name in [
+            "ID",
+            "Title",
+            "Status",
+            "Priority",
+            "Labels",
+            "Description",
+            "Created",
+            "Updated",
+        ] {
+            assert_eq!(
+                show_label(name).chars().count(),
+                LABEL_COLUMN_WIDTH,
+                "show_label({name:?}) must be exactly LABEL_COLUMN_WIDTH chars"
+            );
+        }
     }
 
     // --- Layer 6: description + show + delete (Red Gate) ---
