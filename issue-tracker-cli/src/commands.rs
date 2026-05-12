@@ -87,7 +87,7 @@ impl ColorMode {
 /// 1. `TRACKER_INTERNAL_FORCE_COLOR` set to `1` — `On` (test seam only, not
 ///    part of the public CLI contract; see below).
 /// 2. `std::io::stdout().is_terminal()` — if stdout is piped, `Off`.
-/// 3. `NO_COLOR` set to any non-empty value — `Off` (per https://no-color.org/).
+/// 3. `NO_COLOR` set to any non-empty value — `Off` (per <https://no-color.org/>).
 /// 4. `CLICOLOR` set to `0` — `Off`.
 ///
 /// Otherwise `On`.
@@ -116,6 +116,22 @@ impl ColorMode {
 /// standard CLI color env-var convention; `INTERNAL_` signals "do not use";
 /// the `=1` literal value (rather than any-non-empty) makes accidental
 /// activation by an empty-string export less likely.
+///
+/// # Call-once contract (SE Review 19 Finding 2)
+///
+/// This function reads the environment on every call. Per the
+/// single-decision-point pattern established by SE R17 F1 / SA R15 F2
+/// closure, `main.rs` calls it **once at process startup** and threads
+/// the resulting `ColorMode` through to every `cmd_*` invocation. Do
+/// not call it from within a `cmd_*` function or from any rendering
+/// helper — repeat calls would (a) re-read env state that may have
+/// changed mid-process (the test seam uses this; production code should
+/// not), (b) waste 3-4 syscalls per invocation, and (c) split the
+/// single-decision-point contract that the public API surface depends
+/// on. The integration tests in `tests/layer7.rs` set the env once and
+/// invoke the binary; the env value is therefore stable for the
+/// duration of any one binary invocation, and `main.rs`'s single call
+/// captures it correctly.
 pub fn color_mode_from_env() -> ColorMode {
     // Test seam — see doc-comment above. Placed first so tests can exercise
     // the positive color path even when stdout is piped; does NOT bypass

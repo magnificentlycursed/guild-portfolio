@@ -9,23 +9,38 @@
 //!
 //! Module split (SA R13 F1 Trigger B closure):
 //!
-//! - [`storage`] — data types (`Tracker`, `Issue`), persistence
-//!   (`load_tracker`, `save_tracker`), and load-time invariants
-//!   (`tracker_is_valid`, `issue_fields_are_valid`).
-//! - [`validate`] — user-input validators (`validate_title`,
-//!   `validate_description`, `parse_status`, `parse_priority`,
-//!   `parse_label`, `parse_id`), arithmetic + time helpers
-//!   (`bump_next_id`, `current_timestamp`), and stderr-safety
-//!   transforms (`display_safe`, `sanitize_quoted_values`).
-//! - [`commands`] — command implementations (`cmd_create`, `cmd_list`,
-//!   `cmd_status`, `cmd_show`, `cmd_delete`), `CreateArgs`, and the
-//!   rendering / color layer (`ColorMode`, `color_mode_from_env`,
-//!   `format_show_block`, `format_list_row`, etc.).
+//! - [`storage`] — data types ([`Tracker`], [`Issue`]) and persistence
+//!   ([`load_tracker`], [`save_tracker`]). Load-time invariants
+//!   (`tracker_is_valid`, `issue_fields_are_valid`, `description_is_valid`,
+//!   `label_is_valid`, `parse_timestamp`, `VALID_STATUSES`,
+//!   `PRIORITY_ORDER`) live here as `pub(crate)` — they are crate-internal
+//!   defenses, not part of the public API surface.
+//! - [`validate`] — user-input validators ([`validate_title`],
+//!   [`validate_description`], [`parse_status`], [`parse_priority`],
+//!   [`parse_label`], [`parse_id`]), arithmetic + time helpers
+//!   ([`bump_next_id`], [`current_timestamp`], [`dedupe_labels`]), and
+//!   stderr-safety transforms ([`display_safe`], [`sanitize_quoted_values`]).
+//! - [`commands`] — command implementations ([`cmd_create`], [`cmd_list`],
+//!   [`cmd_status`], [`cmd_show`], [`cmd_delete`]), [`CreateArgs`], plus
+//!   `pub` color helpers ([`ColorMode`], [`color_mode_from_env`],
+//!   [`label_matches`], [`sort_issues`]) and `pub(crate)` rendering
+//!   helpers (`priority_ansi`, `status_ansi`, `wrap_color`, `render_cell`,
+//!   `format_show_block`, `format_list_header`, `format_list_row`,
+//!   `filter_issues`, `issue_matches_filters`, `truncate_with_ellipsis`,
+//!   `priority_rank`, `show_label`) and module-level column-width
+//!   constants (`ID_WIDTH`, `STATUS_WIDTH`, `PRIORITY_WIDTH`,
+//!   `LABELS_WIDTH`, `TITLE_WIDTH`, `LABEL_COLUMN_WIDTH`, `ANSI_RESET`).
 //!
 //! Selective `pub use` re-exports below preserve the pre-split public API
 //! surface (`tracker::cmd_create`, `tracker::Tracker`, `tracker::ColorMode`,
 //! etc.) so the `tracker` binary in `src/main.rs` and the integration tests
-//! in `tests/` need no changes when the modules move.
+//! in `tests/` need no changes when the modules move. The complete list of
+//! re-exports is the source of truth for the public API surface; items
+//! listed parenthetically in the module summaries above as `pub(crate)` are
+//! visible to the test module and to other submodules in this crate but are
+//! NOT part of `tracker::*` from outside the crate (TW R13 F2 closure —
+//! distinguishes the public surface from the crate-internal helper surface
+//! in this module-level doc).
 //!
 //! All public functions return `Result<T, String>` where the `Err` variant is
 //! the user-facing error message (without an `Error: ` prefix — `main.rs` adds

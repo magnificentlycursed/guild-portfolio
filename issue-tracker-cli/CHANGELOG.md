@@ -1,5 +1,75 @@
 # Changelog
 
+## Layer 7 IAR Round 3 closure — 2026-05-12 13:00Z
+
+**Scope:** Closes the five Round-1 / Round-2 deferred items (Platform R12 F3, QE R17 F5, QE R17 F1, SA R11 F1 + SA R13 F2, SA R13 F1 Trigger B). Lands the Round 3 cold-batch (11 domains) and the inline closures the cold-batch surfaced. The SO subagent acted inline under SO authority for three convergent findings (DESIGN.md test-seam ratification, DECISIONS.md supersedure annotation, TODO.md manual-checklist extension). VDD-IAR R19 Finding 1 (CRITICAL Dim 4 — Red Gate label discipline) closed via Option B (CLOSURE-PROTOCOL.md §8 amendment + suite-level gap registration as G-99).
+
+### Added
+
+- **`.pre-commit-config.yaml`** — `cargo-clippy-check` hook (Platform R12 F3 closure). Left-shifts the clippy gate from CI to pre-commit. SE Review 18 concurrence recorded.
+- **`src/commands.rs#render_cell`** — `debug_assert!(value.is_ascii())` (QE R17 F5 closure). Pins the chars().count() visible-width assumption that the current ASCII-only `status` / `priority` enums satisfy by construction; surfaces any future spec amendment permitting non-ASCII colored fields as a debug-build panic with a doc-comment naming the `unicode-width` remediation path. Production builds compile out the assertion (zero release-mode cost).
+- **`src/commands.rs#color_mode_from_env` `TRACKER_INTERNAL_FORCE_COLOR=1` test seam** (QE R17 F1 closure). Deliberately-ugly, namespaced, test-only env var that bypasses the TTY check to force `ColorMode::On`. Not part of the public CLI contract; not documented in `--help`, `README.md`, or `DESIGN.md`. Spec-level documentation in `DESIGN.md` "Interface / Color output" (Round 3 SO amendment) names the seam as test-only / unstable across versions, closing the convergent SA R17 F4 / RT R12 F1 / UX R12 F1 / SO R25 F2 spec-conformance gap. Round 3 SO amendment added.
+- **8 new integration tests in `tests/layer7.rs`** exercising the TTY-positive color rendering surface via the seam (4 of 13 Layer 7 ACs previously had zero automated coverage). Plus 2 new unit tests on the seam's env-var precedence in `src/lib.rs#tests`.
+- **`src/commands.rs` extracted helpers (SA R11 F1 + SA R13 F2 closure):**
+  - `filter_issues(issues, status, priority, label) -> Vec<Issue>` — pure function; replaces cmd_list's inline `retain` closure.
+  - `format_list_header() -> String` — pure formatter using the new column-width constants.
+  - `format_list_row(issue, color) -> String` — pure formatter modulo color application.
+  - `show_label(name) -> String` — single source of truth for the show-block label-column shape.
+  - Module-level constants: `ID_WIDTH = 4`, `STATUS_WIDTH = 11`, `PRIORITY_WIDTH = 8`, `LABELS_WIDTH = 20`, `TITLE_WIDTH = 50`, `LABEL_COLUMN_WIDTH = 13`. Replace 4 inline literal sites in `cmd_list`'s rendering and 8 inline literal sites in `format_show_block`'s labelled-key format string.
+- **6 new unit tests in `src/lib.rs#tests`** pinning the extracted helpers (`filter_issues_*`, `format_list_header_*`, `format_list_row_*`, `show_label_*`).
+- **`src/storage.rs`, `src/validate.rs`, `src/commands.rs` (NEW modules)** — Three-module split of `src/lib.rs` (SA R13 F1 Trigger B closure). Pure code reorganization with no behavior change. `storage.rs` (~218 lines) owns the data layer (`Tracker`, `Issue`, persistence, load-time invariants, domain enums `VALID_STATUSES` / `PRIORITY_ORDER`). `validate.rs` (~273 lines) owns user-input validation (`validate_*`, `parse_*`, `dedupe_labels`, `bump_next_id`, `current_timestamp`) and stderr-safety transforms (`display_safe`, `sanitize_quoted_values`). `commands.rs` (~700 lines) owns the command implementations + rendering layer. `src/lib.rs` shrinks to a hub (~80 lines) plus the existing 93-test `#[cfg(test)] mod tests` block.
+
+### Changed
+
+- **`Cargo.toml`** — no changes in Round 3.
+- **`DESIGN.md` "Interface / Color output"** — names the `TRACKER_INTERNAL_FORCE_COLOR` test seam (Round 3 SO amendment).
+- **`DECISIONS.md`** — Round 3 SO supersedure annotation on the R2 "SA R11 F1 + SA R13 F1 Trigger B + SA R13 F2 auto-Backlog per CLOSURE-PROTOCOL.md §3" entry, noting the §3 Backlog state was reversed by the R3 closure commits.
+- **`TODO.md` Layer 7 manual checklist** — 6 new items appended (NO_COLOR, CLICOLOR=0, CLICOLOR_FORCE, bold-redundancy rendering, stderr ANSI-clean on empty-state, clap stderr Cc-escape) routed from VDD-IAR R18's standing GO-PENDING-MANUAL-REWALK.
+- **`iterative-adversarial-refinement/CLOSURE-PROTOCOL.md` §8 (NEW)** — Warm-finding-closure Red Gate carve-out (VDD-IAR R19 F1 Option B closure). Earned by the R17 → R19 recurrence of the polish-layer / warm-closure pattern. §7 (Suite adoption) preserved in place; §8 added without renumbering to preserve cross-references in CHANGELOG / VDD-IAR R10 / VDD-IAR R17 / SE R18 that point to "Section 7."
+- **`src/lib.rs` module-level `//!` doc-comment** (TW R13 F2 closure) — distinguishes public-API re-exports from `pub(crate)` crate-internal helpers; lists all submodule contents with correct visibility labels.
+- **`src/commands.rs#color_mode_from_env` doc-comment** (SE R19 F2 closure) — adds the call-once contract section explaining the single-decision-point pattern (decided at process startup in `main.rs`, threaded to `cmd_*` invocations).
+- **`tests/layer7.rs#force_color_wins_over_no_color_when_both_env_vars_set`** (QE R19 F2 closure) — renamed from `force_color_with_no_color_env_set_does_not_force` (the prior name read contradictorily against its assertion).
+- **`tests/layer7.rs#force_color_data_row_emits_columns_in_status_then_priority_order`** (NEW — QE R19 F1 closure) — pins the data-row column ordering by asserting cyan-status ANSI appears before red-priority ANSI; a `format_list_row` mutation that swapped the status / priority positional args would now fail this test (prior unanchored `contains` assertions in the other `force_color_*` tests would have survived the swap).
+- **`src/commands.rs` rustdoc `bare_urls` warning** (TW R13 F3 closure) — wrapped the no-color.org URL in `<>` per rustdoc convention.
+
+### Suite-level
+
+- **`iterative-adversarial-refinement/GAP-ANALYSIS-LOG.md` G-99 (NEW)** — Methodology-gap registry entry: `prompts/implementation.md` Red Gate framework does not name the warm-finding-closure mode that recurs during IAR Round 2+ cadence. Project-scoped resolution applied at this project's CLOSURE-PROTOCOL.md §8. Suite-level promotion (amend `prompts/implementation.md` directly) Deferred per the recommended natural-recurrence trigger (a second project encountering the pattern).
+- **`iterative-adversarial-refinement/review-log/2026-05-12-suite-review.md` Review 37 (NEW session file)** — full G-99 narrative with three resolution options + recommended deferral rationale; indexed in `SUITE-REVIEW-INDEX.md`.
+
+### IAR Round 3 closure tracking
+
+| Domain | R3 | Open at R3 close | Transitions |
+|---|---|---|---|
+| SO | 25 | 0 | 3 inline-Resolved (DESIGN.md, DECISIONS.md, TODO.md amendments by SO authority); 1 Hallucinated |
+| SA | 17 | 3 | 1 Resolved (full SA cluster carry-forward); 1 Dismissed; SA F2 + SA F3 remain Open (re-export tightening + test placement); SA F4 Resolved by SO amendment |
+| QE | 19 | 3 → 1 | F1 Resolved by new column-order test; F2 Resolved by rename; F3 (test placement) remains Open; F4 (catch_unwind pattern) remains Open |
+| SE | 19 | 3 → 2 | F2 Resolved by call-once doc-comment; F1 (re-export tightening) + F3 (lib.rs split — already done) remain Open |
+| Security | 13 | 0 | clean |
+| Platform | 14 | 2 | both informational re-raises (coverage threshold + branch protection); neither merge-blocking |
+| UX | 12 | 2 → 0 | F1 Resolved by SO amendment; F2 Resolved by SO TODO.md inline edit |
+| DE | 13 | 0 | MVR; no substantive findings |
+| RT | 12 | 1 → 0 | F1 Resolved by SO amendment |
+| TW | 13 | 5 → 1 | F1 Resolved by this CHANGELOG entry; F2 Resolved by `//!` rewrite; F3 Resolved by rustdoc fix; F4 Resolved by SO DECISIONS amendment; F5 Resolved by SO TODO.md edit |
+| VDD-IAR | 19 | 1 → 0 | F1 (CRITICAL Red Gate) Resolved by Option B (CLOSURE-PROTOCOL.md §8 + G-99); F2 (manual rewalk) artifact Resolved by SO TODO.md edit, director-execution pending |
+
+Remaining Open after this commit: SA F2 / SE F1 (re-export tightening — non-blocking, may close in a follow-up commit); SA F3 / QE F3 (test placement — Backlog candidate); QE F4 (catch_unwind pattern — non-blocking); Platform F1 (coverage threshold — informational, no SO ratification yet); Platform F2 (branch protection — out of tree).
+
+### Verification
+
+- `cargo test --no-fail-fast --locked` — **238/238 pass** (94 unit + 32+18+9+25+7+33+21 layer 1-7 integration). Delta from R2: +1 test (`force_color_data_row_emits_columns_in_status_then_priority_order`); the other R3 closures added their tests in earlier R3 commits.
+- `cargo clippy --all-targets --locked -- -D warnings` — clean.
+- `cargo fmt --check` — clean.
+- `cargo doc --no-deps` — clean (rustdoc `bare_urls` warning closed).
+- `cargo audit` — 0 advisories (100 crate deps).
+
+### Open (process)
+
+- **Manual checklist execution** — TODO.md L368-381 (the 6 new R2 items now landed at L376-381) requires director execution against the release binary built from HEAD. Once executed and ticked, VDD-IAR R20 can close the merge gate.
+- **VDD-IAR R20** — Round-3 ratification of the F1 Option B closure + final merge-gate verdict.
+
+---
+
 ## Layer 7 IAR Round 2 closure — 2026-05-11 23:30Z
 
 **Scope:** Resolves the substantive Open finding cluster surfaced by Layer 7 Round 1 cold-batch IAR (SO R23 / SA R15 / QE R17 / SE R17 / Security R11 / Platform R12 / UX R10 / RT R10 / TW R11 — VDD-IAR R17 F1 was already addressed in commit `fbbb8a3`). Lands spec amendments (SO authority), src/lib.rs / src/main.rs refactors (SE authority), test additions and tightening (QE authority), Cargo.toml MSRV (PE authority), and doc updates (TW authority) in a single coordinated commit. Carry-forward SA R11 F1 + SA R13 F1 Trigger B + SA R13 F2 auto-Backlogged per CLOSURE-PROTOCOL.md §3.

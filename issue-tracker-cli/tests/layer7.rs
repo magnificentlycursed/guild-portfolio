@@ -414,6 +414,54 @@ fn force_color_does_not_color_header_row() {
 }
 
 #[test]
+fn force_color_data_row_emits_columns_in_status_then_priority_order() {
+    // Round 3 (QE R19 F1 closure): the prior `force_color_emits_*` tests
+    // used unanchored `contains` assertions; a `format_list_row` mutation
+    // that swapped the status and priority positional args in the format
+    // string would not break those tests because both colored bytes
+    // would still be `contains`-present somewhere in stdout. This test
+    // pins the COLUMN ORDER specifically by asserting that the
+    // status-cell ANSI sequence appears BEFORE the priority-cell ANSI
+    // sequence in the same row. A swap mutation flips this ordering.
+    let dir = TempDir::new().unwrap();
+    tracker(&dir)
+        .args(["create", "Bug", "--priority", "high"])
+        .assert()
+        .success();
+    tracker(&dir)
+        .args(["status", "1", "in-progress"])
+        .assert()
+        .success();
+    let output = tracker(&dir)
+        .env("TRACKER_INTERNAL_FORCE_COLOR", "1")
+        .env_remove("NO_COLOR")
+        .env_remove("CLICOLOR")
+        .args(["list", "--status", "in-progress"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let out = String::from_utf8(output).unwrap();
+    // Find the data row (lines[1] — first row after header).
+    let lines: Vec<&str> = out.lines().collect();
+    let data_row = lines
+        .get(1)
+        .expect("expected at least one data row after the header");
+    let cyan_pos = data_row
+        .find("\x1b[1;36m")
+        .expect("expected bold-cyan in-progress ANSI in data row");
+    let red_pos = data_row
+        .find("\x1b[1;31m")
+        .expect("expected bold-red high-priority ANSI in data row");
+    assert!(
+        cyan_pos < red_pos,
+        "Status column must appear before Priority column. Got cyan(status) at byte {cyan_pos} \
+         and red(priority) at byte {red_pos} in row: {data_row:?}"
+    );
+}
+
+#[test]
 fn force_color_show_renders_colored_status_and_priority_value_cells() {
     // The `show` subcommand renders one issue per call as a labelled
     // key-value block. Color applies to the status / priority *value*
@@ -471,18 +519,22 @@ fn force_color_show_renders_colored_status_and_priority_value_cells() {
 }
 
 #[test]
-fn force_color_with_no_color_env_set_does_not_force() {
-    // The test seam is placed before the TTY check but does NOT bypass
-    // user-safety opt-outs in production-style env: NO_COLOR wins if both
-    // are set. (The seam's purpose is to bypass TTY-piping for tests, not
-    // to overrule the user's explicit opt-out.) This pins the precedence
-    // contract: a test that wants force-color must clear NO_COLOR first.
+fn force_color_wins_over_no_color_when_both_env_vars_set() {
+    // Pins the precedence ordering: TRACKER_INTERNAL_FORCE_COLOR is
+    // checked BEFORE NO_COLOR in `color_mode_from_env`, so the test seam
+    // wins when both are set. Renamed at Round 3 closure (QE R19 F2) —
+    // the prior name `force_color_with_no_color_env_set_does_not_force`
+    // read contradictorily against its assertion. The new name names the
+    // actual behavior (force-color WINS over NO_COLOR in this precedence
+    // ordering).
     //
-    // Actual current behavior: the seam is at the TOP of color_mode_from_env
-    // and DOES win over NO_COLOR. This test documents that fact and pins
-    // it as the deliberate test-ergonomics choice (tests fully control
-    // their env; if NO_COLOR is inherited from CI, the tests above
-    // explicitly `.env_remove("NO_COLOR")` to clear it).
+    // Rationale for the precedence: the seam is purely test-only; tests
+    // fully control their env. If NO_COLOR is inherited from CI, tests
+    // intending to exercise the colored-output path explicitly
+    // `.env_remove("NO_COLOR")` (see other force_color_* tests in this
+    // file). Production users do not set TRACKER_INTERNAL_FORCE_COLOR
+    // (it's not documented anywhere user-facing), so the precedence
+    // ordering has no production effect.
     let dir = TempDir::new().unwrap();
     tracker(&dir)
         .args(["create", "Test", "--priority", "high"])
@@ -495,8 +547,7 @@ fn force_color_with_no_color_env_set_does_not_force() {
         .args(["list"])
         .assert()
         .success()
-        // Force-color wins over NO_COLOR per the current precedence
-        // ordering (seam check first). Documented in
-        // color_mode_from_env's doc-comment; pinned here.
+        // Force-color wins; bold-red ANSI for high priority emits despite
+        // NO_COLOR being set.
         .stdout(predicate::str::contains("\x1b[1;31m"));
 }
