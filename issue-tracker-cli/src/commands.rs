@@ -74,7 +74,7 @@ pub enum ColorMode {
 
 impl ColorMode {
     /// Returns `true` if this mode emits ANSI color escapes.
-    pub fn is_on(self) -> bool {
+    pub(crate) fn is_on(self) -> bool {
         matches!(self, ColorMode::On)
     }
 }
@@ -472,7 +472,7 @@ pub(crate) fn priority_rank(p: &str) -> usize {
 }
 
 /// Sorts issues by priority (high → medium → low) then by ID ascending.
-pub fn sort_issues(issues: &mut [Issue]) {
+pub(crate) fn sort_issues(issues: &mut [Issue]) {
     issues.sort_by(|a, b| {
         priority_rank(&a.priority)
             .cmp(&priority_rank(&b.priority))
@@ -485,7 +485,7 @@ pub fn sort_issues(issues: &mut [Issue]) {
 /// Used by `tracker list --label <l>` to filter by exact-match label. The match
 /// is case-sensitive per DESIGN.md Edge Cases / Labels: `--label Bug` does not
 /// match an issue with label `bug`.
-pub fn label_matches(labels: &[String], filter: &str) -> bool {
+pub(crate) fn label_matches(labels: &[String], filter: &str) -> bool {
     labels.iter().any(|l| l == filter)
 }
 

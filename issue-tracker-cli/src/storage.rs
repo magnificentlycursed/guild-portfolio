@@ -36,15 +36,15 @@ use std::path::Path;
 /// counter; the prior array shape is rejected at load with the standard corrupt-data
 /// message.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Tracker {
+pub(crate) struct Tracker {
     /// All currently-stored issues. Order matches insertion order at write time;
     /// `cmd_list` sorts a working copy before rendering.
-    pub issues: Vec<Issue>,
+    pub(crate) issues: Vec<Issue>,
     /// The next ID to be assigned by `cmd_create`. Initialized to `1` for a fresh
     /// tracker; bumped via `checked_add(1)` on every create; never decreased by
     /// delete. Invariant at load: `next_id >= 1` and (if `issues` is non-empty)
     /// `next_id > max(issue.id)`.
-    pub next_id: u64,
+    pub(crate) next_id: u64,
 }
 
 /// A single tracked issue, as stored in `tracker.json`.
@@ -52,28 +52,28 @@ pub struct Tracker {
 /// All fields except `description` are required. `description` is omitted from
 /// the JSON output when absent (`None`) rather than serialized as `null`.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Issue {
+pub(crate) struct Issue {
     /// Unique, monotonically-assigned positive integer; never reused (see `Tracker::next_id`).
-    pub id: u64,
+    pub(crate) id: u64,
     /// Trimmed, non-empty issue title.
-    pub title: String,
+    pub(crate) title: String,
     /// Optional free-form description; stored verbatim (not trimmed). The JSON key
     /// is omitted entirely when `None`.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub(crate) description: Option<String>,
     /// One of: `"open"`, `"in-progress"`, `"done"` (lowercase).
-    pub status: String,
+    pub(crate) status: String,
     /// One of: `"low"`, `"medium"`, `"high"` (lowercase).
-    pub priority: String,
+    pub(crate) priority: String,
     /// Deduplicated, case-preserved labels in the order they were supplied at
     /// creation; may be empty.
-    pub labels: Vec<String>,
+    pub(crate) labels: Vec<String>,
     /// ISO 8601 UTC timestamp at second precision (e.g. `"2026-04-27T14:00:00Z"`);
     /// fixed at creation and never modified.
-    pub created_at: String,
+    pub(crate) created_at: String,
     /// ISO 8601 UTC timestamp at second precision; refreshed on every mutation.
     /// Always `>= created_at`.
-    pub updated_at: String,
+    pub(crate) updated_at: String,
 }
 
 /// Standard error message for any load-time corrupt-data condition.
@@ -188,7 +188,7 @@ pub(crate) fn tracker_is_valid(tracker: &Tracker) -> bool {
 /// description, malformed timestamp, `updated_at < created_at`), contains
 /// duplicate IDs across records, or has a `next_id` that violates the counter
 /// invariants.
-pub fn load_tracker(path: &Path) -> Result<Tracker, String> {
+pub(crate) fn load_tracker(path: &Path) -> Result<Tracker, String> {
     if !path.exists() {
         return Ok(Tracker {
             issues: Vec::new(),
@@ -210,7 +210,7 @@ pub fn load_tracker(path: &Path) -> Result<Tracker, String> {
 /// # Errors
 /// Returns `Err` if the file cannot be written (permission denied, disk full,
 /// path is a directory, etc.). Serialization itself is infallible for `Tracker`.
-pub fn save_tracker(path: &Path, tracker: &Tracker) -> Result<(), String> {
+pub(crate) fn save_tracker(path: &Path, tracker: &Tracker) -> Result<(), String> {
     #[allow(clippy::unwrap_used)]
     // Tracker is always serializable: no floats, no cycles, all fields implement Serialize
     let contents = serde_json::to_string_pretty(tracker).unwrap();

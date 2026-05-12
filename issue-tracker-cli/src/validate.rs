@@ -37,7 +37,7 @@ use crate::storage::{PRIORITY_ORDER, VALID_STATUSES};
 /// Returns `Err("Title cannot be empty.")` when `raw` is empty or whitespace-only.
 /// Returns `Err("Title cannot contain control characters.")` when the trimmed title
 /// contains any character where `char::is_control()` returns `true`.
-pub fn validate_title(raw: &str) -> Result<String, String> {
+pub(crate) fn validate_title(raw: &str) -> Result<String, String> {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
         return Err("Title cannot be empty.".to_string());
@@ -69,7 +69,7 @@ pub fn validate_title(raw: &str) -> Result<String, String> {
 /// whitespace-only after trim.
 /// Returns `Err("Description cannot contain control characters other than newline.")`
 /// when `raw` contains any `char::is_control()` other than `\n`.
-pub fn validate_description(raw: &str) -> Result<String, String> {
+pub(crate) fn validate_description(raw: &str) -> Result<String, String> {
     if raw.trim().is_empty() {
         return Err("Description cannot be empty.".to_string());
     }
@@ -87,7 +87,7 @@ pub fn validate_description(raw: &str) -> Result<String, String> {
 ///
 /// # Errors
 /// Returns `Err` if `raw` is not (case-insensitively) one of `open`, `in-progress`, `done`.
-pub fn parse_status(raw: &str) -> Result<String, String> {
+pub(crate) fn parse_status(raw: &str) -> Result<String, String> {
     let lower = raw.to_lowercase();
     if VALID_STATUSES.contains(&lower.as_str()) {
         Ok(lower)
@@ -105,7 +105,7 @@ pub fn parse_status(raw: &str) -> Result<String, String> {
 ///
 /// # Errors
 /// Returns `Err` if `raw` is not (case-insensitively) one of `low`, `medium`, `high`.
-pub fn parse_priority(raw: &str) -> Result<String, String> {
+pub(crate) fn parse_priority(raw: &str) -> Result<String, String> {
     let lower = raw.to_lowercase();
     if PRIORITY_ORDER.contains(&lower.as_str()) {
         Ok(lower)
@@ -135,7 +135,7 @@ pub fn parse_priority(raw: &str) -> Result<String, String> {
 /// label contains any character where `char::is_control()` returns `true`.
 /// Returns `Err("Label cannot contain a comma.")` when the trimmed label
 /// contains the character `,`.
-pub fn parse_label(raw: &str) -> Result<String, String> {
+pub(crate) fn parse_label(raw: &str) -> Result<String, String> {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
         return Err("Label cannot be empty.".to_string());
@@ -153,7 +153,7 @@ pub fn parse_label(raw: &str) -> Result<String, String> {
 ///
 /// # Errors
 /// Returns `Err` if `raw` does not parse as a positive `u64` (`0`, negative, non-numeric, overflow).
-pub fn parse_id(raw: &str) -> Result<u64, String> {
+pub(crate) fn parse_id(raw: &str) -> Result<u64, String> {
     raw.parse::<u64>().ok().filter(|&n| n > 0).ok_or_else(|| {
         format!(
             "'{}' is not a valid issue ID. Expected a positive integer.",
@@ -165,7 +165,7 @@ pub fn parse_id(raw: &str) -> Result<u64, String> {
 /// Returns `labels` with duplicates removed; first occurrence preserved.
 ///
 /// Comparison is case-sensitive: `"bug"` and `"Bug"` are distinct labels.
-pub fn dedupe_labels(labels: &[String]) -> Vec<String> {
+pub(crate) fn dedupe_labels(labels: &[String]) -> Vec<String> {
     let mut seen = HashSet::with_capacity(labels.len());
     let mut out = Vec::with_capacity(labels.len());
     for label in labels {
@@ -187,14 +187,14 @@ pub fn dedupe_labels(labels: &[String]) -> Vec<String> {
 /// use (the entire 64-bit ID space cannot be exhausted), but defends against
 /// hand-edited `tracker.json` files that plant `next_id: u64::MAX` to corrupt
 /// subsequent writes (Security R4 F2 lineage).
-pub fn bump_next_id(current: u64) -> Result<u64, String> {
+pub(crate) fn bump_next_id(current: u64) -> Result<u64, String> {
     current
         .checked_add(1)
         .ok_or_else(|| "Cannot assign new issue ID: maximum ID reached.".to_string())
 }
 
 /// Returns the current UTC time as an ISO 8601 string at second precision (e.g. `"2026-04-27T14:00:00Z"`).
-pub fn current_timestamp() -> String {
+pub(crate) fn current_timestamp() -> String {
     Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string()
 }
 
@@ -213,7 +213,7 @@ pub fn current_timestamp() -> String {
 /// For multi-line error strings (e.g. clap's `Error: ...\n\nUsage: ...`), use
 /// `sanitize_quoted_values` instead so structural LFs survive while the
 /// interpolated values inside the `'X'` quotes are still escaped.
-pub fn display_safe(s: &str) -> String {
+pub(crate) fn display_safe(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
         if c.is_control() {

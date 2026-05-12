@@ -50,28 +50,42 @@ pub mod commands;
 pub mod storage;
 pub mod validate;
 
-// Public API re-exports. main.rs and integration tests consume these
-// unqualified (e.g., `tracker::cmd_create`, `tracker::CreateArgs`,
-// `tracker::ColorMode`); the underlying modules are also accessible
-// directly for crate-internal navigation (e.g., docs).
-pub use commands::{
-    cmd_create, cmd_delete, cmd_list, cmd_show, cmd_status, color_mode_from_env, label_matches,
-    sort_issues, ColorMode, CreateArgs,
-};
-pub use storage::{load_tracker, save_tracker, Issue, Tracker};
-pub use validate::{
-    bump_next_id, current_timestamp, dedupe_labels, display_safe, parse_id, parse_label,
-    parse_priority, parse_status, sanitize_quoted_values, validate_description, validate_title,
-};
+// Public API re-exports — tightened to the 8 items actually consumed by
+// `src/main.rs` (SA R17 F2 + SE R19 F1 closure). Integration tests in
+// `tests/` consume the binary via `assert_cmd::Command::cargo_bin`, not
+// the library; they import zero `tracker::*` items directly. The prior
+// 23-item re-export surface had 15 items with no external consumer —
+// the SA/SE recommendation tightened to `pub(crate)` in their submodules
+// + dropped from this re-export block.
+//
+// What stays `pub` (in submodules + re-exported here):
+// - `commands::cmd_create`, `cmd_delete`, `cmd_list`, `cmd_show`, `cmd_status`
+//   — main.rs dispatches subcommands to these.
+// - `commands::color_mode_from_env` — main.rs reads color mode once at
+//   startup.
+// - `commands::ColorMode`, `commands::CreateArgs` — types main.rs binds
+//   and constructs.
+// - `validate::sanitize_quoted_values` — main.rs applies it to clap
+//   error strings (RT R10 F1 closure).
+//
+// Everything else moved to `pub(crate)` in storage.rs / validate.rs /
+// commands.rs: data types (Tracker, Issue) and persistence (load_tracker,
+// save_tracker), user-input validators (validate_*, parse_*), arithmetic
+// helpers (bump_next_id, current_timestamp, dedupe_labels), display_safe,
+// label_matches, sort_issues, ColorMode::is_on, and all rendering
+// helpers. `pub(crate)` items remain reachable from the
+// `#[cfg(test)] mod tests` block via the `use crate::commands::*; use
+// crate::storage::*; use crate::validate::*;` imports — test-surface
+// access preserved.
+pub use commands::{cmd_create, cmd_delete, cmd_list, cmd_show, cmd_status};
+pub use commands::{color_mode_from_env, ColorMode, CreateArgs};
+pub use validate::sanitize_quoted_values;
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::commands::*;
     use crate::storage::*;
-    // validate's public items are already re-exported by `pub use validate::{...}`
-    // at the lib.rs hub level; `use super::*` brings them in here. No
-    // crate-internal items live in validate that aren't re-exported, so a
-    // `use crate::validate::*;` here would be a redundant glob.
+    use crate::validate::*;
 
     #[test]
     fn title_empty_after_trim_is_rejected() {
@@ -1117,6 +1131,37 @@ mod tests {
         }
     }
 
+    /// Asserts that `f` panics. Suppresses the panic-hook noise (the
+    /// default Rust panic message printed to stderr by the panic-on-fire
+    /// hook) so test output stays clean — `cargo test --no-capture` would
+    /// otherwise show a panic backtrace for every `debug_assert` test
+    /// that fires successfully (QE R19 F4 closure: the prior
+    /// `std::panic::catch_unwind(...)` pattern worked but emitted
+    /// distracting panic noise to test stderr).
+    ///
+    /// Implementation: install a no-op panic hook for the duration of
+    /// `catch_unwind`, then restore the prior hook. The hook swap is
+    /// process-global, so this helper acquires `PANIC_HOOK_LOCK` (a
+    /// process-global mutex) to serialize concurrent assert-panics calls
+    /// across the parallel `cargo test` runner. The standard caveat
+    /// applies: if `cargo test` is ever run under `panic=abort`,
+    /// `catch_unwind` cannot catch the panic and the entire test binary
+    /// terminates — but `cargo test`'s default is `panic=unwind` and
+    /// changing it would break far more than this pattern.
+    fn assert_panics<F: FnOnce() + std::panic::UnwindSafe>(f: F) {
+        let _guard = PANIC_HOOK_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let prior_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let result = std::panic::catch_unwind(f);
+        std::panic::set_hook(prior_hook);
+        assert!(
+            result.is_err(),
+            "expected panic but function returned normally"
+        );
+    }
+
+    static PANIC_HOOK_LOCK: Mutex<()> = Mutex::new(());
+
     #[test]
     fn wrap_color_debug_assert_active_in_debug_builds() {
         // Defense-in-depth contract (Security R11 F1): wrap_color must
@@ -1124,11 +1169,9 @@ mod tests {
         // value. In release builds the debug_assert! is compiled out;
         // this test runs under `cargo test` which builds in debug mode by
         // default, so the assertion fires.
-        let result = std::panic::catch_unwind(|| wrap_color("evil\x1b[0m", Some("\x1b[1;31m")));
-        assert!(
-            result.is_err(),
-            "wrap_color must debug_assert on control-bearing values"
-        );
+        assert_panics(|| {
+            wrap_color("evil\x1b[0m", Some("\x1b[1;31m"));
+        });
     }
 
     #[test]
@@ -1139,10 +1182,8 @@ mod tests {
         // that any future spec amendment permitting non-ASCII colored
         // fields surfaces the gap before column alignment silently
         // breaks. Compiled out in release; fires in `cargo test`.
-        let result = std::panic::catch_unwind(|| render_cell("完成", None, 8));
-        assert!(
-            result.is_err(),
-            "render_cell must debug_assert on non-ASCII values per QE R17 F5"
-        );
+        assert_panics(|| {
+            render_cell("完成", None, 8);
+        });
     }
 }
