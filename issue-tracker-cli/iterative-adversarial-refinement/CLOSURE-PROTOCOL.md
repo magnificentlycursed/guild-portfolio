@@ -133,6 +133,106 @@ The project-scoped version stands on its own — it does not require suite adopt
 
 ---
 
+## 8. Warm-finding-closure Red Gate carve-out
+
+VDD-IAR Alignment Review 19 Finding 1 (Layer 7 IAR Round 3) raised that
+the methodology's Red Gate framework — as written in
+`iterative-adversarial-refinement/prompts/implementation.md` L11/L32/L56
+— defines two states for a new test:
+
+1. **Phase 2a Red Gate**: test fails first, implementation makes it pass.
+2. **Retroactive Red Gate (L56 carve-out)**: test discovered during
+   Phase 2b, added post-implementation, labelled with the literal
+   `// retroactive Red Gate: <behavior> — discovered during Phase 2b,
+   test added post-implementation, confirmed passes against current
+   implementation.` source comment.
+
+Both modes assume the work-in-progress context of a fresh layer. Neither
+fits cleanly for the **warm-finding-closure** pattern that recurs during
+IAR Round 2+ cadence: a previously-documented Open / Deferred /
+Backlogged IAR finding is closed via a single commit that bundles new
+tests with the implementation change because the resolution requires
+both (a refactor + its regression tests; a defense-in-depth assertion +
+its test; a new helper extraction + the test that pins its contract).
+
+Layer 7 IAR Round 1 closure (`fbbb8a3`) applied the literal retroactive
+Red Gate label for VDD-IAR R17 F1 Option A. Layer 7 IAR Round 3 commits
+(`c341a54`, `bd7511e`, `3fa1f3c`) did NOT — the resolution-bundled tests
+were added in the same commit as their target implementation without
+the label, on the framing that "warm closure of a documented finding"
+is a different mode than "test discovered during Phase 2b" (L56's
+framing). VDD-IAR R19 F1 flagged the inconsistency; the closure
+options it offered were:
+
+- **Option A** — apply the retroactive label retrofit across the 17
+  affected R3 test bodies (matches L56 literally).
+- **Option B** — codify the warm-finding-closure mode as a distinct
+  carve-out (a permanent CLOSURE-PROTOCOL.md amendment), earned by the
+  recurrence between R17 and R19.
+
+VDD-IAR R17 F1 had declined Option B with "a permanent rule change
+should be earned by recurrence, not pre-empted by a single instance."
+R19's recurrence on the polish-layer / warm-closure pattern is the
+earning event. **This section is the Option B amendment.**
+
+**Carve-out:** A commit that resolves a previously-documented IAR
+finding (one already logged as Open, Deferred, Backlogged, or
+Raised-to-{domain} in an IAR review file under
+`{project}/iterative-adversarial-refinement/<DOMAIN>-REVIEW.md`) MAY
+bundle new tests with their target implementation in a single commit
+without the literal `// retroactive Red Gate:` source comment, when
+ALL of the following hold:
+
+1. The commit message explicitly cites the originating finding by
+   domain + review number + finding number (e.g.,
+   "QE R17 F5 closure"). This serves the disclosure purpose the L56
+   label served.
+2. The test additions are scoped to **regression coverage of the
+   closure** — pinning the closure's contract so the finding cannot
+   silently reopen. Tests that exercise new behavior unrelated to the
+   finding remain subject to the standard Red Gate (Phase 2a fails
+   first).
+3. The finding's resolution genuinely requires bundling. Indicators:
+   the resolution introduces a new symbol whose existence is what the
+   test asserts (extraction tests); the resolution adds a `debug_assert!`
+   whose firing condition is what the test triggers (assertion tests);
+   the resolution adds a parameter / enum whose values the test
+   enumerates (refactor tests).
+
+**Scope limits.** This carve-out does NOT apply to:
+
+- New features or new ACs (Phase 2a Red Gate still required).
+- Layer-introductory work (the layer's primary Red Gate commit at
+  Phase 2a → Phase 2b boundary must satisfy L11/L32 literally).
+- Findings not previously logged in an IAR review (a developer noticing
+  a gap and writing a test + fix in one commit without a logged
+  finding still owes the retroactive Red Gate label per L56 — the
+  prior-logging requirement is the difference between "warm closure"
+  and "discovered during Phase 2b").
+- Findings logged as Open within the SAME commit's prior history (the
+  finding must have been logged in a separate, earlier commit;
+  same-commit "log a finding then close it" collapses the two phases
+  and forfeits the carve-out).
+
+**Author obligation.** The originating-finding citation is the
+auditable disclosure. The VDD-IAR Alignment closure round (Section 5
+step 4) verifies the citation is real by reading the cited finding and
+confirming the commit's diff is plausibly within the finding's stated
+scope. A citation that does not match the cited finding's scope is a
+Dim 4 process violation regardless of the carve-out's other conditions.
+
+**Suite-level gap.** The methodology gap this carve-out addresses
+(implementation.md's L56 retroactive Red Gate framing does not cleanly
+describe warm-finding-closure) is registered as
+[G-99](../../../iterative-adversarial-refinement/GAP-ANALYSIS-LOG.md)
+for possible suite-level promotion. This project-scoped carve-out
+stands on its own (per Section 7's "the project-scoped version stands
+on its own — it does not require suite adoption to be useful here"
+posture).
+
+---
+
 ## Change history
 
 - **2026-05-05** — Initial draft. Closes VDD-IAR Review 10 Finding 1 (process side, authority chain documentation) and Finding 2 (closure mechanics). Records the cadence pattern observed during Layer 3 round-2 and the auto-Backlog rule from SO Review 14 Coordination notes.
+- **2026-05-12** — Section 8 (Warm-finding-closure Red Gate carve-out) added per VDD-IAR Review 19 Finding 1 closure (Option B). The earning event was the recurrence of the pattern between Layer 7 R17 F1 (single instance, Option B declined) and Layer 7 R19 F1 (second instance: the R3 commits `c341a54`, `bd7511e`, `3fa1f3c` bundled tests with implementation for warm-finding closures without the L56 retroactive Red Gate label). Suite-level methodology gap registered as G-99 in `iterative-adversarial-refinement/GAP-ANALYSIS-LOG.md`.

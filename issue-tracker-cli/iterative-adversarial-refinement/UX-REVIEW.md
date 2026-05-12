@@ -1193,3 +1193,161 @@ Both R1 UX findings Resolved by R2 spec amendments + implementation: F1 NO_COLOR
 **Coordination:** SO R24 — spec amendments ratified; Security R12 — NO_COLOR cross-domain coordination verified; QE R18 — integration coverage for env-var path acknowledged as partial (TTY-positive deferred to manual / future force_color seam).
 
 **Files modified:** This log appended only. The DESIGN.md amendments and `src/lib.rs` implementation landed in `09b1905` under SO + SE authority per CLOSURE-PROTOCOL.md §1.
+
+---
+
+## Review 12 — 2026-05-12 12:00Z
+
+**Round:** UX Review 12 (Layer 7 IAR Round 3 — five-commit refactor cluster: `ff0e85c` clippy pre-commit hook, `c341a54` render_cell ASCII debug_assert, `bd7511e` TRACKER_INTERNAL_FORCE_COLOR test seam, `3fa1f3c` cmd_list rendering extraction + column constants, `8db9437` three-module split). Cold session per `prompts/review-session.md`.
+
+**Scope:** Whole-application UX surface re-verification. The R3 change set is documented as "pure refactor + test seam + ASCII guard + clippy hook"; the adversarial premise is that "no user-visible change" must be verified at the binary, not assumed from commit titles. Release binary built fresh from HEAD (`cargo build --release` → `Finished release [optimized]`); exercised in `/tmp/uxr12` against a fresh `tracker.json` for golden path, all six `--help` surfaces, all major error paths, and the four color-suppression / TTY / forced-color permutations. CLI supplement (replacement) dimensions 1, 2, 3, 4, 5, 6, 7, 8, 11.
+
+**Sycophancy disclosure:** Reviewer cannot directly perceive color; ANSI bytes were verified by `cat -v` rendering of output captured through `script -q /dev/null` PTY allocation. Color appearance, contrast, and accessibility for users with CVD are reasoned from emitted byte sequences, not from observation. The R3 set claims "no user-visible change" — this review applies binary-level diff pressure to that claim rather than accepting it.
+
+### Regression check (full L1-L7 surface against R3 HEAD)
+
+- **Golden path lifecycle.** `create` x3 → `list` → `status 2 in-progress` → `show 2` → `delete 3` → `list`: stdout output byte-identical in shape to the Layer 7 manual checklist outputs (TODO.md L368-374 ticks). `Created issue #N: <title>`, the labelled-key `show` block (13-char label column, label-aligned multi-line description indent), `Issue #2 status → in-progress.` (with the `\u{2192}` rightwards-arrow), `Deleted issue #3.` — all exact-match to spec. No regression.
+- **Persistent next_id counter.** Created issue #4 after deleting #3: `next_id: 5` in `tracker.json`, the SO R22 Option A invariant ("monotonically increasing, deleted IDs never reused") preserved by R3. No regression.
+- **All six `--help` surfaces.** `tracker --help`, `tracker create --help`, `tracker list --help`, `tracker status --help`, `tracker show --help`, `tracker delete --help` all match the R10 F6 verified content byte-for-byte. `Issue ID (positive integer, >= 1)` still on `show` / `delete`; `repeatable; deduplicated; case-preserved` still on `create --label`; `case-sensitive exact match; single value only` still on `list --label`; valid-value enumerations still inline for `--priority` / `--status` / `<STATUS>` positionals. No clap-derived doc-comment regression from the module split. No regression.
+- **Error paths.** `create ""` → `Error: Title cannot be empty.`; `show abc` → `Error: '<v>' is not a valid issue ID. Expected a positive integer.`; `show 99` → `Error: Issue #99 not found.`; `frobnicate` → `Error: unrecognized subcommand 'frobnicate'` + clap usage block + `try '--help'` tip. All begin with `Error:`, all on stderr, all exit 1. Cc-escape rule still active (the R10 F5 sweep stands). No regression.
+- **Color env-var matrix.** All six relevant permutations re-verified against R3 HEAD via `script -q /dev/null` PTY allocation:
+  - TTY, no env: `^[[1;31mhigh^[[0m`, `^[[1;33mmedium^[[0m`, `^[[1;36min-progress^[[0m`, `^[[1;32mdone^[[0m` — bold-redundancy preserved (R11 closure verification reaffirmed).
+  - TTY + `NO_COLOR=1`: no ANSI on stdout. Preserved.
+  - TTY + `CLICOLOR=0`: no ANSI on stdout. Preserved.
+  - Piped stdout (no env): no ANSI. Preserved.
+  - Piped + `CLICOLOR_FORCE=1`: still no ANSI (pipe-cleanness contract preserved; DESIGN.md "Interface / Color output" deliberate non-honor). Preserved.
+  - Piped + `TRACKER_INTERNAL_FORCE_COLOR=1`: ANSI emitted (the test seam works). Documented behavior.
+- **Color is applied only to value text in its cell.** R3 extraction into `render_cell(value, ansi, total_width)` (`commands.rs:218`) preserves the value-only color rule. Header row in `format_list_header` (`commands.rs:533`) carries no ANSI; padding bytes after `wrap_color` carry no ANSI. R10 F8 verification stands. No regression.
+
+### Open
+
+**Finding 1 — `TRACKER_INTERNAL_FORCE_COLOR` env-var, while documented as "test seam only, not part of the public CLI contract," is discoverable to a user who runs `strings target/release/tracker | grep -i color` and creates an undocumented "force color on pipe" surface with no help text, no graceful failure mode, and no rejection of the value `=1` if accidentally exported in a CI environment (CLI Dim 1 — discoverability; CLI Dim 11 — verbose/quiet modes; cross-cuts QE / Security)**
+
+Reproduction (release binary):
+
+```
+$ strings /Users/<user>/.../target/release/tracker | grep -i 'force_color\|tracker_internal'
+TRACKER_INTERNAL_FORCE_COLOR
+... (binary string table entry)
+
+$ TRACKER_INTERNAL_FORCE_COLOR=1 tracker list | cat -v
+ID    Status       ...
+1     open         ^[[1;31mhigh^[[0m      ...
+```
+
+The env var is bona-fide hidden from `tracker --help`, `tracker <sub> --help`, README.md, DESIGN.md, and CHANGELOG.md — confirmed by exhaustive grep. The doc-comment in `commands.rs:107-113` explicitly says "deliberately ugly, namespaced env var" and "not documented in `--help`, README.md, or DESIGN.md." Good. The R3 introduction (`bd7511e`) is mechanically correct against the QE R17 F1 deferral — TTY-positive color now has integration coverage.
+
+But: the name `TRACKER_INTERNAL_FORCE_COLOR` appears in the binary string table (any `strings` invocation surfaces it), in source comments (`grep -r TRACKER_INTERNAL_FORCE_COLOR src/` returns 17 hits), and in the Round-2 R3 closure commit message (`bd7511e`). A user who discovers it has no documented escape hatch ("this is not a public flag") *inside the binary* — `--help` won't mention it, but `--help` also won't explain why setting it produces unexpected color on piped output. A future polish-layer reader will see the env var, recognize the namespace as "internal," but have no in-binary signal that the value `=1` is the *only* trigger or that the var is test-only. The R10 F3 finding (`tracker` with no args routes help to stderr and exits 1) was dismissed because clap's "missing subcommand → stderr help, exit 1" is the standard convention. The R12 analogue here — "binary surface includes a test seam discoverable via `strings`" — has no comparable standard convention. The closest analogue is `CARGO_INCREMENTAL_TEST_STUB` / `RUSTC_BOOTSTRAP` style internal-only env vars in `cargo` / `rustc`: there the convention is the variable is undocumented BUT setting it to a wrong value produces a clear "this is unsupported" message. Here, setting `TRACKER_INTERNAL_FORCE_COLOR=0` or `=true` silently falls through to default behavior, which is consistent with the doc-comment but offers no user-visible "you found an internal seam" signal.
+
+Three orthogonal mitigations are possible; any one (or none, if SO ratifies the current posture) addresses the UX surface:
+
+- **A. Add a stderr warning when the env var is set on a non-test invocation.** When `TRACKER_INTERNAL_FORCE_COLOR=1` is detected, emit `Warning: TRACKER_INTERNAL_FORCE_COLOR is an internal test seam and is not a supported public flag. Color is forced on for this invocation.` on stderr. Cost: 3 lines in `color_mode_from_env`. Side effect: contaminates the stderr stream that `assert_cmd` tests assert against. Probably not worth the test-side disruption.
+- **B. Add a one-line stanza to README.md "Color output" section.** "An internal `TRACKER_INTERNAL_FORCE_COLOR=1` env var exists for integration test purposes only; it is not part of the supported CLI contract and may change without notice." Cost: one paragraph. Trade-off: violates the explicit doc-comment claim ("not documented in `--help`, README.md, or DESIGN.md"). The doc-comment's claim is itself a UX choice — if the variable is genuinely discoverable via `strings` and is in the commit history and source, the "no documentation anywhere" posture is more of a fig leaf than a hidden-by-default property.
+- **C. Rename to a more aggressively-hostile-to-discovery name.** E.g., a SHA-prefixed `TRACKER_FORCE_COLOR_TEST_ONLY_d8f3e1b2=1` so the value is non-guessable. Cost: every test updates. Marginal benefit: a user running `strings` still sees it. The actual security/safety property is "this is an internal seam," and a strings-grep can always find it; the question is what the discoverer should be told. Probably overengineered.
+
+DESIGN.md's "Interface / Color output" section currently does not name the test seam. The cleanest pattern is probably (B): add the README disclosure and update the `commands.rs:108-110` doc-comment to reflect the disclosure. The doc-comment's "not documented in README.md" claim is currently true at HEAD; the R12 raise is that this is the *wrong* posture given the variable is discoverable.
+
+**Classification:** Open — Raised to SO. Decision request: ratify current "hide-via-naming-only" posture (and update commands.rs doc-comment to remove the "not documented in README.md" claim, which is true but UX-defective), OR ratify a one-paragraph README disclosure (mitigation B). The technical implementation is unaffected; only the disclosure surface changes.
+
+---
+
+**Finding 2 — TODO.md manual testing checklist (L368-374) has NOT been updated with the 5 carry-forward items introduced by R11 (Round-2 spec/behavior changes); the director's Round-2 manual TTY re-walk for `NO_COLOR` / `CLICOLOR` / `CLICOLOR_FORCE` / bold-redundancy / stderr-empty-state remains unverified at the checklist level (CLI Dim 1 — discoverability of behavior to a future maintainer; cross-cuts QE)**
+
+Reproduction:
+
+```
+$ grep -n "NO_COLOR\|CLICOLOR\|TRACKER_INTERNAL" issue-tracker-cli/TODO.md
+(no output)
+
+$ sed -n '368,375p' issue-tracker-cli/TODO.md
+**Manual Testing Checklist:**
+- [x] Run `tracker --help` and each subcommand `--help` ...
+- [x] Run `tracker list` in terminal → verify `high` priority is red/bold, `in-progress` is cyan, `done` is green
+- [x] Run `tracker list | cat` → verify output contains no `\033[` escape sequences
+- [x] Run `tracker show <id>` in terminal with an `in-progress`/`high` issue → verify coloring in show output
+- [x] Run `tracker show <id>` piped → no ANSI codes
+- [x] Review each error message from all prior layers manually: does it say what went wrong and what the valid alternatives are?
+- [x] `tracker frobnicate` → exit 1, stderr usage error
+```
+
+The checklist still reflects the pre-R2 spec wording — `in-progress is cyan, done is green` (no mention of bold for these values, which R2's bold-redundancy amendment introduced). The 5 items the R11 entry explicitly told the director to add:
+
+1. `NO_COLOR=1 tracker list` in terminal → no ANSI rendered
+2. `CLICOLOR=0 tracker list` in terminal → no ANSI rendered
+3. `CLICOLOR_FORCE=1 tracker list | cat -v` → still no ANSI (pipe-cleanness)
+4. `tracker list` in terminal with `done` / `in-progress` / `medium` values → bold weight visible
+5. `tracker list | cat -v` with no matching issues → stderr empty-state has no ANSI
+
+...are missing from TODO.md. R3 (`ff0e85c` clippy hook + `c341a54` ASCII assert + `bd7511e` test seam + `3fa1f3c` extraction + `8db9437` split) did not address this — every R3 commit is code/test/hook; none touched TODO.md.
+
+The CHANGELOG R2-closure entry says explicitly: "Director to add the new manual items to TODO.md and re-tick." This is an explicit director action item that has not landed. The R3 binary-level re-verification this session performs (Regression check above) does confirm the behaviors, so the *behavioral* property is fine — but the *artifact* (TODO.md as the project's manual-testing source of truth) has drifted from the spec at HEAD. A future reader walking TODO.md will not exercise the env-var matrix, the bold-redundancy, or the stderr-empty-state cleanness, because those items don't appear.
+
+This is a UX defect against the maintainer-as-user surface (TODO.md is the canonical "how do I sanity-test this layer" document). The portfolio-CLI target audience explicitly includes "agents resuming work between sessions" (per README.md L5), so a drifted checklist will mis-teach the next maintainer about what L7 covers.
+
+**Classification:** Open. Suggested fix: append items 1-5 above to TODO.md L368-374 under a new "Layer 7 Round 2 / Round 3 carry-forward" subhead with checkboxes for the director to tick after a manual re-walk. Round 3 itself doesn't add new manual items beyond what Round 2 introduced, but Round 2's items still need to land. The 6 items the R12 prompt names ("manual checklist re-walk note. R2 created 6 new manual checklist items that the director needs to add to TODO.md and execute") aligns with R11's 5 items plus arguably the show-block-bold-redundancy item (currently bundled into item 4); a 6-item slate is reasonable.
+
+### Dismissed
+
+**Finding 3 — `c341a54` introduced a `debug_assert!(value.is_ascii(), ...)` in `render_cell` that would panic in `cargo test` on a non-ASCII colored value, but cannot panic on any spec-legal input (CLI Dim 2)**
+
+The `render_cell` debug-assert (`commands.rs:219-226`) panics if `value` is not ASCII. Both current call sites pass `issue.status` or `issue.priority`, which are validated against closed enums (`STATUS_ORDER` / `PRIORITY_ORDER`) at parse and load time — every legal value is ASCII (`open`, `in-progress`, `done`, `low`, `medium`, `high`). The debug-assert exists to surface a spec amendment that would relax the ASCII constraint (e.g., non-ASCII status labels), at which point the panic prompts replacing `chars().count()` with `UnicodeWidthStr::width(value)`. In release builds the assert is compiled out, so user-visible behavior is unchanged. No regression from R2.
+
+**Classification:** Dismissed. The assert is defensive coding against a future spec change; user impact is zero in release builds. R3 stance is correct.
+
+---
+
+**Finding 4 — `8db9437` three-module split (`commands.rs` / `storage.rs` / `validate.rs`) might have changed `cargo doc` rendering for public surfaces (`cmd_*`, `Issue`, `Tracker`, `CreateArgs`, `ColorMode`, `color_mode_from_env`, `display_safe`, `sanitize_quoted_values`, etc.)**
+
+Initial concern: a pure-API user of the crate (running `cargo doc`) would see different module paths after the split (e.g., `tracker::commands::cmd_list` vs. the prior `tracker::cmd_list`). However, `src/lib.rs:43` re-exports the public surface from the submodules: `cmd_create, cmd_delete, cmd_list, cmd_show, cmd_status, color_mode_from_env, label_matches, ...` are all surfaced at the crate root, preserving the previous flat-namespace contract. The `tracker::cmd_list` path that `main.rs` uses works exactly as before.
+
+For a `cargo doc` reader, the rendered surface is unchanged at the crate root; the submodules show up as additional documentation surfaces but the canonical paths are preserved. No clap-derived `--help` text touches submodule paths.
+
+**Classification:** Dismissed. The re-exports in `src/lib.rs` preserve the API path contract. R3 module split is a refactor that maintains the public surface.
+
+---
+
+**Finding 5 — The `ff0e85c` clippy pre-commit hook landing is internal-only and has no user-visible UX surface (CLI Dim 11 — verbose/quiet)**
+
+The clippy pre-commit hook runs at `git commit` time on the developer's machine, not at end-user invocation. End-user `tracker` behavior is unaffected. The hook is documented as PE R12 F3 closure.
+
+**Classification:** Dismissed. The hook is a developer-tooling change with zero end-user UX surface.
+
+---
+
+**Finding 6 — `3fa1f3c` `cmd_list` extraction into `filter_issues` / `sort_issues` / `format_list_header` / `format_list_row` pure helpers might have changed the output of `tracker list`**
+
+Initial concern: a pure-function extraction risks subtle off-by-one or reordering. Verified via golden-path lifecycle: header row `ID    Status       Priority  Labels                Title` (4 + 2 + 11 + 2 + 8 + 2 + 20 + 2 + 5 = 56 byte-positions through the start of Title) matches the DESIGN.md "Interface / Color output / List output format" example byte-for-byte. Row content for #1 (high/bug,auth/Fix login bug) and #2 (open/medium/feature/Add search bar) matches the column-width contract. Truncate-with-ellipsis behavior at `LABELS_WIDTH=20` and `TITLE_WIDTH=50` preserved.
+
+**Classification:** Dismissed. The extraction is byte-preserving against the spec. R3 stance is correct.
+
+### Hallucinated
+
+**Finding 7 — The R3 module split should have introduced module-level `--help` text describing the module organization to users**
+
+Initial concern: a multi-module crate ought to surface its organization somehow. But: `tracker --help` is the user-facing surface; the module organization is an implementation detail of the crate, not of the binary. A user reading `tracker --help` does not need to know whether the subcommand handlers live in `commands.rs` or `lib.rs`. Surfacing module structure in `--help` would be category-misuse of the user-facing documentation surface.
+
+**Classification:** Hallucinated. Module structure is implementation detail; the user-facing `--help` correctly omits it.
+
+---
+
+**Finding 8 — `tracker.json` at `/tmp/uxr12/tracker.json` appears in the working directory after this session ran, contaminating subsequent reviewer sessions in the same directory**
+
+Initial concern: the session left a `tracker.json` behind. But: the spec explicitly says `tracker.json` lives "in the current working directory at the time the command runs," and `/tmp/uxr12` is a per-session temporary directory created by this review. Subsequent reviewer sessions should `rm -f tracker.json` (or `mkdir /tmp/uxr<N>` with the next session number) per the suite's standard review-directory hygiene. Not a UX defect — a session-hygiene practice.
+
+**Classification:** Hallucinated. Per-session directory creation is the documented convention.
+
+### Summary
+
+Review 12 finds **2 Open, 4 Dismissed, 2 Hallucinated**. The R3 "pure refactor + test seam + ASCII guard + clippy hook" claim holds at the binary level: golden-path output, all six `--help` surfaces, error messages, color env-var matrix, bold-redundancy, pipe-cleanness, stderr-empty-state cleanness — every Layer 1-7 behavior verified against the release binary byte-for-byte. No user-visible regression from the five R3 commits.
+
+The two Open findings are both about the *artifact surface around* the R3 work, not the behavior itself:
+
+1. **Finding 1** — `TRACKER_INTERNAL_FORCE_COLOR` is discoverable via `strings` and the source tree but lacks any in-binary signal that it is a test-only seam. The "deliberately ugly, namespaced, undocumented" posture works against a casual reader but does not address the `strings`-discovery vector. Raised to SO with three mitigation options (warning on stderr / README disclosure / SHA-prefixed name); SO chooses.
+2. **Finding 2** — TODO.md's manual testing checklist has not been updated with the 5 carry-forward items the R11 closure entry explicitly told the director to add. R3 binary-level verification confirms the behaviors, but the TODO.md drift means the next maintainer walking the manual checklist will not exercise the env-var matrix, bold-redundancy, or stderr-empty-state cleanness. Cross-cuts QE (manual-checklist-as-test-surface).
+
+**Coordination:**
+- **Finding 1** → Raised to SO (decide between "ratify current hide-via-naming posture and remove the inaccurate doc-comment claim" vs. "add README disclosure"). SE follow-up minimal regardless.
+- **Finding 2** → Raised to SO / director (TODO.md is a planning artifact; the R11 closure entry explicitly tagged this as a director action). Cross-reference [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) — manual-checklist-as-test-surface aligns with QE R17 F1's "TTY-positive verification deferred to manual" stance; QE may want to acknowledge this carry-forward in its own R3 round.
+- **No findings raised to Security, Platform, or SA for code-only action this round.**
+
+**Files modified:** This log appended only.

@@ -1370,3 +1370,158 @@ Both R1 RT findings Resolved. F1 was the substantive Cc-defense extension at the
 **Coordination:** Security R12 — `sanitize_quoted_values` defense-in-depth coordination verified; VDD-IAR R18 — RT R9 generalization-rule proposal (extend Cc-defense from per-field to per-stderr-write-site) is now earned by this round's resolution; pattern can be documented as a CLOSURE-PROTOCOL.md-amendment candidate if SO concurs.
 
 **Files modified:** Only this review log appended.
+
+---
+
+## Review 12 — 2026-05-12 12:00Z
+
+**Round:** RT Review 12 (Layer 7 IAR Round 3 — cold-session adversarial pass on the R3 change set: `ff0e85c` clippy hook, `c341a54` render_cell ASCII debug_assert, `bd7511e` TRACKER_INTERNAL_FORCE_COLOR test seam, `3fa1f3c` cmd_list rendering extraction + column constants, `8db9437` three-module split).
+
+**Scope:** End-to-end byte-level verification that the three-module split (`storage.rs` + `validate.rs` + `commands.rs`) preserves every previously-confirmed control (Title/Label/Description Cc rejection, clap-error sanitization, next_id monotonicity, load-time corrupt-data rejection, debug_assert panic surfaces compiled out in release); attack analysis of the new `TRACKER_INTERNAL_FORCE_COLOR` env-var code path against the DESIGN.md pipe-cleanness contract; module-visibility leak audit; carry-forward Accepted Risk regression.
+
+**Regression check:** Every R10/R11 attack vector replayed against the post-split release binary (`target/release/tracker`):
+
+- Title CR / Label CR / Description CR rejected with the spec-exact error strings.
+- `tracker $'pre\rmid\ttab'` clap error stderr now `Error: unrecognized subcommand 'pre\u{D}mid\u{9}tab'\n\nUsage: ...\n` — CR and TAB escaped inside the quoted region; structural LFs survive.
+- next_id high-edge: create A, create B, delete 2, create C → stored ids `[1, 3]`, `next_id=4`. The just-deleted id 2 is not reassigned. SO R22 Option A invariant intact across the split.
+- Corrupt-data plant (status=`hax`, valid Tracker JSON shape) → `Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.` `tracker_is_valid` chain preserved across move into `storage.rs`.
+
+### Attack transcripts (anonymized)
+
+Working dir `<HOME>/tmp/rt12` with `TRACKER=<HOME>/.../target/release/tracker`.
+
+**Attack A — `TRACKER_INTERNAL_FORCE_COLOR=1` causes ANSI to leak to a pipe (NEW R3 vector).**
+
+```
+$ rm -f tracker.json
+$ TRACKER_INTERNAL_FORCE_COLOR=1 $TRACKER create "test"
+  Created issue #1: test
+$ TRACKER_INTERNAL_FORCE_COLOR=1 $TRACKER list | cat -v
+  ID    Status       Priority  Labels                Title
+  1     open         ^[[1;33mmedium^[[0m    (none)                test
+```
+
+ANSI escapes (`^[[1;33m` for medium priority) reach a piped-`cat -v` stdout. `color_mode_from_env` returns `On` because the env-var check is placed BEFORE the `is_terminal()` check (`src/commands.rs:124`):
+
+```rust
+if std::env::var_os("TRACKER_INTERNAL_FORCE_COLOR").is_some_and(|v| v == "1") {
+    return ColorMode::On;
+}
+if !std::io::stdout().is_terminal() { return ColorMode::Off; }
+```
+
+DESIGN.md "Interface / Color output" line 244 is **absolute**: *"`CLICOLOR_FORCE=1` is not honored: color is never emitted to a non-TTY stdout regardless of env vars, to preserve the pipe-cleanness contract."* The seam is an env var; ANSI does reach the pipe; the spec says "regardless of env vars". The code's own doc-comment (`src/commands.rs:111`) claims *"it does not equal `CLICOLOR_FORCE` (which the spec deliberately declines to honor)"* — but the behavior is mechanically identical at the byte level: env-var set → ANSI to pipe.
+
+**Attack B — Cc defenses post-split (validate.rs landing site).**
+
+```
+$ $TRACKER create $'evil\rtitle'                  → Error: Title cannot contain control characters.
+$ $TRACKER create "ok" --label $'evil\rlabel'     → Error: Label cannot contain control characters.
+$ $TRACKER create "ok" --description $'evil\rdesc' → Error: Description cannot contain control characters other than newline.
+```
+
+All three validators (now imported from `crate::validate` by `commands.rs`) reject their respective Cc-bearing payloads with spec-exact strings. The move did not break any.
+
+**Attack C — clap stderr Cc-escape (R10 F1 / R11 regression check, post-split).**
+
+```
+$ $TRACKER $'pre\rmid\ttab' 2>&1 | cat -v
+  Error: unrecognized subcommand 'pre\u{D}mid\u{9}tab'
+  
+  Usage: tracker <COMMAND>
+  
+  For more information, try '--help'.
+```
+
+`main.rs` imports `tracker::sanitize_quoted_values` (re-exported from `validate.rs` via `lib.rs` hub); the narrow-scope sanitizer survived the module move. Structural LFs preserved; CR/TAB escaped only inside `'X'` region.
+
+**Attack D — next_id high-edge (SO R22 Option A regression).**
+
+```
+$ $TRACKER create "A" && $TRACKER create "B" && $TRACKER delete 2 && $TRACKER create "C"
+$ cat tracker.json   # ids=[1, 3], next_id=4
+```
+
+The deleted high-edge id 2 is unreachable. `bump_next_id` and `tracker_is_valid` invariants intact across the split (validators in `validate.rs`, types/load-validation in `storage.rs`).
+
+**Attack E — hand-edited corrupt tracker.json.**
+
+```
+$ echo '{"issues":[{"id":1,"title":"x","status":"hax",...}],"next_id":2}' > tracker.json
+$ $TRACKER list
+  Error: Could not read tracker data. The file may be corrupt. Delete tracker.json to start fresh.
+```
+
+`storage::tracker_is_valid` + `storage::issue_fields_are_valid` chain rejects unknown status (`hax`). Load-time defense preserved.
+
+**Attack F — debug_assert panic surface (`c341a54`).**
+
+Debug build (`cargo build`): exercised `create "Test"` → `list` → `show 1` with legitimate ASCII status/priority; no panic. Debug build with `--description $'multi\nline' --label bug --priority high`; full lifecycle succeeds. The `render_cell` ASCII assertion and `wrap_color` no-control-char assertion both only fire on values that closed-enum validation (`VALID_STATUSES` / `PRIORITY_ORDER`) at parse+load time already rejects — no organic-input path can trip them. Release build: `strings target/release/tracker | grep debug_assert` returns nothing — asserts compiled out as expected. No DoS surface.
+
+**Attack G — Module-visibility leak audit (R3 surface).**
+
+`pub(crate)` items in `storage.rs` (`CORRUPT_DATA_ERROR`, `VALID_STATUSES`, `PRIORITY_ORDER`, `parse_timestamp`, `issue_fields_are_valid`, `description_is_valid`, `label_is_valid`, `tracker_is_valid`) and `commands.rs` (column-width constants, `priority_ansi`, `status_ansi`, `wrap_color`, `render_cell`, `format_show_block`, `show_label`, `priority_rank`, `issue_matches_filters`, `truncate_with_ellipsis`, `filter_issues`, `format_list_header`, `format_list_row`) remain crate-local. Integration tests (`tests/`) reference NO `tracker::` paths — they invoke the binary via `assert_cmd`, so no integration test could reach previously-private items even if visibility had leaked. The split kept the right invariants `pub(crate)` and the right ones `pub`.
+
+### Findings
+
+#### Open
+
+**F1 — `TRACKER_INTERNAL_FORCE_COLOR=1` violates DESIGN.md line 244 "regardless of env vars" pipe-cleanness contract (Dim 1 — Threat model / Dim 6 — Injection; introduced by `bd7511e`).**
+
+The env-var check at `src/commands.rs:124` short-circuits the TTY check, causing ANSI bytes to leak to a non-TTY stdout when the env var is set. The DESIGN.md contract is absolute: *"color is never emitted to a non-TTY stdout regardless of env vars."* The code's doc-comment argues the seam is "test-only" and "not equivalent to `CLICOLOR_FORCE`", but at the byte level the behavior IS equivalent — and the spec rule covers the byte level, not the developer's intent. Whether the variable is documented in `--help` does not change what the binary does when the variable is set.
+
+PoC: `TRACKER_INTERNAL_FORCE_COLOR=1 $TRACKER list | cat -v` shows `^[[1;33m` ANSI sequences in piped stdout.
+
+Severity: **Low**. Single-user threat model (RT R8 F2 carry-forward class — user attacks themselves by setting an undocumented var in their shell rc, or a misconfigured CI env). No third-party adversary controls the user's env. But the **spec-conformance** claim is unambiguous; this is a real DESIGN.md contract violation regardless of exploit difficulty. The systemic concern is the same R10 F1 lineage: a defense's surface-class drift (here: "regardless of env vars" subtly excluded for "internal" variables). The pattern that R10/R11 closed at every stderr write site has reopened at the color-decision site — same generalization-failure shape, different code path.
+
+Recommended remediation:
+
+- **SO:** Adjudicate. Either (a) amend DESIGN.md line 244 to carve out an undocumented test seam ("regardless of env vars, except internal test seams documented in the source comments"), making the implementation in-spec; or (b) reaffirm the spec's absolute form and require SE to either move the check after the `is_terminal()` test (so the seam only fires when stdout is a TTY — which defeats its purpose since `assert_cmd` runs piped) or replace the env-var seam with a compile-time `#[cfg(test)]` injection point or a `--force-color` private CLI flag gated by a build-time feature.
+- **SE:** If SO ratifies (a), update DESIGN.md and the doc-comment to acknowledge ANSI-to-pipe is permitted when the seam is set. If SO holds (b), restructure the color-mode decision so QE integration tests use a non-env-var seam.
+- **QE:** Regardless of SO decision, add a regression test `force_color_env_does_not_leak_ansi_to_pipe_under_spec` if the spec stays absolute, or `force_color_env_is_documented_test_seam` if the spec is amended — currently the test seam itself is what activates the surface, so QE coverage cannot meaningfully assert the spec without taking a position.
+
+**Classification:** Open. Raised to SO (spec adjudication is the lower-effort fix path; the seam exists for a defensible reason — closing QE R17 F1 positive-color-path coverage gap — so SO may well ratify), Raised to SE (remediation pending SO call), Raised to QE (regression coverage shape depends on SO call). Cannot be Hallucinated — `^[[1;33m` bytes are reproducibly present in `cat -v` of the piped stdout (Attack A transcript above). Cannot be Deferred (RT findings are not deferrable per CLOSURE-PROTOCOL.md §2).
+
+Self-dismissal test (sycophancy guard): can I demonstrate this is hallucinated? No. The code path is mechanically identical to a `CLICOLOR_FORCE` honor — the env var is set, the TTY check is bypassed, ANSI reaches the pipe. The doc-comment's "test seam only" framing is intent, not behavior. DESIGN.md line 244 is the spec; spec violations on observable behavior are the strongest claim a Red Team can make.
+
+#### Dismissed
+
+**F2 — render_cell debug_assert as DoS in debug builds.** Concern: any non-ASCII status/priority value could panic. Verified: every status/priority value is validated against the closed `VALID_STATUSES` / `PRIORITY_ORDER` arrays at BOTH parse-time (input boundary) and load-time (corrupt-data path). A non-ASCII value cannot reach `render_cell`. Even with a hand-edited `tracker.json` (insider-threat surface F12 carry-forward), the load-time `tracker_is_valid` rejects the file before `render_cell` is called. Debug builds: the assert is unreachable on organic input. Release builds: the assert is compiled out (`strings` shows no debug_assert messages). **Dismissed.** No exploitable surface.
+
+**F3 — wrap_color debug_assert as DoS in debug builds.** Same closure as F2: status and priority are the only callers, both validated against closed enums, all values are ASCII control-free. **Dismissed.**
+
+**F4 — Module split exposes previously-private items via integration tests (R3 visibility audit).** Audit: every `pub(crate)` item remains crate-local; the `pub use` re-exports in `lib.rs` only re-publish items that were `pub` pre-split (`cmd_create`, `Tracker`, `ColorMode`, `validate_title`, etc.) plus the helpers that were already `pub` (`dedupe_labels`, `sort_issues`, `label_matches`, `bump_next_id`, `current_timestamp`, `display_safe`, `sanitize_quoted_values`). No integration test references `tracker::*`. **Dismissed.** Visibility surface is unchanged in behaviorally-observable ways.
+
+**F5 — Clippy pre-commit hook (`ff0e85c`) as attacker bypass surface.** Concern: a hook could be skipped with `--no-verify` and allow a regression to land. Verified: hooks are developer-side enforcement, not runtime defense. An attacker pushing code through `--no-verify` is the developer with commit access, which is out-of-threat-model (the single-user threat model has no separate-attacker-with-commit-access surface; the user IS the developer). **Dismissed.** Hook is process-control, not runtime defense.
+
+#### Accepted Risk
+
+**F6 (carry-forward from RT R6 F3 / R8 F2 / R10 F9) — Trojan-Source / Cf in title, label, description.** Unchanged. Risk owner: director. Re-evaluation trigger: any future multi-user / shared `tracker.json` use case. The three-module split did not change the description-rendering pipeline; Cf bytes still pass through `format_show_block` byte-for-byte.
+
+**F7 (carry-forward from RT R6 F10 / R8 F8 / R10 F10) — Plaintext `tracker.json`.** Unchanged. Risk owner: the user.
+
+**F8 (carry-forward from RT R8 F3 / R10 F11) — Concurrent-write TOCTOU.** Unchanged Accepted Risk. R3 added zero new I/O; the module split preserved `load_tracker` / `save_tracker` signatures verbatim. DESIGN.md "Out of Scope" line 413, "Constraints" line 282, "Storage" line 198.
+
+**F9 (carry-forward from RT R10 F12 / R11 F12) — Insider-threat / cosmic-ray `tracker.json` modification.** Unchanged. The `tracker_is_valid` + `issue_fields_are_valid` chain (now in `storage.rs`) catches every Cc-injection plant. The remaining insider-threat surface (valid-shape but adversarial content, DoS via corrupt-data rejection) is out-of-scope for the single-user local-CLI threat model. R3 strengthened this surface marginally — `render_cell` and `wrap_color` debug_asserts add a development-time tripwire — but the underlying boundary is unchanged.
+
+#### Hallucinated
+
+None this round. Every candidate finding produced (or failed to produce) reproducible bytes.
+
+### Summary
+
+Round **12** logged. Cold-session pass on the R3 change set produced **1 Open finding** (F1 — `TRACKER_INTERNAL_FORCE_COLOR=1` violates DESIGN.md line 244 "regardless of env vars" by allowing ANSI to a non-TTY stdout; spec-conformance claim is the strongest reading; threat severity is Low under single-user model but spec-violation is unambiguous), **4 Dismissed** (F2 render_cell debug_assert unreachable on organic input; F3 wrap_color debug_assert same; F4 module-visibility surface unchanged behaviorally; F5 clippy hook is process-control not runtime defense), **4 Accepted Risk** (F6 Trojan-Source carry-forward; F7 plaintext storage carry-forward; F8 TOCTOU carry-forward; F9 insider-threat boundary carry-forward). **0 Hallucinated.**
+
+**Top exploitable finding:** F1 — the test seam at `src/commands.rs:124` causes ANSI to leak to piped stdout when `TRACKER_INTERNAL_FORCE_COLOR=1` is set, in direct contradiction of DESIGN.md line 244 ("regardless of env vars"). PoC: `TRACKER_INTERNAL_FORCE_COLOR=1 $TRACKER list | cat -v` shows `^[[1;33m` in stdout. The doc-comment "test seam only / not CLICOLOR_FORCE-equivalent" framing is intent, not behavior; at the byte level the seam is mechanically a CLICOLOR_FORCE.
+
+**Sycophancy-guard reflection.** The R3 change set was small and most of the surface was move-only refactoring — the kind of change where every regression check passes byte-for-byte and the Red Team can declare a clean pass. That declaration would have been wrong. The new code path (`bd7511e` env-var seam) added an env-var-keyed bypass of the TTY check, and the code's doc-comment self-justifies the bypass as "not CLICOLOR_FORCE-equivalent" — which is precisely the kind of reassurance an adversary should distrust. The DESIGN.md spec is absolute on the byte-level contract; the seam violates that contract; the framing is sycophancy-bait. I considered marking F1 Dismissed because the threat model is single-user and the seam is undocumented — both rationales the developer would have offered. I rejected that path: spec violation on observable behavior is exactly the kind of finding Red Team review exists to surface, regardless of practical exploitability. The systemic pattern from R10/R11 (defense scoped by-field rather than by-property) has now recurred at a different layer (defense scoped by-developer-intent rather than by-byte-level-behavior). R10 closed the per-stderr-write-site form; R3 reopened it at a per-env-var-decision-site form. The fix is the same generalization R10/R11 already named: the rule binds the BYTES, not the intent.
+
+**Coordination:**
+
+- [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md) — F1 requires SO adjudication: amend DESIGN.md line 244 to acknowledge an internal-test-seam carve-out (lower-effort path, defensible: the seam closes QE R17 F1 positive-color-path coverage gap and has no organic-user-reachable harm under single-user threat model), OR reaffirm the absolute form and require SE to restructure the color-mode test seam (cleaner spec-conformance, higher fix cost).
+- [SECURITY-REVIEW.md](SECURITY-REVIEW.md) — F1 is independently a Security Dim 6 (Injection / display-class) and Dim 1 (Threat model: who validates the "test-only" claim) finding. Cross-reference R12's `sanitize_quoted_values` lineage: that round earned the "defense binds at the byte boundary, not the intent boundary" rule for stderr; this round shows the same rule needs application at the color-decision boundary.
+- [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) — F1 fix options if SO holds spec absolute: (a) move the env-var check AFTER the `is_terminal()` check (which would render the seam useless for `assert_cmd` integration tests, defeating its purpose); (b) replace the env-var seam with `#[cfg(test)]`-only direct injection into a refactored `color_mode_from_decision(is_tty: bool, env: ...)` pure function; (c) build-time `--features test-seam` gate so the seam is compiled out of release entirely (closest to "test-only" intent).
+- [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) — F1 coverage shape depends on SO decision. If spec amended: add `force_color_env_documented_as_seam_only`. If spec held: add `force_color_env_does_not_emit_ansi_to_pipe` (which the current implementation would fail) and migrate to a non-env-var seam.
+- [VDD-IAR-ALIGNMENT-REVIEW.md](VDD-IAR-ALIGNMENT-REVIEW.md) — Pattern broadening: the R10/R11 "every stderr write site Cc-escapes" rule generalizes one further level — every site where a defense is conditional on env-var state must satisfy the contract independent of developer intent ("test seam" vs. "production"). The byte-level behavior, not the developer's labeling, is what binds the spec. Candidate for CLOSURE-PROTOCOL.md amendment.
+
+**Files modified:** Only this review log appended. No source, tests, or DESIGN.md changes per IAR domain authority boundaries (CLOSURE-PROTOCOL.md §1).

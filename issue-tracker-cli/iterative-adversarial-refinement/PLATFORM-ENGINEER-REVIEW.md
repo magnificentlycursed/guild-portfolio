@@ -1039,3 +1039,142 @@ F2 (MSRV) Resolved cleanly via the manifest declaration; F1 (branch protection) 
 
 **Files modified:** This log appended only. The `Cargo.toml` rust-version edit landed in `09b1905` under PE authority per CLOSURE-PROTOCOL.md §1.
 
+---
+
+## Review 14 — 2026-05-12 12:00Z
+
+**Round:** PE Review 14 (Layer 7 IAR Round 3 cold pass).
+
+**Scope:** Five-commit R3 change set on the polish branch — `ff0e85c` (cargo-clippy pre-commit hook, R12 F3 closure), `c341a54` (render_cell ASCII debug_assert, QE R17 F5 closure), `bd7511e` (FORCE_COLOR test seam, QE R17 F1 closure), `3fa1f3c` (cmd_list rendering extraction + column constants, SA R11 F1 / R13 F2 closure), `8db9437` (three-module split storage/validate/commands, SA R13 F1 Trigger B closure). Primary lens: verify the new clippy pre-commit hook satisfies the PE R12 F3 contract; secondary lens: regression-check that the three-module split did not perturb any existing platform gate (CI workflow, Cargo.lock, MSRV declaration, hook coverage). Cold session.
+
+### Pipeline gate verification (HEAD `8db9437`, local)
+
+- `cargo test --no-fail-fast --locked` — **237/237 pass** (93 unit + 32 layer1 + 18 layer2 + 9 layer3 + 25 layer4 + 7 layer5 + 33 layer6 + 20 layer7 + 0 doc-tests). Layer-7 binary test count rose to 20 with the R1/R2 additions; module split preserved every test.
+- `cargo clippy --all-targets --locked -- -D warnings` — clean (no output beyond `Finished` line).
+- `cargo fmt --check` — clean (exit 0).
+- `cargo audit` — clean: 1069 advisories loaded; 100 crate dependencies scanned; **0 advisories**.
+
+**Tests:** 237/237 pass; clippy clean; fmt clean; audit 0 advisories.
+
+### Regression check (R3-specific)
+
+- `git diff b853a81..HEAD --stat -- .github/` returns empty — **no CI YAML changes in R3.** Per session-brief item 8, confirmed.
+- `git diff b853a81..HEAD --stat -- issue-tracker-cli/Cargo.toml issue-tracker-cli/Cargo.lock issue-tracker-cli/rust-toolchain.toml` returns empty — **zero dependency-graph mutations.** `rust-version = "1.82"` unchanged from R12 F2 closure; `rust-toolchain.toml` still `1.94.1`; `Cargo.lock` byte-identical. Per session-brief items 3 and 4, confirmed.
+- `Cargo.toml` `[lib]` and `[[bin]]` table arrangement unchanged; no per-module manifest plumbing required for the three-module split (Cargo discovers submodules from `src/lib.rs` `mod` declarations). Verified.
+- Workflow `paths:` filter is `issue-tracker-cli/**` (lines 7-8 and 12-13); the three new `src/*.rs` paths are covered automatically. `cargo test --all-targets` and `cargo clippy --all-targets` likewise walk the crate graph rather than enumerate paths; no workflow edit was required for the new modules. Per session-brief item 5, confirmed — no hard-coded `src/lib.rs` path anywhere in `.github/workflows/issue-tracker-cli.yml`.
+
+### Pressure point: cargo-clippy-check pre-commit hook (R12 F3 closure verification)
+
+Inspected `.pre-commit-config.yaml` lines 38-50. The new `cargo-clippy-check` hook:
+
+- Uses `cd "$(git rev-parse --show-toplevel)/issue-tracker-cli"` — matches the `cargo-fmt-check` shape (R8 F8 / Platform R8 F8 lineage). Sub-directory-invocation-safe. **Pass.**
+- `pass_filenames: false` — clippy operates against the workspace, not individual files. **Pass.**
+- `files: ^issue-tracker-cli/.*\.rs$` — fires only when Rust source changes (skips docs/log-only commits). **Pass.**
+- Invocation `cargo clippy --all-targets --locked -- -D warnings` — byte-for-byte match with workflow line 50. **Pass.**
+- Comment block cites "Platform Engineer Review 12 Finding 3 closure" + "SE Review 18 concurrence recorded" — the authority chain is documented in the file itself. **Pass.**
+
+Empirically verified the hook fires on `*.rs` changes via `pre-commit run --files issue-tracker-cli/src/commands.rs --hook-stage commit`: detect-private-key Passed; no-commit-to-branch Passed; block local home directory paths Passed; review-log anonymization Skipped (no files match); cargo fmt Passed; **cargo clippy Passed**. The hook is wired correctly and runs on every R3 `*.rs` commit (`c341a54`, `bd7511e`, `3fa1f3c`, `8db9437`).
+
+R12 F3 closes cleanly. The "Deferred to a future focused commit" classification in R13 was honored with a focused single-purpose commit (`ff0e85c`: `.pre-commit-config.yaml` +14 lines, zero source changes).
+
+### Pressure point: pre-commit hook coverage of the three new `*.rs` files
+
+The hook set covering `src/storage.rs`, `src/validate.rs`, `src/commands.rs`:
+
+- `block local home directory paths` (`pass_filenames: true`, `types: [text]`) — fires on every staged text file; each new `.rs` file is text. Per-file `grep -qF -- "$HOME"` is the check. Empirically verified above on `src/commands.rs`. **Pass.**
+- `cargo-fmt-check` (`files: ^issue-tracker-cli/.*\.rs$`, `pass_filenames: false`) — regex matches all three new paths (tested locally). **Pass.**
+- `cargo-clippy-check` (same regex shape) — **Pass.**
+- `review-log anonymization` — by design does not match `src/**`, only IAR review-log markdown. Correct exclusion. **Pass.**
+
+Per session-brief item 6, hook coverage of the new files is complete.
+
+### Pressure point: did the new hook fire on subsequent R3 commits?
+
+The R3 commit chain after `ff0e85c` is: `c341a54`, `bd7511e`, `3fa1f3c`, `8db9437`. All four touch `*.rs` files (verified via `git show --stat` per commit: `src/lib.rs` in three of them, plus `tests/layer7.rs` in `bd7511e` and the new `src/{storage,validate,commands}.rs` in `8db9437`). The `cargo-clippy-check` `files: ^issue-tracker-cli/.*\.rs$` filter matches every touched path. The commits landed, and `cargo clippy --all-targets --locked -- -D warnings` is clean at HEAD — which is exactly the post-condition the hook enforces. Indirect but sufficient evidence the hook fired on each of the four follow-on commits without blocking them. Per session-brief item 1's final sub-question, confirmed.
+
+### Pressure point: MSRV consistency across the split
+
+`Cargo.toml` line 5: `rust-version = "1.82"` (unchanged from R12 F2 closure in `09b1905`). The new modules `storage.rs`, `validate.rs`, `commands.rs` do not introduce any `std`/syntax usage post-1.82 — verified by `cargo clippy --all-targets --locked -- -D warnings` passing under the declared MSRV with the `clippy::incompatible_msrv` lint active (this lint is what flagged the 1.70 value in R12 F2 closure, so a regression would surface). **Pass.**
+
+`rust-toolchain.toml` still pins `channel = "1.94.1"`; the spread between toolchain pin (1.94.1) and manifest MSRV (1.82) is intentional and consistent with the R13 closure log's framing ("the pinned toolchain remains 1.94.1 for local development consistency; the `rust-version` manifest field is the redistribution / cargo-install-from-source MSRV declaration"). No new inconsistency introduced.
+
+### Pressure point: module-split blast radius on Cargo.lock
+
+Per session-brief item 4: pure code reorganization should not touch `Cargo.lock`. `git diff b853a81..HEAD --stat -- issue-tracker-cli/Cargo.lock` empty; verified. No phantom dependency added by the split. Re-exports in `lib.rs` (`pub use crate::storage::*`) are zero-cost at the dependency graph layer. **Pass.**
+
+### Dimension-by-dimension audit (delta from R12)
+
+- **Dim 1 (pipeline completeness):** Unchanged — six gates in CI (build, test, clippy, fmt, audit, deny). Coverage still not enforced; R8 F3 remains Backlogged per SO R14. Layer 7 R3 brought source LOC well past the 1000-line threshold (storage+validate+commands sum to ~1100 lines, plus the residual lib.rs hub), but the threshold was for re-raising the coverage finding, not auto-resolving it; SO authority retains the call. **Not a new finding** (re-raise still requires SO ratification); flagging informationally — see F1 below.
+- **Dim 2 (gate enforcement):** Branch-protection verification remains out-of-tree (R12 F1 Dismissed, R13 confirmed). Carry-forward — see F2 below.
+- **Dim 3-8:** Unchanged from R12/R13 verification.
+- **Dim 9 (left-shift):** R12 F3 now closed by the cargo-clippy-check hook. The remaining gap — `cargo test` not in pre-commit — was explicitly considered and declined in R12 F3's analysis ("`cargo test --locked` is more expensive ... may not be worth a pre-commit gate"). The decline rationale is recorded in R12 lines 958-960. Not re-raised.
+- **Dim 10 (pre-commit hooks):** Hook set expanded by one (cargo-clippy-check). All five hooks verified above. The `no-commit-to-branch` hook continues to block direct commits to `main`; the polish branch remains writeable.
+- **Dim 11-33:** Unchanged from R12/R13.
+
+### Open
+
+#### F1 — Coverage threshold not enforced in CI; source LOC now ~1100 lines post-split (informational re-raise)
+
+**Status:** Informational re-raise. R8 F3 was Backlogged by SO R14 with the rationale that source LOC sat under a ~1000-line threshold. The three-module split (`storage.rs` ~200 LOC + `validate.rs` ~250 LOC + `commands.rs` ~660 LOC, plus the residual lib.rs ~50 LOC of module glue + ~1080 LOC of tests) crosses that informal threshold for the first time. PE-domain authority to re-raise; SO-domain authority to ratify or dismiss.
+
+**Evidence:** `wc -l issue-tracker-cli/src/storage.rs issue-tracker-cli/src/validate.rs issue-tracker-cli/src/commands.rs` totals ~1100 source lines (excluding lib.rs hub). CI workflow `.github/workflows/issue-tracker-cli.yml` runs no coverage step; `cargo tarpaulin` / `cargo llvm-cov` not invoked.
+
+**Recommendation:** Raise to SO R-next for ratification. Either confirm Backlog with the new LOC value documented, or schedule a coverage-instrumentation commit. PE neutral on the call; the cost-benefit is genuinely director judgment for a single-user portfolio CLI.
+
+**Classification:** Open (re-raise pending SO ratification per CLOSURE-PROTOCOL §3). Not a fresh finding; not a hallucination either — the threshold-trip is real and warrants explicit re-adjudication rather than silent acceptance.
+
+#### F2 — Branch-protection verification carry-forward (R12 F1, R13 dismissal, R14 re-flag per session-brief item 7)
+
+**Status:** Informational carry-forward. R12 F1 (whether all six CI gates are required-status-checks for merge to `main`) was Dismissed in R13 as out-of-tree. The session brief item 7 directs an explicit re-flag this round.
+
+**Evidence:** No artifact in the checkout proves the GitHub branch-protection configuration matches the workflow's six-gate surface. The pre-commit `no-commit-to-branch` hook blocks direct commits to `main` *locally*; the GitHub-side enforcement (required reviews, required status checks, restrict pushes) is invisible from the working tree.
+
+**Recommendation:** Director or repo-admin runs `gh api repos/<owner>/<repo>/branches/main/protection --jq '.required_status_checks.contexts'` and confirms the six contexts (Build, Test, Clippy, Format check, Dependency audit, cargo deny check) are present. If absent, configure them. Documentation of the verification belongs in a director-maintained operational note (out of any in-tree audit log).
+
+**Classification:** Open — carry-forward, re-flagged per session-brief authority. Not a regression; remains genuinely outside the working tree. VDD-IAR Alignment coordination flag re-issued for the "tree-external verification" pattern noted in R13.
+
+### Resolved
+
+*(none — closure events from R12 F3 already landed in `ff0e85c`; R3 itself is the implementation round, not a closure round. The verification this session confirms the closure is valid; the resolution itself was logged in R13 as Deferred-to-future-commit and is now retired.)*
+
+### Deferred
+
+*(none — F1 and F2 are Open re-raises, not deferrals; no new R3-introduced finding requires future scheduling.)*
+
+### Dismissed
+
+- **"Module split should have a `pub use` audit to verify no symbol was accidentally privatized or accidentally exposed"** — considered as a finding (the three-module split is API-surface-sensitive; an accidental visibility change would not necessarily break the build but could break downstream usage). Dismissed: this is SA-domain territory (SA R13 F1 Trigger B closure), not PE; verified via the platform-relevant check that `cargo build --release --locked` and the integration test suite (which uses unqualified `tracker::*` paths) both pass under the new module layout. The platform contract holds. SA-domain audit of the `pub use` re-export list is logged in the SA review.
+- **"New `*.rs` files should each have a module-level `//!` doc comment to support `cargo doc`"** — considered, dismissed: this is Technical Writer / `rustdoc` coverage territory per the Rust supplement, not PE. Flagging to TW for next pass rather than logging as a PE finding.
+- **"cargo-clippy-check hook should also cover `Cargo.toml` since `[lints]` table changes could change clippy output"** — considered, dismissed: the current `files: ^issue-tracker-cli/.*\.rs$` regex skips `Cargo.toml`; a `[lints]` table edit would not trigger the hook. However: the project has no `[lints]` table (verified `grep -n '\[lints' Cargo.toml` returns nothing), and the clippy deny set is currently passed via the CLI invocation rather than the manifest. The hook would not benefit from broader file coverage absent a `[lints]` table. If a future change introduces `[lints.clippy]`, broaden the regex to `^issue-tracker-cli/.*\.(rs|toml)$`. Acceptable as-is.
+
+### Hallucinated
+
+*(none — every finding considered above was either substantiated (F1, F2), or had a specific articulated reason for dismissal. No adversary-invented complaints retracted.)*
+
+### Summary
+
+Layer 7 R3 is platform-clean on the four-gate cold-batch: 237/237 tests pass, clippy clean, fmt clean, audit 0 advisories. The PE R12 F3 closure (cargo-clippy-check hook) is verified wired correctly — sub-directory-safe `cd` pattern, `pass_filenames: false`, correct file regex, byte-identical invocation to CI, fires empirically on `*.rs` files, no false-positive on docs-only commits. The three-module split (`8db9437`) is platform-neutral: zero `Cargo.lock` churn, zero workflow edits required, MSRV declaration unchanged at 1.82.
+
+**Two Open findings** surface from R3, both informational re-raises rather than fresh R3-introduced defects:
+
+- **F1** (coverage threshold not enforced; source LOC now ~1100 lines crossing R8 F3's informal threshold) — PE re-raises to SO for ratification per CLOSURE-PROTOCOL §3. Director judgment; PE neutral.
+- **F2** (branch-protection verification carry-forward) — re-flagged per session-brief item 7. Genuinely outside the working tree; no in-checkout artifact can answer it.
+
+**Sycophancy-check self-audit:** the session brief warned that "all four gates pass + new clippy hook works" is the kind of result that softens reviewers. I pressed on three angles: (1) does the hook *actually* fire correctly on subsequent commits (verified empirically via `pre-commit run` and indirectly via the clean clippy state at HEAD across four follow-on `*.rs`-touching commits); (2) did the module split introduce hidden dependency-graph or MSRV mutations (no — `Cargo.lock`, `Cargo.toml`, `rust-toolchain.toml` all byte-identical); (3) is the hook regex correctly scoped to the new files (yes, all three `src/{storage,validate,commands}.rs` paths match `^issue-tracker-cli/.*\.rs$`). The R3 result is genuinely a clean pass on the R3-specific lens; the only Open findings are the two carry-forward re-raises (coverage threshold, branch protection) that exist independent of the R3 change set.
+
+**Cross-domain coordination flags:**
+
+- **SO** — F1 re-raise: coverage threshold ratification (Backlog or schedule). PE neutral on the call.
+- **VDD-IAR Alignment** — F2 re-flag: tree-external verification pattern note carried forward from R12/R13. Recommend VDD-IAR's next pass include the "branch protection configuration matches CI workflow gate set" check in CLOSURE-PROTOCOL.md §6.
+- **TW** — informational: the three new `src/*.rs` modules currently have no `//!` module-level doc comments; flagged in Dismissed above as TW-domain territory, not PE.
+- **SA** — informational: the three-module split is SA-authored; PE confirms platform-neutrality. Any `pub use` re-export audit belongs in the SA log.
+- **SE** — informational: the cargo-clippy-check hook now blocks SE commits that fail clippy locally; SE R18 concurrence was recorded in advance per R12 F3 coordination.
+
+**Carry-forward state:** R8 F3 (coverage threshold) re-raised as R14 F1; R12 F1 (branch protection) re-flagged as R14 F2. R12 F2 (MSRV) and R12 F3 (clippy hook) both Resolved and verified. R8 F7 (CI secret scanning) remains Dismissed by SO R14.
+
+**Coordination:** F1 → SO ratification. F2 → VDD-IAR Alignment + director. No new IAR domain proposed.
+
+**Merge-gate verdict (PE, Layer 7 R3):** All four gates pass at HEAD; the R3 commit set is platform-clean. F1 and F2 are informational re-raises that do not block Layer 7 merge — F1 is a Backlog re-ratification question for SO; F2 is a director-level out-of-tree verification. Neither blocks the layer per CLOSURE-PROTOCOL §6.
+
+**Files modified:** This log appended only. No source, workflow, hook, or manifest changes proposed or applied this session.
+

@@ -1492,3 +1492,204 @@ All three R1 SA findings closed: F1 Backlogged §3 (with SO R24); F2 Resolved (m
 **Coordination:** SO R24 — F1 Backlogged ratification. VDD-IAR R18 — process-pattern observation: the auto-Backlog rule firing here is a healthy outcome of the §3 mechanism, not a process gap.
 
 **Files modified:** This log appended only.
+
+---
+
+## Review 17 — 2026-05-12 12:00Z
+
+**Round:** SA Review 17 (Layer 7 IAR Round 3 — post-R2 deferred-item closures).
+**Scope:** Cold-session adversarial SA review of the 5 commits since R2 closure log entries (`b853a81`): `ff0e85c` clippy pre-commit hook, `c341a54` render_cell ASCII debug_assert (QE R17 F5 closure), `bd7511e` TRACKER_INTERNAL_FORCE_COLOR test seam + 8 integration tests (QE R17 F1 closure), `3fa1f3c` cmd_list rendering extraction + column-width constants (SA R11 F1 + SA R13 F2 closure), `8db9437` `src/lib.rs` three-module split (SA R13 F1 Trigger B closure). Code under review: `src/lib.rs` (1133 LOC: ~50 hub + ~1080 test), `src/storage.rs` (218 LOC NEW), `src/validate.rs` (273 LOC NEW), `src/commands.rs` (674 LOC NEW), `src/main.rs` (137 LOC). SA is the primary domain — structural / architectural changes dominate.
+
+**Session note:** Cold session per IAR primer. Adversarial framing intact. Sycophancy guards specifically pressed against (a) the closure-of-a-4-round-Open finding (SA R11 F1 + R13 F1 Trigger B + R13 F2) which generates positive-news bias, (b) the auto-Backlog → Resolved transition happening within ~1 day of auto-Backlogging (Backlog-bypass smell), and (c) the test-only env var (TRACKER_INTERNAL_FORCE_COLOR) which would leak through the public API contract.
+
+**Regression check:** All prior layer architectural decisions intact. Storage→validate→commands DAG is acyclic and matches the documented dependency direction. The persistent `next_id` counter (SO R22 Option A) survives — `bump_next_id` is unchanged in `validate.rs:190` and its load-time companion invariant (`next_id > max(issue.id)`) is unchanged in `storage.rs:154`. The SE R17 F1 / SA R15 F2 single-point-of-color-decision pattern is preserved — `color_mode_from_env()` is called once at `main.rs:100` and threaded into `cmd_show` / `cmd_list`. No DESIGN.md modifications in this round.
+
+---
+
+### Resolved
+
+**Finding 1 (carry-forward closure) — SA R13 F1 Trigger B `src/lib.rs` module split is now Resolved by commit `8db9437`.**
+
+The 4-round Open carry-forward (SA R11 F1 + SA R13 F1 Trigger B + SA R13 F2 cluster) is closed. The three modules' responsibilities are well-scoped:
+
+- `storage.rs` — `Tracker`, `Issue` types + `load_tracker` / `save_tracker` + load-time invariants (`tracker_is_valid`, `issue_fields_are_valid`, `description_is_valid`, `label_is_valid`); domain-enum constants (`VALID_STATUSES`, `PRIORITY_ORDER`) live here as the single source of truth.
+- `validate.rs` — user-input validators (`validate_title`, `validate_description`, `parse_status`, `parse_priority`, `parse_label`, `parse_id`); arithmetic / time helpers (`bump_next_id`, `current_timestamp`); stderr-safety transforms (`display_safe`, `sanitize_quoted_values`). Imports `PRIORITY_ORDER` + `VALID_STATUSES` from `storage`.
+- `commands.rs` — `cmd_*` orchestrators, rendering layer (`ColorMode`, `format_show_block`, `format_list_row`, `format_list_header`, `render_cell`, `wrap_color`, `priority_ansi`, `status_ansi`, `show_label`, `truncate_with_ellipsis`), filter / sort helpers (`filter_issues`, `issue_matches_filters`, `sort_issues`, `label_matches`, `priority_rank`), and `CreateArgs`. Imports from both `storage` and `validate`.
+
+**Dependency direction:** `storage` → `validate` → `commands` is the documented DAG; verified by import inspection (`storage.rs` imports `chrono` and `serde` only — no intra-crate imports; `validate.rs` imports `crate::storage::{PRIORITY_ORDER, VALID_STATUSES}` only; `commands.rs` imports from both). Acyclic. Hub `lib.rs` carries only `pub use` re-exports + tests.
+
+**SA R11 F1 closure (cmd_list orchestrator).** `commands.rs:603-674` `cmd_list` is now precisely the shape SA R11 F1 prescribed: parse filter values → load → `filter_issues` (pure) → empty-state branch → `sort_issues` (pure) → `format_list_header` + per-row `format_list_row` → `println!`. Each rendering primitive is independently unit-tested (lib.rs#tests `filter_issues_*`, `format_list_header_uses_width_constants`, `format_list_row_*`). The column-width literals are centralized in module-level constants (`ID_WIDTH=4`, `STATUS_WIDTH=11`, `PRIORITY_WIDTH=8`, `LABELS_WIDTH=20`, `TITLE_WIDTH=50` at `commands.rs:42-57`). Verified by grep: no inline-literal column widths remain in `cmd_list` or its helpers.
+
+**SA R13 F2 closure (format_show_block).** `commands.rs:347` `format_show_block` uses `show_label(name)` for every one of the 8 label sites (ID, Title, Status, Priority, Labels, Description, Created, Updated). `show_label` (`commands.rs:387`) is the single source of truth: `format!("{:<width$}", "{name}:", width = LABEL_COLUMN_WIDTH)`. The continuation-line indent (`commands.rs:353`) is `format!("\n{:<width$}", "", width = LABEL_COLUMN_WIDTH)` — also computed from the constant, not a hard-coded 13-space literal. The width-invariant unit test (`show_label_pads_to_label_column_width` at lib.rs:563) pins every label to exactly `LABEL_COLUMN_WIDTH` chars, so a future regression where someone changes `LABEL_COLUMN_WIDTH` would surface in tests rather than silently mis-align output.
+
+**Public API surface preservation.** `main.rs` continues to call `tracker::cmd_create`, `tracker::CreateArgs`, `tracker::cmd_list`, `tracker::cmd_status`, `tracker::cmd_show`, `tracker::cmd_delete`, `tracker::sanitize_quoted_values`, `tracker::color_mode_from_env`. All resolve through `lib.rs:42-50` re-exports. Compilation green (`cargo build`); all 153 tests pass (93 unit + 7 + 33 + 20 layer integration suites). No breaking change to the consumer's call shape.
+
+---
+
+### Open
+
+**Finding 2 — `pub` visibility leak: 17 public items have no external (non-test) caller and should be `pub(crate)` to tighten the crate's external API surface (Dim 4 — Interface contracts / Dim 21 — API design ergonomics).**
+
+`main.rs` is the sole external consumer of the library crate (integration tests in `tests/` invoke the binary via `assert_cmd`, not the lib API — confirmed by grep across `tests/*.rs`: zero `tracker::` references). Yet the lib re-exports — and the underlying module declarations — leave `pub` (full external visibility) on items that no external caller touches:
+
+- `storage.rs:39,55,191,213` — `Tracker`, `Issue`, `load_tracker`, `save_tracker`: none referenced by `main.rs`. The CLI never sees the storage types; `cmd_*` functions own the lifecycle internally.
+- `validate.rs:40,72,90,108,138,156,168,190,197,216` — `validate_title`, `validate_description`, `parse_status`, `parse_priority`, `parse_label`, `parse_id`, `dedupe_labels`, `bump_next_id`, `current_timestamp`, `display_safe`: none referenced by `main.rs`. (Only `sanitize_quoted_values` is — for the clap-error stderr write site.)
+- `commands.rs:459,472` — `sort_issues`, `label_matches`: not referenced by `main.rs`.
+
+External (`tracker::X`) consumers actually used by `main.rs`: `cmd_create`, `CreateArgs`, `cmd_list`, `cmd_status`, `cmd_show`, `cmd_delete`, `sanitize_quoted_values`, `color_mode_from_env`, `ColorMode`. That's the real public API surface — about 9 items.
+
+The remaining `pub` items expose internals as part of the documented crate API. Risks:
+
+1. **rustdoc bloat.** `cargo doc` will surface every `pub` item — a downstream consumer (or future-you) cannot distinguish "I should call this" from "this is an internal helper that happens to be `pub`."
+2. **Refactor friction.** A future module-internal refactor (rename `dedupe_labels` to `unique_labels`, change `bump_next_id`'s signature to return a typed error) is a breaking change at the public boundary if `pub`, but trivial if `pub(crate)`. The "no external caller" assertion holds today — but the visibility says otherwise.
+3. **Asymmetry with the spirit of the split.** SA R13 F1 Trigger B closure produced a *layered architecture* where storage is the lowest layer, validation the middle, commands the top. The public API of the crate should be the top — `cmd_*` + `CreateArgs` + `ColorMode`. Exposing storage types and validators at the top of the crate inverts the layering.
+
+**Self-test (sycophancy guard):** Could I dismiss this as "it's a binary crate; pub-vs-pub(crate) is cosmetic; nothing depends on the lib externally"? The cost argument is real (no external consumer today). But (a) the project is a portfolio piece reviewed for architectural hygiene, (b) tightening to `pub(crate)` is a one-line change per item with zero functional risk, (c) the lib.rs hub already mixes "re-export the actual API" with "re-export every internal helper" — making the actual API harder to read at the hub. Dismissal unconvincing — the cleanup cost is trivial and the architectural-honesty benefit is real. Could I dismiss as "the test module needs `use super::*` access to internals"? No — `pub(crate)` permits the same `use super::*` inside the crate; `pub(crate)` ≠ private. Dismissal-attempt unconvincing.
+
+**Severity:** Low-medium. Functionally harmless; architecturally a leak of the "what is the public API of this crate?" contract. The fix is mechanical: change `pub` → `pub(crate)` on all items not in `{cmd_create, cmd_list, cmd_status, cmd_show, cmd_delete, CreateArgs, ColorMode, color_mode_from_env, sanitize_quoted_values}`. The hub `lib.rs:42-50` `pub use` lines should also be narrowed (or removed for items moved to `pub(crate)`).
+
+**Classification: Open.** Raised to SE for the mechanical refactor. Easily landable in a Round-4 inline fix; could also be deferred to portfolio-closeout polish (consistent with the SA R15/R16 Backlogged disposition on the original module split).
+
+**Coordination:** Raised to SE. Cross-reference [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md).
+
+---
+
+**Finding 3 — Test module placement at the `lib.rs#tests` hub (93 unit tests cohabiting a single `mod tests`) is architecturally inconsistent with the module split — it both bypasses module boundaries (each module's invariants are tested through the hub, not co-located with the code) and re-creates the monolithic-file pressure the split was meant to resolve (Dim 2 — Cohesion / Dim 9 — Complexity budget).**
+
+The Rust idiom (and the rust supplement at `iterative-adversarial-refinement/supplements/rust.md` line 11: "Are unit tests colocated with the code they test (`#[cfg(test)]` modules)") prescribes per-module `#[cfg(test)] mod tests` blocks. The current shape (`lib.rs:51-1133` — single `mod tests` containing every unit test for every module) creates two issues:
+
+1. **Module-boundary leak via test code.** The hub `mod tests` opens `use crate::commands::*; use crate::storage::*;` (lib.rs:54-55) — pulling every `pub(crate)` item into the hub for testing. The validate module's items come in via `use super::*` (the hub's re-exports). The test code therefore has *transitive visibility into every module's `pub(crate)` items* — which is fine for testing but means a single test file knows about every internal item. After the split, each module's `pub(crate)` surface is no longer scoped to in-module tests; it's effectively crate-wide because the hub tests need it.
+
+2. **lib.rs#tests = the new monolithic-file shape.** `lib.rs` is now 1133 lines, of which ~1080 are test code. The SA R13 F1 Trigger B threshold (500 LOC non-test) is satisfied for the hub (~50 LOC non-test), but the test-code mass is unchanged — it just moved from "inline with the implementation" to "at the hub." A future refactor that wants to add new tests for `storage.rs` invariants will still go to lib.rs#tests rather than `storage.rs`'s own `#[cfg(test)]` block. The split's goal (per-module cohesion) is *not* extended to the test code.
+
+A natural shape after the split would be:
+- `storage.rs#tests` — `tracker_validation_*`, `issue_field_validation_*`, etc.
+- `validate.rs#tests` — `title_*`, `description_*`, `parse_status_*`, `parse_priority_*`, `parse_label_*`, `parse_id_*`, `dedupe_labels_*`, `bump_next_id_*`, `display_safe_*`, `sanitize_quoted_values_*`.
+- `commands.rs#tests` — `priority_sort_*`, `filter_*`, `format_list_*`, `show_label_*`, `format_show_block_*`, `priority_ansi_*`, `status_ansi_*`, `wrap_color_*`, `render_cell_*`, `color_mode_*`, `multiline_description_*`, `high_edge_delete_*`, `middle_gap_delete_*`.
+
+This would (a) honor the rust supplement's colocation guidance, (b) reduce `lib.rs` to its hub-only role (no test code, just re-exports and module-level docs), (c) keep each module's `pub(crate)` items in the test scope of the module they belong to.
+
+**Self-test (sycophancy guard):** Could I dismiss this as "the tests pass; the placement is a style preference"? The rust supplement is explicit (`unit tests colocated with the code they test`), which makes this a documented standard, not a preference. Could I dismiss as "the test code is `#[cfg(test)]` so it doesn't ship; placement is internal-only"? The placement still affects per-module cohesion and matches Finding 2's "split-honoring layout" argument — a 1080-LOC test module at the hub is a cohesion smell even if it doesn't ship. Could I dismiss as "the hub tests need access to multiple modules' items so colocation would require duplicating helpers (the `issue()` / `issue_with()` / `issue_with_full()` constructors)"? The duplication concern is real, but the standard Rust pattern (a `mod test_helpers` shared module or per-module `mod tests { use crate::test_helpers::*; ... }`) absorbs it. Dismissal-attempt unconvincing.
+
+**Severity:** Low-medium. Functionally identical (tests still run); architecturally a partial completion of the module split (production code split; test code not split). Less urgent than Finding 2 because the test-code surface doesn't appear in `cargo doc` or the external API.
+
+**Classification: Open.** Raised to QE (test placement is QE's authority per CLOSURE-PROTOCOL.md §1) and SE (the implementation pattern, including the shared-helper module if introduced). The fix is mechanical but touches 93 tests + helpers.
+
+**Coordination:** Raised to QE / SE. Cross-reference [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md), [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md).
+
+---
+
+**Finding 4 — `TRACKER_INTERNAL_FORCE_COLOR` test seam leaks through the runtime public-API contract; a `cfg(test)` hook or `cfg(feature = "test-util")` flag would isolate the seam from production binaries (Dim 4 — Interface contracts / Dim 22 — CLI contract stability / Dim 11 — Session continuity).**
+
+`commands.rs:119-126` implements the seam by reading the env var at every invocation of `color_mode_from_env()`. The doc-comment (commands.rs:99-118) acknowledges the trade-off: "deliberately ugly, namespaced env var that integration tests in `tests/layer7.rs` set to bypass the TTY check," "intentionally NOT documented in `--help`, README.md, or DESIGN.md — it is not a user-facing feature."
+
+The architectural concerns:
+
+1. **Public surface in production binaries.** A user (or a malicious / curious actor) running `TRACKER_INTERNAL_FORCE_COLOR=1 tracker list > out.txt` will get color escape sequences in `out.txt`. That contradicts DESIGN.md's "color is never emitted to a non-TTY stdout regardless of env vars, to preserve the pipe-cleanness contract" (L243-244). The seam *is* a `CLICOLOR_FORCE`-equivalent escape hatch the spec deliberately declined to honor — the env var name is ugly, but the behavior is reachable in production. A reviewer reading the spec at L243-244 and then discovering this seam in `commands.rs:124` would correctly flag it as contract drift.
+
+2. **Session continuity gap (Dim 11).** A future AI session reading `commands.rs` will see the seam, search for documentation, find the doc-comment (yes, well-written), and either (a) preserve the seam as load-bearing — when in fact only the test suite needs it — or (b) remove it and break the `tests/layer7.rs` color-positive tests. The seam's purpose lives in a doc-comment, not in the type system or the build configuration. A `cfg(test)` or `cfg(feature = "test-util")` form would make the seam unreachable in release / production builds *by construction*, eliminating the "session continuity" risk.
+
+3. **Stronger isolation patterns exist.** Two named alternatives:
+   - **`#[cfg(test)] fn color_mode_from_env_with_force(force: bool) -> ColorMode` + production `color_mode_from_env()`** — but this only helps the lib's own unit tests; integration tests run against the binary, where `cfg(test)` is *not* set in the build of the binary they exec.
+   - **`#[cfg(feature = "test-util")]` gate** — add a `test-util` cargo feature; `[features] test-util = []`; gate the env-var check behind `#[cfg(feature = "test-util")]`. The integration test setup builds the binary with `--features test-util`; production builds omit the seam entirely. This is the standard pattern for "test seam in a binary that integration tests will exec."
+
+The current shape is a fully production-reachable env-var. The doc-comment is good, but the implementation is unguarded — the only protection is "the env var name is ugly and undocumented."
+
+**Self-test (sycophancy guard):** Could I dismiss this as "the seam is documented as ugly-named and out-of-contract; a user setting it gets what they asked for"? The DESIGN.md L243-244 contract is explicit — `CLICOLOR_FORCE=1` is "not honored: color is never emitted to a non-TTY stdout regardless of env vars." The seam *does* honor a force-color env var (just a differently-named one) in production binaries. That is contract drift, however ugly the env var name. Could I dismiss as "the cfg(feature = test-util) form is over-engineering for a single-user CLI"? The cost is trivial (one cargo feature line + one `#[cfg]` attribute); the benefit is making the spec contract enforceable at compile time. Dismissal-attempt unconvincing. Could I dismiss as "QE Round 1 raised the test-coverage gap and Option A was adopted with SO acquiescence; this is now a closed decision"? QE R17 F1 was about test coverage, not about the seam's production reachability. The closure resolved the test-coverage concern; the production-reachability concern is downstream of *how* the closure was implemented (env var vs. cfg-feature).
+
+**Severity:** Medium. Functional impact: a user can opt into ANSI bytes in piped output, contradicting DESIGN.md L243-244. Process impact: the test-only escape hatch lives in the production binary, weakening the spec-as-contract.
+
+**Classification: Open.** Raised to SE for re-implementation as `#[cfg(feature = "test-util")]` or equivalent; raised to SO for DESIGN.md amendment if the seam is to be ratified as an acceptable narrow exception (with explicit env-var documentation in the spec's color-output section). Cross-domain: this is also a Security finding (CLI-contract drift via undocumented env-var override) — UX / Security may want to evaluate independently.
+
+**Coordination:** Raised to SE / SO. Cross-reference [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md), [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md) (informational — CLI-contract escape hatch), [UX-REVIEW.md](UX-REVIEW.md) (informational — pipe-cleanness contract drift).
+
+---
+
+### Dismissed
+
+**Finding 5 — Auto-Backlog → Resolved transition within ~1 day suggests methodology bypass: the SA R11 F1 + R13 F1 Trigger B + R13 F2 cluster was Backlogged at R16 (2026-05-12 00:00Z) and Resolved at R17 (2026-05-12 12:00Z). Did the Backlog state get used as a procedural waypoint to lower the resolution bar?**
+
+Initial concern: CLOSURE-PROTOCOL.md §3 frames auto-Backlog as a mechanism for "this question has not been answered" — a long-running Open that gets promoted to explicit Backlog status. A Backlog → Resolved transition within hours undermines the §3 intent: if the work was achievable that quickly, why was it deferred across three reviews? The auto-Backlog should not be a procedural rest stop on the way to resolution — it should be a genuine "we are stepping away from this for now" state. The pattern here resembles "auto-Backlog as a way to clear the auto-Backlog rule's pressure, immediately followed by resolution as a way to clear the Backlog" — i.e., the rule's mechanism was satisfied without its purpose being served.
+
+**Classification: Dismissed.** Demonstration that the control holds:
+
+1. **The Backlog state was a genuine SO decision, not a procedural waypoint.** SA R16 records: "F1 — Pre-Layer-7 focused PR deferral expired: Backlogged per CLOSURE-PROTOCOL.md §3 alongside SO R24 F1." The Backlogged state was the *receiving authority's* (SO's) decision, not a self-issued SA dismissal. The §3 mechanism worked: three SA reviews of Open status escalated to SO; SO adjudicated as Backlogged with re-evaluation triggers.
+
+2. **The work was achievable in <1 day because the implementation cost was always small** — the deferral was about *scheduling*, not about *cost*. SA R15 estimated the focused PR scope as: (a) `cmd_list` extraction (≈40 LOC moves + 3 constants), (b) `format_show_block` label constant (≈5 LOC), (c) lib.rs split (≈50 LOC of `pub use` + module declarations + per-module file headers). That's hours of engineering, not days. The three-layer deferral was about ordering against the Layer 7 feature work, not about prep effort. The fast resolution post-Backlog is consistent with the original cost estimate — it's not evidence that the auto-Backlog state was abused.
+
+3. **The CLOSURE-PROTOCOL.md §3 rule does not require a minimum Backlog duration.** §3 reads: "auto-Backlog... prevents the indefinite-Open pattern... The auto-Backlog is reversible: if the receiving authority later adjudicates, the finding moves out of Backlogged into the appropriate terminal state." A Resolved state after a Backlog state is the documented behavior — not a methodology bypass.
+
+4. **SA R16 specifically called out the pattern as healthy.** "VDD-IAR R18 — process-pattern observation: the auto-Backlog rule firing here is a healthy outcome of the §3 mechanism, not a process gap." The R16 SA reviewer (warm closure pass) and the upstream VDD-IAR review both ratified the pattern. The Backlog → fast-Resolved sequence is not the failure mode the rule was designed to catch.
+
+5. **Dismissal-attempt to elevate:** I tried to argue the pattern shows the auto-Backlog rule is a paper tiger — that any sufficiently motivated team can satisfy the rule's mechanism without serving its intent. But the rule's intent is "long-running Open findings don't sit silent" — and the SA R13 → R14 → R15 progression *did* surface the finding to SO via Raised-to-SO. SO's adjudication (Backlogged with triggers) was the correct outcome; the fast post-adjudication resolution is unrelated to the rule's pressure mechanism. The control holds.
+
+The pattern is healthy: surface-via-IAR → SO-adjudication → trigger-met → resolution. The fast post-Backlog resolution is evidence of correct scoping at the original deferral, not evidence of methodology bypass.
+
+---
+
+### Hallucinated
+
+*(no hallucinated findings this round.)*
+
+---
+
+### Deferred
+
+*(no findings deferred this round.)*
+
+---
+
+### Raised to
+
+- **Raised to SE (Findings 2, 3, 4):** `pub` → `pub(crate)` visibility tightening; per-module `#[cfg(test)] mod tests` colocation; `TRACKER_INTERNAL_FORCE_COLOR` re-implementation as `cfg(feature = "test-util")` or equivalent.
+- **Raised to SO (Finding 4):** DESIGN.md amendment authority — if the test seam is to be ratified rather than re-implemented, the spec's pipe-cleanness rule (L243-244) needs an explicit narrow exception.
+- **Raised to QE (Finding 3):** Test placement authority per CLOSURE-PROTOCOL.md §1.
+
+---
+
+### Summary
+
+The Layer 7 R3 change set (5 commits) closed the 4-round Open carry-forward cluster (SA R11 F1 / R13 F1 Trigger B / R13 F2) cleanly — see Finding 1 (Resolved). The module split is well-scoped: storage→validate→commands DAG is acyclic, dependency direction matches the documented layering, and each module's responsibility is focused. The `cmd_list` orchestrator now reads as load → filter → empty-state → sort → format → println (SA R11 F1 closure exactly as recommended). `format_show_block` uses `show_label` + `LABEL_COLUMN_WIDTH` as the single source of truth for label-column shape (SA R13 F2 closure exactly as recommended). Public API surface is preserved — `main.rs` consumes the lib unchanged. All 153 tests pass.
+
+Three new Open findings:
+
+- **Finding 2 (pub visibility leak) — 17 public items have no external caller and should be `pub(crate)`.** Mechanical fix; tightens the crate's external API surface to the actual 9-item set (`cmd_*` + `CreateArgs` + `ColorMode` + `color_mode_from_env` + `sanitize_quoted_values`).
+- **Finding 3 (test placement) — 93 unit tests cohabit at the `lib.rs#tests` hub rather than per-module `#[cfg(test)] mod tests` blocks.** Re-creates a 1080-LOC monolithic shape at the hub; bypasses the rust supplement's colocation guidance; partially completes the module split (production split; test code not split).
+- **Finding 4 (TRACKER_INTERNAL_FORCE_COLOR architectural soundness) — Test seam is production-reachable; allows env-var force-color to a piped stdout, contradicting DESIGN.md L243-244.** Re-implement as `#[cfg(feature = "test-util")]` or amend the spec.
+
+One Dismissed (auto-Backlog methodology bypass): the SA R13 → R14 → R15 → SO adjudication → R17 closure progression is the documented healthy pattern, not a methodology bypass — the §3 rule served its purpose by surfacing the finding to SO; SO's Backlogged disposition with triggers was the correct outcome; the fast post-adjudication resolution is unrelated to the rule's pressure mechanism. The R16 + VDD-IAR R18 ratification stands.
+
+**Complexity budget (Dim 9):** `src/lib.rs` is now 1133 LOC (≈50 non-test hub + ≈1080 test); `src/storage.rs` is 218 LOC; `src/validate.rs` is 273 LOC; `src/commands.rs` is 674 LOC. The non-test footprints are now well under the SA R13 F1 Trigger B 500-LOC threshold for every module except `commands.rs`, which is at 674 LOC — 35% over the threshold. The threshold is informational at the per-module level (the original trigger was on the *single-file* lib.rs), but `commands.rs` deserves a watch — if Layer 8 adds another command or another rendering surface, Trigger B may re-fire on `commands.rs`. Not yet a finding; flagged in the regression-watch column.
+
+**Layer boundary (Dim 1):** Cleanly respected. Storage is the lowest layer; validation is the middle; commands are the top. No upward import from storage into validate or commands; no downward call from validate into commands. The hub `lib.rs` is now purely declarative (mod statements + pub use + tests).
+
+**Separation of concerns (Dim 2):** Significant improvement. `cmd_list` is now an orchestrator with pure helpers (`filter_issues`, `sort_issues`, `format_list_header`, `format_list_row`) — exactly the shape SA R11 F1 prescribed. `format_show_block` uses `show_label` for every label site — exactly the shape SA R13 F2 prescribed. The R3 work is the architectural-honesty payoff that R15 / R16 left pending.
+
+**Interface contracts (Dim 4):** The public API of the lib — what external consumers can call — is technically the union of every `pub` item across all three modules. The actual usage (only `main.rs`) is ≈9 items. Finding 2 captures the visibility-vs-usage gap.
+
+**VSDD purity boundary map (Dim 12):** Now consistent across both rendering paths. `cmd_show` → `format_show_block` (pure) and `cmd_list` → `filter_issues` + `sort_issues` + `format_list_header` + `format_list_row` (all pure). The TTY decision is taken once at `main.rs:100` and threaded inward as `ColorMode`. The pre-R2 boundary partial (cmd_show pure-split / cmd_list inline) is now fully resolved.
+
+**Decision documentation (Dim 10):** The module split's rationale is captured in the module-level doc comments of each new file (`storage.rs:1-15`, `validate.rs:1-21`, `commands.rs:1-26`). The lib.rs hub doc-comment (`lib.rs:8-32`) describes the split, the re-exports, and the boundary. Session continuity (Dim 11) for the split is excellent. The `TRACKER_INTERNAL_FORCE_COLOR` decision is documented in `commands.rs:99-118` (doc-comment on `color_mode_from_env`), but per Finding 4 the *placement* of the decision (env-var read at runtime, no cfg gate) is the architectural concern, not the documentation.
+
+**External interface contracts (Dim 13 / Dim 22):** The CLI's stdout / stderr / exit-code contract is unchanged. `--help` text in `main.rs` is unchanged from R2. The `TRACKER_INTERNAL_FORCE_COLOR` env var is the one contract surface that drifted (Finding 4) — it's reachable from the CLI runtime, but undocumented in `--help`, README, or DESIGN.md. Either re-implement to make it unreachable in production (Finding 4 disposition (a)) or document it as a narrow ratified exception (Finding 4 disposition (b)).
+
+**Sycophancy check:** Two findings I tried to dismiss but could not:
+
+- **Finding 2 (pub visibility leak)** — I tried to dismiss as "binary crate, cosmetic, no external consumer." But the architectural-honesty argument (the crate's public API should be the top of the layering, not every internal helper) holds, and the fix is mechanical. Dismissal unconvincing → Open.
+- **Finding 4 (TRACKER_INTERNAL_FORCE_COLOR architectural soundness)** — I tried to dismiss as "the env-var name is ugly and undocumented; users won't find it; the test seam is necessary." But the seam is production-reachable, and DESIGN.md L243-244 explicitly says "color is never emitted to a non-TTY stdout regardless of env vars" — the seam violates that. Dismissal unconvincing → Open.
+
+One finding I tried to elevate but could not:
+
+- **Finding 5 (auto-Backlog → fast Resolved as methodology bypass)** — I tried to argue the pattern undermines CLOSURE-PROTOCOL.md §3's intent. But the rule's intent is "surface long-running Open findings to the receiving authority"; that happened (SO adjudicated at R16); the fast post-adjudication resolution is consistent with the original cost estimate. The control holds. Elevation unconvincing → Dismissed.
+
+**Carry-forward status (explicit):**
+
+- **SA R11 F1** (`cmd_list` rendering extraction): **Resolved** by commit `3fa1f3c`. Verified at `commands.rs:603-674`.
+- **SA R13 F1 Trigger B** (`src/lib.rs` module split, ≥500 LOC): **Resolved** by commit `8db9437`. Verified at `src/lib.rs` (50-LOC hub) + `storage.rs` (218) + `validate.rs` (273) + `commands.rs` (674).
+- **SA R13 F2** (`format_show_block` column-width literals): **Resolved** by commit `3fa1f3c`. Verified at `commands.rs:347-390`.
+- **SA R13 F1 Trigger A** (`CreateArgs` refactor): **Remains Resolved** (R14). No regression.
+- **SA R15 F2 / F3** (TTY-detection consolidation + ColorMode enum): **Remains Resolved** (R16). No regression — the R3 module split preserved `color_mode_from_env` and `ColorMode` exactly.
+
+**Coordination:** Raised to SE (Findings 2, 3, 4). Raised to SO (Finding 4 — DESIGN.md amendment authority if seam is to be ratified). Raised to QE (Finding 3 — test placement authority). Cross-reference [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md), [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md), [SOLUTION-OWNER-REVIEW.md](SOLUTION-OWNER-REVIEW.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md) (informational — Finding 4 CLI-contract escape hatch), [UX-REVIEW.md](UX-REVIEW.md) (informational — Finding 4 pipe-cleanness drift). **Merge-gate impact:** NO-GO-PENDING-{Finding 4 disposition}. Findings 2 and 3 are low-medium severity and Backlog-eligible per CLOSURE-PROTOCOL.md §3; Finding 4 is a contract-drift concern that should be adjudicated (re-implement, or DESIGN.md amendment) before Layer 7 merges to main. Findings 2 and 3 can land in a follow-up PR or be Backlogged for portfolio-closeout polish without blocking the merge gate.
+
+**Files modified:** This log appended only.

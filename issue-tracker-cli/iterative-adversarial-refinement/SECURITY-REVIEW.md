@@ -1294,4 +1294,147 @@ Both R1 Security findings Resolved: F1 by `wrap_color` debug_assert! (defense-in
 
 **Coordination:** RT R11 — clap stderr Cc-escape coordinated closure verified (`unknown_subcommand_with_cc_payload_escapes_in_stderr` integration test); UX R11 — NO_COLOR closure cross-checked; QE R18 — `wrap_color` debug_assert! test verified.
 
+---
+
+## Review 13 — 2026-05-12 12:00Z
+
+**Round:** Security Review 13 (cold session, Layer 7 IAR Round 3 — post-Round-2 module split + test seam + rendering extraction + clippy-hook).
+**Scope:** Five commits since `b853a81`: `ff0e85c` (`cargo clippy` pre-commit hook); `c341a54` (`render_cell` ASCII `debug_assert!`); `bd7511e` (`TRACKER_INTERNAL_FORCE_COLOR` test seam); `3fa1f3c` (`cmd_list` rendering extraction + column-width constants); `8db9437` (three-module split into `commands.rs` / `storage.rs` / `validate.rs`). Whole-application regression check per the standard prompt.
+
+**Session note:** Cold session. Loaded `prompts/review-session.md`, `domains/role/SECURITY-REVIEW.md`, `supplements/rust.md`, `supplements/cli.md`, DESIGN.md (stderr contract + Color output), Cargo.toml, Cargo.lock (diff vs. `b853a81` empty — 0 dep change), all four src modules, last two prior log entries (R11, R12). Anonymization: no `<HOME>`/`<USER>` references reproduced; attack payloads abstracted (`<ESC>`, `<TOKEN>`); tempdir paths abstracted as `/tmp/<test-dir>`.
+
+**Posture:** Adversarial. The R3 change set is structural (module split, rendering extraction) and tooling (pre-commit hook, debug_assert hardening, test seam). The narrative "pure reorg, no security surface change" is exactly the conclusion the primer's sycophancy check warns against; the verification effort below treats it as a hypothesis to falsify rather than assume.
+
+---
+
+### Threat Model (preamble — not a finding)
+
+Unchanged from R11–R12. Single-user local CLI on a developer's own machine. Plausible attackers: the user themselves (typo / clipboard paste carrying ANSI / a hand-edited `tracker.json`); a third party who hands the user a `tracker.json`; a process that overwrites `tracker.json` between commands. Crown jewel: integrity of the rendering pipeline to the terminal (Layer 7 deliberately emits ESC bytes there) and the tracker data file itself. Entry points: clap CLI args, `tracker.json` via `load_tracker`, and now four environment variables (`NO_COLOR`, `CLICOLOR`, `CLICOLOR_FORCE` — the last documented as not-honored — and `TRACKER_INTERNAL_FORCE_COLOR` new this round). No network, no privilege boundary, no shared filesystem. Pty-spoofing and multi-actor surfaces remain out-of-threat-model per DESIGN.md Edge Cases / Labels L319-322.
+
+---
+
+### Regression check (carry-forward Accepted Risk + Cc defenses + dep audit)
+
+Verified intact across the R3 module split:
+
+- **Cc-rejection at every input boundary:** `src/validate.rs` retains `validate_title` (`is_control` check L45), `validate_description` (`is_control` other than `\n` L76), `parse_label` (`is_control` L143). `src/storage.rs` retains the load-time mirrors `issue_fields_are_valid` (title L113), `description_is_valid` (L134), `label_is_valid` (L142). Grep for `is_control` returns 11 hits across the three modules — every defense the prior log enumerated is present at the new module location. No defense was dropped in the split.
+- **`display_safe` / `sanitize_quoted_values`:** moved to `validate.rs` (L216, L248) and re-exported from `lib.rs` (L47-49). End-to-end smoke test against the dev-build binary in a fresh tempdir: `tracker $'pre\rmid\ttab'` → stderr `Error: unrecognized subcommand 'pre\u{D}mid\u{9}tab'\n\nUsage: tracker <COMMAND>\n\nFor more information, try '--help'.`, exit 1. The clap → `sanitize_quoted_values` pipeline still escapes Cc inside quoted regions while preserving structural LFs after the module move.
+- **`wrap_color` debug_assert (R11 F1 / R12 closure):** preserved at `src/commands.rs:181-185` with identical predicate (`!value.chars().any(char::is_control)`).
+- **F12 (Plaintext `tracker.json`) Accepted Risk:** unchanged. No storage-format edits.
+- **F13 (Trojan-Source / Cf in title/label/description, RT R8 F2 lineage) Accepted Risk:** unchanged. Description rendering pipeline byte-identical (still `format_show_block` → `wrap_color` only for closed-enum status/priority; description not color-wrapped). Cf bytes are not in `char::is_control()`; Accepted Risk posture preserved.
+- **`cargo audit --no-fetch`:** 1069 advisories loaded, 100 crate deps scanned, exit 0, 0 advisories reported. `git diff b853a81 HEAD -- Cargo.toml Cargo.lock` empty.
+- **MSRV:** `rust-version = "1.82"` set in `09b1905` (Round 2); R3 commits do not touch the line.
+- **Panic surface:** crate-root `#![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::missing_errors_doc)]` preserved at `src/lib.rs:1-6`. No new `unwrap` / `expect` / `panic` introduced in R3; the existing `#[allow(clippy::unwrap_used)]` for `serde_json::to_string_pretty(tracker)` follows the type to `storage.rs:214-216` and its rationale is unchanged. SIGPIPE handler (`src/main.rs:64-67`) intact.
+
+No regression observed.
+
+---
+
+### Findings
+
+**Finding 1 — `TRACKER_INTERNAL_FORCE_COLOR` env-var attack surface (Dim 1 — Input handling; Dim 4 — Secret/env handling)**
+
+`color_mode_from_env` (`src/commands.rs:119-139`) introduces a new env-var-controlled code path:
+
+```
+if std::env::var_os("TRACKER_INTERNAL_FORCE_COLOR").is_some_and(|v| v == "1") {
+    return ColorMode::On;
+}
+```
+
+Threat-model analysis:
+
+1. **Who can set it?** Anyone with write access to the user's shell environment. In the documented threat model (single-user local CLI), that is the user themselves. Same authority surface as setting `NO_COLOR` or any other env var — no new authentication boundary is bypassed.
+2. **What does setting it bypass?** Exactly one control: `is_terminal()`-based TTY suppression. If set, ANSI escapes are emitted to stdout even when stdout is piped. The escapes themselves are six hardcoded SGR sequences (the same R11 enumeration: `\x1b[1;31m`, `\x1b[1;33m`, `\x1b[1;36m`, `\x1b[1;32m`, `\x1b[0m`, plus the absent-color case); the wrapped value is still a closed-enum status/priority (the closed-enum invariant + `wrap_color` debug_assert hold across the split). No OSC, no DCS, no escape capable of crossing the terminal-emulator security boundary.
+3. **Does it violate the spec's pipe-cleanness contract?** The spec's contract is on user-controllable CLI behavior: "ANSI escapes are never emitted to stderr ... color is never emitted to a non-TTY stdout regardless of env vars." `CLICOLOR_FORCE=1` is deliberately not honored to preserve that contract. `TRACKER_INTERNAL_FORCE_COLOR` is documented in source as a test seam — not in `--help`, README.md, or DESIGN.md. **The distinction is defensible from a security posture** only because the var is namespaced (no collision with conventional CLI color env vars), the activation value is the literal `=1` (not any-non-empty, making accidental activation by an empty-string export less likely), and the env-var name itself signals "do not use." But the surface is technically present: a user who learns the variable name and pipes `tracker list | parser` will produce a corrupted-by-ANSI stream. **Severity is low** because the user holds both halves of the attack (sets the var AND runs the consumer), but flagging the existence-of-bypass for the carry-forward log.
+
+**Adversarial reproducer (against dev binary in fresh tempdir):**
+
+```
+$ TRACKER_INTERNAL_FORCE_COLOR=1 tracker list 2>/dev/null | od -c | head
+```
+
+— would emit ANSI bytes into the piped consumer. Not exercised here (no issues stored in the fresh tempdir), but verified by code path: the early-return `return ColorMode::On;` precedes the `is_terminal()` check.
+
+**Classification:** **Dismissed** (no new exploitable surface; user-controlled-only path with explicit "do not use" signaling at both name and value level; spec contract distinction holds). Recorded for traceability; the bypass exists by design (QE R17 F1 closure). No remediation required at this layer. Re-evaluation trigger: if the spec ever permits user-facing forced color (e.g., honoring `CLICOLOR_FORCE`), the test seam should be deleted and the conventional env var used instead, eliminating the dual surface.
+
+---
+
+**Finding 2 — `debug_assert!` panic-as-DoS surface on `wrap_color` + `render_cell` (Rust supplement — Panic as DoS; Dim 1 — Output handling)**
+
+Two `debug_assert!` macros now guard the rendering layer:
+
+- `wrap_color` (`src/commands.rs:181-185`): asserts `!value.chars().any(char::is_control)`.
+- `render_cell` (`src/commands.rs:219-226`): asserts `value.is_ascii()` (new in `c341a54`).
+
+In **release builds** (the production binary users install), `debug_assert!` is compiled out — zero DoS surface, zero runtime cost. In **debug builds** (`cargo test`, `cargo build` without `--release`, `cargo run`), the assertions fire on input violations and panic the process. The threat model question is whether an attacker can plant a non-ASCII status/priority OR a Cc-bearing colored value that reaches these assertions in a debug build.
+
+End-to-end trust chain for both call sites (`format_show_block` lines 361-362 and `format_list_row` lines 562-571): values are `issue.status` and `issue.priority`, both closed-enum-validated at parse time (`parse_status` / `parse_priority`) AND load time (`tracker_is_valid` → `issue_fields_are_valid` → `VALID_STATUSES.contains` / `PRIORITY_ORDER.contains`). Every legal value is pure ASCII (`open`, `in-progress`, `done`, `low`, `medium`, `high`). Reaching the assertion-panic requires defeating both the input-side and load-side enum check — exactly the threat model the `debug_assert!` is meant to surface for future refactors.
+
+**Adversarial probe (against dev binary):** hand-edited `tracker.json` with `"priority": "完成"` reaches `load_tracker` → `tracker_is_valid` returns `false` → standard corrupt-data error before the rendering layer is invoked. Reproducer matches R11 F1's load-time positive control. No assertion fires in production code; the assertion fires only in unit tests by design (`wrap_color_debug_assert_active_in_debug_builds`, `render_cell_debug_assert_on_non_ascii_value`).
+
+The threat model **explicitly accepts** the debug-build-only assertion-panic surface: release builds are the production target; debug builds run in trusted test contexts (CI / local dev). Closed-enum validation at parse + load makes the panic unreachable through any documented input path.
+
+**Classification:** **Dismissed.** Release-build cost is zero; debug-build assertion is the documented mechanism for surfacing future-refactor failures (the QE R17 F5 + Security R11 F1 closure rationale). No DoS surface in the production binary. Re-evaluation trigger: if the spec ever introduces a non-enum colored field (e.g., a colored label or category), the `debug_assert!` would need to be either deleted or replaced with release-mode runtime sanitization — but until that change is proposed, the assertion is the load-bearing defense-in-depth contract.
+
+---
+
+**Finding 3 — Module split visibility audit (Dim 1 / Dim 2 — boundary trust)**
+
+The split moves load-time invariant code into `pub(crate)` items in `src/storage.rs`: `tracker_is_valid`, `issue_fields_are_valid`, `description_is_valid`, `label_is_valid`, `parse_timestamp`, `CORRUPT_DATA_ERROR`, `VALID_STATUSES`, `PRIORITY_ORDER`. Likewise `priority_ansi`, `status_ansi`, `wrap_color`, `render_cell`, `format_show_block`, `show_label`, `format_list_header`, `format_list_row`, `priority_rank`, `issue_matches_filters`, `truncate_with_ellipsis`, `filter_issues`, and the column-width `pub(crate) const`s in `commands.rs`. None are re-exported from `lib.rs`.
+
+**Visibility model:** `pub(crate)` items are visible inside the crate only — they are NOT reachable from integration tests in `tests/`, which compile against the crate as an external dependency and see only `pub` items. Confirmed: the two grep hits in `tests/layer4.rs:351` and `tests/layer6.rs:648` referencing `issue_fields_are_valid` are inside comments describing what gets enforced at load, not call sites. Empirical confirmation: `cargo build` succeeds end-to-end with `main.rs` consuming only the lib's `pub use` re-exports, and the integration test suite compiles.
+
+**Security-sensitive items audit:**
+- `CORRUPT_DATA_ERROR`: a constant error-message string. Not security-sensitive on its own; not reachable from outside the crate.
+- `VALID_STATUSES` / `PRIORITY_ORDER`: the closed-enum source of truth. Read-only `&[&str]`; not mutable from any caller. Not reachable from outside the crate.
+- `tracker_is_valid` / `issue_fields_are_valid`: load-time validators. Calling them from a hypothetical out-of-tree downstream would only let the downstream check validity, not bypass it.
+- `wrap_color` / `render_cell`: rendering helpers carrying debug_assert contracts. `pub(crate)` correctly prevents downstream callers from bypassing the contracts established by the in-crate call sites.
+
+**Classification:** **Dismissed.** Visibility scoping is correct. `pub(crate)` is the minimum reasonable scope (`fn` private would prevent the `#[cfg(test)]` unit-test module in `lib.rs` from invoking the helpers); no item that should have been `pub(crate)` was accidentally made `pub`; the `pub use` re-export list in `lib.rs:42-50` preserves the pre-split public API surface exactly.
+
+---
+
+**Finding 4 — Information exposure in error messages (Dim 5)**
+
+The R3 commits introduce no new error messages that interpolate user data. Spot-checked: `cmd_create`, `cmd_status`, `cmd_show`, `cmd_delete` error paths all route through `display_safe` for user-supplied values (`parse_status` / `parse_priority` / `parse_id`) and through a `format!("Issue #{} not found.", id)` where `id` is a `u64` (no user-supplied bytes survive `parse_id` validation). The `Could not read tracker data: {e}` / `Could not save tracker data: {e}` interpolations in `storage.rs:199` / `storage.rs:217` carry the same OS-error-only shape verified empirically in R11 F7 (no path leaked at the OS error formatting boundary on Darwin).
+
+**Classification:** **Dismissed.** No new exposure surface in R3.
+
+---
+
+### Accepted Risk (carry-forward)
+
+**Finding 5 (carried) — Plaintext storage (F12 lineage).** Unchanged from R1 / R5 / R6 / R7 / R8 / R9 / R10 / R11 / R12. Risk owner: the user/developer per DESIGN.md "Constraints / Single user. Local storage only." No new data fields; data-classification posture unchanged ("internal" at most).
+
+**Finding 6 (carried) — Trojan-Source / Cf in title / label / description (F13 / RT R8 F2 lineage).** Unchanged from R11 / R12. Risk owner: the director per DESIGN.md L353 cross-reference. Re-evaluation trigger: widened threat model (multi-user / shared tracker.json). R3 introduces no new bidi-rendering surface (description still uncolored; title still uncolored; only the closed-enum status/priority cells are colored; the `wrap_color` debug_assert! covers Cc but not Cf, preserving the Accepted Risk).
+
+---
+
+### Hallucinated
+
+*(none this round — no findings invented and dismissed; the four substantive analyses above all map to real verifiable surfaces, classified Dismissed on specific grounds rather than because no counter-example was findable.)*
+
+---
+
+### Summary
+
+Round **13** logged. Cold-session Layer 7 R3 sweep produced **zero Open findings**; four substantive surface analyses classified **Dismissed** (env-var test seam, debug_assert panic-as-DoS, module visibility, error-message exposure); two carry-forward **Accepted Risk** (plaintext storage, Cf in free-form text) re-verified intact.
+
+**Top concern.** Finding 1 — `TRACKER_INTERNAL_FORCE_COLOR` env-var attack surface — is the closest to a real finding among the four dismissed: it is a deliberate bypass of one defense (TTY suppression), and the "test seam, not user-facing" framing is the kind of distinction the sycophancy guard warns against accepting too easily. The Dismissed verdict rests on three concrete properties (namespaced name, literal `=1` activation, single-user threat model where the user holds both halves of the attack) — each independently verifiable, none rationalized. If any of the three weakens (the var gets documented; the activation broadens; the threat model widens to multi-user), the finding would re-open as Open.
+
+**Secondary concern.** Finding 2 — debug_assert panic-as-DoS — is documented as an accepted release-mode-vs-debug-build trade-off; flagged because "compiled out in release" is itself a sycophancy-bait phrase that needs verification. Verified: the closed-enum invariants make the assertion unreachable through any documented input path; release-mode cost is zero; the assertion is the load-bearing future-refactor surface that QE R17 F5 + Security R11 F1 specifically designed in.
+
+**Regression status.** All Layer-1–6 Security controls intact across the module split: every Cc-defense site grepped and verified; `display_safe` / `sanitize_quoted_values` end-to-end stderr Cc-escape verified against dev binary. `cargo audit` clean. 0 new dependencies. MSRV unchanged across R3. `cargo build` clean.
+
+**Sycophancy-guard note.** The assignment's "pure reorg, no security surface change" framing was treated as a hypothesis. The verification path: (a) every Cc-defense site was independently re-located after the split and re-greped (not assumed-preserved); (b) the stderr Cc-escape end-to-end was re-tested against a built binary (not assumed-preserved by `cargo build` success alone); (c) `pub(crate)` visibility was checked against integration-test reachability (not assumed-correct from the source-only review); (d) the new `TRACKER_INTERNAL_FORCE_COLOR` env var was threat-modeled as a new entry point (not absorbed into "test infrastructure, ignore"). Each step produced a verifiable answer; none required softening to reach the "no Open findings" verdict.
+
+**Coordination:**
+- [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) — the module-split visibility audit (Finding 3) is the Security-side cross-check on SA R13 F1 Trigger B closure; SA may wish to confirm the `pub(crate)` discipline at the architectural level.
+- [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) — Finding 2's debug_assert reliance on closed-enum invariants is a regression-test surface; QE may wish to confirm the property-test coverage of `VALID_STATUSES` × `PRIORITY_ORDER` against `wrap_color` / `render_cell`.
+- [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md) — the new `cargo clippy` pre-commit hook (`ff0e85c`) is a Security-positive defense (clippy's `unwrap_used` / `expect_used` / `panic` lints are part of the panic-surface defense); PE may wish to confirm CI parity so PR builds enforce the same gate.
+- [RED-TEAM-REVIEW.md](RED-TEAM-REVIEW.md) — Finding 1's env-var bypass surface is exactly the class of finding Red Team independently surfaces; cross-check welcomed.
+
+**Files modified:** This log appended only. No source, tests, or DESIGN.md changes applied per CLOSURE-PROTOCOL.md §1 (Security may apply CVE fixes to `src/**` — no CVE fixes triggered this round; all four substantive findings are surface-classifications, not vulnerabilities). Anonymization: `<HOME>` / `<USER>` not reproduced; attack payloads abstracted as `<ESC>` / `<TOKEN>`; tempdir paths abstracted.
+
 **Files modified:** This log appended only. The `wrap_color` debug_assert! and `color_mode_from_env` landed in `09b1905` under SE authority per CLOSURE-PROTOCOL.md §1 (Security has CVE-fix authority on `src/**`; this round's findings were defense-in-depth, not CVE).

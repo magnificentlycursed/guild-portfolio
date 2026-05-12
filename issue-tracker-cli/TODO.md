@@ -374,6 +374,14 @@ Unit tests:
 - [x] Review each error message from all prior layers manually: does it say what went wrong and what the valid alternatives are?
 - [x] `tracker frobnicate` → exit 1, stderr usage error
 
+**Manual Testing Checklist — Round 2 rewalk (added by SO Review 25 Finding 3, carry-forward of R24 GO-PENDING-MANUAL-REWALK):**
+- [ ] `NO_COLOR=1 tracker list` in TTY → verify NO color emitted (priority and status values render in default color)
+- [ ] `CLICOLOR=0 tracker list` in TTY → verify NO color emitted
+- [ ] `CLICOLOR_FORCE=1 tracker list | cat` → verify output still has no ANSI codes (the spec deliberately declines to honor `CLICOLOR_FORCE`)
+- [ ] `tracker list` in TTY with a `medium` priority issue → verify `medium` renders with `bold` attribute (not plain yellow); `in-progress` and `done` also render bold (Round-2 bold-redundancy amendment, WCAG 1.4.1)
+- [ ] `tracker list` in TTY when no open issues exist → verify the `No open issues. Nice work!` stderr message has no ANSI escapes (color suppression is symmetric across stderr regardless of TTY)
+- [ ] `tracker pre$'\r'mid$'\t'tab` → verify the clap `unrecognized subcommand` error on stderr Cc-escapes the CR / TAB as `\u{D}` / `\u{9}` while preserving the structural `\n\nUsage:` block (Round-2 stderr Cc-escape rule extended to clap pipeline)
+
 **Red Gate — tests to write first:**
 
 Integration tests:

@@ -952,3 +952,117 @@ R11's 0-findings MVR is maintained at HEAD. R2 changes are confirmed presentatio
 
 **Files modified:** Only this log appended.
 
+---
+
+## Review 13 — 2026-05-12 12:00Z
+
+**Round:** DE Review 13 (Layer 7 IAR Round 3 — module-split review). Cold session.
+
+**Scope:** Layer 7 R3 change set, primary commit `8db9437` — three-module split of `src/lib.rs` into `storage.rs` + `validate.rs` + `commands.rs`. **The data layer is now a dedicated module (`src/storage.rs`); this is the first review where storage has a module of its own**, so the DE review focuses on whether the extraction is clean (sycophancy posture: "data layer cleanly extracted" is a positive-sounding claim — verify, don't confirm). Other R3 commits (`ff0e85c` clippy hook, `c341a54` CJK debug_assert, `bd7511e` force_color seam, `3fa1f3c` cmd_list extraction) are non-data-layer.
+
+### Whole-suite regression check
+
+`cargo test` at HEAD (`8db9437`): **all bins pass.** Test count by binary: 93 unit + 32 + 18 + 9 + 25 + 7 + 33 + 20 + doc 0 = **237 tests, 0 failures.** Build (`cargo build --release`) is clean.
+
+### Data-layer extraction audit (R3 primary pressure point)
+
+Compared `git show b853a81:issue-tracker-cli/src/lib.rs` (pre-split) against `src/storage.rs` (post-split):
+
+- **serde derives present.** `#[derive(Debug, Serialize, Deserialize)]` on both `Tracker` and `Issue`, with `#[serde(skip_serializing_if = "Option::is_none")]` on `Issue::description`. Identical to pre-split.
+- **I/O entry points isolated.** `load_tracker` and `save_tracker` are the only fs-touching functions in the crate; both live in `storage.rs`. `grep "fs::" src/{commands,validate}.rs` → zero matches. The data-I/O boundary is the module boundary.
+- **Load-time invariants co-located with types.** `tracker_is_valid`, `issue_fields_are_valid`, `description_is_valid`, `label_is_valid`, `parse_timestamp`, `CORRUPT_DATA_ERROR` all live in `storage.rs` alongside `Tracker`/`Issue` — the "validate what we deserialize" concern is now in the same module as the deserialization target. The split rationale in the module-doc comment ("data model + load-time invariants" vs "user-input validation" vs "commands") is consistent with what was actually moved.
+- **Domain enums as single source of truth.** `VALID_STATUSES` and `PRIORITY_ORDER` live in `storage.rs`; `validate.rs` imports them via `use crate::storage::{PRIORITY_ORDER, VALID_STATUSES}` (validate.rs line 26); `commands.rs` imports `PRIORITY_ORDER` for sort ranking. No second copy exists. `grep -rn '\"open\", \"in-progress\", \"done\"\|\"high\", \"medium\", \"low\"' src/` → only the two definitions in `storage.rs`.
+
+### Semantic-change probe (no-behavior-change claim verification)
+
+Per the commit message, the split is "pure code reorganization." Verified by comparing pre/post-split:
+
+- `tracker_is_valid` body byte-for-byte identical to pre-split (lines 280-289 of `/tmp/lib_pre_split.rs` vs lines 154-171 of `storage.rs`): `next_id < 1` check first, then per-record validity, then HashSet uniqueness, then the `next_id <= max_id` check inside `if let Some(max_id)`. Identical control flow. **SO R22 invariant byte-stable across the split.**
+- `issue_fields_are_valid` body identical: same conjunct order, same `is_none_or` description check, same `updated_at >= created_at`.
+- `description_is_valid`: `!trim().is_empty() && !chars.any(|c| c.is_control() && c != '\n')` — Cc-other-than-`\n` rule from DE R9 F1 / Layer 6 R2 is byte-stable.
+- `label_is_valid`: identical predicate (empty, control, comma).
+- `load_tracker` / `save_tracker`: identical bodies (error formatting, fresh-tracker default `{issues: [], next_id: 1}`, `serde_json::from_str` → `tracker_is_valid` chain).
+- Diff of declared items reduces to: items split across three files, and crate-internal visibility upgraded from bare-`fn` to `pub(crate) fn` so the test module in `lib.rs` and sibling modules can reach them. No body changes.
+
+### Module-boundary acyclicity probe
+
+`grep -n 'use crate::' src/storage.rs` → 0 matches. `src/validate.rs` imports only from `storage`. `src/commands.rs` imports from `storage` + `validate`. The dependency graph is: `storage` (leaf) ← `validate` ← `commands` (root). Acyclic; the data layer has no upward dependencies — correct posture for a data-layer module.
+
+### Empirical round-trip (cold, fresh `tracker.json` in `/tmp/der13`)
+
+Release binary at HEAD, no prior data:
+
+1. `tracker create "Test" --description $'Multi\nline'` (real LF planted via `printf`) → `Created issue #1: Test`.
+2. `tracker show 1` renders:
+   ```
+   Description: Multi
+                line
+   ```
+   First line on the same row as the label; continuation indented exactly 13 spaces. Round-trip of `\n` through serde → file → load → render is intact.
+3. `cat tracker.json` shows `{"issues": [{"id": 1, "title": "Test", "description": "Multi\nline", ...}], "next_id": 2}`. **The `next_id: 2` field is present** — the SO R22 storage shape persisted, not the pre-R22 bare array.
+4. `tracker delete 1` → `Deleted issue #1.` File becomes `{"issues": [], "next_id": 2}` (counter unchanged by delete).
+5. `tracker create "Next"` → assigned id=**2** (not 1), `next_id: 3`. The deleted high-edge id is not reused — SO R22 invariant holds across the new module structure.
+
+### Description Cc-defense regression probe (Layer 6 R2 lineage)
+
+Two-layer defense intact:
+
+- **Parse-time:** `validate::validate_description` (validate.rs lines 72-82) rejects Cc-other-than-`\n`. Unit tests `description_with_control_char_other_than_newline_is_rejected` (`a\u{1B}b`, `a\u{07}b`, `a\u{00}b`, `a\u{7F}b`, `a\tb`, `a\rb`, `line1\r\nline2`) all pass at HEAD.
+- **Load-time:** `storage::description_is_valid` (storage.rs lines 133-135) wired via `issue_fields_are_valid` line 120. Unit tests `issue_field_validation_rejects_control_char_in_description` and `issue_field_validation_rejects_carriage_return_in_description` pass. Newline carve-out preserved (`issue_field_validation_accepts_newline_in_description`).
+
+### Per-DE-dimension audit
+
+1. **Data model correctness** — `Tracker` (`issues: Vec<Issue>`, `next_id: u64`) and `Issue` (id, title, description Option, status, priority, labels, created_at, updated_at) match DESIGN.md Data Model section unchanged. No field type or optionality drift across the split.
+2. **Validation and normalization** — Two-tier defense unchanged: input boundary (`validate.rs`) and load boundary (`storage.rs`). The split moved code but did not weaken either tier.
+3. **Schema evolution** — Pre-SO-R22 bare-array shape still rejected at load (commit message references this; the `let tracker: Tracker = serde_json::from_str(...)` line is unchanged from `b853a81`). No forward-compat regression.
+4. **Data integrity invariants** — `next_id > max(issue.id)` check byte-stable in `tracker_is_valid`; HashSet uniqueness byte-stable; per-issue invariants unchanged. Round-trip probe confirms behavior end-to-end.
+5. **Storage fitness** — JSON file, direct write, single-user CLI. Out-of-scope items (atomic writes, file locking) explicitly noted in DESIGN.md, unchanged by R3.
+6. **Access patterns** — `cmd_create` / `cmd_status` / `cmd_delete` each call `load_tracker` then `save_tracker`. Read-then-write pattern unchanged from pre-split (verified by grep — `load_tracker` callers and `save_tracker` callers identical).
+7. **Serialization and deserialization** — `serde_json::to_string_pretty` for write; `serde_json::from_str` for read; `#[serde(skip_serializing_if = "Option::is_none")]` on description verified by round-trip (`tracker.json` for id 2 has no description field — `None` correctly omitted, not serialized as `null`).
+8. **Data consistency** — Single-process, single-writer model. R3 introduces no new write site.
+9. **Sensitive data handling** — Title/description are free-form user text; same posture as prior reviews. No PII surface change.
+10. **Test coverage of data paths** — All pre-split DE tests survive the split (visible in `lib.rs` `#[cfg(test)] mod tests` block — 93 unit tests, including `tracker_validation_*` family, `issue_field_validation_*` family, `description_*` family). The split did not break test reachability of `pub(crate)` items because the test module is at the lib.rs hub level with `use crate::storage::*; use crate::commands::*;` glob imports.
+11. **Data volume limits** — Unchanged; single-user CLI, no documented hard cap. Out-of-scope per prior reviews.
+
+### Sycophancy probe — "data layer cleanly extracted" claim verification
+
+The claim sounds positive. Concrete checks against the claim, each independently:
+
+- **Q: Is everything data-related actually in storage.rs?** A: Yes — `Tracker`, `Issue`, both I/O entry points, all load-time predicates, the parse_timestamp helper, and the domain enums. The one ambiguity is `bump_next_id` (in validate.rs, not storage.rs) — but `bump_next_id` is pure arithmetic on a `u64` that happens to be the counter type; it does not touch the storage struct or any field. Co-locating it with the rest of the input-side helpers in `validate.rs` is defensible. **Not a finding** — but I considered it, and the placement is justified rather than reflexively approved.
+- **Q: Did anything data-related leak into the other modules?** A: `commands.rs` imports `PRIORITY_ORDER` for sort ranking and `Issue` for type signatures. Neither is a data-layer concern crossing the boundary — sort rank is a presentation concern that happens to share the priority enum, and `Issue` is the data type the commands operate on. No leakage.
+- **Q: Are there two copies of any storage constant?** A: No (grep verified above).
+- **Q: Could the split have silently changed a predicate?** A: Pre/post-split byte comparison of all five load-time predicates confirms identity.
+
+The extraction is, on the evidence, clean. The claim is verified, not merely accepted.
+
+### Carry-forward findings
+
+- DE R11 had 0 substantive findings; DE R12 had 0 substantive findings (closure pass); DE R13 produces 0 substantive findings. **MVR maintained across three consecutive cold/warm rounds at the data layer.**
+
+### Findings by classification
+
+**Resolved:** *(none — no fix needed.)*
+**Deferred:** *(none.)*
+**Dismissed:** *(none.)*
+**Hallucinated:** *(none — no finding was raised and then retracted; I considered the `bump_next_id` placement as a "should this be in storage?" prompt and concluded the current placement is justified before promoting it to a finding.)*
+**Raised to SO:** *(none.)*
+
+Total findings: **0 substantive.**
+
+### Cross-domain flags
+
+- **SOLUTION-ARCHITECT-REVIEW.md** — module split is the SA R13 F1 Trigger B closure; from the data-layer perspective the extraction is clean. SA's own dimensions (cognitive load, module-boundary clarity, public API stability) are the primary review surface for this commit and live in their domain.
+- **QUALITY-ENGINEER-REVIEW.md** — full suite green at HEAD (237/237); the test reachability of `pub(crate)` items from the lib.rs test module is intact. No QE escalation from the data side.
+- **SECURITY-REVIEW.md** / **RED-TEAM-REVIEW.md** — load-time enum validation (the "ANSI-in-status field" defense from DE R11 probe) is preserved byte-for-byte. No new attack surface introduced by the module split.
+- No PII / privacy concern raised by the reorganization.
+- No new IAR domain proposal.
+
+### Summary
+
+The R3 module split moves data-layer code into `src/storage.rs` as a dedicated module. The extraction is verified clean on the evidence: serde derives present, I/O isolated, load-time predicates co-located with types, domain enums single-sourced from storage, dependency graph acyclic with storage as the leaf. Pre/post-split byte comparison of `tracker_is_valid`, `issue_fields_are_valid`, `description_is_valid`, `label_is_valid`, `parse_timestamp`, `load_tracker`, and `save_tracker` confirms no semantic change. The empirical round-trip (create with `\n` description → show → delete-high-edge → create) preserves the SO R22 persistent-counter invariant and the description `\n` carve-out end-to-end. Description Cc-defense (parse-time in validate.rs, load-time in storage.rs) is intact. **0 substantive findings; MVR maintained at the data layer across R11/R12/R13.**
+
+**Coordination:** SA R13 F1 Trigger B — module split is SA's primary concern at R3; data layer signs off cleanly. QE — full test suite green (237/237) at HEAD; no DE-side test gap surfaced by the split. Security / RT — informational: the load-time enum-validation defense for storage-to-TTY safety (DE R11 sycophancy probe) is byte-stable across the split.
+
+**Files modified:** Only this log appended.
+
+

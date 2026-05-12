@@ -1915,3 +1915,196 @@ The three Open findings are idiomaticity / API design / architectural concerns �
 **Coordination:** QE R18 — render_cell + ColorMode + sanitize_quoted_values test coverage verified. SA R16 — F3 Backlog ratification. Platform R13 — MSRV declaration consistent with `Option::is_none_or` usage.
 
 **Files modified:** This log appended only. The `src/lib.rs` + `src/main.rs` edits landed in `09b1905` under SE authority per CLOSURE-PROTOCOL.md §1.
+
+---
+
+## Review 19 — 2026-05-12 12:00Z
+
+**Round:** SE Review 19 (Layer 7 IAR Round 3 — cold adversarial pass on the post-R2 change set).
+**Scope:** Cold-session, no prior involvement in the R3 commits. Five-commit change set since `b853a81`:
+
+- `ff0e85c` — cargo clippy pre-commit hook (Platform-domain, but the hook is the only failure surface that gates SE-owned `src/**/*.rs` from a clippy regression at commit time)
+- `c341a54` — `render_cell` ASCII `debug_assert!`
+- `bd7511e` — `TRACKER_INTERNAL_FORCE_COLOR` test seam
+- `3fa1f3c` — `cmd_list` rendering extraction (`filter_issues`, `format_list_header`, `format_list_row`, `show_label`) + module-level column-width constants
+- `8db9437` — three-module split (`src/lib.rs` → `commands.rs` + `storage.rs` + `validate.rs`)
+
+Code reviewed in full: `src/lib.rs` (62 lines + tests mod), `src/storage.rs` (219 lines), `src/validate.rs` (273 lines), `src/commands.rs` (675 lines), `src/main.rs` (137 lines), `Cargo.toml`, `DESIGN.md` (re-read for SE-relevant deltas), prior R17 + R18 entries (cold-then-warm pair for Layer 7).
+
+**Session note:** Cold-batch surfacing per CLOSURE-PROTOCOL.md §5 step 1; no fixes applied this round. The R3 prompt foregrounded the SE sycophancy risk explicitly ("the refactor compiles + 237/237 tests pass + clippy clean is exactly the kind of result that softens reviewers") — I held that as a posture filter throughout. The change set is genuinely clean by the obvious axes (the split compiles, tests pass, clippy is green, doc-comments expanded for each new module). The findings below are the gaps that remain *after* granting all of that.
+
+**Regression check:** No behavioral regressions. Pre/post-split public function bodies are byte-identical for `cmd_create`, `cmd_status`, `cmd_show`, `cmd_delete`, `cmd_list`, `validate_*`, `parse_*`, `load_tracker`, `save_tracker`. The rendering extraction (`3fa1f3c`) refactored `cmd_list`'s inline rendering into `filter_issues` / `format_list_header` / `format_list_row` but the byte output of `cmd_list` is unchanged — the unit tests `format_list_header_uses_width_constants` and `format_list_row_uncolored_when_color_off` pin the new helpers against the pre-extraction literal strings. The `c341a54` `render_cell` `debug_assert!` is compiled out in release; release-build behavior is unchanged. The `bd7511e` env-var seam adds a single-branch path at the top of `color_mode_from_env` — the production path (env var unset) is unchanged.
+
+**Assumption surfacing (G-20):**
+- `std::env::var_os(...).is_some_and(|v| v == "1")` — `OsString::eq` against `&str` is stable; the `"1"` comparison falls back to byte-equality on `OsStr`, so a multi-byte non-UTF-8 env value that decodes to "1" is not a concern (no valid OS path produces this).
+- `chars().count()` vs visible terminal width: addressed by the `render_cell` `is_ascii()` `debug_assert!`. Verified that every legal call-site value (`"high"`, `"medium"`, `"low"`, `"open"`, `"in-progress"`, `"done"`) is ASCII per `PRIORITY_ORDER` / `VALID_STATUSES` membership.
+- `pre-commit` clippy hook uses `--locked`: requires `Cargo.lock` committed to the binary crate (matches the rust supplement's "`Cargo.lock` commitment" check for binary crates — verified consistent with project state).
+
+---
+
+### Open
+
+**Finding 1 — `lib.rs` re-export surface is over-exposed: 15 of 23 re-exported items are unreachable from `main.rs` and tests, making the public API artificially wide (Dim 7 — Type safety / API surface discipline; Dim 11 — Future-self maintainability)**
+
+`src/lib.rs:42-50` re-exports 23 items via three `pub use` blocks. Cross-referencing against the actual consumers:
+
+- **`src/main.rs` uses 8 items**: `cmd_create`, `cmd_delete`, `cmd_list`, `cmd_show`, `cmd_status`, `CreateArgs`, `ColorMode` (typed parameter only — variant constructors not used), `color_mode_from_env`, `sanitize_quoted_values`.
+- **`tests/*.rs` integration tests import zero `tracker::*` items** — verified by `grep -rE "tracker::[A-Za-z_]+" issue-tracker-cli/tests/` returning empty. The Layer 1-7 integration tests invoke the binary via `assert_cmd::Command` and never touch the library API.
+- **`#[cfg(test)] mod tests` inside `lib.rs` uses items through `use crate::commands::*; use crate::storage::*;`** — that is, through the module paths, not through the re-exports.
+
+The 15 over-exposed items: `label_matches`, `sort_issues`, `Issue`, `Tracker`, `load_tracker`, `save_tracker`, `bump_next_id`, `current_timestamp`, `dedupe_labels`, `display_safe`, `parse_id`, `parse_label`, `parse_priority`, `parse_status`, `validate_description`, `validate_title`. None of these are reached by `main.rs` or by any integration test. They are part of the `tracker::*` public API only because the `pub fn ...` declarations in `commands.rs` / `storage.rs` / `validate.rs` plus the `pub use ...` re-exports together promote them to crate-level public.
+
+Why this matters:
+
+1. **Public-API contract drift.** Semver discipline (when the project eventually publishes — `Cargo.toml` says `publish = false`, but the module is named `pub mod`) treats any item reachable from the crate root as part of the contract. A future change to `validate_title`'s signature, or a rename of `load_tracker`, becomes a breaking change to any downstream consumer that happened to import it — even though no real consumer was supposed to. The crate's actual consumed surface is 8 items; the documented surface is 23.
+2. **`pub` documents intent.** A reviewer reading `pub fn validate_title` in `validate.rs` infers "this is a designed extension point." A reviewer reading `pub(crate) fn validate_title` infers "this is a crate-internal helper that tests can reach." Today every helper carries the stronger semantic without earning it.
+3. **The doc-comment in `lib.rs:25-28` explicitly states the intent**: *"Selective `pub use` re-exports below preserve the pre-split public API surface (`tracker::cmd_create`, `tracker::Tracker`, `tracker::ColorMode`, etc.) so the `tracker` binary in `src/main.rs` and the integration tests in `tests/` need no changes when the modules move."* But the integration tests *don't consume any of these* and `main.rs` only consumes 8 — so "preserve the pre-split public API surface" preserves a public surface that was never load-bearing in the first place. The pre-split `lib.rs` had every function `pub`; that was a Layer-1-through-Layer-7 accumulation, not a designed API.
+
+**Sycophancy check:** Was this dismissed because "the prior `lib.rs` had everything `pub`, so the split is preserving status quo"? Pushed back: the split was the *moment* to apply visibility discipline (every module move is a free re-evaluation of each item's reach). The R3 prompt explicitly asked "is its visibility the minimum that compiles?" — for 15 items the answer is no, `pub(crate)` would compile and would tighten the contract.
+
+**Proposed action (SE Round 2-on-R3 or deferred to a follow-up SE pass):**
+- Tighten `validate.rs`: `validate_title`, `validate_description`, `parse_status`, `parse_priority`, `parse_label`, `parse_id`, `dedupe_labels`, `bump_next_id`, `current_timestamp`, `display_safe` → `pub(crate)`. (Keep `sanitize_quoted_values` `pub` — used by `main.rs:85`.)
+- Tighten `commands.rs`: `sort_issues`, `label_matches` → `pub(crate)`. (Keep `cmd_*`, `CreateArgs`, `ColorMode`, `color_mode_from_env` as `pub`.)
+- Tighten `storage.rs`: `Issue`, `Tracker`, `load_tracker`, `save_tracker` → `pub(crate)`. (Confirm by spot-check that no integration test imports them; the cold grep above confirms.)
+- Drop the corresponding entries from the three `pub use` blocks in `lib.rs:42-50`.
+
+Net: `tracker::*` shrinks from 23 to ~8 items; tests still pass because they reach modules directly; `main.rs` only touches the items that remain `pub`.
+
+**Severity:** Medium. Not a correctness bug; an API-discipline finding. The kind of structural drift that the rust supplement's "*Lifetimes and cloning … masking a design issue*" lens generalizes to all visibility decisions — `pub` is masking the design at the boundary between the binary crate and a hypothetical library consumer that has never existed.
+
+**Classification:** Open.
+
+---
+
+**Finding 2 — `color_mode_from_env` reads `var_os` at every call rather than caching, despite the doc-comment indicating it is meant to be called once per process; the `pub` surface invites misuse (Dim 8 — Defensive coding / API misuse surface; Dim 11 — Future-self maintainability)**
+
+`src/commands.rs:119-139` — `pub fn color_mode_from_env() -> ColorMode`. The implementation reads `TRACKER_INTERNAL_FORCE_COLOR`, then `is_terminal()`, then `NO_COLOR`, then `CLICOLOR` on every call. Cost: ~4 syscalls per invocation (env lookups go to libc `getenv`, plus one `isatty(STDOUT_FILENO)`).
+
+The function is `pub` and the doc-comment at `src/commands.rs:82-118` is 36 lines long — most of it describing the test seam, the de-facto opt-out env-var conventions, and the `CLICOLOR_FORCE`-deliberately-not-honored decision. What the doc-comment does **not** say is: "*this function must only be called once at process startup; calling it inside a hot loop or after stdout has been replaced is incorrect*." The R3 prompt named this directly: "*The function reads env at every call — is that the right pattern? Alternative: read once at startup, cache. Is the doc-comment sufficient to prevent misuse?*"
+
+The R18 closure entry (line 1894) records the design rationale: "*single decision point in `src/main.rs` L88 via `tracker::color_mode_from_env()`. The flag-argument antipattern is closed; environmental state is threaded explicitly.*" That decision was correct — but the *enforcement* lives entirely in the convention of `main.rs` calling it exactly once. A future maintainer who adds a new command handler and reaches for `color_mode_from_env()` directly inside the command (rather than threading `ColorMode` through from `main.rs`) gets:
+
+1. **Subtle correctness drift if stdout state changes mid-process.** A future change that swaps stdout (test scenarios, sub-process orchestration, structured-logging frameworks) makes the cached decision and the per-call decision diverge. The current contract is "ColorMode is decided once and threaded"; the API doesn't carry that contract — `color_mode_from_env()` looks like a getter, not a one-shot.
+2. **Test-seam leakage.** `TRACKER_INTERNAL_FORCE_COLOR` is read at every call. If a test sets the env var, runs `color_mode_from_env()` once, then the production code calls `color_mode_from_env()` again later (after the test has cleaned up the env var), the two calls return different results. The unit tests at `src/lib.rs:982-1103` already serialize via `ENV_TEST_LOCK` because of this — but that mutex protects *test-internal* env mutation; nothing protects a production code path that called the function twice. Today no path does; the API allows it.
+3. **The doc-comment is not sufficient.** The doc-comment names the test seam in detail but says nothing about call frequency. A reader who finds the function via `cargo doc` (the `pub` declaration generates rustdoc) sees a well-documented "compute the color mode" function and has no signal that it is conceptually a `OnceLock<ColorMode>`.
+
+Three options, in increasing order of structural change:
+
+- **Minimum**: add a doc-comment line stating "*Call this exactly once at process startup; thread the returned `ColorMode` through to command handlers. Do not call inside command logic.*" Costs nothing; closes the misuse-by-misreading path.
+- **Better**: cache via `OnceLock<ColorMode>` internally so repeat calls are idempotent. Costs one `OnceLock` and a `.get_or_init()` call site; the cached value matches the call-time decision exactly because the env-var snapshot is taken at the first call (matching the current `main.rs` pattern).
+- **Strictest**: rename to `decide_color_mode_at_startup` and document the call-once contract in the name. Costs a rename; renders the misuse near-impossible.
+
+The R3 prompt asked the right question; the answer today is "the doc-comment is not sufficient."
+
+**Sycophancy check:** Was this dismissed because "main.rs calls it once and that's the only consumer, so it's fine in practice"? Pushed back: the question is whether the API enforces the contract or relies on the caller remembering. The "single decision point" claim in R18's closure is true at the call-site level but not at the API level — anyone reading just `commands.rs` sees a function that purports to be safe to call repeatedly. The R18 reviewer (and I) granted the closure because the call site in `main.rs` was correct; the *function* wasn't audited for repeat-call safety. That's the gap.
+
+**Proposed action:** Apply the "Minimum" option immediately (one doc-comment line) and queue the "Better" option (`OnceLock`) for an SE pass when the project takes on its next user-facing change to the color pipeline.
+
+**Severity:** Medium. Not a correctness bug today (single call site); an API-discipline finding for future-self.
+
+**Classification:** Open.
+
+---
+
+**Finding 3 — `render_cell` `debug_assert!` for ASCII fires on *every* call site that passes non-ASCII issue titles or labels in the future without `render_cell` being involved — but the call sites passing titles/labels DO NOT use `render_cell` (Dim 8 — Defensive coding; the assertion is correctly scoped, but the doc-comment over-claims its protection)**
+
+`src/commands.rs:218-234` — `render_cell` has `debug_assert!(value.is_ascii(), ...)`. The doc-comment at lines 204-217 claims this protects against "*a future caller passing a non-ASCII value (e.g., a spec amendment permitting non-ASCII status/priority labels, or a free-form colored field)*." Verified the two current call sites at `src/commands.rs:562-571` (in `format_list_row`): both pass `&issue.status` and `&issue.priority`, both ASCII-bounded by the closed enums.
+
+The doc-comment correctly identifies the today-state — but the protection only fires when `render_cell` is the rendering path. The title and labels columns in `format_list_row` go through `truncate_with_ellipsis` + format-string `{:<labels_width$}` padding, NOT through `render_cell`. So if a future spec amendment introduces color on the title column (DESIGN.md does not, but the R18 entry mentions "free-form colored field" as a hypothetical), and a future maintainer adds `render_cell(&issue.title, title_ansi, TITLE_WIDTH)` for that, the `debug_assert!` fires — good. But if they instead inline the color wrap into the existing `{:<labels_width$}` path (the path the title and labels currently use), the `debug_assert!` does not fire, and the column drift happens silently.
+
+The finding is narrow: **the doc-comment over-claims the safety net.** The assertion does protect the path it covers; it does not protect *every* future colored-field addition, only those that route through `render_cell`. A more precise doc-comment line: "*This assertion protects `render_cell` callers; the same constraint also applies to any future inline-rendering path that pads a colored cell and is not covered by this assertion.*"
+
+**Sycophancy check:** Was this softened to "the assertion is fine"? Pushed back: the prompt explicitly asked "*are the assertions narrow enough that they don't fire on legitimate edge cases? Are the messages actionable?*" The assertion *is* narrow enough and the message *is* actionable — but the framing as "protects all future non-ASCII colored fields" is the over-claim. The defensive coding pattern is sound; the documentation around it is what needs the tightening.
+
+**Proposed action:** Add one clarifying line to the doc-comment block in `commands.rs:204-217` explicitly stating "*the assertion guards `render_cell` callers only; any future inline-rendered colored cell must replicate the constraint.*" Low-cost; closes the doc/code mismatch.
+
+**Severity:** Low-to-Medium. Documentation-precision finding; the code itself is correct.
+
+**Classification:** Open.
+
+---
+
+### Dismissed
+
+**Finding 4 — `pub(crate)` column-width constants (`ID_WIDTH`, `STATUS_WIDTH`, `PRIORITY_WIDTH`, `LABELS_WIDTH`, `TITLE_WIDTH`, `LABEL_COLUMN_WIDTH`) at `commands.rs:42-61` are exposed crate-wide rather than private to the rendering helpers (Dim — Visibility hygiene, deliberately scoped out)**
+
+The R3 prompt asked: "*Reasonable? Or should they be `const` private with named accessor fns?*" Reviewed each consumer: `ID_WIDTH`, `STATUS_WIDTH`, `PRIORITY_WIDTH`, `LABELS_WIDTH`, `TITLE_WIDTH` are referenced only in `format_list_header` and `format_list_row` (same module). `LABEL_COLUMN_WIDTH` is referenced in `format_show_block`, `show_label`, AND in the test `show_label_pads_to_label_column_width` at `lib.rs:583` (test reaches into the constant for an assertion on the width invariant). Two options: (a) make all six `const` and write accessor functions; (b) leave at `pub(crate)`.
+
+**Classification:** Dismissed. (a) Accessor functions add zero type safety for `usize` constants — they would be `pub(crate) const fn label_column_width() -> usize { LABEL_COLUMN_WIDTH }`, which is purely a syntactic indirection with no compile-time benefit. (b) The constants are conceptually crate-internal layout decisions; `pub(crate)` correctly scopes them. (c) The test referenced above explicitly asserts on the constant value, which is the right way to pin the layout contract; switching to accessor functions would make the test read `assert_eq!(show_label(name).chars().count(), label_column_width())` — equivalent to today's `LABEL_COLUMN_WIDTH`. Not a defect.
+
+---
+
+**Finding 5 — `filter_issues` takes `Vec<Issue>` by value rather than `&[Issue]`, forcing the caller (`cmd_list`) to first allocate the intermediate vec (Dim — Performance Engineer / Allocation patterns)**
+
+`src/commands.rs:516-526` — `pub(crate) fn filter_issues(issues: Vec<Issue>, ...) -> Vec<Issue>`. The function consumes the input vec, iterates with `into_iter()`, filters with `issue_matches_filters`, and collects into a new `Vec<Issue>`. The caller path is `cmd_list` at line 646: `let issues = load_tracker(issues_path)?.issues; let mut issues = filter_issues(issues, ...);` — the input `Vec<Issue>` is the loaded tracker's `issues` field, which is consumed by `filter_issues`. A `&[Issue]` + `.iter().filter().cloned().collect()` shape would clone each retained `Issue` rather than moving it; for the current pattern (consume-and-replace) the move is cheaper.
+
+**Classification:** Dismissed. The current consume-by-value shape is correct for the only call site (`cmd_list` loads the tracker, filters, sorts, renders, drops — no other use of the original vec). A `&[Issue]` shape would force per-issue clones of every retained record, which is strictly more allocation for the same result. The signature is fine; rust supplement's "*Is data cloned where a reference or borrow would work without lifetime complexity?*" lens points the other direction here — reference would *introduce* clones. Not a defect.
+
+---
+
+**Finding 6 — `truncate_with_ellipsis` at `commands.rs:500-508` allocates `Vec<char>` even when the input does not need truncation (Dim — Performance, deliberately scoped out)**
+
+When `chars.len() <= max_chars`, the function returns `s.to_string()` after having already materialized `chars: Vec<char>`. A short-circuit that checks `s.chars().count() <= max_chars` (or, more correctly, checks against the byte length and only materializes the `Vec<char>` if truncation is needed) would avoid the allocation on the common path.
+
+**Classification:** Dismissed. (a) CLI supplement's "*for simple local tools with no network dependency and trivial data volumes, scope down significantly*" applies. (b) `cmd_list` calls this twice per row × N rows; N is bounded at tens-to-hundreds for a single-user portfolio CLI; the allocation is `Vec<char>` of length ≤ 50 (title) or ≤ 20 (labels), single-byte ASCII for current inputs. (c) The pre-existing R17 / R18 reviews already dismissed `wrap_color` and per-cell allocations on the same grounds. No new defect.
+
+---
+
+**Finding 7 — The three-module split moved the `#[cfg(test)] mod tests` block to `lib.rs` but left the helper `fn issue(id: u64, priority: &str) -> Issue` declared at `lib.rs:245` *inside* the tests module — which means it has to take `Issue` from a re-export (Dim — Test architecture, QE-owned)**
+
+`src/lib.rs:245-256` declares an `issue` test helper that constructs an `Issue`. It works because `use super::*; use crate::commands::*; use crate::storage::*;` brings `Issue` into scope. If `storage::Issue` were tightened to `pub(crate)` per Finding 1, the helper still compiles (the test module is `mod tests` inside `lib.rs` which has crate-level access).
+
+**Classification:** Dismissed. Not an SE defect — the test architecture works. The R3 prompt asked "*Is the test mod still able to reach every item it needs?*" The answer is yes via the glob imports. QE owns the broader question of whether the test module should be split per-module (`#[cfg(test)]` blocks colocated with each `commands.rs` / `storage.rs` / `validate.rs`) rather than consolidated at `lib.rs`. That's a QE Review 19 question; not an SE finding.
+
+---
+
+### Hallucinated
+
+*(none. Findings 1-3 each have a concrete reproducer / structural argument. Findings 4-7 are real-but-deliberately-scoped-out with stated rationale.)*
+
+---
+
+### Carry-over check (prior-finding closure status)
+
+- **SE R17 F1 (ColorMode boolean-trap + TTY centralization):** Resolved in R18. R3 verified no regression — `format_show_block` / `format_list_row` / `cmd_show` / `cmd_list` all take `color: ColorMode` explicitly; `is_terminal()` lives only inside `color_mode_from_env`, called once from `main.rs:100`. No regression.
+- **SE R17 F2 (`pad_after_color` caller-must-compute-visible-chars API):** Resolved in R18 by `render_cell`. R3 verified: `render_cell` takes the bare value, computes `chars().count()` internally, asserts ASCII in debug builds. Finding 3 above flags a doc-precision gap, not a regression.
+- **SE R17 F3 (`lib.rs` module split deferral):** Resolved by commit `8db9437` this round. Finding 1 above is the new wave of visibility discipline that the split itself enabled — closing F3 didn't close every visibility question, only the file-size-cohesion question.
+- **SE R15 F1 / F2 (description Cc defense + bare-`\r` rendering):** Closed in SE R16 / commit `9b775f0`. No regression at Layer 7 R3 (`validate_description` lives in `validate.rs` unchanged; `format_show_block`'s `\r\n` → `\n` normalization lives in `commands.rs:357`, semantically unchanged).
+- **SO R22 Option A persistent counter:** Closed in commit `8ed7db3`. R3 verified no regression — `bump_next_id`, `tracker_is_valid` constraints, and `cmd_create` counter-bump path all intact across the module move.
+- **Clippy deny-set discipline:** Unchanged at `lib.rs:1-6` — `clippy::unwrap_used`, `expect_used`, `panic`, `missing_errors_doc` all denied. The one `#[allow(clippy::unwrap_used)]` exception at `storage.rs:214` (the `serde_json::to_string_pretty` call on `Tracker`) is justified with a comment per the rust supplement's "*Suppressed lints with no comment are a finding*" rule.
+- **Doc-coverage on new public surface:** Verified each `pub fn` and `pub struct` in the three modules has a `///` doc-comment. `CreateArgs` field doc-comments preserved through the move (`commands.rs:247-256`). Lifetime parameter `'a` correctly preserved (`pub struct CreateArgs<'a>` with `title_raw: &'a str`, `description_raw: Option<&'a str>`, `priority_raw: Option<&'a str>`, `labels_raw: &'a [String]`). Re-export at `lib.rs:43` is `CreateArgs` (lifetime parameter elided in the `pub use` — correct Rust syntax; lifetime is part of the type, not the path).
+
+---
+
+### Summary
+
+Cold-session SE Review 19 outcome on Layer 7 IAR Round 3 (clippy hook + ASCII debug_assert + test seam + cmd_list extraction + three-module split): **0 Resolved, 3 Open (re-export surface over-exposed; `color_mode_from_env` doc-comment does not enforce call-once contract; `render_cell` `debug_assert!` doc-comment over-claims its protection scope), 4 Dismissed-with-rationale, 0 Hallucinated.**
+
+**Top SE concerns:**
+
+1. **Finding 1 — `lib.rs` re-export surface is over-exposed.** The three-module split was the right moment to tighten visibility, and the split kept the pre-split flat `pub` discipline rather than re-evaluating each item against actual reach. 15 of 23 re-exported items have zero external consumers (neither `main.rs` nor any integration test). Tightening to `pub(crate)` would compile, would shrink the documented `tracker::*` surface from 23 to ~8, and would correctly signal "crate-internal helper that tests can reach" rather than "designed extension point."
+2. **Finding 2 — `color_mode_from_env` reads env at every call; doc-comment does not enforce the call-once contract.** The R18 closure documented "single decision point in `main.rs`" — true at the call-site level today, but the API doesn't carry that contract. A future maintainer who calls the function from inside a command handler gets ~4 syscalls per invocation and a test-seam leakage surface where two calls in the same process could return different results if env state changes between them. Minimum fix: one doc-comment line. Better fix: cache via `OnceLock<ColorMode>`.
+
+**Layer 7 R3 correctness verdict:** Implementation is sound on every spec-internal path inspected. The clippy hook landed correctly (mirrors the cargo-fmt-check pattern). The `render_cell` ASCII `debug_assert!` is correctly scoped (fires only in debug builds; message is actionable). The `TRACKER_INTERNAL_FORCE_COLOR` test seam is correctly placed at the top of `color_mode_from_env` and is intentionally undocumented in user-facing artifacts. The `cmd_list` rendering extraction is a clean pure-function refactor (no behavioral change; new helpers unit-tested). The three-module split preserves all public API behavior; `CreateArgs<'a>` lifetime parameter preserved correctly through the move.
+
+**Idiomaticity verdict:** Mostly idiomatic. `filter_issues` uses `into_iter().filter().collect()` — idiomatic. `format_list_header` uses positional + named format args — idiomatic for the multi-width-arg case. `format_list_row` likewise. `show_label` uses `{:<width$}` named-width formatter — idiomatic. `color_mode_from_env`'s `is_some_and(|v| v == "1")` is idiomatic Rust 1.70+ (project pins 1.94.1, well above). The early-return form in `priority_ansi` / `status_ansi` was dismissed in R17 F6 and remains correct. No unnecessary clones detected in the new code; `bump_next_id`'s `checked_add(1)` is the right idiom for overflow-safe arithmetic.
+
+**Maintainability verdict:** SE-domain at MVR for correctness on the R3 surface. The three Open findings are visibility / API-discipline / doc-precision concerns — exactly the dimensions the R3 prompt instructed to push hardest on. "the refactor compiles + 237/237 tests pass + clippy clean" is true and was held as the sycophancy trigger throughout; none of the three Open findings rely on a test failure or a clippy warning to be real.
+
+**Sycophancy check:** Five softenings considered and pushed back on:
+
+1. *Was Finding 1 softened because "the prior `lib.rs` had every function `pub`, so the split preserved that"?* — Pushed back: the split was the moment to apply visibility discipline; preserving status quo when the status quo was Layer-1-through-Layer-7 accumulation rather than designed surface is the *definition* of architectural drift. Held.
+2. *Was Finding 2 softened because "main.rs calls it once and is the only consumer"?* — Pushed back: the question is whether the API enforces the contract; today it does not. Held.
+3. *Was Finding 3 softened because "the assertion does work"?* — Pushed back narrowly: the assertion is correct; the doc-comment over-claim is the finding. Logged as Low-to-Medium rather than Medium-to-High to reflect the documentation-only nature. Held.
+4. *Was Finding 4 (`pub(crate)` constants) escalated because "the prompt asked about them"?* — Pushed back: `usize` constants don't benefit from accessor functions; the prompt was correct to ask, and the correct answer is the current state. Genuinely dismissed.
+5. *Was Finding 7 (test-mod placement) escalated because the prompt asked about visibility hygiene?* — Pushed back: the question is QE-owned, not SE. Correctly classified as a Coordination note rather than an SE finding.
+
+**Coordination:**
+
+- **SA Review 17 (Layer 7 R3 SA pass, if/when run):** Finding 1 (re-export surface) is partially structural — the choice of *what* to re-export at `lib.rs` is an API-architecture decision, and SE flagging it is the right escalation. SA cold session should ratify whether the public surface is intentional or accidental; if intentional, document the rationale in `DECISIONS.md` (the `tracker::*` surface is currently undocumented at the decision level — the doc-comment at `lib.rs:25-28` describes the *mechanism* of preservation but not the *intent* of which items belong on the public side).
+- **QE Review 19:** Finding 7 (test module placement) is QE-owned. The current architecture (`#[cfg(test)] mod tests` at `lib.rs` reaching across `crate::commands::*` and `crate::storage::*`) works but is unusual — Rust idiom is `#[cfg(test)] mod tests` colocated with each module. QE should evaluate whether the consolidated test module is intentional (faster compile? easier to navigate?) or a leftover from the pre-split state.
+- **Platform Engineer Review 14 (if/when run on R3):** The clippy pre-commit hook landed cleanly; verify CI pipeline still runs `cargo clippy -- -D warnings` (hook is a left-shift, not a replacement for CI gating per the rust supplement's "*Clippy as idiom proxy*" line). No SE concern; flagging so PE has a confirmation point.
+- **Security Review 13 (if/when run on R3):** The `TRACKER_INTERNAL_FORCE_COLOR` test seam is a deliberately-undocumented env var. Security should sanity-check that the seam is not exploitable as a TOCTOU between the env-var read and a sensitive operation. SE has no concern (the only effect is forcing color emission, which has no security boundary); flagging for Security cold-session due-diligence.
+- **No DESIGN.md amendments required.** Spec is silent on `lib.rs` API surface visibility (correctly — it's an implementation concern). No SO engagement this round.
+
+**Files modified this session:** `iterative-adversarial-refinement/SOFTWARE-ENGINEER-REVIEW.md` only (this entry). No `src/**/*.rs` changes (cold-batch surfacing — Round 3 does not apply fixes per CLOSURE-PROTOCOL.md §5 step 1). No DESIGN.md / TODO.md / CHANGELOG changes.

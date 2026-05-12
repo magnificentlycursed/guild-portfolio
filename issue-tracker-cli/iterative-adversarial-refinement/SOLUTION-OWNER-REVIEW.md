@@ -2255,3 +2255,159 @@ All four R1 SO-domain findings transitioned cleanly: F1 Backlogged §3, F2 Resol
 **Coordination:** VDD-IAR R18 — ratify R17 F1 closure (evidence chain: `fbbb8a3` retrofit + R2 test updates + DECISIONS.md entry). SA R16 — F1 Backlog state ratified.
 
 **Files modified:** This log appended; DESIGN.md and DECISIONS.md edits (SO authority) landed in `09b1905`.
+
+---
+
+## Review 25 — 2026-05-12 12:00Z
+
+**Round:** SO Review 25 (Layer 7 IAR Round 3 review, cold session).
+**Scope:** 5 commits since `b853a81` — `ff0e85c` (PE R12 F3 clippy pre-commit hook), `c341a54` (QE R17 F5 render_cell ASCII debug_assert), `bd7511e` (QE R17 F1 `TRACKER_INTERNAL_FORCE_COLOR` test seam + 8 integration tests), `3fa1f3c` (SA R11 F1 + SA R13 F2 cmd_list extraction + column constants), `8db9437` (SA R13 F1 Trigger B `src/lib.rs` three-module split). All 5 are domain-other closures of items the SO log has touched directly (the SA cluster was R23 F1, the QE seam was raised in QE R17, etc.). Cold session: I did not build any of these commits.
+
+**Session context:** Cold per `prompts/review-session.md`. Standing skeptical posture against the "closes all 5 deferred items — clean test suite" framing per the prompt's sycophancy guard. The Layer 7 IAR Round 2 SO close (R24, 2026-05-12 00:00Z) ended in **GO-PENDING-MANUAL-REWALK**; this round inherits that pending gate.
+
+### Layer 7 AC compliance table (post-R3)
+
+The 13 original Layer 7 ACs (TODO.md L353-364) plus the 4 R2-amended commitments (R24 § "Layer 7 AC compliance (post-R2)") are the binding set for this round. I re-walked each against the post-R3 source tree to verify R3's refactor + test-seam introduced no behavioral drift.
+
+| # | Acceptance criterion | Status | Evidence (post-R3) |
+|---|---|---|---|
+| 1 | `tracker --help` exits 0 + lists all subcommands | Met | `tests/layer7.rs:36-48`; unchanged by R3. |
+| 2 | `tracker create --help` describes flags + valid values | Met | `tests/layer7.rs:51-61`; unchanged. |
+| 3 | `tracker list --help` describes flags + valid values | Met | `tests/layer7.rs:64-75`; unchanged. |
+| 4 | `tracker status --help` describes positional args + valid statuses | Met | `tests/layer7.rs:78-87`; unchanged. |
+| 5 | `tracker show --help` describes `<id>` arg | Met | `tests/layer7.rs:90-97`; unchanged. |
+| 6 | `tracker delete --help` describes `<id>` arg | Met | `tests/layer7.rs:100-107`; unchanged. |
+| 7 | TTY: `high`/`medium`/`low` priority colored red-bold / yellow-bold / default | Met (now automated) | `commands.rs:144-153` `priority_ansi`; integration tests `force_color_emits_bold_red_for_high_priority` / `_bold_yellow_for_medium_priority` / `_does_not_color_low_priority` (`tests/layer7.rs:280-333`). |
+| 8 | TTY: `in-progress`/`done`/`open` colored cyan-bold / green-bold / default | Met (now automated) | `commands.rs:159-168` `status_ansi`; `force_color_emits_bold_cyan_for_in_progress_status` / `_bold_green_for_done_status` (`tests/layer7.rs:336-375`). |
+| 9 | Piped stdout has no ANSI codes | Met | `tests/layer7.rs:163-200` + `:218-236`; `color_mode_from_env` at `commands.rs:127-129`. |
+| 10 | Color applied only to value text, not row or header | Met | `force_color_does_not_color_header_row` (`tests/layer7.rs:378-414`) + `force_color_show_renders_colored_status_and_priority_value_cells` (`:417-471`). |
+| 11 | Color present in both `list` and `show` when TTY | Met | `commands.rs` threads `ColorMode` through both `cmd_list` (L608) and `cmd_show` (L404); manual checklist ticked at TODO.md L370. |
+| 12 | All error messages begin with `Error:` | Met | `main.rs:84` clap prefix transform; `main.rs:134` app-error prefix; 13 distinct error strings re-audited across `validate.rs` / `storage.rs` / `commands.rs` — all bare messages, all prefixed at the boundary. |
+| 13 | Unknown subcommand exits 1 with usage error on stderr | Met | `tests/layer7.rs:112-125`; `main.rs:83-88`. |
+| R2-a | `NO_COLOR` honored | Met | `commands.rs:130-134`; `tests/layer7.rs:239-264`. |
+| R2-b | `CLICOLOR=0` honored | Met | `commands.rs:135-137`; `tests/layer7.rs:239-264`. |
+| R2-c | `CLICOLOR_FORCE` NOT honored (pipe-clean) | Met | `commands.rs` lacks any CLICOLOR_FORCE branch; doc-comment L95-97 documents the deliberate non-honoring; integration test in `no_color_env_does_not_break_piped_invocation` includes the `CLICOLOR_FORCE=1` row. |
+| R2-d | Bold redundancy on every highlighted value | Met | `priority_ansi` / `status_ansi` all return `\x1b[1;...m` for highlighted values; force-color integration tests pin the exact sequences. |
+| R2-e | stderr Cc-escape extended to clap pipeline | Met | `main.rs:84-87`; `tests/layer7.rs:128-152`. |
+| R2-f | Errno tag in OS-error stderr ratified | Met | `storage.rs:199` / `:217`; matches DESIGN.md L343. |
+
+All 13 original + all 4 R2-amended commitments remain Met. **R3 introduced one new commitment that DESIGN.md does NOT currently document — see Finding F2.**
+
+### Regression check (no-spec-drift verification per R3 prompt pressure point #2)
+
+Re-read the diff at module-boundary level. Substantive behavior:
+- **`8db9437` lib.rs split:** mechanical — `pub use` re-exports preserve every public name (`tracker::cmd_create`, `tracker::Tracker`, `tracker::ColorMode`, `tracker::CreateArgs`, etc.). Integration tests and `main.rs` import paths unchanged. No error string, output format, or behavioral commitment touched.
+- **`3fa1f3c` cmd_list extraction + column constants:** `format_list_header` / `format_list_row` / `filter_issues` / `render_cell` / `show_label` carved out as pure functions. Header literal in unit test (`format_list_header_uses_width_constants`) pins exact string `"ID    Status       Priority  Labels                Title"` — matches DESIGN.md L233 example exactly. Column widths preserved (ID=4, Status=11, Priority=8, Labels=20, Title-truncate=50). Show label-column width LABEL_COLUMN_WIDTH=13 matches DESIGN.md "Show output format" exactly.
+- **`bd7511e` test seam:** adds **NEW observable behavior** — when `TRACKER_INTERNAL_FORCE_COLOR=1`, ANSI emits to non-TTY stdout. The `color_mode_from_env` doc-comment (commands.rs:99-118) frames this as "test seam only, not part of the public CLI contract." This is the pressure point #4 substantive finding — flagged separately as **F2** below.
+- **`c341a54` render_cell debug_assert:** debug-only panic on non-ASCII passed to `render_cell`. Compiled out in release; production behavior unchanged. No spec-bearing surface.
+- **`ff0e85c` clippy pre-commit hook:** repository config; no source/binary behavior change.
+
+**Verdict on no-drift:** Four of five commits are clean refactors / non-runtime config. **The fifth (`bd7511e`) demonstrably adds a new env-var-gated color-emission path that DESIGN.md does not document.**
+
+### Findings
+
+#### Finding 1 — Auto-Backlog → Resolved transition (process pattern, pressure point #1)
+
+**Dimension:** Dim 8 (Prior-review additions, process side); the auto-Backlog `§3` mechanism's intent vs. its rapid reversal.
+
+**Severity:** Low–Medium. Not a spec violation; a process-pattern question SO must adjudicate explicitly per CLOSURE-PROTOCOL §3.
+
+**Facts:**
+- SA cluster (SA R11 F1 + SA R13 F1 Trigger B + SA R13 F2) was Deferred for 4 layers (L4 → L5 → L6 close → L7 R1).
+- At Layer 7 R2 (2026-05-12 00:00Z, ~36h before this round), per R24, the cluster auto-Backlogged per CLOSURE-PROTOCOL §3. DECISIONS.md entry (lines 154-156) reads: "Backlogging captures it without commitment to a specific layer."
+- At Layer 7 R3 (this round's commit window, ~12h after R2), the three findings shipped as Resolved via commits `3fa1f3c` + `8db9437`. The DECISIONS.md entry stating "without commitment to a specific layer" is now factually superseded by an actual closing layer (Layer 7 R3).
+
+**Why this is a real (Low–Medium) process finding, not a hallucinated concern:**
+1. **Speed alone is not the defect.** A Backlogged item that gets picked up the next round is consistent with CLOSURE-PROTOCOL §3 ("may be picked up at any future layer's discretion"). The protocol does not impose a minimum dwell time.
+2. **The defect is that the DECISIONS.md justification text — the durable record — is now stale.** The R2 entry's rationale ("cost-benefit calculus for a focused refactor PR has not shifted enough to schedule it") rationalized inaction by appealing to scheduling difficulty; R3 then scheduled and shipped the same work 12h later. Either the cost-benefit calculus changed materially in 12h (in which case the change-of-calculus is the new fact to record), or the R2 calculus was incorrect and the §3 invocation was used as cover. Either way, the durable rationale on record is no longer supported by R3's evidence.
+3. **CLOSURE-PROTOCOL §3 second-paragraph clause is the relief valve.** "The auto-Backlog is reversible: if the receiving authority later adjudicates, the finding moves out of Backlogged into the appropriate terminal state. The point of the rule is to surface 'this question has not been answered' as an explicit Backlog entry rather than as silent log noise." This *exactly* describes what R3 did — the Backlog → Resolved transition is the protocol working as designed. **The process pattern is not the defect.**
+4. **What IS the defect is the missing DECISIONS.md amendment annotating the R2 entry as superseded.** The SA R3 F3 / SO R7 reversal annotations (DECISIONS.md L16-17 and L21-22) set the precedent: "Reversed by SO Review 22 …". The same pattern should annotate the R2 auto-Backlog entry now that R3 has closed it.
+
+**Classification:** **Resolved** (the process pattern is §3 functioning as designed) WITH a **bookkeeping correction (Resolved this round by SO authority):** I will append a "Reversed/Superseded by Layer 7 IAR Round 3 closure (`3fa1f3c` + `8db9437`)" annotation to the R2 auto-Backlog DECISIONS.md entry. SO has authority on DECISIONS.md per CLOSURE-PROTOCOL §1. The amendment lands in this same commit.
+
+**Pressure-point #1 specifically pressed:** "Was Layer 7 R3 the right venue, or should this have been a focused post-Layer-7 PR?" SO answer: Layer 7 R3 was a reasonable venue *given* that the substantive refactor + 8 new tests landed, the test count grew, no spec drift was introduced (per Finding 2 caveat), and CLOSURE-PROTOCOL §3 explicitly permits this trajectory. A focused post-Layer-7 PR would have been *cleaner* (smaller blast radius per commit, clearer rollback story) but is not *more correct*. I decline to second-guess the venue choice.
+
+#### Finding 2 — `TRACKER_INTERNAL_FORCE_COLOR` env var is observable CLI behavior; DESIGN.md must document it (pressure points #4 and #7)
+
+**Dimension:** Dim 1 (Spec coverage — observable behavior must be in DESIGN.md); Dim 2 (Scope creep, weak read — the implementation added an env-var-gated color path the spec does not name).
+
+**Severity:** **Medium.** A spec gap on a real, observable, env-var-gated production code path.
+
+**Facts:**
+- `commands.rs:124-126` checks `std::env::var_os("TRACKER_INTERNAL_FORCE_COLOR")` and short-circuits to `ColorMode::On` when the value equals `"1"`. The check is placed **before** the TTY detection, so a non-TTY stdout receives ANSI escapes when this var is set.
+- The variable is read in **every** invocation of every subcommand that calls `color_mode_from_env()` (`cmd_list` and `cmd_show` via `main.rs:100`).
+- The doc-comment at `commands.rs:107-118` asserts: "not a user-facing feature; it does not equal `CLICOLOR_FORCE` (which the spec deliberately declines to honor); it exists solely to make the positive color contract automatable." Naming uses `TRACKER_` + `INTERNAL_` prefix as a "do not use" signal.
+- **DESIGN.md silence audit (verified by `grep -r TRACKER_INTERNAL_FORCE_COLOR` against all `.md` files):** zero hits. README.md, DESIGN.md, CHANGELOG.md, DECISIONS.md, and every IAR review log are silent. The variable's behavioral footprint exists only in `commands.rs` and `tests/layer7.rs`.
+- The variable's observable effect *contradicts* DESIGN.md L243-244's binding statement: "**CLICOLOR_FORCE=1 is not honored: color is never emitted to a non-TTY stdout regardless of env vars, to preserve the pipe-cleanness contract.**" The seam violates "regardless of env vars." This is the literal-spec-text contradiction.
+
+**Why pressure-point #7's "test-only by undocumentation" framing fails the sycophancy check:**
+
+The doc-comment defense rests on three claims:
+1. *"It is not a user-facing feature."* — Counter: the spec defines user-facing as observable CLI behavior, not as named-in-`--help`. ANY env var that mutates ANY observable output IS user-facing in the spec-contract sense. The user-or-not distinction is a UX framing, not a spec framing.
+2. *"It does not equal CLICOLOR_FORCE."* — Correct on the surface (the name is different; the activation value is `1` literal not any-non-empty) but irrelevant. The objection is not "this is a re-implementation of CLICOLOR_FORCE." The objection is "DESIGN.md L243-244 promises **regardless of env vars**, and an env var demonstrably overrides that promise." The mechanism's specific name doesn't matter; the contract violation does.
+3. *"It exists solely to make the positive color contract automatable."* — A legitimate engineering justification (and one I find persuasive on the merits) — but a justification for an observable spec-relevant behavior must land in the spec, not in a source-code doc-comment. The portfolio submission's audience reads DESIGN.md as the authoritative contract; a reader auditing whether the implementation honors "regardless of env vars" by reading the spec alone would conclude yes — and be wrong.
+
+**The integration test `force_color_with_no_color_env_set_does_not_force` (tests/layer7.rs:474-502) is itself evidence the contract is now non-trivial:** the test documents (in its comments at L488-491) that `TRACKER_INTERNAL_FORCE_COLOR=1` **wins over** `NO_COLOR=1`. This is a precedence ordering between two env vars — the kind of detail DESIGN.md normally specifies (cf. the explicit NO_COLOR / CLICOLOR / CLICOLOR_FORCE precedence list at L239-244). The current spec has no entry that would predict the seam's behavior.
+
+**Classification:** **Open — Raised to SO for adjudication; Resolved this round by SO authority via DESIGN.md amendment.** SO has the authority to amend DESIGN.md (CLOSURE-PROTOCOL §1). The amendment will:
+
+- Add a new bullet under "Color output" naming `TRACKER_INTERNAL_FORCE_COLOR=1` as a **test-only seam** that bypasses TTY detection and overrides `NO_COLOR` / `CLICOLOR`.
+- Explicitly mark the seam as **unstable across versions** (no compatibility guarantee).
+- Cross-reference QE R17 F1 as the originating finding.
+
+This preserves the engineering decision (the seam stays; QE R17 F1's coverage gap remains closed) while making the observable behavior contract-visible. The amendment lands in this same commit.
+
+#### Finding 3 — TODO.md missing the GO-PENDING-MANUAL-REWALK item from R24 (pressure point #6)
+
+**Dimension:** Dim 1 (Spec coverage — manual checklist is a DESIGN.md "Testing Methodology" gate). Dim 5 (Under-delivery, by carry-forward).
+
+**Severity:** Low. A bookkeeping miss in TODO.md, not a code or spec gap.
+
+**Facts:**
+- R24 closed with **GO-PENDING-MANUAL-REWALK**: "Round-2 manual testing checklist re-walk for the new behaviors (NO_COLOR / CLICOLOR / CLICOLOR_FORCE / bold rendering / no-ANSI-on-stderr-empty-state) is the standing CLOSURE-PROTOCOL §6 criterion-3 requirement; director must add to TODO.md and execute before merge."
+- TODO.md L368-374 contains the original 7-item Layer 7 manual checklist, all `[x]` from `603c689`. No new items have been added for the R2 behaviors. `grep -nE "(rewalk|Round.2|NO_COLOR|CLICOLOR)" TODO.md` returns no matches.
+- R3 commits did not touch TODO.md.
+
+**Classification:** **Open — Raised to Director / SO.** SO owns TODO.md scope (CLOSURE-PROTOCOL §1: "Solution Owner (scope); director (sequencing)"). I will append the Round-2 manual rewalk items to the Layer 7 manual testing checklist in TODO.md in this same commit (5 items: NO_COLOR=1 suppresses color in TTY; CLICOLOR=0 suppresses; CLICOLOR_FORCE=1 does NOT enable color when piped; medium / in-progress / done all render with bold attribute; `tracker list` empty-state on stderr has no ANSI). Director executes; closure unblocks the R24 standing GO-PENDING gate.
+
+#### Finding 4 — `TRACKER_INTERNAL_FORCE_COLOR` precedence over `NO_COLOR` is a deliberate test-ergonomics choice but a non-trivial spec implication (sub-finding of F2)
+
+**Dimension:** Dim 7 (Design fidelity, narrow read of L239-244's precedence semantics).
+
+**Severity:** Hallucinated, subsumed by F2.
+
+**Why I considered it:** The seam-before-NO_COLOR ordering (test `force_color_with_no_color_env_set_does_not_force` at L474-502 explicitly pins that force-color wins over NO_COLOR) raises a "user safety" question: a user who sets NO_COLOR for vision-accessibility reasons should not have it overridden by an env var they don't know exists. In practice, the user must set `TRACKER_INTERNAL_FORCE_COLOR=1` *themselves* for the override to occur — and a user who knows the variable's name well enough to set it has opted into the override. The accessibility concern is theoretical only.
+
+**Classification:** **Hallucinated.** Subsumed by F2's DESIGN.md amendment, which names the seam as test-only and unstable; an end user setting it for production purposes is out of contract.
+
+### Open / Resolved / Dismissed / Hallucinated / Backlogged / Raised-to summary
+
+- **Open: 0** at round close. F2 and F3 opened and resolved inline this round by SO authority (DESIGN.md amendment for F2; TODO.md amendment for F3). F1 closed as Resolved (process pattern is §3-compliant; the bookkeeping correction is applied inline by SO authority on DECISIONS.md).
+- **Resolved: 3** (F1 process closure with DECISIONS.md annotation; F2 with DESIGN.md amendment; F3 with TODO.md amendment).
+- **Dismissed: 0**.
+- **Hallucinated: 1** (F4 — NO_COLOR override precedence, subsumed by F2).
+- **Backlogged: 0**.
+- **Approved deviation: 0**.
+- **Raised to: 0** (F2's "Raised to SO for adjudication" was self-adjudicated by SO this round per CLOSURE-PROTOCOL §1 authority).
+
+### Carry-forward / Cross-domain coordination
+
+- **GO-PENDING-MANUAL-REWALK from R24** — still standing until director executes the now-amended TODO.md L368-374 items. The TODO.md amendment in this commit lands the items; the *execution* is a director action that may follow this review.
+- **SA R16 / SA Round 3 (if a cold SA round runs after this)** — the cluster is Resolved; SA may ratify this round's closure or, if the cold review surfaces post-refactor architectural concerns, raise new findings.
+- **VDD-IAR R19** — should ratify the process pattern (Backlog → Resolved 12h apart is §3-permitted but with the DECISIONS.md supersedure annotation now in place).
+
+### Summary
+
+5 commits since `b853a81`. Two refactor commits (`3fa1f3c` + `8db9437`) close 3 long-deferred architectural items by closing the SA cluster that R24 had auto-Backlogged 12h earlier — a fast §3 Backlog → Resolved transition that the protocol permits and the DECISIONS.md supersedure annotation now documents. One commit (`bd7511e`) introduces a `TRACKER_INTERNAL_FORCE_COLOR` env-var test seam that **demonstrably violates DESIGN.md L243-244's "regardless of env vars" promise** — addressed this round by an SO-authority amendment to DESIGN.md naming the seam explicitly as test-only-and-unstable. One commit (`c341a54`) adds a debug-only assertion (no spec surface). One commit (`ff0e85c`) installs a clippy pre-commit hook (PE-domain artifact, no code or spec surface).
+
+The "237/237 pass" framing did soften my first read; the sycophancy guard surfaced F2 (the env-var DESIGN.md silence) and the F1 DECISIONS.md staleness on second pass. Neither is a code bug — both are documentation contract gaps the implementation accumulated as it raced to close deferred items. Both are remediated this round by SO-authority edits.
+
+**Verdict:** **GO-PENDING-MANUAL-REWALK.** Inherits R24's standing pending gate. The R3 substantive content is in spec compliance after this round's amendments. Once director executes the now-itemized Round-2 manual rewalk (TODO.md L368-374 extension landing in this commit), the layer closes cleanly.
+
+**Coordination:** VDD-IAR R19 — ratify the §3 Backlog→Resolved transition with DECISIONS.md supersedure annotation; record the spec-amendment-driven closure of F2 as a process datum (a test seam slipped in without DESIGN.md update — a defect class worth naming alongside the SO R20 / SO R22 "implementation does something the spec does not sanction" pattern). SA Round 3 (if run) — re-walk `commands.rs` / `validate.rs` / `storage.rs` boundaries against the post-split structure; the public re-export surface in `lib.rs:42-50` preserves the pre-split API but introduces a new question (do the now-split modules have internal coupling SA wants to assess?). Director — execute the TODO.md L368-374 manual rewalk extension to close the R24 standing gate.
+
+**Files modified this round (SO authority per CLOSURE-PROTOCOL §1):**
+- `iterative-adversarial-refinement/SOLUTION-OWNER-REVIEW.md` (this log appended)
+- `DESIGN.md` (F2 amendment — `TRACKER_INTERNAL_FORCE_COLOR` documented as test-only seam)
+- `DECISIONS.md` (F1 bookkeeping — R2 auto-Backlog entry annotated "Superseded by Layer 7 IAR Round 3 closure"; F2 amendment recorded as new entry under "Layer 7 IAR Round 3 spec amendments")
+- `TODO.md` (F3 amendment — Round-2 manual rewalk items appended to the Layer 7 manual testing checklist)
