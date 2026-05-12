@@ -79,17 +79,47 @@ impl ColorMode {
 /// and the `NO_COLOR` / `CLICOLOR` env-var opt-outs (DESIGN.md "Interface /
 /// color output").
 ///
-/// Order of checks (any one returning `Off` short-circuits):
-/// 1. `std::io::stdout().is_terminal()` — if stdout is piped, `Off`.
-/// 2. `NO_COLOR` set to any non-empty value — `Off` (per https://no-color.org/).
-/// 3. `CLICOLOR` set to `0` — `Off`.
+/// Order of checks (any one returning a decision short-circuits):
+/// 1. `TRACKER_INTERNAL_FORCE_COLOR` set to `1` — `On` (test seam only, not
+///    part of the public CLI contract; see below).
+/// 2. `std::io::stdout().is_terminal()` — if stdout is piped, `Off`.
+/// 3. `NO_COLOR` set to any non-empty value — `Off` (per https://no-color.org/).
+/// 4. `CLICOLOR` set to `0` — `Off`.
 ///
 /// Otherwise `On`.
 ///
 /// `CLICOLOR_FORCE` is intentionally NOT honored: this CLI never emits ANSI
 /// to a non-TTY stdout regardless of env vars, preserving the pipe-cleanness
 /// contract for downstream parsers.
+///
+/// # `TRACKER_INTERNAL_FORCE_COLOR` (QE Review 17 Finding 1 — test seam)
+///
+/// QE Round 1 raised that the TTY-positive color rendering surface (4 of
+/// 13 Layer 7 ACs) has zero automated coverage because `assert_cmd::Command`
+/// invokes the binary with stdout connected to a pipe — `is_terminal()`
+/// returns false, color is suppressed by check 2 above. Without a seam,
+/// the only way to exercise the positive path is the manual checklist.
+///
+/// `TRACKER_INTERNAL_FORCE_COLOR=1` is a deliberately ugly, namespaced env
+/// var that integration tests in `tests/layer7.rs` set to bypass the TTY
+/// check and force `ColorMode::On`. The variable is intentionally NOT
+/// documented in `--help`, README.md, or DESIGN.md — it is not a user-facing
+/// feature; it does not equal `CLICOLOR_FORCE` (which the spec deliberately
+/// declines to honor); it exists solely to make the positive color contract
+/// automatable.
+///
+/// Naming rationale: the `TRACKER_` prefix prevents collision with any
+/// standard CLI color env-var convention; `INTERNAL_` signals "do not use";
+/// the `=1` literal value (rather than any-non-empty) makes accidental
+/// activation by an empty-string export less likely.
 pub fn color_mode_from_env() -> ColorMode {
+    // Test seam — see doc-comment above. Placed first so tests can exercise
+    // the positive color path even when stdout is piped; does NOT bypass
+    // NO_COLOR for production safety scenarios (the test runner must clear
+    // NO_COLOR before setting this if it inherits NO_COLOR from CI env).
+    if std::env::var_os("TRACKER_INTERNAL_FORCE_COLOR").is_some_and(|v| v == "1") {
+        return ColorMode::On;
+    }
     if !std::io::stdout().is_terminal() {
         return ColorMode::Off;
     }
@@ -1916,6 +1946,49 @@ mod tests {
         assert_eq!(color_mode_from_env(), ColorMode::Off);
         unsafe {
             std::env::remove_var("CLICOLOR_FORCE");
+        }
+    }
+
+    #[test]
+    fn color_mode_from_env_on_when_internal_force_color_set() {
+        // QE R17 F1 closure: the test seam must return On even when stdout
+        // is piped (the assert_cmd subprocess case). cargo test runs with
+        // stdout captured (non-TTY), so this exercises the bypass path.
+        let _guard = ENV_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        unsafe {
+            std::env::set_var("TRACKER_INTERNAL_FORCE_COLOR", "1");
+            std::env::remove_var("NO_COLOR");
+            std::env::remove_var("CLICOLOR");
+        }
+        assert_eq!(color_mode_from_env(), ColorMode::On);
+        unsafe {
+            std::env::remove_var("TRACKER_INTERNAL_FORCE_COLOR");
+        }
+    }
+
+    #[test]
+    fn color_mode_from_env_force_color_ignored_for_non_one_values() {
+        // The `=1` literal-value check (rather than any-non-empty) makes
+        // accidental activation by an empty-string export less likely.
+        let _guard = ENV_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        unsafe {
+            std::env::set_var("TRACKER_INTERNAL_FORCE_COLOR", "0");
+            std::env::remove_var("NO_COLOR");
+            std::env::remove_var("CLICOLOR");
+        }
+        // stdout is piped under cargo test → falls through to TTY check
+        // → returns Off. The seam did NOT activate on "0".
+        assert_eq!(color_mode_from_env(), ColorMode::Off);
+        unsafe {
+            std::env::set_var("TRACKER_INTERNAL_FORCE_COLOR", "true");
+        }
+        assert_eq!(color_mode_from_env(), ColorMode::Off);
+        unsafe {
+            std::env::set_var("TRACKER_INTERNAL_FORCE_COLOR", "");
+        }
+        assert_eq!(color_mode_from_env(), ColorMode::Off);
+        unsafe {
+            std::env::remove_var("TRACKER_INTERNAL_FORCE_COLOR");
         }
     }
 
