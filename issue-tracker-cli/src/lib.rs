@@ -166,7 +166,30 @@ fn wrap_color(value: &str, ansi: Option<&str>) -> String {
 /// width internally from the bare value, eliminating the SE R17 F2
 /// off-by-one API-misuse surface that the prior `pad_after_color(colored,
 /// visible_chars, total_width)` signature exposed.
+///
+/// # ASCII-only constraint (QE Review 17 Finding 5)
+///
+/// Width is computed as `value.chars().count()`, which equals the visible
+/// terminal width if and only if `value` is ASCII (every char is one
+/// display column). Both current call sites pass `issue.status` or
+/// `issue.priority`, which are validated against the closed enums
+/// `STATUS_ORDER` / `PRIORITY_ORDER` at parse and load time — every legal
+/// value is ASCII. The `debug_assert!` below pins the constraint: any
+/// future caller passing a non-ASCII value (e.g., a spec amendment
+/// permitting non-ASCII status/priority labels, or a free-form colored
+/// field) will panic in debug builds, surfacing the gap before column
+/// alignment silently breaks. Production remediation if the constraint is
+/// ever relaxed: introduce a `unicode-width` dependency and replace
+/// `chars().count()` with `UnicodeWidthStr::width(value)`.
 fn render_cell(value: &str, ansi: Option<&str>, total_width: usize) -> String {
+    debug_assert!(
+        value.is_ascii(),
+        "render_cell visible-width computation assumes ASCII (QE R17 F5); \
+         non-ASCII value {:?} would mis-align the column. Introduce \
+         `unicode-width` and use UnicodeWidthStr::width if the spec relaxes \
+         the ASCII constraint on status/priority/other colored fields.",
+        value
+    );
     let colored = wrap_color(value, ansi);
     let visible_chars = value.chars().count();
     if visible_chars >= total_width {
@@ -1927,6 +1950,21 @@ mod tests {
         assert!(
             result.is_err(),
             "wrap_color must debug_assert on control-bearing values"
+        );
+    }
+
+    #[test]
+    fn render_cell_debug_assert_on_non_ascii_value() {
+        // QE Review 17 Finding 5 closure: render_cell's chars().count()
+        // width computation is correct only for ASCII values. The
+        // debug_assert! must panic when a non-ASCII value is passed so
+        // that any future spec amendment permitting non-ASCII colored
+        // fields surfaces the gap before column alignment silently
+        // breaks. Compiled out in release; fires in `cargo test`.
+        let result = std::panic::catch_unwind(|| render_cell("完成", None, 8));
+        assert!(
+            result.is_err(),
+            "render_cell must debug_assert on non-ASCII values per QE R17 F5"
         );
     }
 }
