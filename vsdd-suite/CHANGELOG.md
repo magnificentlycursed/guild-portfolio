@@ -4,6 +4,28 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-17 (Review 44: reference implementation landed — G-112 closed; G-106 refined; dogfooding the scaffold work)
+
+### Added (portfolio event, not a suite-internal change)
+- **`bookmark-cli/`** at the portfolio root — first project built against the current `vsdd-suite/` shape per the G-117 manual-copy canonical default. Layer 1 complete through Phase 2b (8/8 tests pass via `cargo test`); Phase 3 QE Review 1 filed in the new per-domain index + per-session-file structure (G-89 forward-only convention exercised); other 6 active-core-domain indices scaffolded as template stubs (accurate for reference-impl scope, not a full Phase 3 run). Closes G-112.
+
+### Dogfooding outcomes (the scaffold work landed in Reviews 40–42 validated by use)
+- `templates/scaffold-project.sh` ran cleanly against the empty `bookmark-cli/` directory; created the 7 default-active core domain indices + DESIGN.md + project README skeletons.
+- `templates/DOMAIN-REVIEW-template.md` placeholders (`{{ROLE_TITLE}}`, `{{ROLE_VARIANTS}}`, `{{SYCOPHANCY_CHECK}}`) were sufficient for one customization pass to produce a usable per-domain index file.
+- `templates/DESIGN-template.md` and `templates/PROJECT-README-template.md` provided reasonable starting structure (replaced with project-specific content in the reference impl).
+- The QE Review 1 entry exercises the per-session-file format from G-89 — confirms the path resolution, the round-anchor link convention, and the index → session-file navigation pattern.
+
+### Refined status
+- **G-106** stays Open with revised reason. The reference implementation closed G-112 but G-106 specifically asks for sample crosslink command outputs; the reference impl was built via the suite-only path per G-117 ratification and does not exercise crosslink. G-106's natural closure is a follow-on session that actively uses crosslink against a toy project — could be a future Layer 2 of bookmark-cli with crosslink, or a different demonstration project.
+
+### Portfolio README
+- `../README.md` (portfolio root) updated to include `bookmark-cli/` as the third portfolio project with "Reference implementation" framing. Forward-only compatibility note added pointing at `vsdd-suite/COMPATIBILITY.md` (bookmark-manager and issue-tracker-cli retain their `iterative-adversarial-refinement/` legacy paths; bookmark-cli uses `vsdd-suite/`).
+
+### Note
+The Review 40 + 41 + 42 + 43 + 44 onboarding-experience review arc now closes at **23 of 24 gaps addressed** (G-100–G-105, G-107–G-111, G-113–G-123 plus G-112; only G-106 remains Open and is scoped to a follow-on session). The reference implementation also serves as the dogfooding verification of the scaffold work — `scaffold-project.sh` and the templates worked as designed against a real empty project.
+
+---
+
 ## Unreleased — 2026-05-17 (Review 43: correction — `crosslink init --with-suite` references removed; G-123 registered and addressed)
 
 ### Driver-raised correction

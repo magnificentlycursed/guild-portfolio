@@ -1,5 +1,78 @@
 # Suite Review — 2026-05-17
 
+## Review 44 — 2026-05-17 04:43Z
+
+**Scope:** Reference implementation landing event. The `bookmark-cli/` reference implementation was built at the portfolio root, scaffolded via the suite's `templates/scaffold-project.sh`, with Layer 1 complete through Phase 2b (8/8 tests pass against the Red Gate suite) and a demonstration Phase 3 QE Review 1 filed in the new per-domain index + per-session-file structure (G-89 forward-only convention). Closes G-112 as the suite's first end-to-end canary; refines G-106's status.
+
+**Lens:** Reference-implementation lens — not an adversarial review of the suite per se, but a logged suite-development event that the suite's worked example now has a verifiable artifact behind it. The suite's documentation is no longer purely hypothetical for Layer-1-through-Phase-3 scope.
+
+**Session note:** In-session — the same operator authored the suite documentation and the reference implementation. Sycophancy compensation: the reference implementation's QE Review 1 explicitly flagged the Phase 2a → 2b commit-boundary discipline failure (the operator wrote tests + implementation in one chat without an intervening commit). That self-flagging is the dogfooding signal: a real project under the suite would commit the Phase 2a Red Gate state separately; the reference impl combined them as a deliberate scope tradeoff and documented the tradeoff as a Finding 1 in `bookmark-cli/vsdd-suite/review-log/2026-05-17-quality-engineer.md`.
+
+---
+
+### Resolved
+
+**G-112 — End-to-end reference implementation of the worked example.**
+
+The `bookmark-cli/` project at portfolio root is the suite's first end-to-end canary. Artifacts:
+
+- `bookmark-cli/DESIGN.md` — Phase 1a contract (scope, behavioral contracts, edge case catalog, interface definitions, verification architecture, technology choices with rationale, constraints, open questions).
+- `bookmark-cli/TODO.md` — Phase 1b layer plan (Layer 1 fully detailed with ACs, Red Gate test plan, runnable manual testing checklist; Layers 2 + 3 scoped only).
+- `bookmark-cli/Cargo.toml` — minimal Rust crate spec (clap, serde, serde_json, chrono, anyhow; assert_cmd + predicates + tempfile dev-deps).
+- `bookmark-cli/tests/bookmarks.rs` — Phase 2a Red Gate (4 integration tests mapping 1:1 to the 4 ACs; invokes the compiled `bm` binary via `assert_cmd` per CLI supplement § QE; uses `tempfile` for per-test storage isolation).
+- `bookmark-cli/src/lib.rs` — Phase 2b pure-core storage logic (Bookmark + BookmarkStore with load/save/add/newest_first; 4 unit tests for the pure primitives).
+- `bookmark-cli/src/main.rs` — Phase 2b effectful shell (clap dispatch, env-var storage path resolution, exit-code contract per DESIGN.md).
+- `bookmark-cli/vsdd-suite/` — scaffolded via the suite's `templates/scaffold-project.sh` (the script ran clean against the empty `bookmark-cli/` directory and produced the 7 default-active core domain index files + DESIGN/README skeletons). One per-domain index file customized (`QUALITY-ENGINEER-REVIEW.md`) with a realistic Review 1 entry filed in `vsdd-suite/review-log/2026-05-17-quality-engineer.md`. The other 6 indices remain as scaffolded template stubs — accurate for the project state (no other domain reviews have been filed; the reference impl's demonstration purpose is satisfied by one customized index).
+- `bookmark-cli/README.md` — project README per the suite's `PROJECT-README-template.md` (purpose, prerequisites, install/run/test, methodology pointer to the suite, phase progression table).
+
+**Verification:** `cd bookmark-cli && cargo test` against the working tree at this commit produces:
+
+```
+running 4 tests
+test tests::newest_first_sorts_descending_by_timestamp ... ok
+test tests::load_returns_empty_for_missing_file ... ok
+test tests::load_returns_empty_for_empty_file ... ok
+test tests::save_then_load_roundtrips ... ok
+
+test result: ok. 4 passed; 0 failed
+
+running 4 tests
+test tests_list_empty_state ... ok
+test tests_add_rejects_empty_url ... ok
+test tests_add_creates_bookmark ... ok
+test tests_list_orders_newest_first ... ok
+
+test result: ok. 4 passed; 0 failed
+```
+
+The worked example is no longer hypothetical at the Layer-1 granularity. A new user reading `vsdd-suite/README.md` § Worked example can now follow `bookmark-cli/` as a side-by-side concrete artifact.
+
+**What's NOT included** (scope honestly disclosed): Layers 2 + 3 are not built; only QE Phase 3 Review 1 is filed (the other 6 active-core-domain indices are scaffolded stubs awaiting their first round); no Phase 4 routing has occurred because no live cross-domain findings exist; no Layer 1 merge gate has run because this is reference work, not delivery work; the Phase 2a → 2b commit-boundary discipline was not strictly satisfied (acknowledged in the QE Review 1's Finding 1). These omissions are appropriate for the reference-implementation purpose — G-112 asked for end-to-end exercise of the worked example at toy-project scale, not for a complete production-quality run.
+
+**Resolution:** Status flipped Open → Addressed in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md). Portfolio README updated to include `bookmark-cli/` as the third portfolio project with the "Reference implementation" framing.
+
+---
+
+### Refined status
+
+**G-106 — Sample crosslink command outputs remain Open.**
+
+The reference implementation closes G-112 but does not close G-106, because the reference impl was built via the suite-only (crosslink-free) path per the G-117 ratification of manual copy as the canonical default. G-106 specifically asked for sample outputs of `crosslink workflow diff`, `crosslink swarm review`, etc. — those commands were not exercised in this session.
+
+Refined status: G-106 stays Open with revised reason. The natural closure is a separate session that runs crosslink against a follow-on toy project (could be Layer 2 of bookmark-cli with crosslink integration, or a different toy project explicitly demonstrating the `[+crosslink]` amplifier path). Until then, the worked example's `[+crosslink]` blocks remain documented-but-unverified. The contract-testing canary (G-118's crosslink-contract.md) holds because `bookmark-cli` itself doesn't depend on crosslink; G-106's resolution awaits a project that does.
+
+---
+
+### Coordination
+
+The Review 40 + 41 + 42 + 43 + 44 onboarding-experience arc now closes at 23 of 24 gaps addressed (the 21 from prior arcs + G-123 from Review 43 + G-112 from this Review 44 = 23 Addressed; 1 remains Open: G-106). The remaining gap is genuinely scoped to a follow-on session and does not block any current suite functionality.
+
+The reference implementation also serves as a dogfooding test of the suite's own scaffolding work that landed in Reviews 40 + 41 + 42: `templates/scaffold-project.sh` ran cleanly against an empty target directory; `DESIGN-template.md` and `PROJECT-README-template.md` were sufficient starting points (replaced in the reference impl with project-specific content); `DOMAIN-REVIEW-template.md` produced usable index file stubs that one customization pass adapted into `QUALITY-ENGINEER-REVIEW.md`. The scaffolding work is verified by use.
+
+No new gaps surfaced by Review 44. Self-sycophancy check: I was tempted to claim "the reference implementation is complete" — caught that and rejected it. Only Layer 1 is built; only QE Phase 3 is exercised; the commit-boundary discipline failed. These omissions are honestly disclosed in the bookmark-cli QE review and in the "What's NOT included" paragraph above. The honest framing is: G-112 satisfied at toy-project granularity; further validation is a future session's concern.
+
+---
+
 ## Review 43 — 2026-05-17 03:10Z
 
 **Scope:** Correction review. The driver flagged that Reviews 40, 41, and 42 introduced references to a non-existent `crosslink init --with-suite` feature, treating it as a "coordination ask against crosslink upstream." The driver does not control the crosslink repository, and the feature is not in crosslink's current documentation. The references implicitly committed to a PR against an out-of-scope repo. This review documents the scope-creep, corrects the user-facing references, and registers a class-level gap for the underlying suite-development discipline failure.
