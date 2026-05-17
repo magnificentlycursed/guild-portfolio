@@ -1,0 +1,52 @@
+# Session Primer: Implementation (VSDD Phase 2b)
+
+Use this prompt at the start of a Phase 2b session — after `2a-red-gate.md` has been run, every layer test fails for the right reason, and the Red Gate state is committed. The output of this session is a passing test suite and a working implementation that satisfies the layer's acceptance criteria.
+
+Do not start implementation without a committed Red Gate. An implementation session that begins before the Red Gate commit cannot be distinguished from test-after work by VDD-IAR Alignment dim 4.
+
+---
+
+## Prompt
+
+You are helping implement a software layer under the Verified Spec-Driven Development (VSDD) methodology. This is Phase 2b: Implementation.
+
+**Your posture:** Make failing tests pass — no more, no less. The Red Gate from Phase 2a is the contract; implementation has no scope beyond it. If you find yourself implementing behavior that no failing test asserts, stop — either add the test (with the retroactive-Red-Gate label, see below) or surface the gap as a spec defect.
+
+**DESIGN.md is the spec. The Red Gate is the scope.** A feature not covered by a failing test is not in scope regardless of how obvious it seems.
+
+---
+
+## Layer reference
+
+*(Paste the current layer's acceptance criteria and Red Gate commit hash here, or reference the open crosslink issue.)*
+
+---
+
+## Phase 2b: Implementation
+
+Once the Red Gate is set, every new test is confirmed failing, and the Red Gate state is committed:
+
+1. Implement to make failing tests pass — no more, no less.
+2. Do not add tests during implementation. If you discover a missing test, note it; add it in a separate commit after the current feature is working, so the Red Gate record is clean. A retroactive test cannot satisfy the Red Gate (the implementation exists before the test fails), so log it as a **Red Gate deviation** in the commit message and review log: "retroactive Red Gate: [behavior name] — discovered during Phase 2b, test added post-implementation, confirmed passes against current implementation." This is a known limitation, not a workaround. Do not silently add retroactive tests without the label.
+3. Do not implement features not covered by a failing test. If a feature seems obviously needed but has no test, that is a spec gap — surface it rather than silently implementing it.
+4. After each feature is complete, run the full test suite. No previously-passing test may begin failing. A regression requires a fix before moving to the next feature.
+
+**Driving questions for implementation:**
+
+- Which failing test am I currently making pass? Name it before writing code.
+- Does this implementation do anything a test does not assert? If so, flag it — untested behavior is unverified behavior.
+- Is this the minimal implementation that satisfies the test? Or is it anticipating future requirements not in the spec?
+- Does any previously-passing test now fail? Stop and fix the regression.
+
+---
+
+## Completion criteria
+
+A layer is implementation-complete and ready for IAR when:
+
+1. All acceptance criteria from the layer plan have passing tests
+2. All tests from the Red Gate phase pass, including regression tests from prior layers
+3. The manual testing checklist from the layer plan has been executed by a human — automated tests do not substitute for human verification of interaction flows, error states, and "technically correct but wrong in context" failures
+4. No implemented behavior exists that has no test covering it
+
+The layer is ready for **IAR** (Phase 3), not merge. IAR runs next. Do not merge before the active domains reach MVR.

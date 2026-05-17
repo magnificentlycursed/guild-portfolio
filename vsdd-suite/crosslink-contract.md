@@ -1,0 +1,86 @@
+# Crosslink Dependency Contract
+
+The VSDD suite teaches projects to apply the Solution Architect External Interface Contracts dimensions (Dims 13–22 in [`domains/role/SOLUTION-ARCHITECT-REVIEW.md`](domains/role/SOLUTION-ARCHITECT-REVIEW.md)). This file is the suite's own application of those dimensions to its dependency on the [crosslink](https://github.com/forecast-bio/crosslink) CLI.
+
+**Reason this file exists:** registered as G-118 in [`suite-development/GAP-ANALYSIS-LOG.md`](suite-development/GAP-ANALYSIS-LOG.md) by Review 41 (Solution Architect lens, dogfooding gap). The worked example in [`README.md`](README.md) § Worked example invokes 8+ crosslink commands with specific flags; this file makes the dependency surface explicit.
+
+---
+
+## Tested-against version
+
+**crosslink v0.8.0** (as of 2026-05-17). Updates to the crosslink CLI surface require re-validating the worked example against the new version and updating this contract file.
+
+The crosslink-dependent portion of the suite is the **[+crosslink] enhancement path only**. The suite was designed for manual operation first; every step in the worked example has a manual-path version above the [+crosslink] block. Projects that do not use crosslink are unaffected by this contract.
+
+## Dependency surface — commands the suite invokes
+
+The worked example invokes these crosslink commands. Each is part of the contract; a change to any of them in crosslink may require an update to the suite's worked example.
+
+| Phase | Command(s) | Used for | Required flags |
+|---|---|---|---|
+| Setup | `crosslink init` | Initialize `.crosslink/`, issues.db, embedded policy | (none) |
+| Setup | `crosslink workflow diff` | Verify deployed policy matches embedded defaults | (none) |
+| Setup | `crosslink agent --help` | Identity setup discovery | (none) |
+| 1a | `crosslink design "<desc>"` | Open Phase 1a session container with `.design/<slug>.md` working draft | (none) |
+| 1a | `crosslink design --continue <slug>` | Resume the Phase 1a draft when a Phase 4 route brings work back | `--continue` |
+| 1b | `crosslink quick "<title>" -p <pri> -l <label> [--parent <id>] [--quiet]` | Create epic, layer issue, acceptance criterion | `-p`, `-l`, `--parent`, `--quiet` |
+| 1b | `crosslink milestone create "<name>"` | Create per-layer milestone container | (none) |
+| 1b | `crosslink milestone add "<name>" "<issue-id>"` | Attach layer issue to its milestone | (none) |
+| 1b | `crosslink milestone show "<name>"` | Verify layer container is populated | (none) |
+| 1b | `crosslink issue comment "<id>" "<text>"` | Attach Red Gate test plan to layer issue | (none) |
+| 2a | `crosslink session start` | Open implementation session | (none) |
+| 2a | `crosslink session work "<id>"` | Mark active focus issue | (none) |
+| 2b | `crosslink swarm gate <slug>` | Run project test suite as layer gate | (positional `<slug>`) |
+| 3 | `crosslink swarm review --agents <N> --mandate adversarial --file-issues --doc <path>` | Launch N parallel cold-context adversaries | `--agents`, `--mandate`, `--file-issues`, `--doc` |
+| 3 | `crosslink issue list -l <label> --status <state>` | Inspect filed findings | `-l`, `--status` |
+| 3 | `crosslink issue comment <id> "<text>"` | Classification rationale | (none) |
+| 3 | `crosslink issue close <id> --comment "<text>"` | Close finding with classification | `--comment` |
+| 4 | `crosslink issue label <id> <label>` | Apply route label | (positional) |
+| 4 | `crosslink issue block <issue-id> <blocking-id>` | Block layer on a routed Phase-1a finding | (positional) |
+| 4 | `crosslink swarm fix --from-label <label> --budget-aware` | Dispatch fix agents for routed cohort | `--from-label`, `--budget-aware` |
+| Loop | `crosslink milestone close "<name>"` | Close layer milestone at MVR | (none) |
+| Loop | `crosslink session end --notes "<text>"` | Record handoff for next session | `--notes` |
+| Loop | `crosslink session last-handoff` | Read prior session's handoff at start of new session | (none) |
+
+## Breaking-change definition
+
+A change in crosslink's CLI that requires an update to the suite's worked example is a **breaking change for the suite's contract** with crosslink. Specifically:
+
+- **Breaking:** removing any command in the table above; renaming any command; renaming or removing any required flag listed above; changing the semantic of a required flag; changing the exit-code contract such that the suite's documented commands return non-zero in cases where they previously returned zero (or vice versa).
+- **Non-breaking:** adding new commands; adding new optional flags to existing commands; expanding the accepted-input domain of an existing flag; adding output that doesn't replace existing output (e.g., adding a new line above existing stdout); deprecating commands with a stable alias still working.
+
+When a breaking change is observed, the suite must:
+
+1. Pin the prior version explicitly in this file as the "last known-good" version.
+2. Update the worked example for the new version.
+3. Bump the "Tested against" line at the top of [`README.md`](README.md) and at the top of this file.
+4. File a CHANGELOG entry under the suite's next Unreleased section.
+
+## Error contract
+
+When the suite's worked example invokes a crosslink command, the expected and unexpected error responses are:
+
+| Command class | Expected error response | Unexpected error response |
+|---|---|---|
+| `crosslink init` | Refuses to overwrite an existing `.crosslink/` directory with clear message | Silent overwrite; partial-state init |
+| `crosslink workflow diff` | Shows a diff between deployed and embedded policy | Crashes; produces no diff |
+| `crosslink quick` / `milestone create` etc. (create operations) | Returns non-zero with clear error if duplicate / invalid input | Silently creates duplicate; returns zero on validation failure |
+| `crosslink swarm gate <slug>` | Returns non-zero if the project's test suite fails; prints failing test names | Returns zero on test failure; returns non-zero on environment error indistinguishable from test failure |
+| `crosslink swarm review --agents N` | Returns non-zero if any adversary worktree fails to start; per-agent results captured | Silent agent failure; missing findings without notice |
+| `crosslink swarm fix --from-label` | Returns non-zero if any fix-agent worktree fails; per-agent results captured | Silent agent failure; un-fixed findings claimed-fixed |
+| `crosslink session end --notes "<text>"` | Persists notes; returns zero | Drops notes silently; returns zero |
+
+The unexpected-error column is the failure-mode catalog for Phase 3 reviewers — if a Phase 3 Platform Engineer review observes an unexpected-error case, that is a finding against either crosslink (file upstream) or against the suite's documented expectation (file a suite gap).
+
+## Contract testing
+
+There is currently no automated contract test that runs the worked example end-to-end against a pinned crosslink version. This is tracked as **G-112** in [`suite-development/GAP-ANALYSIS-LOG.md`](suite-development/GAP-ANALYSIS-LOG.md) — a reference implementation at e.g. `bookmark-cli/` that exercises the full worked example serves as the canary for both contract-drift detection (this file) and documentation-accuracy regression (G-106).
+
+Until the reference implementation lands, contract drift detection is manual: a contributor must re-run the worked example end-to-end after any reported change to crosslink's CLI surface.
+
+## Cross-references
+
+- [`README.md`](README.md) — the worked example that invokes the commands above.
+- [`domains/role/SOLUTION-ARCHITECT-REVIEW.md`](domains/role/SOLUTION-ARCHITECT-REVIEW.md) — SA External Interface Contracts dimensions (Dims 13–22) the suite teaches.
+- [`suite-development/GAP-ANALYSIS-LOG.md`](suite-development/GAP-ANALYSIS-LOG.md) — G-111 (version-pinning), G-112 (reference implementation), G-118 (this file's reason-for-being), G-120 (suite versioning that anchors the "Tested against" line).
+- [`domains/role/PLATFORM-ENGINEER-REVIEW.md`](domains/role/PLATFORM-ENGINEER-REVIEW.md) — PE coordinates with SA on CLI dependency surfaces.
