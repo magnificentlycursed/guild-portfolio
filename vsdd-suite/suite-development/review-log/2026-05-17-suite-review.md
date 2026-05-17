@@ -1,5 +1,56 @@
 # Suite Review — 2026-05-17
 
+## Review 45 — 2026-05-17 21:46Z
+
+**Scope:** Cross-project pattern-mining from `issue-tracker-cli/iterative-adversarial-refinement/` (~20K lines across 13 domain review logs + CLOSURE-PROTOCOL.md) plus `issue-tracker-cli/PROCESS.md` (547 lines, 7-layer first-person director retrospective). Read with two complementary methods: (a) Explore subagent scanned the 13 domain logs for recurring patterns (defect classes appearing in multiple layers or across multiple domains); (b) direct read of PROCESS.md for operator-experience friction the agent could not see (cold-session connectivity issues, cost concerns, loop-shape questions, "task manager lol lmao" deferral observation). The combination surfaces both finding-recurrence and operator-friction signals; either alone would have missed half the patterns.
+
+**Lens:** Cross-project pattern-mining. The completed-project IAR corpus is treated as evidence for suite-level gaps: a defect class that recurred across multiple layers in one project is signal that the suite's upstream primers and dimensions are letting the class through. Distinct from suite-internal adversarial review (Review 38-44 arc) and from doctrine ratification (Review 42, 43). This lens has not been used in a prior suite review and is itself a worthwhile methodology innovation — register as a recurring suite-development discipline.
+
+**Session note:** In-session — the same operator landed the Review 38-44 arc and the `bookmark-cli` reference implementation earlier this session. Sycophancy compensation: the Explore subagent ran in its own context (no exposure to the operator's framing), reporting 10 patterns; the operator's direct read of PROCESS.md added 4 more patterns the agent could not have seen (operational-cost, loop-rigidity, manual-test elevation, director-raised-finding classification gap). Cross-validation: 7 of the 10 agent-patterns are also explicitly named in PROCESS.md retrospectives, providing independent confirmation. The 3 agent-only patterns (rustdoc verification command; serde schema-evolution discipline; mutation-resistant assertions) are anchored to specific review-log evidence (TW R4 vs R6 commands; DE R1+R3+R6 serde questions; QE R3+R5+R8 mutation gaps).
+
+---
+
+### New gap registered
+
+This review registers 14 new gaps (G-124 through G-137) from the ITC pattern-mining lens. Clustered into three groups in the registry: defect-class generalizations (G-124–G-128), process/discipline gaps (G-129–G-133), and operational/tooling gaps (G-134–G-137).
+
+| G-ID | Title | Severity | Cluster |
+|---|---|---|---|
+| G-124 | Per-property defense pattern for free-form text fields not in primer | Critical | A (defect-class) |
+| G-125 | Error-message escape interpolation not named in Security domain | High | A (defect-class) |
+| G-126 | Asymmetric trust boundary (create vs load) not in DE primer | High | A (defect-class) |
+| G-127 | Empty-state regression on every new filter dimension | Medium | A (defect-class) |
+| G-128 | Mutation-resistant test assertions not in QE primer | Medium | A (defect-class) |
+| G-129 | Documentation currency requires automation not review discipline | Critical | B (process) |
+| G-130 | Deferral lifecycle and task ownership — promote ITC §3 to suite-default | High | B (process) |
+| G-131 | Loop-count framing: rigidify trigger not default | High | B (process) |
+| G-132 | Manual testing as peer surface to IAR (not a checkbox) | High | B (process) |
+| G-133 | Director-raised finding classification | Medium | B (process) |
+| G-134 | Cold-session dispatch tooling absent | High | C (operational) |
+| G-135 | Cost/token discipline — new "AI Engineering" meta-domain candidate | Medium-High | C (operational) |
+| G-136 | Suite-level phase-flow visualization missing from README | Medium | C (operational) |
+| G-137 | Rustdoc verification command in Rust supplement insufficient | Low | C (operational) |
+
+**Methodology gap also surfaced** (recorded here, not separately registered): the pattern-mining lens itself is novel. The suite's `suite-development.md` § Suite review entry format Lens-field examples include defect-class lens, registry-walk lens, role-based lens — but not "cross-project pattern-mining lens." This Review 45 entry establishes it as a precedent; future reviewers can cite it. If a second project (after `bookmark-cli` grows beyond Layer 1) provides a second corpus, the lens warrants its own primer treatment.
+
+---
+
+### Coordination
+
+The 14 gaps cluster into three coordinated decisions a future closure session would face:
+
+**Cluster A — Defect-class generalizations (G-124–G-128).** Five gaps share a common pattern: a class of defect that recurred multiple times in ITC because the suite did not name the generalization upstream. Resolution shape: each gets a primer-text addition (1b-decomposition.md for A1/A4; Security domain for A2; Data Engineer domain for A3; Quality Engineer domain for A5) + a Rust supplement update. Total: ~7 primer/domain edits. Cross-coordinate: G-124 + G-125 + G-126 are tightly linked (all about per-property defense); could land together. G-127 + G-128 are independent but cheap.
+
+**Cluster B — Process/discipline gaps (G-129–G-133).** Five gaps require methodology changes, not just dimension additions. G-129 is the cheapest single change (one hook script + .pre-commit-config.yaml template); G-130 promotes the ITC-specific CLOSURE-PROTOCOL.md §3 to a suite-default standard in `suite-development.md`; G-131-G-133 are paragraph-level primer additions to `primers/3-review-session.md` (loop count, manual testing elevation) and `suite-development.md` (director-raised classification). Cross-coordinate: G-130 should land before G-133 — the auto-Backlog mechanism is the structural prerequisite for "Source: director-raised" being trackable.
+
+**Cluster C — Operational/tooling gaps (G-134–G-137).** Four gaps where the suite needs to produce tooling or content beyond primer text. G-134 (cold-session dispatch script) is small (~50 lines bash) and unblocks the recurring "I don't have a good manual workflow" friction. G-135 (cost/token meta-domain) is a multi-session effort warranting its own arc — likely the largest single piece of follow-on suite work. G-136 (phase-flow diagram) and G-137 (rustdoc command fix) are small README/supplement edits. Cross-coordinate: G-135 is the only gap in this review that's *larger* than a single closure session; could be its own future review arc.
+
+**Recommended sequencing for a follow-on closure session:** G-129 first (immediate value, smallest cost); G-124 + G-125 + G-126 together (the per-property defense cluster); G-130 (deferral lifecycle); G-131 + G-132 (loop and manual-test framing). That's 7 closures in one session, addressing the highest-leverage gaps. The remaining 7 (G-127, G-128, G-133, G-134, G-135, G-136, G-137) are individually small enough to bundle into a second session or absorb opportunistically.
+
+**Cross-coordinate to future bookmark-cli work:** when `bookmark-cli` advances beyond Layer 1 (Layer 2 tag + filter is the natural next step), the same pattern-mining lens can be applied to its accumulating reviews — and any recurrence of the patterns named here would be confirming evidence that the gap is suite-level, not project-specific.
+
+---
+
 ## Review 44 — 2026-05-17 04:43Z
 
 **Scope:** Reference implementation landing event. The `bookmark-cli/` reference implementation was built at the portfolio root, scaffolded via the suite's `templates/scaffold-project.sh`, with Layer 1 complete through Phase 2b (8/8 tests pass against the Red Gate suite) and a demonstration Phase 3 QE Review 1 filed in the new per-domain index + per-session-file structure (G-89 forward-only convention). Closes G-112 as the suite's first end-to-end canary; refines G-106's status.

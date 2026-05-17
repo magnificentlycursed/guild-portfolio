@@ -4,6 +4,26 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-17 (Review 45: cross-project pattern-mining from issue-tracker-cli IAR + PROCESS.md — 14 gaps registered, none addressed yet)
+
+### Suite-development event (registry-only, no artifact changes)
+- **14 new gaps registered (G-124–G-137)** from pattern-mining `issue-tracker-cli/iterative-adversarial-refinement/` (~20K lines across 13 domain review logs) plus `issue-tracker-cli/PROCESS.md` (547 lines, 7-layer first-person director retrospective). The completed project's IAR corpus is treated as evidence: a defect class that recurred across multiple layers is signal that the suite's upstream primers and dimensions are letting the class through. Methodology innovation: this is the first cross-project pattern-mining lens applied in the suite-review log; Review 45 establishes it as precedent for future reviewers.
+- **Three clusters:**
+  - **A — Defect-class generalizations** (G-124 per-property text-field defense; G-125 error-message escape; G-126 create/load symmetry; G-127 empty-state regression per filter; G-128 mutation-resistant assertions). Each tied to specific ITC recurrences (Title L1, Labels L4, Description L6 for G-124; QE R3+R5+R8 mutations for G-128; etc.).
+  - **B — Process / discipline gaps** (G-129 CHANGELOG-currency hook; G-130 promote CLOSURE-PROTOCOL §3 auto-Backlog to suite-default; G-131 loop-count trigger framing; G-132 manual-testing-as-peer-surface; G-133 Source: director-raised classification). G-129 has the largest single-change leverage (six TW-caught recurrences in ITC alone).
+  - **C — Operational / tooling gaps** (G-134 cold-session dispatch script; G-135 AI Engineering meta-domain candidate for cost/token discipline; G-136 phase-flow diagram in README; G-137 rustdoc verification command in Rust supplement). G-135 warrants its own arc — multi-session work surfacing the operator's explicit "AI Engineering review domain for recommendations" request from L4 PROCESS.md.
+
+### Method
+- Two complementary sources: (a) Explore subagent in its own context scanned the 13 ITC domain logs for recurring finding patterns (10 patterns reported); (b) direct read of PROCESS.md surfaced 4 additional operator-experience patterns the agent could not see (cost/token, loop-rigidity, manual-test elevation, director-raised classification). 7 of the 10 agent-patterns were independently confirmed by explicit PROCESS.md text, providing cross-validation.
+
+### Recommended sequencing for follow-on closure
+- G-129 first (cheapest, largest catch — six layer closes recur the same TW finding); then G-124 + G-125 + G-126 together (per-property defense cluster); then G-130 (deferral lifecycle); then G-131 + G-132 (loop and manual-test framing). Seven closures land the highest-leverage gaps. Remaining seven (G-127, G-128, G-133, G-134, G-135, G-136, G-137) bundle opportunistically; G-135 is the only one large enough to warrant its own arc.
+
+### Note
+This is a registry-only event — no suite artifacts are modified in this commit. The 14 gaps establish the actionable backlog from ITC's accumulated evidence. Future closure sessions will land the substantive changes (primer text additions, new hook script, new meta-domain authorship, etc.). The Review 45 entry in `suite-development/review-log/2026-05-17-suite-review.md` carries the full reasoning and cross-coordination notes.
+
+---
+
 ## Unreleased — 2026-05-17 (Review 44: reference implementation landed — G-112 closed; G-106 refined; dogfooding the scaffold work)
 
 ### Added (portfolio event, not a suite-internal change)
