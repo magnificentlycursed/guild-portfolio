@@ -412,7 +412,7 @@ Per `primers/3-review-session.md`: open ONE fresh chat per active domain (cold c
 >
 > Close the session with a `### Summary` line tallying findings by class and a `**Coordination:**` line naming any cross-domain handoffs.
 
-Classify each finding. Append the round to the domain's index file + a session file in `review-log/YYYY-MM-DD-<domain-slug>.md` (slug convention in `suite-development/suite-development.md` § Structure). Repeat for every active domain in its own fresh chat (no context sharing — the gold standard).
+Classify each finding. Append the round to the domain's index file + a session file in `review-log/YYYY-MM-DD-<domain-slug>.md` (slug convention in `suite-development/suite-development.md` § Structure). Also append a row to the project-level finding index (`vsdd-suite/FINDINGS-INDEX.md` for the manual path, or `crosslink issue create` with structured labels for the crosslink path — see `suite-development/suite-development.md` § Project-level finding index). The cross-cutting index gives the "show me all Open findings" / "show me everything on Layer 2" view that per-domain rounds don't. Repeat for every active domain in its own fresh chat (no context sharing — the gold standard).
 
 **[+crosslink]** Use `swarm review` for routine refinement rounds where volume matters more than the marginal finding — launches N parallel cold-context adversaries (one per domain) in isolated worktrees, files findings as crosslink issues:
 

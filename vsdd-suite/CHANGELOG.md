@@ -4,6 +4,35 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-17 (Review 46: project-level finding index — G-138 registered and addressed; bookmark-cli reference impl populated)
+
+### Driver-raised observation
+Driver flagged ITC's 20K-line review files as a quick-lookup problem and proposed a TOC-and-split pattern. Clarification surfaced G-89's forward-only constraint (ITC stays untouched); driver confirmed forward-only intent ("This is for new projects only and is not applied retroactively"). G-138 captures the underlying need (cross-cutting findings index orthogonal to G-89's per-domain round index) and addresses it for new projects.
+
+### Added
+- **`suite-development/suite-development.md`** § Governing standard for project-level review logs gained a new `### Project-level finding index (cross-cutting registry)` subsection. Defines two equivalent paths — **crosslink path** (every classified finding is a crosslink issue with labels `domain:<slug>`, `layer:N`, `round:N`, `finding:N`, `classification:<class>`, `source:<source>`, queryable via `crosslink issue list -l <axis>:<value>`) and **manual path** (single `<project>/vsdd-suite/FINDINGS-INDEX.md` file structured like the suite's GAP-ANALYSIS-LOG.md). Same information shape; projects can migrate between paths via `crosslink import` / `export`. Forward-only per G-89's framing.
+- **`templates/PROJECT-FINDINGS-INDEX-template.md`** (new) — manual-path template with header, quick-lookup recipes, findings registry table, cross-references. Two example rows demonstrate the shape; projects delete the examples when populating.
+- **`templates/scaffold-project.sh`** updated to copy `PROJECT-FINDINGS-INDEX-template.md` to `vsdd-suite/FINDINGS-INDEX.md` during scaffolding (with deletion-instruction for crosslink-using projects).
+- **`templates/README.md`** Contents table updated with the new template row.
+- **`README.md`** § Worked example Phase 3 updated — one sentence after the per-domain round-filing instruction names the finding-index step (both paths).
+
+### Demonstrated by use
+- **`bookmark-cli/vsdd-suite/FINDINGS-INDEX.md`** populated with three rows (F-001 through F-003) — the three QE Review 1 findings from the reference impl. Demonstrates the manual-path structure with real finding data; future Phase 3 reviews on bookmark-cli would append rows.
+
+### Addressed
+- **G-138 — Project-level finding index not established.** Registered and Addressed in the same session. The recurrence evidence: ITC accumulated ~50+ findings across 13 domains over 7 layers with no cross-cutting index; PROCESS.md L6 operator quote names the gap implicitly. Resolution applied per the spec above. Status flipped Open → Addressed in `suite-development/GAP-ANALYSIS-LOG.md`.
+
+### Note
+Constraint-respecting addition. ITC's existing single-file-per-domain shape stays per G-89 forward-only. New projects starting after 2026-05-17 adopt both the per-domain index (G-89) and the cross-cutting findings index (G-138); the two are orthogonal and complementary, not alternatives.
+
+Coordinates with:
+- G-89 (per-domain round index — G-138 sits on top, not replacement)
+- G-130 (deferral lifecycle — G-138's labels capture deferral metadata trivially)
+- G-133 (Source field — G-138 includes source as a label axis)
+- G-118 (crosslink-contract.md — follow-on update needed to enumerate `issue list -l`, `issue create --label`, etc. as part of G-138's full closure; not blocking)
+
+---
+
 ## Unreleased — 2026-05-17 (Review 45: cross-project pattern-mining from issue-tracker-cli IAR + PROCESS.md — 14 gaps registered, none addressed yet)
 
 ### Suite-development event (registry-only, no artifact changes)

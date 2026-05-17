@@ -63,6 +63,16 @@ else
   echo "README.md already exists — skipped"
 fi
 
+# Copy FINDINGS-INDEX.md skeleton (the manual path of G-138 — skip if using
+# crosslink for finding tracking). The script always copies the template; the
+# project can delete it if adopting the crosslink path instead.
+if [ ! -f vsdd-suite/FINDINGS-INDEX.md ]; then
+  cp "$TEMPLATES_DIR/PROJECT-FINDINGS-INDEX-template.md" vsdd-suite/FINDINGS-INDEX.md
+  echo "Created vsdd-suite/FINDINGS-INDEX.md (manual path of G-138 — delete if using crosslink for finding tracking)"
+else
+  echo "vsdd-suite/FINDINGS-INDEX.md already exists — skipped"
+fi
+
 # Copy per-domain index templates
 for domain in "${DOMAINS[@]}"; do
   target="vsdd-suite/${domain}-REVIEW.md"

@@ -1,5 +1,68 @@
 # Suite Review — 2026-05-17
 
+## Review 46 — 2026-05-17 22:04Z
+
+**Scope:** Driver-raised observation that "some files exceed 20K lines" (referring to ITC's domain review logs — the largest is `SOLUTION-OWNER-REVIEW.md` at 2495 lines / 252KB, and several others are in the 1500–2100 line range). Driver requested a TOC-and-split pattern matching the suite's own `SUITE-REVIEW-INDEX.md` + `review-log/` shape, with crosslink features where available. Initial AskUserQuestion clarified intent (TOC-only, respecting G-89's forward-only constraint); follow-on clarification: "This is for new projects only and is not applied retroactively." ITC stays untouched per G-89 / Review 38 ratification. The work this session: formalize the project-level finding registry pattern (G-138) — a cross-cutting index orthogonal to the per-domain round index — and apply it to bookmark-cli as the reference implementation.
+
+**Lens:** Forward-only suite enhancement driven by accumulated-evidence observation. The driver's underlying need (quick-lookup across large finding sets) is real for any project that grows beyond ~5–10 active findings. The suite's per-domain index + per-session-file structure (G-89) indexes ROUNDS; a project still needs a FINDINGS-level index to answer cross-cutting queries ("show me all Open"; "show me everything on Layer 2"; "show me everything the director raised manually"). Adding the finding-index pattern is a small structural addition that compounds with the existing G-89 structure rather than replacing it.
+
+**Session note:** In-session. Sycophancy compensation: the driver's instinct was to split the existing ITC files retroactively; my G-89-aware response surfaced the forward-only constraint and forced an explicit choice. The driver chose the constraint-respecting path, then clarified that the entire approach is forward-only. The work that landed (G-138) addresses the underlying need — quick lookup across findings — via a forward-only pattern that does not touch ITC. The driver's original instinct (split ITC) and my constraint-flagging (G-89) and the driver's clarification (forward-only) compose into a clean outcome.
+
+---
+
+### New gap registered
+
+**G-138 — Project-level finding index (cross-cutting registry) not established.**
+
+The G-89 per-domain index + per-session-file structure indexes rounds but not individual findings. Projects with substantial finding counts have no cross-cutting view. The driver's "quick lookup" instinct names the need; the manual-path (FINDINGS-INDEX.md) and crosslink-path (labeled crosslink issues) carry the same information shape so projects can adopt either. Forward-only per G-89's framing — applies to projects starting after 2026-05-17.
+
+**Severity:** High mission-critical / Medium speculative. The recurrence evidence: ITC accumulated ~50+ findings across 13 domains over 7 layers with no cross-cutting index; PROCESS.md L6 operator quote "I need a mechanism to make sure deferred items are properly worked. Maybe like some sort of task manager lol lmao" names the gap implicitly.
+
+---
+
+### Addressed (G-138 — same session)
+
+**1. `suite-development/suite-development.md` § Governing standard for project-level review logs gained a new `### Project-level finding index (cross-cutting registry)` subsection.**
+
+Defines two equivalent paths (crosslink and manual), enumerates the label-axis convention for the crosslink path (`domain:<slug>`, `layer:N`, `round:N`, `finding:N`, `classification:<class>`, `source:<source>`), names the manual-path equivalent (`<project>/vsdd-suite/FINDINGS-INDEX.md` structured like the suite's GAP-ANALYSIS-LOG.md), and states the path-switch trade-off (supported but not free; choose at scaffold time).
+
+**2. `templates/PROJECT-FINDINGS-INDEX-template.md` (new) — manual-path template.**
+
+Header + Quick-lookup recipes + Findings registry table + Cross-references. Mirrors the GAP-ANALYSIS-LOG.md shape applied at project scale. New projects scaffold this; the template includes 2 example rows that the project deletes when populating.
+
+**3. `templates/scaffold-project.sh` updated to copy `PROJECT-FINDINGS-INDEX-template.md` to `vsdd-suite/FINDINGS-INDEX.md` during scaffolding.**
+
+The script always copies it; projects using the crosslink path can delete it. Output message names the conditional: "delete if using crosslink for finding tracking."
+
+**4. `templates/README.md` updated to list the new template in the Contents table.**
+
+One row added with the conditional note.
+
+**5. `README.md` § Worked example Phase 3 updated to mention finding tracking.**
+
+One sentence added after the per-domain round-filing instruction: "Also append a row to the project-level finding index (`vsdd-suite/FINDINGS-INDEX.md` for the manual path, or `crosslink issue create` with structured labels for the crosslink path)."
+
+**6. `bookmark-cli/vsdd-suite/FINDINGS-INDEX.md` (new) — populated reference-impl demonstration.**
+
+Three rows for the three QE Review 1 findings (F-001 Phase 2a → 2b commit-boundary discipline, Resolved; F-002 missing edge-case test coverage, Resolved; F-003 insufficient-test-count claim, Hallucinated). Demonstrates the manual-path structure with real finding data; future Phase 3 reviews on bookmark-cli would append rows for new findings.
+
+**Resolution:** Status flipped Open → Addressed in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md) in the same session as registration. The pattern is now part of the suite for new projects; the reference impl demonstrates the manual path; crosslink path is documented but not exercised in this session (no crosslink-using portfolio project yet).
+
+---
+
+### Coordination
+
+G-138 coordinates with:
+- **G-89** — the same forward-only framing applies; G-138 sits *on top of* G-89's per-domain structure, not as a replacement. A project gets both: per-domain index files (G-89) AND a cross-cutting findings index (G-138).
+- **G-130** (deferral lifecycle) and **G-133** (Source: director-raised classification) — both reference structured-finding metadata that G-138's label axes (or manual columns) capture. G-138's adoption makes G-130 and G-133 trivially queryable when they're addressed.
+- **G-118** (crosslink-contract.md) — G-138's crosslink path adds new commands to the verified surface: `crosslink issue list -l <label>`, `crosslink issue create --label <axis>:<value>`, etc. The contract file should be updated to enumerate these as part of G-138's full closure. (Noted as a follow-on; not blocking.)
+
+No new gaps surfaced this session. Sycophancy self-audit: the temptation was to either (a) silently violate G-89 (the driver's instinct supported the override) or (b) implement only the TOC subset without the cross-cutting index. Both temptations rejected — the constraint was surfaced explicitly via AskUserQuestion (driver confirmed forward-only), and the addition was implemented at full scope (both paths documented + manual template + reference-impl population + scaffold-script update + README integration).
+
+The Review 45 + Review 46 pairing is the closure of a coherent observation arc: Review 45 mined ITC for recurring patterns and registered 14 backlog gaps; Review 46 addresses one of them (G-138 — the project-level finding index — though not in the original 14, surfaced by the driver in the same session) by forward-only suite enhancement. The remaining 14 from Review 45 stay Open per the recommended-sequencing plan.
+
+---
+
 ## Review 45 — 2026-05-17 21:46Z
 
 **Scope:** Cross-project pattern-mining from `issue-tracker-cli/iterative-adversarial-refinement/` (~20K lines across 13 domain review logs + CLOSURE-PROTOCOL.md) plus `issue-tracker-cli/PROCESS.md` (547 lines, 7-layer first-person director retrospective). Read with two complementary methods: (a) Explore subagent scanned the 13 domain logs for recurring patterns (defect classes appearing in multiple layers or across multiple domains); (b) direct read of PROCESS.md for operator-experience friction the agent could not see (cold-session connectivity issues, cost concerns, loop-shape questions, "task manager lol lmao" deferral observation). The combination surfaces both finding-recurrence and operator-friction signals; either alone would have missed half the patterns.
