@@ -149,9 +149,9 @@ For a new project, each active domain produces two file shapes:
 
 The per-domain index + per-session-file structure (above) indexes ROUNDS but not individual FINDINGS. A project with 50 findings across 10 domains has no cross-cutting view — answering "show me all Open findings" or "show me everything raised on Layer 2" requires reading every domain index. The finding-index gives that cross-cutting view; it is to project findings what [`GAP-ANALYSIS-LOG.md`](GAP-ANALYSIS-LOG.md) is to suite gaps.
 
-Two equivalent paths — pick by whether the project uses crosslink:
+Two operational modes — pick by whether crosslink is installed; the manual mode is a first-class fallback that carries the same discipline, not a second-class lite version.
 
-**Crosslink path (preferred when crosslink is in use):**
+**[crosslink] mode — recommended path:**
 
 Every classified finding is also a crosslink issue. The markdown review-log entry remains the canonical narrative; the crosslink issue is the index entry with labels for fast filtering.
 
@@ -174,15 +174,15 @@ crosslink issue list -l source:director-raised                      # everything
 crosslink tui                                                       # interactive browse
 ```
 
-`crosslink swarm review --file-issues` files findings automatically with the `review-finding` label; reviewers add the structured labels above during classification. The crosslink path is recommended because the labels are queryable and the audit trail (label history, comment threads, close timestamps) is built-in.
+`crosslink swarm review --file-issues` files findings automatically with the `review-finding` label; reviewers add the structured labels above during classification. The crosslink mode is recommended because the labels are queryable and the audit trail (label history, comment threads, close timestamps) is built-in.
 
-**Manual path (when crosslink is not in use):**
+**[manual] mode — first-class fallback path:**
 
 A single `<project>/vsdd-suite/FINDINGS-INDEX.md` file holds the cross-cutting registry, structured like [`GAP-ANALYSIS-LOG.md`](GAP-ANALYSIS-LOG.md) — one row per finding with columns for ID, domain, layer, round, finding-number, title, classification, status, source, and a link to the per-session-file anchor for the full narrative. Quick lookup is via grep or markdown viewer with table filtering. Template at `vsdd-suite/templates/PROJECT-FINDINGS-INDEX-template.md`.
 
-The manual path matches the crosslink path's information shape exactly so a project that adopts crosslink later can mechanically migrate the markdown rows into crosslink issues.
+The manual mode matches the crosslink mode's information shape exactly so a project that adopts crosslink later can mechanically migrate the markdown rows into crosslink issues. This is not a degraded path — every IAR discipline (per-domain index, per-session file, sycophancy check, Red Gate, MVR signal, routing table) is fully exercisable in manual mode. The trade-off is mechanical (queryability via grep vs. label filter, audit trail in git history vs. issue comment thread), not methodological.
 
-**Either path, both are forward-only:** A project chooses one path at start. Switching paths mid-project (markdown → crosslink) requires migrating existing rows; switching the other way (crosslink → markdown) requires exporting via `crosslink export`. Switching is supported but not free; choose deliberately at scaffold time.
+**Either mode, both are forward-only:** A project chooses one mode at start. Switching modes mid-project (manual → crosslink) requires migrating existing rows; switching the other way (crosslink → manual) requires exporting via `crosslink export`. Switching is supported but not free; choose deliberately at scaffold time.
 
 ### File-level header (top of the per-domain index file)
 

@@ -4,6 +4,32 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-18 (Review 49: two-mode design principle articulated + polarity sweep landed)
+
+### Added
+- **`vsdd-suite/README.md`** (top) and **`vsdd-suite/suite-development/README.md`** — new "Two modes of operation (design principle)" sections stating that the suite supports both a `[crosslink]` (recommended) operational mode and a `[manual]` (first-class fallback) operational mode, that both carry the same VSDD discipline, and that the trade-off is mechanical, not methodological. The contributor-facing version is binding on future contributions: every crosslink-only mechanism MUST have a manual-mode equivalent preserving the same discipline.
+- **`vsdd-suite/README.md`** § Worked example Phase 4 — `crosslink issue relate <a> <b>` example added to the `[crosslink]` block as the mechanization of the suite's `**Coordination:**` line on cross-domain findings. Manual mode retains the same discipline via inline narrative in the routed finding's record.
+- **`vsdd-suite/primers/4-feedback-integration.md`** — same `crosslink issue relate` step added to the `[crosslink]` mode subsection; coordination-recording sentence added to the `[manual]` mode shape so cross-domain coordination is captured inline.
+
+### Changed (polarity sweep — five files re-keyed to parallel `[crosslink]` / `[manual]` blocks)
+- **`vsdd-suite/README.md`** — Prerequisites split into "Baseline (required for both modes)" and "For crosslink-primary mode (recommended)"; Quickstart restructured as two parallel quickstarts; Worked Example Overview table updated with `[crosslink]` and `[manual]` columns; every phase block (Setup, 1a, 1b, 2a, 2b, 3, 4, Loop-until-MVR) flipped to lead with `[crosslink]` (recommended) and follow with `[manual]` (first-class fallback) of equal substance; Pausing/Resuming reframed to "crosslink mode" instead of "crosslink amplifier path".
+- **`vsdd-suite/primers/4-feedback-integration.md`** — § "With crosslink (Phase 2+ projects)" → § "[crosslink] — Recommended path"; § "Without crosslink (manual / Phase 1 projects)" → § "[manual] — First-class fallback path"; mode-framing paragraph added above the two subsections.
+- **`vsdd-suite/suite-development/suite-development.md`** § Project-level finding index — "Two equivalent paths" → "Two operational modes"; "Crosslink path (preferred when crosslink is in use)" → "[crosslink] mode — recommended path"; "Manual path (when crosslink is not in use)" → "[manual] mode — first-class fallback path"; discipline-parity paragraph added stating every IAR discipline is fully exercisable in manual mode.
+- **`vsdd-suite/templates/README.md`** — Usage section rewritten: scaffold step stated as mode-independent; recommended scaffold script presented first; manual scaffold block presented as the first-class equivalent (including the `cp ... FINDINGS-INDEX.md` step for manual mode per G-138); the prior "Crosslink-enabled projects: templates are independent" footnote folded into the Usage prose.
+
+### Addressed
+- **G-144** — Two-mode operational design principle now stated explicitly in user-facing and contributor-facing READMEs.
+- **G-145** — `crosslink issue relate` added to Phase 4 in both `README.md` and `primers/4-feedback-integration.md` as the crosslink-mode mechanization of the suite's `**Coordination:**` line.
+- **G-147** — Polarity sweep landed across the five files listed above; discipline parity verified per-block (manual mode describes the same discipline with mechanical substitutions, not a stripped-down lesser version).
+
+### Open
+- **G-146** — Suite primer auto-injection via `crosslink knowledge` registered as a candidate enhancement. Resolution gated on (a) verification of `crosslink knowledge`'s actual surface (G-123/G-139 discipline applies — `crosslink knowledge --help` is the source of truth), (b) decision on whether `scaffold-project.sh` or a separate hook should do the registration, (c) policy on primer versioning. G-144's principle binds: any auto-injection must preserve the manual mode's path.
+
+### Note
+The Review 49 work is a forward-only re-framing. Prior review logs and CHANGELOG entries preserve the original "crosslink amplifier / manual fallback" framings as audit trail per G-89's narrative-preservation policy. Future suite reviews evaluate both modes; a review that only validates the crosslink mode is incomplete (binding rule from `suite-development/README.md` § Two operational modes).
+
+---
+
 ## Unreleased — 2026-05-18 (Review 48: G-139 addressed — `check-crosslink-references` pre-commit hook landed)
 
 ### Added

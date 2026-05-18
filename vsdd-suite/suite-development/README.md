@@ -4,6 +4,12 @@ This directory holds the materials for **evolving the suite itself** — adding 
 
 The split between `vsdd-suite/` (user-facing) and `vsdd-suite/suite-development/` (contributor-facing) is structural per G-93. Promotion of contributor content into the user-facing top level (or vice versa) is itself a suite-development decision, recorded here.
 
+## Two operational modes (design principle)
+
+The suite supports two operational modes for users: `[crosslink]` (recommended, when crosslink is installed and adopted by the project) and `[manual]` (first-class fallback, when crosslink is not in use). Both modes carry the same VSDD discipline — same primers, same domains, same Red Gate, same routing table, same MVR signal. The trade-off between modes is mechanical (issue graph + label filter + swarm dispatch vs. markdown index + grep + human routing), not methodological. See `../README.md` § "Two modes of operation (design principle)" for the user-facing statement.
+
+This design principle is binding on suite contributors: when adding a primer, domain, dimension, hook, or template, every crosslink-only mechanism MUST have a manual-mode equivalent that preserves the same discipline. A primer that says "if you don't have crosslink, you can't do this" is a defect. The manual mode is not a degraded path — it is a fully supported mode that the suite scaffolds, documents, and tests with the same rigour. Suite reviews evaluate both modes; a review that only validates the crosslink mode is incomplete.
+
 ---
 
 ## What lives here

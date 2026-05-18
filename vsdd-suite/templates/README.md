@@ -9,12 +9,22 @@ Scaffolding artifacts for new projects adopting the VSDD suite. These templates 
 | `DESIGN-template.md` | Skeleton for the project's `DESIGN.md` (Phase 1a output). Mirrors the driving-question structure from `primers/1a-spec-crystallization.md` so the first session has a structured starting point. | `<your-project>/DESIGN.md` |
 | `PROJECT-README-template.md` | Skeleton for the project's user-facing README — purpose, prerequisites, run/test, link to DESIGN.md. | `<your-project>/README.md` |
 | `DOMAIN-REVIEW-template.md` | Generic per-domain index file. Copy and customize per active domain (role, activation, language supplement, sycophancy check from the domain prompt file). | `<your-project>/vsdd-suite/<DOMAIN>-REVIEW.md` (one per active domain) |
-| `PROJECT-FINDINGS-INDEX-template.md` | Cross-cutting findings registry (manual path of G-138). One row per finding across every domain and layer, structured like the suite's GAP-ANALYSIS-LOG.md. Skip if using crosslink for finding tracking — `crosslink issue` with the labeled-issue convention is the equivalent (see `vsdd-suite/suite-development/suite-development.md` § Project-level finding index). | `<your-project>/vsdd-suite/FINDINGS-INDEX.md` (single file per project) |
+| `PROJECT-FINDINGS-INDEX-template.md` | Cross-cutting findings registry (manual-mode equivalent of G-138). One row per finding across every domain and layer, structured like the suite's GAP-ANALYSIS-LOG.md. Skip in crosslink mode — `crosslink issue` with the labeled-issue convention is the queryable equivalent (see `vsdd-suite/suite-development/suite-development.md` § Project-level finding index). | `<your-project>/vsdd-suite/FINDINGS-INDEX.md` (single file per project, manual mode only) |
 | `scaffold-project.sh` | Helper script: creates `vsdd-suite/` + `review-log/` in a target project, copies the templates, prints next-step guidance. | run from project root |
 
 ## Usage
 
-**Manual (suite-only path):**
+The scaffold step is identical for both operational modes — it lays down the per-project artifacts (DESIGN.md, project README, per-domain index files, optional FINDINGS-INDEX.md). The mode you operate in afterwards (`[crosslink]` recommended or `[manual]` first-class fallback) is determined by whether crosslink is installed and whether you exercise the crosslink-mode commands described in `vsdd-suite/README.md` § Worked example. The templates themselves are mode-independent.
+
+**With the helper script (recommended for both modes):**
+
+```sh
+cd <your-project>
+<path-to-vsdd-suite>/templates/scaffold-project.sh
+# Then customize the placeholders in the copied files.
+```
+
+**Manual scaffold (if you prefer not to use the script):**
 
 ```sh
 cd <your-project>
@@ -23,18 +33,12 @@ cp <path-to-vsdd-suite>/templates/DESIGN-template.md DESIGN.md
 cp <path-to-vsdd-suite>/templates/PROJECT-README-template.md README.md
 # For each active domain (see vsdd-suite/domains/DOMAIN-INDEX.md):
 cp <path-to-vsdd-suite>/templates/DOMAIN-REVIEW-template.md vsdd-suite/QUALITY-ENGINEER-REVIEW.md
-# ... then customize the placeholders in each copied file
+# ... then customize the placeholders in each copied file.
+# In manual mode only, also copy the findings index:
+cp <path-to-vsdd-suite>/templates/PROJECT-FINDINGS-INDEX-template.md vsdd-suite/FINDINGS-INDEX.md
 ```
 
-**With the helper script:**
-
-```sh
-cd <your-project>
-<path-to-vsdd-suite>/templates/scaffold-project.sh
-# Then customize the placeholders in the copied files.
-```
-
-**Crosslink-enabled projects:** the templates are independent of crosslink — run the same copy/script. Crosslink and the suite are separate tools that each scaffold their own state in a project; no shared scaffolding mechanism is provided.
+Crosslink and the suite are separate tools that each scaffold their own state in a project; there is no shared scaffolding mechanism, so the suite scaffold step runs the same way regardless of whether crosslink is installed.
 
 ## Customization checklist
 

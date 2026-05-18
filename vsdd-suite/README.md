@@ -4,21 +4,32 @@ A multi-phase prompt and process library for the Verified Spec-Driven Developmen
 
 The suite's Phase 3 component (IAR) is not a pre-merge checkpoint — it is an active part of the build cycle. Rounds run during layer development, not just at the end. A layer does not merge when it passes one IAR run; it merges when an IAR run produces only **hallucinated** findings across all active domains. That is the maximum viable refinement (MVR) signal: the adversary has run out of real complaints.
 
-> **New here?** Read [Prerequisites](#prerequisites) → [Quickstart](#quickstart) → [Bringing the suite into your project](#bringing-the-suite-into-your-project) → [Worked example](#worked-example-a-vsdd-session-with-crosslink). For evolving the suite itself, see [`suite-development/README.md`](suite-development/README.md).
+## Two modes of operation (design principle)
 
-**Tested against:** crosslink v0.8.0 (2026-05-17) — when crosslink commands appear, they are verified against this version. The suite-only path is crosslink-independent.
+The suite supports two modes for operations: **crosslink-primary** (recommended) and **manual** (first-class supported fallback).
+
+- **Crosslink-primary mode** uses [crosslink](https://github.com/forecast-bio/crosslink) to mechanize dispatch (`crosslink swarm review`, `crosslink swarm fix`), finding tracking (labeled crosslink issues), session handoff (`crosslink session end --notes`), cross-domain coordination (`crosslink issue relate`/`block`), and optionally primer auto-injection via `crosslink knowledge`. This is the recommended path because the mechanisms compound (queryable finding labels; structured issue graph; built-in audit trail; multi-agent worktree isolation by construction).
+- **Manual mode** is the first-class fallback — every feature of the crosslink-primary mode has a documented manual equivalent at the same depth: per-domain index files + `review-log/YYYY-MM-DD-<slug>.md` per-session files for finding tracking; `FINDINGS-INDEX.md` for the cross-cutting registry; prose `**Coordination:**` and `**Session note:**` markers in review-log entries; manual chat-session ritual for dispatch. Manual mode is not a stripped-down subset; it is tested and documented to feature parity with the crosslink mode.
+
+Cross-mode migration is supported via `crosslink import` / `crosslink export` (the labeled-issue and markdown finding-index shapes mirror each other deliberately for this purpose).
+
+**Scaffolding is a separate decision** — per G-117 doctrine ratification, the canonical scaffolding mechanism is manual copy via [`templates/scaffold-project.sh`](templates/scaffold-project.sh) regardless of which operational mode the project uses. See [Bringing the suite into your project](#bringing-the-suite-into-your-project).
+
+> **New here?** Read [Prerequisites](#prerequisites) → [Quickstart](#quickstart) (two parallel quickstarts — one per mode) → [Bringing the suite into your project](#bringing-the-suite-into-your-project) → [Worked example](#worked-example-a-vsdd-session-with-crosslink). For evolving the suite itself, see [`suite-development/README.md`](suite-development/README.md).
+
+**Tested against:** crosslink v0.8.0 (2026-05-17) — when crosslink commands appear, they are verified against this version. Manual mode is crosslink-independent.
 
 ## Prerequisites
 
-The suite is documentation + prompts that you load into an AI tool, with optional integration into a project tracker. To follow the [Worked example](#worked-example-a-vsdd-session-with-crosslink) end-to-end you need:
+The suite is documentation + prompts that you load into an AI tool. Both operational modes (crosslink-primary and manual) share the same baseline AI/toolchain prerequisites; crosslink is additionally required for the recommended crosslink-primary mode.
 
-**Required (suite-only path):**
+**Baseline (required for both modes):**
 - **An AI tool capable of cold-context chat sessions.** Concrete options: [Claude Code](https://claude.com/claude-code) (terminal-native), [claude.ai](https://claude.ai) (browser), [Cursor](https://cursor.com) (IDE). "Cold context" means a session with no system prompt, prior file context, or persistent memory carried over from a previous session — the cold-context discipline is load-bearing for Phase 3 adversarial review. **How to start a fresh chat:** in Claude Code, `/clear`; in claude.ai, open a new chat; in Cursor, new project window or `Cmd+Shift+P → New Chat`.
 - **Your project's language toolchain.** The worked example uses Rust (`cargo`), but the suite is language-agnostic. For JavaScript/TypeScript: Node.js + npm/pnpm/yarn. For Python: Python 3 + pytest. For other languages, the relevant supplement in [`supplements/`](supplements/) names the appropriate tooling.
 - **Git.** Phase 2a's Red Gate commit boundary is the spine of the methodology.
 
-**Optional (enables the `[+crosslink]` amplifier path):**
-- **[crosslink](https://github.com/forecast-bio/crosslink)** v0.8.0 or compatible — issue tracker that mechanizes the suite's per-layer discipline, per-domain dispatch, and finding routing. The suite was designed for manual operation first; crosslink is an enhancement layer. Every `[+crosslink]` block in the worked example shows the manual-path equivalent above it. The full dependency surface (commands, flags, breaking-change definition) is documented at [`crosslink-contract.md`](crosslink-contract.md).
+**For crosslink-primary mode (recommended):**
+- **[crosslink](https://github.com/forecast-bio/crosslink)** v0.8.0 or compatible — issue tracker that mechanizes the suite's per-layer discipline, per-domain dispatch, and finding routing. The full dependency surface (commands, flags, breaking-change definition) is documented at [`crosslink-contract.md`](crosslink-contract.md). Without crosslink, the suite runs in manual mode at full feature parity.
 
 ### Data-flow and privacy posture
 
@@ -43,16 +54,27 @@ The implications depend on the AI tool and the plan tier:
 
 ## Quickstart
 
-A 6-step preview of the [full walkthrough](#worked-example-a-vsdd-session-with-crosslink):
+Two parallel quickstarts — one per [operational mode](#two-modes-of-operation-design-principle). Both run the same VSDD pipeline; the difference is mechanism. Step 1 (scaffolding) is identical for both modes per G-117 — `templates/scaffold-project.sh` is the canonical scaffolding mechanism regardless of operational mode.
 
-1. **Scaffold your project's `vsdd-suite/` directory.** See [Bringing the suite into your project](#bringing-the-suite-into-your-project) — run the suite's `templates/scaffold-project.sh` from your project root. If you also use crosslink, run `crosslink init` separately; the two are independent.
+### Quickstart — crosslink-primary (recommended)
+
+1. **Scaffold.** `cd <your-project> && <path-to-vsdd-suite>/templates/scaffold-project.sh && crosslink init`
+2. **Phase 1a.** `crosslink design "<one-sentence project description>"` opens the Phase 1a session container; paste [`primers/1a-spec-crystallization.md`](primers/1a-spec-crystallization.md) at session start; iterate the `.design/<slug>.md` draft; promote to `DESIGN.md`; commit.
+3. **Phase 1b.** Fresh chat. Paste [`primers/1b-decomposition.md`](primers/1b-decomposition.md) + `DESIGN.md`. Build the layer hierarchy with `crosslink quick "<project>" -l epic`, one `crosslink milestone create` per layer, layer issues with `--parent <epic>`, acceptance criteria as sub-issues.
+4. **Phase 2a → 2b.** `crosslink session start && crosslink session work <layer-id>`. Fresh chat with [`primers/2a-red-gate.md`](primers/2a-red-gate.md) — write failing tests, commit. Fresh chat with [`primers/2b-implementation.md`](primers/2b-implementation.md) — make tests pass. Phase 2b → 3 gate: `crosslink swarm gate <phase-slug>`.
+5. **Phase 3.** `crosslink swarm review --agents <N> --mandate adversarial --file-issues --doc vsdd-suite/<DOMAIN>-REVIEW.md` for routine refinement rounds (N parallel cold-context adversaries; findings filed with `review-finding` label). Use manual dispatch (see manual quickstart below) when approaching MVR. Add structured G-138 labels during classification (`domain:<slug>`, `layer:N`, `round:N`, `classification:<class>`, `source:<source>`); `crosslink issue comment <id> "<rationale>" --kind <kind>` then `crosslink issue close <id>`.
+6. **Phase 4.** Fresh chat with [`primers/4-feedback-integration.md`](primers/4-feedback-integration.md). Apply route labels (`crosslink issue label <id> route:phase-<N>`); `crosslink issue block <future-layer-id> <route-finding-id>` for cross-layer dependencies; `crosslink swarm fix --from-label route:phase-2b --budget-aware` for the safely-parallelizable cohort. Loop until MVR.
+
+### Quickstart — manual (first-class fallback, same VSDD pipeline)
+
+1. **Scaffold.** `cd <your-project> && <path-to-vsdd-suite>/templates/scaffold-project.sh` — creates `vsdd-suite/` directory, per-domain index files, `FINDINGS-INDEX.md`, `DESIGN.md` skeleton, project `README.md`.
 2. **Phase 1a.** Fresh chat. Paste [`primers/1a-spec-crystallization.md`](primers/1a-spec-crystallization.md). Write `DESIGN.md`. Commit.
-3. **Phase 1b.** Fresh chat. Paste [`primers/1b-decomposition.md`](primers/1b-decomposition.md) + `DESIGN.md`. Write `TODO.md` (or build the crosslink hierarchy).
-4. **Phase 2a → 2b.** Fresh chat per phase. Paste [`primers/2a-red-gate.md`](primers/2a-red-gate.md) → write failing tests, commit the Red Gate boundary → paste [`primers/2b-implementation.md`](primers/2b-implementation.md) → make tests pass.
-5. **Phase 3.** *One fresh chat per active domain* (cold context per domain is the gold standard). **Default activation is the 7 core domains** (SE, QE, UX, Security, SA, SO, VDD-IAR Alignment) — the scaffold script populates index files for these by default. Extended domains (Red Team, Performance Engineer, Technical Writer, Accessibility, Privacy, Localization) activate per the conditions in [`domains/DOMAIN-INDEX.md`](domains/DOMAIN-INDEX.md). Typical portfolio projects run 7–9 active domains per layer review; the 16-domain surface is *available*, not *required*. For each active domain, paste [`primers/3-review-session.md`](primers/3-review-session.md) + the domain prompt (e.g., [`domains/role/QUALITY-ENGINEER-REVIEW.md`](domains/role/QUALITY-ENGINEER-REVIEW.md)) + the language supplement + the code under review. Classify findings. File to the per-domain index + per-session file in `<your-project>/vsdd-suite/review-log/`.
-6. **Phase 4.** Fresh chat. Paste [`primers/4-feedback-integration.md`](primers/4-feedback-integration.md). Route every real finding to the earliest phase that can fix it. Loop Phase 3 → 4 → re-enter routed phases until MVR.
+3. **Phase 1b.** Fresh chat. Paste [`primers/1b-decomposition.md`](primers/1b-decomposition.md) + `DESIGN.md`. Write `TODO.md` per the primer's `## TODO.md format` section.
+4. **Phase 2a → 2b.** Fresh chat per phase. Paste [`primers/2a-red-gate.md`](primers/2a-red-gate.md) → write failing tests → `git commit` the Red Gate boundary → paste [`primers/2b-implementation.md`](primers/2b-implementation.md) → make tests pass → run the test suite to verify clean (your language's runner: `cargo test`, `npm test`, `pytest`, etc.).
+5. **Phase 3.** *One fresh chat per active domain* (cold context per domain is the gold standard). **Default activation is the 7 core domains** (SE, QE, UX, Security, SA, SO, VDD-IAR Alignment); the scaffold script populates index files for these. Extended domains activate per [`domains/DOMAIN-INDEX.md`](domains/DOMAIN-INDEX.md). For each active domain, paste [`primers/3-review-session.md`](primers/3-review-session.md) + the domain prompt + the language supplement + the code under review. Classify findings. File rounds to per-domain index + per-session file `review-log/YYYY-MM-DD-<domain-slug>.md`. Append cross-cutting rows to `vsdd-suite/FINDINGS-INDEX.md` per the G-138 manual-path schema. Repeat for every active domain in its own fresh chat (no context sharing).
+6. **Phase 4.** Fresh chat. Paste [`primers/4-feedback-integration.md`](primers/4-feedback-integration.md). Record routing decisions in each finding's review-log entry per the primer's `## Without crosslink` section. Re-enter routed phases manually (fresh chat per re-routed phase). Loop Phase 3 → 4 → re-enter routed phases until MVR.
 
-That's the whole pipeline. Full walkthrough with starter prompts and the `[+crosslink]` amplifier blocks below.
+That's the whole pipeline in both modes. Full walkthrough with starter prompts and per-phase `[crosslink]` / `[manual]` blocks below.
 
 ## Bringing the suite into your project
 
@@ -212,35 +234,37 @@ A project may use more than one supplement. A TypeScript CLI uses both `javascri
 
 ## Worked example: A VSDD session with crosslink
 
-This walkthrough shows one full VSDD cycle **running the suite's primers**, with **optional crosslink integration** shown as an enhancement layer at each phase. The primers are the spine of the work — every step works manually, and the manual path is sufficient on its own. Crosslink commands appear under each phase as **[+crosslink]** blocks showing how a project tracker can mechanize what the primer prescribes; if you do not use crosslink, ignore those blocks and the rest is a complete walkthrough.
+This walkthrough shows one full VSDD cycle in both [operational modes](#two-modes-of-operation-design-principle). Each phase has a `[crosslink]` block (the recommended primary path) and a `[manual]` block (the first-class supported fallback). Both blocks land at the same depth of concrete instruction — neither is the "main" path; both implement the same primer prescription via different mechanisms.
 
 The example project is a hypothetical CLI bookmark manager (`bookmark-cli`); substitute your own project name throughout.
 
 **Example language is Rust** (`cargo test`, `tests/bookmarks.rs`). For other languages, paste [`supplements/javascript-typescript.md`](supplements/javascript-typescript.md) (JS/TS), or the appropriate file in [`supplements/`](supplements/) (Python/Go/etc.), alongside the domain prompt during Phase 3 — and substitute the language's test command (`npm test`, `pytest`, `go test`, etc.) for `cargo test` throughout. The suite is language-agnostic; the example just has to pick one.
 
-**What crosslink enhances:** When the suite prescribes a discipline (one issue per layer, Red Gate commit boundary, fresh-context review session per domain, finding routing through earliest-phase), crosslink provides primitives that turn the prescription into a reproducible mechanism — `crosslink design` for the Phase 1a session container; `crosslink milestone` + `crosslink quick --parent` for the Phase 1b layer + acceptance-criterion hierarchy; `crosslink swarm gate` for the Phase 2b → 3 boundary; `crosslink swarm review` for parallel cold-context Phase 3 dispatch; `crosslink swarm fix --from-label` for parallel Phase 4 routed work. The suite was designed for manual operation first; crosslink is the optional amplifier — every step below has a manual-path version above the `[+crosslink]` block.
+**The primer is the spec; crosslink and the manual ritual are two mechanisms for executing the spec.** Each VSDD primer prescribes the discipline (one issue per layer, Red Gate commit boundary, fresh-context review session per domain, finding routing through earliest-phase); the crosslink-primary mode mechanizes the prescription via `crosslink design` / `crosslink quick` / `crosslink swarm gate` / `crosslink swarm review` / `crosslink swarm fix`; the manual mode satisfies the same prescription via fresh chats + `git commit` + paste-the-primer + run-the-test-suite + maintained markdown files. Both are tested and documented to feature parity per the [Two modes of operation](#two-modes-of-operation-design-principle) design principle.
 
 ### Overview — what you do in each phase
 
-| Phase | Primer | What the primer prescribes | Optional crosslink amplifier | Primer output |
-|---|---|---|---|---|
-| 1a | [`1a-spec-crystallization.md`](primers/1a-spec-crystallization.md) | DESIGN.md written through self-adversary | `crosslink design [--continue <slug>]` | `DESIGN.md` |
-| 1b | [`1b-decomposition.md`](primers/1b-decomposition.md) | Layered acceptance criteria + Red Gate test plans + manual testing checklists | `crosslink quick --parent`, `milestone create`, `milestone add`, `workflow diff` | Layer plan (`TODO.md`) or crosslink layer hierarchy |
-| 2a | [`2a-red-gate.md`](primers/2a-red-gate.md) | Failing tests committed as the Phase 2a → 2b boundary | `crosslink session start`, `session work` | Failing-test Red Gate commit |
-| 2b | [`2b-implementation.md`](primers/2b-implementation.md) | Implementation that makes the Red Gate pass; no new tests | `crosslink swarm gate <slug>` | Passing test suite |
-| 3 | [`3-review-session.md`](primers/3-review-session.md) | Cold-context adversarial review per active domain, classified findings | `crosslink swarm review --agents N [--file-issues]` for volume cadence | Per-domain review logs with classified findings |
-| 4 | [`4-feedback-integration.md`](primers/4-feedback-integration.md) | Each finding routed to the earliest phase that can fix it | `crosslink issue label route:*`, `swarm fix --from-label`, `issue block` | Routed finding set; closure once each phase's gate holds |
+| Phase | Primer | What the primer prescribes | `[crosslink]` (primary) | `[manual]` (first-class fallback) | Output |
+|---|---|---|---|---|---|
+| 1a | [`1a-spec-crystallization.md`](primers/1a-spec-crystallization.md) | DESIGN.md written through self-adversary | `crosslink design [--continue <slug>]` | Fresh chat + paste primer + write `DESIGN.md` directly | `DESIGN.md` |
+| 1b | [`1b-decomposition.md`](primers/1b-decomposition.md) | Layered acceptance criteria + Red Gate test plans + manual testing checklists | `crosslink quick --parent`, `milestone create`, `milestone add`, `workflow diff` | Fresh chat + write `TODO.md` per primer's format | crosslink layer hierarchy or `TODO.md` |
+| 2a | [`2a-red-gate.md`](primers/2a-red-gate.md) | Failing tests committed as the Phase 2a → 2b boundary | `crosslink session start`, `session work` then write + commit failing tests | Fresh chat + write + commit failing tests; tracking via TODO.md | Failing-test Red Gate commit |
+| 2b | [`2b-implementation.md`](primers/2b-implementation.md) | Implementation that makes the Red Gate pass; no new tests | Implementation + `crosslink swarm gate <slug>` for the Phase 2b → 3 boundary | Implementation + manual `cargo test` (or equivalent) for the Phase 2b → 3 boundary | Passing test suite |
+| 3 | [`3-review-session.md`](primers/3-review-session.md) | Cold-context adversarial review per active domain, classified findings | `crosslink swarm review --agents N --mandate adversarial --file-issues --doc <path>` for routine volume; manual dispatch (right column) for high-stakes / approaching-MVR | One fresh chat per active domain + paste primer + domain prompt + supplement + code; append round to per-domain index + per-session file; append row to `FINDINGS-INDEX.md` | Per-domain review logs + cross-cutting finding index |
+| 4 | [`4-feedback-integration.md`](primers/4-feedback-integration.md) | Each finding routed to the earliest phase that can fix it | `crosslink issue label route:*`, `swarm fix --from-label`, `issue block` | Record routing in each finding's review-log entry per primer's `## Without crosslink` section; re-enter routed phases manually | Routed finding set; closure once each phase's gate holds |
 
 Full walkthrough below. Scan the overview first; read the detail when you need the starter prompts and the per-phase commands.
 
 ### Setup (one-time per project)
+
+Baseline (both modes):
 
 ```sh
 mkdir bookmark-cli && cd bookmark-cli
 git init
 ```
 
-**[+crosslink]** Initialize the tracker and verify the deployed policy matches the embedded defaults:
+**[crosslink]** Initialize the tracker and verify the deployed policy matches the embedded defaults:
 
 ```sh
 crosslink init                          # initializes .crosslink/, issues.db, embedded policy
@@ -248,27 +272,13 @@ crosslink workflow diff                 # verifies deployed policy == embedded d
 crosslink agent --help                  # set up your driver identity if not already done globally
 ```
 
+**[manual]** No additional setup beyond the baseline. Scaffold the suite into the project per [Bringing the suite into your project](#bringing-the-suite-into-your-project) (the same scaffolding step both modes do — run `templates/scaffold-project.sh` from the project root).
+
 ### Phase 1a — Spec Crystallization
 
 Per `primers/1a-spec-crystallization.md`: write `DESIGN.md` against the primer's driving questions; treat the file as a contract once it passes the self-adversary check.
 
-Open a fresh chat session. Paste `primers/1a-spec-crystallization.md`. Then send a starter prompt like:
-
-> I'm starting Phase 1a for a new project, `bookmark-cli` — a CLI tool for capturing URLs at the command line and recalling them later (default operations: `bm add <url>`, `bm list`, `bm search <term>`). Local-first; no network or accounts. Single-user.
->
-> Walk me through the primer's driving questions one at a time. Push back when my answers are imprecise. Apply the self-adversary check before declaring `DESIGN.md` ready: name three concrete behaviors a downstream Phase 3 review could catch as undefined or contradictory, then revise the spec to close them.
->
-> Output `DESIGN.md` directly; iterate against it.
-
-Iterate until the self-adversary check passes, then commit:
-
-```sh
-git add DESIGN.md && git commit -m "Phase 1a: DESIGN.md crystallized"
-```
-
-**Also commit your project `README.md` in this phase.** The project README is the entry point for anyone reading the project (including future-you and any Phase 3 Technical Writer reviewer). Start from the `templates/PROJECT-README-template.md` skeleton you copied during [Bringing the suite into your project](#bringing-the-suite-into-your-project); fill in the project purpose, language/toolchain, how to run, how to test, and link to `DESIGN.md`. The README evolves alongside the implementation; this initial commit just establishes its existence so Phase 3 Technical Writer reviews have something to evaluate.
-
-**[+crosslink]** Use `crosslink design` to scaffold the iterative session container with a `.design/<slug>.md` working draft and `--continue` resumability — useful when a Phase 4 route brings you back to the spec later:
+**[crosslink]** Use `crosslink design` to scaffold the iterative session container with a `.design/<slug>.md` working draft and `--continue` resumability — useful when a Phase 4 route brings you back to the spec later:
 
 ```sh
 crosslink design "bookmark CLI for capturing and recalling URLs"
@@ -283,24 +293,27 @@ git add DESIGN.md && git commit -m "Phase 1a: DESIGN.md crystallized"
 crosslink design --continue bookmark-cli
 ```
 
+**[manual]** Open a fresh chat session. Paste `primers/1a-spec-crystallization.md`. Then send a starter prompt like:
+
+> I'm starting Phase 1a for a new project, `bookmark-cli` — a CLI tool for capturing URLs at the command line and recalling them later (default operations: `bm add <url>`, `bm list`, `bm search <term>`). Local-first; no network or accounts. Single-user.
+>
+> Walk me through the primer's driving questions one at a time. Push back when my answers are imprecise. Apply the self-adversary check before declaring `DESIGN.md` ready: name three concrete behaviors a downstream Phase 3 review could catch as undefined or contradictory, then revise the spec to close them.
+>
+> Output `DESIGN.md` directly; iterate against it.
+
+Iterate until the self-adversary check passes, then commit:
+
+```sh
+git add DESIGN.md && git commit -m "Phase 1a: DESIGN.md crystallized"
+```
+
+**Both modes — also commit your project `README.md` in this phase.** The project README is the entry point for anyone reading the project (including future-you and any Phase 3 Technical Writer reviewer). Start from the `templates/PROJECT-README-template.md` skeleton you copied during [Bringing the suite into your project](#bringing-the-suite-into-your-project); fill in the project purpose, language/toolchain, how to run, how to test, and link to `DESIGN.md`. The README evolves alongside the implementation; this initial commit just establishes its existence so Phase 3 Technical Writer reviews have something to evaluate.
+
 ### Phase 1b — Decomposition
 
 Per `primers/1b-decomposition.md`: break the project into layers; per layer, write acceptance criteria, a Red Gate test plan, and a manual testing checklist. The layer plan exists before any Phase 2 work starts.
 
-Open a fresh session. Paste `primers/1b-decomposition.md`. Then send a starter prompt like:
-
-> I'm starting Phase 1b for `bookmark-cli`. DESIGN.md is attached (the Phase 1a output). Decompose the project into the minimum number of layers such that each layer is independently testable and shippable, and each layer's acceptance criteria are observable behaviors (not implementation steps).
->
-> For each layer, produce:
-> - **Acceptance criteria** in the form `AC: <observable behavior>` — each AC must be falsifiable by a single test.
-> - **Red Gate test plan** — the literal test names that will fail before any implementation lands for this layer.
-> - **Manual testing checklist** per the runnable-step standard in the primer's `### Manual testing checklist` section (exact commands, expected stdout/stderr/exit code, clean-state setup, binary install/uninstall lifecycle if applicable).
->
-> Output `TODO.md` per the primer's `## TODO.md format` section. If a layer's ACs require more than ~5 Red Gate tests, propose a finer-grained split.
-
-(Attach `DESIGN.md` to the message.) The output `TODO.md` is your layer plan.
-
-**[+crosslink]** Materialize the same layer plan as a crosslink hierarchy — epic for the project, milestone per layer (the layer's first-class container), one issue per layer parented to the epic, acceptance criteria as sub-issues, the Red Gate test plan as a comment on the layer issue. The same plan, mechanized:
+**[crosslink]** Materialize the layer plan as a crosslink hierarchy — epic for the project, milestone per layer (the layer's first-class container), one issue per layer parented to the epic, acceptance criteria as sub-issues, the Red Gate test plan as a comment on the layer issue. The same plan, mechanized:
 
 ```sh
 # Epic for the project
@@ -334,11 +347,35 @@ crosslink workflow diff                     # verify policy unchanged since init
 crosslink milestone show "Layer 1: add and list bookmarks"   # verify layer container is populated
 ```
 
+**[manual]** Open a fresh session. Paste `primers/1b-decomposition.md`. Then send a starter prompt like:
+
+> I'm starting Phase 1b for `bookmark-cli`. DESIGN.md is attached (the Phase 1a output). Decompose the project into the minimum number of layers such that each layer is independently testable and shippable, and each layer's acceptance criteria are observable behaviors (not implementation steps).
+>
+> For each layer, produce:
+> - **Acceptance criteria** in the form `AC: <observable behavior>` — each AC must be falsifiable by a single test.
+> - **Red Gate test plan** — the literal test names that will fail before any implementation lands for this layer.
+> - **Manual testing checklist** per the runnable-step standard in the primer's `### Manual testing checklist` section (exact commands, expected stdout/stderr/exit code, clean-state setup, binary install/uninstall lifecycle if applicable).
+>
+> Output `TODO.md` per the primer's `## TODO.md format` section. If a layer's ACs require more than ~5 Red Gate tests, propose a finer-grained split.
+
+(Attach `DESIGN.md` to the message.) The output `TODO.md` is your layer plan — the manual-mode equivalent of the crosslink hierarchy above.
+
 ### Phase 2a — Red Gate
 
 Per `primers/2a-red-gate.md`: write the failing tests named in the Red Gate plan, run them, confirm every test fails for the right reason (missing feature, not setup error), then commit. The Red Gate commit is the verifiable Phase 2a → 2b boundary.
 
-Open a fresh chat. Paste `primers/2a-red-gate.md`. Then send a starter prompt like:
+**[crosslink]** Attach the session to the active layer issue so the focus is recorded in the tracker, then write + commit the failing tests:
+
+```sh
+crosslink session start
+crosslink session work "$L1"            # marks the active focus issue for the session
+# (open a fresh chat with 2a-red-gate.md primer loaded; write the failing tests
+#  named in the layer issue's Red Gate comment)
+cargo test                              # expect: 3 failures, named per the Red Gate plan
+git add tests/ && git commit -m "Phase 2a: Red Gate for Layer 1 (3 failing tests)"
+```
+
+**[manual]** Open a fresh chat. Paste `primers/2a-red-gate.md`. Then send a starter prompt like:
 
 > I'm starting Phase 2a for Layer 1 of `bookmark-cli`. The Red Gate plan from Phase 1b prescribes three failing tests for this layer:
 >
@@ -357,21 +394,23 @@ cargo test                              # expect: 3 failures, named per the Red 
 git add tests/ && git commit -m "Phase 2a: Red Gate for Layer 1 (3 failing tests)"
 ```
 
-After this commit, only implementation may land in this layer until Phase 3.
-
-**[+crosslink]** Attach the session to the active layer issue so the focus is recorded in the tracker:
-
-```sh
-crosslink session start
-crosslink session work "$L1"            # marks the active focus issue for the session
-# (then write and commit the failing tests as above)
-```
+**Both modes:** after this commit, only implementation may land in this layer until Phase 3. The commit is the verifiable Phase 2a → 2b boundary regardless of mode.
 
 ### Phase 2b — Implementation
 
 Per `primers/2b-implementation.md`: implement to make failing tests pass; do not add new tests this phase; run the full suite after each feature — no previously-passing test may regress.
 
-Open a fresh chat. Paste `primers/2b-implementation.md`. Then send a starter prompt like:
+**[crosslink]** Open a fresh chat with `primers/2b-implementation.md`, implement against the Red Gate, then formalize the Phase 2b → 3 boundary as a layer gate the tracker enforces:
+
+```sh
+cargo test                              # expect: passing
+git commit -am "Phase 2b: Layer 1 implementation — bm add, bm list, empty-URL rejection"
+crosslink swarm gate layer-1            # runs the project's test suite as the layer gate
+```
+
+If the gate fails, fix and re-run; the layer does not open for Phase 3 until the gate passes.
+
+**[manual]** Open a fresh chat. Paste `primers/2b-implementation.md`. Then send a starter prompt like:
 
 > I'm starting Phase 2b for Layer 1 of `bookmark-cli`. The Red Gate is committed at `<sha>`. The three failing tests in `tests/bookmarks.rs` are:
 >
@@ -388,21 +427,43 @@ cargo test                              # expect: passing
 git commit -am "Phase 2b: Layer 1 implementation — bm add, bm list, empty-URL rejection"
 ```
 
-When the project test suite passes clean, the Phase 2b → 3 boundary is reached.
-
-**[+crosslink]** Formalize the boundary as a layer gate the tracker enforces:
-
-```sh
-crosslink swarm gate layer-1            # runs the project's test suite as the layer gate
-```
-
-If the gate fails, fix and re-run; the layer does not open for Phase 3 until the gate passes.
+When the project test suite passes clean (`cargo test` returns 0; equivalent for other languages), the Phase 2b → 3 boundary is reached. The manual mode treats the clean test-suite exit as the gate; the crosslink mode formalizes the gate via `crosslink swarm gate` above. Same boundary, different mechanism.
 
 ### Phase 3 — Adversarial Refinement
 
 Per `primers/3-review-session.md`: open ONE fresh chat per active domain (cold context is the gold standard); paste the primer + that single domain's prompt + the code under review; classify every finding; log findings to the per-domain review log per the project-level review log governing standard in [`suite-development/suite-development.md`](suite-development/suite-development.md).
 
-**The manual path is the gold standard.** For each active core domain — SE, QE, UX, Security, SA, SO, VDD-IAR Alignment for this CLI project — open a fresh chat. (Activation deduction: PE not active because `bookmark-cli` ships via `cargo install` to the user's local toolchain with no server pipeline; DE not active because storage is flat JSON in a single file with no managed database. For projects with different shapes — a deployed web service activates PE; a SQLite-backed CLI activates DE — see [`domains/DOMAIN-INDEX.md`](domains/DOMAIN-INDEX.md) for the activation criteria per domain.) Paste `primers/3-review-session.md`. Paste the domain prompt (e.g., `domains/role/QUALITY-ENGINEER-REVIEW.md`). Then send a starter prompt like:
+**Activation deduction for `bookmark-cli`:** SE, QE, UX, Security, SA, SO, VDD-IAR Alignment are active. PE not active because `bookmark-cli` ships via `cargo install` to the user's local toolchain with no server pipeline; DE not active because storage is flat JSON in a single file with no managed database. For projects with different shapes — a deployed web service activates PE; a SQLite-backed CLI activates DE — see [`domains/DOMAIN-INDEX.md`](domains/DOMAIN-INDEX.md) for the activation criteria per domain.
+
+**Dispatch options (per primer § Dispatch options — applies in both modes).** Manual one-chat-per-domain dispatch is the gold standard for the highest-stakes reviews (a single human reviewer reading findings as they arrive applies pressure the dispatcher cannot). Crosslink mode additionally offers swarm dispatch for routine volume rounds — `crosslink swarm review` parallelizes the adversary agents across cold-context worktrees. The classifier remains human in either dispatch option; `swarm review` parallelizes adversaries, not classifiers. Choose manual dispatch when approaching MVR and the marginal finding matters most; choose swarm for routine refinement rounds.
+
+**[crosslink]** Two dispatch sub-modes available; both file findings as crosslink issues with the `review-finding` label (G-138 schema).
+
+Swarm dispatch (routine volume):
+
+```sh
+crosslink swarm review --agents 6 --mandate adversarial --file-issues \
+    --doc vsdd-suite/SOFTWARE-ENGINEER-REVIEW.md
+```
+
+Manual dispatch (highest-stakes / approaching-MVR) — same as the manual-mode flow below, with findings ALSO filed as crosslink issues via `crosslink issue create -l domain:<slug> -l layer:N -l round:N -l finding:N -l classification:<class> -l source:<source>` (G-138 finding-index schema).
+
+Classification — comment-then-close pattern (`issue close` does not accept `--comment`; rationale lives in the prior comment):
+
+```sh
+# Inspect findings for human classification
+crosslink issue list -l review-finding -s open
+
+# Hallucinated example
+crosslink issue comment <id> "Hallucinated — control holds: <specific evidence>" --kind decision
+crosslink issue close <id>
+
+# Resolved example
+crosslink issue comment <id> "Resolved in <commit>" --kind resolution
+crosslink issue close <id>
+```
+
+**[manual]** For each active domain — open a fresh chat. Paste `primers/3-review-session.md`. Paste the domain prompt (e.g., `domains/role/QUALITY-ENGINEER-REVIEW.md`). Then send a starter prompt like:
 
 > You are running the Quality Engineer review of Layer 1 of `bookmark-cli`, Review 1 (cold session).
 >
@@ -412,58 +473,22 @@ Per `primers/3-review-session.md`: open ONE fresh chat per active domain (cold c
 >
 > Close the session with a `### Summary` line tallying findings by class and a `**Coordination:**` line naming any cross-domain handoffs.
 
-Classify each finding. Append the round to the domain's index file + a session file in `review-log/YYYY-MM-DD-<domain-slug>.md` (slug convention in `suite-development/suite-development.md` § Structure). Also append a row to the project-level finding index (`vsdd-suite/FINDINGS-INDEX.md` for the manual path, or `crosslink issue create` with structured labels for the crosslink path — see `suite-development/suite-development.md` § Project-level finding index). The cross-cutting index gives the "show me all Open findings" / "show me everything on Layer 2" view that per-domain rounds don't. Repeat for every active domain in its own fresh chat (no context sharing — the gold standard).
+Classify each finding. Append the round to the domain's index file + a session file in `review-log/YYYY-MM-DD-<domain-slug>.md` (slug convention in `suite-development/suite-development.md` § Structure). Append a row to `vsdd-suite/FINDINGS-INDEX.md` per the G-138 manual-path schema. Repeat for every active domain in its own fresh chat (no context sharing — the gold standard discipline that crosslink mode replicates via `swarm review`'s per-agent worktree isolation).
 
-**[+crosslink]** Use `swarm review` for routine refinement rounds where volume matters more than the marginal finding — launches N parallel cold-context adversaries (one per domain) in isolated worktrees, files findings as crosslink issues:
-
-```sh
-crosslink swarm review --agents 6 --mandate adversarial --file-issues \
-    --doc vsdd-suite/SOFTWARE-ENGINEER-REVIEW.md
-```
-
-Per `primers/3-review-session.md` § Dispatch options: choose manual when the layer is approaching MVR and the marginal finding matters most; choose swarm for routine refinement rounds. The classifier is human in either dispatch mode — `swarm review` parallelizes adversaries, not classifiers:
-
-```sh
-# Inspect findings for human classification
-crosslink issue list -l review-finding -s open
-
-# Classify each finding (example: mark one Hallucinated)
-# Pattern: comment with rationale (with --kind), then close. `issue close` does
-# not accept --comment; rationale lives in the prior comment.
-crosslink issue comment <id> "Hallucinated — control holds: <specific evidence>" --kind decision
-crosslink issue close <id>
-
-# Or Resolved (fix applied and verified)
-crosslink issue comment <id> "Resolved in <commit>" --kind resolution
-crosslink issue close <id>
-```
-
-If a full domain pass produces only Hallucinated findings, MVR is reached for that domain. Repeat until all active domains hit MVR.
+**Both modes — exit signal.** If a full domain pass produces only Hallucinated findings, MVR is reached for that domain. Repeat until all active domains hit MVR.
 
 **Two end states reach MVR — both must be logged:** (a) the round produces only Hallucinated findings (the adversary tried and could not find anything real); (b) the round produces zero findings at all (the adversary looked and found nothing). Both are valid MVR signals, but **silent zero-finding rounds are a structural error** — a future reader of the per-domain log must be able to distinguish "we reviewed Layer 1 and found nothing" from "we forgot to review Layer 1." Log the zero-finding round explicitly with `*(none)*` placeholders under each classification heading per the governing standard in [`suite-development/suite-development.md`](suite-development/suite-development.md) § Finding sections.
 
 **Pausing and resuming an in-progress Phase 3 review.** A full Phase 3 across 6+ active domains is ~3 hours of focused work; pausing is the common case. The cold-context discipline means **you cannot resume the same chat session for the same domain** — context staleness defeats the adversarial value. Two options:
 
 - **Finish the current round before pausing.** Complete the domain you're in (write the `### Summary` line), file that domain's session entry, then pause. Next session opens a fresh chat for the next domain.
-- **Checkpoint mid-round.** If you must stop mid-domain, save the in-progress findings as a draft session file with a literal `**Status:** in progress, paused at <YYYY-MM-DD HH:MMZ>` line and an explicit `**Dimensions evaluated so far:**` list. Next session opens a fresh chat with the partial-isolation tradeoff noted: the new session reads the draft as prior-round context (not as own-context), records dimensions still to evaluate, and finishes the round. Mark the round's Summary line with the partial-isolation caveat. The crosslink amplifier path uses `crosslink session end --notes` to capture the handoff (see Loop-until-MVR below); the manual path saves the draft file directly.
+- **Checkpoint mid-round.** If you must stop mid-domain, save the in-progress findings as a draft session file with a literal `**Status:** in progress, paused at <YYYY-MM-DD HH:MMZ>` line and an explicit `**Dimensions evaluated so far:**` list. Next session opens a fresh chat with the partial-isolation tradeoff noted: the new session reads the draft as prior-round context (not as own-context), records dimensions still to evaluate, and finishes the round. Mark the round's Summary line with the partial-isolation caveat. Crosslink mode captures the handoff via `crosslink session end --notes` (see Loop-until-MVR below); manual mode saves the draft file directly.
 
 ### Phase 4 — Feedback Integration
 
 Per `primers/4-feedback-integration.md`: route every real finding to the earliest phase that can fix it correctly (spec defect → 1a; missing test → 2a; impl bug → 2b; suite gap → suite-dev). The routing keeps each phase's artifact authoritative — a Phase 2b fix to a spec defect leaves the spec wrong.
 
-Open a fresh session. Paste `primers/4-feedback-integration.md`. Then send a starter prompt like:
-
-> I'm running Phase 4 for Layer 1 of `bookmark-cli` after Round 1 across SE, QE, UX, Security, SA, SO.
->
-> Attached: the per-domain review logs from this round (`vsdd-suite/SE-REVIEW.md`, `vsdd-suite/QE-REVIEW.md`, …), DESIGN.md, the Layer 1 plan, and the implementation source.
->
-> For every finding NOT classified Hallucinated, apply the primer's routing table to assign one of: `route:phase-1a` (spec defect), `route:phase-1b` (decomposition gap), `route:phase-2a` (missing/wrong test), `route:phase-2b` (implementation defect), `route:suite` (the adversary couldn't have caught it with current dimensions). Watch for the primary failure mode the primer names: routing every finding to Phase 2b, collapsing the pipeline.
->
-> For each finding output a row: `<finding-id> | <route> | <owning artifact> | <gate that must hold for closure> | <sequencing — does another finding need to land first?>`. Multi-phase chains get one row per phase.
-
-(Attach the per-domain review logs and DESIGN.md.) For each finding, record the route in the finding's review-log entry per the primer's `## Without crosslink` section. Re-enter the routed phase (re-open the spec; re-write the Red Gate test; etc.) and close the finding when the phase's gate holds for the routed change.
-
-**[+crosslink]** Use route labels and `swarm fix --from-label` to parallelize the safe-to-parallelize subset (Phase 2b fixes, where the route is unambiguous and the test contract is already firm). Other routes (Phase 1a / 1b / 2a) re-enter those phases manually — they need judgement, not parallelism:
+**[crosslink]** Use route labels and `swarm fix --from-label` to parallelize the safe-to-parallelize subset (Phase 2b fixes, where the route is unambiguous and the test contract is already firm). Other routes (Phase 1a / 1b / 2a) re-enter those phases manually — they need judgement, not parallelism:
 
 ```sh
 # Apply route labels to filed findings (the primer's route table guides which label to apply)
@@ -474,6 +499,10 @@ crosslink issue label <id-suite-gap> route:suite
 
 # If a routed Phase 1a finding invalidates Layer 2's plan, block Layer 2 explicitly
 crosslink issue block "$L2" <id-spec-defect>
+
+# Optionally: relate findings that are cross-domain coordinated (the suite's
+# `**Coordination:**` line, mechanized as a structured issue graph edge):
+crosslink issue relate <qe-finding-id> <se-finding-id>
 
 # Dispatch fix agents only for the route:phase-2b cohort
 crosslink swarm fix --from-label route:phase-2b --budget-aware
@@ -491,13 +520,25 @@ crosslink issue comment <id> "Routed to 1a; DESIGN.md §Add revised in <commit>;
 crosslink issue close <id>
 ```
 
+**[manual]** Open a fresh session. Paste `primers/4-feedback-integration.md`. Then send a starter prompt like:
+
+> I'm running Phase 4 for Layer 1 of `bookmark-cli` after Round 1 across SE, QE, UX, Security, SA, SO.
+>
+> Attached: the per-domain review logs from this round (`vsdd-suite/SE-REVIEW.md`, `vsdd-suite/QE-REVIEW.md`, …), DESIGN.md, the Layer 1 plan, and the implementation source.
+>
+> For every finding NOT classified Hallucinated, apply the primer's routing table to assign one of: `route:phase-1a` (spec defect), `route:phase-1b` (decomposition gap), `route:phase-2a` (missing/wrong test), `route:phase-2b` (implementation defect), `route:suite` (the adversary couldn't have caught it with current dimensions). Watch for the primary failure mode the primer names: routing every finding to Phase 2b, collapsing the pipeline.
+>
+> For each finding output a row: `<finding-id> | <route> | <owning artifact> | <gate that must hold for closure> | <sequencing — does another finding need to land first?>`. Multi-phase chains get one row per phase.
+
+(Attach the per-domain review logs and DESIGN.md.) For each finding, record the route in the finding's review-log entry per the primer's `## Without crosslink` section AND in the row's Status column in `vsdd-suite/FINDINGS-INDEX.md`. Re-enter the routed phase (re-open the spec; re-write the Red Gate test; etc.) and close the finding (update the FINDINGS-INDEX row's Status to Closed and add a closure annotation in the review-log entry) when the phase's gate holds for the routed change.
+
 ### Loop until MVR
 
 Phase 3 → Phase 4 → re-enter Phase 1a/1b/2a/2b as routes dictate → Phase 3 again. The layer merges when one full Phase 3 round across all active domains produces only Hallucinated findings or no findings (`primers/3-review-session.md` § Session isolation; README § The refinement loop).
 
-Track the round-by-round progression in the per-domain review logs. The MVR signal is visible in the domain index file: a Review row whose Scope summary reads "no real findings (all Hallucinated)" is the exit condition.
+Track the round-by-round progression in the per-domain review logs. The MVR signal is visible in the domain index file: a Review row whose Scope summary reads "no real findings (all Hallucinated)" is the exit condition. Same exit signal in both modes.
 
-**[+crosslink]** Close the layer milestone and end the session with handoff notes the next session will read:
+**[crosslink]** Close the layer milestone and end the session with handoff notes the next session will read:
 
 ```sh
 crosslink milestone close "Layer 1: add and list bookmarks"
@@ -506,6 +547,14 @@ git checkout -b layer-2 && git merge layer-1
 ```
 
 `crosslink session last-handoff` shows the previous session's end notes — read it at the start of every new session to recover context cheaply.
+
+**[manual]** Record the layer-close handoff in the project's CHANGELOG.md (or a `vsdd-suite/HANDOFF.md` if you prefer a dedicated handoff file). The discipline is the same as crosslink's `session end --notes` — capture what was hardest, what surprised you, what the next layer's first session needs to know. Read the prior handoff at the start of every new session. Then merge:
+
+```sh
+git checkout -b layer-2 && git merge layer-1
+```
+
+The manual mode loses crosslink's `session last-handoff` retrieval but the handoff content is the same.
 
 ## Running IAR
 

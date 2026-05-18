@@ -60,20 +60,23 @@ For each routed finding, record:
 
 ---
 
-## With crosslink (Phase 2+ projects)
+The suite supports two operational modes for Phase 4 routing — `[crosslink]` (recommended, when crosslink is installed) and `[manual]` (first-class fallback, when it is not). Both modes carry the same routing discipline; only the mechanism differs. Pick the mode that matches the project's setup; do not mix them within a single layer.
+
+## [crosslink] — Recommended path
 
 If the project uses crosslink, Phase 4 routing has tooling support:
 
 1. **Findings filed as issues.** If Phase 3 ran via `crosslink swarm review --file-issues`, each finding already exists as a crosslink issue labelled `review-finding` (or the label your project uses). If Phase 3 ran manually, file the findings now: `crosslink issue create "<finding title>" -l review-finding -p <priority> --parent <layer-issue-id>`.
 2. **Route via labels.** Add a phase-route label to each filed finding: `route:phase-1a`, `route:phase-1b`, `route:phase-2a`, `route:phase-2b`, `route:suite`. Multi-phase chains get the *first* phase as the label; the issue body records the full chain.
 3. **Block downstream layers when appropriate.** If a Phase 1a or 1b route invalidates a future layer's plan, mark the future layer blocked: `crosslink issue block <future-layer-id> <finding-id>`. Phase 4 is not done until all blocking relationships are recorded.
-4. **Schedule the fix work.** For Phase 2b routes, `crosslink swarm fix --from-label route:phase-2b --budget-aware` dispatches one fix agent per finding. For Phase 1a / 1b / 2a routes, the fix is human-driven (or a single agent with `crosslink kickoff run` against the routing issue) — these phases require judgement that doesn't parallelize well.
-5. **Close routed findings only when the routed work is gated.** A finding labelled `route:phase-1a` is *not* closed when the routing decision is made — it is closed when the spec revision passes its gate. Use the comment-then-close pattern (`issue close` does not accept `--comment`; the rationale lives in the prior comment): `crosslink issue comment <id> "Routed to 1a; DESIGN.md §<X> revised in <commit>; self-adversary check passed in <session>." --kind resolution && crosslink issue close <id>`
-6. **Re-open if the gate fails.** If a routed Phase 1a revision is itself flagged by Phase 3 in a subsequent round, the original finding re-opens: `crosslink issue reopen <id>`. The route did not hold; route again with the new information.
+4. **Relate cross-domain findings.** When the suite's `**Coordination:**` line cross-references findings across domains (e.g., a UX finding whose fix depends on an SE finding's resolution), mechanize the link as a structured issue-graph edge: `crosslink issue relate <ux-finding-id> <se-finding-id>`. This preserves the coordination signal without requiring a human to grep prose.
+5. **Schedule the fix work.** For Phase 2b routes, `crosslink swarm fix --from-label route:phase-2b --budget-aware` dispatches one fix agent per finding. For Phase 1a / 1b / 2a routes, the fix is human-driven (or a single agent with `crosslink kickoff run` against the routing issue) — these phases require judgement that doesn't parallelize well.
+6. **Close routed findings only when the routed work is gated.** A finding labelled `route:phase-1a` is *not* closed when the routing decision is made — it is closed when the spec revision passes its gate. Use the comment-then-close pattern (`issue close` does not accept `--comment`; the rationale lives in the prior comment): `crosslink issue comment <id> "Routed to 1a; DESIGN.md §<X> revised in <commit>; self-adversary check passed in <session>." --kind resolution && crosslink issue close <id>`
+7. **Re-open if the gate fails.** If a routed Phase 1a revision is itself flagged by Phase 3 in a subsequent round, the original finding re-opens: `crosslink issue reopen <id>`. The route did not hold; route again with the new information.
 
-## Without crosslink (manual / Phase 1 projects)
+## [manual] — First-class fallback path
 
-Record the routed finding set as a section in the Phase 3 review log file (`{project}/vsdd-suite/<DOMAIN>-REVIEW.md`). Use this shape per finding:
+Same routing discipline, recorded in the review log directly. Use this when crosslink is not installed, or when the project deliberately uses manual mode end-to-end. Record the routed finding set as a section in the Phase 3 review log file (`{project}/vsdd-suite/review-log/YYYY-MM-DD-<domain>.md`). Use this shape per finding:
 
 ```markdown
 ### Finding N — Title (Dim X) — ROUTED
@@ -86,7 +89,7 @@ Record the routed finding set as a section in the Phase 3 review log file (`{pro
 **Status:** Routed → pending Phase 1a session
 ```
 
-Update the status as each phase lands. The routed finding is considered closed when all phases in its route have been completed and the gate at each phase has held.
+Update the status as each phase lands. The routed finding is considered closed when all phases in its route have been completed and the gate at each phase has held. Cross-domain coordination (the suite's `**Coordination:**` line) is recorded inline in the routed finding's narrative, e.g., "Blocks UX Finding 7; UX cannot route until this Phase 1a revision lands."
 
 ---
 

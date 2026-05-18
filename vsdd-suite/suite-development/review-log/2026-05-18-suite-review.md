@@ -1,5 +1,54 @@
 # Suite Review — 2026-05-18
 
+## Review 49 — 2026-05-18 18:20Z
+
+**Scope:** Adversarial review of the suite's value as a supplement to crosslink (driver-requested), followed by explicit articulation of the suite's two-mode operational design principle and a polarity sweep across user-facing docs to land the principle consistently. Files in scope of the sweep: `vsdd-suite/README.md` (Prerequisites, Quickstart, Worked Example Phases 1a/1b/2a/2b/3/4, Loop-until-MVR); `vsdd-suite/primers/4-feedback-integration.md` (§ With crosslink / § Without crosslink → `[crosslink]` / `[manual]`); `vsdd-suite/suite-development/suite-development.md` § Project-level finding index (two equivalent paths → two operational modes); `vsdd-suite/templates/README.md` (mode-independent scaffold + mode-specific usage); `vsdd-suite/suite-development/README.md` (added two-mode design principle statement for contributors).
+
+**Lens:** Design-principle articulation + polarity-sweep. The adversarial review (this session's predecessor work, summarized in conversation) initially proposed a "crosslink-primary, manual fallback" framing that the operator corrected: "Crosslink is primary, manual is fallback is correct but manual must be a 1st class supported method." That correction is the design principle this Review crystallizes — manual mode is not a degraded path; it is a fully supported mode that the suite scaffolds, documents, and reviews with the same rigour as crosslink mode. The sweep re-frames every in-flight doc that previously read as "crosslink path / fallback" into parallel `[crosslink]` / `[manual]` blocks where both blocks carry the same VSDD discipline.
+
+**Session note:** In-session — same operator that drafted the adversarial review and the original framings the sweep corrects. Sycophancy compensation: the predecessor adversarial-review session erred toward "crosslink should be primary, manual is the lesser fallback" and the operator pushed back; the inverse failure (validating crosslink-mode bias) is the one this session must avoid. I acknowledged the sycophancy inversion explicitly before authoring the sweep — the operator's "1st class supported method" constraint is binding on every edit. I tested the polarity by reading each touched section back and asking: does the manual block describe the same discipline with mechanical substitutions (grep instead of label filter, markdown rows instead of issue graph, inline narrative instead of `issue relate`), or does it describe a stripped-down lesser version? Where the answer was the latter, I rewrote until the discipline parity held. The five files listed in Scope all passed this check after the sweep.
+
+---
+
+### New gaps registered
+
+**G-144 — Two-mode operational design principle implicit but never stated.** The suite's structure has always supported both crosslink-mode and manual-mode operation (every primer carries both paths; the templates scaffold both shapes; the finding-index pattern has both routes), but no user-facing doc stated this as a design principle. The README's earlier framing ("crosslink amplifier" / "without crosslink fallback") read as crosslink-first with manual as a degraded escape hatch; an AI authoring agent operating against that framing will continue to drift toward stripping the manual mode. Addressed by adding a "Two modes of operation (design principle)" section to `vsdd-suite/README.md` (user-facing) and `vsdd-suite/suite-development/README.md` (contributor-facing, binding on future contributions). See G-144 row in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md) for the full Resolution.
+
+**G-145 — Crosslink-mode additive operations under-used in Phase 4 routing.** The suite's `**Coordination:**` line on cross-domain findings was previously documented only as prose; in crosslink mode this is mechanizable as a structured issue-graph edge via `crosslink issue relate <a> <b>`, but no primer named the command. Addressed by adding `crosslink issue relate` to the `[crosslink]` block of Phase 4 in `vsdd-suite/README.md` and to the `[crosslink]` mode subsection in `vsdd-suite/primers/4-feedback-integration.md`. Manual mode retains the same discipline (coordination recorded inline in the routed finding's narrative) — G-145 is additive, not corrective.
+
+**G-146 — Suite primer auto-injection via `crosslink knowledge` not documented or wired.** Crosslink's `knowledge` subcommand can register reference material to be auto-injected into agent sessions; in crosslink mode this would let the suite register primers once at scaffold time so `crosslink kickoff run` / `crosslink swarm review` invocations load them automatically. Currently primers are loaded by hand in both modes. **Open** — needs verification of `crosslink knowledge`'s actual surface (G-123/G-139 discipline applies — `crosslink knowledge --help` is the source of truth, not speculation), a decision on whether `scaffold-project.sh` or a separate hook should do the registration, and a policy on primer versioning. Manual mode is unaffected by any future implementation; G-144 binds the resolution to preserve the manual path.
+
+**G-147 — Polarity sweep across in-flight suite docs to land G-144's design principle.** Five files re-keyed to parallel `[crosslink]` / `[manual]` blocks in a single sweep. Forward-only: prior review logs and CHANGELOG entries preserve the original framings as audit trail per G-89 narrative-preservation policy. Addressed in this Review by direct edit; the audit trail is git history + this entry.
+
+---
+
+### Resolved
+
+**G-144, G-145, G-147 — Addressed via direct edit in this Review.** The five files listed in Scope now carry the two-mode framing consistently. Specifically:
+
+- `vsdd-suite/README.md` — added "Two modes of operation (design principle)" section above the Prerequisites; updated Prerequisites to split "Baseline (required for both modes)" from "For crosslink-primary mode (recommended)"; restructured Quickstart as two parallel quickstarts; restructured Worked Example Overview table with `[crosslink]` and `[manual]` columns; flipped every phase block (Setup, 1a, 1b, 2a, 2b, 3, 4, Loop-until-MVR) to lead with `[crosslink]` (recommended) then `[manual]` (first-class fallback) and verified the manual block carries the same discipline; added `crosslink issue relate` in Phase 4 per G-145.
+- `vsdd-suite/primers/4-feedback-integration.md` — re-framed § "With crosslink (Phase 2+ projects)" → § "[crosslink] — Recommended path"; re-framed § "Without crosslink (manual / Phase 1 projects)" → § "[manual] — First-class fallback path"; added a mode-framing paragraph above both subsections; added Step 4 (`crosslink issue relate`) for G-145; added a coordination-recording sentence to the manual mode's per-finding shape so cross-domain coordination is captured inline.
+- `vsdd-suite/suite-development/suite-development.md` § Project-level finding index — re-framed "Two equivalent paths" → "Two operational modes"; re-framed "Crosslink path (preferred when crosslink is in use)" → "[crosslink] mode — recommended path"; re-framed "Manual path (when crosslink is not in use)" → "[manual] mode — first-class fallback path"; added a discipline-parity paragraph stating that every IAR discipline is fully exercisable in manual mode and the trade-off is mechanical, not methodological.
+- `vsdd-suite/templates/README.md` — replaced "Manual (suite-only path)" / "With the helper script" / "Crosslink-enabled projects: templates are independent" with a single Usage section that states templates are mode-independent, leads with the recommended scaffold script, then provides a manual scaffold block as the first-class equivalent; added the `cp ... FINDINGS-INDEX.md` step to the manual scaffold block with the "manual mode only" callout per G-138.
+- `vsdd-suite/suite-development/README.md` — added a "Two operational modes (design principle)" section between the structural-split paragraph and the "What lives here" section; the section names the principle, what it binds on future contributors (every crosslink-only mechanism MUST have a manual-mode equivalent), and what the trade-off is.
+
+**Resolution:** Statuses flipped Open → Addressed in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md) for G-144, G-145, G-147. G-146 remains Open as a forward enhancement.
+
+---
+
+### Coordination
+
+The Review 49 work coordinates with the in-flight PR #20 cluster:
+- **G-138** (Addressed, Review 46) — the finding-index pattern is what gives crosslink-mode's `issue relate` edges their queryable target population. G-145's `crosslink issue relate` example is only useful because findings are filed as issues per G-138.
+- **G-139** (Addressed, Review 48) — the polarity sweep added new `crosslink <subcommand> --flag` citations in five files; the G-139 hook validates these automatically on commit. The sweep's correctness is gated on the hook passing clean. Specifically, the Phase 4 `crosslink issue relate <a> <b>` addition has no `--flag` portion and so isn't validated, but the surrounding context (`issue comment <id> ... --kind <kind>`, `issue close <id>`, `swarm fix --from-label`, `swarm fix --budget-aware`) is in scope.
+- **G-123** (Addressed, Review 43) — the parent discipline. G-144's principle constrains future G-123-style mechanism additions: any auto-verification added to crosslink mode must also preserve the manual mode's parity (e.g., a hook that auto-files `crosslink issue create` must not become required infrastructure that breaks manual-mode users).
+
+The 14 Open gaps from Review 45 (G-124–G-137) remain as scoped; G-144 / G-145 / G-147 do not affect that backlog. G-146 adds one Open gap to the backlog as a candidate enhancement. The recommended sequencing for follow-on closure is unchanged; G-146 would slot into the operational/tooling cluster once `crosslink knowledge`'s surface is verified.
+
+Sycophancy self-audit: I considered framing the sweep as "minor wording adjustments" given that the underlying structure already supported both modes. Rejected: the operator's correction was substantive (the prior framing did read as crosslink-first with manual degraded; the operator was right to push back), and the sweep's effect on doc reading order changes user behavior — a new user landing on the Quickstart now sees the manual quickstart as a peer, not as a footnote. "Minor wording" would have undersold the principle.
+
+---
+
 ## Review 48 — 2026-05-18 01:31Z
 
 **Scope:** Address G-139 by implementing the `check-crosslink-references` pre-commit hook proposed in Review 47. The hook mechanizes the G-123 discipline ("verify external-dependency feature references against governing documentation") by automatically running `crosslink <subcommand> --help` for every cited command in user-facing suite docs and failing the commit if any cited long flag is missing from the help output.
