@@ -1,5 +1,37 @@
 # Suite Review — 2026-05-18
 
+## Review 50 — 2026-05-18 19:30Z
+
+**Scope:** Operator-raised observation pass surfacing two gaps off the back of the Review 49 polarity-sweep work. Triggered by the operator reading line 54 of `vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md` ("Review entries are logged in `vsdd-suite/TECHNICAL-WRITER-REVIEW.md` inside the project being reviewed") and asking whether the suite-development artifact names should align with the project template's names.
+
+**Lens:** Operator-raised observation (source: director-raised per G-133). No adversarial sweep this session — just registration of two gaps the operator identified by reading. Both are structural defects of "stale instruction inherited from pre-G-89 framing" or "naming asymmetry inherited from suite-predates-template history" — well-suited to operator-direct-observation rather than to a cold review pass.
+
+**Session note:** In-session, operator-driven. Sycophancy compensation: the second gap (rename) is a deliberation the operator framed as a question, not an assertion — I provided a recommendation in the gap body but did not flip the operator's question into a foregone conclusion. The first gap (16-file stale line) is a clear defect; flagged for fix in a follow-on session rather than addressing inline because the fix touches 16 files and crosses domain-prompt territory that should get its own commit for reviewability.
+
+---
+
+### New gaps registered
+
+**G-148 — Domain prompt files cite outdated review-log path.** All 16 domain prompt files (14 role + 2 meta in `vsdd-suite/domains/role/` and `vsdd-suite/domains/meta/`) close with a line of shape "Review entries are logged in `vsdd-suite/<DOMAIN>-REVIEW.md` inside the project being reviewed." This predates the G-89 per-domain index + per-session-file structure (registered 2026-05-17). Under G-89, `<DOMAIN>-REVIEW.md` is now the INDEX file; actual review entries live in per-session files at `vsdd-suite/review-log/YYYY-MM-DD-<domain-slug>.md`. The stale line will lead a cold reader (human or AI) to append entries directly to the index file, violating G-89. Resolution: mechanical rewrite across all 16 files to the corrected wording (see G-148's row in GAP-ANALYSIS-LOG.md for the verbatim replacement). Forward-only — prior project review entries that may have followed the old framing remain valid records. **Status: Open.** Consider a follow-on G-139-style hook that asserts every `domains/{role,meta}/*-REVIEW.md` file references the per-session path correctly.
+
+**G-149 — Suite-development artifact naming diverges from project-template naming.** The project template (per G-89 + G-138) uses `<DOMAIN>-REVIEW.md` / `review-log/...` / `FINDINGS-INDEX.md`; suite-development uses `SUITE-REVIEW-INDEX.md` / `review-log/...` / `GAP-ANALYSIS-LOG.md`. Same structural roles, divergent names. Historical reason: suite-development predates the project template; the template was derived and renamed for project-facing clarity, leaving the suite with its older naming. The asymmetry means the suite cannot serve as a worked example of its own template and contributors hold two parallel name systems. **Three resolution options** documented in G-149's row in GAP-ANALYSIS-LOG.md: (A) rename suite-development to match (recommended — dogfood-correct, mechanical rename, forward-only); (B) rename template to match (high-churn, not recommended); (C) document the divergence without renaming (lowest cost, preserves split mental model). **Status: Open** with recommendation (A) but pending operator decision. Rename, if approved, belongs in a dedicated PR (this PR is already substantive).
+
+---
+
+### Coordination
+
+Both gaps are downstream of the structural decisions in G-89 (per-domain index + per-session-file) and G-138 (cross-cutting FINDINGS-INDEX.md):
+- **G-148** is a stale-instruction defect: the 16 domain prompts were not swept when G-89 landed.
+- **G-149** is a naming-alignment question: the project-template names that G-89/G-138 standardized never propagated back into the suite-development directory.
+
+Both are forward-only fixes. Neither blocks any in-flight work; the suite is functional with the current names and stale instructions (contributors who know the structure work around them). The fixes are about cold-onboarding correctness (G-148) and worked-example coherence (G-149).
+
+Sycophancy self-audit: I considered framing G-149 with a stronger recommendation than (A), since dogfooding is a long-standing suite principle. Rejected — the rename has cross-cutting cost (every internal reference to `GAP-ANALYSIS-LOG.md` and `SUITE-REVIEW-INDEX.md` in the suite must be updated; existing tools / scripts / docs that grep for the old names will break) and the operator's framing as a question signals deliberation, not a foregone conclusion. The body recommends (A) and explains the trade-off; the operator decides scope and timing.
+
+No new findings beyond the two registered gaps. The 15 Open gaps now in the backlog (G-124–G-137 from Review 45 + G-146 from Review 49 + G-148 + G-149) remain as scoped; no re-prioritization triggered by this session.
+
+---
+
 ## Review 49 — 2026-05-18 18:20Z
 
 **Scope:** Adversarial review of the suite's value as a supplement to crosslink (driver-requested), followed by explicit articulation of the suite's two-mode operational design principle and a polarity sweep across user-facing docs to land the principle consistently. Files in scope of the sweep: `vsdd-suite/README.md` (Prerequisites, Quickstart, Worked Example Phases 1a/1b/2a/2b/3/4, Loop-until-MVR); `vsdd-suite/primers/4-feedback-integration.md` (§ With crosslink / § Without crosslink → `[crosslink]` / `[manual]`); `vsdd-suite/suite-development/suite-development.md` § Project-level finding index (two equivalent paths → two operational modes); `vsdd-suite/templates/README.md` (mode-independent scaffold + mode-specific usage); `vsdd-suite/suite-development/README.md` (added two-mode design principle statement for contributors).

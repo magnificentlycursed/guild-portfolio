@@ -4,6 +4,17 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-18 (Review 50: two operator-raised gaps registered — G-148, G-149 Open)
+
+### Open
+- **G-148** — All 16 domain prompt files (14 role + 2 meta in `vsdd-suite/domains/role/` and `vsdd-suite/domains/meta/`) close with a line of shape "Review entries are logged in `vsdd-suite/<DOMAIN>-REVIEW.md` inside the project being reviewed." This predates the G-89 per-domain index + per-session-file structure (registered 2026-05-17); under G-89 that file is the per-domain INDEX and entries live in per-session files at `vsdd-suite/review-log/YYYY-MM-DD-<domain-slug>.md`. Fix is a mechanical 16-file rewrite; deferred to a follow-on commit for reviewability. Consider a follow-on G-139-style hook to mechanize the discipline for future domain additions.
+- **G-149** — Suite-development artifact names diverge from project-template names for structurally-identical artifacts: `SUITE-REVIEW-INDEX.md` vs. `<DOMAIN>-REVIEW.md`; `GAP-ANALYSIS-LOG.md` vs. `FINDINGS-INDEX.md`. Historical reason (suite-development predates the project template). Three resolution options documented in GAP-ANALYSIS-LOG.md row: (A) rename suite-development to match — recommended, dogfood-correct, forward-only; (B) rename template — high-churn, not recommended; (C) document the divergence without renaming — lowest cost. Open pending operator decision; rename if approved belongs in a dedicated PR.
+
+### Note
+Both gaps are operator-raised (director-raised per G-133) observations off the back of Review 49's polarity-sweep work. Neither blocks any in-flight work; the suite is functional with the current names and stale instructions. Both are forward-only fixes — prior project review entries that may have followed the old framing remain valid records per G-89's narrative-preservation policy.
+
+---
+
 ## Unreleased — 2026-05-18 (Review 49: two-mode design principle articulated + polarity sweep landed)
 
 ### Added
