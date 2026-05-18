@@ -8,7 +8,7 @@ The VSDD suite teaches projects to apply the Solution Architect External Interfa
 
 ## Tested-against version
 
-**crosslink v0.8.0** (as of 2026-05-17). Updates to the crosslink CLI surface require re-validating the worked example against the new version and updating this contract file.
+**crosslink v0.8.0** — every command and flag in this file was verified against `crosslink <subcommand> --help` output on 2026-05-17 (Review 46 + 47 verification pass). Updates to the crosslink CLI surface require re-validating the worked example against the new version and updating this contract file.
 
 The crosslink-dependent portion of the suite is the **[+crosslink] enhancement path only**. The suite was designed for manual operation first; every step in the worked example has a manual-path version above the [+crosslink] block. Projects that do not use crosslink are unaffected by this contract.
 
@@ -32,15 +32,39 @@ The worked example invokes these crosslink commands. Each is part of the contrac
 | 2a | `crosslink session work "<id>"` | Mark active focus issue | (none) |
 | 2b | `crosslink swarm gate <slug>` | Run project test suite as layer gate | (positional `<slug>`) |
 | 3 | `crosslink swarm review --agents <N> --mandate adversarial --file-issues --doc <path>` | Launch N parallel cold-context adversaries | `--agents`, `--mandate`, `--file-issues`, `--doc` |
-| 3 | `crosslink issue list -l <label> --status <state>` | Inspect filed findings | `-l`, `--status` |
-| 3 | `crosslink issue comment <id> "<text>"` | Classification rationale | (none) |
-| 3 | `crosslink issue close <id> --comment "<text>"` | Close finding with classification | `--comment` |
-| 4 | `crosslink issue label <id> <label>` | Apply route label | (positional) |
-| 4 | `crosslink issue block <issue-id> <blocking-id>` | Block layer on a routed Phase-1a finding | (positional) |
+| 3 | `crosslink issue list -l <label> -s <status>` | Inspect filed findings; single label per call; `-s` accepts `open`/`closed`/`all` (default `open`) | `-l`, `-s` |
+| 3 | `crosslink issue comment <id> "<text>" --kind <kind>` | Classification rationale before close; `--kind` accepts `note`/`plan`/`decision`/`observation`/`blocker`/`resolution`/`result`/`handoff`/`human` (default `note`) | `--kind` (optional but recommended) |
+| 3 | `crosslink issue close <id>` | Close a classified finding (positional ID only; closure rationale lives in a prior `issue comment` per the close-after-comment pattern) | (positional `<id>`) |
+| 4 | `crosslink issue label <id> <label>` | Apply route label (positional ID + positional label) | (both positional) |
+| 4 | `crosslink issue unlabel <id> <label>` | Remove a route label | (both positional) |
+| 4 | `crosslink issue block <id> <blocker>` | Block layer issue on a routed Phase-1a finding (`<id>` is the blocked issue; `<blocker>` is the blocking issue) | (both positional) |
 | 4 | `crosslink swarm fix --from-label <label> --budget-aware` | Dispatch fix agents for routed cohort | `--from-label`, `--budget-aware` |
 | Loop | `crosslink milestone close "<name>"` | Close layer milestone at MVR | (none) |
 | Loop | `crosslink session end --notes "<text>"` | Record handoff for next session | `--notes` |
 | Loop | `crosslink session last-handoff` | Read prior session's handoff at start of new session | (none) |
+
+### G-138 finding-index commands (crosslink path)
+
+The G-138 project-level finding index (cross-cutting registry) uses the same `issue` subcommand surface as Phase 3 above, with an explicit label-axis convention. All commands verified against installed crosslink v0.8.0 on 2026-05-17.
+
+| Used for | Command | Verified flags |
+|---|---|---|
+| Create a finding-as-issue with structured labels | `crosslink issue create "<finding-title>" -l domain:<slug> -l layer:<N> -l round:<N> -l finding:<N> -l classification:<class> -l source:<source>` | `-l` (repeatable for multiple labels); `--description`; `--priority`; `--parent` for subissue relationships; `--label review-finding` auto-applied when `swarm review --file-issues` files the finding |
+| Filter by single label axis | `crosslink issue list -l domain:quality-engineer -s open` | `-l` (single label per call); `-s` for status |
+| Filter by multiple axes (AND) | Not directly supported by `-l` (single-label filter); use `crosslink issue list --json -s all \| jq` for multi-axis composition, OR pipe through `grep` on the table output | (jq composition is the suite's verified manual fallback; future crosslink versions may add multi-label filter) |
+| Browse interactively | `crosslink tui` | (interactive — Issues tab supports tree view, detail view, filtering, sorting) |
+| Add a label to an existing finding | `crosslink issue label <id> <label>` | (both positional) |
+| Remove a label | `crosslink issue unlabel <id> <label>` | (both positional) |
+| Reclassify (e.g., Open → Resolved) | `crosslink issue unlabel <id> classification:open && crosslink issue label <id> classification:resolved && crosslink issue close <id>` | (sequence — close after labeling) |
+| Migrate manual ↔ crosslink | `crosslink export -f json -o vsdd-suite/FINDINGS-INDEX-export.json` (export); `crosslink import vsdd-suite/FINDINGS-INDEX-import.json` (import — positional `<INPUT>` file path; format is JSON only per `--help`) | `-f json` / `-o <path>` for export; positional `<INPUT>` for import |
+
+### Crosslink commands the suite *does not* depend on
+
+For audit clarity — these commands exist in crosslink but the suite does not reference them in any current artifact. Listed so a future contributor knows the suite's contract surface is intentionally scoped:
+
+`crosslink kickoff` (suite uses `swarm` instead), `crosslink container` (not in scope), `crosslink sentinel` (not in scope), `crosslink knowledge` (not in scope — the suite's primers fill this role), `crosslink style` (not in scope — the suite carries its own house-style discipline via per-domain reviews), `crosslink mc` / `crosslink serve` / `crosslink tui` (TUI is mentioned as a quick-lookup option but not as a workflow dependency), `crosslink trust` / `crosslink locks` / `crosslink sync` / `crosslink migrate` (operational; not part of the suite's documented workflow), `crosslink config` (used by crosslink-using projects as needed; not suite-documented), `crosslink context` / `crosslink integrity` / `crosslink compact` / `crosslink prune` (housekeeping; not suite-documented), `crosslink timer` (time-tracking; not in scope).
+
+If the suite begins to depend on any of these, this section's row moves into the dependency surface tables above and the "Tested against" line at the top must be re-confirmed.
 
 ## Breaking-change definition
 

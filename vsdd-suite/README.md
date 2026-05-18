@@ -425,14 +425,17 @@ Per `primers/3-review-session.md` § Dispatch options: choose manual when the la
 
 ```sh
 # Inspect findings for human classification
-crosslink issue list -l review-finding --status open
+crosslink issue list -l review-finding -s open
 
 # Classify each finding (example: mark one Hallucinated)
-crosslink issue comment <id> "Hallucinated — control holds: <specific evidence>"
-crosslink issue close <id> --comment "Hallucinated, see above"
+# Pattern: comment with rationale (with --kind), then close. `issue close` does
+# not accept --comment; rationale lives in the prior comment.
+crosslink issue comment <id> "Hallucinated — control holds: <specific evidence>" --kind decision
+crosslink issue close <id>
 
 # Or Resolved (fix applied and verified)
-crosslink issue close <id> --comment "Resolved in <commit>"
+crosslink issue comment <id> "Resolved in <commit>" --kind resolution
+crosslink issue close <id>
 ```
 
 If a full domain pass produces only Hallucinated findings, MVR is reached for that domain. Repeat until all active domains hit MVR.
@@ -481,10 +484,11 @@ crosslink design --continue bookmark-cli    # for the routed Phase 1a fix
 
 A finding labelled `route:phase-1a` is *not* closed when the fix lands — it is closed when the spec revision passes the self-adversary check (the Phase 1a gate). The discipline keeps each phase's artifact authoritative.
 
-When the route holds, close:
+When the route holds, close (comment-then-close pattern — `issue close` does not accept `--comment`):
 
 ```sh
-crosslink issue close <id> --comment "Routed to 1a; DESIGN.md §Add revised in <commit>; self-adversary check passed in session <ts>."
+crosslink issue comment <id> "Routed to 1a; DESIGN.md §Add revised in <commit>; self-adversary check passed in session <ts>." --kind resolution
+crosslink issue close <id>
 ```
 
 ### Loop until MVR

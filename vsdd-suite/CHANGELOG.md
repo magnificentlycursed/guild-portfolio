@@ -4,6 +4,30 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-18 (Review 47: crosslink-contract.md G-138 extension + `--comment`-on-close correction sweep; G-139 registered)
+
+### Driver-requested
+Update `crosslink-contract.md` for the G-138 finding-index commands. The verification pass — every cited crosslink command run against installed `crosslink <subcommand> --help` — surfaced a second-instance G-123 recurrence and closed both items in this commit.
+
+### Changed
+- **`crosslink-contract.md`** § Dependency surface — corrected the `crosslink issue close <id> --comment "<text>"` row: actual `close` subcommand has no `--comment` flag, only `<ID>` positional + `--no-changelog`. Replaced with three rows describing the verified comment-then-close pattern (`issue comment <id> "<text>" --kind <kind>` then `issue close <id>`). Refined `issue list` to use `-s` short form per verified help output. Added `issue unlabel` row.
+- **`crosslink-contract.md`** — "Tested-against version" updated to "every command and flag in this file was verified against `crosslink <subcommand> --help` output on 2026-05-17 (Review 46 + 47 verification pass)."
+- **`README.md`** § Worked example Phase 3 — corrected the Hallucinated example to `comment --kind decision` then `close`; corrected the Resolved example to `comment --kind resolution` then `close`; updated `issue list --status` to `issue list -s`.
+- **`README.md`** § Worked example Phase 4 — corrected the routed-finding closure to the comment-then-close pattern with explanatory parenthetical.
+- **`primers/4-feedback-integration.md`** § Step 5 — corrected the routed-finding closure prose to the `&&`-chained `comment --kind resolution && close` pattern with explanatory parenthetical.
+
+### Added
+- **`crosslink-contract.md`** § G-138 finding-index commands (crosslink path) — new section enumerating the verified surface for the G-138 crosslink path: `issue create -l axis:value` (with `-l` repeatable verified), single-axis `issue list -l <axis>:<value> -s <status>`, multi-axis via `--json | jq` (verified manual fallback — single-label filter only at the `-l` level), `crosslink tui` for interactive browse, `issue label`/`issue unlabel`, the reclassify sequence (unlabel-label-comment-close), `export -f json -o <path>` / `import <INPUT>` for manual↔crosslink migration.
+- **`crosslink-contract.md`** § Crosslink commands the suite does not depend on — explicit out-of-scope enumeration for audit clarity (kickoff, container, sentinel, knowledge, style, mc, serve, tui-as-workflow-dep, trust, locks, sync, migrate, config, context, integrity, compact, prune, timer).
+
+### Suite-development event
+- **G-139 registered** — G-123 manual discipline insufficient against AI-agent recurrence; CLI-verification tooling needed. Pattern: two recurrences across four sessions (Reviews 40–43 `--with-suite`; Reviews 38–46 `--comment`-on-close) of the same speculation-then-late-correction pattern, both violations of the G-123 discipline that was supposed to prevent them. The discipline runs in the same context that produces the speculation, so the agent's confidence overrides verification. Per "earned by recurrence": the rule change is a tooling fix — add `vsdd-suite/hooks/check-crosslink-references.sh` that mechanically validates every cited crosslink flag against `--help` output at commit time. Resolution sketch in the gap row; Open pending the hook authorship.
+
+### Note
+The Review 47 correction is the second G-123 recurrence; the discipline is now tracking two failure events. G-139's tooling fix is the structural answer rather than relying on third-time-lucky discipline. The Review 47 entry in `suite-development/review-log/2026-05-18-suite-review.md` carries the full reasoning. New date file — first session entry on 2026-05-18.
+
+---
+
 ## Unreleased — 2026-05-17 (Review 46: project-level finding index — G-138 registered and addressed; bookmark-cli reference impl populated)
 
 ### Driver-raised observation
