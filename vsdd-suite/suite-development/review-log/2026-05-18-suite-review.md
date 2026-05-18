@@ -1,5 +1,53 @@
 # Suite Review — 2026-05-18
 
+## Review 48 — 2026-05-18 01:31Z
+
+**Scope:** Address G-139 by implementing the `check-crosslink-references` pre-commit hook proposed in Review 47. The hook mechanizes the G-123 discipline ("verify external-dependency feature references against governing documentation") by automatically running `crosslink <subcommand> --help` for every cited command in user-facing suite docs and failing the commit if any cited long flag is missing from the help output.
+
+**Lens:** Tooling-addresses-recurring-discipline-failure lens. The closure pattern is itself a precedent: when a manual discipline (G-123) fails twice in the same way, the rule change earned by recurrence is a tooling fix (G-139), not a stricter discipline. Future similar gaps should follow the same arc.
+
+**Session note:** In-session — same operator that registered G-139 and authored the prior wrong references the hook was designed to catch. Sycophancy compensation: I tested the hook against the full suite *before* claiming it was correct, which surfaced (a) 23 historical-narrative false-positives in the review-log/gap-registry/index files, addressed by adding a self-skip list to the hook AND an `exclude:` filter in `.pre-commit-config.yaml`; and (b) one real catch in `suite-development.md:104` where the G-123 governing-standard text quoted `crosslink init --with-suite` as a worked example — rewritten to "a fictitious `--with-suite` flag attributed to crosslink's `init` subcommand" to convey the same information without the grep-trigger substring. The pre-test verification is what produced the (a)/(b) outcomes; without it the hook would have shipped broken or with the policy violation un-noticed.
+
+---
+
+### Resolved
+
+**G-139 — `check-crosslink-references` pre-commit hook implemented, tested clean against the full suite.**
+
+The hook is a Python script (with `.sh` filename for parity with the existing `check-review-log-anonymization.sh`; the shebang routes to `python3`). Behavior:
+
+- Scans staged text files for `crosslink <subcommand> ... --<flag>` patterns. Subcommand is 1–3 words; longest-first match via `crosslink <tokens> --help`.
+- For each `(subcommand, flag)` pair, validates that the flag appears in the help output's option lines.
+- Fails the commit if any cited long-form flag is not in the help. Reports file:line, the cited subcommand+flag, and the set of valid flags for the subcommand.
+- Skips gracefully when crosslink is not installed (`shutil.which("crosslink")` returns `None`; the hook prints a warning and exits 0 — CI-environment safe).
+- Self-skips known historical-narrative files (CHANGELOG, COMPATIBILITY, GAP-ANALYSIS-LOG, SUITE-REVIEW-INDEX, review-log/*, FINDINGS-INDEX) where past wrong commands are preserved as audit trail. Defense in depth: `.pre-commit-config.yaml` also `exclude:`s the same paths for efficiency at the staged-files level.
+- Scope (long flags only): short-form flags (`-l`, `-s`, etc.) are not validated in this version. Narrow scope catches both recorded G-123 recurrences (`--with-suite`, `--comment`) while keeping the regex tractable. Short-flag validation would extend the scope but would also surface false positives from incidental short-flag-like substrings in narrative prose; not warranted by the current recurrence evidence.
+
+`.pre-commit-config.yaml` updated with the new `check-crosslink-references` hook entry, scoped via `files:` to `vsdd-suite/**/*.{md,sh}` and `<project>/vsdd-suite/*.md` (single-level — project per-domain index files), and `exclude:`d for the historical-narrative paths listed above.
+
+**Tested clean against the full current suite:** all user-facing docs (README.md, primers/, supplements/, hooks/, templates/, crosslink-contract.md, suite-development/README.md, suite-development/suite-development.md, bookmark-cli/vsdd-suite/QUALITY-ENGINEER-REVIEW.md, etc.) — zero false positives. The historical-narrative files (review-log/, GAP, INDEX, CHANGELOG, COMPATIBILITY, FINDINGS-INDEX) are correctly skipped; their `--with-suite` and `--comment` citations remain as audit trail.
+
+**One narrative correction applied during the test:** `suite-development/suite-development.md:104` (the G-123 governing-standard section) quoted `crosslink init --with-suite` directly in prose. The hook caught it; rewrite preserves the information ("a fictitious `--with-suite` flag attributed to crosslink's `init` subcommand") without the grep-trigger substring. This is a feature, not a bug — the contributor primer is a reference doc that should not itself cite non-existent commands even in failure-mode discussion; the historical-narrative files are the appropriate home for verbatim citations.
+
+**Resolution:** Status flipped Open → Addressed in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md). G-123 is now mechanism-backed; recurrence of the speculation pattern would fail the commit hook rather than ship to users.
+
+---
+
+### Coordination
+
+The Review 47 → Review 48 arc closes the G-123 / G-139 / G-118 cluster cleanly:
+- G-123 (Review 43) introduced the discipline.
+- G-139 (Review 47) recognized the discipline alone was insufficient.
+- G-139 closure (this Review 48) implemented the mechanism.
+
+Future similar patterns should follow the arc: discipline → recurrence-recognition → tooling. The "earned by recurrence" doctrine (Review 37 / G-99 framing) names the trigger; G-123 → G-139 is the first end-to-end instance of the discipline-to-tooling promotion pattern in the suite's history.
+
+No new gaps surfaced this session. Sycophancy self-audit: I considered pushing back against adding the `exclude:` filter on the basis that "if it's wrong text, fix the wrong text rather than excluding files." Rejected: the historical-narrative files DELIBERATELY preserve past wrong citations per Review 43's narrative-preservation policy. Excluding them from the hook is the policy-coherent answer; rewriting them would violate Review 43.
+
+The Review 45 backlog (G-124–G-137) remains as scoped; G-139's closure does not affect that backlog directly, but the hook's mechanism is reusable infrastructure that G-129 (CHANGELOG-currency hook) could share — when G-129 is addressed, the hook can be modeled on `check-crosslink-references.sh`'s shape (Python with shebang, pre-commit `files:`/`exclude:` scoping, self-skip safety net).
+
+---
+
 ## Review 47 — 2026-05-18 01:21Z
 
 **Scope:** G-118 follow-on (driver-requested) to update `crosslink-contract.md` with the verified surface for the G-138 finding-index pattern. The verification step (per the G-123 external-dependency discipline) ran `crosslink <subcommand> --help` against installed crosslink v0.8.0 for every command the suite references — and surfaced a second-instance G-123 recurrence: `crosslink issue close --comment "<text>"` was referenced in 5 places across the suite (1 in the existing `crosslink-contract.md`, 3 in `README.md` § Worked example Phase 3 and Phase 4, 1 in `primers/4-feedback-integration.md`) but the actual `close` subcommand does not accept `--comment`. The rationale belongs in a prior `crosslink issue comment <id> "<text>" --kind <kind>` followed by `crosslink issue close <id>`. Both the G-138 surface addition and the `--comment` correction land in this session.

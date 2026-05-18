@@ -4,6 +4,25 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-18 (Review 48: G-139 addressed — `check-crosslink-references` pre-commit hook landed)
+
+### Added
+- **`vsdd-suite/hooks/check-crosslink-references.sh`** (new) — Python script (with `.sh` filename for parity with the existing `check-review-log-anonymization.sh`; shebang routes to `python3`) that scans staged suite docs for `crosslink <subcommand> ... --<flag>` patterns, runs `crosslink <subcommand> --help` for each unique subcommand, and fails the commit if any cited long-form flag is missing from the help output. Reports file:line + cited subcommand+flag + the full set of valid flags for the subcommand. Caches `--help` invocations to avoid re-running for repeated subcommands. CI-safe (no-op when crosslink is not installed). Self-skips known historical-narrative paths (CHANGELOG, COMPATIBILITY, GAP-ANALYSIS-LOG, SUITE-REVIEW-INDEX, review-log/, FINDINGS-INDEX) as defense-in-depth in case invoked manually outside pre-commit.
+
+### Changed
+- **`.pre-commit-config.yaml`** — new `check-crosslink-references` hook entry wired in; scoped via `files:` to `vsdd-suite/**/*.{md,sh}` and `<project>/vsdd-suite/*.md`, with `exclude:` covering the historical-narrative paths for efficiency at the staged-files level.
+- **`suite-development/suite-development.md`** § Governing standard for session primers § External dependency references — line 104 rewritten to convey the same information about the prior `--with-suite` speculation incident without the grep-trigger substring (the hook caught the verbatim citation during pre-test verification; the contributor primer is a reference doc that should not itself cite non-existent commands even in failure-mode discussion, while the historical-narrative files keep verbatim citations as audit trail per Review 43's policy).
+
+### Addressed
+- **G-139** — `check-crosslink-references` pre-commit hook implemented and tested clean against the entire current suite (zero false positives across README.md, primers, supplements, hooks, templates, crosslink-contract.md, both suite-development contributor docs, and bookmark-cli's per-domain index files). G-123 is now mechanism-backed; recurrence of the speculation-then-late-correction pattern would fail the commit hook rather than ship to users.
+
+### Note
+The G-123 → G-139 arc is the suite's first end-to-end instance of the discipline-to-tooling promotion pattern (Review 37 / G-99 "earned by recurrence" doctrine: two recurrences earn the tooling fix). Future similar gaps should follow the arc — discipline first, recognize recurrence, then promote to tooling.
+
+The hook's mechanism is reusable infrastructure: when G-129 (CHANGELOG-currency hook from Review 45's backlog) is addressed, the same Python-with-shebang + pre-commit `files:`/`exclude:` scoping + self-skip safety net shape can be modeled. Cross-coordinate: G-118 (the contract file is the source of truth this hook validates against — keeping the contract current is itself the upstream discipline), G-123 (mechanism layer of the same concern, now backed by tooling), G-129 (reusable infrastructure when its hook is built).
+
+---
+
 ## Unreleased — 2026-05-18 (Review 47: crosslink-contract.md G-138 extension + `--comment`-on-close correction sweep; G-139 registered)
 
 ### Driver-requested
