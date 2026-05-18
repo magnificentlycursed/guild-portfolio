@@ -4,6 +4,23 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-19 (Review 58: G-158 registered + Addressed — GitHub Copilot added to AI-tool enumeration sites)
+
+### Added
+- **`README.md`** § Prerequisites — added GitHub Copilot Chat to the concrete-options enumeration (VS Code / JetBrains / GitHub.com) with fresh-chat keybinding (`Ctrl+L`/`Cmd+L` in VS Code) and a new methodology-neutral framing sentence: "The suite is methodology-neutral about tool choice — any tool that provides a fresh-context chat session with sufficient context window for the primer + domain prompt + project artifacts will work."
+- **`README.md`** § Data flow and privacy posture — two new rows for GitHub Copilot Business/Enterprise and Copilot Individual, mirroring the structure of the existing claude.ai-by-plan-tier rows. Both rows include explicit "verify your plan's current terms" guidance per the G-123 external-dependency discipline.
+
+### Changed
+- **`README.md`** § Same-model review limitation — extended with concrete cross-model Adversary options including Copilot Chat (with selectable non-Claude models), Gemini, and the cross-model property. Adds the explicit caveat that selecting Copilot's "Claude" model option to adversarially-review claude.ai work is *not* cross-model review (same model under two product surfaces).
+
+### Addressed
+- **G-158** — AI-tool discussions across the suite enumerated Claude-family options but omitted GitHub Copilot. Registered and Addressed in same session. G-119 (still Open — AI-tool dependency inventory) now has a clearer scoping target: future inventory work must enumerate Copilot alongside Claude per G-158's methodology-neutral framing.
+
+### Note
+G-158 was operator-raised after Review 57 closed Cluster A. The methodological concern is that a suite enumerating AI options without naming Copilot reads as Claude-partisan rather than methodology-neutral — Copilot is one of the most widely-used AI development tools in apprentice and portfolio contexts. The G-123 external-dependency discipline (verify against governing documentation; do not speculate) shaped how the Copilot rows are phrased: explicit "verify your plan's current terms" qualifiers rather than confident assertions about current state.
+
+---
+
 ## Unreleased — 2026-05-19 (Review 57: Cluster A defect-class generalizations — G-124, G-125, G-126, G-127, G-128 Addressed)
 
 ### Added

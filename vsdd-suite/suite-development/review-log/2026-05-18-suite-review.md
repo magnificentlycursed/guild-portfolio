@@ -1,5 +1,57 @@
 # Suite Review — 2026-05-18
 
+## Review 58 — 2026-05-19 04:30Z
+
+**Scope:** Operator-raised observation that AI-tool discussions across the suite enumerate Claude-family options (Claude Code, claude.ai, Cursor) but omit GitHub Copilot. Register and address G-158 in one pass: identify every site that enumerates AI tools, add GitHub Copilot Chat alongside the existing options with appropriate data-handling caveats and cross-model-review guidance.
+
+**Lens:** Methodology-neutrality audit. Triggered by operator observation; not by an in-project IAR recurrence. The methodological concern is that a suite that enumerates AI options without naming Copilot reads as Claude-partisan rather than methodology-neutral — Copilot is one of the most widely-used AI development tools in apprentice and portfolio contexts, and its omission from the suite's tool surface skews the apparent recommendation toward Claude. The suite is methodology-neutral about tool choice; the documentation should match.
+
+**Session note:** In-session, operator-driven. Sycophancy compensation: when adding Copilot to the data-flow table, the temptation was to make confident claims about Copilot's training-on-input behavior. Rejected — the G-123 external-dependency discipline applies (verify against governing documentation; do not speculate). Phrased the Copilot rows with explicit "verify your plan's current terms" guidance and qualifiers ("per GitHub's published terms," "defaults have shifted over time") rather than asserting current state authoritatively. The same posture applies to Cursor's row (the existing row already says "check the tool's data-handling terms").
+
+---
+
+### New gap registered
+
+**G-158 — GitHub Copilot in AI-tool discussions.** AI-tool discussions across the suite enumerate Claude-family options (Claude Code, claude.ai, Cursor) but omit GitHub Copilot. Sites where the omission appeared: `README.md` § Prerequisites (concrete-options enumeration); `README.md` § Data flow and privacy table (per-tool data-handling posture); `README.md` § Same-model review limitation (Builder/Adversary cross-model framing — Copilot is a valid Adversary choice for genuinely-different-model review). Status: Open (registered) → Addressed (same session, see below).
+
+---
+
+### Resolved
+
+**G-158 — GitHub Copilot added to AI-tool enumeration sites.**
+
+Three edits to `vsdd-suite/README.md`:
+
+1. **§ Prerequisites concrete-options enumeration** — added `[GitHub Copilot Chat](https://github.com/features/copilot) (VS Code / JetBrains / GitHub.com)` to the list of cold-context-capable AI tools, with fresh-chat keybinding (`Ctrl+L` / `Cmd+L` in VS Code) and a new methodology-neutral framing sentence: "The suite is methodology-neutral about tool choice — any tool that provides a fresh-context chat session with sufficient context window for the primer + domain prompt + project artifacts will work; the cross-model cross-check (see § Same-model review limitation) is the highest-stakes pressure point on tool choice."
+
+2. **§ Data flow and privacy table** — added two new rows for GitHub Copilot:
+   - **Copilot Business / Enterprise** — "Per GitHub's published terms, code suggestions and prompts are not used to train the underlying models. Safe for sensitive code (verify your plan's current terms before relying on this)."
+   - **Copilot Individual** — "Training-on-prompts is opt-in/opt-out via account settings depending on plan tier and feature; defaults have shifted over time. Verify the account-level 'Allow GitHub to use my code snippets for product improvements' setting (or current equivalent) before using on sensitive code."
+
+   The two rows mirror the existing claude.ai-by-plan-tier rows in structure (one row for the enterprise/no-training tier, one for the individual/may-train tier) with explicit "verify your plan's current terms" guidance per the G-123 discipline.
+
+3. **§ Same-model review limitation** — extended with concrete cross-model Adversary options: "a Builder on Claude can use [GitHub Copilot Chat](https://github.com/features/copilot) (default model is OpenAI GPT-4-family with selectable alternatives including Anthropic Claude and Google Gemini in some plan tiers — when running Copilot as the cross-model Adversary, select a non-Claude model to preserve the cross-model property), or [Gemini](https://gemini.google.com) as the Adversary; a Builder on Copilot or GPT can use Claude as the Adversary. The cross-model property is preserved by the Builder/Adversary pairing being from genuinely-different model families — not just different products of the same family. Selecting Copilot's 'Claude' model option to adversarially-review work done in claude.ai is *not* cross-model review; it is the same model under two product surfaces."
+
+The Same-model review limitation extension is the most methodologically-substantive addition — it preserves the cross-model-property test against the failure mode where a user selects Copilot's Claude option to "cross-review" Claude-built work and gets same-model review under a different product surface.
+
+**Resolution:** G-158 status Open → Addressed (same session). G-119 (AI-tool dependency inventory, still Open) now has a clearer scoping target — the inventory, when built, must enumerate Copilot alongside Claude per the methodology-neutral framing this gap established.
+
+---
+
+### Coordination
+
+The G-158 closure interacts with several Open gaps:
+
+- **G-119** (Open, Review 41) — AI-tool dependency inventory. Now scoped to require Copilot alongside Claude per G-158's methodology-neutrality framing. Future G-119 work should enumerate every AI tool the project uses (or could use) at any phase, not just the project's primary tool.
+- **G-146** (Open, Review 49) — `crosslink knowledge` auto-injection of primers. G-146's resolution is tool-specific (crosslink); G-158 reinforces that suite documentation about AI-tool integration patterns should not assume Claude. If G-146 ever ships as a `crosslink knowledge`-backed auto-injection, the documentation must frame it as one of several auto-injection mechanisms (Copilot's chat-context attachment, Cursor's `.cursorrules`, etc. — all serve similar purposes) rather than as the canonical mechanism.
+- **G-123** (Addressed, Review 43) + **G-139** (Addressed, Review 48) — the external-dependency-verification discipline applies to Copilot's terms-of-service language the same way it applies to crosslink's CLI surface. The G-139 hook does not currently validate against GitHub Copilot's terms (it's scoped to the `crosslink` CLI); if a future suite update makes specific claims about Copilot's behavior beyond the current "verify your plan's current terms" framing, those claims need their own verification mechanism.
+
+Sycophancy self-audit: I considered whether to also update `templates/PROJECT-README-template.md` § Prerequisites "Optional: any AI tool or tracker" line — but that line is already methodology-neutral ("any AI tool"), so it doesn't need Copilot specifically. Adding a Copilot-specific mention there would over-rotate in the other direction. The fix is at the suite's enumeration sites (where specific tools are listed), not at the suite's generic-tool-mention sites.
+
+**Backlog after Review 58: 11 Open** (G-158 registered and Addressed in same session; no net change to backlog count).
+
+---
+
 ## Review 57 — 2026-05-19 03:30Z
 
 **Scope:** Address Cluster A of the Review 45 backlog — five defect-class generalization gaps (G-124 per-property text-field defense, G-125 error-message escape, G-126 create/load symmetry, G-127 empty-state regression, G-128 mutation-resistant assertions). All five Resolution sketches landed across `primers/1b-decomposition.md` (G-124 + G-127 as new Red Gate plan bullets), `domains/role/SECURITY-REVIEW.md` (G-125 as new Dim 9), `domains/role/DATA-ENGINEER-REVIEW.md` (G-126 as new Dim 13), `domains/role/QUALITY-ENGINEER-REVIEW.md` (G-128 as extension of existing Dim 2 § Mutation testing), and `supplements/rust.md` (cargo-mutants reference for G-128 + display_safe pattern for G-125).
