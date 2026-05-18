@@ -4,7 +4,7 @@ suite documentation against the installed crosslink CLI's --help output.
 
 Mechanizes the G-123 discipline ("before referencing an external tool's
 feature, verify against that tool's governing documentation"). Registered
-as G-139 in vsdd-suite/suite-development/GAP-ANALYSIS-LOG.md after two
+as G-139 in vsdd-suite/suite-development/FINDINGS-INDEX.md after two
 recurrences across four sessions of the same speculation-then-late-
 correction failure mode (a fictitious `--with-suite` flag attributed to
 crosslink's `init` subcommand, corrected in Review 43; a fictitious
@@ -35,13 +35,13 @@ Invocation: receives staged file paths as arguments via pre-commit's
 `pass_filenames: true`.
 
 Scope: validates user-facing documentation only. Historical narrative
-files (CHANGELOG, COMPATIBILITY, GAP-ANALYSIS-LOG, SUITE-REVIEW-INDEX,
-review-log entries, FINDINGS-INDEX) deliberately preserve citations of
-past wrong commands as audit trail per the suite's forward-only
-narrative-preservation policy (Review 43 framing); the hook skips them
-so the audit trail is not flagged as a defect. The scope is enforced
-both in `.pre-commit-config.yaml` (efficient staged-file filtering)
-and in this script (correctness if invoked manually).
+files (CHANGELOG, COMPATIBILITY, FINDINGS-INDEX, SUITE-DEVELOPMENT-REVIEW,
+review-log entries) deliberately preserve citations of past wrong commands
+as audit trail per the suite's forward-only narrative-preservation policy
+(Review 43 framing); the hook skips them so the audit trail is not flagged
+as a defect. The scope is enforced both in `.pre-commit-config.yaml`
+(efficient staged-file filtering) and in this script (correctness if
+invoked manually).
 """
 
 import re
@@ -56,10 +56,9 @@ import sys
 HISTORICAL_NARRATIVE_MARKERS = (
     "/CHANGELOG.md",
     "/COMPATIBILITY.md",
-    "/GAP-ANALYSIS-LOG.md",
-    "/SUITE-REVIEW-INDEX.md",
-    "/review-log/",
     "/FINDINGS-INDEX.md",
+    "/SUITE-DEVELOPMENT-REVIEW.md",
+    "/review-log/",
 )
 
 

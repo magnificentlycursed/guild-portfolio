@@ -2,7 +2,7 @@
 
 The suite's compatibility commitment to projects that have adopted it.
 
-**Reason this file exists:** registered as G-120 in [`suite-development/GAP-ANALYSIS-LOG.md`](suite-development/GAP-ANALYSIS-LOG.md) by Review 41 (Solution Architect lens). The forward-only constraint applied across G-88, G-89, G-91, G-92, G-93, G-95 IS the suite's compatibility policy — but it had been distributed across individual gap rows rather than documented as a coherent commitment. This file makes the policy explicit so a new user can verify the suite's backwards-compatibility posture without reading the gap registry.
+**Reason this file exists:** registered as G-120 in [`suite-development/GAP-ANALYSIS-LOG.md`](suite-development/FINDINGS-INDEX.md) by Review 41 (Solution Architect lens). The forward-only constraint applied across G-88, G-89, G-91, G-92, G-93, G-95 IS the suite's compatibility policy — but it had been distributed across individual gap rows rather than documented as a coherent commitment. This file makes the policy explicit so a new user can verify the suite's backwards-compatibility posture without reading the gap registry.
 
 ---
 
@@ -20,11 +20,12 @@ The suite's compatibility commitment to projects that have adopted it.
 
 | Version | Date | What changed |
 |---|---|---|
+| v0.4.0 | 2026-05-19 | Review 61 (G-149 closure): suite-development artifact rename to align with project-template naming. `SUITE-REVIEW-INDEX.md` → `SUITE-DEVELOPMENT-REVIEW.md`; `GAP-ANALYSIS-LOG.md` → `FINDINGS-INDEX.md`. Mechanical sed sweep updated all forward-facing internal cross-references; historical narrative files (review-log entries, CHANGELOG entries, prior version anchors here) preserve the old names in prose with markdown link targets pointing to new file paths. Suite can now serve as a worked example of its own template-defined naming (dogfood-correct). No breaking changes against this policy's project-facing surface — projects scaffolded from `templates/` already used the new names; the rename is internal to suite-development/. **Migration for projects with their own suite-side cross-references:** if a project's vsdd-suite/ tree links to `suite-development/SUITE-REVIEW-INDEX.md` or `suite-development/GAP-ANALYSIS-LOG.md` (rare — these are contributor-facing artifacts), update those links to the new names. |
 | v0.3.0 | 2026-05-17 | Review 40 + 41 onboarding overhaul: README Prerequisites / Quickstart / "Bringing the suite into your project" sections; `templates/` directory; crosslink-contract.md; this COMPATIBILITY.md; AI-tool data-flow posture in Prerequisites. Forward-only — completed projects retain prior README and prior absence of templates. |
 | v0.2.0 | 2026-05-17 | Review 38 + 39 post-ITC restructure: `iterative-adversarial-refinement/` → `vsdd-suite/` directory rename; `prompts/` → `primers/` with phase-prefixed filenames; suite-meta into `suite-development/`; README user/contributor split; `prompts/implementation.md` → `2a-red-gate.md` + `2b-implementation.md`; per-domain index + per-session file review-log structure (G-89). Forward-only — `bookmark-manager/` and `issue-tracker-cli/` retain their inner `iterative-adversarial-refinement/` paths and single-file-per-domain logs. |
 | v0.1.0 | 2026-05-06 | Baseline at the close of Review 36 — IAR suite with full domain set, contributor governance (gap log, suite-review index, review-log/, suite-development.md primer), language and interface supplements, crosslink integration discussed but not yet first-class. Treated as the earliest tagged version because Review 36's anonymization-hook landing made the suite stable for portfolio use. |
 
-Version tags v0.1.0, v0.2.0, v0.3.0 are stub tags applied retroactively to anchor the forward-only policy to specific suite states. Future versions follow semantic versioning: PATCH for fix-only changes; MINOR for additive non-breaking changes; MAJOR for breaking changes against this compatibility policy.
+Version tags v0.1.0, v0.2.0, v0.3.0, v0.4.0 are stub tags applied retroactively to anchor the forward-only policy to specific suite states. Future versions follow semantic versioning: PATCH for fix-only changes; MINOR for additive non-breaking changes; MAJOR for breaking changes against this compatibility policy.
 
 ## Breaking change definition for the suite
 
@@ -56,7 +57,7 @@ When a suite artifact must be deprecated (renamed, removed, restructured):
 
 ## Cross-references
 
-- [`suite-development/GAP-ANALYSIS-LOG.md`](suite-development/GAP-ANALYSIS-LOG.md) § Reactivation triggers — the bundled "after `issue-tracker-cli` completes" trigger was a coordinated deprecation event; G-88/G-89/G-91/G-92/G-93/G-95 closures all applied this policy.
+- [`suite-development/GAP-ANALYSIS-LOG.md`](suite-development/FINDINGS-INDEX.md) § Reactivation triggers — the bundled "after `issue-tracker-cli` completes" trigger was a coordinated deprecation event; G-88/G-89/G-91/G-92/G-93/G-95 closures all applied this policy.
 - [`crosslink-contract.md`](crosslink-contract.md) — separate contract for the suite's dependency on crosslink.
 - [`CHANGELOG.md`](CHANGELOG.md) — the per-release record that anchors version tags to specific change sets.
 - [`domains/role/SOLUTION-ARCHITECT-REVIEW.md`](domains/role/SOLUTION-ARCHITECT-REVIEW.md) — SA Extended dims 14, 15, 16, 20 (breaking-change definition, versioning strategy, backward compatibility, deprecation process) are the dimensions this file applies to the suite.

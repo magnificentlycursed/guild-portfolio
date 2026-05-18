@@ -50,7 +50,7 @@ The hook is suite-internal — it lives at `iterative-adversarial-refinement/hoo
 
 **G-98 — Adversarial review logs can themselves leak the values they document.**
 
-Registered in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md). Severity: High mission-critical, Medium speculative — review logs in regulated/mission-critical contexts can directly cause compliance failures (HIPAA disclosure logs reproducing PHI; SOC 2 evidence files leaking access keys); for speculative/portfolio contexts the cost is reputational and recovery (git surgery) rather than regulatory. Status: Addressed in-session by the three resolutions above. The fix and the registry entry land in the same session, per the suite-development convention.
+Registered in [GAP-ANALYSIS-LOG.md](../FINDINGS-INDEX.md). Severity: High mission-critical, Medium speculative — review logs in regulated/mission-critical contexts can directly cause compliance failures (HIPAA disclosure logs reproducing PHI; SOC 2 evidence files leaking access keys); for speculative/portfolio contexts the cost is reputational and recovery (git surgery) rather than regulatory. Status: Addressed in-session by the three resolutions above. The fix and the registry entry land in the same session, per the suite-development convention.
 
 **Classification:** New gap, immediately Addressed.
 

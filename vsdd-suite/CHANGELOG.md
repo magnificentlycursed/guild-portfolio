@@ -4,6 +4,27 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-19 (Review 61: G-149 Addressed — suite-development artifact rename to align with project-template naming; v0.4.0)
+
+### Changed
+- **`vsdd-suite/suite-development/SUITE-REVIEW-INDEX.md`** → **`vsdd-suite/suite-development/SUITE-DEVELOPMENT-REVIEW.md`** (`git mv`). The per-domain-index file for the suite-development meta-domain now follows the same `<DOMAIN>-REVIEW.md` naming convention the project template uses.
+- **`vsdd-suite/suite-development/GAP-ANALYSIS-LOG.md`** → **`vsdd-suite/suite-development/FINDINGS-INDEX.md`** (`git mv`). The cross-cutting finding registry for the suite-development meta-domain now follows the same `FINDINGS-INDEX.md` naming convention the project template uses (per G-138).
+- **Reference sweep** across 17 files: forward-facing files updated link targets AND prose references; historical-narrative files (review-log entries, prior COMPATIBILITY anchors) updated link targets only, preserving prose mentions of the old names as audit trail per G-89's forward-only narrative-preservation policy.
+- **`.pre-commit-config.yaml`** § `check-crosslink-references` exclude regex — dropped dead `(GAP-ANALYSIS-LOG|SUITE-REVIEW-INDEX)` alternatives; regex now uses `SUITE-DEVELOPMENT-REVIEW\.md` and `.*/FINDINGS-INDEX\.md` only.
+- **`vsdd-suite/hooks/check-crosslink-references.sh`** — `HISTORICAL_NARRATIVE_MARKERS` tuple updated to current filenames; docstring updated; accidental duplicate `/FINDINGS-INDEX.md` tuple entry deduped.
+
+### Added
+- **`vsdd-suite/COMPATIBILITY.md`** § Version anchors — new v0.4.0 row documenting the rename, scope, forward-only positioning, and migration note for any project with cross-references into `suite-development/`.
+- **`vsdd-suite/suite-development/review-log/2026-05-19-suite-review.md`** (new file) — Review 61 entry documenting the rename, the sweep methodology, and the historical vs. forward-facing distinction the sweep enforces.
+
+### Addressed
+- **G-149** — Suite-development artifact naming alignment via Option A rename per operator selection. The suite can now serve as a worked example of its own template-defined naming convention (G-122 dogfood-correctness applied to naming).
+
+### Note
+**Backlog after Review 61: 1 Open** (only G-146 — `crosslink knowledge` auto-injection, forward enhancement gated on external `crosslink knowledge --help` verification per G-123/G-139 discipline). The full mining cycle from Review 45's ITC pattern-mining + Review 51's dollspace.gay upstream-author mining is now closed: 24 gaps registered across the cycle (G-124–G-137 + G-146 + G-148 + G-149 + G-150–G-156 + G-158); 22 Addressed + 1 Deferred (G-135) + 1 Open (G-146). Landed on a dedicated `vsdd-suite-rename` branch / separate PR per the option-A scoping rationale that a cross-cutting rename is more reviewable in isolation.
+
+---
+
 ## Unreleased — 2026-05-19 (Review 60: Cluster C operational gaps — G-134, G-136, G-137 Addressed; G-135 Deferred)
 
 ### Added

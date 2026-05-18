@@ -46,7 +46,7 @@ One sentence added after the per-domain round-filing instruction: "Also append a
 
 Three rows for the three QE Review 1 findings (F-001 Phase 2a → 2b commit-boundary discipline, Resolved; F-002 missing edge-case test coverage, Resolved; F-003 insufficient-test-count claim, Hallucinated). Demonstrates the manual-path structure with real finding data; future Phase 3 reviews on bookmark-cli would append rows for new findings.
 
-**Resolution:** Status flipped Open → Addressed in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md) in the same session as registration. The pattern is now part of the suite for new projects; the reference impl demonstrates the manual path; crosslink path is documented but not exercised in this session (no crosslink-using portfolio project yet).
+**Resolution:** Status flipped Open → Addressed in [GAP-ANALYSIS-LOG.md](../FINDINGS-INDEX.md) in the same session as registration. The pattern is now part of the suite for new projects; the reference impl demonstrates the manual path; crosslink path is documented but not exercised in this session (no crosslink-using portfolio project yet).
 
 ---
 
@@ -163,7 +163,7 @@ The worked example is no longer hypothetical at the Layer-1 granularity. A new u
 
 **What's NOT included** (scope honestly disclosed): Layers 2 + 3 are not built; only QE Phase 3 Review 1 is filed (the other 6 active-core-domain indices are scaffolded stubs awaiting their first round); no Phase 4 routing has occurred because no live cross-domain findings exist; no Layer 1 merge gate has run because this is reference work, not delivery work; the Phase 2a → 2b commit-boundary discipline was not strictly satisfied (acknowledged in the QE Review 1's Finding 1). These omissions are appropriate for the reference-implementation purpose — G-112 asked for end-to-end exercise of the worked example at toy-project scale, not for a complete production-quality run.
 
-**Resolution:** Status flipped Open → Addressed in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md). Portfolio README updated to include `bookmark-cli/` as the third portfolio project with the "Reference implementation" framing.
+**Resolution:** Status flipped Open → Addressed in [GAP-ANALYSIS-LOG.md](../FINDINGS-INDEX.md). Portfolio README updated to include `bookmark-cli/` as the third portfolio project with the "Reference implementation" framing.
 
 ---
 
@@ -262,7 +262,7 @@ The other three mechanisms (git submodule, sibling symlink, `crosslink init --wi
 
 The applied documentation change at `vsdd-suite/README.md` § Bringing the suite into your project: the prior 4-equal-options table was restructured to lead with "The canonical default: manual copy via `scaffold-project.sh`" and demote the other three to a labeled "Accepted-variant options" table. The `crosslink init --with-suite` future option is preserved as a coordination ask against crosslink upstream, explicitly noted as not-yet-available and not a suite-side responsibility to implement.
 
-**Resolution:** Doctrine landed at `README.md` § Bringing the suite into your project. Status flipped Open → Resolved in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md).
+**Resolution:** Doctrine landed at `README.md` § Bringing the suite into your project. Status flipped Open → Resolved in [GAP-ANALYSIS-LOG.md](../FINDINGS-INDEX.md).
 
 ---
 
@@ -274,7 +274,7 @@ Rationale anchored to SO Dim 1 (spec coverage — the implicit default needed to
 
 Self-sycophancy check applied at the decision point: I had initially leaned toward "(a) define starter set + (b) 'you don't have to use it all' affordance — together with elaborate framing" in my Review 41 SA-5 writeup. SO Dim 4 rejected the elaborate framing. The single-sentence affordance is sufficient because the structural mechanism (scaffold script default) already encodes the doctrine; the documentation just needed to make it visible.
 
-**Resolution:** Two documentation additions: one sentence in `README.md` § Quickstart Phase-3 step; one paragraph in `README.md` § Domains section opener. Status flipped Open → Resolved in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md).
+**Resolution:** Two documentation additions: one sentence in `README.md` § Quickstart Phase-3 step; one paragraph in `README.md` § Domains section opener. Status flipped Open → Resolved in [GAP-ANALYSIS-LOG.md](../FINDINGS-INDEX.md).
 
 ---
 
@@ -424,7 +424,7 @@ Substantive changes:
 
 What was NOT changed: no existing project review log was restructured (forward-only); the per-review entry preamble, finding sections, finding body, closing block, and round numbering sub-sections of the governing standard were left unchanged (those describe the SHAPE of a single review entry, which is the same in either file structure — only the FILE shape changed); the suite-review log structure itself was untouched (it already follows the index + session pattern that G-89 borrows for projects).
 
-**Resolution:** Status flipped Deferred → Addressed in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md). Last Reviewed 2026-05-17. The "after `issue-tracker-cli` completes" bundled trigger that originally gated G-88, G-89, G-90, G-91, G-92, G-93, G-94, G-95 is now fully closed (G-89 was the final gap remaining against it).
+**Resolution:** Status flipped Deferred → Addressed in [GAP-ANALYSIS-LOG.md](../FINDINGS-INDEX.md). Last Reviewed 2026-05-17. The "after `issue-tracker-cli` completes" bundled trigger that originally gated G-88, G-89, G-90, G-91, G-92, G-93, G-94, G-95 is now fully closed (G-89 was the final gap remaining against it).
 
 ---
 
@@ -468,7 +468,7 @@ Driver chose `vsdd-suite/` after candidate evaluation (`vsdd-suite/` anchors to 
 
 Forward-only constraint honored: `issue-tracker-cli/iterative-adversarial-refinement/` and `bookmark-manager/iterative-adversarial-refinement/` are untouched. The cross-reference rewriter used a negative-lookbehind regex to skip any `iterative-adversarial-refinement/` occurrence preceded by `issue-tracker-cli/` or `bookmark-manager/`. The `.pre-commit-config.yaml` hook regex was updated to cover all three reachable shapes (`^(vsdd-suite/.*\.md|.*/iterative-adversarial-refinement/.*\.md|.*/vsdd-suite/.*\.md)$`) so review-log anonymization continues to fire on completed projects' IAR markdown without requiring those projects to rename.
 
-**Resolution:** Status flipped Deferred → Addressed in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md). Last Reviewed 2026-05-17.
+**Resolution:** Status flipped Deferred → Addressed in [GAP-ANALYSIS-LOG.md](../FINDINGS-INDEX.md). Last Reviewed 2026-05-17.
 
 ---
 
@@ -486,7 +486,7 @@ Naming convention chosen: bare phase digit prefix (`1a-`, `2b-`, `3-`), no `phas
 
 Cross-references throughout the suite were updated by a Python rewriter that scoped substitutions to suite-internal files plus the two repo-root files (`.pre-commit-config.yaml`, `.github/PULL_REQUEST_TEMPLATE.md`). One round of false-positive double-prefixing (`2b-2b-implementation.md` and similar in the two new 2a/2b primer files and in one historical Review 31 entry that pre-discussed the phase-prefix convention) was swept clean with a follow-up sed pass before any commit. A subsequent round of corruption to GAP-ANALYSIS-LOG, SUITE-REVIEW-INDEX, and the prior review-log session files (where the rewriter overwrote *narrative* mentions of historical paths, not just link forms) was caught and reverted via `git restore` — historical narrative now reads correctly, and link forms in those files were sibling-relative so no link breakage resulted.
 
-**Resolution:** Status flipped Deferred → Addressed in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md). Last Reviewed 2026-05-17.
+**Resolution:** Status flipped Deferred → Addressed in [GAP-ANALYSIS-LOG.md](../FINDINGS-INDEX.md). Last Reviewed 2026-05-17.
 
 ---
 
@@ -502,7 +502,7 @@ What stayed at suite root: `README.md`, `CHANGELOG.md`, `primers/`, `domains/`, 
 
 Relative paths from suite-development/ to suite-root content (README, CHANGELOG, primers, domains, supplements, hooks) all gained one extra `..` of depth; the rewriter handled this per-file based on source-file location class. Relative paths within suite-development/ (e.g., GAP-ANALYSIS-LOG.md referencing review-log/ siblings) remained unchanged — both sides moved together preserving the relative position.
 
-**Resolution:** Status flipped Deferred → Addressed in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md). Last Reviewed 2026-05-17.
+**Resolution:** Status flipped Deferred → Addressed in [GAP-ANALYSIS-LOG.md](../FINDINGS-INDEX.md). Last Reviewed 2026-05-17.
 
 ---
 
@@ -514,7 +514,7 @@ The new `vsdd-suite/suite-development/README.md` is a navigation document: intro
 
 The deeper variant of G-93 — consolidating governing-standards prose currently inside `suite-development.md` into the contributor README or a dedicated handbook — is *not* taken in this pass. The current placement (primer carries the long-form governing standards, README is the navigation entry point) works structurally and avoids a content-migration pass whose value is unclear absent a contributor experience report. Trigger for revisiting: a future contributor reports that the primer-vs-README split is confusing or that they wanted the governing standards in a different shape.
 
-**Resolution:** Status flipped Deferred → Addressed (minimal variant) in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md). Last Reviewed 2026-05-17.
+**Resolution:** Status flipped Deferred → Addressed (minimal variant) in [GAP-ANALYSIS-LOG.md](../FINDINGS-INDEX.md). Last Reviewed 2026-05-17.
 
 ---
 
@@ -526,7 +526,7 @@ The original `implementation.md` had clear internal phase boundaries (the "## Ph
 - `2b-implementation.md`'s opening paragraph names the Red Gate commit as a session prerequisite (cannot start Phase 2b without it). The retroactive-Red-Gate label paragraph stays in `2b-implementation.md` — it describes a Phase 2b discovery condition. The Layer 7 R19 / G-99 warm-finding-closure discussion remains project-scoped at `issue-tracker-cli/iterative-adversarial-refinement/CLOSURE-PROTOCOL.md` §8 per the Review 37 deferred decision (no suite-level warm-closure section added here).
 - The README's session-primers table gained two rows (one per primer) where it previously had one combined row; the VSDD-pipeline-context table at the top of the README now has the 2a row pointing at `2a-red-gate.md` (was pointing at `2b-implementation.md` because the combined primer covered both).
 
-**Resolution:** Status flipped Deferred → Addressed in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md). Last Reviewed 2026-05-17.
+**Resolution:** Status flipped Deferred → Addressed in [GAP-ANALYSIS-LOG.md](../FINDINGS-INDEX.md). Last Reviewed 2026-05-17.
 
 ---
 

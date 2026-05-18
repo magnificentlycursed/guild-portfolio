@@ -37,7 +37,7 @@ Forward-only: existing `TODO.md` files in projects under review are not retroact
 
 **G-97 — Manual testing checklist format produced tester-familiarity-dependent items.**
 
-Registered in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md). Distinct from G-42 ("Manual testing checklists not owned by any domain", Addressed 2026-04-26) which addressed *which domain evaluates* manual testing checklist completion. G-97 addresses *the format the checklist itself takes when produced by decomposition*. Status: Addressed in-session by Finding 1.
+Registered in [GAP-ANALYSIS-LOG.md](../FINDINGS-INDEX.md). Distinct from G-42 ("Manual testing checklists not owned by any domain", Addressed 2026-04-26) which addressed *which domain evaluates* manual testing checklist completion. G-97 addresses *the format the checklist itself takes when produced by decomposition*. Status: Addressed in-session by Finding 1.
 
 **Classification:** New gap, immediately Addressed. The fix and the registry entry land in the same session, per the suite-development convention "If it was not tracked, add it and immediately mark it Addressed."
 

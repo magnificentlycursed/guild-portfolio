@@ -27,8 +27,8 @@ The suite currently contains these artifact types:
 | Session primers | `../primers/` | Posture-setting prompts loaded at the start of a phase or session type |
 | Domain index | `../domains/DOMAIN-INDEX.md` | Authoritative core/extended classification with activation criteria |
 | README | `README.md` | Suite entry point: domain tables, primer table, running instructions, supplement table |
-| Gap analysis log | `GAP-ANALYSIS-LOG.md` | Running registry of identified suite gaps and their status |
-| Suite review index | `SUITE-REVIEW-INDEX.md` | Index of adversarial review runs of the suite itself |
+| Gap analysis log | `FINDINGS-INDEX.md` | Running registry of identified suite gaps and their status |
+| Suite review index | `SUITE-DEVELOPMENT-REVIEW.md` | Index of adversarial review runs of the suite itself |
 | Changelog | `CHANGELOG.md` | Record of all non-trivial changes to suite artifacts |
 
 ---
@@ -111,7 +111,7 @@ A project-level review log is the artifact produced by running a domain review o
 
 ### Structure (per-domain index + per-session entries)
 
-**Forward-only constraint:** This index-plus-session-file structure applies to projects starting after 2026-05-17 (G-89 closure date). Projects whose first IAR run predates that date retain their existing single-file-per-domain structure (one accumulating file per domain holding all rounds) and must not be retroactively split. Reference: G-89's row in [`GAP-ANALYSIS-LOG.md`](GAP-ANALYSIS-LOG.md).
+**Forward-only constraint:** This index-plus-session-file structure applies to projects starting after 2026-05-17 (G-89 closure date). Projects whose first IAR run predates that date retain their existing single-file-per-domain structure (one accumulating file per domain holding all rounds) and must not be retroactively split. Reference: G-89's row in [`FINDINGS-INDEX.md`](FINDINGS-INDEX.md).
 
 For a new project, each active domain produces two file shapes:
 
@@ -141,13 +141,13 @@ For a new project, each active domain produces two file shapes:
 
 **Cross-domain references** between findings: link directly to the session file with the round's anchor, not to the index. Use the same `[text](path)` form the gap registry uses: `[QE Review 4](review-log/2026-06-15-quality-engineer.md#review-4--2026-06-15-1400z) Finding 2`. Linking through the index adds a navigation hop without informational value.
 
-**Why the split:** Cross-domain reading is faster (the index is one screen, not hundreds of lines of accumulated rounds); session-file scoping makes scoped-search (`grep` for a specific date or round) cleaner; multi-round closure trails are visible at the index level (a reviewer can see at a glance how many rounds it took to reach MVR); large projects don't produce single domain files in the multi-thousand-line range. The pattern mirrors the suite's own [`SUITE-REVIEW-INDEX.md`](SUITE-REVIEW-INDEX.md) + `review-log/` structure, which has been load-tested with 38+ sessions and works.
+**Why the split:** Cross-domain reading is faster (the index is one screen, not hundreds of lines of accumulated rounds); session-file scoping makes scoped-search (`grep` for a specific date or round) cleaner; multi-round closure trails are visible at the index level (a reviewer can see at a glance how many rounds it took to reach MVR); large projects don't produce single domain files in the multi-thousand-line range. The pattern mirrors the suite's own [`SUITE-DEVELOPMENT-REVIEW.md`](SUITE-DEVELOPMENT-REVIEW.md) + `review-log/` structure, which has been load-tested with 38+ sessions and works.
 
 ### Project-level finding index (cross-cutting registry)
 
-**Forward-only constraint:** This finding-index pattern applies to projects starting after 2026-05-17 (G-138 closure date). Projects under the legacy single-file-per-domain shape (per the G-89 carve-out) continue without it. Reference: G-138's row in [`GAP-ANALYSIS-LOG.md`](GAP-ANALYSIS-LOG.md).
+**Forward-only constraint:** This finding-index pattern applies to projects starting after 2026-05-17 (G-138 closure date). Projects under the legacy single-file-per-domain shape (per the G-89 carve-out) continue without it. Reference: G-138's row in [`FINDINGS-INDEX.md`](FINDINGS-INDEX.md).
 
-The per-domain index + per-session-file structure (above) indexes ROUNDS but not individual FINDINGS. A project with 50 findings across 10 domains has no cross-cutting view — answering "show me all Open findings" or "show me everything raised on Layer 2" requires reading every domain index. The finding-index gives that cross-cutting view; it is to project findings what [`GAP-ANALYSIS-LOG.md`](GAP-ANALYSIS-LOG.md) is to suite gaps.
+The per-domain index + per-session-file structure (above) indexes ROUNDS but not individual FINDINGS. A project with 50 findings across 10 domains has no cross-cutting view — answering "show me all Open findings" or "show me everything raised on Layer 2" requires reading every domain index. The finding-index gives that cross-cutting view; it is to project findings what [`FINDINGS-INDEX.md`](FINDINGS-INDEX.md) is to suite gaps.
 
 Two operational modes — pick by whether crosslink is installed; the manual mode is a first-class fallback that carries the same discipline, not a second-class lite version.
 
@@ -178,7 +178,7 @@ crosslink tui                                                       # interactiv
 
 **[manual] mode — first-class fallback path:**
 
-A single `<project>/vsdd-suite/FINDINGS-INDEX.md` file holds the cross-cutting registry, structured like [`GAP-ANALYSIS-LOG.md`](GAP-ANALYSIS-LOG.md) — one row per finding with columns for ID, domain, layer, round, finding-number, title, classification, status, source, and a link to the per-session-file anchor for the full narrative. Quick lookup is via grep or markdown viewer with table filtering. Template at `vsdd-suite/templates/PROJECT-FINDINGS-INDEX-template.md`.
+A single `<project>/vsdd-suite/FINDINGS-INDEX.md` file holds the cross-cutting registry, structured like [`FINDINGS-INDEX.md`](FINDINGS-INDEX.md) — one row per finding with columns for ID, domain, layer, round, finding-number, title, classification, status, source, and a link to the per-session-file anchor for the full narrative. Quick lookup is via grep or markdown viewer with table filtering. Template at `vsdd-suite/templates/PROJECT-FINDINGS-INDEX-template.md`.
 
 The manual mode matches the crosslink mode's information shape exactly so a project that adopts crosslink later can mechanically migrate the markdown rows into crosslink issues. This is not a degraded path — every IAR discipline (per-domain index, per-session file, sycophancy check, Red Gate, MVR signal, routing table) is fully exercisable in manual mode. The trade-off is mechanical (queryability via grep vs. label filter, audit trail in git history vs. issue comment thread), not methodological.
 
@@ -198,7 +198,7 @@ Layer-gate close criteria govern when a layer's IAR round may close and the laye
 6. Any DESIGN.md changes during the layer have explicit SO authorship or SO ratification recorded in the SO log.
 7. **PROCESS.md retrospective for the layer is at least started — with developer-voice prose, not just scaffolding.** A retrospective section is "at least started" when at least one first-person sentence from the developer follows the italicized scaffolding block. An unfilled italicized scaffolding block (the `*[First-person reflection on Layer N. Possible threads: ...]*` template prose alone, with no developer-written prose underneath) is NOT "at least started" — the scaffolding is the prompt; the developer's prose is the response. **Applies to each `## What was hardest`, `## What I got wrong`, and `## What the process felt like` section per layer.** Empty placeholder sections block layer-gate close regardless of other criteria.
 
-**Why criterion 7 is a hard gate, not advisory:** The pattern of "PROCESS.md retrospective sections remain empty across multiple layer-gate closures" recurred in `issue-tracker-cli` across Portfolio Assessment Reviews 1, 2, 3, 4, 5 (five consecutive assessments documented the same gap). The R4 standing recommendation ("the nine first-person reflection placeholders are the cheapest single change") went partially-addressed (9 → 7) but two whole layer entries (Layer 6 + Layer 7) were absent at R5 time. Layer 6 was precisely the layer with the strongest single director-ownership artifact (SO R22 next_id reversal); its absence in PROCESS.md was a significant lost-evidence event. The "block portfolio assessment but not technical merge" framing that prior CLOSURE-PROTOCOL drafts used was what allowed the pattern to persist — recurrence trigger per "earned by recurrence" doctrine. The criterion is now a baseline hard gate. Reference: G-156's row in [`GAP-ANALYSIS-LOG.md`](GAP-ANALYSIS-LOG.md).
+**Why criterion 7 is a hard gate, not advisory:** The pattern of "PROCESS.md retrospective sections remain empty across multiple layer-gate closures" recurred in `issue-tracker-cli` across Portfolio Assessment Reviews 1, 2, 3, 4, 5 (five consecutive assessments documented the same gap). The R4 standing recommendation ("the nine first-person reflection placeholders are the cheapest single change") went partially-addressed (9 → 7) but two whole layer entries (Layer 6 + Layer 7) were absent at R5 time. Layer 6 was precisely the layer with the strongest single director-ownership artifact (SO R22 next_id reversal); its absence in PROCESS.md was a significant lost-evidence event. The "block portfolio assessment but not technical merge" framing that prior CLOSURE-PROTOCOL drafts used was what allowed the pattern to persist — recurrence trigger per "earned by recurrence" doctrine. The criterion is now a baseline hard gate. Reference: G-156's row in [`FINDINGS-INDEX.md`](FINDINGS-INDEX.md).
 
 **Forward-only constraint:** The hardened criterion 7 applies to projects starting after 2026-05-18 (G-156 closure date). Projects whose first layer-gate close predates that date may have retrospective sections with the older advisory framing; do not retroactively fail those gates. The criterion applies to all *new* layer-gate closes in active projects regardless of when the project started.
 
@@ -216,7 +216,7 @@ Every `Deferred` finding in a project review log must name three things:
 
 **Counter-rule:** **Security**, **Red Team**, and **VDD-IAR Alignment** findings do not auto-Backlog. Process and security findings carry forward as Open until explicitly resolved; their visibility is the closure mechanism. The CLOSURE-PROTOCOL.md schema already forbids `Deferred` for these domains; auto-Backlog is the parallel rule for `Open`.
 
-**Why deferral-trigger discipline is a hard standard:** ITC PROCESS.md L6 named this gap explicitly ("I need a mechanism to make sure deferred items are properly worked. Maybe like some sort of task manager lol lmao") and L7 ("Clearer task ownership will resolve this in future projects"). The deferral-as-procrastination pattern recurred across multiple layers before the §3 mechanism caught it. Per the "earned by recurrence" doctrine, two-layer recurrence in one project plus operator-named pain is sufficient to promote the discipline from project-scope to suite-default. Reference: G-130's row in [`GAP-ANALYSIS-LOG.md`](GAP-ANALYSIS-LOG.md). Coordinate with G-133 (Source field — director-raised findings are often what re-opens an auto-Backlogged finding the cold adversary missed).
+**Why deferral-trigger discipline is a hard standard:** ITC PROCESS.md L6 named this gap explicitly ("I need a mechanism to make sure deferred items are properly worked. Maybe like some sort of task manager lol lmao") and L7 ("Clearer task ownership will resolve this in future projects"). The deferral-as-procrastination pattern recurred across multiple layers before the §3 mechanism caught it. Per the "earned by recurrence" doctrine, two-layer recurrence in one project plus operator-named pain is sufficient to promote the discipline from project-scope to suite-default. Reference: G-130's row in [`FINDINGS-INDEX.md`](FINDINGS-INDEX.md). Coordinate with G-133 (Source field — director-raised findings are often what re-opens an auto-Backlogged finding the cold adversary missed).
 
 ### File-level header (top of the per-domain index file)
 
@@ -353,7 +353,7 @@ Reviews without a Summary are incomplete. Reviews with cross-domain implications
 
 1. Name the failure class: what defect reaches users if this dimension is absent?
 2. Check whether an existing dimension in any domain already owns this failure class. If it does, flag the gap there rather than adding cross-domain overlap.
-3. Check the gap registry (`GAP-ANALYSIS-LOG.md`). If the gap is tracked, add the gap ID to the CHANGELOG entry for this change. If it is not tracked, add it and immediately mark it Addressed.
+3. Check the gap registry (`FINDINGS-INDEX.md`). If the gap is tracked, add the gap ID to the CHANGELOG entry for this change. If it is not tracked, add it and immediately mark it Addressed.
 4. Write the dimension using the standard form: failure class in bold, explanation, named failure modes or attacks.
 
 ## Before adding a domain
@@ -364,9 +364,9 @@ Reviews without a Summary are incomplete. Reviews with cross-domain implications
 4. Create the domain file following the governing standard above. Verify the finding classification schema is appropriate for the domain's nature.
 5. Add the domain to `README.md` in the appropriate table (Core or Extended), with Role, Job title, Prompt file, and Focus columns filled.
 6. Add language and interface supplement sections where applicable. See **Supplement coverage** below.
-7. Add a suite review session entry in `review-log/YYYY-MM-DD-suite-review.md` (creating the file if no entry exists for that date) documenting the addition, rationale, defect class addressed, and dimensions that were considered and rejected. Add a corresponding row to the **Suite Reviews** table in `SUITE-REVIEW-INDEX.md` linking to the entry.
+7. Add a suite review session entry in `review-log/YYYY-MM-DD-suite-review.md` (creating the file if no entry exists for that date) documenting the addition, rationale, defect class addressed, and dimensions that were considered and rejected. Add a corresponding row to the **Suite Reviews** table in `SUITE-DEVELOPMENT-REVIEW.md` linking to the entry.
 8. Add a `CHANGELOG.md` entry.
-9. Add a `GAP-ANALYSIS-LOG.md` entry if the domain addresses an existing open gap.
+9. Add a `FINDINGS-INDEX.md` entry if the domain addresses an existing open gap.
 
 ## Before modifying a domain
 
@@ -374,31 +374,31 @@ Reviews without a Summary are incomplete. Reviews with cross-domain implications
 2. Make the change.
 3. Update the gap registry: if the gap was tracked, mark it Addressed with today's date. If it was not tracked, add it and immediately mark it Addressed.
 4. Log the change in `CHANGELOG.md`.
-5. If the change is structural (new section, new classification schema, changed prompt format): add a suite review session entry in `review-log/YYYY-MM-DD-suite-review.md` and a corresponding row in the **Suite Reviews** table in `SUITE-REVIEW-INDEX.md`.
+5. If the change is structural (new section, new classification schema, changed prompt format): add a suite review session entry in `review-log/YYYY-MM-DD-suite-review.md` and a corresponding row in the **Suite Reviews** table in `SUITE-DEVELOPMENT-REVIEW.md`.
 
 ## Running gap analysis
 
-Read `GAP-ANALYSIS-LOG.md` for the current open gaps, then read all domain files and evaluate whether each open gap has been addressed by recent changes. Follow the instructions at the top of that file.
+Read `FINDINGS-INDEX.md` for the current open gaps, then read all domain files and evaluate whether each open gap has been addressed by recent changes. Follow the instructions at the top of that file.
 
 **Gap registry discipline:** When a gap is resolved by a suite change, update the original row's status in place — change `Open` to `Addressed` and update the `Last Reviewed` date. Do not append a new row for an existing gap. New gaps get new rows; status changes update existing rows.
 
 A gap analysis session is one mode of suite review (registry-walk lens). Like any suite review session, it ends with:
-- All recently addressed gaps marked Addressed in `GAP-ANALYSIS-LOG.md` with the date
+- All recently addressed gaps marked Addressed in `FINDINGS-INDEX.md` with the date
 - Any new gaps discovered added to the registry with a new G-ID
 - A `## Review N — date` entry in `review-log/YYYY-MM-DD-suite-review.md` (creating the file if no entry exists for that date) summarizing scope, findings, decisions, and suite changes made
-- A corresponding row added to the **Suite Reviews** table in `SUITE-REVIEW-INDEX.md` linking to the new entry
+- A corresponding row added to the **Suite Reviews** table in `SUITE-DEVELOPMENT-REVIEW.md` linking to the new entry
 
-`GAP-ANALYSIS-LOG.md` contains only the registry table. Run narratives belong in `review-log/`. `SUITE-REVIEW-INDEX.md` is the index of those narratives, not their home.
+`FINDINGS-INDEX.md` contains only the registry table. Run narratives belong in `review-log/`. `SUITE-DEVELOPMENT-REVIEW.md` is the index of those narratives, not their home.
 
 ## Suite review and review-log discipline
 
 The IAR suite has three parallel review-record artifacts. Their roles do not overlap:
 
-- **`SUITE-REVIEW-INDEX.md`** is an index. It contains one table — **Suite Reviews** — each row pointing to a session entry in `review-log/`.
+- **`SUITE-DEVELOPMENT-REVIEW.md`** is an index. It contains one table — **Suite Reviews** — each row pointing to a session entry in `review-log/`.
 - **`review-log/YYYY-MM-DD-suite-review.md`** holds the actual session entries. One file per date; multiple sessions on the same date append to the same file (newest at the top).
-- **`GAP-ANALYSIS-LOG.md`** is the gap registry. Status only — no narrative. One row per gap; status changes update the row in place.
+- **`FINDINGS-INDEX.md`** is the gap registry. Status only — no narrative. One row per gap; status changes update the row in place.
 
-Every non-trivial suite change requires a session entry in `review-log/` and a corresponding index row in `SUITE-REVIEW-INDEX.md`. Non-trivial means: any addition or removal of a domain or primer, any new evaluation dimension, any structural change to the prompt format, or any change to sequencing or activation guidance.
+Every non-trivial suite change requires a session entry in `review-log/` and a corresponding index row in `SUITE-DEVELOPMENT-REVIEW.md`. Non-trivial means: any addition or removal of a domain or primer, any new evaluation dimension, any structural change to the prompt format, or any change to sequencing or activation guidance.
 
 Mechanical fixes (typos, filename renames, path updates) do not require a session entry but should be logged in `CHANGELOG.md`.
 
@@ -424,7 +424,7 @@ A `## Review N — date` entry in `review-log/YYYY-MM-DD-suite-review.md` must c
    - `### Resolved` — fix applied and verified during the session. Use both for newly-found defects fixed in-session and for previously-tracked gaps closed in-session (cite the G-ID).
    - `### Dismissed` — concern reviewed and rejected; rationale required. Use both for newly-raised defects rejected and for previously-tracked gaps dismissed.
    - `### Hallucinated` — adversary-invented concern that does not apply; rationale required.
-   - `### New gap registered` — finding promoted to a tracked gap; G-ID stated; the registry row is added in `GAP-ANALYSIS-LOG.md`. This heading is **suite-review-specific** — it is not part of the project-level classification universe and is not valid in project-level review logs.
+   - `### New gap registered` — finding promoted to a tracked gap; G-ID stated; the registry row is added in `FINDINGS-INDEX.md`. This heading is **suite-review-specific** — it is not part of the project-level classification universe and is not valid in project-level review logs.
 5. **Finding body** — same shape as project-level review logs: `**Finding N — Title**` for new findings, `**G-XX — Title**` for gap-registry walk entries; prose body; then `**Resolution:**` (Resolved) or `**Classification:**` (everything else). Cross-references to other suite artifacts use Markdown links.
 6. **Closing** — no separate Summary required (the classification headings carry the tally). An optional `### Coordination` section may follow the classification sections when findings cluster around a single coordinated decision; use it to name the cluster and the bundled action (e.g., a single restructure pass at a future trigger). Cross-references inside the Coordination section use Markdown links to other suite artifacts. Follow-up findings introduced after the session has been logged must be marked `**Finding M — Title (added YYYY-MM-DD)**` and placed at the end of the original entry, not in a new entry. Do not silently amend prior findings.
 
@@ -436,7 +436,7 @@ A cold-session suite review is permitted and produces stronger adversarial press
 
 ### Common discipline
 
-The session entry is the narrative record. The `GAP-ANALYSIS-LOG.md` row is the status indicator for gaps. The `SUITE-REVIEW-INDEX.md` row is the index pointer for the session. Never put narrative in the registry; never omit the registry update; never omit the index row. An unindexed session is invisible to future reviewers.
+The session entry is the narrative record. The `FINDINGS-INDEX.md` row is the status indicator for gaps. The `SUITE-DEVELOPMENT-REVIEW.md` row is the index pointer for the session. Never put narrative in the registry; never omit the registry update; never omit the index row. An unindexed session is invisible to future reviewers.
 
 ## Supplement coverage
 

@@ -23,7 +23,7 @@ repos:
         # repo. Scoped to IAR review-log markdown only — the source-code
         # no-home-dir-paths hook above covers everything else. Allows public
         # URL contexts (github.com/, gitlab.com/, bitbucket.org/, noreply.*).
-        # Registered as G-98 in vsdd-suite/suite-development/GAP-ANALYSIS-LOG.md.
+        # Registered as G-98 in vsdd-suite/suite-development/FINDINGS-INDEX.md.
         entry: vsdd-suite/hooks/check-review-log-anonymization.sh
         pass_filenames: true
         # Covers: suite-internal markdown (vsdd-suite/**), future-project IAR
@@ -40,21 +40,21 @@ repos:
         # --<flag>` patterns, runs `crosslink <subcmd> --help` for each, and
         # fails the commit if any cited flag is missing from the help output.
         # Skips gracefully when crosslink is not installed (CI-safe).
-        # Registered as G-139 in vsdd-suite/suite-development/GAP-ANALYSIS-LOG.md
+        # Registered as G-139 in vsdd-suite/suite-development/FINDINGS-INDEX.md
         # after two recurrences across four sessions of the same speculation-
         # then-late-correction failure mode.
         entry: vsdd-suite/hooks/check-crosslink-references.sh
         pass_filenames: true
         # Scope to user-facing docs only. Historical-narrative files
-        # (CHANGELOG, COMPATIBILITY, GAP-ANALYSIS-LOG, SUITE-REVIEW-INDEX,
-        # review-log/, FINDINGS-INDEX) intentionally preserve citations of
-        # past wrong commands as audit trail; the hook self-skips them as a
-        # defense-in-depth check, but the `exclude:` here filters at the
-        # staged-files level for efficiency. Covers both the suite source
-        # (vsdd-suite/**) and per-project per-domain index files
-        # (<project>/vsdd-suite/*.md — single-level only, not review-log).
+        # (CHANGELOG, COMPATIBILITY, FINDINGS-INDEX, SUITE-DEVELOPMENT-REVIEW,
+        # review-log/) intentionally preserve citations of past wrong commands
+        # as audit trail; the hook self-skips them as a defense-in-depth
+        # check, but the `exclude:` here filters at the staged-files level
+        # for efficiency. Covers both the suite source (vsdd-suite/**) and
+        # per-project per-domain index files (<project>/vsdd-suite/*.md —
+        # single-level only, not review-log).
         files: ^(vsdd-suite/.*\.(md|sh)|.*/vsdd-suite/[^/]+\.md)$
-        exclude: ^(vsdd-suite/(CHANGELOG|COMPATIBILITY)\.md|vsdd-suite/suite-development/(GAP-ANALYSIS-LOG|SUITE-REVIEW-INDEX)\.md|.*/review-log/.*\.md|.*/FINDINGS-INDEX\.md)$
+        exclude: ^(vsdd-suite/(CHANGELOG|COMPATIBILITY)\.md|vsdd-suite/suite-development/SUITE-DEVELOPMENT-REVIEW\.md|.*/review-log/.*\.md|.*/FINDINGS-INDEX\.md)$
 
       - id: check-changelog-currency
         name: check CHANGELOG.md updated when source changes (IAR suite G-129 hook)
@@ -66,7 +66,7 @@ repos:
         # Projects without the marker are not enforced — the hook is
         # methodology-neutral about CHANGELOG discipline absent explicit
         # opt-in. Registered as G-129 in vsdd-suite/suite-development/
-        # GAP-ANALYSIS-LOG.md after six consecutive ITC layer closes where
+        # FINDINGS-INDEX.md after six consecutive ITC layer closes where
         # TW caught CHANGELOG staleness post-hoc.
         entry: vsdd-suite/hooks/check-changelog-currency.sh
         pass_filenames: true
