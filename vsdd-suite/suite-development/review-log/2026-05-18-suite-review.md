@@ -1,5 +1,44 @@
 # Suite Review — 2026-05-18
 
+## Review 57 — 2026-05-19 03:30Z
+
+**Scope:** Address Cluster A of the Review 45 backlog — five defect-class generalization gaps (G-124 per-property text-field defense, G-125 error-message escape, G-126 create/load symmetry, G-127 empty-state regression, G-128 mutation-resistant assertions). All five Resolution sketches landed across `primers/1b-decomposition.md` (G-124 + G-127 as new Red Gate plan bullets), `domains/role/SECURITY-REVIEW.md` (G-125 as new Dim 9), `domains/role/DATA-ENGINEER-REVIEW.md` (G-126 as new Dim 13), `domains/role/QUALITY-ENGINEER-REVIEW.md` (G-128 as extension of existing Dim 2 § Mutation testing), and `supplements/rust.md` (cargo-mutants reference for G-128 + display_safe pattern for G-125).
+
+**Lens:** Closure-by-direct-edit, defect-class-generalization batch. Each gap's resolution sketch in the Review 45 entry was well-scoped enough to apply directly; the cluster shares a shape (each generalizes a defect class that recurred across ITC layers into a dim/checklist item that catches the class at Red Gate time rather than at IAR Round N).
+
+**Session note:** In-session. Sycophancy compensation: the cluster's "defense scoped by-field rather than by-property" framing (Security R7's phrasing from ITC L4) is the unifying principle — every dim added in this cluster pushes the discipline up one level of abstraction so the next free-form text field, the next filter dimension, or the next persisted-state validator gets the defense in advance rather than at the IAR round that surfaces the missing case. The temptation: claim this as "complete generalization" — every recurring defect class is now generalized. Rejected: G-129 (documentation-currency hook) and G-152 (input/output strictness, already Addressed Review 54) are sibling generalizations of the same shape but separate gaps; future projects may still surface a defect class this cluster did not anticipate. The right framing: this cluster closes the recurring defect classes Review 45 specifically named; future recurrence may earn additional generalizations.
+
+---
+
+### Resolved
+
+**G-124 — Per-property free-form text field defense (Red Gate plan checklist).** New bullet added to `primers/1b-decomposition.md` § Manual testing checklist Required-items-per-layer enumerating the four required Red Gate items per new free-form text field (create-time parse rejection of Cc/Cf; load-time symmetric `*_is_valid` per G-126; error-message escape per G-125; DESIGN.md control-character policy paragraph). Names the recurrence pattern (ITC Title L1 → Labels L4 → Description L6) and frames the bullet as catching the *fourth* instance in advance.
+
+**G-125 — Error-message interpolation escape (Security Dim 9).** New dim added to `domains/role/SECURITY-REVIEW.md`. The dim names the failure mode (validators rejecting input at parse time that echo rejected bytes raw to stderr have reproduced the attack), the detector pattern (grep every error site — `panic!`, `eprintln!`, `format!` into `Err`, `?`-propagation paths whose `Error::Display` interpolates input — and confirm a `display_safe` sanitizer wraps every user-derived value), and the structural-whitespace preservation rule. Canonical worked example: ITC's `sanitize_quoted_values` narrow-scope clap-error sanitizer (Layer 7 R2). Cross-referenced from `supplements/rust.md` § Security as a new `display_safe` pattern bullet with detector grep command and integration-test guidance.
+
+**G-126 — Asymmetric trust boundary (DE Dim 13).** New dim added to `domains/role/DATA-ENGINEER-REVIEW.md`. The dim generalizes beyond text-field defense (G-124 is one specific instance) to numeric ranges, enum values, structural invariants, and timestamp ordering. Detector pattern: enumerate every field on every persisted type; locate create-side and load-side validators; confirm both apply the same constraint set. Asymmetries route to SO for spec clarification then to SE for fix. Canonical worked examples: ITC L4 DE R7 F1 (labels load-time gap) and L6 DE R9 F1 (description load-time gap); Security R7's framing of "defense scoped by-field rather than by-property" provides the unifying lens.
+
+**G-127 — Empty-state coverage on every new filter / sort / selection dimension (Red Gate plan checklist).** New bullet added to `primers/1b-decomposition.md` § Manual testing checklist Required-items-per-layer specifying the two empty-state assertions per filter dim (filtered-to-zero renders no-matches-for-this-filter message; empty-state branches correctly between no-data-at-all and no-matches-for-this-filter). Names the symmetric-absence rule (a test that exists for one filter but not its peer at the same layer is itself a Red Gate finding). ITC L2/L3 empty-state regression is the canonical worked example.
+
+**G-128 — Mutation-resistant assertions (QE Dim 2 extension + cargo-mutants in Rust supplement).** Extended existing QE Dim 2 § Mutation testing with a "Concrete mutation classes that recur (G-128, derived from ITC)" sub-paragraph naming five recurring mutation classes — off-by-one in truncation (both directions); sort-direction reversal; inter-conjunct `&&`/`||` flips; loop-exit polarity flip; comparison-operator polarity — plus the assertion-style failure mode that compounds them (substring `contains` hides off-by-one; prefer exact-match `assert_eq!` on invariant outputs) and the cargo-mutants measurement requirement (a single surviving mutation is a coverage gap). Added "Mutation testing with `cargo-mutants`" bullet to `supplements/rust.md` § Quality Engineering with install command (`cargo install cargo-mutants`) and invocation patterns.
+
+**Resolution:** All five gaps status flipped Open → Addressed. Backlog after Review 57: 11 Open (down from 16 — G-124, G-125, G-126, G-127, G-128 Addressed).
+
+---
+
+### Coordination
+
+The Cluster A closures coordinate as a single generalization pass:
+
+- **G-124** (Red Gate checklist for text-field defense) + **G-125** (Security error-message escape dim) + **G-126** (DE create/load symmetry dim) form an intra-cluster trio: G-124 names the four required Red Gate items per new free-form text field; each item points at a more specific dim (G-126 owns the load-side symmetric check; G-125 owns the error-message escape). A reader following G-124's checklist lands on G-125 and G-126 dims for the specifics.
+- **G-152** (DE Dim 12 input/output strictness, Addressed Review 54) sits parallel to G-126 (DE Dim 13 create/load symmetry) — both target validator-symmetry concerns; G-152 is input-vs-output, G-126 is input-vs-load. The two dims compose: a free-form text field needs symmetric validation across all three boundaries (input, output, load).
+- **G-127** (empty-state per filter dim) is structurally similar to G-124 — both are "Red Gate plan must include X per Y the layer introduces" patterns. The Required-items-per-layer section now has 3 such per-dimension Red Gate items (G-124 text fields; G-127 filter dims; help-output verification per subcommand surface change).
+- **G-128** (mutation-resistant assertions) is the test-quality counterpart to the defect-class dims — even with the right dims in the right reviews, tests that don't catch boundary mutations let defects ship. The cargo-mutants requirement makes the falsifiability check measurable.
+
+The Cluster A pass demonstrates the "earned by recurrence" doctrine working at scale: each gap had a Review 45 recurrence trigger (each defect class surfaced in 3+ ITC layers); each closure generalizes the defense one level up so the next project's first layer gets it for free rather than discovering it at Round N of the third layer.
+
+---
+
 ## Review 56 — 2026-05-19 02:00Z
 
 **Scope:** Address G-148 (stale "Review entries are logged in..." line across 16 domain prompt files). Mechanical sweep across all 14 role + 2 meta domain prompts in `domains/role/` and `domains/meta/`. The fix is a deterministic string replacement: old single-line "Review entries are logged in `vsdd-suite/<DOMAIN>-REVIEW.md` inside the project being reviewed." → multi-clause line that points at the per-session file (with slug derived from filename) AND names the index file's aggregation role AND cross-references the suite-level governing standard.

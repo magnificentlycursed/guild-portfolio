@@ -4,6 +4,28 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-19 (Review 57: Cluster A defect-class generalizations — G-124, G-125, G-126, G-127, G-128 Addressed)
+
+### Added
+- **`primers/1b-decomposition.md`** § Manual testing checklist § Required-items-per-layer — two new bullets:
+  - "Per-property free-form text field defense (G-124)" — Red Gate plan must include 4 required items per new free-form text field (create-time Cc/Cf rejection; load-time symmetric `*_is_valid`; error-message escape; DESIGN.md control-character policy).
+  - "Empty-state coverage on every new filter / sort / selection dimension (G-127)" — Red Gate plan must include two empty-state assertions per filter dim; symmetric absence between filter dims is itself a Red Gate finding.
+- **`domains/role/SECURITY-REVIEW.md`** Dim 9 — "Error-message interpolation escape" (G-125). Detector pattern for every error-emit site; `display_safe` sanitizer requirement preserving structurally-significant whitespace.
+- **`domains/role/DATA-ENGINEER-REVIEW.md`** Dim 13 — "Asymmetric trust boundary — create-time vs load-time validation symmetry" (G-126). Generalizes beyond text fields to numeric ranges, enum values, structural invariants, timestamp ordering.
+- **`supplements/rust.md`** § Quality Engineering — "Mutation testing with `cargo-mutants`" bullet with install command and invocation patterns (cross-references G-128 / QE Dim 2 extension).
+- **`supplements/rust.md`** § Security — "Error-message escape via `display_safe`" bullet with detector grep command and integration-test guidance (cross-references G-125 / Security Dim 9).
+
+### Changed
+- **`domains/role/QUALITY-ENGINEER-REVIEW.md`** Dim 2 § Mutation testing — extended with "Concrete mutation classes that recur (G-128, derived from ITC)" sub-paragraph naming five recurring mutation classes (off-by-one in truncation both directions; sort-direction reversal; `&&`/`||` flips; loop-exit polarity; comparison-operator polarity) + substring-`contains`-hides-mutations anti-pattern + `cargo-mutants` measurement requirement.
+
+### Addressed
+- **G-124, G-125, G-126, G-127, G-128** — Cluster A defect-class generalizations from Review 45's ITC pattern-mining (Open since 2026-05-17). Each closure pushes a recurring defect class up to a Red Gate or domain-prompt level so the next free-form text field, next filter dimension, or next persisted-state validator gets the defense in advance rather than at the IAR round that surfaces the missing case.
+
+### Note
+The Cluster A closures form an intra-cluster trio (G-124 + G-125 + G-126 share a unifying "defense scoped by-field rather than by-property" lens from ITC Security R7) plus a structurally-parallel filter-dim Red Gate item (G-127) and a test-quality counterpart (G-128). G-152 (Addressed Review 54) sits parallel to G-126 — both are validator-symmetry concerns at different boundaries (input vs. output for G-152; input vs. load for G-126); the two compose. Backlog after Review 57: 11 Open (down from 16).
+
+---
+
 ## Unreleased — 2026-05-19 (Review 56: G-148 Addressed — 16-file domain-prompt mechanical sweep)
 
 ### Changed
