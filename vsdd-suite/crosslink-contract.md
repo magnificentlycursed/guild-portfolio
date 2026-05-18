@@ -2,7 +2,7 @@
 
 The VSDD suite teaches projects to apply the Solution Architect External Interface Contracts dimensions (Dims 13–22 in [`domains/role/SOLUTION-ARCHITECT-REVIEW.md`](domains/role/SOLUTION-ARCHITECT-REVIEW.md)). This file is the suite's own application of those dimensions to its dependency on the [crosslink](https://github.com/forecast-bio/crosslink) CLI.
 
-**Reason this file exists:** registered as G-118 in [`suite-development/GAP-ANALYSIS-LOG.md`](suite-development/GAP-ANALYSIS-LOG.md) by Review 41 (Solution Architect lens, dogfooding gap). The worked example in [`README.md`](README.md) § Worked example invokes 8+ crosslink commands with specific flags; this file makes the dependency surface explicit.
+**Reason this file exists:** registered as G-118 in [`suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) by Review 41 (Solution Architect lens, dogfooding gap). The worked example in [`README.md`](README.md) § Worked example invokes 8+ crosslink commands with specific flags; this file makes the dependency surface explicit.
 
 ---
 
@@ -98,7 +98,7 @@ The unexpected-error column is the failure-mode catalog for Phase 3 reviewers �
 
 ## Contract testing
 
-There is currently no automated contract test that runs the worked example end-to-end against a pinned crosslink version. This is tracked as **G-112** in [`suite-development/GAP-ANALYSIS-LOG.md`](suite-development/GAP-ANALYSIS-LOG.md) — a reference implementation at e.g. `bookmark-cli/` that exercises the full worked example serves as the canary for both contract-drift detection (this file) and documentation-accuracy regression (G-106).
+There is currently no automated contract test that runs the worked example end-to-end against a pinned crosslink version. This is tracked as **G-112** in [`suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) — a reference implementation at e.g. `bookmark-cli/` that exercises the full worked example serves as the canary for both contract-drift detection (this file) and documentation-accuracy regression (G-106).
 
 Until the reference implementation lands, contract drift detection is manual: a contributor must re-run the worked example end-to-end after any reported change to crosslink's CLI surface.
 
@@ -106,5 +106,5 @@ Until the reference implementation lands, contract drift detection is manual: a 
 
 - [`README.md`](README.md) — the worked example that invokes the commands above.
 - [`domains/role/SOLUTION-ARCHITECT-REVIEW.md`](domains/role/SOLUTION-ARCHITECT-REVIEW.md) — SA External Interface Contracts dimensions (Dims 13–22) the suite teaches.
-- [`suite-development/GAP-ANALYSIS-LOG.md`](suite-development/GAP-ANALYSIS-LOG.md) — G-111 (version-pinning), G-112 (reference implementation), G-118 (this file's reason-for-being), G-120 (suite versioning that anchors the "Tested against" line).
+- [`suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) — G-111 (version-pinning), G-112 (reference implementation), G-118 (this file's reason-for-being), G-120 (suite versioning that anchors the "Tested against" line).
 - [`domains/role/PLATFORM-ENGINEER-REVIEW.md`](domains/role/PLATFORM-ENGINEER-REVIEW.md) — PE coordinates with SA on CLI dependency surfaces.

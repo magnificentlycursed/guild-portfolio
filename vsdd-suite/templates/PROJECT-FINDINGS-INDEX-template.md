@@ -2,7 +2,7 @@
 
 Cross-cutting registry of every classified finding across every domain and layer. The narrative for each finding lives in the per-session file linked from the row; this file is the index only.
 
-Structured like [`vsdd-suite/suite-development/GAP-ANALYSIS-LOG.md`](../../vsdd-suite/suite-development/GAP-ANALYSIS-LOG.md) — same column shape, same close-don't-delete discipline. New findings get new rows; status changes update existing rows. Do not delete rows.
+Structured like [`vsdd-suite/suite-development/FINDINGS-INDEX.md`](../../vsdd-suite/suite-development/FINDINGS-INDEX.md) — same column shape, same close-don't-delete discipline. New findings get new rows; status changes update existing rows. Do not delete rows.
 
 **When to use this file:** the manual path of G-138 (project-level finding index). Projects using crosslink for finding tracking populate `crosslink issue` instead; the markdown rows and crosslink labels carry the same information shape so a project can migrate between them with `crosslink import` / `crosslink export`.
 

@@ -30,7 +30,7 @@ For each finding from the Phase 3 round, identify the trace and route accordingl
 | Layer's acceptance criteria don't cover the failed behavior | Decomposition gap | **Phase 1b** | Re-decompose the layer; revise acceptance criteria; re-open the layer with a new Red Gate |
 | Implementation diverges from a correctly-specified, correctly-tested behavior | Implementation defect | **Phase 2b** | Standard bug-fix flow |
 | Architectural concern crosses layers in a way DESIGN.md did not anticipate | Spec architecture gap | **Phase 1a** | Spec the cross-cutting concern; may force re-decomposition |
-| Suite gap (the adversary couldn't have caught this with current dimensions) | Suite gap | **Suite-development** (not a project phase) | File in `suite-development/GAP-ANALYSIS-LOG.md`; do not route to a project phase |
+| Suite gap (the adversary couldn't have caught this with current dimensions) | Suite gap | **Suite-development** (not a project phase) | File in `suite-development/FINDINGS-INDEX.md`; do not route to a project phase |
 | Process gap (Red Gate was skipped, layer merged without IAR, etc.) | VDD-IAR Alignment finding | **Phase 4 itself** | Document the deviation; the fix is the next round's discipline, not a code change |
 
 **Multi-phase findings:** A finding can route to more than one phase when the defect chain has multiple breaks. Example: an edge case that is both undefined in the spec AND uncaught by tests AND mishandled by code routes to Phase 1a (spec), then Phase 2a (test), then Phase 2b (implementation), in that order. Each phase's fix unblocks the next. Recording the route as `1a → 2a → 2b` is the correct shape; recording it as `2b only` is the failure mode.
@@ -43,7 +43,7 @@ For each finding marked Resolved-pending, Deferred, or Accepted-with-remediation
 
 1. **What artifact, if it had been correct, would have prevented this finding?** That artifact's owning phase is the route. If the answer is "the implementation" — verify, because that's the easy answer and the failure mode. Ask the same question one level up: "what artifact would have caused the implementation to be correct?" If the answer is "a more complete spec" or "a test that asserted this," route up.
 2. **If we fix this only in implementation, will the next layer / next project hit it again?** If yes, the route is not Phase 2b. The next-layer-inheriting heuristic catches mis-routed spec findings reliably.
-3. **Is there a corresponding suite gap?** If the adversary could not have caught this with the current domain dimensions, the finding has a Phase 4 routing decision (which earlier project-phase to patch) AND a separate suite-development action (file in `suite-development/GAP-ANALYSIS-LOG.md`). These are independent — do both.
+3. **Is there a corresponding suite gap?** If the adversary could not have caught this with the current domain dimensions, the finding has a Phase 4 routing decision (which earlier project-phase to patch) AND a separate suite-development action (file in `suite-development/FINDINGS-INDEX.md`). These are independent — do both.
 4. **What is the gate for the routed work?** Routing to Phase 1a means a spec revision; the gate is the self-adversary check from `primers/1a-spec-crystallization.md`. Routing to Phase 1b means re-decomposition; the gate is the layer-structure rules from `primers/1b-decomposition.md`. Routing to Phase 2a means new failing tests committed before code; the gate is the Red Gate commit. State the gate when recording the route.
 
 ---
@@ -54,7 +54,7 @@ For each routed finding, record:
 
 - **Finding ID** (from the Phase 3 review log)
 - **Route** — `1a`, `1b`, `2a`, `2b`, `Suite`, or multi-phase chain like `1a → 2a → 2b`
-- **Owning artifact** — `DESIGN.md`, `TODO.md` / crosslink layer issue, `tests/<file>`, `src/<file>`, `suite-development/GAP-ANALYSIS-LOG.md`
+- **Owning artifact** — `DESIGN.md`, `TODO.md` / crosslink layer issue, `tests/<file>`, `src/<file>`, `suite-development/FINDINGS-INDEX.md`
 - **Gate** — what must be true before the routed work is considered done at that phase
 - **Sequencing** — does the route block the next layer? Block merge? Defer to a named future layer?
 
@@ -100,7 +100,7 @@ Phase 4 is complete and the next round can begin when:
 1. Every real finding from Phase 3 has a recorded route
 2. Every route names the gate at each phase
 3. Every blocking relationship is recorded (in crosslink with `issue block`, or in the review log narrative)
-4. Suite findings are filed in `suite-development/GAP-ANALYSIS-LOG.md`, not collapsed into project-phase routes
+4. Suite findings are filed in `suite-development/FINDINGS-INDEX.md`, not collapsed into project-phase routes
 5. The proportion of findings routed to Phase 2b matches reality — if every finding routed to 2b, re-run the routing pass with the spec-defect bias check
 
 ---

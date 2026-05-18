@@ -287,7 +287,7 @@ Domains are organized into three types. All domain prompt files live under `doma
 
 Each domain file contains the current prompt and standard dimensions. Review entries are logged separately under `vsdd-suite/` inside the project being reviewed.
 
-The suite's own adversarial review history is indexed in [`suite-development/SUITE-REVIEW-INDEX.md`](suite-development/SUITE-REVIEW-INDEX.md), with individual session entries in `suite-development/review-log/YYYY-MM-DD-suite-review.md`. Suite reviews are a single artifact type — sessions vary in mode (defect-search lens vs. registry-walk lens), and the mode lives in each entry's Lens field. See [`suite-development/suite-development.md`](suite-development/suite-development.md) for the entry format.
+The suite's own adversarial review history is indexed in [`suite-development/SUITE-DEVELOPMENT-REVIEW.md`](suite-development/SUITE-DEVELOPMENT-REVIEW.md), with individual session entries in `suite-development/review-log/YYYY-MM-DD-suite-review.md`. Suite reviews are a single artifact type — sessions vary in mode (defect-search lens vs. registry-walk lens), and the mode lives in each entry's Lens field. See [`suite-development/suite-development.md`](suite-development/suite-development.md) for the entry format.
 
 ## Session primers
 
@@ -704,7 +704,7 @@ Any domain review may propose adding a new review domain to IAR. Log it as a fin
 
 Candidate domains to consider as a project grows: SEO, Formal Verification (for VSDD Phase 5+).
 
-[`suite-development/GAP-ANALYSIS-LOG.md`](suite-development/GAP-ANALYSIS-LOG.md) is the gap registry — a status-only table of identified suite gaps. Narratives for sessions that registered, addressed, or dismissed gaps live in `suite-development/review-log/` and are indexed in `suite-development/SUITE-REVIEW-INDEX.md`. Re-run a registry-walk suite review when the suite changes, a new project type is being evaluated, or a post-mortem reveals a class of defect the suite did not catch.
+[`suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) is the gap registry — a status-only table of identified suite gaps. Narratives for sessions that registered, addressed, or dismissed gaps live in `suite-development/review-log/` and are indexed in `suite-development/SUITE-DEVELOPMENT-REVIEW.md`. Re-run a registry-walk suite review when the suite changes, a new project type is being evaluated, or a post-mortem reveals a class of defect the suite did not catch.
 
 ### Portfolio-arc review
 
@@ -718,7 +718,7 @@ Per-project IAR runs evaluate individual projects using the [`domains/meta/PORTF
 
 ## Review logs
 
-Review entries are stored outside the prompt files to keep the prompts stable and reusable. The shape is **per-domain index + per-session entries** (parallel to the suite's own `SUITE-REVIEW-INDEX.md` + `review-log/` pattern). Logs live at:
+Review entries are stored outside the prompt files to keep the prompts stable and reusable. The shape is **per-domain index + per-session entries** (parallel to the suite's own `SUITE-DEVELOPMENT-REVIEW.md` + `review-log/` pattern). Logs live at:
 
 ```
 {project}/
@@ -751,7 +751,7 @@ Review entries are stored outside the prompt files to keep the prompts stable an
 
 **Forward-only constraint:** This index-plus-session structure applies to projects starting after 2026-05-17 (G-89 closure date). Projects whose first IAR run predates that date (e.g., `bookmark-manager/iterative-adversarial-refinement/` and `issue-tracker-cli/iterative-adversarial-refinement/`) retain their existing single-file-per-domain structure (one accumulating file per domain holding all rounds) and must not be retroactively split.
 
-The `supplements/` folder, `suite-development/GAP-ANALYSIS-LOG.md`, `suite-development/SUITE-REVIEW-INDEX.md`, `suite-development/review-log/`, and `primers/` live in the suite template, not in individual projects.
+The `supplements/` folder, `suite-development/FINDINGS-INDEX.md`, `suite-development/SUITE-DEVELOPMENT-REVIEW.md`, `suite-development/review-log/`, and `primers/` live in the suite template, not in individual projects.
 
 Only include log files for the domains active on the project. Each per-domain index file conforms to the **project-level review log governing standard** in [`suite-development/suite-development.md`](suite-development/suite-development.md) § Structure / File-level header / Per-session file header: index file holds file-level header (reviewer role, activation if extended, language supplement applied, sycophancy check) + Reviews table; per-session files hold round entries with the standard per-review preamble (`Scope`, `Session note`, optional domain-specific fields), classification-first finding sections drawn from each domain's allowed schema (e.g., `### Resolved`, `### Dismissed`, `### Hallucinated`, plus `### Accepted Risk` for Security/Red Team/Privacy, `### Backlogged` for Solution Owner, etc.), each finding titled `**Finding N — Title (Dim X)**`, and a closing `### Summary` with a `**Coordination:**` line. Portfolio Assessment is the documented exception (dim-first organization).
 

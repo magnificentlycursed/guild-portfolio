@@ -53,7 +53,7 @@ The suite's `Phase 1b` is **decomposition** — a different activity than the wh
 
 This is a real divergence, not a labelling fix. The G-90 resolution (introduce `1a`) made the suite's labels symmetric; it did not align the suite's sub-phase semantics with the whitepaper. Registered as G-96 (Open) for future evaluation. Two resolution paths exist: (a) harmonize the suite's sub-phase taxonomy with the whitepaper (rename or reposition decomposition; introduce a Refactor primer); or (b) document the deliberate divergence in `README.md` `## VSDD pipeline context` with rationale (e.g., decomposition is a distinct activity in this suite's experience, and Refactor is implicitly part of Phase 2b).
 
-**Classification:** Documented as G-96 in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md). Forward-only — existing project review logs that reference Phase 1a/1b under the suite's convention remain valid records of how the suite was applied at the time. Forward harmonization, if chosen, would apply to projects starting after the decision.
+**Classification:** Documented as G-96 in [GAP-ANALYSIS-LOG.md](../FINDINGS-INDEX.md). Forward-only — existing project review logs that reference Phase 1a/1b under the suite's convention remain valid records of how the suite was applied at the time. Forward harmonization, if chosen, would apply to projects starting after the decision.
 
 ---
 

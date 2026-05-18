@@ -467,7 +467,7 @@ Resolution lands in four files per the Review 51 G-150 row:
 
 4. **`primers/1b-decomposition.md`** — new `## Right-size the IAR (intent-keyed active-domain set)` section between the TODO.md format section and the completion criteria. Names the workflow: read DESIGN.md § Project intent before authoring each layer's `**IAR:**` line. Includes two worked examples: a learning-exercise 4-layer project with rotating optional cores (each layer rotates a different optional core in — SA on layer 1, Security on layer 2, etc.) and a portfolio default (all 7 + Technical Writer). Two anti-patterns: declaring high intent without acknowledging cost (the dollspace failure mode), and silent intent demotion (a project that started at portfolio and is run as learning-exercise mid-project is dishonest about the bar — demotion is rejected per DOMAIN-INDEX.md discipline). New completion criterion 6 added to the Phase 1b completion criteria requiring the active-IAR domain set per layer be intent-calibrated; a layer with `**IAR:** all domains` for learning-exercise intent is a Phase 1b finding.
 
-**Resolution:** G-150 status flipped Open → Addressed in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md). The dollspace headline critique now has a mechanism: scaffold-default-7-cores stays (G-121 unchanged), but intent declaration tells future IAR runs whether to dial down (learning-exercise) or expand (capstone / production).
+**Resolution:** G-150 status flipped Open → Addressed in [GAP-ANALYSIS-LOG.md](../FINDINGS-INDEX.md). The dollspace headline critique now has a mechanism: scaffold-default-7-cores stays (G-121 unchanged), but intent declaration tells future IAR runs whether to dial down (learning-exercise) or expand (capstone / production).
 
 **G-156 — Developer-voice retrospective REQUIRED at gate close (baseline criterion tightened).**
 
@@ -477,7 +477,7 @@ Resolution lands in `suite-development/suite-development.md` — new `### Layer-
 
 The "block portfolio assessment but not technical merge" carve-out from the prior CLOSURE-PROTOCOL framing is removed in the baseline. The "why criterion 7 is a hard gate" paragraph cites the ITC Portfolio Assessment R1–R5 recurrence chain as the "earned by recurrence" trigger. Forward-only: applies to projects whose first layer-gate close is after 2026-05-18 (G-156 closure date); pre-existing project layer-gate closes are not retroactively failed.
 
-**Resolution:** G-156 status flipped Open → Addressed in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md). A future project (or `bookmark-cli`, the reference implementation) whose PROCESS.md retrospective has unfilled scaffolding blocks at a layer-gate-close attempt now has a structural gate failure that the project owner must address with developer-voice prose before merge.
+**Resolution:** G-156 status flipped Open → Addressed in [GAP-ANALYSIS-LOG.md](../FINDINGS-INDEX.md). A future project (or `bookmark-cli`, the reference implementation) whose PROCESS.md retrospective has unfilled scaffolding blocks at a layer-gate-close attempt now has a structural gate failure that the project owner must address with developer-voice prose before merge.
 
 ---
 
@@ -609,7 +609,7 @@ No new findings beyond the two registered gaps. The 15 Open gaps now in the back
 
 ### New gaps registered
 
-**G-144 — Two-mode operational design principle implicit but never stated.** The suite's structure has always supported both crosslink-mode and manual-mode operation (every primer carries both paths; the templates scaffold both shapes; the finding-index pattern has both routes), but no user-facing doc stated this as a design principle. The README's earlier framing ("crosslink amplifier" / "without crosslink fallback") read as crosslink-first with manual as a degraded escape hatch; an AI authoring agent operating against that framing will continue to drift toward stripping the manual mode. Addressed by adding a "Two modes of operation (design principle)" section to `vsdd-suite/README.md` (user-facing) and `vsdd-suite/suite-development/README.md` (contributor-facing, binding on future contributions). See G-144 row in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md) for the full Resolution.
+**G-144 — Two-mode operational design principle implicit but never stated.** The suite's structure has always supported both crosslink-mode and manual-mode operation (every primer carries both paths; the templates scaffold both shapes; the finding-index pattern has both routes), but no user-facing doc stated this as a design principle. The README's earlier framing ("crosslink amplifier" / "without crosslink fallback") read as crosslink-first with manual as a degraded escape hatch; an AI authoring agent operating against that framing will continue to drift toward stripping the manual mode. Addressed by adding a "Two modes of operation (design principle)" section to `vsdd-suite/README.md` (user-facing) and `vsdd-suite/suite-development/README.md` (contributor-facing, binding on future contributions). See G-144 row in [GAP-ANALYSIS-LOG.md](../FINDINGS-INDEX.md) for the full Resolution.
 
 **G-145 — Crosslink-mode additive operations under-used in Phase 4 routing.** The suite's `**Coordination:**` line on cross-domain findings was previously documented only as prose; in crosslink mode this is mechanizable as a structured issue-graph edge via `crosslink issue relate <a> <b>`, but no primer named the command. Addressed by adding `crosslink issue relate` to the `[crosslink]` block of Phase 4 in `vsdd-suite/README.md` and to the `[crosslink]` mode subsection in `vsdd-suite/primers/4-feedback-integration.md`. Manual mode retains the same discipline (coordination recorded inline in the routed finding's narrative) — G-145 is additive, not corrective.
 
@@ -629,7 +629,7 @@ No new findings beyond the two registered gaps. The 15 Open gaps now in the back
 - `vsdd-suite/templates/README.md` — replaced "Manual (suite-only path)" / "With the helper script" / "Crosslink-enabled projects: templates are independent" with a single Usage section that states templates are mode-independent, leads with the recommended scaffold script, then provides a manual scaffold block as the first-class equivalent; added the `cp ... FINDINGS-INDEX.md` step to the manual scaffold block with the "manual mode only" callout per G-138.
 - `vsdd-suite/suite-development/README.md` — added a "Two operational modes (design principle)" section between the structural-split paragraph and the "What lives here" section; the section names the principle, what it binds on future contributors (every crosslink-only mechanism MUST have a manual-mode equivalent), and what the trade-off is.
 
-**Resolution:** Statuses flipped Open → Addressed in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md) for G-144, G-145, G-147. G-146 remains Open as a forward enhancement.
+**Resolution:** Statuses flipped Open → Addressed in [GAP-ANALYSIS-LOG.md](../FINDINGS-INDEX.md) for G-144, G-145, G-147. G-146 remains Open as a forward enhancement.
 
 ---
 
@@ -675,7 +675,7 @@ The hook is a Python script (with `.sh` filename for parity with the existing `c
 
 **One narrative correction applied during the test:** `suite-development/suite-development.md:104` (the G-123 governing-standard section) quoted `crosslink init --with-suite` directly in prose. The hook caught it; rewrite preserves the information ("a fictitious `--with-suite` flag attributed to crosslink's `init` subcommand") without the grep-trigger substring. This is a feature, not a bug — the contributor primer is a reference doc that should not itself cite non-existent commands even in failure-mode discussion; the historical-narrative files are the appropriate home for verbatim citations.
 
-**Resolution:** Status flipped Open → Addressed in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md). G-123 is now mechanism-backed; recurrence of the speculation pattern would fail the commit hook rather than ship to users.
+**Resolution:** Status flipped Open → Addressed in [GAP-ANALYSIS-LOG.md](../FINDINGS-INDEX.md). G-123 is now mechanism-backed; recurrence of the speculation pattern would fail the commit hook rather than ship to users.
 
 ---
 
