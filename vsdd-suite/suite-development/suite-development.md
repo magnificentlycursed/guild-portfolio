@@ -204,6 +204,20 @@ Layer-gate close criteria govern when a layer's IAR round may close and the laye
 
 **Promotion to a project-level CLOSURE-PROTOCOL.md:** A project that codifies its own closure protocol (per ITC's precedent in `issue-tracker-cli/iterative-adversarial-refinement/CLOSURE-PROTOCOL.md`) MUST include criterion 7 above as a baseline; the project's protocol may add criteria (auto-Backlog rules, warm-finding-closure carve-outs, etc.) but may not weaken the baseline. The suite does not currently ship a CLOSURE-PROTOCOL template — projects either inherit the baseline criteria above implicitly (the suite's standing rule) or codify their own. A future template addition is the natural next step if a third project codifies one (per "earned by recurrence").
 
+### Deferral-trigger discipline (G-130)
+
+Every `Deferred` finding in a project review log must name three things:
+
+1. **The trigger** — a specific layer or measurable condition that releases the deferral, not "when we have time" or "future work." Valid examples: "Layer 5 (when the third file is introduced)"; "When the cmd_list size exceeds 400 lines (currently 287)"; "When user count exceeds 100 (currently 1)." Invalid examples: "Future"; "Soon"; "When convenient"; "TBD."
+2. **The cost-of-deferral** — what worsens if the deferral persists past its trigger. Valid examples: "Each additional layer that adds a `parse_*` validator without the refactor compounds the duplication"; "Each new user the tool gains without the auth review increases the multi-user attack surface." Invalid examples: "It would be nice to have"; "No specific cost."
+3. **The auto-Backlog clause** — an explicit fall-through if the trigger expires without action. Valid examples: "If Layer 5 closes without this refactor applied, the finding auto-Backlogs at Layer 5 R2 closure"; "If 6 months pass without the schema migration, the finding auto-Backlogs and re-raises as a Security review item."
+
+**Auto-Backlog mechanism (promoted from ITC CLOSURE-PROTOCOL.md §3 to suite-default):** A finding that has been Open across three consecutive reviews of the originating domain without adjudication by the receiving authority should be auto-Backlogged by the originating domain at the start of the third subsequent review, with the original finding text plus a "carry-forward" annotation. This prevents the indefinite-Open pattern that recurred in ITC across multiple layers (SA R7 F2 → SA R9 F1 → SA R11 F1 → SA R13 F1+F2 → eventual auto-Backlog at L7 R2 — three layers of deferral expiring without action before the mechanism finally fired). The mechanism is reversible: if the receiving authority later adjudicates, the finding moves out of Backlogged into the appropriate terminal state. The point is to surface "this question has not been answered" as an explicit Backlog entry rather than as silent log noise.
+
+**Counter-rule:** **Security**, **Red Team**, and **VDD-IAR Alignment** findings do not auto-Backlog. Process and security findings carry forward as Open until explicitly resolved; their visibility is the closure mechanism. The CLOSURE-PROTOCOL.md schema already forbids `Deferred` for these domains; auto-Backlog is the parallel rule for `Open`.
+
+**Why deferral-trigger discipline is a hard standard:** ITC PROCESS.md L6 named this gap explicitly ("I need a mechanism to make sure deferred items are properly worked. Maybe like some sort of task manager lol lmao") and L7 ("Clearer task ownership will resolve this in future projects"). The deferral-as-procrastination pattern recurred across multiple layers before the §3 mechanism caught it. Per the "earned by recurrence" doctrine, two-layer recurrence in one project plus operator-named pain is sufficient to promote the discipline from project-scope to suite-default. Reference: G-130's row in [`GAP-ANALYSIS-LOG.md`](GAP-ANALYSIS-LOG.md). Coordinate with G-133 (Source field — director-raised findings are often what re-opens an auto-Backlogged finding the cold adversary missed).
+
 ### File-level header (top of the per-domain index file)
 
 The per-domain index file opens with these elements, in order:
@@ -258,6 +272,7 @@ Within a session file, rounds are ordered newest-first (matching the index order
 **Required for all domains:**
 - **Scope:** what artifacts were reviewed in this round
 - **Session note:** session-isolation status (cold session vs. in-session, with explicit acknowledgement of the quality tradeoff when in-session)
+- **Source (G-133):** how this round's findings were elicited. Valid values: `domain-raised` (the cold adversary, applying the domain's dimensions, found the finding) — the default if no Source line is present; `director-raised` (the operator running manual testing, post-MVR exploration, or any non-domain-prompt-driven adversarial pass found the finding; ITC L6 R3 SO R22 is the canonical example — director's manual execution of "delete highest-id, create" caught a spec violation 11 cold-batch IAR domain reviews missed); `regression-replay` (a prior layer's adversarial reproducer re-run against the current binary surfaced the finding); `external-feedback` (an upstream stakeholder, project consumer, or methodology author surfaced the finding through prose feedback rather than a structured review — dollspace.gay's `message-4.txt` evaluation of ITC, mined in Review 51, is the canonical example). The Source field gives audit-trail granularity to the Portfolio Assessment dimensions on developer participation; a project whose findings cluster heavily in `director-raised` or `external-feedback` is a different developer-engagement profile than one whose findings cluster in `domain-raised`.
 
 **Optional, only when applicable to the domain:**
 - **Posture:** adversarial framing (Red Team)

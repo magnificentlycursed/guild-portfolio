@@ -56,6 +56,27 @@ repos:
         files: ^(vsdd-suite/.*\.(md|sh)|.*/vsdd-suite/[^/]+\.md)$
         exclude: ^(vsdd-suite/(CHANGELOG|COMPATIBILITY)\.md|vsdd-suite/suite-development/(GAP-ANALYSIS-LOG|SUITE-REVIEW-INDEX)\.md|.*/review-log/.*\.md|.*/FINDINGS-INDEX\.md)$
 
+      - id: check-changelog-currency
+        name: check CHANGELOG.md updated when source changes (IAR suite G-129 hook)
+        language: script
+        # Mechanizes the G-129 discipline (documentation currency at commit
+        # time). When a project tree contains both CHANGELOG.md and a
+        # `.changelog-required` marker file (opt-in flag), source changes in
+        # that tree must include a CHANGELOG.md update in the same commit.
+        # Projects without the marker are not enforced — the hook is
+        # methodology-neutral about CHANGELOG discipline absent explicit
+        # opt-in. Registered as G-129 in vsdd-suite/suite-development/
+        # GAP-ANALYSIS-LOG.md after six consecutive ITC layer closes where
+        # TW caught CHANGELOG staleness post-hoc.
+        entry: vsdd-suite/hooks/check-changelog-currency.sh
+        pass_filenames: true
+        # Covers all text files — the hook's per-file extension filter
+        # (`.rs`, `.ts`, `.tsx`, `.js`, `.jsx`, `.py`, `.go`, `.md`, `.sh`,
+        # `.yaml`, `.yml`, `.toml`) is the actual scoping mechanism. Excludes
+        # nothing here — opt-in is per-project via the `.changelog-required`
+        # marker file, not via this config's `exclude:` pattern.
+        types: [text]
+
       - id: cargo-fmt-check
         name: cargo fmt (issue-tracker-cli)
         language: system

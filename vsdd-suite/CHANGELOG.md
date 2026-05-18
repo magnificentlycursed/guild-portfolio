@@ -4,6 +4,30 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-19 (Review 59: Cluster B process gaps — G-129, G-130, G-132, G-133 Addressed)
+
+### Added
+- **`vsdd-suite/hooks/check-changelog-currency.sh`** (new) — Python hook (with `.sh` filename for parity) that walks up from each staged source file to find the nearest CHANGELOG.md + `.changelog-required` marker pair. When the marker is present, fails the commit if CHANGELOG.md is not also staged. Opt-in per project via `touch .changelog-required` in the directory holding CHANGELOG.md — methodology-neutral about CHANGELOG enforcement absent explicit opt-in. Bypass for legitimate no-op refactors: add "No-op — no changelog entry needed per [reason]" line to CHANGELOG.md (preserves audit trail). Tested in three states (no marker / marker without CHANGELOG / marker with CHANGELOG).
+- **`vsdd-suite/.changelog-required`** (new, zero-byte marker) — suite itself opts in to changelog-currency enforcement.
+- **`suite-development/suite-development.md`** § Governing standard for project-level review logs § Deferral-trigger discipline (G-130) (new sub-section) — three-named-thing requirement per Deferred finding (trigger, cost-of-deferral, auto-Backlog clause) with valid/invalid examples; auto-Backlog mechanism (3-consecutive-review threshold) promoted from ITC CLOSURE-PROTOCOL §3 to suite-default; Security/Red Team/VDD-IAR counter-rule.
+- **`primers/1b-decomposition.md`** § Manual testing checklist — new framing paragraph "Manual testing is a second adversarial surface to IAR, not a checkbox (G-132)" citing ITC L6 R3 SO R22 as the canonical example, establishing manual-test findings as equal-weight to cold-session findings with `**Source:** director-raised` attribution (per G-133), and framing quick-closure-without-specificity as an audit-trail concern.
+- **`domains/role/TECHNICAL-WRITER-REVIEW.md`** Dim 11 — "Manual-test note quality (G-132)" with three checks: closure-window proportionality (speed isn't the signal — specificity is); director-raised finding capture; deferral-to-next-round honesty.
+
+### Changed
+- **`.pre-commit-config.yaml`** — new `check-changelog-currency` hook entry with `types: [text]` scoping (per-file extension filter is in the hook itself, not the config).
+- **`suite-development/suite-development.md`** § Per-review entry preamble § Required-for-all-domains — added `**Source:**` field (G-133) to the required list with four valid values: `domain-raised` (default), `director-raised` (operator manual testing — ITC L6 R3 SO R22 canonical example), `regression-replay` (prior reproducer re-run), `external-feedback` (upstream stakeholder / methodology author prose — dollspace.gay's `message-4.txt` for ITC, mined Review 51, is the canonical example).
+
+### Addressed
+- **G-129** — Documentation-currency hook. The recurring six-layer-close pattern in ITC TW reviews now has a mechanism backing the discipline. Opt-in-via-marker design avoids friction on projects that don't want enforcement; the suite itself opts in.
+- **G-130** — Deferral-trigger discipline + auto-Backlog mechanism. ITC CLOSURE-PROTOCOL §3 mechanism promoted to suite-default per "earned by recurrence" (two-layer recurrence + operator-named pain).
+- **G-132** — Manual testing as second adversarial surface. Coordinated primer-framing change + TW dimension addition. The ITC L6 R3 SO R22 director-raised regression is now codified as the canonical example throughout the suite.
+- **G-133** — Source field on per-review preamble. Structural prerequisite for G-132's director-raised manual findings; gives audit-trail granularity to Portfolio Assessment.
+
+### Note
+Cluster B closures coordinate tightly: G-133's Source field is the structural prerequisite for G-132's director-raised tracking; G-130's auto-Backlog mechanism is the closure mechanism for G-129's CHANGELOG-currency findings via the "no-op refactor — no changelog entry needed" bypass option (a Deferred-equivalent annotation that preserves the audit trail). **Backlog after Review 59: 6 Open** (G-134, G-135, G-136, G-137 from Review 45 Cluster C; G-146 from Review 49; G-149 from Review 50).
+
+---
+
 ## Unreleased — 2026-05-19 (Review 58: G-158 registered + Addressed — GitHub Copilot added to AI-tool enumeration sites)
 
 ### Added

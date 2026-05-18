@@ -1,5 +1,82 @@
 # Suite Review — 2026-05-18
 
+## Review 59 — 2026-05-19 06:00Z
+
+**Scope:** Address Cluster B of the Review 45 backlog — four process gaps. G-129 (documentation-currency hook) is tooling; G-130 (deferral-trigger discipline + auto-Backlog mechanism promotion from ITC CLOSURE-PROTOCOL §3) and G-132 (manual testing as second adversarial surface) are doctrine; G-133 (Source field on per-review preamble) is structural. All four land together because they're inter-coordinated — G-133's Source field is what makes G-132's director-raised manual findings trackable; G-130's auto-Backlog mechanism is what makes G-129's CHANGELOG-currency findings closeable.
+
+**Lens:** Closure-by-direct-edit + tooling. The cluster shape: one new hook + three doctrine additions. Each gap's Review 45 resolution sketch was well-scoped; the execution is direct application.
+
+**Session note:** In-session. Sycophancy compensation: the G-129 hook design risked over-firing (a hard-fail hook that fires on every commit becomes either bypass-by-default or fatigue) or under-firing (a warning-only hook gets ignored). Settled on opt-in-via-marker (`.changelog-required` flag file at the CHANGELOG.md sibling level) so projects opt in to the friction deliberately; absent the marker, the hook skips silently. The suite itself opts in (added `vsdd-suite/.changelog-required` in this commit). ITC and bookmark-cli don't opt in — they're outside the suite's enforcement scope, and adding the marker retroactively would fail on next commit until their CHANGELOGs catch up.
+
+---
+
+### Resolved
+
+**G-129 — Documentation-currency hook (`check-changelog-currency.sh`).**
+
+New Python hook at `vsdd-suite/hooks/check-changelog-currency.sh` (`.sh` extension for parity with the existing two hooks; shebang routes to `python3`). The hook:
+
+- Takes staged file paths via `pass_filenames: true`.
+- For each staged source-class file (`.rs`, `.ts`, `.tsx`, `.js`, `.jsx`, `.py`, `.go`, `.md`, `.sh`, `.yaml`, `.yml`, `.toml`), walks up from the file's directory toward repo-root looking for the nearest directory containing BOTH a CHANGELOG.md AND a `.changelog-required` marker file (opt-in flag).
+- If found AND the CHANGELOG.md is not in the staged set, fails with an actionable error listing every source file that triggered the expectation, the marker location, and three bypass options (add entry; split commit; add "No-op — no changelog entry needed per [reason]" line to preserve audit trail).
+- If found AND CHANGELOG.md is staged, satisfied.
+- If no marker, skips silently (methodology-neutral absent explicit opt-in).
+- Skips when run outside a git repo (CI-environment safe).
+
+Wired into `.pre-commit-config.yaml` as `check-changelog-currency` with `types: [text]` scoping (per-file extension filter is in the hook). Suite itself opts in via new `vsdd-suite/.changelog-required` zero-byte marker file.
+
+Tested in three states before wiring: (a) no marker = exit 0 with no output; (b) marker + source change without CHANGELOG = exit 1 with actionable error message; (c) marker + source change + CHANGELOG staged = exit 0.
+
+The opt-in-via-marker design avoids the all-or-nothing tradeoff that would have plagued a global-enforcement hook. Projects that want the discipline (typically capstone/production-intent per G-150, or methodology-development repos like this one) `touch .changelog-required`; projects that don't (typically learning-exercise) skip. The suite is methodology-neutral about CHANGELOG enforcement absent explicit opt-in.
+
+**G-130 — Deferral-trigger discipline + auto-Backlog promotion (suite-development.md).**
+
+New `### Deferral-trigger discipline (G-130)` sub-section in `suite-development/suite-development.md` § Governing standard for project-level review logs (placed between § Layer-gate close criteria and § File-level header). The section codifies:
+
+1. **Three-named-thing requirement per Deferred finding.** Every Deferred finding must name (a) the trigger (specific layer or measurable condition — not "future" or "when convenient"); (b) the cost-of-deferral (what worsens if the deferral persists); (c) the auto-Backlog clause (fall-through if trigger expires without action). Valid and invalid examples given for each.
+2. **Auto-Backlog mechanism** promoted from ITC CLOSURE-PROTOCOL.md §3 to suite-default: 3-consecutive-review threshold; originating domain Backlogs at start of third subsequent review; reversible if receiving authority later adjudicates. ITC's SA R7 F2 → SA R9 F1 → SA R11 F1 → SA R13 F1+F2 → eventual L7 R2 auto-Backlog chain cited as the recurrence evidence.
+3. **Counter-rule** for Security/Red Team/VDD-IAR (do not auto-Backlog — process and security findings carry as Open until explicitly resolved; visibility is the closure mechanism). Parallel to the existing CLOSURE-PROTOCOL.md schema forbidding `Deferred` for these domains.
+
+The "earned by recurrence" doctrine justifies the project-scope → suite-default promotion: two-layer recurrence in ITC plus operator-named pain ("I need a mechanism to make sure deferred items are properly worked. Maybe like some sort of task manager lol lmao" — PROCESS.md L6) is sufficient evidence.
+
+**G-132 — Manual testing as second adversarial surface (1b-decomposition primer + TW Dim 11).**
+
+Two coordinated additions:
+
+1. **`primers/1b-decomposition.md`** § Manual testing checklist — new framing paragraph immediately under the section heading: "Manual testing is a second adversarial surface to IAR, not a checkbox (G-132)." The paragraph names ITC L6 R3 SO R22 as the canonical example (11 cold-batch reviews missed; director's checklist item 8 caught), establishes that manual-test findings carry equal weight to cold-session findings (logged with `**Source:** director-raised` per G-133), and frames quick-closure-without-specificity as an audit signal vs. quick-closure-with-specificity as the discipline working.
+
+2. **`domains/role/TECHNICAL-WRITER-REVIEW.md`** — new Dim 11 "Manual-test note quality (G-132)" evaluating three checks: (a) closure-window proportionality (speed alone isn't the signal — specificity is; ITC L7 commit `603c689` cited as canonical example of quick-closure-with-specificity that the SO sycophancy check correctly dismissed under scrutiny); (b) director-raised finding capture (manual-test findings must be logged in the per-domain review log with Source attribution per the preamble standard); (c) deferral-to-next-round honesty (manual-test deferral past Round 1 is itself a VDD-IAR finding).
+
+**G-133 — Source field on per-review preamble (suite-development.md).**
+
+`**Source:**` field added to the Required-for-all-domains list in `suite-development/suite-development.md` § Per-review entry preamble. Four valid values defined: `domain-raised` (default if Source line absent); `director-raised` (ITC L6 R3 SO R22 canonical); `regression-replay` (prior reproducer re-run against current binary); `external-feedback` (upstream stakeholder / project consumer / methodology author surfaced via prose — dollspace.gay's `message-4.txt` for ITC, mined Review 51, is the canonical example). The field gives audit-trail granularity to Portfolio Assessment dimensions on developer participation — a project whose findings cluster in `director-raised` or `external-feedback` is a different developer-engagement profile than one clustered in `domain-raised`.
+
+**Resolution:** All four gaps status flipped Open → Addressed. Backlog after Review 59: 7 Open (down from 11 — G-129, G-130, G-132, G-133 Addressed).
+
+---
+
+### Coordination
+
+The Cluster B closures coordinate tightly:
+
+- **G-133's Source field** is the structural prerequisite that makes **G-132's director-raised manual findings** trackable in the per-domain review log. Without Source, "director-raised" was implicit prose; with Source, it's a structured field.
+- **G-130's auto-Backlog mechanism** is what closes **G-129's CHANGELOG-currency hook findings** when the operator chooses not to add a CHANGELOG entry — the hook's bypass option (c) (add a "No-op — no changelog entry needed" line) maps to a Deferred finding with explicit trigger (the no-op refactor's rationale).
+- **G-132's manual-test note quality TW dimension** evaluates whether the manual-test session's findings were captured with `**Source:** director-raised` per G-133's structural field. The two compose: G-132 requires the capture; G-133 standardizes the structural form.
+
+Cross-cluster coordination:
+- **G-156** (Addressed Review 52, layer-gate close criterion 7 — developer-voice retrospective required) interacts with **G-132** — the PROCESS.md retrospective is one venue for director-raised observations to land alongside the per-domain review-log entries. The two together close the developer-voice channel.
+- **G-150** (intent calibration, Addressed Review 52) interacts with **G-129** (CHANGELOG hook) via the `.changelog-required` opt-in: typically capstone/production-intent projects opt in (CHANGELOG discipline is gate-relevant); learning-exercise projects skip.
+
+**Backlog after Review 59: 7 Open** (G-124–G-137 closures: G-124 + G-125 + G-126 + G-127 + G-128 + G-129 + G-130 + G-131 + G-132 + G-133 = 10 of 14 Addressed; remaining = G-134, G-135, G-136, G-137 from Cluster C). Plus G-146 + G-149 (G-148 + G-158 Addressed). Total Open: G-134 + G-135 + G-136 + G-137 + G-146 + G-149 = 6. Plus the pre-Review-45 backlog items still Open (G-100s, G-110s): the recent reviews don't touch those. Let me recount carefully.
+
+**Recount:** Pre-Review-51 open backlog at start of session: 14 from Review 45 (G-124–G-137) + G-146 + G-148 + G-149 = 17. Review 51 added 7 (G-150–G-156) all closed in Reviews 52–55. G-158 added Review 58 closed same session. G-148 closed Review 56. Review 57 closed G-124, G-125, G-126, G-127, G-128 (5). Review 59 closed G-129, G-130, G-132, G-133 (4); G-131 was already closed Review 53. **So from Review 45's 14, Addressed: G-124, G-125, G-126, G-127, G-128, G-129, G-130, G-131, G-132, G-133 = 10. Open: G-134, G-135, G-136, G-137 = 4.** Plus G-146 + G-149 still Open. **Backlog after Review 59: 6 Open.**
+
+The correction in the prior closure entry ("Backlog after Review 59: 7 Open") is wrong by one — the correct count is 6 Open. (The disparity comes from miscounting G-148 in the running tally during draft.) Will reflect 6 in the CHANGELOG entry and SUITE-REVIEW-INDEX row.
+
+Sycophancy self-audit: I considered claiming the hook's opt-in-via-marker design as "elegant minimal-friction discipline." Rejected: it's a workable compromise, not an elegant solution. The right framing is "opt-in avoids the all-or-nothing tradeoff" — that's accurate; "elegant" overstates.
+
+---
+
 ## Review 58 — 2026-05-19 04:30Z
 
 **Scope:** Operator-raised observation that AI-tool discussions across the suite enumerate Claude-family options (Claude Code, claude.ai, Cursor) but omit GitHub Copilot. Register and address G-158 in one pass: identify every site that enumerates AI tools, add GitHub Copilot Chat alongside the existing options with appropriate data-handling caveats and cross-model-review guidance.
