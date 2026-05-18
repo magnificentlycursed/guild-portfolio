@@ -50,4 +50,4 @@ Regression check: verify that previously-confirmed spec compliance is still pres
 
 ---
 
-Review entries are logged in `vsdd-suite/SOLUTION-OWNER-REVIEW.md` inside the project being reviewed.
+Review entries are logged in per-session files at `vsdd-suite/review-log/YYYY-MM-DD-solution-owner.md` inside the project being reviewed; the per-domain index at `vsdd-suite/SOLUTION-OWNER-REVIEW.md` aggregates rounds (newest-first) and is the entry point for browsing the domain's review history. See `vsdd-suite/suite-development/suite-development.md` § Governing standard for project-level review logs.

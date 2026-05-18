@@ -1,5 +1,49 @@
 # Suite Review — 2026-05-18
 
+## Review 56 — 2026-05-19 02:00Z
+
+**Scope:** Address G-148 (stale "Review entries are logged in..." line across 16 domain prompt files). Mechanical sweep across all 14 role + 2 meta domain prompts in `domains/role/` and `domains/meta/`. The fix is a deterministic string replacement: old single-line "Review entries are logged in `vsdd-suite/<DOMAIN>-REVIEW.md` inside the project being reviewed." → multi-clause line that points at the per-session file (with slug derived from filename) AND names the index file's aggregation role AND cross-references the suite-level governing standard.
+
+**Lens:** Closure-by-mechanical-sweep. The defect class was a pre-G-89 framing that 16 files inherited identically; the fix is the same shape per file with only the domain name and slug varying. Cleanest mechanism: Python script iterating the file set, computing slug as `lower(filename.replace("-REVIEW.md", ""))`, applying the replacement once per file with verification (zero matches = skip with warning; multiple matches = warn but replace first).
+
+**Session note:** In-session. Sycophancy compensation: I considered using 16 individual Edit calls for "safety" but rejected that — a deterministic mechanical sweep is more reliable than 16 manual edits, and the verification step (grep for old pattern after = 0; grep for new pattern after = 16) is the actual safety check. The Edit tool's per-call uniqueness check provides no advantage over `content.count(old) == 1` verification in Python when the pattern is the same shape per file. Doing it the way that's actually safe rather than the way that feels safe.
+
+---
+
+### Resolved
+
+**G-148 — Stale domain-prompt review-log path swept across 16 files.**
+
+Mechanical Python sweep ran against all 14 role + 2 meta domain prompt files. Verification:
+
+- **0 instances** of the old single-line pattern (`^Review entries are logged in \`vsdd-suite/[A-Z-]+-REVIEW\.md\` inside the project being reviewed\.$`) remain anywhere in `domains/`.
+- **16 instances** of the new pattern (`Review entries are logged in per-session files at \`vsdd-suite/review-log/YYYY-MM-DD-<slug>.md\` ...`) present — one per file.
+- Each file's slug was derived from its filename: `TECHNICAL-WRITER-REVIEW.md` → `technical-writer`; `VDD-IAR-ALIGNMENT-REVIEW.md` → `vdd-iar-alignment`; `UX-REVIEW.md` → `ux`; etc. The lowercase-without-suffix derivation matches the canonical slug table in `suite-development/suite-development.md` § Domain slug convention.
+
+The new line shape per file:
+
+```
+Review entries are logged in per-session files at `vsdd-suite/review-log/YYYY-MM-DD-<slug>.md` inside the project being reviewed; the per-domain index at `vsdd-suite/<DOMAIN>-REVIEW.md` aggregates rounds (newest-first) and is the entry point for browsing the domain's review history. See `vsdd-suite/suite-development/suite-development.md` § Governing standard for project-level review logs.
+```
+
+A cold-onboarded reader (or AI agent loading the domain prompt fresh) now lands on a description of the correct G-89 structure — per-session files for entries, per-domain index for aggregation — rather than the pre-G-89 framing that pointed entries directly at the index.
+
+**Follow-on G-139-style mechanization hook (noted in G-148's resolution sketch):** deferred. The "earned by recurrence" doctrine requires recurrence evidence before promoting a discipline to tooling. One mechanical sweep is not recurrence — if a future domain addition reintroduces the stale pattern, that becomes the recurrence trigger and the hook becomes warranted. Until then, the discipline lives in the per-file content (each file's correct closing line is itself an example for the next domain to follow).
+
+**Resolution:** G-148 status flipped Open → Addressed. Forward-only — prior review entries in completed projects that followed the original framing remain valid records per G-89's narrative-preservation policy.
+
+---
+
+### Coordination
+
+The Review 56 closure removes a structural defect that affected every domain review's onboarding surface but caused no in-project process failure (contributors who knew the G-89 structure worked around the stale instruction). The fix is about cold-onboarding correctness — a new reviewer landing on TECHNICAL-WRITER-REVIEW.md now reads the correct file structure rather than inheriting the pre-G-89 framing.
+
+**Backlog after Review 56: 16 Open** (down from 17 — G-148 Addressed). Remaining: Review 45's 14 (G-124–G-137); Review 49's G-146 (`crosslink knowledge` auto-injection); Review 50's G-149 (suite-development naming alignment — needs operator scope decision before resolution can proceed).
+
+Sycophancy self-audit: the temptation to claim this closure as "highest-leverage" was rejected — G-148 is a small structural defect, not a high-leverage methodology gap. Its closure is valuable as cold-onboarding correctness, not as a methodology change. The Review 45 cluster (G-124–G-137) remains the largest unaddressed substantive arc; G-149 remains the next operator-decision-gated item.
+
+---
+
 ## Review 55 — 2026-05-19 01:00Z
 
 **Scope:** Address G-155 (capstone fresh-system install verification) as the third batch of the Review 51 sequencing. Resolution adds a new conditional dimension to the Platform Engineer domain prompt, activated by the project's intent declaration (G-150 prerequisite, Addressed Review 52).

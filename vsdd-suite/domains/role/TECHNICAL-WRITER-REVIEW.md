@@ -52,4 +52,4 @@ Regression check: verify that documentation updated in prior layers is still acc
 
 ---
 
-Review entries are logged in `vsdd-suite/TECHNICAL-WRITER-REVIEW.md` inside the project being reviewed.
+Review entries are logged in per-session files at `vsdd-suite/review-log/YYYY-MM-DD-technical-writer.md` inside the project being reviewed; the per-domain index at `vsdd-suite/TECHNICAL-WRITER-REVIEW.md` aggregates rounds (newest-first) and is the entry point for browsing the domain's review history. See `vsdd-suite/suite-development/suite-development.md` § Governing standard for project-level review logs.

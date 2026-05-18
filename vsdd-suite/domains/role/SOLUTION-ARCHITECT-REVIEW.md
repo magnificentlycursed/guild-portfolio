@@ -92,4 +92,4 @@ These dimensions apply when the project consumes external services at runtime: t
 
 ---
 
-Review entries are logged in `vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md` inside the project being reviewed.
+Review entries are logged in per-session files at `vsdd-suite/review-log/YYYY-MM-DD-solution-architect.md` inside the project being reviewed; the per-domain index at `vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md` aggregates rounds (newest-first) and is the entry point for browsing the domain's review history. See `vsdd-suite/suite-development/suite-development.md` § Governing standard for project-level review logs.

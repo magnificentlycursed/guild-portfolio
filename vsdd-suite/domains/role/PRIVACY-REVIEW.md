@@ -48,4 +48,4 @@ Regression check: verify that data handling controls established in prior layers
 
 ---
 
-Review entries are logged in `vsdd-suite/PRIVACY-REVIEW.md` inside the project being reviewed.
+Review entries are logged in per-session files at `vsdd-suite/review-log/YYYY-MM-DD-privacy.md` inside the project being reviewed; the per-domain index at `vsdd-suite/PRIVACY-REVIEW.md` aggregates rounds (newest-first) and is the entry point for browsing the domain's review history. See `vsdd-suite/suite-development/suite-development.md` § Governing standard for project-level review logs.

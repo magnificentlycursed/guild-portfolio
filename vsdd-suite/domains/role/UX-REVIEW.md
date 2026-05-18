@@ -44,4 +44,4 @@ Regression check: verify that all previously-addressed UX concerns remain intact
 
 ---
 
-Review entries are logged in `vsdd-suite/UX-REVIEW.md` inside the project being reviewed.
+Review entries are logged in per-session files at `vsdd-suite/review-log/YYYY-MM-DD-ux.md` inside the project being reviewed; the per-domain index at `vsdd-suite/UX-REVIEW.md` aggregates rounds (newest-first) and is the entry point for browsing the domain's review history. See `vsdd-suite/suite-development/suite-development.md` § Governing standard for project-level review logs.

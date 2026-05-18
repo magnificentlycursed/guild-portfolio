@@ -56,4 +56,4 @@ Regression check: verify that previously-confirmed attack mitigations remain int
 
 ---
 
-Review entries are logged in `vsdd-suite/RED-TEAM-REVIEW.md` inside the project being reviewed.
+Review entries are logged in per-session files at `vsdd-suite/review-log/YYYY-MM-DD-red-team.md` inside the project being reviewed; the per-domain index at `vsdd-suite/RED-TEAM-REVIEW.md` aggregates rounds (newest-first) and is the entry point for browsing the domain's review history. See `vsdd-suite/suite-development/suite-development.md` § Governing standard for project-level review logs.

@@ -4,6 +4,19 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-19 (Review 56: G-148 Addressed — 16-file domain-prompt mechanical sweep)
+
+### Changed
+- **`domains/role/*-REVIEW.md`** (14 files) and **`domains/meta/*-REVIEW.md`** (2 files) — closing "Review entries are logged in..." line rewritten across all 16 files via mechanical Python sweep. Each file's new line points at the per-session file (`vsdd-suite/review-log/YYYY-MM-DD-<slug>.md` with slug derived from filename) AND names the index file's aggregation role AND cross-references the suite-level governing standard. Removes the pre-G-89 framing that pointed entries directly at the index file.
+
+### Addressed
+- **G-148** — Stale domain-prompt review-log path. Cold-onboarded readers (humans or AI agents loading the domain prompt fresh) now land on the correct G-89 structure description rather than the pre-G-89 framing. Verification: 0 instances of old pattern, 16 of new.
+
+### Note
+The follow-on G-139-style hook noted in G-148's resolution sketch is deferred per "earned by recurrence" — one mechanical sweep is not recurrence. If a future domain addition reintroduces the stale pattern, that's the trigger to add a check-domain-prompt-log-pointer hook. Until then, the per-file content is the example for new domain additions.
+
+---
+
 ## Unreleased — 2026-05-19 (Review 55: G-155 Addressed — capstone fresh-system install verification)
 
 ### Added

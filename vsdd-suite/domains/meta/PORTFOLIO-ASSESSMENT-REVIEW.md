@@ -46,4 +46,4 @@ For each dimension, classify as **demonstrated** (evidence is clear and specific
 
 ---
 
-Review entries are logged in `vsdd-suite/PORTFOLIO-ASSESSMENT-REVIEW.md` inside the project being reviewed.
+Review entries are logged in per-session files at `vsdd-suite/review-log/YYYY-MM-DD-portfolio-assessment.md` inside the project being reviewed; the per-domain index at `vsdd-suite/PORTFOLIO-ASSESSMENT-REVIEW.md` aggregates rounds (newest-first) and is the entry point for browsing the domain's review history. See `vsdd-suite/suite-development/suite-development.md` § Governing standard for project-level review logs.
