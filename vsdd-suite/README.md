@@ -568,14 +568,14 @@ All domains may be run independently at any time. A full run is required before 
 
 ### The refinement loop
 
-IAR is iterative. Within a single layer, rounds run until maximum viable refinement (MVR):
+IAR is iterative. Within a single layer, rounds run until maximum viable refinement (MVR). **The number of rounds is determined by the finding-progression signal, not by a default.** "Two rounds" is a common shape, not a target — some layers reach MVR at Round 2, some require Round 3 (or more), some that look clean at Round 2 are caught by a director-raised regression that re-opens for Round 3. The trigger discipline (`primers/3-review-session.md` § Round triggers) governs both directions: when more rounds ARE needed (continue trigger, G-131) and when more rounds are NOT needed (stop trigger, G-151).
 
 1. **First pass** — Run active domains when the layer is functionally complete. Log all findings. Fix substantive findings.
-2. **Second pass** — Re-run affected domains with fresh AI context. Fix remaining findings.
-3. **Continue** until a full pass across all active domains produces only **hallucinated** findings or no findings. That is the MVR signal: the adversary has run out of real complaints.
-4. **Merge** — Once MVR is reached across all active domains.
+2. **Continue trigger (G-131).** If Round N closure produces *any* new real findings — including findings surfaced by director manual testing, regression replay, or any source other than the cold-batch (the ITC L6 R3 SO R22 director-raised ID-reuse regression is the canonical example, where 11 cold-batch domain reviews missed a spec violation that manual testing caught) — Round N+1 is **mandatory**. The layer is not at MVR until the round *after* the last new-finding round is clean.
+3. **Stop trigger (G-151).** When a full pass across all active domains produces only **hallucinated** findings or no findings, that is the MVR signal — the adversary has run out of real complaints. Running another round after MVR has been reached is **not free**; it requires explicit director justification (specific new evidence or new attack surface that emerged since the MVR round closed). Cold-batch infrastructure being available is not justification. Running rounds past MVR because "the methodology is there" is the process-drift mode dollspace.gay identified at ITC Layer 7 R3 (Review 51 / G-150).
+4. **Merge** — Once MVR is reached across all active domains and no Round N+1 trigger has fired.
 
-Round numbers belong in the log. `QE Review 1`, `QE Review 2` is the expected pattern. The progression from real findings to hallucinated findings is evidence the process worked. A layer that merges after a single pass with unresolved real findings is a process failure — log it as one in VDD-IAR Alignment.
+Round numbers belong in the log. `QE Review 1`, `QE Review 2` is the expected pattern. The progression from real findings to hallucinated findings is evidence the process worked. A layer that merges after a single pass with unresolved real findings is a process failure — log it as one in VDD-IAR Alignment. A layer that runs Round N+1 after Round N reached MVR without a documented continue trigger is also a process failure — over-investment is as much a methodology drift as under-investment.
 
 ### Session isolation
 

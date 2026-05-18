@@ -191,7 +191,7 @@ Layer-gate close criteria govern when a layer's IAR round may close and the laye
 **Baseline criteria (every project, every layer-gate close):**
 
 1. Every active IAR domain (per the project's intent calibration — see `../domains/DOMAIN-INDEX.md` § Intent calibration) has completed at least one cold-session pass on this layer.
-2. The refinement loop continued until MVR. A round that produced only Hallucinated findings closes the layer's IAR; a round that produced new real findings re-opens the layer for Round N+1 (per `../primers/3-review-session.md` § Sycophancy and the G-131 trigger discipline).
+2. The refinement loop continued until MVR. A round that produced only Hallucinated findings closes the layer's IAR; a round that produced new real findings re-opens the layer for Round N+1 (per `../primers/3-review-session.md` § Round triggers — both the continue trigger from G-131 and the stop trigger from G-151 apply). Running Round N+1 after Round N reached MVR requires explicit director justification (specific new evidence or new attack surface); cold-batch infrastructure being available is not justification.
 3. Every finding is in a terminal state (Resolved, Dismissed, Hallucinated, Backlogged, Approved deviation, Accepted risk, Accepted deviation, Accepted limitation, Accepted scope, Deferred per scope/timing rules).
 4. CHANGELOG.md accurately describes what changed this layer (added/changed/removed/addressed sections per the closing block discipline).
 5. The project's build and test gate is green per the project's tooling (`cargo build && cargo test && cargo clippy && cargo fmt --check --locked` for Rust; equivalent for other languages).

@@ -74,6 +74,49 @@ If batching domains in one session is unavoidable, treat it as a quality tradeof
 
 The human-in-the-loop requirement is identical under both dispatch options: every finding must be classified by a human. Swarm dispatch parallelizes the *adversary*, not the *classifier*.
 
+## Round triggers (continue / stop)
+
+The refinement loop is governed by triggers, not a default round count. Before opening Round N for a layer, verify *which* trigger applies. The triggers are forward-only: a continue trigger requires Round N+1 to run; a stop trigger requires explicit justification to run another round.
+
+### Continue trigger (G-131) — Round N+1 is mandatory
+
+Round N produced any new real findings, including any of:
+
+- A finding classified Resolved (the fix's regression test additions in Round N close one finding; the Round N+1 cold pass verifies the fix held and looks for adjacent defects the fix may have created)
+- A finding surfaced by director manual testing (ITC L6 R3 SO R22 is the canonical example — director's manual execution of the "delete highest-id, create" sequence caught a spec violation that 11 cold-batch IAR domain reviews missed)
+- A finding surfaced by regression replay (a prior layer's adversarial reproducer re-run against the current binary that surfaces a regression)
+- A finding routed to a future layer (Deferred) — Round N+1 verifies the Deferred-with-named-trigger discipline is intact and the routing is correct
+- A Raised-to-SO finding adjudicated mid-round — Round N+1 includes the SO log entry and any spec amendment as a Round-N+1 artifact
+
+The "any new real findings" framing is deliberate. A single Resolved finding in Round N triggers Round N+1 — the cost of one additional round is much smaller than the cost of merging with an undetected adjacent defect.
+
+The layer is at MVR when the round *after* the last new-finding round produces only Hallucinated findings or no findings.
+
+### Stop trigger (G-151) — Round N+1 should NOT run by default
+
+Round N produced only Hallucinated findings or no findings. **MVR is reached.** Running Round N+1 from this state requires explicit director justification — name the specific new evidence or new attack surface that emerged since Round N closed. Acceptable justifications:
+
+- A new layer's IAR exposed a cross-layer concern that would invalidate the current layer's MVR
+- An upstream dependency (language version, library, framework) changed in a way that affects the current layer
+- A director-raised observation from manual testing or post-MVR exploration that fits the continue trigger above (in which case the continue trigger applies and the layer was not actually at MVR — re-classify Round N as a new-finding round)
+
+**Not acceptable justifications:**
+
+- "Cold-batch infrastructure is available and one more pass is cheap" — cost is not the criterion; new-evidence is
+- "Adding more rounds feels more thorough" — over-investment is methodological drift, not value-add
+- "Other layers ran N+1 rounds; this layer should too" — round count is a function of finding progression, not a target
+
+The pre-round check: **What new evidence triggers this round? If the answer is 'none — Round N closed at MVR,' do not open Round N+1.** This check fires the sycophancy-guard for the loop itself — an AI orchestrator that defaults to "run another round, the methodology supports it" without checking the trigger is operating the methodology as theatre, not as a discipline.
+
+### Intent-keyed sensitivity (cross-reference G-150)
+
+Project intent (per `../templates/DESIGN-template.md` § Project intent) calibrates the stop-trigger's strictness:
+
+- **learning-exercise** intent: stop-signal sensitivity *high* — when in doubt, stop; the cost of one missed defect is low relative to process-drift fatigue cost
+- **portfolio** intent: standard — apply the trigger discipline as stated above
+- **capstone** intent: standard — same as portfolio plus the additional gate criteria from `../domains/DOMAIN-INDEX.md` § Intent calibration
+- **production** intent: stop-signal sensitivity *strict* — MVR must be unambiguous before merge; ambiguous "could be one more thing" runs MAY proceed with documented justification (the deferral discipline tightens to require a named target layer or auto-Backlog trigger)
+
 ## After each domain review
 
 Before ending the session, classify every finding. Valid classifications vary by domain — the domain file's `## Current Review Prompt` section is authoritative. The full universe of classification types:

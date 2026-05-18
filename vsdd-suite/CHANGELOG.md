@@ -4,6 +4,49 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-19 (Review 55: G-155 Addressed — capstone fresh-system install verification)
+
+### Added
+- **`domains/role/PLATFORM-ENGINEER-REVIEW.md`** § Extended: Fresh-system install verification (capstone / production intent only) (new section) — Dim 38. Binary activation gated on G-150's intent declaration: capstone/production projects must satisfy at gate close; portfolio/learning-exercise projects skip without finding. Named checks: third-party install attempt on non-author machine from fresh checkout; recorded with date / installer identity / system context / outcome in PROCESS.md, INSTALL-VERIFICATION.md, or equivalent; failed-prerequisite findings feed back to SE Dim 13 (README completeness). Worked example: dollspace's ITC evaluation — ITC is portfolio-intent so dim correctly does not gate; a capstone-intent successor would.
+
+### Addressed
+- **G-155** — Fresh-system install verification gradable IAR concern at capstone level. Gated on G-150 intent declaration (Addressed Review 52). Completes the Review 51 recommended sequencing — all seven dollspace.gay-derived gaps (G-150–G-156) now Addressed across Reviews 52–55.
+
+---
+
+## Unreleased — 2026-05-19 (Review 54: G-152 + G-153 + G-154 Addressed — domain-prompt dimension additions)
+
+### Added
+- **`domains/role/DATA-ENGINEER-REVIEW.md`** Dim 12 — "Validation strictness symmetry across input and output" (G-152). Detector pattern: for every `validate_*`/`parse_*` function, find every render/format function touching the same field; mismatched constraint sets are findings raised to SO for spec clarification then routed to SE. Worked example: ITC `validate_description` rejects `\r` but `format_show_block` normalizes `\r\n` → `\n`.
+- **`domains/role/SOLUTION-OWNER-REVIEW.md`** Dim 10 — "Methodology-canonical-defect deferral visibility" (G-153). When a project defers a defect whose fix IS the methodology's own canonical worked example, the DECISIONS.md entry must explicitly name that fact alongside engineering rationale. Worked example: ITC non-atomic write SA Review 1 Finding 1 — defensible single-user rationale but the methodology-canonical framing (it's dollspace's whitepaper's own atomic-write Adversary example) wasn't in DECISIONS.md.
+- **`domains/role/SOFTWARE-ENGINEER-REVIEW.md`** Dim 12 — "Test seam attack surface" (G-154). Detector pattern enumerates: `INTERNAL_`, `TEST_`, `_FORCE_`, `_BYPASS_`, `_SEAM`, `cfg(any(test`, `cfg(debug_assertions)`, `pub(crate)`, `debug_assert!`. Three verification questions per match. Worked example: ITC `TRACKER_INTERNAL_FORCE_COLOR=1` env-var seam shipped in release and bypassed DESIGN.md L244's pipe-cleanness contract.
+
+### Changed
+- **`domains/role/SOFTWARE-ENGINEER-REVIEW.md`** — Documentation Extended dims renumbered 13–17 (was 12–16); Performance Extended dims renumbered 18–22 (was 17–21) to accommodate the new Standard Dim 12. Cross-reference in Documentation Extended preamble updated from "dim 15 (API and interface documentation)" to "dim 16 (API and interface documentation)."
+
+### Addressed
+- **G-152, G-153, G-154** — Three defect-class/doctrine dimensions distributed across DE/SO/SE. The DECISIONS-template.md creation noted in G-153's resolution sketch as not-required: the new SO dim operates on the project's existing DECISIONS.md regardless of template derivation.
+
+---
+
+## Unreleased — 2026-05-19 (Review 53: G-131 + G-151 Addressed — paired loop-discipline trigger update)
+
+### Added
+- **`primers/3-review-session.md`** § Round triggers (continue / stop) (new section) — codifies both directions of the loop discipline. **Continue trigger (G-131):** Round N+1 mandatory when Round N produced any new real findings (Resolved, director-raised, regression-replay, Deferred routing, Raised-to-SO mid-round adjudications). Single-finding threshold deliberate. **Stop trigger (G-151):** Round N+1 after Round N reached MVR requires explicit director justification — name the specific new evidence or new attack surface. Cold-batch infrastructure availability is not justification. Pre-round check: "What new evidence triggers this round?" fires symmetrically. **Intent-keyed sensitivity** cross-references G-150 (learning-exercise: high; portfolio/capstone: standard; production: strict).
+
+### Changed
+- **`vsdd-suite/README.md`** § The refinement loop — reframed from "2 rounds default" reading to finding-progression-signal framing. Both continue and stop triggers cited inline. Adds over-investment-as-drift warning citing the dollspace ITC L7 R3 case (Review 51 / G-150).
+- **`vsdd-suite/suite-development/suite-development.md`** § Layer-gate close criteria criterion 2 — updated to reference `primers/3-review-session.md` § Round triggers (both G-131 and G-151) and explicitly require director justification for Round N+1 after MVR. The earlier forward-reference to "G-131 trigger discipline" (added during Review 52 work) is now backed by a real primer section.
+
+### Addressed
+- **G-131** (Open since Review 45, 2026-05-17) — Loop-count framing rigidified to "2 rounds" — now rigidifies the continue trigger instead of a count.
+- **G-151** (Open since Review 51, 2026-05-18) — MVR-reached stop-signal enforcement — now codified as the stop trigger paired with G-131.
+
+### Note
+The paired closure converts two gaps into one mechanism. The 1-day gap between G-131's registration (Review 45) and G-151's mirror-complement registration (Review 51) is itself evidence of an incomplete-rule pattern — a rule that fires in one direction without its mirror is exactly the kind of asymmetry adversarial review surfaces. Future suite-review work that codifies a one-direction rule should ask "what is the mirror?" at registration time.
+
+---
+
 ## Unreleased — 2026-05-18 (Review 52: G-150 + G-156 Addressed — intent calibration + developer-voice retrospective hard gate)
 
 ### Added
