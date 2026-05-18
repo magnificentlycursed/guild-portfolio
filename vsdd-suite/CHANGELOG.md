@@ -4,6 +4,29 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-18 (Review 51: upstream-author-feedback mining — 7 gaps registered G-150–G-156 Open)
+
+### Open
+- **G-150** (Headline) — IAR intensity-to-assignment calibration discipline absent. Dollspace.gay (VSDD whitepaper author, message-4.txt feedback on ITC): "11 review domains, 6 KLOC of tests against ~2.5 KLOC of source ... well past what 02-tracking-your-work.md asks for. The chapter's stop signal may have been ignored." Resolution: project-intent declaration in DESIGN-template.md (learning-exercise / portfolio / capstone / production); intensity-calibration guidance in DOMAIN-INDEX.md keyed to intent; "right-size-the-IAR" section in primers/1b-decomposition.md.
+- **G-151** — MVR-reached enforcement (stop-signal) mechanism absent. Mirror complement of G-131. ITC Layer 7 ran a third round of 5 commits after VDD-IAR R18 returned GO-PENDING-MANUAL-REWALK, not because of new real findings. Resolution: pre-round check in primers/3-review-session.md + CLOSURE-PROTOCOL §6 criterion requiring explicit director justification when running Round N+1 after Round N reached MVR.
+- **G-152** — Input/output strictness-symmetry dimension absent. ITC `validate_description` rejects bare `\r` outright but `format_show_block` normalizes `\r\n` → `\n` for rendering — caught by dollspace, missed by all 11 in-project IAR domains. Resolution: add dimension to SE or DE.
+- **G-153** — Methodology-canonical-example deferral doctrine absent. ITC's non-atomic write IS dollspace's whitepaper's literal Adversary worked example (`01-how-we-build.md:137-139`); the SA R1 F1 dismissal is defensible but the visibility framing is not required by the suite. Resolution: templates/DECISIONS-template.md "Methodology-canonical-defect deferrals" section + SO dimension variant.
+- **G-154** — Test-seam-as-production-attack-surface dimension absent. ITC's `TRACKER_INTERNAL_FORCE_COLOR` env-var test seam ships in release binary as a CLICOLOR_FORCE-equivalent bypass of DESIGN.md L244 "regardless of env vars" pipe-cleanness contract. RT R12 F1 caught it late (Round 3); the SE / SA / Security dimensions don't name this class. Resolution: add dimension to SE or Security.
+- **G-155** — Fresh-system install verification missing as gradable IAR concern at capstone level. Gated on G-150 intent-declaration. Resolution: add Platform Engineer dimension extension for capstone/production intent requiring documented third-party install attempt.
+- **G-156** — Developer-voice retrospective REQUIRED at gate close (not advisory). Portfolio Assessment R1–R5 documented the persistent unfilled-placeholder pattern across 5 reviews. CLOSURE-PROTOCOL §6 criterion 7's "block portfolio assessment but not technical merge" carve-out is what allows the pattern to persist. Resolution: tighten the criterion so "at least started" requires at least one first-person sentence per scaffolding block (not just the italicized scaffolding alone).
+
+### Reinforced
+- **G-130** (Open, Review 45) — dollspace's "scope inflation" critique is partially a deferral-lifecycle issue; G-130's auto-Backlog resolution covers part but not the upstream-intent-calibration framing G-150 names. Cross-reference added; status unchanged.
+
+### Items confirmed as IAR-caught-correctly (NOT new suite gaps)
+- ITC non-atomic write (SA R1 F1 Dismissed with rationale in DECISIONS.md) — dollspace: "Defensible but it's the textbook example..." — the visibility concern is G-153, not a methodology-execution gap.
+- ITC F8 delete-no-confirmation (SO R6 + Layer 4 SO R17 Approved Deviation D1) — Approved Deviation mechanism operated as designed; deviation is visible and rationalized.
+
+### Note
+Review 51 is the second mining pass on the issue-tracker-cli project; Review 45 (G-124–G-137) generalized in-project recurring defect classes, Review 51 generalizes the VSDD whitepaper author's evaluation of methodology drift. The lens is novel for the suite — registers as precedent. Suggested next-session sequencing: G-150 + G-156 (highest-leverage single closures); G-151 + G-131 (batch primer update); G-152 + G-153 + G-154 (batch domain-prompt update). 16 Open gaps now in backlog (the largest the suite has carried).
+
+---
+
 ## Unreleased — 2026-05-18 (Review 50: two operator-raised gaps registered — G-148, G-149 Open)
 
 ### Open
