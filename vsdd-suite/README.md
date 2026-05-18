@@ -156,6 +156,90 @@ VSDD defines six phases. IAR owns Phase 3. Understanding the full pipeline matte
 
 Session primers prime the session before writing or reviewing begins; they are not review prompts. The full primer table appears under [Session primers](#session-primers).
 
+### Per-layer flow (within a project)
+
+The pipeline table above is project-scoped. Within a single layer, the flow is a loop governed by the trigger discipline (`primers/3-review-session.md` § Round triggers). The diagram below makes that loop explicit so a reader does not have to reconstruct it from the primer set (G-136 closure).
+
+```
+   Phase 1b decomposition complete (layer's TODO + Red Gate plan written)
+                              │
+                              ▼
+                  ┌───────────────────────┐
+                  │ Phase 2a: Red Gate    │
+                  │   write failing tests │
+                  └───────────┬───────────┘
+                              │ commit Red Gate (tests confirmed failing)
+                              ▼
+                  ┌───────────────────────┐
+                  │ Phase 2b: Implement   │
+                  │   make tests pass     │
+                  └───────────┬───────────┘
+                              │ commit implementation (all tests green)
+                              ▼
+                  ┌───────────────────────┐
+                  │ Director manual test  │
+                  │   (G-132: 2nd surface)│
+                  └───────────┬───────────┘
+                              │
+                              ▼
+              ┌───────────────────────────────┐
+              │ Phase 3: IAR Round N          │
+              │   active domains per intent   │
+              │   (DOMAIN-INDEX § calibration)│
+              └──────────────┬────────────────┘
+                             │
+                             ▼
+                ┌────────────────────────┐
+                │ Phase 4: Route findings│
+                │   per primers/4-...    │
+                └─────────┬──────────────┘
+                          │
+                          ▼
+              ┌──────────────────────────┐
+              │ Continue trigger? (G-131)│
+              │ Any new real finding?    │
+              └──┬───────────────────────┘
+        yes      │     no (MVR — only Hallucinated / no findings)
+       ◄─────────┘                            │
+       │                                      │
+       │                                      ▼
+       │                  ┌──────────────────────────┐
+       │                  │ Stop trigger? (G-151)    │
+       │                  │ New evidence justifying  │
+       │                  │ Round N+1? (cold-batch   │
+       │                  │ availability ≠ basis)    │
+       │                  └──┬───────────────────────┘
+       │             yes     │     no
+       │           ◄─────────┘     │
+       │           │               ▼
+       │           │   ┌──────────────────────────┐
+       │           │   │ Layer-gate close criteria│
+       │           │   │ (suite-development.md §  │
+       │           │   │  Layer-gate close — 7    │
+       │           │   │  baseline criteria)      │
+       │           │   └──────────┬───────────────┘
+       │           │              │ all 7 pass
+       │           │              ▼
+       │           │      ┌───────────────┐
+       │           │      │ Merge layer   │
+       │           │      └───────────────┘
+       │           │
+       ▼           ▼
+   ┌────────────────────────────┐
+   │ Re-enter relevant phase     │
+   │ per Phase 4 routing:        │
+   │   1a (spec gap)             │
+   │   1b (re-decomposition)     │
+   │   2a (test gap)             │
+   │   2b (implementation defect)│
+   │ then Round N+1              │
+   └─────────────────────────────┘
+```
+
+The Round N+1 case the diagram captures includes both directions: G-131 forces a continuation when new findings surface (Resolved, director-raised, regression-replay, Deferred-routed, Raised-to-SO adjudicated mid-round); G-151 prevents over-investment when MVR is genuinely reached. Both triggers compose at the same decision point — see `primers/3-review-session.md` § Round triggers for the full discipline.
+
+The merge-gate-criteria block expands per `suite-development/suite-development.md` § Layer-gate close criteria — seven baseline criteria including G-156's developer-voice retrospective requirement (criterion 7) and G-150's intent-calibrated active-domain set (informs criterion 1).
+
 ## Governing references
 
 - **VSDD whitepaper** (primary): https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00

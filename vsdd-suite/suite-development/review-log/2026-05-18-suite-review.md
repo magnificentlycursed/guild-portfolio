@@ -1,5 +1,87 @@
 # Suite Review — 2026-05-18
 
+## Review 60 — 2026-05-19 07:30Z
+
+**Scope:** Address Cluster C of the Review 45 backlog — four operational gaps (G-134 cold-session dispatch tooling, G-135 cost/token meta-domain candidate, G-136 phase-flow visualization, G-137 rustdoc command fix). G-134 + G-136 + G-137 land as Addressed; G-135 lands as **Deferred** per the new G-130 deferral-trigger discipline (Review 45 explicitly flagged it as "multi-session effort warranting its own arc — likely the largest single piece of follow-on suite work," and the suite eating its own cooking means honoring that scope assessment rather than half-building a meta-domain).
+
+**Lens:** Closure-by-direct-edit + tooling + suite-discipline-applied-to-itself. The cluster shape is mixed — one new bash script (G-134), one README visualization (G-136), two supplement bullet rewrites (G-137), one trigger-disciplined deferral (G-135). The G-135 deferral is itself a demonstration of the G-130 mechanism the prior review (Review 59) just promoted to suite-default — every Deferred finding must name trigger / cost-of-deferral / auto-Backlog clause. G-135's deferral names all three.
+
+**Session note:** In-session. Sycophancy compensation: the temptation on G-135 was to either (a) ship a half-built meta-domain to claim "all 14 closed" per the operator's "All 14 in sequence" instruction, or (b) leave G-135 Open as silent backlog noise. Both rejected: (a) would be over-investment of methodology effort to claim a closure that isn't real; (b) is exactly the silent-Open pattern the G-130 deferral discipline was designed to prevent. The Deferred status with explicit trigger discipline is the honest closure — the gap is *not done*, but the *gap entry* is closed with a real next-action condition. This honors the operator's "All 14 in sequence" instruction by closing the gap entry (no silent Open) while honoring Review 45's "multi-session arc" framing by not building the meta-domain in this session.
+
+---
+
+### Resolved
+
+**G-134 — Cold-session dispatch tooling (`templates/cold-session-dispatch.sh`).**
+
+New bash script at `vsdd-suite/templates/cold-session-dispatch.sh` (executable, `set -euo pipefail`). Takes:
+
+- `<domain-slug>` (required, positional) — canonical slug per `suite-development.md` § Domain slug convention (`quality-engineer`, `security`, `ux`, etc.)
+- `--layer <N>` (optional) — layer scope for the review
+- `--lang <slug>` (optional) — language supplement to include (`rust`, `javascript-typescript`, etc.)
+- `--scope <text>` (optional) — free-text scope description
+
+Emits to stdout a 4-section assembled prompt:
+
+1. **Header comment** naming the dispatch source, domain, layer, language, and scope, with paste-into-fresh-chat instructions and a reminder about cold-context discipline.
+2. **SECTION 1 — Session Primer** (full contents of `primers/3-review-session.md`).
+3. **SECTION 2 — Domain Prompt** (full contents of the resolved domain file).
+4. **SECTION 3 — Language / Interface Supplement** (conditional; full contents of `supplements/<lang>.md` if `--lang` given).
+5. **SECTION 4 — Scope and instructions** with layer-specific framing and explicit `**Source:** domain-raised` attribution guidance per the per-review entry preamble standard.
+
+SUITE_ROOT resolved from `$(cd "$(dirname "$0")/.." && pwd)` so the script works from any project's working directory. Domain slug → filename via `tr '[:lower:]' '[:upper:]' | sed 's/$/-REVIEW.md/'`; tries `domains/role/` first then `domains/meta/`. Pipe-to-clipboard examples in header doc for macOS (`pbcopy`), Linux X11 (`xclip`), and Linux Wayland (`wl-copy`).
+
+Tested in three states: no args (prints usage to stderr, exits 1); invalid domain slug (error message + usage); valid domain + all flags (~249-line stdout output).
+
+The friction operator named in ITC PROCESS.md L2+L3 ("I don't have a good manual workflow for running cold sessions which suggests some helper scripts or project level claude.md might reduce friction. Things that are skipped or shortcut because they're annoying to do manually are a good candidate for automation. Ignored signals are an antipattern.") is now mechanizable. Cold-session dispatch costs ~5 keystrokes + paste; before this script the operator had to find the primer, find the domain file, find the supplement, assemble them, write the scope framing, and paste — friction-heavy enough to be skipped, which is exactly the antipattern PROCESS.md L2 named.
+
+**G-136 — Phase-flow visualization in README.**
+
+New `### Per-layer flow (within a project)` sub-section in `vsdd-suite/README.md` § VSDD pipeline context, containing an ASCII flow diagram showing the per-layer loop: Phase 1b decomposition complete → Phase 2a Red Gate (write failing tests) → Phase 2b Implement (make tests pass) → Director manual test (G-132 second adversarial surface) → Phase 3 IAR Round N (active domains per intent calibration G-150) → Phase 4 routing → continue-trigger decision (G-131 — any new real finding forces Round N+1) → stop-trigger decision (G-151 — Round N+1 after MVR requires explicit director justification) → layer-gate close criteria block → merge.
+
+Both directions of the trigger discipline (continue + stop) appear at the same decision point in the diagram, with the Re-enter-phase block naming the four routing destinations (1a / 1b / 2a / 2b). Resolution captions cross-reference `primers/3-review-session.md` § Round triggers, `suite-development.md` § Layer-gate close criteria, and G-150 intent calibration.
+
+The "process flow chart is implied instead of strongly structured" friction operator named in ITC PROCESS.md L3 is now explicit at the README level. A reader does not have to reconstruct the per-layer loop from the primer set; the loop is one screen, visible at the project's entry-point document.
+
+**G-137 — Rustdoc command fix + clippy deny-set addition.**
+
+Two coordinated updates to `vsdd-suite/supplements/rust.md`:
+
+1. **§ Technical Writer rustdoc-coverage bullet** — replaced the prior `cargo doc --no-deps 2>&1 | grep "missing documentation"` check with **`RUSTDOCFLAGS="-D missing_docs" cargo doc --no-deps`** as the canonical command. Added explicit "do NOT rely on grep of default output — `cargo doc` does not warn on missing docs unless the lint is enabled either in `Cargo.toml` or via `RUSTDOCFLAGS`" guidance. Cited the ITC recurrence (TW R4 grep-form check clean vs. TW R6 RUSTDOCFLAGS-form caught 9 missing-doc errors) as the worked example.
+
+2. **§ Software Engineering Clippy lint configuration bullet** — added `missing_docs` to the standard deny set (`#![deny(..., missing_docs)]`) with an explanatory note that `missing_docs` is a rustc lint (not a clippy lint) that catches the gap at clippy/cargo-check time, complementing the `cargo doc` check.
+
+Both edits cross-reference each other so a reader landing on either bullet finds the paired rule.
+
+---
+
+### Deferred
+
+**G-135 — Cost / token meta-domain candidate.** Deferred per the new G-130 deferral-trigger discipline (Review 59 promotion). The gap remains a valid candidate; what's deferred is the building of the meta-domain.
+
+- **Trigger:** When (a) a second portfolio project hits a Claude Max daily limit (or comparable token-budget exhaustion event) AND (b) the operator decides AI-cost engineering is the next priority arc.
+- **Cost-of-deferral:** Operator continues without shared discipline for evaluating model-choice / per-task cost-efficiency / multi-project token telemetry; each new project re-discovers cost ceilings without inheriting prior findings; the "Can I dynamically adjust model/effort based on time til usage reset?" question stays unanswered.
+- **Auto-Backlog clause:** If no progress by 2026-09-01 OR no second-project recurrence by 2026-09-01, the gap auto-Backlogs per the new G-130 §3 mechanism (originating-domain re-raises as priority candidate at SO+VDD-IAR concurrence).
+
+The Deferred status (rather than Open) closes the gap entry with a real next-action condition, demonstrating the G-130 discipline applied to suite-development itself. Review 45 explicitly framed G-135 as "multi-session effort warranting its own arc — likely the largest single piece of follow-on suite work"; building the meta-domain in a single session would be the over-investment failure mode dollspace.gay's ITC critique (Review 51 / G-150) named.
+
+---
+
+### Coordination
+
+The Cluster C closures complete the Review 45 backlog (14 gaps registered Review 45 → 13 Addressed + 1 Deferred = all 14 closed). Coordinates with prior closures:
+
+- **G-134** (cold-session dispatch script) + **G-130** (deferral-trigger discipline) — the script's `**Source:** domain-raised` attribution in SECTION 4 implements the G-133 Source field convention that the per-review entry preamble standard now requires.
+- **G-136** (phase-flow diagram) + **G-131/G-151** (round triggers) + **G-150** (intent calibration) + **G-156** (layer-gate close criteria) — the diagram visualizes the coordination of these four prior closures as a single per-layer loop. Each prior closure's mechanism is a labeled node in the diagram.
+- **G-137** (rustdoc) + **G-128** (mutation testing, Review 57) — both are supplement-level rigor additions where the existing default tooling produced false-clean signals; both name the recurrence that earned the stricter form. The pair establishes a pattern: when a default tool command is grep-clean but the underlying check was off, name the stricter invocation.
+- **G-135 deferral** + **G-130 deferral-trigger discipline** (Review 59) — the deferral is itself the canonical example of the G-130 discipline applied. The suite eating its own cooking: a gap deferred without trigger discipline would be silent-Open noise (the exact failure G-130 named); the deferred G-135 names trigger + cost-of-deferral + auto-Backlog clause.
+
+**Backlog after Review 60: 3 Open** (G-134, G-136, G-137 Addressed; G-135 Deferred = all 14 Review 45 closures complete). Remaining Open: G-146 (`crosslink knowledge` auto-injection, Review 49 — forward enhancement) + G-149 (suite-development naming alignment, Review 50 — needs operator scope decision for direction A vs C). The G-149 rename PR will be the next major piece of work; it was scoped earlier as a separate-branch PR per the option-(A) selection rationale (cross-cutting rename better reviewed in isolation).
+
+Sycophancy self-audit: I considered framing G-135's Deferred status as "Addressed-equivalent" since the deferral mechanism itself is a closure of sorts. Rejected: Deferred is not Addressed; the meta-domain is not built; the operator may at any time un-defer and prioritize building it. The honest status is Deferred-with-trigger, and that's what the GAP-ANALYSIS-LOG row reflects.
+
+---
+
 ## Review 59 — 2026-05-19 06:00Z
 
 **Scope:** Address Cluster B of the Review 45 backlog — four process gaps. G-129 (documentation-currency hook) is tooling; G-130 (deferral-trigger discipline + auto-Backlog mechanism promotion from ITC CLOSURE-PROTOCOL §3) and G-132 (manual testing as second adversarial surface) are doctrine; G-133 (Source field on per-review preamble) is structural. All four land together because they're inter-coordinated — G-133's Source field is what makes G-132's director-raised manual findings trackable; G-130's auto-Backlog mechanism is what makes G-129's CHANGELOG-currency findings closeable.

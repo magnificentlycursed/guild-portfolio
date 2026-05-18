@@ -4,6 +4,29 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-19 (Review 60: Cluster C operational gaps — G-134, G-136, G-137 Addressed; G-135 Deferred)
+
+### Added
+- **`vsdd-suite/templates/cold-session-dispatch.sh`** (new, executable) — bash script that takes `<domain-slug> [--layer N] [--lang slug] [--scope text]` and emits a 4-section assembled paste-into-fresh-chat prompt: SECTION 1 primer + SECTION 2 domain prompt + SECTION 3 supplement (conditional on `--lang`) + SECTION 4 scope/instructions framing with explicit `**Source:** domain-raised` attribution. Resolves SUITE_ROOT relative to script location (works from any project's CWD). Pipe-to-clipboard examples for macOS / X11 / Wayland. Tested in three states (no args; invalid domain; valid + all flags).
+- **`vsdd-suite/README.md`** § VSDD pipeline context § Per-layer flow (within a project) (new sub-section) — ASCII flow diagram showing the per-layer loop: 1b decomp → 2a Red Gate → 2b implement → director manual test (G-132 second adversarial surface) → IAR Round N → Phase 4 routing → continue-trigger decision (G-131) → stop-trigger decision (G-151) → layer-gate close criteria → merge. Both trigger directions appear at the same decision point. Re-enter-phase block names the four routing destinations.
+
+### Changed
+- **`vsdd-suite/supplements/rust.md`** § Technical Writer rustdoc-coverage bullet (G-137) — replaced `cargo doc --no-deps 2>&1 | grep "missing documentation"` with `RUSTDOCFLAGS="-D missing_docs" cargo doc --no-deps` as the canonical check. Added explicit "do NOT rely on grep of default output — `cargo doc` does not warn on missing docs unless the lint is enabled in `Cargo.toml` or via `RUSTDOCFLAGS`" guidance. Cited ITC TW R4 (grep-clean) vs. TW R6 (RUSTDOCFLAGS-9-errors) recurrence.
+- **`vsdd-suite/supplements/rust.md`** § Software Engineering Clippy lint configuration (G-137 paired) — added `missing_docs` (rustc lint) to the standard deny set with explanatory note about rustc-vs-clippy lint distinction. Catches the gap at clippy/cargo-check time, complementing the `cargo doc` check.
+
+### Addressed
+- **G-134** — Cold-session dispatch tooling absent. Friction operator named in ITC PROCESS.md L2+L3 ("Things that are skipped or shortcut because they're annoying to do manually are a good candidate for automation. Ignored signals are an antipattern.") is now mechanizable.
+- **G-136** — Suite-level phase-flow visualization. The "process flow chart is implied instead of strongly structured" friction (ITC PROCESS.md L3) is now explicit at the README level. A reader does not have to reconstruct the per-layer loop from the primer set.
+- **G-137** — Rustdoc verification command insufficient. Paired rustdoc-coverage + clippy-deny-set rule named explicitly in two places that cross-reference each other.
+
+### Deferred
+- **G-135** — Cost/token meta-domain candidate. Deferred per the new G-130 deferral-trigger discipline (Review 59 promotion) — the suite eating its own cooking. **Trigger:** second portfolio project hits Claude Max daily limit (or comparable token-budget exhaustion) AND operator decides AI-cost engineering is next priority arc. **Cost-of-deferral:** continued operator pain on cost/token telemetry; no shared discipline for cost-efficiency evaluation across projects. **Auto-Backlog clause:** if no progress by 2026-09-01 OR no second-project recurrence by 2026-09-01, auto-Backlogs per G-130 §3 mechanism. The Deferred status is the canonical demonstration of the G-130 mechanism applied to suite-development itself.
+
+### Note
+**Review 45 backlog complete.** All 14 gaps from Review 45's ITC pattern-mining (G-124–G-137) are now closed: 13 Addressed (G-124–G-133, G-134, G-136, G-137; G-131 closed Review 53) + 1 Deferred (G-135 with trigger discipline). The Review 51 dollspace.gay-derived backlog (G-150–G-156) is also complete (all 7 Addressed across Reviews 52–55). Backlog after Review 60: **3 Open** — G-146 (`crosslink knowledge` auto-injection, forward enhancement) + G-148 was Addressed Review 56 so this counts only G-146 + G-149 + ... wait — let me recount. Pre-Review-51 backlog at session start: G-124–G-137 (14) + G-146 + G-148 + G-149 = 17. Net closures across Reviews 52–60: G-131 (R53), G-124-128 (R57), G-148 (R56), G-150-156 (R52-55), G-158 (R58 same-session), G-129-130-132-133 (R59), G-134-136-137 (R60), G-135 Deferred (R60). **Final Open backlog: G-146 + G-149 = 2 Open.** (Pre-Review-45 backlog items — G-100s, G-110s — remain Open separately; this count only refers to the ITC-mining-cycle backlog.)
+
+---
+
 ## Unreleased — 2026-05-19 (Review 59: Cluster B process gaps — G-129, G-130, G-132, G-133 Addressed)
 
 ### Added
