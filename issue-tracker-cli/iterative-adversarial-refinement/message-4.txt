@@ -1,0 +1,115 @@
+Assignment source: apprentice-onboarding/02-the-methodology/02-tracking-your-work.md (portfolio project #2, first Rust project).
+  Code under review: guild-portfolio/issue-tracker-cli/ — ~2.5 KLOC Rust source, ~3.5 KLOC tests, ~2.5 KLOC design/process docs.
+
+  ---
+  Assignment requirements vs implementation
+
+  #: F1
+  Spec requirement (from the chapter's design doc & interface block): Create issue with title + optional description
+  Implementation: cmd_create / validate_title / validate_description
+  Notes: ✓ Trims title, rejects empty/control-char, stores description verbatim
+  ────────────────────────────────────────
+  #: F2
+  Spec requirement (from the chapter's design doc & interface block): List all open issues
+  Implementation: cmd_list defaults to --status open, sorted high→low then id asc
+  Notes: ✓
+  ────────────────────────────────────────
+  #: F3
+  Spec requirement (from the chapter's design doc & interface block): Mark in-progress / done
+  Implementation: cmd_status <id> open|in-progress|done
+  Notes: ✓ Idempotent; refreshes updated_at
+  ────────────────────────────────────────
+  #: F4
+  Spec requirement (from the chapter's design doc & interface block): Priority (low/medium/high)
+  Implementation: parse_priority + priority_rank sort
+  Notes: ✓ Defaults to medium
+  ────────────────────────────────────────
+  #: F5
+  Spec requirement (from the chapter's design doc & interface block): Labels
+  Implementation: parse_label + dedupe_labels, repeatable --label on create
+  Notes: ✓ Trim, no commas, no controls; first-occurrence-wins dedup
+  ────────────────────────────────────────
+  #: F6
+  Spec requirement (from the chapter's design doc & interface block): Filter by status / priority / label (compound)
+  Implementation: issue_matches_filters (AND-combined)
+  Notes: ✓ label_matches is case-sensitive exact match per spec
+  ────────────────────────────────────────
+  #: F7
+  Spec requirement (from the chapter's design doc & interface block): List closed separately
+  Implementation: tracker list --status done (no separate command)
+  Notes: △ Implemented as a flag, not a subcommand — matches interface example tracker list --status done in the spec but not a literal reading of feature-list item 7
+  ────────────────────────────────────────
+  #: F8
+  Spec requirement (from the chapter's design doc & interface block): Delete an issue
+  Implementation: cmd_delete
+  Notes: △ No confirmation prompt — build-layer 6 hint says "with confirmation"; DECISIONS.md justifies via SO Review 6 (interface section in spec lists no confirmation, build-layer text "explicitly framed as
+    advisory")
+  ────────────────────────────────────────
+  #: Polish
+  Spec requirement (from the chapter's design doc & interface block): Helpful errors, color, --help, empty-state msgs
+  Implementation: Layer 7 (color_mode_from_env, NO_COLOR/CLICOLOR honoring, WCAG-bold colors, SGR Cc-escape on stderr)
+  Notes: ✓ Over-delivered
+  ────────────────────────────────────────
+  #: Security habit
+  Spec requirement (from the chapter's design doc & interface block): Validate input, reject empty titles, survive corrupt JSON
+  Implementation: validate_* family + tracker_is_valid + issue_fields_are_valid
+  Notes: ✓ Post-deserialization domain validation (caught originally as a Security/DE/RT review gap, fixed)
+
+  Overall: every spec-listed feature is present and behaves to spec. Two judgement calls (F7 as flag vs subcommand, F8 no-confirm) are documented in DECISIONS.md with rationale tied to the spec's interface
+  section.
+
+  ---
+  VDD process adherence (the part the assignment grades hardest)
+
+  The chapter is explicit that the process is the assessment, not just the feature checklist:
+
+  - ✓ DESIGN.md before code — 437 lines, written and SO-reviewed before Layer 1.
+  - ✓ Decomposition — TODO.md lays out 7 layers with per-layer acceptance criteria, manual-testing checklists, and explicit Red Gate test lists.
+  - ✓ Red Gate (failing tests first) — confirmed in PROCESS.md ("17 integration and unit tests were written and confirmed failing before the implementation existed").
+  - ✓ Adversarial review — 11 IAR domains (SE/SA/QE/Security/UX/DE/PE/RT/SO/TW/VDD-alignment). The methodology chapter's worked example is 3 rounds with one hallucinated critique as the stop signal; this
+  project ran many more.
+  - ✓ Retrospective — PROCESS.md exists; CHANGELOG.md is unusually detailed (952 lines).
+
+  ---
+  Notable strengths
+
+  1. Persistent next_id counter (storage.rs:38-48) — restored after SO Review 22 surfaced that max(remaining_ids)+1 reuses the deleted highest id. This is exactly the kind of "create #1, #2, delete #2, create
+  reuses id 2" footgun the chapter's invariants list calls out ("IDs are never reused, including after deletion").
+  2. Cc-escape stderr hygiene — display_safe + sanitize_quoted_values (validate.rs:216-273) defend against pasted ANSI escape sequences in user input being reflected raw onto the terminal via error messages.
+  The clap-error pipeline specifically preserves structural \n while escaping content inside '...' quoted regions. Beyond spec but principled.
+  3. Color contract — bold SGR on every highlighted value (WCAG 1.4.1 redundancy beyond hue), honors NO_COLOR and CLICOLOR=0, refuses CLICOLOR_FORCE to preserve pipe-cleanness, suppresses on non-TTY stdout.
+  TRACKER_INTERNAL_FORCE_COLOR is a deliberately-ugly test seam, namespaced and undocumented.
+  4. SIGPIPE handling (main.rs:64-67) — tracker list | head exits silently instead of panicking with EPIPE.
+  5. Module split — storage / validate / commands, with pub(crate) walls around crate-internal helpers and a tight 8-item public re-export surface. Matches the project-architecture chapter's "models / storage
+  / commands / output" pattern.
+  6. Lint discipline — #![deny(clippy::unwrap_used, expect_used, panic, missing_errors_doc)] in lib.rs; the two unwrap_used allows are scoped (serialization of a known-serializable struct, env-test mutex
+  poisoning).
+  7. Load-time invariants — tracker_is_valid rejects duplicate ids, next_id <= max(id), malformed timestamps, updated_at < created_at, control chars in stored fields. Treats the JSON file as untrusted.
+
+  ---
+  Notable gaps / things worth flagging
+
+  1. Non-atomic write (storage.rs:213-218) — fs::write(path, contents) clobbers the file directly. The methodology chapter's worked example is literally the Adversary saying "this isn't atomic; write to a temp
+   file first, then rename." DECISIONS.md acknowledges this is deliberate (SA Review 1 F1: single-user, cost-disproportionate). Defensible but it's the textbook example from 01-how-we-build.md:137-139, so a
+  reviewer following the chapter will land here first.
+  2. Delete with no confirmation — see F8 above. The build-layer 6 line "with confirmation" was overridden by an interface-section reading. Worth defending verbally; not wrong, just contestable.
+  3. CRLF asymmetry in descriptions — validate_description rejects \r outright (so a Windows-paste of multi-line description fails on create), but format_show_block normalizes \r\n → \n for rendering. If
+  rendering can normalize safely, input could too — the strictness is inconsistent.
+  4. Scope inflation vs assignment level — this is the apprentice's first Rust project. 11 review domains, 6 KLOC of tests against ~2.5 KLOC of source, retroactive Red Gate fixes (lib.rs:853-883), and a
+  TRACKER_INTERNAL_FORCE_COLOR test seam are well past what 02-tracking-your-work.md asks for. The chapter explicitly says "you're not going to set up formal verification pipelines or run multi-model
+  adversarial loops on day one." Strong signal of engagement, but also of process drift — the chapter's stop signal ("the Adversary was forced to invent a problem") may have been ignored.
+  5. render_cell debug-assert on non-ASCII (commands.rs:235-242) — pins an internal width-computation contract that is correct (status/priority are closed ASCII enums), but the failure mode it guards is
+  "future spec amendment adds non-ASCII colored field" — quintessential YAGNI. The system prompt's "don't add error handling for scenarios that can't happen" rule is in tension here.
+  6. No releases / no fresh-system install verification — README has cargo install --path . but there are no published binaries and PROCESS.md doesn't record anyone other than the author successfully running
+  it. The assignment doesn't require this (that's reserved for the capstone in 04-proving-it/01-on-your-own.md), so it's only a gap if positioning this for the capstone bar.
+
+  ---
+  Bottom line
+
+  Spec coverage: every feature in the assignment's design-doc block is implemented, with two documented interpretation choices (F7 as flag, F8 no-confirm). Process adherence: exceeds the chapter's bar —
+  design-first, layered build, Red Gate, IAR, retrospective are all present and over-delivered. Code quality: strong — clean module split, principled error handling, security-aware input validation, sensible
+  Rust idioms.
+
+  The two substantive critiques a chapter-aligned reviewer is likely to make: (1) non-atomic write is the chapter's own example fix and is not fixed (deliberately, with rationale), and (2) the scope of the IAR
+   process is dramatically larger than the assignment frames as appropriate for a first-Rust-project portfolio piece — the apprentice has built this like a production tool, not a learning exercise. Both are
+  defensible, but both are visible

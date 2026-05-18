@@ -7,7 +7,7 @@
 - [ ] All acceptance criteria in TODO.md are met
 - [ ] Tests pass (see project-specific command below)
 - [ ] Manual testing checklist in TODO.md completed
-- [ ] IAR suite run (see `iterative-adversarial-refinement/README.md`); all domains complete; all findings resolved, dismissed, or deferred to a named future layer
+- [ ] IAR suite run (see `vsdd-suite/README.md`); all domains complete; all findings resolved, dismissed, or deferred to a named future layer
 - [ ] `CHANGELOG.md` updated
 - [ ] `DECISIONS.md` updated (if decisions were made)
 

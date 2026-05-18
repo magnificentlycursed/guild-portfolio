@@ -18,15 +18,64 @@ repos:
       - id: review-log-anonymization
         name: review-log anonymization (IAR suite hook)
         language: script
-        # Suite-level hook: lives at iterative-adversarial-refinement/hooks/
+        # Suite-level hook: lives at vsdd-suite/hooks/
         # so it carries with the suite if the suite is forked into a separate
         # repo. Scoped to IAR review-log markdown only — the source-code
         # no-home-dir-paths hook above covers everything else. Allows public
         # URL contexts (github.com/, gitlab.com/, bitbucket.org/, noreply.*).
-        # Registered as G-98 in iterative-adversarial-refinement/GAP-ANALYSIS-LOG.md.
-        entry: iterative-adversarial-refinement/hooks/check-review-log-anonymization.sh
+        # Registered as G-98 in vsdd-suite/suite-development/GAP-ANALYSIS-LOG.md.
+        entry: vsdd-suite/hooks/check-review-log-anonymization.sh
         pass_filenames: true
-        files: ^(iterative-adversarial-refinement/.*\.md|.*/iterative-adversarial-refinement/.*\.md)$
+        # Covers: suite-internal markdown (vsdd-suite/**), future-project IAR
+        # markdown (<project>/vsdd-suite/**), and completed-project IAR
+        # markdown still using the legacy directory name (<project>/iterative-
+        # adversarial-refinement/**) per the G-88 forward-only constraint.
+        files: ^(vsdd-suite/.*\.md|.*/iterative-adversarial-refinement/.*\.md|.*/vsdd-suite/.*\.md)$
+
+      - id: check-crosslink-references
+        name: check crosslink command/flag citations against installed CLI (IAR suite G-139 hook)
+        language: script
+        # Mechanizes the G-123 discipline (external-dependency feature
+        # verification). Greps user-facing suite docs for `crosslink <subcmd> ...
+        # --<flag>` patterns, runs `crosslink <subcmd> --help` for each, and
+        # fails the commit if any cited flag is missing from the help output.
+        # Skips gracefully when crosslink is not installed (CI-safe).
+        # Registered as G-139 in vsdd-suite/suite-development/GAP-ANALYSIS-LOG.md
+        # after two recurrences across four sessions of the same speculation-
+        # then-late-correction failure mode.
+        entry: vsdd-suite/hooks/check-crosslink-references.sh
+        pass_filenames: true
+        # Scope to user-facing docs only. Historical-narrative files
+        # (CHANGELOG, COMPATIBILITY, GAP-ANALYSIS-LOG, SUITE-REVIEW-INDEX,
+        # review-log/, FINDINGS-INDEX) intentionally preserve citations of
+        # past wrong commands as audit trail; the hook self-skips them as a
+        # defense-in-depth check, but the `exclude:` here filters at the
+        # staged-files level for efficiency. Covers both the suite source
+        # (vsdd-suite/**) and per-project per-domain index files
+        # (<project>/vsdd-suite/*.md — single-level only, not review-log).
+        files: ^(vsdd-suite/.*\.(md|sh)|.*/vsdd-suite/[^/]+\.md)$
+        exclude: ^(vsdd-suite/(CHANGELOG|COMPATIBILITY)\.md|vsdd-suite/suite-development/(GAP-ANALYSIS-LOG|SUITE-REVIEW-INDEX)\.md|.*/review-log/.*\.md|.*/FINDINGS-INDEX\.md)$
+
+      - id: check-changelog-currency
+        name: check CHANGELOG.md updated when source changes (IAR suite G-129 hook)
+        language: script
+        # Mechanizes the G-129 discipline (documentation currency at commit
+        # time). When a project tree contains both CHANGELOG.md and a
+        # `.changelog-required` marker file (opt-in flag), source changes in
+        # that tree must include a CHANGELOG.md update in the same commit.
+        # Projects without the marker are not enforced — the hook is
+        # methodology-neutral about CHANGELOG discipline absent explicit
+        # opt-in. Registered as G-129 in vsdd-suite/suite-development/
+        # GAP-ANALYSIS-LOG.md after six consecutive ITC layer closes where
+        # TW caught CHANGELOG staleness post-hoc.
+        entry: vsdd-suite/hooks/check-changelog-currency.sh
+        pass_filenames: true
+        # Covers all text files — the hook's per-file extension filter
+        # (`.rs`, `.ts`, `.tsx`, `.js`, `.jsx`, `.py`, `.go`, `.md`, `.sh`,
+        # `.yaml`, `.yml`, `.toml`) is the actual scoping mechanism. Excludes
+        # nothing here — opt-in is per-project via the `.changelog-required`
+        # marker file, not via this config's `exclude:` pattern.
+        types: [text]
 
       - id: cargo-fmt-check
         name: cargo fmt (issue-tracker-cli)
