@@ -1,5 +1,64 @@
 # Suite Review — 2026-05-18
 
+## Review 52 — 2026-05-18 23:30Z
+
+**Scope:** Address G-150 (IAR intensity-to-assignment calibration discipline) and G-156 (developer-voice retrospective REQUIRED at gate close) — the two highest-leverage single closures from Review 51's recommended sequencing. G-150 is the dollspace.gay headline gap; G-156 closes the recurring Portfolio Assessment R1–R5 unfilled-placeholder finding via a baseline-criterion tightening that removes the "block portfolio assessment but not technical merge" carve-out that allowed the pattern to persist.
+
+**Lens:** Closure-by-direct-edit. Both gaps had well-scoped resolution paths in their Review 51 row bodies; the session work is direct application of those resolutions to the named files.
+
+**Session note:** In-session. Sycophancy compensation: G-150's resolution narrows the suite's default IAR scope below the scaffold default (G-121's 7-core starter set) for `learning-exercise` intent — this is a methodological retreat from the prior "all 7 every layer" posture. The temptation: soften by making the calibration optional or advisory. Rejected: dollspace's critique is direct ("scope of the IAR process is dramatically larger than the assignment frames as appropriate"), and an advisory calibration would not be enforceable. The intent declaration is now a `DESIGN.md` § Project intent field with default-portfolio carrying the prior behavior — every existing project that doesn't declare intent continues at the 7-core scaffold default. The learning-exercise narrowing only applies when an operator declares it explicitly. G-121 stays ratified; G-150 layers a calibration on top.
+
+For G-156: the temptation here was to leave the criterion advisory ("strongly encouraged but not blocking") because tightening it to a hard gate could feel punitive to a developer who hasn't yet filled their PROCESS.md sections. Rejected: Portfolio Assessment R1 → R5 documented the same gap five times across the ITC project. "Strongly encouraged" was the prior treatment and it produced the recurrence; per "earned by recurrence" doctrine, the recurrence earned the harder gate. Forward-only protects existing projects.
+
+---
+
+### Resolved
+
+**G-150 — Project-intent calibration discipline added across four files.**
+
+Resolution lands in four files per the Review 51 G-150 row:
+
+1. **`templates/DESIGN-template.md`** — new `## Project intent` section between the `---` separator and `## What this project does`. The section declares one of four intent levels (`learning-exercise`, `portfolio`, `capstone`, `production`) with per-intent IAR-scope implications stated inline, a default-portfolio note (the scaffold default per G-121 — undeclared intent inherits portfolio's 7-core treatment), and a `**Declared intent for this project:** \`<intent-level>\`` field with a rationale prompt. The framing names the over-investment failure mode dollspace identified — "the over-investment variant is hard to catch in-project because the methodology produces more findings (which feel like value) rather than fewer."
+
+2. **`templates/PROJECT-README-template.md`** — one-line `**Methodology intent:**` field added to the `## What this is` section, pointing to DESIGN.md for the full declaration. Minimal user-facing surface; the methodological metadata lives in DESIGN.md.
+
+3. **`domains/DOMAIN-INDEX.md`** — new `## Intent calibration` section after the meta-domains table. Contains a 4-row table mapping intent → active core domains + active extended domains + stop-signal sensitivity (G-151 cross-reference) + notes. Includes the two disciplines: "the calibration is not a license to skip findings" (a 3-core IAR run still owes the cores it runs full discipline) and "promotion allowed, demotion not allowed" (intent can be tightened mid-project but not loosened — once a project has been reviewed at higher intensity, the surface findings become part of the project's record).
+
+4. **`primers/1b-decomposition.md`** — new `## Right-size the IAR (intent-keyed active-domain set)` section between the TODO.md format section and the completion criteria. Names the workflow: read DESIGN.md § Project intent before authoring each layer's `**IAR:**` line. Includes two worked examples: a learning-exercise 4-layer project with rotating optional cores (each layer rotates a different optional core in — SA on layer 1, Security on layer 2, etc.) and a portfolio default (all 7 + Technical Writer). Two anti-patterns: declaring high intent without acknowledging cost (the dollspace failure mode), and silent intent demotion (a project that started at portfolio and is run as learning-exercise mid-project is dishonest about the bar — demotion is rejected per DOMAIN-INDEX.md discipline). New completion criterion 6 added to the Phase 1b completion criteria requiring the active-IAR domain set per layer be intent-calibrated; a layer with `**IAR:** all domains` for learning-exercise intent is a Phase 1b finding.
+
+**Resolution:** G-150 status flipped Open → Addressed in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md). The dollspace headline critique now has a mechanism: scaffold-default-7-cores stays (G-121 unchanged), but intent declaration tells future IAR runs whether to dial down (learning-exercise) or expand (capstone / production).
+
+**G-156 — Developer-voice retrospective REQUIRED at gate close (baseline criterion tightened).**
+
+Resolution lands in `suite-development/suite-development.md` — new `### Layer-gate close criteria (PROCESS.md retrospective discipline)` sub-section under `## Governing standard for project-level review logs` (placed between § Project-level finding index and § File-level header). The section codifies seven baseline criteria for every project's layer-gate close. **Criterion 7 is the gap closure:**
+
+> "PROCESS.md retrospective for the layer is at least started — with developer-voice prose, not just scaffolding. A retrospective section is 'at least started' when at least one first-person sentence from the developer follows the italicized scaffolding block. An unfilled italicized scaffolding block (the `*[First-person reflection on Layer N. Possible threads: ...]*` template prose alone, with no developer-written prose underneath) is NOT 'at least started' — the scaffolding is the prompt; the developer's prose is the response. **Applies to each `## What was hardest`, `## What I got wrong`, and `## What the process felt like` section per layer.** Empty placeholder sections block layer-gate close regardless of other criteria."
+
+The "block portfolio assessment but not technical merge" carve-out from the prior CLOSURE-PROTOCOL framing is removed in the baseline. The "why criterion 7 is a hard gate" paragraph cites the ITC Portfolio Assessment R1–R5 recurrence chain as the "earned by recurrence" trigger. Forward-only: applies to projects whose first layer-gate close is after 2026-05-18 (G-156 closure date); pre-existing project layer-gate closes are not retroactively failed.
+
+**Resolution:** G-156 status flipped Open → Addressed in [GAP-ANALYSIS-LOG.md](../GAP-ANALYSIS-LOG.md). A future project (or `bookmark-cli`, the reference implementation) whose PROCESS.md retrospective has unfilled scaffolding blocks at a layer-gate-close attempt now has a structural gate failure that the project owner must address with developer-voice prose before merge.
+
+---
+
+### Coordination
+
+The Review 52 closures coordinate across the open backlog:
+
+- **G-151 (still Open) — stop-signal enforcement.** G-150's intent calibration partially addresses G-151's framing: stop-signal sensitivity is now a per-intent field in the DOMAIN-INDEX.md calibration table (learning-exercise = high sensitivity, portfolio/capstone = standard, production = strict). The mechanism gap remains — the primer + closure-protocol update G-151 names is still to be addressed. G-151 stays Open; recommend it as the next single closure (small primer edit + small criterion addition).
+- **G-155 (still Open) — capstone fresh-system install verification.** G-150's intent declaration is the prerequisite G-155 depends on. With G-150 Addressed, G-155 is now actionable; recommend bundling it with G-151 in a single follow-on session since both are small additions keyed to the new intent calibration.
+- **G-131 (still Open) — loop-count framing.** G-151 is the mirror complement; the two together compose the loop discipline (continue trigger + stop trigger). Recommend addressing them as a paired primer update.
+- **G-121 (Addressed earlier, Review 42)** — the scaffold-default-7-cores doctrine. G-150 layers calibration on top WITHOUT changing the scaffold default. A scaffolded project still gets 7 per-domain index files; the active-IAR domain set per layer is what's calibrated. No regression on G-121.
+
+The other Review 51 gaps (G-152 input/output strictness, G-153 methodology-canonical-example deferral, G-154 test-seam-as-production-attack-surface) are unaffected by Review 52's closures and remain in the Open backlog as the recommended next domain-prompt batch.
+
+**Backlog after Review 52:** 14 Open gaps (down from 16 — G-150 + G-156 Addressed). G-151, G-152, G-153, G-154, G-155 are the recommended next batch (split into: G-151+G-131 primer update; G-152+G-153+G-154 domain-prompt batch; G-155 standalone after G-151 lands).
+
+Sycophancy self-audit: I considered framing G-150's resolution as "experimental" with a "may be revised based on early adoption signal" hedge. Rejected: dollspace's critique is well-grounded and the resolution mechanism (intent declaration + calibration table) is straightforward enough that an early-adoption-signal hedge would just delay the discipline taking effect. The forward-only constraint already protects existing projects from breakage; the hedge would protect from nothing real. Similarly for G-156: I considered framing the hard-gate criterion as "recommended hard gate at director discretion." Rejected for the same reason — five-review recurrence demonstrates director discretion produced the gap; transferring the call to the criterion itself is the rule change "earned by recurrence" earned.
+
+No new findings beyond the closures applied. Two gaps Addressed, no new gaps registered.
+
+---
+
 ## Review 51 — 2026-05-18 22:00Z
 
 **Scope:** Upstream-author-feedback mining pass. Inputs: (a) `issue-tracker-cli/iterative-adversarial-refinement/message-4.txt` — a structured assignment-vs-implementation review of the ITC project from dollspace.gay (VSDD whitepaper author), evaluating the project against `apprentice-onboarding/02-the-methodology/02-tracking-your-work.md` (portfolio project #2, first Rust project); (b) `issue-tracker-cli/PROCESS.md` — the 7-layer first-person retrospective; (c) the 13 per-domain review logs + `CLOSURE-PROTOCOL.md` + `PORTFOLIO-ASSESSMENT-REVIEW.md` + `README.md` in the ITC IAR directory. Cross-checked against the Review 45 backlog (G-124–G-137 already mined from the same project artifacts) to identify what's NEW from the upstream-author signal vs. already-captured.

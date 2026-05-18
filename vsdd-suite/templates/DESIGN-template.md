@@ -4,6 +4,17 @@ Phase 1a contract. Authored with [`vsdd-suite/primers/1a-spec-crystallization.md
 
 ---
 
+## Project intent
+
+Declare one of the four intent levels below. The intent gates the IAR intensity calibration (active-domain set, stop-signal sensitivity, fresh-system install discipline) per `vsdd-suite/domains/DOMAIN-INDEX.md` § Intent calibration. An undeclared intent defaults to `portfolio` (the suite's scaffold-default; the same as G-121's 7-core starter set). Declare deliberately — the wrong intent over-invests or under-invests methodology effort and the over-investment variant is hard to catch in-project because the methodology produces more findings (which feel like value) rather than fewer.
+
+- **learning-exercise** — first attempts in a new technology; goal is learning, not shipping. Apprentice's first project in a language or framework. The IAR intensity is intentionally narrower than the scaffold default: 3 cores (SE, QE, SO) plus one rotating optional core (SA / Security / UX / Platform Engineer / Data Engineer, rotated across layers to expose the apprentice to different lenses). Stop-signal sensitivity high (G-151) — stop early when findings get hallucinated; the cost of one missed defect is low relative to the cost of process-drift fatigue.
+- **portfolio** — apprenticeship/portfolio demonstrations meant for handoff and external review. Standard IAR (the 7-core default per G-121, plus Technical Writer if intended for external reading). Standard stop signal.
+- **capstone** — apprentice-graduation-level work. Full 7-core + Performance Engineer + fresh-system install verification discipline (G-155). Standard stop signal.
+- **production** — software meant for ongoing operational use by people other than the developer. Full 7-core + all extended domains meeting their activation criteria (Red Team if user input or network exposure, Privacy if user data, Accessibility if UI, Localization if multi-locale). Strict MVR enforcement.
+
+**Declared intent for this project:** `<intent-level>`. Rationale: `<one sentence stating why this intent fits the project — e.g., "first Rust project; goal is learning the language, not shipping a tool" or "portfolio submission for the apprentice graduation review">`.
+
 ## What this project does
 
 One paragraph. State the user-visible purpose in concrete behavioral terms. A reader who knows nothing about the project must finish this paragraph able to describe what it does.

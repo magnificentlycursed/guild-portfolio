@@ -184,6 +184,26 @@ The manual mode matches the crosslink mode's information shape exactly so a proj
 
 **Either mode, both are forward-only:** A project chooses one mode at start. Switching modes mid-project (manual → crosslink) requires migrating existing rows; switching the other way (crosslink → manual) requires exporting via `crosslink export`. Switching is supported but not free; choose deliberately at scaffold time.
 
+### Layer-gate close criteria (PROCESS.md retrospective discipline)
+
+Layer-gate close criteria govern when a layer's IAR round may close and the layer may merge to the project's main branch. The full criteria set is project-scoped — a project may codify additional criteria in its own `iterative-adversarial-refinement/CLOSURE-PROTOCOL.md` (per ITC's precedent) — but the suite-level baseline below applies to every project regardless of whether it codifies a CLOSURE-PROTOCOL of its own.
+
+**Baseline criteria (every project, every layer-gate close):**
+
+1. Every active IAR domain (per the project's intent calibration — see `../domains/DOMAIN-INDEX.md` § Intent calibration) has completed at least one cold-session pass on this layer.
+2. The refinement loop continued until MVR. A round that produced only Hallucinated findings closes the layer's IAR; a round that produced new real findings re-opens the layer for Round N+1 (per `../primers/3-review-session.md` § Sycophancy and the G-131 trigger discipline).
+3. Every finding is in a terminal state (Resolved, Dismissed, Hallucinated, Backlogged, Approved deviation, Accepted risk, Accepted deviation, Accepted limitation, Accepted scope, Deferred per scope/timing rules).
+4. CHANGELOG.md accurately describes what changed this layer (added/changed/removed/addressed sections per the closing block discipline).
+5. The project's build and test gate is green per the project's tooling (`cargo build && cargo test && cargo clippy && cargo fmt --check --locked` for Rust; equivalent for other languages).
+6. Any DESIGN.md changes during the layer have explicit SO authorship or SO ratification recorded in the SO log.
+7. **PROCESS.md retrospective for the layer is at least started — with developer-voice prose, not just scaffolding.** A retrospective section is "at least started" when at least one first-person sentence from the developer follows the italicized scaffolding block. An unfilled italicized scaffolding block (the `*[First-person reflection on Layer N. Possible threads: ...]*` template prose alone, with no developer-written prose underneath) is NOT "at least started" — the scaffolding is the prompt; the developer's prose is the response. **Applies to each `## What was hardest`, `## What I got wrong`, and `## What the process felt like` section per layer.** Empty placeholder sections block layer-gate close regardless of other criteria.
+
+**Why criterion 7 is a hard gate, not advisory:** The pattern of "PROCESS.md retrospective sections remain empty across multiple layer-gate closures" recurred in `issue-tracker-cli` across Portfolio Assessment Reviews 1, 2, 3, 4, 5 (five consecutive assessments documented the same gap). The R4 standing recommendation ("the nine first-person reflection placeholders are the cheapest single change") went partially-addressed (9 → 7) but two whole layer entries (Layer 6 + Layer 7) were absent at R5 time. Layer 6 was precisely the layer with the strongest single director-ownership artifact (SO R22 next_id reversal); its absence in PROCESS.md was a significant lost-evidence event. The "block portfolio assessment but not technical merge" framing that prior CLOSURE-PROTOCOL drafts used was what allowed the pattern to persist — recurrence trigger per "earned by recurrence" doctrine. The criterion is now a baseline hard gate. Reference: G-156's row in [`GAP-ANALYSIS-LOG.md`](GAP-ANALYSIS-LOG.md).
+
+**Forward-only constraint:** The hardened criterion 7 applies to projects starting after 2026-05-18 (G-156 closure date). Projects whose first layer-gate close predates that date may have retrospective sections with the older advisory framing; do not retroactively fail those gates. The criterion applies to all *new* layer-gate closes in active projects regardless of when the project started.
+
+**Promotion to a project-level CLOSURE-PROTOCOL.md:** A project that codifies its own closure protocol (per ITC's precedent in `issue-tracker-cli/iterative-adversarial-refinement/CLOSURE-PROTOCOL.md`) MUST include criterion 7 above as a baseline; the project's protocol may add criteria (auto-Backlog rules, warm-finding-closure carve-outs, etc.) but may not weaken the baseline. The suite does not currently ship a CLOSURE-PROTOCOL template — projects either inherit the baseline criteria above implicitly (the suite's standing rule) or codify their own. A future template addition is the natural next step if a third project codifies one (per "earned by recurrence").
+
 ### File-level header (top of the per-domain index file)
 
 The per-domain index file opens with these elements, in order:

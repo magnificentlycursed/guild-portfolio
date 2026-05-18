@@ -4,6 +4,24 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-18 (Review 52: G-150 + G-156 Addressed — intent calibration + developer-voice retrospective hard gate)
+
+### Added
+- **`templates/DESIGN-template.md`** § Project intent (new section) — declares one of four intent levels (`learning-exercise`, `portfolio`, `capstone`, `production`) with per-intent IAR-scope implications. Default-portfolio inherits the G-121 7-core scaffold default; learning-exercise narrows to 3 cores + rotating optional core; capstone adds Performance Engineer + fresh-system install discipline; production adds all warranted extended domains + strict MVR enforcement. Field: `**Declared intent for this project:** \`<intent-level>\`` with a rationale prompt.
+- **`templates/PROJECT-README-template.md`** § What this is — one-line `**Methodology intent:**` field pointing to DESIGN.md for the full declaration.
+- **`domains/DOMAIN-INDEX.md`** § Intent calibration (new section) — table mapping intent → active core domains + active extended domains + stop-signal sensitivity + notes. Includes the disciplines: "the calibration is not a license to skip findings" and "promotion allowed, demotion not allowed."
+- **`primers/1b-decomposition.md`** § Right-size the IAR (new section) — workflow for picking the per-layer `**IAR:**` line from the declared intent. Two worked examples (learning-exercise 4-layer rotating optional cores; portfolio default). Two anti-patterns (declaring high intent without acknowledging cost; silent intent demotion). New completion criterion 6 added to Phase 1b completion criteria requiring intent-calibrated per-layer `**IAR:**` line.
+- **`suite-development/suite-development.md`** § Governing standard for project-level review logs § Layer-gate close criteria (PROCESS.md retrospective discipline) (new sub-section) — codifies seven baseline layer-gate close criteria for every project. Baseline criterion 7 is the G-156 closure: PROCESS.md retrospective for the layer is at least started with **developer-voice prose, not just scaffolding** — an unfilled italicized scaffolding block is NOT "at least started." Applies to each `## What was hardest` / `## What I got wrong` / `## What the process felt like` section per layer. Empty placeholder sections block layer-gate close regardless of other criteria. The prior "block portfolio assessment but not technical merge" carve-out is removed.
+
+### Addressed
+- **G-150** — IAR intensity-to-assignment calibration discipline. Dollspace.gay (VSDD whitepaper author) headline critique mechanism now in place: intent declaration → calibration table → per-layer IAR set. Default-portfolio carries the prior 7-core behavior; learning-exercise narrows to 3 cores + rotating optional. Forward-only — existing projects without intent declarations inherit portfolio default; no regression.
+- **G-156** — Developer-voice retrospective REQUIRED at gate close (baseline criterion 7 hardened from advisory to hard gate). Recurrence trigger: ITC Portfolio Assessment R1 → R5 (five consecutive reviews documented the same unfilled-placeholder gap). Forward-only — applies to layer-gate closes after 2026-05-18; pre-existing closes not retroactively failed.
+
+### Note
+G-121's scaffold-default-7-cores doctrine is **unchanged** — every scaffolded project still gets all 7 per-domain index files. G-150 layers calibration on top of the scaffold, narrowing the *active-IAR set per layer* (not the scaffolded artifact set) based on declared intent. Coordinate with G-151 (still Open — stop-signal enforcement; now partially-addressed via the per-intent stop-signal sensitivity field but the mechanism update G-151 names is still pending), G-155 (still Open — capstone fresh-system install verification; now actionable since G-150 provides the intent declaration G-155 depends on). Backlog after Review 52: 14 Open (down from 16).
+
+---
+
 ## Unreleased — 2026-05-18 (Review 51: upstream-author-feedback mining — 7 gaps registered G-150–G-156 Open)
 
 ### Open

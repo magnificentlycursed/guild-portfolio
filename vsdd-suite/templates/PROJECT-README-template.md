@@ -6,6 +6,8 @@ One-sentence description of what this project does, in user-visible terms.
 
 Two or three paragraphs expanding the one-sentence description. Name the target user, the problem the project solves, and the project's current state (Phase 2b in-progress on Layer N; layer-N-complete; etc.). Link to [`DESIGN.md`](DESIGN.md) for the full behavioral contract.
 
+**Methodology intent:** `<learning-exercise | portfolio | capstone | production>` — see [`DESIGN.md`](DESIGN.md) § Project intent for what this intent declares about the IAR scope the project runs.
+
 ## Prerequisites
 
 What a user needs to run this project from a clean checkout.

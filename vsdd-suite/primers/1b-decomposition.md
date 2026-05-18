@@ -221,6 +221,46 @@ The decomposition produces a `TODO.md` with this structure:
 
 ---
 
+## Right-size the IAR (intent-keyed active-domain set)
+
+The decomposition picks the active-domain set for each layer's IAR, not the IAR runtime. The default "all 7 cores plus warranted extended domains" is the right starting point for **portfolio**-intent projects (per G-121's scaffold default). Other intents calibrate the set per `../domains/DOMAIN-INDEX.md` § Intent calibration.
+
+Read the project's `DESIGN.md` § Project intent before authoring `TODO.md` Layer N's IAR line. Then populate the layer's `**IAR:**` field with the active-domain set this layer will run, derived from the intent. The set may vary by layer for `learning-exercise` intent (the rotating fourth optional core); other intents typically use the same set every layer unless a specific layer warrants narrowing (e.g., a polish layer with no new attack surface may skip Security + Red Team).
+
+**Worked example — learning-exercise intent, 4-layer project, rotating optional core:**
+
+```markdown
+## Layer 1: Core data model
+...
+**IAR:** SE, QE, SO + SA (rotating: structural-decision layer, SA rotated in)
+
+## Layer 2: Persistence + load-time validation
+...
+**IAR:** SE, QE, SO + Security (rotating: validation surface, Security rotated in)
+
+## Layer 3: Filtering + sorting
+...
+**IAR:** SE, QE, SO + DE (rotating: data-query semantics, DE rotated in)
+
+## Layer 4: Polish
+...
+**IAR:** SE, QE, SO + UX (rotating: user-facing layer, UX rotated in)
+```
+
+**Worked example — portfolio intent (default):**
+
+```markdown
+## Layer 1: Core create + list
+...
+**IAR:** SE, QE, SO, SA, Security, UX, Platform Engineer + Technical Writer (active for portfolio handoff per DOMAIN-INDEX.md activation criteria)
+```
+
+**Anti-pattern: declaring high intent without acknowledging the cost.** A learning-exercise project that runs the full 11-domain treatment because "the methodology is there, why not use it" is over-investing methodology effort relative to the assignment bar. The dollspace.gay critique of `issue-tracker-cli` (Review 51 / G-150) named this as the headline drift mode — the project ran like a production tool when the assignment asked for a learning exercise. The check at decomposition time: does the layer's `**IAR:**` line match what the project's intent calls for, not just what feels comprehensive?
+
+**Anti-pattern: silent intent demotion.** A project that started at `portfolio` intent and is implicitly run as `learning-exercise` by skipping domain reviews mid-project is dishonest about the bar — demotion is not allowed per DOMAIN-INDEX.md § Intent calibration. If the project genuinely needs to narrow scope, the intent change is itself a DESIGN.md amendment with Solution Owner authority; the demotion is rejected (history is preserved) and the project either remains at portfolio bar or splits into a learning-exercise sub-project with a clear scope boundary.
+
+---
+
 ## Completion criteria
 
 The decomposition is ready to move to Phase 2 (Red Gate / implementation) when:
@@ -230,6 +270,7 @@ The decomposition is ready to move to Phase 2 (Red Gate / implementation) when:
 3. Every layer has a manual testing checklist
 4. Every layer has a Red Gate test plan (tests to write before implementation)
 5. The layers are ordered so each builds directly on the previous — no layer requires an unbuilt dependency
-6. For Phase 2+ projects: the crosslink issue hierarchy is created, one milestone per layer is created and populated, and `crosslink workflow diff` runs clean before the first session opens
+6. **The active-IAR domain set per layer is intent-calibrated.** Every layer's `**IAR:**` line names the active-domain set, derived from `DESIGN.md` § Project intent per the table in `../domains/DOMAIN-INDEX.md` § Intent calibration. A layer with `**IAR:** all domains` for a learning-exercise project is over-investment; a layer with `**IAR:** SE only` for a production project is under-investment. Either pattern is a Phase 1b finding.
+7. For Phase 2+ projects: the crosslink issue hierarchy is created, one milestone per layer is created and populated, and `crosslink workflow diff` runs clean before the first session opens
 
 This plan will be evaluated against VDD-IAR Alignment dims 2 (layered decomposition), 3 (layer gate compliance), and 4 (test discipline). A TODO.md that lists features without acceptance criteria, or layers without manual testing checklists, will not pass the layer gate.
