@@ -51,7 +51,7 @@ Meta domains do not evaluate the software itself. They evaluate methodology comp
 
 ## Intent calibration
 
-The "all cores plus warranted extended domains" default above is the right starting point for **portfolio**-intent projects (the scaffold-default per G-121). Other project intents calibrate the active set up or down so the IAR intensity matches the project's purpose level, not just the scaffold default. The intent is declared in the project's `DESIGN.md` § Project intent (per `templates/DESIGN-template.md`); the active-domain set is selected at decomposition time per `primers/1b-decomposition.md` § Right-size the IAR.
+The "all cores plus warranted extended domains" default above is the right starting point for **portfolio**-intent projects (the scaffold-default per G-121). Other project intents calibrate the active set up or down so the IAR intensity matches the project's purpose level, not just the scaffold default. The intent is declared in the project's `DESIGN.md` § Project intent (per `templates/DESIGN-template.md`); the active-domain set is selected at decomposition time per `primers/1c-decomposition.md` § Right-size the IAR.
 
 The over-investment failure mode is harder to catch in-project than the under-investment one because more findings *feel* like more value — that's the framing G-150 names and the calibration this section operationalizes.
 
@@ -65,3 +65,18 @@ The over-investment failure mode is harder to catch in-project than the under-in
 **Intent-calibration discipline:** A project's intent is declared once in `DESIGN.md` § Project intent and is forward-only at that intent. Promoting intent (learning-exercise → portfolio; portfolio → capstone; capstone → production) is allowed and triggers retroactive activation of the additional domains for the next layer onward (prior layers' reviews remain valid records at their intent). Demoting intent (portfolio → learning-exercise) is not allowed — once a project has been reviewed at higher intensity, the surface findings become part of the project's record.
 
 **The calibration is not a license to skip findings.** A learning-exercise project that runs only 3 cores still owes the cores it runs full IAR discipline — Red Gate, sycophancy check, MVR, etc. The calibration narrows the active-domain set; it does not weaken the per-domain bar.
+
+### Phase 5 / Phase 6 strategy declaration (G-162 — capstone + production intents)
+
+Phase 5 (Formal Hardening — [`../primers/5-formal-hardening.md`](../primers/5-formal-hardening.md)) and Phase 6 (Four-Dimensional Convergence — [`../primers/6-convergence.md`](../primers/6-convergence.md)) are owned by the suite as of v0.7.0 (Review 64 closure of G-54 + G-55). Both remain optional at every intent — projects close at the end of Phase 4 by default — but capstone and production intents must declare a strategy for each.
+
+**At capstone and production intents, `DESIGN.md` § Project intent must include a one-sentence Phase 5 strategy and a one-sentence Phase 6 strategy.** Valid declarations (per the explicit-skip pattern generalized from `primers/2c-refactor.md` G-96):
+
+- **`Phase 5: not applicable — <one-sentence rationale>.`** Acceptable rationales: not safety-critical, not cryptographic, no formal-verification candidates in the spec's verification-architecture map. Unacceptable: silence; "TBD"; "future work."
+- **`Phase 5: planned — <named tooling and scope, mapped to surfaces in primers/5-formal-hardening.md>.`** Example: "property-based testing via proptest on the purity boundary + mutation testing via cargo-mutants per layer + fuzzing via cargo-fuzz on the parser surface (Surfaces A + B + C; Surface D not applicable — no formal-proof candidates)."
+- **`Phase 6: not applicable — <one-sentence rationale>.`** Acceptable rationales: project intent does not promise four-dimensional convergence; closure at end of Phase 4 is sufficient evidence.
+- **`Phase 6: planned — <which of the four dimensions converge and how>.`** Example: "all four dimensions; formal verification dimension established via Phase 5 Surface D harnesses on the safety-critical control-loop functions."
+
+Learning-exercise and portfolio intents are exempt — the explicit-skip declaration is not required (silence is acceptable at those tiers because the methodology does not require Phase 5/6 at those intents). The strategy declaration is a gate criterion at capstone+ intent: a capstone-intent project whose `DESIGN.md` § Project intent omits either strategy line fails VDD-IAR Alignment dim 1 (spec completeness). This is forward-only: capstone/production projects starting after this discipline's introduction must declare; earlier projects retain their prior implicit-skip framing.
+
+**Why this is a gate, not advisory:** at capstone+ intent the methodology covers Phase 5 + Phase 6 explicitly; a project that doesn't even *name* the decision is operating outside the methodology rather than choosing not to apply it. The declaration is cheap (two sentences in DESIGN.md); the audit signal is non-trivial (the choice was deliberate, not forgotten). The discipline is enforced by VDD-IAR Alignment dim 1 (spec completeness — strategy declarations are part of the spec).

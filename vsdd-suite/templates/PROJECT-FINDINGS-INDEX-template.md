@@ -38,7 +38,7 @@ Structured like [`vsdd-suite/suite-development/FINDINGS-INDEX.md`](../../vsdd-su
 ## Cross-references
 
 - [`README.md`](../README.md) — project README
-- [`DESIGN.md`](../DESIGN.md) — Phase 1a contract
+- [`DESIGN.md`](../DESIGN.md) — Phase 1a+1b contract
 - [`TODO.md`](../TODO.md) — layer plans + manual testing checklists
 - Per-domain index files in this directory — round-level rollup per domain
 - Per-session files in [`review-log/`](review-log/) — finding-level narratives

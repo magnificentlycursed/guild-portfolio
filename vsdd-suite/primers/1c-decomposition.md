@@ -1,14 +1,16 @@
-# Session Primer: Project Decomposition (VSDD Phase 1b)
+# Session Primer: Project Decomposition (VSDD Phase 1c)
 
 Use this prompt after `DESIGN.md` is complete and has passed adversarial pressure. The output of this session is a `TODO.md` with a layered development plan and (for Phase 2+ projects) a crosslink issue hierarchy. This is the plan the Red Gate (Phase 2) will execute against.
 
 Do not start decomposition until the spec is complete. Decomposing an incomplete spec produces a plan that will require structural revision mid-build.
 
+**Whitepaper alignment (G-96).** This step tracks the VSDD whitepaper's **Phase 1c (Spec Review Gate)** semantics: the spec is examined against the question "can each behavior named here be independently verified?" before any Phase 2 work begins. Decomposition is the operational form of that review — a spec that cannot be layered into independently-verifiable units is a spec gap, not a decomposition gap. The whitepaper's Phase 1b (Verification Architecture — the purity-boundary map, automatable-vs-manual split, and Phase-5 formal-proof candidates) is folded into the suite's Phase 1a+1b primer rather than carried as a separate step. The forward-only policy applies: project review logs that reference "Phase 1b" decomposition under the prior suite convention remain valid records.
+
 ---
 
 ## Prompt
 
-You are helping decompose a completed software specification into a layered development plan under the Verified Spec-Driven Development (VSDD) methodology. This is Phase 1b: Decomposition.
+You are helping decompose a completed software specification into a layered development plan under the Verified Spec-Driven Development (VSDD) methodology. This is Phase 1c: Decomposition (Spec Review Gate).
 
 **Your posture:** Every layer you propose must be independently verifiable before the next layer opens. If you cannot write specific acceptance criteria for a layer that a human could check manually, the layer is not well-defined. Push back on layers that are too large, too vague, or that mix concerns.
 
@@ -178,7 +180,7 @@ Rules:
 - One milestone per layer. The milestone is the layer container; the layer issue and its acceptance-criterion sub-issues all attach to it. This makes layer-scoped views (`crosslink milestone show "Layer 1: ..."`) a first-class operation instead of a label filter.
 - `crosslink swarm gate <phase-slug>` runs the project test suite as the formal Phase 2b → 3 boundary. A layer that doesn't pass its gate doesn't open for IAR. Use the slug form of the milestone name (`layer-1`, `layer-2`).
 
-**Verifying deployed policy:** `crosslink workflow diff` compares the policy files crosslink has deployed in the project against its embedded defaults. Run it after `crosslink init` to confirm the deployed rules match what the suite expects, and after any local policy edits to surface drift. A green diff is part of the Phase 1b completion check.
+**Verifying deployed policy:** `crosslink workflow diff` compares the policy files crosslink has deployed in the project against its embedded defaults. Run it after `crosslink init` to confirm the deployed rules match what the suite expects, and after any local policy edits to surface drift. A green diff is part of the Phase 1c completion check.
 
 ---
 
@@ -274,7 +276,7 @@ The decomposition is ready to move to Phase 2 (Red Gate / implementation) when:
 3. Every layer has a manual testing checklist
 4. Every layer has a Red Gate test plan (tests to write before implementation)
 5. The layers are ordered so each builds directly on the previous — no layer requires an unbuilt dependency
-6. **The active-IAR domain set per layer is intent-calibrated.** Every layer's `**IAR:**` line names the active-domain set, derived from `DESIGN.md` § Project intent per the table in `../domains/DOMAIN-INDEX.md` § Intent calibration. A layer with `**IAR:** all domains` for a learning-exercise project is over-investment; a layer with `**IAR:** SE only` for a production project is under-investment. Either pattern is a Phase 1b finding.
+6. **The active-IAR domain set per layer is intent-calibrated.** Every layer's `**IAR:**` line names the active-domain set, derived from `DESIGN.md` § Project intent per the table in `../domains/DOMAIN-INDEX.md` § Intent calibration. A layer with `**IAR:** all domains` for a learning-exercise project is over-investment; a layer with `**IAR:** SE only` for a production project is under-investment. Either pattern is a Phase 1c finding.
 7. For Phase 2+ projects: the crosslink issue hierarchy is created, one milestone per layer is created and populated, and `crosslink workflow diff` runs clean before the first session opens
 
 This plan will be evaluated against VDD-IAR Alignment dims 2 (layered decomposition), 3 (layer gate compliance), and 4 (test discipline). A TODO.md that lists features without acceptance criteria, or layers without manual testing checklists, will not pass the layer gate.

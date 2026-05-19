@@ -6,7 +6,7 @@ Scaffolding artifacts for new projects adopting the VSDD suite. These templates 
 
 | Template | Purpose | Copied to |
 |---|---|---|
-| `DESIGN-template.md` | Skeleton for the project's `DESIGN.md` (Phase 1a output). Mirrors the driving-question structure from `primers/1a-spec-crystallization.md` so the first session has a structured starting point. | `<your-project>/DESIGN.md` |
+| `DESIGN-template.md` | Skeleton for the project's `DESIGN.md` (Phase 1a+1b output). Mirrors the driving-question structure from `primers/1ab-spec-crystallization.md` so the first session has a structured starting point. | `<your-project>/DESIGN.md` |
 | `PROJECT-README-template.md` | Skeleton for the project's user-facing README — purpose, prerequisites, run/test, link to DESIGN.md. | `<your-project>/README.md` |
 | `DOMAIN-REVIEW-template.md` | Generic per-domain index file. Copy and customize per active domain (role, activation, language supplement, sycophancy check from the domain prompt file). | `<your-project>/vsdd-suite/<DOMAIN>-REVIEW.md` (one per active domain) |
 | `PROJECT-FINDINGS-INDEX-template.md` | Cross-cutting findings registry (manual-mode equivalent of G-138). One row per finding across every domain and layer, structured like the suite's FINDINGS-INDEX.md. Skip in crosslink mode — `crosslink issue` with the labeled-issue convention is the queryable equivalent (see `vsdd-suite/suite-development/suite-development.md` § Project-level finding index). | `<your-project>/vsdd-suite/FINDINGS-INDEX.md` (single file per project, manual mode only) |
@@ -51,6 +51,6 @@ For each per-domain `<DOMAIN>-REVIEW.md` you copy:
 5. Replace `{{LANGUAGE_SUPPLEMENT_LINE}}` with either the active supplement reference or the explicit opt-out for language-agnostic domains.
 6. Replace `{{SYCOPHANCY_CHECK}}` with the domain prompt file's sycophancy-check paragraph (copy verbatim, do not paraphrase).
 
-For `DESIGN.md`: work the driving questions in `vsdd-suite/primers/1a-spec-crystallization.md` rather than filling in the skeleton structurally — the skeleton is a placeholder, not a fill-in-the-blanks form.
+For `DESIGN.md`: work the driving questions in `vsdd-suite/primers/1ab-spec-crystallization.md` rather than filling in the skeleton structurally — the skeleton is a placeholder, not a fill-in-the-blanks form.
 
 For project `README.md`: this is your user-facing entry point; expand and edit freely as the project takes shape. The skeleton just establishes existence so Phase 3 Technical Writer reviews have an artifact to evaluate.

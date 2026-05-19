@@ -1,6 +1,6 @@
 # DESIGN.md — {{PROJECT_NAME}}
 
-Phase 1a contract. Authored with [`vsdd-suite/primers/1a-spec-crystallization.md`](../vsdd-suite/primers/1a-spec-crystallization.md) loaded. Work the driving questions in the primer to populate this skeleton — the headings below are starting structure, not a fill-in-the-blanks form. Iterate until the self-adversary check passes (named in the primer's completion criteria), then commit. After commit, this file is the contract every Phase 2+ artifact is evaluated against; spec defects are routed back to Phase 1a per `primers/4-feedback-integration.md`.
+Phase 1a+1b contract. Authored with [`vsdd-suite/primers/1ab-spec-crystallization.md`](../vsdd-suite/primers/1ab-spec-crystallization.md) loaded. Work the driving questions in the primer to populate this skeleton — the headings below are starting structure, not a fill-in-the-blanks form. Iterate until the self-adversary check passes (named in the primer's completion criteria), then commit. After commit, this file is the contract every Phase 2+ artifact is evaluated against; spec defects are routed back to Phase 1a+1b per `primers/4-feedback-integration.md`.
 
 ---
 
@@ -14,6 +14,10 @@ Declare one of the four intent levels below. The intent gates the IAR intensity 
 - **production** — software meant for ongoing operational use by people other than the developer. Full 7-core + all extended domains meeting their activation criteria (Red Team if user input or network exposure, Privacy if user data, Accessibility if UI, Localization if multi-locale). Strict MVR enforcement.
 
 **Declared intent for this project:** `<intent-level>`. Rationale: `<one sentence stating why this intent fits the project — e.g., "first Rust project; goal is learning the language, not shipping a tool" or "portfolio submission for the apprentice graduation review">`.
+
+**Phase 5 strategy:** `<one-sentence Phase 5 declaration — required at capstone and production intents; optional at learning-exercise and portfolio. Choose: "not applicable — <rationale>" OR "planned — <named tooling and scope>." See DOMAIN-INDEX § Phase 5 / Phase 6 strategy declaration (G-162).>`
+
+**Phase 6 strategy:** `<one-sentence Phase 6 declaration — required at capstone and production intents; optional at lower tiers. Choose: "not applicable — <rationale>" OR "planned — <which of the four axes converge and how>." See DOMAIN-INDEX § Phase 5 / Phase 6 strategy declaration (G-162).>`
 
 ## What this project does
 
@@ -44,7 +48,7 @@ The external surfaces other systems (or users) interact with. CLI: argument/flag
 
 ## Verification architecture
 
-How the project is proven correct. Test layers (unit, integration, end-to-end); the manual testing checklist authored alongside the layer plan in Phase 1b; the IAR cadence; any property-based or fuzz testing.
+How the project is proven correct. Test layers (unit, integration, end-to-end); the manual testing checklist authored alongside the layer plan in Phase 1c; the IAR cadence; any property-based or fuzz testing.
 
 ## Technology choices and rationale
 
@@ -56,4 +60,4 @@ External constraints the implementation must respect: dependencies, platforms, p
 
 ## Open questions
 
-Items that need decision before Phase 1b can complete. An empty Open Questions section after a single Phase 1a session is suspicious — the self-adversary check usually surfaces at least one ambiguity worth recording.
+Items that need decision before Phase 1c can complete. An empty Open Questions section after a single Phase 1a+1b session is suspicious — the self-adversary check usually surfaces at least one ambiguity worth recording.

@@ -12,10 +12,16 @@
 # Pass any extended domain (RED-TEAM, PERFORMANCE-ENGINEER, TECHNICAL-WRITER,
 # ACCESSIBILITY, PRIVACY, LOCALIZATION) as additional arguments if active.
 #
-# The script is crosslink-agnostic — it scaffolds the same directory shape
-# whether you use crosslink or run the suite manually. Crosslink and the
-# suite are independent tools that each scaffold their own state in a
-# project; no shared scaffolding is provided.
+# The script scaffolds the same directory shape whether you use crosslink
+# or run the suite manually. When the project has already been initialized
+# with `crosslink init` (i.e., `.crosslink/` exists) AND the `crosslink`
+# binary is in PATH, the script additionally registers the suite primers
+# and domain prompts as crosslink knowledge pages so future
+# `crosslink kickoff run` / `crosslink swarm review` sessions can load them
+# without per-session copy/paste (G-146). Manual mode is unaffected — when
+# `.crosslink/` is absent or `crosslink` is not installed, the knowledge-
+# registration step is skipped silently and the operator loads primers by
+# hand into chat sessions per the manual quickstart.
 
 set -euo pipefail
 
@@ -91,6 +97,66 @@ if [ -f "$SUITE_DIR/VERSION" ]; then
   echo "Recorded suite version in vsdd-suite/.suite-version"
 fi
 
+# G-146 / G-163 / G-164: register suite primers, ACTIVATED domain prompts,
+# and supplements as crosslink knowledge pages when the project is crosslink-
+# enabled. The conditions are both:
+#   (a) `.crosslink/` exists (`crosslink init` has been run in this project)
+#   (b) the `crosslink` binary is in PATH
+# When either is absent, the registration is skipped silently — manual mode
+# loads primers by hand per the manual quickstart.
+#
+# G-163: only the activated domain prompts (from the DOMAINS array) are
+# registered — registering all 16 prompts when a learning-exercise project
+# uses 3 is over-investment per the intent-calibration discipline.
+# G-164: language and interface supplements/ are also registered so swarm-
+# review agents have the supplement loaded alongside the domain prompt.
+KNOWLEDGE_REGISTERED=0
+if [ -d .crosslink ] && command -v crosslink >/dev/null 2>&1; then
+  echo ""
+  echo "Crosslink project detected — registering suite primers, activated domain prompts, and supplements as knowledge pages..."
+  if crosslink knowledge import "$SUITE_DIR/primers" --tag vsdd-suite-primer --quiet 2>/dev/null; then
+    echo "  Registered primers (tagged vsdd-suite-primer)."
+    KNOWLEDGE_REGISTERED=1
+  else
+    echo "  Primer registration failed — re-run manually after resolving:"
+    echo "    crosslink knowledge import \"$SUITE_DIR/primers\" --tag vsdd-suite-primer"
+  fi
+
+  # G-163: register only the activated domain prompts. Stage them into a temp
+  # directory so `crosslink knowledge import <dir>` operates on the subset.
+  STAGE_DIR="$(mktemp -d)"
+  trap 'rm -rf "$STAGE_DIR"' EXIT
+  STAGED=0
+  for domain in "${DOMAINS[@]}"; do
+    # Map DOMAIN slug → role-or-meta path. VDD-IAR-ALIGNMENT and PORTFOLIO-ASSESSMENT live under meta/; everything else under role/.
+    if [ "$domain" = "VDD-IAR-ALIGNMENT" ] || [ "$domain" = "PORTFOLIO-ASSESSMENT" ]; then
+      src="$SUITE_DIR/domains/meta/${domain}-REVIEW.md"
+    else
+      src="$SUITE_DIR/domains/role/${domain}-REVIEW.md"
+    fi
+    if [ -f "$src" ]; then
+      cp "$src" "$STAGE_DIR/${domain}-REVIEW.md"
+      STAGED=$((STAGED + 1))
+    fi
+  done
+  if [ "$STAGED" -gt 0 ]; then
+    if crosslink knowledge import "$STAGE_DIR" --tag vsdd-suite-domain --quiet 2>/dev/null; then
+      echo "  Registered $STAGED activated domain prompts (tagged vsdd-suite-domain)."
+    else
+      echo "  Activated-domain registration failed — re-run manually with the activated set."
+    fi
+  fi
+
+  # G-164: register language and interface supplements.
+  if crosslink knowledge import "$SUITE_DIR/supplements" --tag vsdd-suite-supplement --quiet 2>/dev/null; then
+    echo "  Registered language and interface supplements (tagged vsdd-suite-supplement)."
+  fi
+
+  echo ""
+  echo "  Re-import with --overwrite when the suite version bumps."
+  echo "  Manual primer load (paste-into-chat) remains supported in both modes."
+fi
+
 cat <<'EOF'
 
 Scaffold complete. Next steps:
@@ -100,7 +166,7 @@ Scaffold complete. Next steps:
    check, and language supplement come verbatim from the domain prompt
    file in vsdd-suite/domains/role/<DOMAIN>-REVIEW.md.
 
-2. Open Phase 1a — load vsdd-suite/primers/1a-spec-crystallization.md
+2. Open Phase 1a+1b — load vsdd-suite/primers/1ab-spec-crystallization.md
    in a fresh AI chat session and work the driving questions to populate
    DESIGN.md. Commit when the self-adversary check passes.
 
@@ -110,3 +176,18 @@ Scaffold complete. Next steps:
 
 4. See vsdd-suite/README.md § Worked example for the full walkthrough.
 EOF
+
+if [ "$KNOWLEDGE_REGISTERED" -eq 0 ] && command -v crosslink >/dev/null 2>&1 && [ ! -d .crosslink ]; then
+  cat <<'EOF'
+
+Crosslink binary detected but project not yet initialized.
+After running `crosslink init`, re-run this scaffold script to register
+the suite primers, activated domain prompts, and supplements as crosslink
+knowledge pages, or run the registration manually with your activated set:
+
+   crosslink knowledge import <path-to-vsdd-suite>/primers --tag vsdd-suite-primer
+   # For each activated domain (substitute <DOMAIN> with the slug):
+   crosslink knowledge add <DOMAIN>-review --from-doc <path-to-vsdd-suite>/domains/<role|meta>/<DOMAIN>-REVIEW.md --tag vsdd-suite-domain
+   crosslink knowledge import <path-to-vsdd-suite>/supplements --tag vsdd-suite-supplement
+EOF
+fi

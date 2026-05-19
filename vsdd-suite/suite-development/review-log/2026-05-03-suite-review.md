@@ -228,8 +228,8 @@ Two naming concerns compound:
 **Resolution options (defer choice to apply-time):**
 
 1. **Rename folder `prompts/` → `primers/`** to match the consistent in-document terminology. Update all relative-path references (README, all primer cross-references, `prompts/suite-development.md` self-reference, MEMORY.md if it points there, `prompts/review-session.md` line referencing `prompts/suite-development.md`).
-2. **Add VSDD phase prefix to primer file names** — `phase-1a-spec-crystallization.md`, `phase-1b-decomposition.md`, `phase-2a-2b-implementation.md` (or split as 2a / 2b — see G-95 below), `phase-3-adversarial-review.md`. The suite-development primer is not a VSDD phase primer (see G-92) and gets a different naming convention.
-3. **Combine 1 and 2** — `primers/phase-1a-spec-crystallization.md`, etc.
+2. **Add VSDD phase prefix to primer file names** — `phase-1ab-spec-crystallization.md`, `phase-1b-decomposition.md`, `phase-2a-2b-implementation.md` (or split as 2a / 2b — see G-95 below), `phase-3-adversarial-review.md`. The suite-development primer is not a VSDD phase primer (see G-92) and gets a different naming convention.
+3. **Combine 1 and 2** — `primers/phase-1ab-spec-crystallization.md`, etc.
 
 **Why:** A standalone-repo spinoff means the folder will be browsed via GitHub's directory view by readers who arrived via search or external link, with no project README context. File names are the first signal a reader gets. A primer named `implementation.md` could be for any phase of any methodology; `phase-2a-2b-implementation.md` is unambiguous.
 
@@ -273,7 +273,7 @@ iterative-adversarial-refinement/      (or new repo root after spinoff)
 │   └── DOMAIN-INDEX.md                (move up from role/ — see G-94)
 ├── supplements/                              (or supplements/ — see G-94)
 ├── primers/                           (renamed from prompts/ — see G-91)
-│   ├── phase-1a-spec-crystallization.md
+│   ├── phase-1ab-spec-crystallization.md
 │   ├── phase-1b-decomposition.md
 │   ├── phase-2a-2b-implementation.md
 │   └── phase-3-adversarial-review.md
