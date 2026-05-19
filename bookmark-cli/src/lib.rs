@@ -1,9 +1,23 @@
-//! Pure-core storage logic for bookmark-cli.
+//! Storage logic for bookmark-cli — mixed purity surface.
 //!
-//! Per SA Dim 12 (VSDD purity boundary map) — this module contains only
-//! pure functions over `Bookmark` and `BookmarkStore`. All I/O is in the
-//! effectful shell in `main.rs`. Tests against `lib.rs` need no temp dirs;
-//! tests against the binary live in `tests/bookmarks.rs`.
+//! See `DESIGN.md` § Verification architecture for the authoritative
+//! purity boundary. In summary (per the Review 67 / B2 reconciliation):
+//!
+//! - **Pure:** `Bookmark` + `BookmarkStore` data types; `BookmarkStore::newest_first`.
+//! - **Effectful (deliberate I/O wrappers):** `BookmarkStore::load`
+//!   (filesystem read + parse), `BookmarkStore::save` (filesystem write +
+//!   serialize). These wrap pure JSON ser/de with file I/O — the wrapping
+//!   is the convenience boundary the project chose at Layer 1, not impl
+//!   drift from a stricter pure-core claim.
+//! - **Boundary refinement:** `BookmarkStore::add` reads `Utc::now()` at
+//!   call time. Morally pure with respect to its inputs (URL string) but
+//!   non-deterministic w.r.t. the clock. Could be refined to take a
+//!   `timestamp: DateTime<Utc>` parameter at a future layer if formal
+//!   verification of `add` is in scope; for the current Layer 1 portfolio
+//!   intent, the clock dependency is accepted.
+//!
+//! Tests against `lib.rs` use `tempfile` for I/O isolation; tests against
+//! the compiled binary live in `tests/bookmarks.rs`.
 
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
@@ -122,6 +136,32 @@ mod tests {
         let mut store = BookmarkStore::default();
         store.add("https://example.com".to_string());
         store.save(&path).unwrap();
+        let loaded = BookmarkStore::load(&path).unwrap();
+        assert_eq!(loaded.bookmarks.len(), 1);
+        assert_eq!(loaded.bookmarks[0].url, "https://example.com");
+    }
+
+    /// retroactive Red Gate (Phase 5 source): save creates parent directory
+    /// for a nested-path target — Surface B (cargo-mutants) surfaced the gap
+    /// at src/lib.rs:48 where `!parent.as_os_str().is_empty()` could be
+    /// flipped without any test failing. Test added post-MVR; confirmed
+    /// passes against current implementation. See vsdd-suite/PHASE-5-LOG.md
+    /// Layer 1 Surface B disposition for the surviving mutant.
+    #[test]
+    fn save_creates_parent_directory_for_nested_path() {
+        let dir = tempfile::tempdir().unwrap();
+        // Parent directory does NOT exist yet — save must create it.
+        let path = dir.path().join("nested").join("subdir").join("bookmarks.json");
+        assert!(!path.parent().unwrap().exists(), "parent must not exist before save");
+
+        let mut store = BookmarkStore::default();
+        store.add("https://example.com".to_string());
+        store.save(&path).expect("save should create missing parent directories");
+
+        assert!(path.exists(), "store file should exist after save to nested path");
+        assert!(path.parent().unwrap().exists(), "parent directory should have been created");
+
+        // Verify the saved content round-trips correctly through the just-created path.
         let loaded = BookmarkStore::load(&path).unwrap();
         assert_eq!(loaded.bookmarks.len(), 1);
         assert_eq!(loaded.bookmarks[0].url, "https://example.com");

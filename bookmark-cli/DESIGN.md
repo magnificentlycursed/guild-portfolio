@@ -1,6 +1,18 @@
 # DESIGN.md — bookmark-cli
 
-Phase 1a contract. Authored with [`../vsdd-suite/primers/1a-spec-crystallization.md`](../vsdd-suite/primers/1a-spec-crystallization.md) loaded as the session primer. This file is the reference-implementation contract for the worked example documented at [`../vsdd-suite/README.md`](../vsdd-suite/README.md) § Worked example — it exists to validate the suite end-to-end per G-112 in the suite's gap registry.
+Phase 1a+1b contract (per v0.7.2 conventions; the file was originally authored under the prior single-step "Phase 1a" naming — historical narrative preserved per G-89 forward-only policy; the renamed primer at [`../vsdd-suite/primers/1ab-spec-crystallization.md`](../vsdd-suite/primers/1ab-spec-crystallization.md) is the current authoring reference). This file is the reference-implementation contract for the worked example documented at [`../vsdd-suite/README.md`](../vsdd-suite/README.md) § Worked example — it exists to validate the suite end-to-end per G-112 in the suite's gap registry.
+
+---
+
+## Project intent
+
+(Added Review 67 per the v0.7.2 adoption; the declarations below conform to the suite's G-150 intent calibration and G-162 strategy declaration requirements as of suite v0.6.0+. The project's first-layer-gate-close predates 2026-05-20, so the v0.7.2 conventions apply forward-only — this declaration is the explicit adoption marker.)
+
+**Declared intent for this project:** `portfolio`. Rationale: `bookmark-cli` is the suite's reference implementation, intended for external reading and handoff as the worked-example artifact (not capstone-graduation work, not production deployment). The 7-core default activation per G-121 scaffold-default applies; Technical Writer activation has not been formally added (the project predates the G-101–G-105 closure cycle's TW push) but the project README is maintained at a reader-can-follow standard.
+
+**Phase 5 strategy:** `planned — Surface A.0 (purity-boundary verification) + Surface B (mutation testing via cargo-mutants) per the v0.7.2 primer. Surface A (property-based testing via proptest) deferred to a future layer if the purity boundary deepens; Surface C (fuzzing) and Surface D (formal proof) are not applicable — bookmark-cli has no safety-critical or cryptographic surface and the JSON-parsing surface is small enough that fuzzing's marginal value is low.` See [`vsdd-suite/PHASE-5-LOG.md`](vsdd-suite/PHASE-5-LOG.md) for the per-layer hardening record.
+
+**Phase 6 strategy:** `not applicable — bookmark-cli is portfolio-intent, not capstone-intent. The project closes at end of Phase 4 by design per the suite's intent-calibration discipline; four-dimensional convergence is not a methodology promise the project makes.` Per G-162: portfolio-intent declarations of `not applicable` are valid; the Phase 6 primer is not opened.
 
 ---
 
@@ -99,11 +111,29 @@ Newest-first ordering is a render concern (sort on read), not a storage concern 
 
 ## Verification architecture
 
-- **Unit tests** for the pure-core storage logic in `src/lib.rs`: load/save/add operations.
+**Purity boundary (revised Review 67 / B2 reconciliation against actual `src/lib.rs` implementation; supersedes the prior implicit "pure-core" framing in the module doc).** This is the authoritative purity boundary for the project. The module doc at `src/lib.rs:1-?` cites this section as the single source.
+
+- **Pure functions** (deterministic, no I/O, formally verifiable in principle):
+  - `Bookmark` and `BookmarkStore` data types (serde derivations are pure functions of input).
+  - `BookmarkStore::newest_first` (pure sort by reference; no I/O, no clock).
+- **Effectful (deliberate I/O wrappers around pure ser/de):**
+  - `BookmarkStore::load(path)` — filesystem read + `serde_json` parse. The parse step is pure; the file read makes the function effectful.
+  - `BookmarkStore::save(path)` — `serde_json` serialize + filesystem write + directory creation. Same shape: serialize pure, write effectful.
+- **Boundary refinement (morally pure w.r.t. its inputs; effectful w.r.t. external clock):**
+  - `BookmarkStore::add(url)` — appends a new `Bookmark` whose timestamp is `Utc::now()` at call time. Deterministic given the clock; non-deterministic against absolute wall time. Acceptable at Layer 1 portfolio intent; could be refined to `add(url, ts)` at a future layer if formal verification of `add` enters scope.
+
+**Verification surfaces:**
+
+- **Unit tests** for the pure functions and the I/O-wrapper functions in `src/lib.rs`'s `#[cfg(test)] mod tests` block; the I/O-wrapper tests use `tempfile` for filesystem isolation.
 - **Integration tests** in `tests/bookmarks.rs` that invoke the compiled binary via `assert_cmd` against per-test temp directories — full stdout/stderr/exit-code contract per CLI supplement § Quality Engineering.
 - **No mocks for the storage layer** — tests use real temp files via `tempfile`.
 - **Manual testing checklist** in [`TODO.md`](TODO.md) § Layer 1, expanded per the runnable-step standard.
 - **IAR Phase 3** runs the 7 default-active core domains per Review 42 doctrine (SE, QE, UX, Security, SA, SO, VDD-IAR Alignment). Each domain's index lives at `vsdd-suite/<DOMAIN>-REVIEW.md`; rounds file as session entries in `vsdd-suite/review-log/YYYY-MM-DD-<slug>.md` per the G-89 structural standard.
+- **Phase 5 hardening** (added Review 67 — Phase 5 adoption per v0.7.2 conventions): see `vsdd-suite/PHASE-5-LOG.md` for per-layer Phase 5 records. The Phase 5 strategy is declared in § Project intent below.
+
+**Formal-proof candidates (Phase 5 Surface D):** none. `bookmark-cli` is not safety-critical or cryptographic; no function on the purity boundary above warrants formal proof. Surface D declared `not applicable` in the § Project intent Phase 5 strategy line.
+
+**Automatable-vs-manual split:** every behavioral contract above is automatable via unit + integration tests. Manual testing (per TODO.md § Layer 1) verifies UX-coherence concerns (error message specificity; the empty-state stderr line as the user would read it) that automated tests can also assert syntactically but cannot evaluate as "reads naturally."
 
 ## Technology choices and rationale
 
