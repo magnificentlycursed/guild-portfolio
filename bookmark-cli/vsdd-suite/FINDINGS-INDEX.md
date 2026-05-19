@@ -22,6 +22,8 @@ Structured like [`vsdd-suite/suite-development/GAP-ANALYSIS-LOG.md`](../../vsdd-
 
 | ID | Layer | Round | Domain | Finding | Title | Source | Classification | Status | Anchor |
 |---|---|---|---|---|---|---|---|---|---|
+| F-005 | L1 | R2 | quality-engineer | F1 | Surface B surviving non-equivalent mutant at src/lib.rs:48 (delete ! in BookmarkStore::save) — missing falsifying test for save-to-nested-path case; resolved by adding src/lib.rs::tests::save_creates_parent_directory_for_nested_path with retroactive-Red-Gate (Phase 5 source) label; post-fix kill rate on viable mutants 8/8 = 100% | domain-raised | Resolved | Closed | [QE R2 F1](review-log/2026-05-20-quality-engineer.md#review-2--2026-05-20-0245z) |
+| F-004 | L1 | R1 | solution-architect | F1 | Phase 5 Surface A.0 cross-source purity-boundary divergence (Dim 12) — src/lib.rs:1-7 module doc claimed "Pure-core storage logic", DESIGN.md § Verification architecture was silent, impl had 3 of 4 BookmarkStore methods effectful; resolved by rewriting DESIGN.md § Verification architecture with explicit Purity boundary subsection and retiring the prior "Pure-core" module-doc claim | domain-raised | Resolved | Closed | [SA R1 F1](review-log/2026-05-20-solution-architect.md#review-1--2026-05-20-0245z) |
 | F-003 | L1 | R1 | quality-engineer | F3 | Claim of insufficient test count (rejected — 8/8 pass against 4 ACs) | domain-raised | Hallucinated | Closed | [QE R1 F3](review-log/2026-05-17-quality-engineer.md#review-1--2026-05-17-0325z) |
 | F-002 | L1 | R1 | quality-engineer | F2 | Missing test coverage for whitespace-only-URL and URL-with-newlines edge cases named in DESIGN.md | domain-raised | Resolved | Closed | [QE R1 F2](review-log/2026-05-17-quality-engineer.md#review-1--2026-05-17-0325z) |
 | F-001 | L1 | R1 | quality-engineer | F1 | Phase 2a → 2b commit boundary not enforced (acknowledged scope tradeoff of reference-implementation context) | domain-raised | Resolved | Closed | [QE R1 F1](review-log/2026-05-17-quality-engineer.md#review-1--2026-05-17-0325z) |
@@ -33,6 +35,6 @@ Structured like [`vsdd-suite/suite-development/GAP-ANALYSIS-LOG.md`](../../vsdd-
 - [`README.md`](../README.md) — project README
 - [`DESIGN.md`](../DESIGN.md) — Phase 1a contract
 - [`TODO.md`](../TODO.md) — layer plans + manual testing checklists
-- Per-domain index files in this directory — round-level rollup per domain (QUALITY-ENGINEER-REVIEW.md is the only one customized in the reference-implementation scope; six others remain as scaffolded stubs)
+- Per-domain index files in this directory — round-level rollup per domain (QUALITY-ENGINEER-REVIEW.md and SOLUTION-ARCHITECT-REVIEW.md customized; five others remain as scaffolded stubs)
 - Per-session files in [`review-log/`](review-log/) — finding-level narratives
 - [`vsdd-suite/suite-development/suite-development.md`](../../vsdd-suite/suite-development/suite-development.md) § Project-level finding index — the governing standard for this file

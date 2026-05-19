@@ -11,7 +11,14 @@ The strategy is a one-time-per-project declaration; per-layer entries below reco
 
 ## Layer 1 — 2026-05-20 02:45Z
 
-**Layer reference:** acceptance criteria per `TODO.md` § Layer 1 (4 ACs); Phase 2b implementation commit (current `main` head before Review 67 adoption); Phase 3 final round per active domain reached MVR before this Phase 5 session opened.
+**Layer reference:** acceptance criteria per `TODO.md` § Layer 1 (4 ACs); Phase 2b implementation commit (current `main` head before the v0.7.2 adoption commit); Phase 3 final round per active domain reached MVR before this Phase 5 session opened.
+
+**Domain log entries for this session** (per-surface findings live in the per-domain review logs; this file is the cross-domain Phase 5 record):
+
+- **SA Review 1 — 2026-05-20 02:45Z** — Surface A.0 purity-boundary verification finding (cross-source divergence; Resolved by revising DESIGN.md + module doc). File: [`review-log/2026-05-20-solution-architect.md`](review-log/2026-05-20-solution-architect.md#review-1--2026-05-20-0245z).
+- **QE Review 2 — 2026-05-20 02:45Z** — Surface B mutation testing finding (surviving non-equivalent mutant; Resolved by adding the B1 falsifying test). File: [`review-log/2026-05-20-quality-engineer.md`](review-log/2026-05-20-quality-engineer.md#review-2--2026-05-20-0245z).
+
+This file remains the cumulative Phase-5-scoped artifact per the `vsdd-suite/primers/5-formal-hardening.md` § Phase 5 log format prescription. Open question logged as a suite-side finding: whether this per-project Phase-5-scoped file duplicates the per-domain review logs without earning the duplication — see [suite FINDINGS-INDEX.md G-177](../../vsdd-suite/suite-development/FINDINGS-INDEX.md) (Deferred; trigger: second project enters Phase 5).
 
 **Phase 5 strategy (verbatim from DESIGN.md § Project intent):** `planned — Surface A.0 (purity-boundary verification) + Surface B (mutation testing via cargo-mutants) per the v0.7.2 primer. Surface A (property-based testing via proptest) deferred to a future layer if the purity boundary deepens; Surface C (fuzzing) and Surface D (formal proof) are not applicable — bookmark-cli has no safety-critical or cryptographic surface and the JSON-parsing surface is small enough that fuzzing's marginal value is low.`
 

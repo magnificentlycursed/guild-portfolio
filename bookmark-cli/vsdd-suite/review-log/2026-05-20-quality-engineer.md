@@ -6,7 +6,7 @@
 
 ## Review 2 — 2026-05-20 02:45Z
 
-**Scope:** Phase 5 (Formal Hardening) Layer 1 hardening round per [`../../vsdd-suite/primers/5-formal-hardening.md`](../../vsdd-suite/primers/5-formal-hardening.md). First Phase 5 session against bookmark-cli — adopted v0.7.2 conventions in this session (Review 67 / B1 + B2 closure on a dedicated `bookmark-cli-phase5-adoption` branch). Surfaces activated: A.0 (purity-boundary verification) + B (mutation testing via cargo-mutants); A (property-based testing) deferred; C (fuzzing) + D (formal proof) declared not applicable per the project's Phase 5 strategy in [`../DESIGN.md`](../DESIGN.md) § Project intent. Full hardening record at [`../PHASE-5-LOG.md`](../PHASE-5-LOG.md) Layer 1 entry.
+**Scope:** Phase 5 (Formal Hardening) Layer 1 hardening round — **QE-scope only**. This entry covers Surface B (mutation testing via cargo-mutants) which is QE territory (QE Dim 2 — test falsifiability; suite Review 66 G-174 5-disposition universe). The Surface A.0 (purity-boundary verification) work landed during the same Phase 5 session belongs to **SA Dim 12** (VSDD purity boundary map) and is filed under [SA Review 1](2026-05-20-solution-architect.md#review-1--2026-05-20-0245z) — see Coordination below. First Phase 5 session against bookmark-cli per the v0.7.2 adoption (`bookmark-cli-phase5-adoption` branch). Surfaces A.0 + B activated this session; A deferred; C + D not applicable per the project's Phase 5 strategy in [`../DESIGN.md`](../DESIGN.md) § Project intent. Cross-domain hardening record at [`../PHASE-5-LOG.md`](../PHASE-5-LOG.md) Layer 1 entry.
 
 **Session note:** In-session (the same operator authored the Phase 5 primer revisions in Review 64–66 and now applies them to bookmark-cli). Sycophancy-compensation: the Phase 5 Surface B sycophancy check (G-174 5-disposition discipline) applied to my own dispositions — every surviving mutant got a per-mutant outcome (no aggregate-only reporting); the missing-test mutant routed via disposition (b) with the `retroactive Red Gate (Phase 5 source)` label per `primers/2b-implementation.md` (Review 65 / F7 label extension) rather than being silently rationalized as equivalent. Cold-context equivalent would be stronger; running the Phase 5 primer's prescriptions against a real project (concrete kill-rate output; concrete divergence finding) provided enough artifact-level evidence to compensate for the in-session lens.
 
@@ -18,23 +18,7 @@
 
 ### Resolved
 
-**Finding 1 — Surface A.0 cross-source purity-boundary divergence (Phase 5 Surface A.0 / G-173 multi-source audit)**
-
-The Phase 5 Surface A.0 multi-source audit (G-173 per Review 66) found a 3-way divergence between bookmark-cli's purity claims:
-
-- `src/lib.rs:1-7` module doc claimed "Pure-core storage logic ... contains only pure functions over `Bookmark` and `BookmarkStore`. All I/O is in the effectful shell in `main.rs`."
-- `DESIGN.md` § Verification architecture was silent on per-function purity.
-- Implementation: 3 of 4 `BookmarkStore` methods are effectful (`load` does filesystem read; `save` does filesystem write + directory creation; `add` reads `Utc::now()` for the timestamp).
-
-The module-doc claim was wrong relative to the implementation; DESIGN.md was silent on the question the module doc answered (cross-source consistency check failed per G-173 check (c)). A future maintainer reading `lib.rs` would internalize a stronger purity claim than the implementation honored.
-
-**Resolution:** Routed via Phase 4 to Phase 1a+1b per the Phase 5 Surface A.0 disposition options (option b — revise the boundary). Applied in-session:
-- `DESIGN.md` § Verification architecture rewritten with an explicit Purity boundary subsection enumerating each function's status: pure (data types + `newest_first`); effectful (`load`, `save` — deliberate I/O wrappers around pure ser/de); boundary refinement (`add` reads `Utc::now()` — morally pure w.r.t. inputs, non-deterministic w.r.t. clock; acceptable at Layer 1 portfolio intent).
-- `src/lib.rs:1-?` module doc rewritten to cite DESIGN.md § Verification architecture as the single authoritative source; the prior "Pure-core" framing retired.
-
-Per the Phase 5 Surface A.0 outcome format: `Boundary violations found and routed: load/save/add (impl effectful, claimed pure); cross-source divergence between src/lib.rs:1-7 and DESIGN.md § Verification architecture; reconciliation routed to Phase 1a+1b and applied in-session.`
-
-**Finding 2 — Surface B surviving non-equivalent mutant (Phase 5 Surface B / G-174 5-disposition universe)**
+**Finding 1 — Surface B surviving non-equivalent mutant (Phase 5 Surface B / G-174 5-disposition universe)**
 
 `cargo-mutants v27.0.0` Surface B against the Phase 3-MVR codebase produced 11 mutants. Pre-B1 outcome: 7 caught / 1 missed / 3 unviable — kill rate on viable mutants 7/8 = **87.5%**.
 
@@ -74,6 +58,6 @@ Post-B1 cargo-mutants re-run: **0 missed / 8 caught / 3 unviable** — kill rate
 
 ### Summary
 
-2 findings filed, both Resolved in-session. Phase 5 Surface A.0 boundary divergence and Surface B missing-test gap both closed via concrete artifact changes (DESIGN.md + module doc revision; new falsifying test that drives Surface B kill rate to 100% on viable mutants). Layer 1 is Phase-5-MVR per the project's `**Phase 5 strategy:** planned — Surface A.0 + Surface B` declaration.
+1 finding filed, Resolved in-session. Phase 5 Surface B missing-test gap (`src/lib.rs:48` surviving non-equivalent mutant) closed via the new `save_creates_parent_directory_for_nested_path` test; post-B1 kill rate on viable mutants is 8/8 = 100% (was 7/8 = 87.5% pre-B1). Layer 1 is Phase-5-MVR per the project's `**Phase 5 strategy:** planned — Surface A.0 + Surface B` declaration (the Surface A.0 portion is filed under [SA Review 1](2026-05-20-solution-architect.md#review-1--2026-05-20-0245z); both surfaces are required for Phase-5-MVR per the strategy).
 
-**Coordination:** Surface A.0 finding required cross-document changes (DESIGN.md + src/lib.rs module doc); SA Dim 12 (VSDD purity boundary map) cross-references the same DESIGN.md § Verification architecture section. The SA log was not opened this session because the Surface A.0 finding's reconciliation is a Phase 1a+1b spec-level change rather than an architectural-decision change; an SA review of the revised boundary would be a natural Phase 3 Round 2 follow-up if the operator chooses to re-open Phase 3 against the v0.7.2-adopted state. Per G-151 stop trigger discipline: the prior Phase 3 reached MVR before this Phase 5 session; running Phase 3 Round 2 requires explicit director justification (the revised purity boundary IS new evidence — director may choose to open Round 2 for SA + SO on the basis of the DESIGN.md change). Note: routing applied in-session per the Phase 5 primer's "intentional refactor that surfaced a spec gap is fine if the gap was raised to Phase 1a+1b routing via Phase 4" framing (per VDD-IAR Alignment dim 12 G-161).
+**Coordination:** The Surface A.0 portion of this Phase 5 session is filed under [SA Review 1 — 2026-05-20 02:45Z](2026-05-20-solution-architect.md#review-1--2026-05-20-0245z) per SA Dim 12 (VSDD purity boundary map) ownership of the purity-boundary surface; the SA round handles the DESIGN.md § Verification architecture rewrite + `src/lib.rs:1-?` module-doc reconciliation. The cross-domain hardening record at [`../PHASE-5-LOG.md`](../PHASE-5-LOG.md) Layer 1 entry cites both this QE round and SA Review 1. Per G-151 stop trigger discipline: the prior Phase 3 reached MVR before this Phase 5 session; running Phase 3 Round 2 requires explicit director justification (the revised purity boundary IS new evidence — director may choose to open Round 2 for SO on the basis of the DESIGN.md change). Routing applied in-session per the Phase 5 primer's "intentional refactor that surfaced a spec gap is fine if the gap was raised to Phase 1a+1b routing via Phase 4" framing (per VDD-IAR Alignment dim 12 G-161).
