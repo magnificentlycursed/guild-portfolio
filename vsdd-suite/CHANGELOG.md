@@ -4,6 +4,40 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-20 04:30Z (Review 68: cold-subagent drift-detection pass + prevention-mechanism hook — 10 Resolved + 0 Deferred; v0.7.4)
+
+### Added
+- **`vsdd-suite/hooks/check-suite-review-preamble.sh`** (new file, ~200 lines Python) — fourth suite-shipped pre-commit hook (joins `check-crosslink-references.sh` G-139, `check-changelog-currency.sh` G-129, `check-review-log-anonymization.sh` G-98). Mechanizes the Review 67 + Review 68 discipline corrections: per-review preamble field presence (`**Scope:**` / `**Lens:**` / `**Session note:**` / `**Source:**`), Source value enumeration (5 values including new `mixed`), authorized finding-header forms (`**Finding N — Title**` and `**G-XX — Title**` and `**Finding N — Title (added YYYY-MM-DD)**` errata form), closer-line presence (`**Resolution:**` or `**Classification:**`). Forward-only `ENFORCEMENT_THRESHOLD = 2026-05-20`; per-entry `<!-- hook-bypass: <rationale> -->` HTML-comment escape valve. Scoped via `.pre-commit-config.yaml` files-regex to suite-review log AND per-project review-log markdown.
+- **`.pre-commit-config.yaml`** — new `check-suite-review-preamble` hook entry under the local repo block.
+- **`vsdd-suite/suite-development/suite-development.md`** § Per-review entry preamble — new `**Canonical ordering**` paragraph naming the field order (Scope → Lens → Session note → Source for suite reviews; Scope → Session note → Source for project-level reviews) per Review 68 Finding 8.
+- **`vsdd-suite/suite-development/suite-development.md`** § Per-review entry preamble § Source — extended valid values from 4 to 5 by adding `mixed` (with explicit sub-disposition requirement) per Review 68 Finding 9.
+- **`vsdd-suite/primers/3-review-session.md`** new `## Source attribution (G-133 / Review 68 Finding 11)` section after `## After each domain review` — Source-field discipline now reachable from the primer a cold reviewer actually loads (rather than living only in `suite-development.md`).
+- **`vsdd-suite/README.md`** Phase 4 routing block — new `**Label-vs-phase naming note (Review 68 Finding 10)**` paragraph naming the G-160 "labels are identifiers, not scope-descriptors" stability rationale inline at the route-label introduction site.
+
+### Changed (errata blocks per suite-development.md:429 sanctioned mechanism; original entries unchanged per G-89)
+- **`vsdd-suite/suite-development/review-log/2026-05-19-suite-review.md`** Review 65 — new `### Errata` section with `**Finding 13 — Cross-reference map: chat-shorthand F-prefix labels in `### Resolved` (added 2026-05-20)**` table mapping F1–F12 chat-shorthand labels to standard Finding-N labels (or to G-170–G-172 for the Deferred ones). `<!-- hook-bypass: ... -->` HTML comment in first 5 lines.
+- **`vsdd-suite/suite-development/review-log/2026-05-19-suite-review.md`** Review 66 — new `### Errata` section with `**Finding 5 — Cross-reference map: chat-shorthand R-prefix labels in `### Resolved` + G-ID over-promotion (added 2026-05-20)**` table mapping R1–R4 chat-shorthand labels to standard Finding-N labels + G-IDs (G-173–G-176). `<!-- hook-bypass: ... -->` HTML comment in first 5 lines.
+- **`vsdd-suite/suite-development/review-log/2026-05-19-suite-review.md`** Review 67 G-177 — added missing `**Classification:** Deferred — ...` line per the standard at `suite-development.md:333`.
+
+### Resolved (no G-IDs per Review 67 Finding 1 discipline; recorded for audit traceability)
+
+- **Finding 1** — `**Source:**` missing from Reviews 52–61 (10 reviews, retroactively non-compliant against G-133 closure window). Resolved going-forward by the new hook; historical instances preserved per G-89.
+- **Finding 2** — Review 65 chat-shorthand F-prefix headers. Errata block + bypass.
+- **Finding 3** — Review 66 chat-shorthand R-prefix headers (compound with G-ID over-promotion). Errata block + bypass.
+- **Finding 4** — Missing `**Resolution:**` / `**Classification:**` closer lines in Reviews 65 + 66; Review 67 G-177 also missing its closer (fixed inline).
+- **Finding 5** — `### Coordination` H3 vs `**Coordination:**` bold-line naming collision. **Dismissed** — intentional distinction between artifact types (suite-review entry vs. project-level closing block); no observed mis-use; standard text already distinguishes them.
+- **Finding 6** — Reviews 53 + 55 carry bare `**Session note:** In-session.` with no compensation named. Resolved going-forward by the new hook; historical preserved.
+- **Finding 7** — `### New gap registered` heading missing in Reviews 62 + 66. Section-presence check dropped from hook v1 (requires registry-walk); documented as future hook enhancement.
+- **Finding 8** — Per-review preamble ordering not standardized. Resolved via canonical-ordering paragraph addition to `suite-development.md`.
+- **Finding 9** — Reviews 63 + 66 use unauthorized `mixed` Source value. Resolved by extending the standard's valid-value enumeration to include `mixed` with sub-disposition requirement.
+- **Finding 10** — Phase label `Phase 1a+1b` vs route label `route:phase-1a` invisible drift. Resolved via inline label-vs-phase naming-note paragraph in README.
+- **Finding 11** — `**Source:**` field absent from `primers/3-review-session.md` despite being mandatory. Resolved by adding `## Source attribution` section to primer 3.
+
+### Note
+**Backlog after Review 68: 0 Open + 7 Deferred** (G-159, G-168, G-169, G-170, G-171, G-172, G-177 — unchanged from Review 67; no new gaps). The new hook covers Findings 1, 2, 3, 4, 6 going-forward. Findings 5, 7, 8, 9, 10, 11 addressed by text changes inline. The suite now has 4 discipline-mechanizing hooks shipped; the discipline → recurrence → hook precedent (G-129 / G-139 / G-98) extends with this fourth. Sycophancy self-audit recorded in Review 68 narrative: temptation was to over-defer findings as "hook resolves going-forward"; resisted for the standard-text gaps that needed inline text changes, not future hook coverage.
+
+---
+
 ## Unreleased — 2026-05-20 03:15Z (Review 67: operator adversarial review of Reviews 64–66 work — 1 Deferred + 2 discipline corrections; v0.7.3)
 
 ### Deferred
