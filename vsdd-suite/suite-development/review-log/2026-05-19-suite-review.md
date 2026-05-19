@@ -569,3 +569,74 @@ The Review 65 dispositions coordinate with:
 12 findings classified: 9 Resolved in-session, 3 Deferred with G-130 discipline. Cold review served as quality gate (not audit-only) — the new primers ship with the refinements rather than known defects. Backlog after Review 65: **0 Open + 6 Deferred** (G-159, G-168, G-169, G-170, G-171, G-172). The 3 new deferrals each have triggers tied to real project usage events (first multi-layer capstone Phase 6 author; first portfolio-intent strategy-declaration author) rather than calendar dates alone.
 
 Sycophancy self-audit: the cold reviewer's findings were largely-impossible-to-dismiss-after-citation — every finding had a file:line reference and a specific evidence trail. The temptation I felt was to defer more of them as "judgment calls" to avoid the work; I forced myself to address the cheap ones in-session because the cost was a single Edit per finding. The three I genuinely deferred (F4, F6, F11) each pose a real design question (a new disposition class; cross-primer reachability of strategy grammar; a multi-layer rollup rule) that warrants more thought than a single Edit. The cold reviewer's own sycophancy self-audit named three near-passes (Surface D carve-out; per-prompt sycophancy quality from one strong example; v0.7.0 version anchoring read as harmless) — the same shape my Review 64 self-audit could have caught had I been more rigorous. The cold pass produced what my in-session pass didn't catch.
+
+---
+
+## Review 66 — 2026-05-20 02:30Z
+
+**Scope:** Refinements to `primers/5-formal-hardening.md` surfaced by running Phase 5 against `bookmark-cli` in a sandbox (the option-3 validation exercise that closed the Review 64 work cycle). Real Phase 5 execution surfaced 4 primer-refinement candidates (R1–R4) plus 2 bookmark-cli-side findings (B1, B2). This review addresses R1–R4; B1+B2 remain unaddressed pending operator authorization (bookmark-cli is the reference impl per G-117/G-122).
+
+**Lens:** Methodology-tested-against-reference-impl lens. The Phase 5 primer was validated by running its prescriptions against bookmark-cli's actual source: cargo-mutants Surface B produced 11 mutants (7 caught, 1 missed, 3 unviable → 87.5% kill rate on viable); Surface A.0 purity-boundary audit caught a divergence between bookmark-cli's `src/lib.rs:1-7` module-doc purity claim and the actual implementation (3 of 4 `BookmarkStore` methods are effectful). Both findings are usable; the surfacing exercise produced 4 friction points the primer should address before it ships to a second project.
+
+**Session note:** In-session, post-commit (the Review 62–65 work is committed at `57d5341`; Review 66 lands as additional refinements on the same branch). Partial-isolation tradeoff acknowledged — the same author who wrote the Phase 5 primer (Reviews 64+65) is now refining it based on its own run output. The compensation: refinements derived from concrete execution outcomes (real mutant disposition output; real Surface A.0 findings) rather than narrative reflection. The cold equivalent would be a second subagent re-running Phase 5 with the refined primer against a different project; deferred (no obvious second target).
+
+**Source:** `domain-raised` — Phase 5's own surfaces (A.0 audit; cargo-mutants execution) raised the findings against the primer-as-applied; the operator's "Address R1–R4" instruction `director-raised` the closure decision.
+
+---
+
+### Resolved
+
+**R1 / G-173 — Surface A.0 multi-source purity check.**
+
+bookmark-cli's `src/lib.rs:1-7` (module doc) said "Pure-core storage logic ... contains only pure functions" while its DESIGN.md § Verification architecture was silent on per-function purity. The prior Surface A.0 audit instructions in `primers/5-formal-hardening.md` (Review 65 / F3 closure) only covered DESIGN.md as the purity-claim source — module docs were not in scope.
+
+Resolution: extended Surface A.0 prose to list "every authoritative purity claim the project makes" with explicit enumeration: DESIGN.md § Verification architecture AND module/package documentation (Rust `//!`; Python module docstrings; TypeScript `/** @module */` JSDoc; "equivalent constructs in other languages"). Added a third check beyond (a) impl-vs-DESIGN.md and (b) impl-vs-module-doc: (c) DESIGN.md vs. module-doc cross-source consistency. The bookmark-cli case ("`src/lib.rs:1-7` claimed pure; DESIGN.md silent; both diverged from actual") cited as the canonical worked example. New routing option in step 3: if the two sources make divergent purity claims, the divergence is a finding → route to Phase 1a+1b to reconcile (single source of truth at DESIGN.md OR module doc cites DESIGN.md). Step 4 (audit-outcome log preamble) updated to record cross-source consistency status.
+
+**R2 / G-174 — Surface B "unviable" disposition class.**
+
+cargo-mutants reports 3 outcome classes (caught / missed / unviable). The prior Surface B sycophancy check enumerated 3 dispositions for surviving mutants ((a) equivalent / (b) missing-test / (c) spec-gap) but had no class for the unviable case. Phase 5's run against bookmark-cli produced 3 unviable mutants (e.g., `+` → `-` in `String + &str` string concatenation — type-system-rejected) that fit none of the 3 dispositions but did need to be listed in the log for completeness.
+
+Resolution: added 5th disposition class (d) "unviable — mutation does not compile; not a behavioral signal" to the Surface B sycophancy check. The Surface B run-the-tool sub-section's step 2 ("Examine each surviving mutant...") updated from "four outcomes" to "five outcomes" and added explicit guidance: unviable mutants get a one-line note in the log (with the example "`src/lib.rs:55:35` `+` → `-` in string concatenation: unviable — compile failure on `String - &str`"), but they are not test-suite gaps. The disposition table now matches cargo-mutants' actual output shape; the Phase 5 log preamble has a categorical home for every outcome class.
+
+**R3 / G-175 — Tool-install upfront cost note.**
+
+cargo-mutants compiles from source on install (timed at 1m 39s on the bookmark-cli test machine). The prior Phase 5 primer mentioned cargo-mutants / cargo-fuzz / proptest etc. by name but did not flag that the first-Phase-5-session-per-project bundles tool installs with the run. A new operator reading the primer expected to start hardening within minutes; the realistic first-run wall-clock includes the install.
+
+Resolution: new "**Tool-install upfront cost (G-175)**" paragraph immediately under § Phase 5 surface and above Surface A.0. Names the install costs explicitly: cargo-mutants compiles from source (1–2 minutes); cargo-fuzz requires Rust nightly toolchain; proptest/fast-check/hypothesis are dev-dependency adds. Prescribes that first-session log preamble names installs performed and time spent on installs separately from time spent on actual hardening. Subsequent sessions inherit and skip installs.
+
+**R4 / G-176 — Surface A Cargo.toml dep-add prerequisite.**
+
+Surface A's prior prose said "Express each invariant as a property-based test using the language's standard tool: Rust: proptest..." but didn't mention that adding proptest requires editing Cargo.toml's `[dev-dependencies]` — the dep-add is a separate commit from the property-test commits, and a cold reader running Surface A without prior Rust dep-management experience would not know to do this first.
+
+Resolution: new "**Prerequisite (G-176)**" paragraph immediately under Surface A's intro. Names the dev-dependency target per language (Rust: `proptest` or `quickcheck` in `[dev-dependencies]` in `Cargo.toml`; JS/TS: `fast-check` in `devDependencies` in `package.json`; Python: `hypothesis` in `[tool.poetry.group.dev.dependencies]` or `requirements-dev.txt`; Go: `gopter` via `go.mod`). Prescribes that the dep-add lands as a separate commit before the property-test commits — keeps dep-introduction reviewable independently. Same shape as the Phase 2a Red Gate commit boundary discipline: separate commits for separable concerns.
+
+---
+
+### Coordination
+
+The Review 66 refinements coordinate with:
+
+- **G-55** (Addressed Review 64) — parent gap. G-173 / G-174 / G-175 / G-176 each refine Surface A.0 / Surface B / the primer intro / Surface A specifically; the parent's closure holds — these are refinements within the existing primer surfaces, not gap re-opens.
+- **G-89** (Addressed prior) — forward-only narrative preservation. The Surface A.0 refinement extends the prior audit instruction; previous Phase 5 log entries (none yet exist in any project) remain valid records under the prior single-source audit instruction.
+- **G-130** (Addressed prior) — deferral-trigger discipline. No new deferrals from Review 66; the 6 prior Deferred gaps (G-159, G-168, G-169, G-170, G-171, G-172) unchanged.
+- **G-167** (Addressed Review 63) — crosslink-contract.md § Known limitations. The unviable-mutant disposition pattern (R2 / G-174) mirrors the same shape as known-limitations entries: name the observed behavior; provide a workaround; classify as not-a-bug. The shared structural shape isn't named in either primer but is the same intellectual pattern.
+- **VDD-IAR Alignment dim 13** (Added Review 64) — dim 13's Surface-activation-matches-strategy check now covers the 5-disposition Surface B universe (G-174) and the multi-source Surface A.0 audit (G-173). The dim's evaluation procedure becomes slightly stricter; no rewrite needed because dim 13 references the primer rather than restating its contents.
+
+The refinements do NOT regress any prior work. R1's multi-source Surface A.0 audit is additive (the prior DESIGN.md-only check still applies; the module-doc check is layered on top). R2's unviable disposition is additive (5 classes where there were 4; existing 4 unchanged). R3's tool-install note is metadata. R4's dep-add prerequisite is a sequencing clarification, not a methodology change.
+
+**The two bookmark-cli-side findings (B1, B2) from the Phase 5 test against bookmark-cli remain UNADDRESSED:**
+
+- **B1** — `tests/bookmarks.rs` is missing a save-to-nested-path test; the cargo-mutants surviving mutant at `src/lib.rs:48` would be killed by adding it. Disposition per Surface B: (b) test gap; route via Phase 4 to Phase 2a with the `retroactive-Red-Gate (Phase 5 source)` label per the primer.
+- **B2** — DESIGN.md § Verification architecture is silent on per-function purity while `src/lib.rs:1-7` claims "Pure-core storage logic"; both diverge from the implementation (3 of 4 `BookmarkStore` methods are effectful). Disposition per Surface A.0: cross-source divergence + impl drift; route via Phase 4 to Phase 1a+1b (reconcile DESIGN.md and module doc to a single authoritative source; revise the boundary to match the implementation OR refactor the implementation to honor the boundary).
+
+These are project-side findings against the reference implementation. bookmark-cli is the suite's worked example (G-112 closure; reference impl per G-117 / G-122). Modifying it warrants explicit operator authorization rather than routine work — the project's review-log structure would need to absorb Phase 5 findings under the v0.7.1 conventions, and bookmark-cli's first-layer-gate-close predates 2026-05-20 (forward-only G-89 carve-out applies). The findings are surfaced here for visibility; the operator decides whether to bring bookmark-cli to v0.7.1+ conventions in a future cycle.
+
+---
+
+### Summary
+
+4 primer refinements Addressed in-session (R1–R4 → G-173–G-176). 2 project-side findings (B1, B2) surfaced and held pending operator authorization. Backlog after Review 66: **0 Open + 6 Deferred** (unchanged from Review 65: G-159, G-168, G-169, G-170, G-171, G-172). The Phase 5 primer's first real-project execution validated the methodology (concrete findings produced; disposition shapes worked) and surfaced 4 friction points the cold review hadn't anticipated — the methodology-tested-against-reference-impl lens caught what the cold-context primer-validation lens (Review 65) missed.
+
+Sycophancy self-audit: the Phase 5 primer's first run produced findings; I closed 4 of the 4 friction points it surfaced rather than dismissing any as "edge cases the primer doesn't need to cover." The temptation was to dismiss R3 (tool-install cost) as "obviously a per-operator concern" — rejected because the primer is what a new operator reads BEFORE running, so an upfront note saves the operator the discovery cost. The temptation was also to defer R1 as "judgment call about what counts as a 'purity claim source'" — rejected because the bookmark-cli case is concrete (`src/lib.rs:1-7` made a claim that diverged from DESIGN.md silence) and any first-Phase-5 operator on any Rust project with module docs will hit the same shape. Both temptations represent the same failure mode the Phase 5 primer's own Surface B sycophancy check warns against: rationalizing surviving findings as "not really gaps." The discipline applied to the primer as it does to project mutants.
+
+Most uncertain choice: R4 prescribes "dep-add lands as a separate commit before the property-test commits" — borrowing from the Phase 2a Red Gate boundary discipline. This may be over-prescriptive for small projects where dep-add and first-property could share a commit without harming reviewability. Forward-only carve-out preserves the prescription for v0.7.2+ starters; if a project's first Phase 5 session genuinely warrants a combined commit, the divergence is itself a Phase 5 log entry note rather than a discipline violation.

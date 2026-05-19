@@ -4,6 +4,27 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-20 02:30Z (Review 66: Phase 5 primer refinements from bookmark-cli execution — 4 Addressed; v0.7.2)
+
+### Changed
+- **`vsdd-suite/primers/5-formal-hardening.md`** § Surface A.0 (G-173) — audit extended from DESIGN.md-only purity-claim source to "every authoritative purity claim the project makes": DESIGN.md § Verification architecture AND module/package docs (Rust `//!`, Python module docstrings, TypeScript JSDoc, etc.). 3 checks now performed (impl-vs-DESIGN, impl-vs-module-doc, DESIGN-vs-module-doc cross-source consistency); new routing option for cross-source divergence → Phase 1a+1b. bookmark-cli case cited as canonical worked example (`src/lib.rs:1-7` claim diverged from DESIGN.md silence and from implementation).
+- **`vsdd-suite/primers/5-formal-hardening.md`** § Surface B sycophancy check + run-the-tool step 2 (G-174) — 5 disposition classes now: (a) equivalent / (b) missing-test / (c) spec-gap / (d) **unviable** (new) / (e) out-of-scope. Step 2 updated from "four outcomes" to "five outcomes" with explicit unviable-disposition guidance: one-line note per unviable mutant in the log; not a test-suite gap. Matches cargo-mutants' actual output shape.
+- **`vsdd-suite/primers/5-formal-hardening.md`** § Surface A intro (G-176) — new "**Prerequisite (G-176)**" paragraph naming the dev-dependency target per language (Rust: `proptest`/`quickcheck` in `Cargo.toml`; JS/TS: `fast-check` in `package.json`; Python: `hypothesis`; Go: `gopter`). Prescribes dep-add lands as a separate commit before property-test commits (Phase 2a Red Gate boundary discipline analogy).
+
+### Added
+- **`vsdd-suite/primers/5-formal-hardening.md`** § Phase 5 surface (G-175) — new "**Tool-install upfront cost**" paragraph immediately under the section opener and above Surface A.0. Names install costs explicitly (cargo-mutants compiles from source 1–2 min; cargo-fuzz requires Rust nightly; proptest/fast-check/hypothesis are dev-dep adds); prescribes first-session log preamble names installs separately from hardening time.
+
+### Addressed
+- **G-173 (R1)** — Surface A.0 multi-source purity check. Caught by Phase 5 execution against bookmark-cli — primer's prior single-source check missed the class of finding where module docs and DESIGN.md drift.
+- **G-174 (R2)** — Surface B "unviable" 5th disposition class. Caught by Phase 5 execution against bookmark-cli — cargo-mutants produced 3 unviable mutants that fit no prior disposition.
+- **G-175 (R3)** — Tool-install upfront cost. Surfaced by the cargo-mutants 1m 39s install timing during the bookmark-cli run.
+- **G-176 (R4)** — Surface A Cargo.toml dep-add prerequisite. Surfaced as a sequencing gap: Surface A named the tool but not the dep-add step.
+
+### Note
+**Backlog after Review 66: 0 Open + 6 Deferred** (unchanged from Review 65: G-159, G-168, G-169, G-170, G-171, G-172). The 4 Review 66 closures refine `primers/5-formal-hardening.md` based on its first real-project execution — the methodology-tested-against-reference-impl lens caught what the cold-context primer-validation lens (Review 65) missed. **2 bookmark-cli-side findings (B1, B2) remain UNADDRESSED** pending operator authorization on the reference impl: B1 = `tests/bookmarks.rs` missing save-to-nested-path test (Surface B disposition (b); route Phase 2a with `retroactive-Red-Gate (Phase 5 source)` label); B2 = DESIGN.md silent on per-function purity while `src/lib.rs:1-7` makes a divergent claim (Surface A.0 cross-source divergence; route Phase 1a+1b). bookmark-cli's first-layer-gate-close predates 2026-05-20 — forward-only G-89 carve-out applies; bringing the project to v0.7.2 conventions is an operator decision. Sycophancy self-audit recorded in Review 66: discipline applied to the primer as Phase 5 applies to project mutants — refused to dismiss R3 / R1 as edge cases; the temptation to defer was the same failure mode the Phase 5 Surface B sycophancy check warns against.
+
+---
+
 ## Unreleased — 2026-05-20 01:30Z (Review 65: Cold-context primer validation — 9 Resolved + 3 Deferred; v0.7.1)
 
 ### Changed
