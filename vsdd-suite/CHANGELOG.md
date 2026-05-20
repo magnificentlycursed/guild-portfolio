@@ -4,6 +4,24 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-20 09:15Z (Review 71: multi-lens transition-progress audit — 2 Resolved + 1 Dismissed; v0.7.7)
+
+### Changed
+- **`vsdd-suite/README.md`** § Merging gate (~line 951) — 6-criterion enumeration replaced with a one-line pointer to the canonical 7-criteria set in `suite-development/suite-development.md` § Layer-gate close criteria. The pointer names criterion 7 (G-156's developer-voice PROCESS.md retrospective hard gate) and the G-131/G-151 trigger discipline explicitly; two-sentence follow-up mentions the project-level CLOSURE-PROTOCOL.md precedent (ITC) and the "may add but may not weaken" rule. Net change: −12 lines / +3 lines. Single-source-of-truth pattern now consistent across README (pointer), `## Per-layer flow (within a project)` ASCII diagram (G-136 pointer), and suite-development.md (canonical).
+- **`vsdd-suite/templates/README.md`** § Customization checklist — `For DESIGN.md` paragraph expanded from a single sentence into a 2-step ordered list. Step 1 (work the driving questions in the primer) unchanged; new step 2 declares `§ Project intent` first with one-sentence rationale naming what the intent gates (active-domain set, stop-signal sensitivity, Phase 5/6 strategy declarations at capstone+) and a warning that the over-investment variant is hard to catch in-project. Cross-references `domains/DOMAIN-INDEX.md` § Intent calibration.
+
+### Resolved
+- **G-179** README § Merging gate stale relative to suite-development.md § Layer-gate close criteria. README had 6 criteria; canonical source has 7 (G-156's hard gate on PROCESS.md retrospective added 2026-05-18); README also lacked the G-131/G-151 trigger-discipline framing. Two sources of truth invited drift. Surfaced by multi-lens transition-progress audit (Review 71, TW lens). Full narrative: [Review 71](suite-development/review-log/2026-05-20-suite-review.md#review-71--2026-05-20-0915z).
+- **G-180** `templates/README.md` § Customization checklist did not name DESIGN.md § Project intent declaration. Surfaced by multi-lens transition-progress audit (Review 71, TW lens — paired with G-179). Full narrative: [Review 71](suite-development/review-log/2026-05-20-suite-review.md#review-71--2026-05-20-0915z).
+
+### Dismissed
+- **"IAR" terminology preserved in README (40 occurrences) and suite-development.md (19 occurrences).** Intentional per the explicit IAR-name-preservation policy in `suite-development/suite-development.md:11` (G-88 closure): "the directory was renamed to `vsdd-suite/` in Review 38 (G-88 closure) to match the expanded scope; 'IAR' remains the name for the Phase 3 portion specifically and is preserved in historical project review logs that pre-date the rename per the forward-only constraint." Mass-renaming would conflict with the explicit policy and break legacy project review log cross-references. Name-preservation is doing what the policy says it does.
+
+### Note
+**Backlog after Review 71: 0 Open + 7 Deferred** (G-159, G-168, G-169, G-170, G-171, G-172, G-177 — unchanged from Review 70; G-179 and G-180 registered + resolved in-session). The registry walk confirmed 14 Open speculative-project / consulting-scope gaps (G-01, G-04, G-05, G-11, G-13–G-18, G-26, G-28, G-29, G-31) remain open by deliberate scope — the suite is a portfolio/apprenticeship tool, not a consulting or production-ops platform. **G-57** (no effectiveness test for domain prompts, Open since 2026-04-27) flagged as the most-tractable foundational next arc but no resolution work this session. Non-breaking against v0.7.6 (additive documentation edits with no scaffold-behavior change).
+
+---
+
 ## Unreleased — 2026-05-20 08:30Z (Review 70: PE + DE reclassified from core to extended-with-strong-presumption — 1 Resolved; v0.7.6)
 
 ### Changed

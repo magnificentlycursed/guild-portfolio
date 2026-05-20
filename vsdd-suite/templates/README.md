@@ -51,6 +51,9 @@ For each per-domain `<DOMAIN>-REVIEW.md` you copy:
 5. Replace `{{LANGUAGE_SUPPLEMENT_LINE}}` with either the active supplement reference or the explicit opt-out for language-agnostic domains.
 6. Replace `{{SYCOPHANCY_CHECK}}` with the domain prompt file's sycophancy-check paragraph (copy verbatim, do not paraphrase).
 
-For `DESIGN.md`: work the driving questions in `vsdd-suite/primers/1ab-spec-crystallization.md` rather than filling in the skeleton structurally — the skeleton is a placeholder, not a fill-in-the-blanks form.
+For `DESIGN.md`:
+
+1. Work the driving questions in `vsdd-suite/primers/1ab-spec-crystallization.md` rather than filling in the skeleton structurally — the skeleton is a placeholder, not a fill-in-the-blanks form.
+2. **Declare `§ Project intent` first** (`learning-exercise` / `portfolio` / `capstone` / `production`). The intent gates the active-domain set (per `vsdd-suite/domains/DOMAIN-INDEX.md` § Intent calibration), the stop-signal sensitivity, and at capstone+ intent the Phase 5 / Phase 6 strategy declarations. The wrong intent over-invests or under-invests methodology effort and the over-investment variant is hard to catch in-project. Declare the intent before customizing the per-domain index files so the active-domain set you scaffold matches the intent you'll review against.
 
 For project `README.md`: this is your user-facing entry point; expand and edit freely as the project takes shape. The skeleton just establishes existence so Phase 3 Technical Writer reviews have an artifact to evaluate.
