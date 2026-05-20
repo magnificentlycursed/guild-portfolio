@@ -30,7 +30,7 @@ All four tests live in `tests/bookmarks.rs` and invoke the compiled binary via `
 
 (Per Review 74 manual-test split convention — the full per-step plan with runnable commands + literal expected-output blocks lives in the linked per-layer file. Migrated from the prior inline-in-TODO.md shape as part of PR 6's capstone-intent promotion.)
 
-**Phase 2c (refactor):** `no refactor required` (per `../../vsdd-suite/primers/2c-refactor.md` § Completion criteria #5 explicit-skip annotation). Layer 1's implementation (`src/lib.rs` + `src/main.rs`) is small enough that the Phase 2b artifact already exhibits the idiomatic Rust patterns the refactor primer's scope catalog targets (extract-and-name; collapse-and-inline; reshape-data-flow; surface-purity-boundary; idiomatic-alignment; language-supplement rules). The purity boundary was explicitly surfaced by SA Review 1 (Phase 5 purity-boundary verification); no further refactor warranted. The explicit-skip annotation here satisfies VDD-IAR Alignment dim 12 (Phase 2c refactor discipline per G-161) — silent-skip would be a finding; this annotation is the alternative.
+**Phase 2c (refactor):** `no refactor required` (per `../../vsdd-suite/primers/2c-refactor.md` § Completion criteria #5 explicit-skip annotation). Layer 1's implementation (`src/lib.rs` + `src/main.rs`) is small enough that the Phase 2b artifact already exhibits the idiomatic Rust patterns the refactor primer's scope catalog targets (extract-and-name; collapse-and-inline; reshape-data-flow; surface-purity-boundary; idiomatic-alignment; language-supplement rules). The purity boundary was explicitly surfaced by SA Review 1 (Phase 5 Purity Boundary Audit); no further refactor warranted. The explicit-skip annotation here satisfies VDD-IAR Alignment dim 12 (Phase 2c refactor discipline per G-161) — silent-skip would be a finding; this annotation is the alternative.
 
 **Layer-gate criteria:**
 
@@ -38,7 +38,7 @@ All four tests live in `tests/bookmarks.rs` and invoke the compiled binary via `
 2. `cargo build --release` succeeds with no warnings.
 3. The manual testing checklist at `manual-tests/layer-1.md` runs clean (every step produces the expected exit/stdout/stderr).
 4. Phase 3 IAR reviews complete for the **capstone-active domain set** per `../../vsdd-suite/domains/DOMAIN-INDEX.md` § Intent calibration: 7 cores (SE, QE, UX, Security, SA, SO, VDD-IAR Alignment) + capstone-tier extended (Performance Engineer, Red Team, Platform Engineer, Technical Writer); each domain reaches MVR or zero-findings. (Data Engineer evaluated and ruled out — bookmark-cli's flat JSON storage falls below the activation threshold per G-178; the absence is documented as deliberate.)
-5. Phase 5 Surfaces A.0 (purity boundary) + B (mutation testing) both at closure with the per-domain log preambles per G-177 — purity-boundary verification in SA Review 1; mutation testing in QE Review 2.
+5. Phase 5 Surfaces A.0 (purity boundary) + B (Mutation Testing) both at closure with the per-domain log preambles per G-177 — Purity Boundary Audit in SA Review 1; Mutation Testing in QE Review 2.
 6. Phase 6 four-dimensional convergence record landed as the final VDD-IAR Alignment review round titled "Review N — Phase 6 four-dimensional convergence (project-terminal)" per primer 6 + G-177.
 
 ---

@@ -1,7 +1,7 @@
 # Manual Testing — Layer 1: Add and List
 
 **Layer:** [`TODO.md` § Layer 1 — Add and List](../TODO.md#layer-1--add-and-list)
-**Tested against:** Layer 1 close (Phase 2b implementation committed; Phase 3 IAR Reviews QE 1 + 2 + SA 1 closed; Phase 5 purity-boundary verification + mutation testing closed at 2026-05-20).
+**Tested against:** Layer 1 close (Phase 2b implementation committed; Phase 3 IAR Reviews QE 1 + 2 + SA 1 closed; Phase 5 Purity Boundary Audit + Mutation Testing closed at 2026-05-20).
 **Convention:** Review 74 manual-test split — this file is the per-layer manual-test plan; the corresponding `TODO.md` Layer 1 block points here.
 **Authoring note:** the test plan below was inline in `TODO.md` prior to PR 6 (under portfolio intent); split out per the Review 74 forward-only convention as part of bookmark-cli-manual's capstone-intent promotion. The runnable-step standard applies (per primer 1c § Manual testing checklist) — each step names the exact command, clean-state setup where required, binary lifecycle steps, and literal expected output where invariant.
 

@@ -61,7 +61,7 @@ A complete domain file contains these elements, in order:
 
 **What a weak dimension looks like:** "Are tests present and meaningful?" — a question, not a dimension; names no failure class; gives the reviewer no technique to apply.
 
-**What a strong dimension looks like:** `**Test falsifiability** — Would each test catch a broken implementation? Named attacks: mutation testing. Named tools: Stryker (JS/TS), mutmut (Python), cargo-mutants (Rust).` — failure class named, why it matters explained, specific technique given.
+**What a strong dimension looks like:** `**Test falsifiability** — Would each test catch a broken implementation? Named attacks: Mutation Testing. Named tools: Stryker (JS/TS), mutmut (Python), cargo-mutants (Rust).` — failure class named, why it matters explained, specific technique given.
 
 **Finding classification schemas by domain type:**
 
@@ -107,11 +107,11 @@ The failure mode this check defends against: an LLM-driven authoring session nat
 
 When introducing a new methodology concept (a session type; a verification surface; a classification axis; a defect class), name it **descriptively** as the canonical identifier. Letters, short codes, and single-purpose abbreviations are anti-patterns when adopted as the primary identifier — they require the reader to look up what the letter means before any cross-reference downstream is interpretable. Descriptive names carry the meaning at the point of use.
 
-**Canonical worked example (the Review 78 surfacing):** the Phase 5 hardening primer originally named its five forms `Surface A` (property-based testing) / `Surface A.0` (purity-boundary verification) / `Surface B` (mutation testing) / `Surface C` (fuzzing) / `Surface D` (formal proof). The descriptive names existed in the primer alongside the letters, but every cross-reference in domain prompts, review-log entries, FINDINGS-INDEX rows, and CHANGELOG entries used the letter as the primary identifier. A reader encountering "Surface B" anywhere downstream had to look up what "B" meant. Review 78 retired the letters in favor of the descriptive names; the canonical identifier is now "mutation testing" / "fuzzing" / etc.
+**Canonical worked example (the Review 78 surfacing):** the Phase 5 hardening primer originally named its five forms `Surface A` (property-based testing) / `Surface A.0` (Purity Boundary Audit) / `Surface B` (Mutation Testing) / `Surface C` (Fuzz Testing) / `Surface D` (Proof Execution). The descriptive names existed in the primer alongside the letters, but every cross-reference in domain prompts, review-log entries, FINDINGS-INDEX rows, and CHANGELOG entries used the letter as the primary identifier. A reader encountering "Surface B" anywhere downstream had to look up what "B" meant. Review 78 retired the letters in favor of the descriptive names; the canonical identifier is now "Mutation Testing" / "Fuzz Testing" / etc.
 
 **The discipline:**
 
-1. **Descriptive names are the primary identifier.** When a methodology concept needs a name, the name carries the concept (`mutation testing`, `purity-boundary verification`, `validator-of-last-resort`). A letter-or-number label is at most an ordering aid (an enumeration in a table), never the primary identifier in cross-references.
+1. **Descriptive names are the primary identifier.** When a methodology concept needs a name, the name carries the concept (`Mutation Testing`, `Purity Boundary Audit`, `validator-of-last-resort`). A letter-or-number label is at most an ordering aid (an enumeration in a table), never the primary identifier in cross-references.
 2. **Existing well-established abbreviations stay.** `Dim N` / `Layer N` / `Round N` / `Finding N` are acceptable — the abbreviation includes the concept-word, so the meaning is at point-of-use. Domain slugs like `quality-engineer` / `solution-architect` are descriptive and short, not abbreviations. The discipline is forward-looking against NEW lettering / abbreviation adoptions; it does not retroactively rewrite established short forms that carry meaning.
 3. **Historical references are preserved per G-89.** Prior-Review entries that used opaque lettering are preserved as historical narrative; reference examples migrate per G-177 precedent.
 
@@ -120,6 +120,41 @@ When introducing a new methodology concept (a session type; a verification surfa
 **Mechanical detector pattern (audit support):** grep for capital-letter labels next to methodology concept words — `Surface [A-Z]`, `Phase [0-9][a-z]`, `Mode [A-Z]`, `Form [A-Z]`, `Class [A-Z]`, `Type [A-Z]`, `Variant [A-Z]` — across forward-facing suite content (`primers/`, `domains/`, `supplements/`, `README.md`, `suite-development.md`) AND project content (project DESIGN.md, TODO.md, per-domain reviews). Each match is a candidate for the lookup-cost question: would a descriptive name carry the meaning here? The detector is mechanical; the judgment is human (or Sanity Check) — not every match is a defect, but every match is worth the question.
 
 **Companion review dimension:** Technical Writer Dim 12 ("Lettering / abbreviation lookup cost") evaluates project documentation against this discipline at Phase 3 review time. Suite-authoring discipline lives here (§ Naming and identifier discipline); project-review discipline lives in the TW domain prompt. The Documentation Reviewer pair (forthcoming) will eventually validate TW Dim 12 findings via the standard cold-reader pair pattern.
+
+### Anchor-link convention for cross-references ([Review 79](review-log/2026-05-20-suite-review.md#review-79--2026-05-20-1730z) Finding 3)
+
+When authoring forward-facing suite content (primers, domains, README, supplements, suite-development.md) or reference-example project content, inline references SHOULD be markdown links so that a reader can click through to context. The convention covers two distinct categories — **internal navigability** (findings, reviews, files within the repo) and **external credit + sourceability** (software, people, documents authored elsewhere). Operator wording (for internal): "These should be markdown links so that a human can click through to the index and then to the appropriate header in the review." Operator wording (for external): "Mentions of software, people, documents, etc. should have links too to properly credit the projects and to make it easy for a human to read the sources/documentation."
+
+**Convention table — internal navigability:**
+
+| Reference shape | Link target |
+|---|---|
+| `G-N` in prose | `[G-N](FINDINGS-INDEX.md#g-N)` — anchor on the registry row (each row in [`FINDINGS-INDEX.md`](FINDINGS-INDEX.md) carries an `<a id="g-N"></a>` marker). Two-hop pattern: prose → registry row → Review entry (the registry's first cell links onward). |
+| `Review N` (suite-side) | `[Review N](review-log/2026-MM-DD-suite-review.md#review-N--2026-MM-DD-HHMMZ)` — GitHub markdown auto-generates the heading anchor from `## Review N — 2026-MM-DD HH:MMZ` → lowercased, em-dash + colon + space → hyphens. |
+| `Review N` (project-side) | `[Review N](vsdd-suite/review-log/2026-MM-DD-{domain}.md#review-N--2026-MM-DD-HHMMZ)` parallel pattern. |
+| `Review N Finding M` | Same-file: `[Review N Finding M](#review-N--HHMMZ)`. Cross-file: full path + anchor. Per-Finding-specific anchors are uncommon — the Review heading is usually the right target (the Findings live below it). |
+| Domain name (e.g., "Technical Writer", "Quality Engineer", "Sanity Check") | First mention per file → link to the domain prompt file: ``` [Technical Writer](domains/role/TECHNICAL-WRITER-REVIEW.md) ```. Subsequent mentions in same file may be plain text. Role-domain files live under `domains/role/`; meta-domain files under `domains/meta/`. Path is relative to the linking file. |
+| Domain dimension (e.g., "TW Dim 13", "PE Dim 38") | Link the dim reference (with or without the domain prefix) to the section anchor in the domain prompt: ``` [TW Dim 13](domains/role/TECHNICAL-WRITER-REVIEW.md#dim-13--inline-reference-navigability-review-79-finding-3) ``` if the heading anchor exists, otherwise link to the domain file (anchor unresolved still better than no link). |
+| Primer name / Phase name (e.g., "Phase 2a Red Gate", "Phase 5 hardening", "Convergence primer") | First mention per file → link to the primer file: ``` [Phase 2a Red Gate](primers/2a-red-gate.md) ``` / ``` [Phase 5 hardening](primers/5-formal-hardening.md) ``` / ``` [Convergence](primers/6-convergence.md) ```. Phase numbers that don't have a dedicated primer (e.g., "Phase 1c Spec Review Gate") link to the section in the closest primer or to the suite README phase-table row. |
+| Log file mention (e.g., "the suite-review log", "the QE review log") | Link the descriptive phrase to the file or its containing directory: ``` [the suite-review log](review-log/) ``` (when generic) or ``` [the suite-review log for 2026-05-20](review-log/2026-05-20-suite-review.md) ``` (when dated). Project-side: ``` [the QE review log](vsdd-suite/review-log/2026-MM-DD-quality-engineer.md) ```. |
+| File path in prose (e.g., ``` `primers/2a-red-gate.md` ```) | Wrap in markdown link: ``` [`primers/2a-red-gate.md`](primers/2a-red-gate.md) ```. Apply when the path is named; skip when the file is mentioned descriptively without a path. |
+| § Section reference (e.g., "§ Naming and identifier discipline") | ``` [§ Naming and identifier discipline](suite-development.md#naming-and-identifier-discipline-review-78-finding-4) ``` — anchor from heading slug (GitHub lowercases, replaces spaces with `-`, strips most punctuation). |
+| Descriptive cross-document reference (e.g., "the suite's findings registry") | Link the descriptive phrase to the file: ``` [the suite's findings registry](FINDINGS-INDEX.md) ```. The G-ID inline link is independent — both can coexist (e.g., "Closes [G-112](FINDINGS-INDEX.md#g-112) in [the suite's findings registry](FINDINGS-INDEX.md)."). |
+
+**Convention table — external credit + sourceability:**
+
+| Reference shape | Link target |
+|---|---|
+| Governing documents (VSDD / VDD whitepapers) | [VSDD whitepaper](https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00) ; [VDD whitepaper](https://gist.github.com/dollspace-gay/45c95ebfb5a3a3bae84d8bebd662cc25). Link on every mention until the immediate paragraph; subsequent same-paragraph mentions may be plain text. |
+| Software dependencies declared in `crosslink-contract.md` (suite API surface — first-party) | [crosslink](https://github.com/forecast-bio/crosslink). |
+| Software dependencies (third-party language tooling, well-known OSS) | Link to canonical homepage or GitHub repo on first mention per file: [Python](https://www.python.org/), [Rust](https://www.rust-lang.org/), [TypeScript](https://www.typescriptlang.org/), [pytest](https://docs.pytest.org/), [ruff](https://github.com/astral-sh/ruff), [mypy](https://mypy-lang.org/), [shellcheck](https://www.shellcheck.net/), [bats-core](https://github.com/bats-core/bats-core), [cargo](https://doc.rust-lang.org/cargo/), [Pre-commit](https://pre-commit.com/), [GitHub](https://github.com/), [Claude Code](https://github.com/anthropics/claude-code). Add new entries as they enter forward-facing prose. |
+| People (operators, authors, contributors) | Link the name or handle to the canonical profile: [dollspace.gay](https://github.com/dollspace-gay) (VSDD/VDD whitepaper author + suite originator). New people: prefer GitHub profile; fall back to canonical homepage. |
+
+**Forward-only constraint:** the convention applies to new prose authored on or after [Review 79](review-log/2026-05-20-suite-review.md#review-79--2026-05-20-1730z) adoption (2026-05-20). Historical CHANGELOG / COMPATIBILITY / pre-Review-79 review-log entries and the legacy registry rows are preserved per [G-89](FINDINGS-INDEX.md#g-89) — unlinked prose stays as authored. Future authoring uses the convention; mechanical sweep updates the highest-frequency entry points without retroactively rewriting historical narrative.
+
+**First-mention-per-file rule:** external links land on the FIRST mention in each file (the highest-leverage placement — the reader clicks once and is anchored on the canonical source). Subsequent mentions in the same file are plain text. This avoids visual noise without sacrificing discoverability. Internal links land on every mention (low cost; same-page anchors).
+
+**Companion review dimension:** Technical Writer Dim 13 ("Inline-reference navigability") evaluates project documentation against this discipline at Phase 3 review time. The Documentation Reviewer pair (forthcoming) will eventually validate TW Dim 13 findings.
 
 ---
 
@@ -352,7 +387,7 @@ Each finding follows this structure:
 [rationale; for Accepted Risk and similar, include the named owner]
 ```
 
-- Finding title always includes the dim reference parenthetically (`(Dim 2)`, `(Dim 1, Dim 10)`, `(Rust supplement — path traversal)`, `(Phase 5 mutation testing)` for Phase 5 work). Any trailing `(...)` group at the end of the title is the discipline-reference parenthetical; the per-project-review hook accepts any form per Review 74.
+- Finding title always includes the dim reference parenthetically (`(Dim 2)`, `(Dim 1, Dim 10)`, `(Rust supplement — path traversal)`, `(Phase 5 Mutation Testing)` for Phase 5 work). Any trailing `(...)` group at the end of the title is the discipline-reference parenthetical; the per-project-review hook accepts any form per Review 74.
 - Numbering is continuous within a Review (1, 2, 3, … across all classifications), not restarted per classification
 - Cross-references to other domain logs use Markdown links: `[QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) Finding 4` — not prose ("Logged in QE log")
 - Closer is exactly one of `**Resolution:**` (Resolved only) or `**Classification:**` (everything else). Mixing the two within a single domain's log is drift.
