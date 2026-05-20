@@ -1,8 +1,10 @@
-# Session Primer: Spec Crystallization (VSDD Phase 1a)
+# Session Primer: Spec Crystallization (VSDD Phase 1a+1b)
 
 Use this prompt at the start of a new project before writing any code. Paste it into a fresh AI session, then fill in the project description section. The output of this session is a `DESIGN.md` that will pass VDD-IAR Alignment dim 1 scrutiny.
 
 This is not a review prompt. It is a construction prompt — it drives the creation of a complete specification. The adversarial pressure is applied *during* spec writing, not after.
+
+**Whitepaper alignment (G-96, refined Review 63 / G-160).** This single primer covers the VSDD whitepaper's **Step 1a (Behavioral Specification)** and **Step 1b (Verification Architecture)** together — both happen in the same DESIGN.md authoring pass. The suite-side phase label is **Phase 1a+1b** to make the dual scope visible at a glance (prior label `Phase 1a` alone made the missing 1b row in the phase table read as forgotten rather than absorbed). Behavioral contracts, edge case catalog, interface definitions, and the verification architecture (purity boundary, automatable-vs-manual split, Phase-5 formal-proof candidates) are all written here. The whitepaper's Step 1c (Spec Review Gate) is the suite's Phase 1c (Decomposition) — see `primers/1c-decomposition.md`. Forward-only: project review logs that reference `Phase 1a` alone under the prior suite convention remain valid records.
 
 **Session medium:** The default is a fresh chat session into which you paste this primer. Projects using crosslink may instead launch the session via `crosslink design [description] [--issue <id>] [--gh-issue <id>]`, which opens a foreground design session pre-loaded with the named issue's context and writes the draft to `.design/<slug>.md`. Iterating later uses `crosslink design --continue <slug>`. The primer text below is the same in either medium — `crosslink design` provides the session container, not the spec discipline. See `README.md` § Worked example: A VSDD session with crosslink.
 
@@ -10,11 +12,11 @@ This is not a review prompt. It is a construction prompt — it drives the creat
 
 ## Prompt
 
-You are helping create a software specification under the Verified Spec-Driven Development (VSDD) methodology. This is Phase 1a: Spec Crystallization. Your role is to drive toward a specification that is complete enough to be verified — not just described.
+You are helping create a software specification under the Verified Spec-Driven Development (VSDD) methodology. This is Phase 1a+1b: Spec Crystallization (Behavioral Specification + Verification Architecture). Your role is to drive toward a specification that is complete enough to be verified — not just described.
 
 **Your posture:** Assume the spec is incomplete until proven otherwise. Your job is to find every place where the behavior is undefined, ambiguous, or only described for the happy path. Do not confirm what the developer has written. Find what is missing.
 
-**Governing standard:** A complete VSDD Phase 1a spec contains:
+**Governing standard:** A complete VSDD Phase 1a+1b spec contains:
 - **Behavioral contracts**: for each feature, explicit preconditions (what must be true for the operation to be valid), postconditions (what the system guarantees after the operation), and invariants (what is always true regardless of operation sequence)
 - **Exhaustive edge case catalog**: boundary values, empty inputs, malformed inputs, and failure modes enumerated before implementation, not discovered during debugging
 - **Interface definitions**: explicit data shapes, validation rules, and error responses at every system boundary — not implied by the implementation
@@ -112,7 +114,7 @@ Before this spec is considered done, argue with it:
 
 ## Completion criteria
 
-The spec is ready to move to Phase 1b (decomposition) when:
+The spec is ready to move to Phase 1c (decomposition / Spec Review Gate) when:
 
 1. Every feature has explicit preconditions, postconditions, and invariants — not just happy-path descriptions
 2. The edge case catalog covers boundary values, empty inputs, malformed inputs, and failure modes enumerated before implementation

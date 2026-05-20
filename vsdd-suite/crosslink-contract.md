@@ -21,8 +21,10 @@ The worked example invokes these crosslink commands. Each is part of the contrac
 | Setup | `crosslink init` | Initialize `.crosslink/`, issues.db, embedded policy | (none) |
 | Setup | `crosslink workflow diff` | Verify deployed policy matches embedded defaults | (none) |
 | Setup | `crosslink agent --help` | Identity setup discovery | (none) |
-| 1a | `crosslink design "<desc>"` | Open Phase 1a session container with `.design/<slug>.md` working draft | (none) |
-| 1a | `crosslink design --continue <slug>` | Resume the Phase 1a draft when a Phase 4 route brings work back | `--continue` |
+| Setup | `crosslink knowledge import <DIRECTORY> --tag <tag>` | Register suite primers, activated domain prompts, and supplements as knowledge pages (G-146 / G-163 / G-164; invoked by `templates/scaffold-project.sh`) | `--tag`, positional `<DIRECTORY>`; `--overwrite` for re-import on suite version bump |
+| Setup | `crosslink knowledge sync` | Initialize the knowledge cache when `knowledge import` reports `Sync cache not initialized` | (none) |
+| 1a | `crosslink design "<desc>"` | Open Phase 1a+1b session container with `.design/<slug>.md` working draft | (none) |
+| 1a | `crosslink design --continue <slug>` | Resume the Phase 1a+1b draft when a Phase 4 route brings work back | `--continue` |
 | 1b | `crosslink quick "<title>" -p <pri> -l <label> [--parent <id>] [--quiet]` | Create epic, layer issue, acceptance criterion | `-p`, `-l`, `--parent`, `--quiet` |
 | 1b | `crosslink milestone create "<name>"` | Create per-layer milestone container | (none) |
 | 1b | `crosslink milestone add "<name>" "<issue-id>"` | Attach layer issue to its milestone | (none) |
@@ -62,7 +64,22 @@ The G-138 project-level finding index (cross-cutting registry) uses the same `is
 
 For audit clarity — these commands exist in crosslink but the suite does not reference them in any current artifact. Listed so a future contributor knows the suite's contract surface is intentionally scoped:
 
-`crosslink kickoff` (suite uses `swarm` instead), `crosslink container` (not in scope), `crosslink sentinel` (not in scope), `crosslink knowledge` (not in scope — the suite's primers fill this role), `crosslink style` (not in scope — the suite carries its own house-style discipline via per-domain reviews), `crosslink mc` / `crosslink serve` / `crosslink tui` (TUI is mentioned as a quick-lookup option but not as a workflow dependency), `crosslink trust` / `crosslink locks` / `crosslink sync` / `crosslink migrate` (operational; not part of the suite's documented workflow), `crosslink config` (used by crosslink-using projects as needed; not suite-documented), `crosslink context` / `crosslink integrity` / `crosslink compact` / `crosslink prune` (housekeeping; not suite-documented), `crosslink timer` (time-tracking; not in scope).
+`crosslink kickoff` (suite uses `swarm` instead), `crosslink container` (not in scope), `crosslink sentinel` (not in scope), `crosslink style` (not in scope — the suite carries its own house-style discipline via per-domain reviews), `crosslink mc` / `crosslink serve` / `crosslink tui` (TUI is mentioned as a quick-lookup option but not as a workflow dependency), `crosslink trust` / `crosslink locks` / `crosslink migrate` (operational; not part of the suite's documented workflow), `crosslink config` (used by crosslink-using projects as needed; not suite-documented), `crosslink context` / `crosslink integrity` / `crosslink compact` / `crosslink prune` (housekeeping; not suite-documented), `crosslink timer` (time-tracking; not in scope).
+
+**Note:** `crosslink knowledge` moved from the "does not depend on" list to the dependency surface table above as of v0.5.0 (G-146) — `scaffold-project.sh` registers primers, activated domain prompts, and supplements via `crosslink knowledge import`. `crosslink sync` likewise moved into the dependency surface (knowledge import requires the cache to be initialized; `crosslink knowledge sync` is the explicit invocation when an import surfaces a sync-cache-not-initialized error).
+
+### Known limitations (suite-discovered against crosslink v0.8.0)
+
+These are not breaking-change items — they are surface limitations the suite has worked around. Listed so a future contributor knows what does NOT work as documented in `crosslink --help` and what the suite's documented workaround is:
+
+| Command surface | Observed behavior | Suite's workaround | Source |
+|---|---|---|---|
+| `crosslink milestone create --quiet` | The `--quiet` flag does not reduce output to just the milestone ID — `Created milestone #N: <title>` is still printed. The README's worked example previously assumed `--quiet` returned the ID (parallel to `crosslink quick --quiet`). | The worked example extracts the milestone ID via `awk '/^Created milestone/ {gsub(/[#:]/,"",$3); print $3}'`. Alternative: invoke `crosslink milestone list` after creation. | G-167 (registered Review 63) — discovered during G-106 sample-output capture. |
+| `crosslink milestone add/show/close <ID>` | The `<ID>` argument is a numeric milestone ID, not a milestone name. The prior worked example used the milestone-name form which fails with `error: invalid value 'Layer 1: ...' for '<ID>': invalid digit found in string`. | The worked example captures the milestone ID into a shell variable at `milestone create` time and passes the numeric ID to subsequent commands. | G-106 closure (Review 62). |
+| `crosslink swarm gate <phase-slug>` | Requires `crosslink swarm init --doc <design>` to have run first AND all planned agents to be resolved. The README previously treated `swarm gate` as a standalone "run the test suite" command. | Solo projects use clean `cargo test` (or equivalent) as the gate; multi-agent swarm builds use `crosslink swarm gate <phase>` after `swarm init` + agent resolution. | G-106 closure (Review 62). |
+| `crosslink swarm review --doc <PATH>` | The `--doc` flag is the **output path** for the consolidated findings document, not the per-agent input prompt. The README's prior phrasing was ambiguous; a new reader could read `--doc vsdd-suite/SOFTWARE-ENGINEER-REVIEW.md` as "use this domain prompt for the review." | Per-agent input prompts are loaded from `vsdd-suite-domain`-tagged crosslink knowledge pages (G-146); `--doc` only specifies where the aggregated findings doc is written. | G-106 closure (Review 62). |
+
+A discovered limitation is **not** a breaking change against this contract — it is a doctrine-clarification for the suite's documented workflow. If a limitation becomes blocking (a suite-documented command stops producing the workaround's expected output, e.g., `crosslink milestone create` stops printing the `#N` line we parse), that IS a breaking change against this contract and triggers the response in `## Breaking-change definition` above.
 
 If the suite begins to depend on any of these, this section's row moves into the dependency surface tables above and the "Tested against" line at the top must be re-confirmed.
 
