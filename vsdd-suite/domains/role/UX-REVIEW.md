@@ -24,6 +24,8 @@ Regression check: verify that all previously-addressed UX concerns remain intact
 
 **Interface type:** The standard dimensions below assume a browser-rendered interface. For CLI projects, consult `../../supplements/cli.md` — the CLI UX dimensions replace most of the standard dimensions below. For browser apps, also consult `../../supplements/browser-app.md` for browser-specific accessibility, responsive design, and security UX concerns.
 
+**Validator pair (Review 77):** `software-engineer` is the natural validator for UX findings whose fix is a UI / interaction code change; `solution-owner` is the natural validator when the UX finding is actually a spec gap (the experience the docs describe doesn't match what an active user would expect). Resolved findings declare `**Validator:**` per the lifecycle convention in `../../suite-development/suite-development.md` § Validation loop discipline.
+
 ## Standard Evaluation Dimensions
 
 1. **Empty states** — What does the user see when content is absent? Is there a clear prompt or explanation?

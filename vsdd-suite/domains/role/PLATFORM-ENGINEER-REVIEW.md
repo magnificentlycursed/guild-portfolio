@@ -30,6 +30,8 @@ Regression check: verify that all pipeline gates and infrastructure controls ins
 
 **Language and interface supplement:** Consult `../../supplements/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`). Apply the **Platform Engineering** section from the relevant supplement file in addition to the standard dimensions below — language supplements specify the correct tooling for dependency installation, auditing, linting, and format checking.
 
+
+**Validator pair (Review 77):** `software-engineer` is the natural validator for PE findings whose fix is a CI / build-gate / tool-config change in the project tree. For PE shift-left mechanizations (new pre-commit hooks the suite authors to catch a recurring defect class), `**Validator:** *self*` is acceptable per `../../suite-development/suite-development.md` § Validation loop discipline strict policy — the discipline-domain whose work the hook enforces is the implicit validator (the hook self-validates by enforcement). The 5 existing suite hooks (review-log-anonymization, crosslink-references, suite-review-preamble, project-review-discipline, changelog-currency) all landed under this self-validation pattern.
 ## Standard Evaluation Dimensions
 
 ### CI/CD Pipeline

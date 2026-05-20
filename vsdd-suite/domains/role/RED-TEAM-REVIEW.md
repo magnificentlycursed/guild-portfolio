@@ -28,6 +28,8 @@ Regression check: verify that previously-confirmed attack mitigations remain int
 
 **Language and interface supplement:** Consult `../../supplements/` for the supplement matching the project's primary language and interface type. Apply the **Red Team** section — attack tooling, injection patterns, and client-side exploit vectors are language- and framework-specific.
 
+
+**Validator pair (Review 77):** `security` is the natural validator for findings owned by this domain — Red Team's adversarial threat-model challenges route back to Security for confirmation that the mitigation is structurally sound. Resolved findings declare `**Validator:** security` per the lifecycle convention in `../../suite-development/suite-development.md` § Validation loop discipline.
 ## Standard Evaluation Dimensions
 
 1. **Threat model** — Who are the plausible attackers? What are they after? What is the crown jewel — the data or capability that, if compromised, would be the worst outcome? Name the threat actors (anonymous internet user, authenticated user, disgruntled insider, automated scanner) and identify which attack surfaces are in scope for each. A review without a threat model is a checklist, not a red team.

@@ -28,6 +28,8 @@ Regression check: verify that all previously-working features still work. Prior 
 
 **Language and interface supplement:** Consult `../../supplements/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`) and interface type (e.g., `cli.md`, `browser-app.md`). Apply the **Quality Engineering** section from the relevant supplement files in addition to the standard dimensions below.
 
+
+**Validator pair (Review 77):** `software-engineer` is the natural validator for QE findings whose fix is an SE code change (the most common case — QE raises coverage / mutation / assertion-quality findings; SE owns the code fix; QE's role in validation is the cold re-run against the updated suite). For QE-internal findings (test-discipline meta-findings; tests of the test surface itself), `**Validator:** *self*` is acceptable with rationale per `../../suite-development/suite-development.md` § Validation loop discipline strict policy.
 **Domain boundary:** QE owns the test system — whether tests exist, whether they are structured to catch defects, and whether coverage reflects genuine confidence. SE owns the code — whether the implementation is correct, well-named, and well-structured. When QE finds a logic error in code that has no test for it, flag the missing test here. SE flags the bug. Both findings are valid and non-duplicative: the missing test is a quality failure independent of whether the bug gets fixed.
 
 ## Standard Evaluation Dimensions

@@ -24,6 +24,8 @@ For each finding, cite the specific artifact and location (commit hash, log entr
 
 **Language and interface supplement:** Not applicable. Process compliance is language-agnostic. The `supplements/` supplements add language-specific dimensions to implementation-focused domains; the VDD-IAR Alignment domain evaluates methodology compliance, which is independent of the implementation language or interface type.
 
+
+**Validator pair (Review 77):** `solution-owner` is the natural validator for VDD-IAR Alignment findings — SO confirms the process-discipline finding doesn't conflict with the project's declared intent. Resolved findings declare `**Validator:** solution-owner` per the lifecycle convention in `../../suite-development/suite-development.md` § Validation loop discipline.
 ## Governing References
 
 Before applying the standard dimensions, locate and read the governing methodology document for this project. Record in the review log as a preamble entry (not a classified finding): the document URL, and the project's program phase (Phase 1, 2, 3, or 4 — see the Program Phase Context section below). A reviewer who cannot identify the governing document has not completed this review.

@@ -40,10 +40,10 @@ When the trigger fires, all findings sharing it become eligible for reactivation
 
 ## Findings registry (forward-only)
 
-Findings registered on or after 2026-05-20 (Review 73 convention shift). Schema mirrors the project finding-index shape so a suite contributor and a suite user encounter the same registry conventions across scopes. No `G-`/`F-` ID prefix — findings are identified by their originating `Review N Finding M` anchor. Status updates land in place; rows are not deleted.
+Findings registered on or after 2026-05-20 (Review 73 convention shift). Schema mirrors the project finding-index shape so a suite contributor and a suite user encounter the same registry conventions across scopes. No `G-`/`F-` ID prefix — findings are identified by their originating `Review N Finding M` anchor. Status updates land in place; rows are not deleted. **Schema extended in Review 77 (2026-05-20)** with `Owner` + `Validator` columns; forward-only constraint on those columns applies to findings dated 2026-05-21 or later, parallel to the hook's enforcement threshold.
 
-| Review | Lens | Finding | Title | Source | Classification | Status | Anchor |
-|---|---|---|---|---|---|---|---|
+| Review | Lens | Finding | Title | Source | Classification | Owner | Validator | Status | Anchor |
+|---|---|---|---|---|---|---|---|---|---|
 
 *(no forward-only findings registered yet — the next suite review that surfaces a tracked finding adds the first row here)*
 

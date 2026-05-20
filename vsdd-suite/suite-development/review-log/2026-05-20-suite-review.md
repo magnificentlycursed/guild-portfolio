@@ -2,6 +2,50 @@
 
 ---
 
+## Review 77 — 2026-05-20 15:45Z
+
+**Scope:** Operator-directed methodology change — introduce the **ownership / blocking / validation lifecycle** for project-level findings, in response to operator observation about cross-domain relationship patterns (Security ↔ Red Team as adversarial pair; TW ↔ Documentation Reviewer as proposed parallel; SA/SO leadership receiving expert advice; QE/Security raisers with other-domain fixers; Platform Engineering shift-left collaboration). Existing classification-centric model captured WHAT a finding is and WHERE it routes, but not WHO owns the fix, WHAT blocks closing, or WHO validates the fix landed clean. Review 77 introduces four lifecycle fields per finding plus sub-state lifecycle on Open findings. Strict self-validation policy per operator selection. Owner-only (no Layer qualifier) per operator selection. Artifacts touched: `suite-development.md` § Per-review entry preamble + § Finding body + new § Validation loop discipline sub-section; 16 domain prompts each gained a `**Validator pair (Review 77):**` paragraph; `check-project-review-discipline.py` extended with 5 new checks gated on separate 2026-05-21 threshold; `templates/PROJECT-FINDINGS-INDEX-template.md` schema extended with Owner + Validator columns; `suite-development/FINDINGS-INDEX.md` forward-only registry schema parallel-extended.
+
+**Lens:** Cross-artifact methodology change + cross-domain relationship modeling. Sycophancy compensation: resisted multi-domain Owner, layer qualifier, multi-validator support; each was honestly evaluated and rejected for the simplest-form-that-works. Strict self-validation chosen over soft-warn per operator selection — the friction cost (one sentence per legitimate self-validation) is justified by the discipline gain.
+
+**Session note:** In-session with the operator who articulated the relationship patterns + made four explicit methodology selections (single PR scope; migrate bookmark-cli rather than forward-only-preserve; owner-only no Layer qualifier; strict self-validation). Resisted bundling Review 77 with the Documentation Reviewer domain registration + reference-example apply per the operator's chosen PR-phasing — methodology change ships first; apply lands in subsequent PRs.
+
+**Source:** director-raised — operator articulated the relationship patterns + made the four methodology selections via clarifying-question UI.
+
+### Resolved
+
+**Finding 1 — Ownership / blocking / validation lifecycle methodology introduced (Validation loop discipline)**
+
+The suite's existing finding-classification model (Open / Resolved / Dismissed / Hallucinated + Phase 4 routing labels) captured what a finding IS and where the fix happens phase-wise, but didn't model: who is accountable for resolution (Owner); what other findings must close first (Blocked by); who validates the fix landed clean (Validator); and the sub-state progression within Open (raised → assigned → fix-landed → validated). The gap was most visible in adversarial pairs — Security and Red Team work today because they run as parallel cold sessions, not because the suite has a model for "Red Team validates Security's resolved finding by re-running its threat model against the post-fix code."
+
+**Resolution scope:**
+
+| Artifact | Change |
+|---|---|
+| `suite-development.md` § Per-review entry preamble | Added a note that ownership/validation lifecycle fields live in the per-finding body, NOT the entry preamble. |
+| `suite-development.md` § Finding body | Structure block extended with 4 new fields (`**Owner:**` required for non-Hallucinated; `**Status:**` required for non-Hallucinated; `**Blocked by:**` optional; `**Validator:**` required for Resolved). Bullet list extended with field-order rule + Hallucinated exemption + forward-only constraint. |
+| `suite-development.md` § Validation loop discipline (new sub-section, ~80 lines) | Names the four fields, lifecycle sub-states with transition table, strict self-validation policy (Portfolio Assessment domain-level allowlist), owner-field qualifier choice (single domain slug; no Layer qualifier), and forward-only constraint (2026-05-21 cutoff). |
+| 15 role + 1 meta domain prompt | Each gained a `**Validator pair (Review 77):**` paragraph after the Language-and-interface-supplement line. Pair mapping: Security ↔ Red Team (adversarial pair); TW ↔ Doc Reviewer (forward-link); QE → SE or `*self*`; SE → QE; SA → SO or `*self*`; SO → VDD-IAR Alignment; VDD-IAR Alignment → SO; PE → SE or `*self*` (shift-left); DE → SE or PE; UX → SE or SO; Accessibility → SE or UX; Privacy → Security or SO; Localization → SE; Performance Engineer → SE; Portfolio Assessment → `*self*` (blanket allowlist). |
+| `vsdd-suite/hooks/check-project-review-discipline.py` | New `_check_lifecycle_fields` function adds 5 checks gated on 2026-05-21 threshold: Owner-required (Raised-to-SO shorthand accepted); Owner is known domain slug; Validator-required-on-Resolved; Validator is known slug or `*self*` with substantive rationale (placeholder patterns `TBD`, `N/A`, `no pair available` rejected); Status value in `{raised, assigned, fix-landed, validated}`. Portfolio Assessment blanket-allowlisted for `*self*`. |
+| `vsdd-suite/templates/PROJECT-FINDINGS-INDEX-template.md` | Schema extended with Owner + Validator columns. Quick-lookup section gained two new grep examples + a "Self-validated findings (audit-trail signal)" diagnostic grep. Inline HTML comment updated with Owner/Validator semantics + forward-only constraint. |
+| `vsdd-suite/suite-development/FINDINGS-INDEX.md` § Findings registry (forward-only) | Schema parallel-extended with Owner + Validator columns. |
+
+**Per-finding example (before vs. after Review 77):** before-form omits Owner / Status / Validator and doesn't tell a reader who fixed the finding or whether it was cross-domain-validated; after-form makes ownership and validation visible at finding-body level. The discipline gain compounds with project size — a 50-finding project with no Owner/Validator fields has an opaque workload graph; with the fields, `grep "| Owner: software-engineer | open |"` answers "what does SE owe right now?" in one shell command.
+
+**Forward-only constraint:** Lifecycle fields apply to findings dated 2026-05-21 or later. Pre-cutoff findings in any project (including Reviews 73–76 in this suite-review log) are NOT migrated by the hook's enforcement. The reference examples MAY migrate as part of their capstone-intent promotion under the G-177 precedent — deliberate per-project decision in a subsequent PR.
+
+**Most-uncertain choice noted:** Portfolio Assessment blanket-allowlist for `*self*`. The alternative was requiring per-finding rationales even for Portfolio's introspective dimensions. Chose blanket-allowlist because Portfolio's classification universe is structurally non-defect — there's nothing to validate cross-domain. If a future Portfolio-related review identifies a per-finding case where cross-domain validation WOULD apply, the rationale can be added per-finding; the blanket-allowlist is the default, not the only option.
+
+**Resolution:** All 7 artifact changes applied (suite-development.md + 16 domain prompts + hook + 2 registry/template files). Hook tested clean against existing project review logs — pre-cutoff dates skip the lifecycle gates correctly.
+
+### Summary
+
+1 finding Resolved in-session — methodology introduction is structurally complete. Sub-tasks (Documentation Reviewer domain registration; apply Review 77 to reference examples via capstone-intent promotion) forward-linked to subsequent PRs per operator's phasing. Backlog after Review 77: 0 Open + 7 Deferred (G-159, G-168, G-169, G-170, G-171, G-172 unchanged + Review 76 Finding 4 bundled-Deferred — no new findings registered this Review).
+
+**Coordination:** Documentation Reviewer ↔ TW pair is forward-linked from TW's new Validator-pair paragraph + Python/Bash supplements' Doc Reviewer sections. The forthcoming Doc Reviewer domain registration (next Review) activates the pair. The reference-example apply (capstone promotion + migrate existing rounds + activate new domains' cold sessions + Phase 6 convergence) is the largest forward-linked piece.
+
+---
+
 ## Review 76 — 2026-05-20 14:30Z
 
 **Scope:** Operator-directed via a human reviewer's question — why do hooks that are Python scripts end in `.sh`? Two coordinated outputs: (a) author the suite's first Python language supplement and its first Bash language supplement (the suite previously had only Rust + JS/TS); (b) review the 7 scripts the suite ships (4 Python hooks + 1 bash hook + 2 bash templates) against the new supplements and apply findings. Artifacts touched: `vsdd-suite/supplements/python.md` (new ~400 lines); `vsdd-suite/supplements/bash.md` (new ~350 lines); `git mv` × 4 (Python hooks `.sh` → `.py`); internal docstring self-references rewritten; `.pre-commit-config.yaml` 4 entry paths updated. Read this round: every script in `vsdd-suite/hooks/` and `vsdd-suite/templates/`; existing `vsdd-suite/supplements/rust.md` (as template); FINDINGS-INDEX.md legacy G-139 entry that named the `.sh` extension as "for parity" (the choice this Review retires).

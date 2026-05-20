@@ -32,6 +32,8 @@ Regression check: verify that previously-confirmed spec compliance is still pres
 
 **Language and interface supplement:** Not applicable. The SO review evaluates spec compliance, which is language-agnostic. No supplement section exists for SO. For evaluating whether technology choices are appropriate to the language (dim 3 — Technology compliance), consult the **Solution Architect** section of the relevant supplement (`../../supplements/rust.md` or `../../supplements/javascript-typescript.md`) — SA evaluates technology fitness from an architectural lens that informs SO's technology compliance check.
 
+
+**Validator pair (Review 77):** `vdd-iar-alignment` is the natural validator for SO findings — VDD-IAR Alignment confirms the spec change went through proper routing and the DESIGN.md update doesn't conflict with prior intent. Resolved findings declare `**Validator:** vdd-iar-alignment` per the lifecycle convention in `../../suite-development/suite-development.md` § Validation loop discipline.
 ## Standard Evaluation Dimensions
 
 1. **Spec coverage** — Is every feature, behavior, and interface element described in DESIGN.md implemented? Build the compliance table first. Identify anything required by the spec that is absent, partial, or deferred without approval.

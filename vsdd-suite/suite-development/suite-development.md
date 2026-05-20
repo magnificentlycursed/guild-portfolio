@@ -283,7 +283,7 @@ Within a session file, rounds are ordered newest-first (matching the index order
 - **Regression check:** prior-review verification (any domain when a prior review for the same scope exists)
 - **Assumption surfacing:** dependency and library-API verification (Quality Engineer, per the QE prompt's G-20/G-21/G-23 obligations) — one short paragraph per review naming assumptions verified or flagged
 
-A reviewer who finds they need a preamble field that is not in either list should propose adding it to this standard rather than introducing it ad-hoc. Examples of fields that are **not** valid additions: `Preamble`, `Governing methodology`, `Mutation analysis method`, free-form `Test count` lines — these duplicate `Scope` or `Session note`, or belong inside individual findings or the closing summary.
+A reviewer who finds they need a preamble field that is not in either list should propose adding it to this standard rather than introducing it ad-hoc. Examples of fields that are **not** valid additions: `Preamble`, `Governing methodology`, `Mutation analysis method`, free-form `Test count` lines — these duplicate `Scope` or `Session note`, or belong inside individual findings or the closing summary. The ownership / validation lifecycle fields (`Owner`, `Status`, `Blocked by`, `Validator`) live in the per-finding body, NOT the entry preamble — they describe per-finding state, not per-entry state.
 
 ### Required pre-review sections
 
@@ -319,6 +319,11 @@ Each finding follows this structure:
 ```
 **Finding N — Title (Dim X)**
 
+**Owner:** [domain slug]                              ← Review 77; required for non-Hallucinated findings
+**Status:** [raised | assigned | fix-landed | validated]   ← Review 77; required for non-Hallucinated findings
+**Blocked by:** [cross-domain anchor reference]       ← Review 77; optional; *(none)* placeholder when no blockers
+**Validator:** [domain slug OR *self* — <rationale>]  ← Review 77; required for Resolved findings
+
 [Prose body — what was observed, why it matters, evidence]
 
 **Resolution:** [for Resolved findings — what was changed and where]
@@ -329,10 +334,40 @@ Each finding follows this structure:
 [rationale; for Accepted Risk and similar, include the named owner]
 ```
 
-- Finding title always includes the dim reference parenthetically (`(Dim 2)`, `(Dim 1, Dim 10)`, `(Rust supplement — path traversal)`)
+- Finding title always includes the dim reference parenthetically (`(Dim 2)`, `(Dim 1, Dim 10)`, `(Rust supplement — path traversal)`, `(Phase 5 Surface B)` for Phase 5 work). Any trailing `(...)` group at the end of the title is the discipline-reference parenthetical; the per-project-review hook accepts any form per Review 74.
 - Numbering is continuous within a Review (1, 2, 3, … across all classifications), not restarted per classification
 - Cross-references to other domain logs use Markdown links: `[QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) Finding 4` — not prose ("Logged in QE log")
 - Closer is exactly one of `**Resolution:**` (Resolved only) or `**Classification:**` (everything else). Mixing the two within a single domain's log is drift.
+- The four lifecycle fields (Owner / Status / Blocked by / Validator) appear in that order at the top of the finding body, before the prose. Hallucinated findings are exempt (no Owner, no Validator — the finding didn't apply, so the lifecycle doesn't apply). Forward-only per G-89: applies to findings dated 2026-05-21 or later (Review 77 adoption cutoff). See § Validation loop discipline below for the lifecycle rules + strict self-validation policy.
+
+### Validation loop discipline (Review 77)
+
+The lifecycle fields above implement a four-axis ownership / blocking / validation model:
+
+**Owner** — the domain accountable for the finding's resolution. The default is the raising domain (self-owned); when a finding routes to another domain (typically via Phase 4 routing or a `Raised to SO` sub-heading), `**Owner:**` updates to the receiving domain. Multi-domain ownership is itself a finding for VDD-IAR Alignment — it usually means routing was incomplete. The `### Raised to SO` sub-heading is preserved as a shorthand for `**Owner:** solution-owner`; either form is accepted by the hook.
+
+**Status** — sub-state within the Open / non-terminal lifecycle:
+
+| `**Status:**` value | Meaning | Next transition |
+|---|---|---|
+| `raised` | Finding registered; owner-acceptance pending | `assigned` (owner accepts) OR `dismissed`/`hallucinated` (terminal) |
+| `assigned` | Owner accepted; fix in progress | `fix-landed` (after fix commit) OR back to `raised` (owner declines, routes back) |
+| `fix-landed` | Fix committed; validation pending | `validated` → terminal Resolved, OR `validation-failed` → re-opens with validator's sub-finding |
+| `validated` | Validator's cold pass confirmed | Terminal — moves to `### Resolved` classification |
+
+Terminal classifications (Resolved / Dismissed / Hallucinated / Accepted risk / etc.) make `**Status:**` redundant — omit it on terminal findings except for Resolved findings, which carry `**Status:** validated` to record that the validation pass completed.
+
+**Blocked by** — names other findings that must close first. Format: `[Domain Review N Finding M](path-anchor)` — same cross-reference form used elsewhere in the project's review logs. The hook (`check-project-review-discipline.py`) treats a Blocked-by reference whose target is still Open as a block on closing the dependent finding. `*(none)*` placeholder when no blockers exist.
+
+**Validator** — the domain that cold-re-reviews to confirm the fix lands clean. For Resolved findings only; omit the field on non-terminal findings. Natural-pair defaults are documented in each domain prompt's `## Current Review Prompt` section (Validator-pair paragraph added in Review 77). For findings without a natural pair, `*self*` is acceptable WITH a substantive rationale.
+
+**Strict self-validation policy.** The hook fails any Resolved finding with `**Validator:** *self*` that lacks a substantive rationale on the same line or the next. Acceptable rationales name WHY no cross-domain validator applies (the dimension being addressed is internal-to-domain; the finding is a PE shift-left mechanization the discipline-domain validates by enforcement; etc.). Placeholder rationales (`TBD`, `N/A`, `no pair available` without further specificity) fail. **Domain-level allowlist:** Portfolio Assessment's classification universe is introspective (Demonstrated / Partial / Absent / Hallucinated — none of which are defects with cross-domain validators); the hook treats Portfolio Assessment findings as blanket-allowlisted for `*self*` (a domain-level rationale documented in `PORTFOLIO-ASSESSMENT-REVIEW.md` covers all findings under the domain; per-finding rationale not required).
+
+**Why strict instead of soft-warn.** Self-validation is the seam where the validation-loop discipline degrades fastest. Soft-warn surfaces the warning in stderr; the author dismisses it once and proceeds. Strict makes the rationale a per-finding artifact future reviewers can audit — AND forces the author to ask "is this actually self-validation, or am I about to skip the cross-domain validator out of friction?" The friction cost is one sentence per legitimate self-validation; the discipline gain is that every self-validation is reasoned, not defaulted-to.
+
+**Owner-field qualifier choice.** Owner is a single domain slug; layer/scope qualifiers are NOT used (`**Owner:** software-engineer @ Layer 3` is invalid). The Layer column in the project FINDINGS-INDEX registry already provides cross-cutting layer filtering; the per-finding narrative makes the layer-specific context explicit when needed. Adding `@ Layer N` to Owner conflates two orthogonal axes (who owns vs. which layer) and creates redundancy with the Layer column.
+
+**Forward-only constraint:** the four lifecycle fields apply to findings dated 2026-05-21 or later (day-after-Review-77-adoption cutoff). Pre-cutoff findings in any project (including the existing 3 bookmark-cli-manual rounds dated 2026-05-17 + 2026-05-20) are NOT migrated by the hook's enforcement. The reference examples (`bookmark-cli-manual/` + forthcoming `bookmark-cli-crosslink/`) MAY migrate as part of their capstone-intent promotion under the G-177 precedent — reference examples are kept current with the conventions they teach — but the migration is a deliberate per-project decision, not a hook requirement.
 
 ### Closing block
 
