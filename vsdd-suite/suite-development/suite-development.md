@@ -156,6 +156,150 @@ When authoring forward-facing suite content (primers, domains, README, supplemen
 
 **Companion review dimension:** [Technical Writer](../domains/role/TECHNICAL-WRITER-REVIEW.md) Dim 13 ("Inline-reference navigability") evaluates project documentation against this discipline at Phase 3 review time. The [Documentation Reviewer](../domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) pair (registered in [Review 80](review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z)) Dim 11 ("Inline-reference clickthrough validation") validates TW Dim 13 findings from the cold-reader seat — TW catches unlinked references at authoring time; Doc Reviewer catches broken or miscredited links at review time.
 
+### Dual-audience design principle ([Review 80](review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3)
+
+The suite's audit-trail artifacts — [`FINDINGS-INDEX.md`](FINDINGS-INDEX.md), the [`SUITE-DEVELOPMENT-REVIEW.md`](SUITE-DEVELOPMENT-REVIEW.md) index, per-Review entries in [`review-log/`](review-log/), and per-project finding indexes + per-domain review logs in projects under review — are authored for **three audiences simultaneously**:
+
+1. **Suite developers** (contributors adding domains, changing hooks, evolving conventions) — read these artifacts to understand the discipline they're extending.
+2. **Suite users** (project teams applying VSDD to their own projects) — read these artifacts to understand the discipline they're following + to model what their own project-level audit trail should look like.
+3. **AI agents** (performing structured lookups, filter by Owner, count by Status, follow Validator chains, navigate to a specific Finding by direct anchor link) — read these artifacts to query state efficiently across many files.
+
+Operator wording: "The findings index and the review logs are intended for two audiences: a human looking at finding status and the review narratives and also an AI Agent to optimize lookups." + extension: "These contracts should hold for both developers and users of the suite."
+
+**The principle:** every audit-trail artifact must serve all three audiences. Human readability is necessary but not sufficient — a narrative that's readable but un-grep-able loses the agent audience; a grep-friendly table without narrative loses the human audience; documentation that serves developers but not users (or vice versa) splits the audit-trail discipline across the suite/project boundary. The discipline is **triple-coding**: every load-bearing fact lands in (a) a narrative form (for humans of either class) AND (b) a structured form (for agents). The shape is symmetric across the suite/project boundary: what the suite teaches users about Finding-header format is what the suite enforces on its own contributors; what agents grep on the suite-side they grep identically on the project-side. The [`check-project-review-discipline.py`](../hooks/check-project-review-discipline.py) and [`check-suite-review-preamble.py`](../hooks/check-suite-review-preamble.py) hooks apply the same schema to both sides — by design.
+
+**Practical implications:**
+
+1. **Schema stability is a contract with all three audiences.** Review preamble shape, Finding header pattern, classification sub-section names, lifecycle field names — these are the agent-API surface AND the convention developers extend AND the convention users follow. The hook enforces the contract uniformly. Changes happen only via explicit methodology shifts in a Review (which itself updates the agent-API documentation below).
+2. **Anchor IDs are the primary direct-link primitive.** Per the [§ Anchor-link convention](#anchor-link-convention-for-cross-references-review-79-finding-3) above: G-rows in the registry carry `<a id="g-N"></a>`; forward-only registry rows carry `<a id="rN-fM"></a>`; per-Finding anchors in review-log entries (post-Review-80 forward-only) carry `<a id="rN-fM"></a>` matching the registry row's anchor. The same anchor ID names the same Finding in both places, on both the suite-side and the project-side.
+3. **Lookup patterns are part of the spec.** The Agent-API surface section below catalogs the grep / awk / regex idioms agents are expected to use; the suite commits to keeping these idioms stable across releases. Users running the same idioms on their own project-side audit trail get identical behavior. An idiom-breaking change requires its own methodology Review.
+4. **Narrative + structured-fact pairs.** A Finding body has prose narrative for the human (developer or user) + the lifecycle fields ( `**Owner:**` / `**Status:**` / `**Blocked by:**` / `**Validator:**` ) for the agent. A Review entry's Summary is prose for the human + the classification-sub-section totals + Backlog count for the agent. The registry table is structured for the agent + the linked Review prose is narrative for the human.
+5. **Suite-side and project-side parity.** What the suite enforces on its own audit trail (via [`check-suite-review-preamble.py`](../hooks/check-suite-review-preamble.py)) is what it teaches projects to apply (via [`check-project-review-discipline.py`](../hooks/check-project-review-discipline.py)). The shape is symmetric: a user reading a suite-side Review entry and then authoring a project-side review-log entry encounters the same Finding-header pattern, the same classification universe, the same lifecycle fields. A developer evolving the suite-side schema must update both hooks + the agent-API contract below + the templates in [`templates/`](../templates/) — the shape changes everywhere or nowhere.
+
+**Companion review dimensions:** [TW Dim 12](../domains/role/TECHNICAL-WRITER-REVIEW.md) (lookup-cost) + [Dim 13](../domains/role/TECHNICAL-WRITER-REVIEW.md) (inline-reference navigability) already enforce the narrative side. The agent-side schema-stability contract is enforced by the [`check-suite-review-preamble.py`](../hooks/check-suite-review-preamble.py) + [`check-project-review-discipline.py`](../hooks/check-project-review-discipline.py) hooks. The dual-audience principle names what the hooks defend.
+
+### Agent-API surface ([Review 80](review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3)
+
+The suite commits to a stable agent-readable surface across the audit-trail artifacts. This section documents every machine-parseable invariant — agents authored against these invariants will not break across releases unless the methodology shift is itself documented in a Review (which updates this section in lockstep). Forward-only constraint: invariants below apply to artifacts authored on or after [Review 80](review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) (2026-05-20); pre-Review-80 artifacts may have looser conformance preserved per [G-89](FINDINGS-INDEX.md#g-89).
+
+**Review heading (per-session entry boundary).**
+
+```
+## Review N — YYYY-MM-DD HH:MMZ
+```
+
+- Regex: `^## Review (\d+) — (\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}Z)$`
+- `N` is a monotonic integer per the suite-wide Review counter.
+- Timestamp is UTC (Zulu); `Z` suffix is mandatory.
+- GitHub auto-generates the heading anchor: `#review-N--YYYY-MM-DD-HHMMZ` (lowercased; em-dash + colon collapse to hyphens). Example: `## Review 80 — 2026-05-20 18:30Z` → anchor `#review-80--2026-05-20-1830z`.
+
+**Required preamble fields (per Review entry).**
+
+```
+**Scope:** ...
+**Lens:** ...
+**Session note:** ...
+**Source:** ...
+```
+
+- All four fields appear before the `### Resolved` / `### Deferred` / etc. sub-sections.
+- `Source` values are constrained to `director-raised`, `domain-raised`, `regression-replay`, `external-feedback`, `mixed`.
+- Hook check: [`check-suite-review-preamble.py`](../hooks/check-suite-review-preamble.py).
+
+**Classification sub-sections (per Review entry).**
+
+- `### Resolved` — for Findings closed in-session.
+- `### Deferred` — for Findings logged in-session but with implementation Deferred per G-130.
+- `### Dismissed` — for Findings raised but determined to not be defects.
+- `### Hallucinated` — for AI-raised Findings without basis in the project state.
+- `### Open` — for Findings actively being worked across sessions.
+- `### Raised to SO` — cross-cutting, valid for any non-meta role domain.
+- Domain-specific classifications per [`DOMAIN_CLASSIFICATIONS`](../hooks/check-project-review-discipline.py): Security uses `Accepted risk`; Performance Engineer uses `Accepted limitation`; Localization uses `Accepted scope`; Solution Owner uses `Backlogged` and `Approved deviation`; Portfolio Assessment uses `Demonstrated` / `Partial` / `Absent` / `Hallucinated` only.
+
+**Finding header (per Finding).**
+
+```
+**Finding N — Title**                              <- standard form
+**Finding N — Title (Dim N)**                      <- with discipline reference
+**Finding N — Title (added YYYY-MM-DD)**           <- errata form
+**G-XX — Title**                                   <- legacy gap-ID form (pre-Review-73)
+```
+
+- Regex (standard): `^\*\*Finding (\d+) — (.+?)(?:\s+\(([^)]+)\))?\*\*$`
+- `N` is monotonic per Review (Findings 1, 2, 3, ... within a single Review entry).
+- Hook check: [`check-suite-review-preamble.py`](../hooks/check-suite-review-preamble.py) + [`check-project-review-discipline.py`](../hooks/check-project-review-discipline.py).
+
+**Per-Finding anchor ID (post-Review-80 forward-only).**
+
+```
+**Finding N — Title**
+
+<a id="rN-fM"></a>
+```
+
+- Place `<a id="rN-fM"></a>` immediately after the Finding header (one blank line between).
+- `N` = Review number; `M` = Finding number within the Review.
+- The same anchor ID names the Finding in the forward-only registry row in [`FINDINGS-INDEX.md`](FINDINGS-INDEX.md) — agents can navigate directly from prose to Finding to registry row in a single hop.
+- Forward-only: pre-Review-80 review-log entries are not retroactively anchored.
+
+**Lifecycle fields (per Finding body; [Review 77](review-log/2026-05-20-suite-review.md#review-77--2026-05-20-1545z) shape).**
+
+```
+**Owner:** <domain-slug | *self*>
+**Status:** <raised | assigned | fix-landed | validated>
+**Blocked by:** <Finding reference | *(none)*>
+**Validator:** <domain-slug | sanity-check | *self* with rationale>
+```
+
+- Owner / Validator domain-slug values come from the canonical set in [`DOMAIN_CLASSIFICATIONS`](../hooks/check-project-review-discipline.py): `quality-engineer`, `software-engineer`, `ux`, `solution-architect`, `data-engineer`, `platform-engineer`, `technical-writer`, `documentation-reviewer`, `localization`, `performance-engineer`, `accessibility`, `privacy`, `security`, `red-team`, `solution-owner`, `vdd-iar-alignment`, `portfolio-assessment`, `observability`, `sanity-check`.
+- Strict self-validation policy: `*self*` requires explicit substantive rationale per [Review 77](review-log/2026-05-20-suite-review.md#review-77--2026-05-20-1545z) Finding 1; with the [Sanity Check meta domain](../domains/meta/SANITY-CHECK-REVIEW.md) registered, `sanity-check` is the preferred fallback.
+- Hook check: [`check-project-review-discipline.py`](../hooks/check-project-review-discipline.py) gates lifecycle-field requirements on 2026-05-21+.
+
+**Required closers (per Finding body).**
+
+```
+**Resolution:** ...           <- for Resolved findings
+**Classification:** ...        <- for everything else (Deferred / Dismissed / Hallucinated / Open / Raised to SO / ...)
+```
+
+- Hook check: [`check-suite-review-preamble.py`](../hooks/check-suite-review-preamble.py) enforces presence of one of these closers per Finding body.
+
+**Registry row shape (forward-only registry in [`FINDINGS-INDEX.md`](FINDINGS-INDEX.md)).**
+
+```
+| <a id="rN-fM"></a>Review N | Lens | Finding M | Title | Source | Classification | Owner | Validator | Status | [Review N Finding M](review-log/...#rN-fM) |
+```
+
+- Anchor ID `<a id="rN-fM"></a>` matches the per-Finding anchor in the review-log entry.
+- Row columns are fixed-shape: 10 columns total per [§ Findings registry (forward-only)](FINDINGS-INDEX.md#findings-registry-forward-only).
+- Classification + Status values come from the same vocabulary as the review-log sub-section names.
+
+**Legacy registry row shape (G-rows in [`FINDINGS-INDEX.md`](FINDINGS-INDEX.md)).**
+
+```
+| <a id="g-N"></a>[G-N](review-log/...#review-N--HHMMZ) | <description> | <type> | <severity> | <difficulty> | <status> | <opened> | <closed> |
+```
+
+- Anchor ID `<a id="g-N"></a>` enables direct prose-to-row navigation per [Review 79](review-log/2026-05-20-suite-review.md#review-79--2026-05-20-1730z) Finding 3.
+- 8 columns total; first cell is a markdown link from the G-ID to the originating Review.
+
+**Common agent lookup patterns.**
+
+| Query | Idiom |
+|---|---|
+| All findings with `Owner: technical-writer` | `grep -B 1 '^\*\*Owner:\*\* technical-writer$' vsdd-suite/suite-development/review-log/*.md` |
+| All Open findings in the forward-only registry | `awk -F'|' '$10 ~ / Open /' vsdd-suite/suite-development/FINDINGS-INDEX.md` |
+| All findings validated by `sanity-check` | `grep -B 3 '^\*\*Validator:\*\* sanity-check' vsdd-suite/suite-development/review-log/*.md` |
+| Locate Review N Finding M directly | URL: `<file>#rN-fM` (post-Review-80) or `<file>#review-N--HHMMZ` (Review heading anchor, all reviews) |
+| Find a G-ID's row in the registry | URL: `vsdd-suite/suite-development/FINDINGS-INDEX.md#g-N` |
+| All Findings authored in Review N | `awk '/^## Review N /{flag=1; next} /^## Review /{flag=0} flag && /^\*\*Finding/' vsdd-suite/suite-development/review-log/*.md` |
+| Domain slug allowlist | `python3 -c "import re; print(re.findall(r'\"([a-z-]+)\":', open(\"vsdd-suite/hooks/check-project-review-discipline.py\").read()))"` |
+| Classification universe for a domain | Look up `DOMAIN_CLASSIFICATIONS["<slug>"]` in [`check-project-review-discipline.py`](../hooks/check-project-review-discipline.py) |
+
+The catalog is non-exhaustive; agents may compose new lookups from the documented invariants. Composing across invariants is supported (e.g., "all Resolved Findings owned by technical-writer in Reviews 75 onward" = combine the Review-section filter + Owner filter + Status filter). Invariant-breaking changes require their own methodology Review.
+
+**Stability commitment.** The fields, regex patterns, anchor-ID shapes, classification vocabulary, and lookup idioms above are stable surface. Additions (new fields, new classifications, new anchor-ID shapes) require a Review entry and an update to this section in lockstep. Deletions or backward-incompatible renames are forbidden under the suite's [G-89](FINDINGS-INDEX.md#g-89) forward-only narrative-preservation policy except as a structured methodology shift documented in a Review.
+
 ---
 
 ## Governing standard for project-level review logs
