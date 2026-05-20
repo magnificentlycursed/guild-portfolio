@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 r"""check-project-review-discipline — verify project-level domain-review
 entries conform to the governing-standard structure beyond what
-check-suite-review-preamble.sh already validates.
+check-suite-review-preamble.py already validates.
 
-Parallel to `check-suite-review-preamble.sh` (which validates preamble
+Parallel to `check-suite-review-preamble.py` (which validates preamble
 fields, Source-value enumeration, finding-header forms, closer-line
 presence across both suite-review and project-review files). This hook
 focuses on the additional discipline that applies to PROJECT-LEVEL
@@ -40,7 +40,7 @@ review-log files only, NOT suite-review files.
   - `<project>/vsdd-suite/review-log/YYYY-MM-DD-<slug>.md`
 
 (The suite-review files at `vsdd-suite/suite-development/review-log/`
-are validated by `check-suite-review-preamble.sh`; this hook
+are validated by `check-suite-review-preamble.py`; this hook
 intentionally does not double-validate them.)
 
 Bypass:

@@ -4,6 +4,35 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-20 14:30Z (Review 76: Python + Bash supplements authored; `.sh` → `.py` rename for 4 Python hooks; consolidated suite-script review — 4 Resolved + 11 batched-Deferred; v0.9.0)
+
+### Added
+- **`vsdd-suite/supplements/python.md`** (new, ~400 lines) — first Python language supplement. 11 per-domain sections following the canonical supplement structure: Quality Engineering (pytest + hypothesis + mutmut + coverage.py + mypy --strict); Security (eval/exec/pickle/yaml.load discipline; subprocess shell-injection; SQL injection; secrets discipline; `pip-audit` + `bandit`); Software Engineering (type hints; dataclass/pydantic/msgspec choice; context managers; exception types; pathlib; f-strings; ruff format); Platform Engineering (uv as 2026 recommended package manager; pyproject.toml canonical config; lockfile discipline; CI matrix; pipx for CLI distribution); Data Engineering (pydantic for boundary validation; msgspec for high-perf; schema evolution; G-126 asymmetric trust boundary applied to Python; G-152 strictness symmetry applied); Red Team (Python-specific exploit surfaces — pickle/yaml/eval RCE; format-string injection; subprocess shell=True; path traversal; XXE; PyPI typosquatting); Performance Engineer (cProfile, py-spy, scalene; GIL implications; async overhead; memray; numpy/polars vectorization); Solution Architect (src/ vs flat layout; circular imports; sync/async boundary; purity boundary explicit per Dim 12); Technical Writer (docstring formats — Google/NumPy/reST; Sphinx vs mkdocs; type hints as docs; README → PyPI rendering); Documentation Reviewer (cold-reader test for Python docs; `help()` discoverability; install-from-PyPI followability — forward-linked to Review 77); Localization (gettext/Babel; locale-sensitive operations; UTF-8 mandatory; plural forms).
+- **`vsdd-suite/supplements/bash.md`** (new, ~350 lines) — first Bash language supplement, parallel structure to Python. 11 per-domain sections: QE (bats-core + shellcheck + kcov); Security (set -euo pipefail baseline; IFS discipline; quote-every-expansion; `printf %q`; eval discipline; temp-file race conditions; path traversal in archive extraction; PATH manipulation; TOCTOU); Software Engineering (`[[ ]]` over `[ ]`; arrays; `local`; `readonly`; `declare`; function structure; source-as-library pattern; `command -v` for tool presence; shfmt); Platform Engineering (`#!/usr/bin/env bash` shebang; bash version requirements with macOS 3.2 caveat; shellcheck + shfmt in CI; filename extension matches content); Data Engineering (jq for JSON; awk for tabular; csvkit/mlr; atomic file writes); Red Team (command injection via unquoted expansion; glob injection; PATH-shadowing; Shellshock-style; `source` from untrusted paths); Performance Engineer (avoid subshells in loops; streaming over batching; built-ins over external commands); Solution Architect (main function pattern; option parsing with getopts + manual long-options; trap-based cleanup); Technical Writer (`--help` as primary documentation; inline doc block format); Documentation Reviewer (cold-reader test; script-name self-consistency; error-message executability).
+
+### Changed
+- **Renamed 4 Python hooks `.sh` → `.py`** (G-89 forward-only; preserves git history via `git mv`). The previous `.sh` extension was named in G-139 (Review 48) as "Python script, `.sh` filename for parity" with the actually-bash sibling hook — a choice that aged poorly per the new Bash supplement § Platform Engineering "Filename extension matches content" dimension. Renames:
+  - `vsdd-suite/hooks/check-changelog-currency.sh` → `.py`
+  - `vsdd-suite/hooks/check-crosslink-references.sh` → `.py`
+  - `vsdd-suite/hooks/check-suite-review-preamble.sh` → `.py`
+  - `vsdd-suite/hooks/check-project-review-discipline.sh` → `.py`
+- **`.pre-commit-config.yaml`** — 4 `entry:` lines updated to the new `.py` paths.
+- **Renamed hooks' internal docstring self-references** — `sed` sweep updated 4 `.sh` self-references in the hook docstrings to `.py`.
+- **Preserved as `.sh`** (correctly-named): `vsdd-suite/hooks/check-review-log-anonymization.sh` (actually-bash); `vsdd-suite/templates/cold-session-dispatch.sh` (actually-bash); `vsdd-suite/templates/scaffold-project.sh` (actually-bash).
+
+### Deferred (batched)
+- **Review 76 Finding 4** — 11 sub-findings from the consolidated suite-script review against the new supplements: Python hooks lack `from __future__ import annotations` / automated hook tests / `mypy --strict` enforcement / `ruff format` enforcement / modern `list[str]` typing; bash hook `check-review-log-anonymization.sh` uses `set -u` only (missing `-e` + `pipefail`) and `[ ]` syntax + no IFS; all bash scripts lack `shellcheck` enforcement (tool not installed in suite dev environment); minor stylistic inconsistencies in `cold-session-dispatch.sh` + `scaffold-project.sh`. Shared trigger: the next "suite-self-hardening pass" that adopts the supplement-named tools in CI. Cost-of-deferral: the suite teaches tools but doesn't enforce them on its own scripts — a parallel to G-122 (purity-boundary documented but not enforced). Auto-Backlog: 2026-09-01 if no progress.
+
+### Resolved
+- **Review 76 Finding 1** — Python language supplement authored. Closes the missing-Python-supplement gap. Full narrative: [Review 76](suite-development/review-log/2026-05-20-suite-review.md#review-76--2026-05-20-1430z).
+- **Review 76 Finding 2** — `.sh` extension on Python hooks retired; renamed to `.py`. Worked example of the Bash supplement § Platform Engineering "Filename extension matches content" dimension.
+- **Review 76 Finding 3** — Bash language supplement authored.
+
+### Note
+**Backlog after Review 76: 0 Open + 7 Deferred** (G-159, G-168, G-169, G-170, G-171, G-172 unchanged + Review 76 Finding 4 batched-Deferred). Forward-only per G-89: historical references to `.sh` filenames in CHANGELOG / COMPATIBILITY / review-log entries (including G-139's row in FINDINGS-INDEX.md) preserved as audit-trail records. The supplements add Documentation Reviewer sections that forward-link to Review 77 + 78 (queued); the forward-reference is harmless if Review 77 doesn't land.
+
+---
+
 ## Unreleased — 2026-05-20 13:15Z (Review 75: reference-example folder restructure — bookmark-cli renamed to bookmark-cli-manual and moved to vsdd-suite-reference-examples/; crosslink-variant reference reserved at vsdd-suite-reference-examples/bookmark-cli-crosslink/ for PR 3 — 1 Resolved; v0.8.1)
 
 ### Changed
