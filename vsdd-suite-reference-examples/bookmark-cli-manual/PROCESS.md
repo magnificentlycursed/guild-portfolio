@@ -53,7 +53,7 @@ The AI co-authorship is disclosed here per the operator's earlier directive ("I 
 This PROCESS.md is one of three first-person artifacts the project's capstone-intent discipline requires:
 
 - **PROCESS.md** (this file) — layer-by-layer retrospective per G-156.
-- **[`INSTALL-VERIFICATION.md`](INSTALL-VERIFICATION.md)** — third-party install verification per G-155 dim 38 (Platform Engineer's capstone gate).
+- **[`manual-tests/install-verification.md`](manual-tests/install-verification.md)** — third-party install verification per G-155 dim 38 (Platform Engineer's capstone gate). Lives in `manual-tests/` per Review 78 Finding 2 convention: install-verification IS a manual test.
 - **[`DESIGN.md` § Project intent](DESIGN.md#project-intent)** — declared intent + Phase 5 / Phase 6 strategy declarations per G-162.
 
 The cross-reference is part of the capstone audit trail. A reviewer following the worked example end-to-end should land here from `TODO.md` § Layer 1 § Layer-gate criteria #6 (PROCESS.md retrospective).

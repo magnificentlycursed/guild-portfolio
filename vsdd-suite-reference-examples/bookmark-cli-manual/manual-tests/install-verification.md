@@ -1,12 +1,14 @@
-# INSTALL-VERIFICATION.md — bookmark-cli-manual
+# Manual Testing — Install Verification
 
 Third-party install verification record per G-155 Platform Engineer Dim 38 (Fresh-system install verification, capstone / production intent only).
+
+**File location convention (Review 78 Finding 2):** install-verification IS a manual test (a human runs commands on a real fresh system and records what they observed), so this file lives in `manual-tests/` alongside the per-layer test plans. The file name is lowercase + hyphenated (`install-verification.md`) to match the per-layer pattern (`layer-N.md`).
 
 ---
 
 ## AI-co-authored reference-example disclosure
 
-**This INSTALL-VERIFICATION.md is AI-co-authored.** G-155 dim 38 specifies that the install verification be performed by **a non-author on a fresh system** — that is the discipline's load-bearing requirement. The AI agent that built `bookmark-cli-manual` and authored this file is by definition the author; the AI's environment is not a fresh non-author system.
+**This install-verification record is AI-co-authored.** G-155 dim 38 specifies that the install verification be performed by **a non-author on a fresh system** — that is the discipline's load-bearing requirement. The AI agent that built `bookmark-cli-manual` and authored this file is by definition the author; the AI's environment is not a fresh non-author system.
 
 This file documents the install procedure the operator would follow on a fresh non-author machine to satisfy G-155 dim 38 in a real capstone project. The verification rows below are scaffolded — they describe what the verification should record. The actual fresh-system install attempt is **the operator's task** to execute and record; the AI cannot satisfy this gate on the project's behalf because the discipline's whole point is non-author verification.
 
@@ -25,7 +27,7 @@ git clone https://github.com/magnificentlycursed/guild-portfolio.git
 cd guild-portfolio/vsdd-suite-reference-examples/bookmark-cli-manual
 ```
 
-Expected: clone succeeds; directory exists; `ls` shows `Cargo.toml`, `DESIGN.md`, `TODO.md`, `src/`, `tests/`, `manual-tests/`, `vsdd-suite/`, `PROCESS.md`, this `INSTALL-VERIFICATION.md`.
+Expected: clone succeeds; directory exists; `ls` shows `Cargo.toml`, `DESIGN.md`, `TODO.md`, `src/`, `tests/`, `manual-tests/` (including `manual-tests/install-verification.md` — this file), `vsdd-suite/`, `PROCESS.md`.
 
 ### Step 2 — Install the binary from the project directory
 

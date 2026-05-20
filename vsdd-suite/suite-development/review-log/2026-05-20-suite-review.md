@@ -44,9 +44,34 @@ bookmark-cli-manual was at portfolio intent (Review 67 declaration) with Phase 6
 
 **Resolution:** All 12 artifact changes applied. PR 6 commit-ready. PR 7 (cold-session execution + Phase 6 convergence + FINDINGS-INDEX repopulation) is the natural next PR per the operator's PR-phasing choice.
 
+**Finding 2 — Install-verification convention shift: `manual-tests/install-verification.md` (Review 78 mid-session correction)**
+
+Surfaced mid-session by operator observation after PR 6's initial commit landed: "INSTALL-VERIFICATION is a type of manual test and should go in that folder." Correct — install-verification IS a manual test (a non-author runs commands on a fresh system and records observations); the file naturally belongs alongside per-layer `manual-tests/layer-N.md` files under Review 74's manual-test split convention. The original PR 6 commit placed `INSTALL-VERIFICATION.md` at the project root following G-155's prior prescription ("the record lives in PROCESS.md, a dedicated INSTALL-VERIFICATION.md, or an equivalent project artifact"); the operator's correction is a methodology coherence fix.
+
+**Owner:** software-engineer (per the reference-example's bookmark-cli-manual project scope; the suite-side dim 38 prescription update is a suite-development artifact owned by the suite-development meta-domain)
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check — methodology-coherence shift between Review 74 (manual-test split convention; manual-tests/ folder) and G-155 dim 38 (install-verification record location). The correction is naturally cross-convention. Sanity Check applies DESIGN.md (per Review 74) + the suite's architectural commitments (Review 74's manual-test split convention; G-155 dim 38's install-verification record requirement) to confirm the new convention coheres with both prior decisions.
+
+**Resolution scope:**
+
+| Artifact | Change |
+|---|---|
+| `vsdd-suite-reference-examples/bookmark-cli-manual/INSTALL-VERIFICATION.md` → `vsdd-suite-reference-examples/bookmark-cli-manual/manual-tests/install-verification.md` | `git mv` rename (preserves history). Filename lowercased + hyphenated to parallel `manual-tests/layer-N.md` shape. |
+| `vsdd-suite-reference-examples/bookmark-cli-manual/manual-tests/install-verification.md` H1 + intro | H1: "INSTALL-VERIFICATION.md — bookmark-cli-manual" → "Manual Testing — Install Verification". New paragraph naming the file-location convention (Review 78 Finding 2: install-verification IS a manual test; lowercased+hyphenated filename parallels per-layer pattern). |
+| `vsdd-suite-reference-examples/bookmark-cli-manual/PROCESS.md` § Coordination | Cross-reference updated from `INSTALL-VERIFICATION.md` to `manual-tests/install-verification.md` + brief note citing Review 78 Finding 2. |
+| `vsdd-suite-reference-examples/bookmark-cli-manual/CHANGELOG.md` (the v0.11.0 entry from Finding 1) | Updated to reflect the corrected placement. |
+| `vsdd-suite/domains/role/PLATFORM-ENGINEER-REVIEW.md` Dim 38 | Sub-clause (c) updated: canonical location is now **`manual-tests/install-verification.md`**; legacy project-root placement preserved under G-89 forward-only narrative-preservation for pre-Review-78 projects. The dim's prescription now teaches the canonical location for new capstone projects. |
+
+**Forward-only constraint:** the new canonical location applies to capstone projects whose first install-verification record lands on or after Review 78's adoption (2026-05-20). Legacy projects with `INSTALL-VERIFICATION.md` at the project root remain valid per G-89 — the relocation is a new-projects convention, not a retroactive migration mandate.
+
+**Why this matters as its own Finding rather than amended into Finding 1:** the methodology question is non-trivial — Review 74 (manual-test split) and G-155 dim 38 (install-verification) were each authored without explicit cross-reference to each other. The operator's correction surfaces the coherence question: "install-verification is a manual test → it belongs in manual-tests/." That's a methodology convention shift worth its own Finding. The bookmark-cli-manual file move + suite-side Dim 38 prescription update are the implementation.
+
+**Resolution:** Files moved + cross-references updated + Dim 38 prescription updated. The convention is now coherent across Review 74 + G-155 + Review 78. The reference example (bookmark-cli-manual) demonstrates the canonical location.
+
 ### Summary
 
-1 finding Resolved in-session. PR 6 ships the structural preparation for bookmark-cli-manual's capstone-intent walk; PR 7 will execute the IAR rounds + Phase 6 convergence. Backlog after Review 78: 0 Open + 7 Deferred (G-159, G-168, G-169, G-170, G-171, G-172 unchanged + Review 76 Finding 4 bundled-Deferred — no new findings registered this Review).
+2 findings Resolved in-session (Finding 1 = capstone-intent promotion + structural prep; Finding 2 = install-verification placement convention shift, surfaced mid-session by operator observation). PR 6 ships the structural preparation for bookmark-cli-manual's capstone-intent walk + the new install-verification placement convention; PR 7 will execute the IAR rounds + Phase 6 convergence. Backlog after Review 78: 0 Open + 7 Deferred (G-159, G-168, G-169, G-170, G-171, G-172 unchanged + Review 76 Finding 4 bundled-Deferred — no new findings registered this Review).
 
 **Coordination:** PR 7 (bookmark-cli-manual 6-phase execution) is forward-linked from the Reviews tables in the 9 not-yet-populated per-domain indexes + the Phase 6 strategy declaration in DESIGN.md + the migration note in CHANGELOG. PR 8+ (bookmark-cli-crosslink + Doc Reviewer registration + apply) are further-forward-linked from the suite's reference-example architecture (vsdd-suite-reference-examples folder + Documentation Reviewer pair paragraph in TW domain prompt). The operator-chosen suite-self-compliance arc (PR 9+) is the longer-term follow-on; bookmark-cli-manual's capstone completion informs what compliance means before the suite tries to apply it to itself.
 
