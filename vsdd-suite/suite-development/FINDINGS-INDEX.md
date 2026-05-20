@@ -33,7 +33,7 @@ When the trigger fires, all gaps sharing it become eligible for reactivation. Th
 
 ## Gap Registry
 
-Living table of all identified gaps. Update statuses here as gaps are addressed or dismissed. Do not delete rows — mark them Addressed or Dismissed with rationale. Each ID links to the gap analysis run where it was first identified.
+Living table of all identified gaps. Update statuses here as gaps are addressed or dismissed. Do not delete rows — mark them Addressed or Dismissed with rationale. Each ID links to the suite review entry where the gap was first identified.
 
 | ID | Gap | Type | Mission-Critical Severity | Speculative Severity | Status | Opened | Last Reviewed |
 |---|---|---|---|---|---|---|---|
