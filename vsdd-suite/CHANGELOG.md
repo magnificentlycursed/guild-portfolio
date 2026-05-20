@@ -4,6 +4,25 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-20 05:30Z (Review 69: review-log file split + filename-convention amendment — 1 Resolved; v0.7.5)
+
+### Changed
+- **`git mv vsdd-suite/suite-development/review-log/2026-05-19-suite-review.md`** → **`vsdd-suite/suite-development/review-log/2026-05-19-suite-review-part1.md`** (preserves git history via rename detection). Part1 trimmed to Reviews 61–64 (~61 KB / 4 entries).
+- **`vsdd-suite/suite-development/review-log/2026-05-19-suite-review-part1.md`** — H1 updated to `# Suite Review — 2026-05-19 (part 1 of 2)` + navigation note linking to part2.
+- **`vsdd-suite/suite-development/suite-development.md`** § Filename convention — extended with `**File-size threshold + part suffix (Review 69 amendment)**` paragraph: 80 KB / 15-review threshold; `-partN.md` suffix pattern; H1 form `# Suite Review — YYYY-MM-DD (part N of M)`; navigation-note requirement; cross-reference-rewrite-on-split discipline (SUITE-DEVELOPMENT-REVIEW + FINDINGS-INDEX + CHANGELOG + COMPATIBILITY); forward-only carve-out for existing single-file days that have not yet hit the threshold.
+- **38 cross-reference rewrites** across `CHANGELOG.md` / `FINDINGS-INDEX.md` / `SUITE-DEVELOPMENT-REVIEW.md`: every `review-log/2026-05-19-suite-review.md#review-N--...` anchor updated to `-part1.md` (Reviews 61–64) or `-part2.md` (Reviews 65–68). Link display text in SUITE-DEVELOPMENT-REVIEW.md updated to match new target filenames. Historical narrative (CHANGELOG Review 62 entry naming the original pre-split filename) preserved per G-89.
+
+### Added
+- **`vsdd-suite/suite-development/review-log/2026-05-19-suite-review-part2.md`** (new file) — Reviews 65–68 plus the Review 69 entry itself (~66 KB / 5 entries at this commit). H1 + navigation note linking to part1.
+
+### Resolved
+- **Review 69 Finding 1** (no G-ID per Review 67 Finding 1 discipline) — suite filename convention does not scale on dense-day review files. Operator-raised parser-aborted diagnostic traced to the 2026-05-19 review log growing to 128 KB / 889 lines / 8 dense reviews — exceeding tree-sitter / IDE markdown-parser budgets. File split + convention amendment applied; the empirical 80 KB / 15-review threshold is calibrated from this one breaking-case data point.
+
+### Note
+**Backlog after Review 69: 0 Open + 7 Deferred** (G-159, G-168, G-169, G-170, G-171, G-172, G-177 — unchanged from Review 68; no new gaps). Both new part files pass the Review 68 hook (`check-suite-review-preamble.sh`). Per the new convention, future long review-cycle days will produce `-partN.md` files instead of single oversized files, preventing recurrence of the parser-budget timeout.
+
+---
+
 ## Unreleased — 2026-05-20 04:30Z (Review 68: cold-subagent drift-detection pass + prevention-mechanism hook — 10 Resolved + 0 Deferred; v0.7.4)
 
 ### Added
@@ -15,9 +34,9 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 - **`vsdd-suite/README.md`** Phase 4 routing block — new `**Label-vs-phase naming note (Review 68 Finding 10)**` paragraph naming the G-160 "labels are identifiers, not scope-descriptors" stability rationale inline at the route-label introduction site.
 
 ### Changed (errata blocks per suite-development.md:429 sanctioned mechanism; original entries unchanged per G-89)
-- **`vsdd-suite/suite-development/review-log/2026-05-19-suite-review.md`** Review 65 — new `### Errata` section with `**Finding 13 — Cross-reference map: chat-shorthand F-prefix labels in `### Resolved` (added 2026-05-20)**` table mapping F1–F12 chat-shorthand labels to standard Finding-N labels (or to G-170–G-172 for the Deferred ones). `<!-- hook-bypass: ... -->` HTML comment in first 5 lines.
-- **`vsdd-suite/suite-development/review-log/2026-05-19-suite-review.md`** Review 66 — new `### Errata` section with `**Finding 5 — Cross-reference map: chat-shorthand R-prefix labels in `### Resolved` + G-ID over-promotion (added 2026-05-20)**` table mapping R1–R4 chat-shorthand labels to standard Finding-N labels + G-IDs (G-173–G-176). `<!-- hook-bypass: ... -->` HTML comment in first 5 lines.
-- **`vsdd-suite/suite-development/review-log/2026-05-19-suite-review.md`** Review 67 G-177 — added missing `**Classification:** Deferred — ...` line per the standard at `suite-development.md:333`.
+- **`vsdd-suite/suite-development/review-log/2026-05-19-suite-review-part2.md`** Review 65 — new `### Errata` section with `**Finding 13 — Cross-reference map: chat-shorthand F-prefix labels in `### Resolved` (added 2026-05-20)**` table mapping F1–F12 chat-shorthand labels to standard Finding-N labels (or to G-170–G-172 for the Deferred ones). `<!-- hook-bypass: ... -->` HTML comment in first 5 lines.
+- **`vsdd-suite/suite-development/review-log/2026-05-19-suite-review-part2.md`** Review 66 — new `### Errata` section with `**Finding 5 — Cross-reference map: chat-shorthand R-prefix labels in `### Resolved` + G-ID over-promotion (added 2026-05-20)**` table mapping R1–R4 chat-shorthand labels to standard Finding-N labels + G-IDs (G-173–G-176). `<!-- hook-bypass: ... -->` HTML comment in first 5 lines.
+- **`vsdd-suite/suite-development/review-log/2026-05-19-suite-review-part2.md`** Review 67 G-177 — added missing `**Classification:** Deferred — ...` line per the standard at `suite-development.md:333`.
 
 ### Resolved (no G-IDs per Review 67 Finding 1 discipline; recorded for audit traceability)
 

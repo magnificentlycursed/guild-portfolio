@@ -410,6 +410,14 @@ Mechanical fixes (typos, filename renames, path updates) do not require a sessio
 
 The filename date is the **session start date in UTC**. When a session crosses midnight UTC, it remains in the file matching its start date — do not split it across two files. Same-date sessions append to the existing file (newest at the top).
 
+**File-size threshold + part suffix (Review 69 amendment).** When a same-date file would exceed **80 KB** OR **15 review entries**, split it into `-partN.md` suffixed parts (e.g., `2026-05-19-suite-review-part1.md`, `2026-05-19-suite-review-part2.md`). Each part holds a contiguous run of reviews (oldest at the top within each part, parts numbered by chronological order); both parts get an H1 of the form `# Suite Review — YYYY-MM-DD (part N of M)` and a navigation note linking to the sibling part(s). The split is mechanical (not topical) — the rule is file-size / review-count, not narrative cohesion.
+
+**Why the threshold exists:** Markdown parsers (tree-sitter; IDE language servers; markdown linters) hit parse-time budgets on dense markdown files with many inline code spans, long paragraphs, and nested tables. Suite review entries contain all three patterns. A long review-cycle day (8+ verbose reviews) produces a file that exceeds the parse-time budget and shows up as "parser aborted" / "parser timed out" diagnostics in operator IDEs. The threshold is empirical (the 2026-05-19 file hit parser-aborted at ~128 KB / 8 reviews of recent verbose style); 80 KB / 15 reviews leaves headroom for both denser and longer reviews.
+
+**Cross-reference rule.** When a file is split, any forward-facing artifact that cited the original by Markdown link must update the link target to the correct part. The `SUITE-DEVELOPMENT-REVIEW.md` Reviews table gets one row per review pointing at the part the review lives in. `FINDINGS-INDEX.md` gap-row anchor citations get rewritten to the part file. CHANGELOG / COMPATIBILITY entries describing the affected reviews update their prose references to the part filenames. Historical-narrative file references (older CHANGELOG entries describing the original file's creation, etc.) stay per G-89 forward-only.
+
+**Forward-only:** the part-suffix rule applies to files split on or after 2026-05-20 (Review 69 amendment date). Existing single-file days that have not yet hit the threshold remain single-file; the rule kicks in only when the file would exceed it on the next append. A file already over threshold gets retroactively split (as `2026-05-19-suite-review.md` was at Review 69). The split decision is a per-file event, not a portfolio-wide migration.
+
 ### Suite review entry format
 
 A `## Review N — date` entry in `review-log/YYYY-MM-DD-suite-review.md` must contain:
