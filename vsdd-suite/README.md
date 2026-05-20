@@ -864,11 +864,11 @@ The manual mode loses crosslink's `session last-handoff` retrieval but the hando
 
 Per `primers/5-formal-hardening.md`: after a layer reaches Phase 3 implementation-MVR, harden the test suite with evidence-of-strength surfaces that IAR cold-batch review cannot produce. Phase 5 is optional at every intent and **required-or-declared-not-applicable** at capstone + production intent per G-162 — the `DESIGN.md § Project intent` block carries a `**Phase 5 strategy:**` line that is either `not applicable — <rationale>` or `planned — <named tooling and scope>`. The four surfaces are independent; the project's strategy line names which apply.
 
-- **Surface A** — property-based testing for the spec's purity-boundary functions (Rust: `proptest`; JS/TS: `fast-check`; Python: `hypothesis`)
-- **Surface A.0** — purity-boundary verification preamble (required for every Phase 5 layer entry per G-173) — audit DESIGN.md § Verification architecture *and* module/package documentation against the implementation for cross-source consistency
-- **Surface B** — mutation testing (Rust: `cargo-mutants`; JS/TS: `Stryker`; Python: `mutmut`); 5-disposition classification per surviving mutant (equivalent / missing-test / spec-gap / unviable / out-of-scope per G-174)
-- **Surface C** — fuzzing of parser / input-boundary surfaces (Rust: `cargo-fuzz`; JS/TS: `jsfuzz`; Python: `atheris`)
-- **Surface D** — formal proof harnesses for designated pure functions (Kani / CBMC / TLA+ / Coq / Lean / Liquid Haskell — strictly optional even within Phase 5)
+- **property-based testing** — property-based testing for the spec's purity-boundary functions (Rust: `proptest`; JS/TS: `fast-check`; Python: `hypothesis`)
+- **purity-boundary verification** — purity-boundary verification preamble (required for every Phase 5 layer entry per G-173) — audit DESIGN.md § Verification architecture *and* module/package documentation against the implementation for cross-source consistency
+- **mutation testing** — mutation testing (Rust: `cargo-mutants`; JS/TS: `Stryker`; Python: `mutmut`); 5-disposition classification per surviving mutant (equivalent / missing-test / spec-gap / unviable / out-of-scope per G-174)
+- **fuzzing** — fuzzing of parser / input-boundary surfaces (Rust: `cargo-fuzz`; JS/TS: `jsfuzz`; Python: `atheris`)
+- **formal proof** — formal proof harnesses for designated pure functions (Kani / CBMC / TLA+ / Coq / Lean / Liquid Haskell — strictly optional even within Phase 5)
 
 **Where Phase 5 findings file (G-177 resolution):** Phase 5 work files under the existing per-domain review log structure — no separate per-project Phase 5 file. Each Phase 5 round opens a new entry in the appropriate per-domain log with a `**Phase 5 surface:**` preamble tag identifying the surface (and layer if multi-layer). The domain that owns each surface:
 
@@ -877,42 +877,42 @@ Per `primers/5-formal-hardening.md`: after a layer reaches Phase 3 implementatio
 | A (property-based) + A.0 (purity preamble) + D (formal proof) | `vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md` + `review-log/<date>-solution-architect.md` | SA owns the purity-boundary map (Dim 12 — VSDD purity boundary) and formal-proof targets |
 | B (mutation testing) + C (fuzzing) | `vsdd-suite/QUALITY-ENGINEER-REVIEW.md` + `review-log/<date>-quality-engineer.md` | QE owns the test system; mutation testing is QE Dim 2 (test falsifiability); fuzzing exercises test coverage at the parser boundary |
 
-A project may file Surface C under Security instead when the parser is named in the threat model — record the choice once in `DESIGN.md` § Verification architecture and stay consistent. The preamble tag format: `**Phase 5 surface:** B — mutation testing for Layer 1 via cargo-mutants` (name the surface letter, the layer, and the tool).
+A project may file fuzzing under Security instead when the parser is named in the threat model — record the choice once in `DESIGN.md` § Verification architecture and stay consistent. The preamble tag format: `**Phase 5 hardening:** mutation testing — mutation testing for Layer 1 via cargo-mutants` (name the surface letter, the layer, and the tool).
 
 **[crosslink]** Phase 5 sessions are standard crosslink sessions scoped to the layer; the new round goes into the per-domain log with the preamble tag above. The `--mandate` flag does not change for Phase 5 — `crosslink swarm review` is for cold-batch adversarial review (Phase 3); Phase 5 sessions are manually-dispatched per surface so the operator can drive the property-design and mutant-disposition steps.
 
 ```sh
 # Tool installs are first-Phase-5-session-per-project cost (G-175 — name in the round preamble):
-cargo install cargo-mutants                 # Surface B (1–2 min compile from source)
-rustup toolchain install nightly             # Surface C prerequisite (cargo-fuzz needs nightly)
-cargo install cargo-fuzz                     # Surface C
-# Surface A is a dev-dep add per G-176 (separate commit before property-test commits):
+cargo install cargo-mutants                 # mutation testing (1–2 min compile from source)
+rustup toolchain install nightly             # fuzzing prerequisite (cargo-fuzz needs nightly)
+cargo install cargo-fuzz                     # fuzzing
+# property-based testing is a dev-dep add per G-176 (separate commit before property-test commits):
 git checkout -b layer-1-phase-5
 # Edit Cargo.toml: add proptest = "1" to [dev-dependencies]
-git add Cargo.toml && git commit -m "Phase 5 Surface A: add proptest dev-dependency"
+git add Cargo.toml && git commit -m "Phase 5 property-based testing: add proptest dev-dependency"
 
 # Run the surfaces named in DESIGN.md's Phase 5 strategy:
-cargo test --features proptest               # Surface A: property tests pass
-cargo mutants --in-place                     # Surface B: mutation testing report
+cargo test --features proptest               # property-based testing: property tests pass
+cargo mutants --in-place                     # mutation testing: mutation testing report
 # (cargo-fuzz / formal proof per language and project)
 
-# Append the new round to the relevant per-domain log (Surface B → QE; Surface A → SA);
+# Append the new round to the relevant per-domain log (mutation testing → QE; property-based testing → SA);
 # round preamble carries **Phase 5 surface:** tag. Then close the layer:
 crosslink milestone close "$M1"
 git checkout -b layer-2 && git merge layer-1
 ```
 
-**[manual]** Open a fresh chat per surface (Surface A, B, C, D run sequentially in their own sessions so the property-design / mutant-disposition cognition is dedicated). Paste `primers/5-formal-hardening.md`. Then a starter prompt like:
+**[manual]** Open a fresh chat per surface (property-based testing, B, C, D run sequentially in their own sessions so the property-design / mutant-disposition cognition is dedicated). Paste `primers/5-formal-hardening.md`. Then a starter prompt like:
 
-> I'm running Phase 5 Surface B (mutation testing) for Layer 1 of `bookmark-cli`. Phase 3 closed at MVR (Hallucinated-only across SE/QE/UX/Security/SA/SO/VDD-IAR Alignment). DESIGN.md's `**Phase 5 strategy:**` declares Surface A + B + C as planned (Surface D not applicable — no formal-proof candidates).
+> I'm running Phase 5 mutation testing (mutation testing) for Layer 1 of `bookmark-cli`. Phase 3 closed at MVR (Hallucinated-only across SE/QE/UX/Security/SA/SO/VDD-IAR Alignment). DESIGN.md's `**Phase 5 strategy:**` declares property-based testing + B + C as planned (formal proof not applicable — no formal-proof candidates).
 >
 > Run `cargo mutants --in-place` against the Layer 1 implementation. For every surviving mutant, classify into one of: (a) equivalent (with proof of equivalence in writing), (b) missing test (with the falsifying test added under the retroactive-Red-Gate (Phase 5 source) label per `primers/2b-implementation.md`), (c) spec-gap (route to Phase 4 / Phase 1a+1b), (d) unviable (the mutation does not compile or is type-system-rejected; not a behavioral signal — name it in the log for completeness), (e) out-of-scope (mutant in a code path Phase 5 deliberately did not target).
 >
-> Append the disposition table to `vsdd-suite/review-log/<today>-quality-engineer.md` as a new QE round with `**Phase 5 surface:** B — mutation testing for Layer 1 via cargo-mutants` preamble; cross-reference the round from `vsdd-suite/QUALITY-ENGINEER-REVIEW.md` index. Watch for the per-surface sycophancy check: rationalizing surviving mutants as "equivalent" without the equivalence proof in writing is itself a finding routed to Phase 3's next round on the layer.
+> Append the disposition table to `vsdd-suite/review-log/<today>-quality-engineer.md` as a new QE round with `**Phase 5 hardening:** mutation testing — mutation testing for Layer 1 via cargo-mutants` preamble; cross-reference the round from `vsdd-suite/QUALITY-ENGINEER-REVIEW.md` index. Watch for the per-surface sycophancy check: rationalizing surviving mutants as "equivalent" without the equivalence proof in writing is itself a finding routed to Phase 3's next round on the layer.
 
 (Attach DESIGN.md, the Layer 1 implementation, the Phase 3 final-round summary, and `vsdd-suite/QUALITY-ENGINEER-REVIEW.md` for prior coverage assertions.) Then run the tool, classify each mutant, append the disposition table as a new QE round in the per-domain log, and commit.
 
-**Both modes:** Phase 5 findings that route back to Phase 1a+1b / 1c / 2a / 2b / 2c via Phase 4 re-open the layer at the routed phase before merge. A Phase 5 layer entry that omits the Surface A.0 purity-boundary preamble is itself a finding for VDD-IAR Alignment dim 13 (G-173 + primer 5 completion criteria #1). At learning-exercise or portfolio intent with `**Phase 5 strategy:** not applicable`, the entire phase is skipped explicitly — the strategy declaration in DESIGN.md is the audit record.
+**Both modes:** Phase 5 findings that route back to Phase 1a+1b / 1c / 2a / 2b / 2c via Phase 4 re-open the layer at the routed phase before merge. A Phase 5 layer entry that omits the purity-boundary verification purity-boundary preamble is itself a finding for VDD-IAR Alignment dim 13 (G-173 + primer 5 completion criteria #1). At learning-exercise or portfolio intent with `**Phase 5 strategy:** not applicable`, the entire phase is skipped explicitly — the strategy declaration in DESIGN.md is the audit record.
 
 ### Phase 6 — Four-Dimensional Convergence
 
@@ -923,9 +923,9 @@ The four dimensions:
 | Dimension | What MVR means here | Evidence source |
 |---|---|---|
 | **Spec** | DESIGN.md is internally consistent, every spec-named behavior is testable, and no Phase 4 routing back to spec remains open | `DESIGN.md`; final Phase 3 round across all active domains (no `route:phase-1a` findings open) |
-| **Test** | Test suite at MVR per the Phase 3 final-round signal + Phase 5 Surface B mutation evidence (no missing-test dispositions open) | per-domain QE review log: final Phase 3 round + Phase 5 Surface B rounds (disposition tables) |
+| **Test** | Test suite at MVR per the Phase 3 final-round signal + Phase 5 mutation testing mutation evidence (no missing-test dispositions open) | per-domain QE review log: final Phase 3 round + Phase 5 mutation testing rounds (disposition tables) |
 | **Implementation** | All layers passed their final Phase 3 round at MVR + no subsequent layer's commits invalidated an earlier layer's MVR signal (G-172 deferred rollup discipline; until resolved, the operator authors the rollup manually) | per-domain review-log final rounds per layer + commit history showing later-layer scope did not touch earlier-layer files |
-| **Formal-verification** | Phase 5 Surface D formal proofs (where applicable) discharged + Phase 5 Surfaces A/B/C closed cleanly | per-domain SA review log: Surface A / A.0 / D rounds; per-domain QE review log: Surface B / C rounds |
+| **Formal-verification** | Phase 5 formal proof formal proofs (where applicable) discharged + Phase 5 Surfaces A/B/C closed cleanly | per-domain SA review log: property-based testing / A.0 / D rounds; per-domain QE review log: mutation testing / C rounds |
 
 **The load-bearing addition is the cross-dimension consistency check** (G-54 closure): for every spec-named behavior in DESIGN.md, walk through Spec → Test → Implementation → Formal-verification and verify all four sources tell the same story. A behavior that the spec asserts but no test exercises is a Spec ↔ Test divergence; an implementation that exceeds the spec is a Spec ↔ Implementation divergence; a formal proof that targets a property the spec does not state is a Spec ↔ Formal divergence. Each divergence routes via Phase 4 before convergence is declared.
 
@@ -949,9 +949,9 @@ git commit -m "Phase 6: four-dimensional convergence record (final VDD-IAR Align
 
 **[manual]** Open a fresh chat. Paste `primers/6-convergence.md`. Then a starter prompt like:
 
-> I'm running Phase 6 (four-dimensional convergence) for `bookmark-cli` at project close. Capstone-intent project; 4 layers all closed Phase 5 with strategy = Surface A + B + C planned, Surface D not applicable.
+> I'm running Phase 6 (four-dimensional convergence) for `bookmark-cli` at project close. Capstone-intent project; 4 layers all closed Phase 5 with strategy = property-based testing + B + C planned, formal proof not applicable.
 >
-> Attached: DESIGN.md, all 4 per-domain index files for the 7 core + Technical Writer extended domain, every per-session review-log file (including the Phase 5 Surface A/B/C rounds in the SA and QE logs).
+> Attached: DESIGN.md, all 4 per-domain index files for the 7 core + Technical Writer extended domain, every per-session review-log file (including the Phase 5 property-based testing/B/C rounds in the SA and QE logs).
 >
 > Author the final VDD-IAR Alignment round in `vsdd-suite/review-log/<today>-vdd-iar-alignment.md` titled "Review N — Phase 6 four-dimensional convergence (project-terminal)" per the primer's § Phase 6 convergence record format. For each dimension (Spec, Test, Implementation, Formal-verification) declare MVR with citations to the per-domain rounds that establish it. Then run the cross-dimension consistency check: for every spec-named behavior in DESIGN.md, name where the Test / Implementation / Formal-verification evidence lands; flag any divergence as a finding routed via Phase 4 (re-open the relevant phase before declaring convergence).
 >
@@ -1026,7 +1026,7 @@ After all specialist domains pass, optionally run an unstructured general pass w
 
 Any domain review may propose adding a new review domain to IAR. Log it as a finding — include a proposed name, purpose statement, and an initial set of standard dimensions. If adopted, create the prompt file here, add it to the table above, and update the project's design document, task list, and PR template.
 
-Candidate domains to consider as a project grows: SEO. Formal Verification is now owned by Phase 5 (per v0.7.0) — projects with formal-verification scope use `primers/5-formal-hardening.md` Surface D rather than activating a separate domain.
+Candidate domains to consider as a project grows: SEO. Formal Verification is now owned by Phase 5 (per v0.7.0) — projects with formal-verification scope use `primers/5-formal-hardening.md` formal proof rather than activating a separate domain.
 
 [`suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) is the gap registry — a status-only table of identified suite gaps. Narratives for sessions that registered, addressed, or dismissed gaps live in `suite-development/review-log/` and are indexed in `suite-development/SUITE-DEVELOPMENT-REVIEW.md`. Re-run a registry-walk suite review when the suite changes, a new project type is being evaluated, or a post-mortem reveals a class of defect the suite did not catch.
 

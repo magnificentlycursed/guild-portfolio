@@ -103,6 +103,24 @@ When suite documentation references a feature of an external tool (crosslink com
 
 The failure mode this check defends against: an LLM-driven authoring session naturally extrapolates "the suite could integrate more deeply if X existed" into "X is coordination-asked," conflating speculative design with committed plan. The pattern recurred six times across Reviews 40–42 (a fictitious `--with-suite` flag attributed to crosslink's `init` subcommand) and was caught in Review 43 only because the driver flagged it; without the check, similar speculations would compound. The canonical record of the suite's verified crosslink dependency surface is [`../crosslink-contract.md`](../crosslink-contract.md) — any future expansion must update that file with explicit verification or not be referenced at all. The same pattern applies to AI tools (see the data-flow posture in `../README.md` § Prerequisites for the verified AI-tool surface).
 
+### Naming and identifier discipline (Review 78 Finding 4)
+
+When introducing a new methodology concept (a session type; a verification surface; a classification axis; a defect class), name it **descriptively** as the canonical identifier. Letters, short codes, and single-purpose abbreviations are anti-patterns when adopted as the primary identifier — they require the reader to look up what the letter means before any cross-reference downstream is interpretable. Descriptive names carry the meaning at the point of use.
+
+**Canonical worked example (the Review 78 surfacing):** the Phase 5 hardening primer originally named its five forms `Surface A` (property-based testing) / `Surface A.0` (purity-boundary verification) / `Surface B` (mutation testing) / `Surface C` (fuzzing) / `Surface D` (formal proof). The descriptive names existed in the primer alongside the letters, but every cross-reference in domain prompts, review-log entries, FINDINGS-INDEX rows, and CHANGELOG entries used the letter as the primary identifier. A reader encountering "Surface B" anywhere downstream had to look up what "B" meant. Review 78 retired the letters in favor of the descriptive names; the canonical identifier is now "mutation testing" / "fuzzing" / etc.
+
+**The discipline:**
+
+1. **Descriptive names are the primary identifier.** When a methodology concept needs a name, the name carries the concept (`mutation testing`, `purity-boundary verification`, `validator-of-last-resort`). A letter-or-number label is at most an ordering aid (an enumeration in a table), never the primary identifier in cross-references.
+2. **Existing well-established abbreviations stay.** `Dim N` / `Layer N` / `Round N` / `Finding N` are acceptable — the abbreviation includes the concept-word, so the meaning is at point-of-use. Domain slugs like `quality-engineer` / `solution-architect` are descriptive and short, not abbreviations. The discipline is forward-looking against NEW lettering / abbreviation adoptions; it does not retroactively rewrite established short forms that carry meaning.
+3. **Historical references are preserved per G-89.** Prior-Review entries that used opaque lettering are preserved as historical narrative; reference examples migrate per G-177 precedent.
+
+**Test before adopting a name:** could a cold reader interpret a cross-reference to this name without consulting a reference table? If yes, the name is acceptable. If no, find a descriptive substitute.
+
+**Mechanical detector pattern (audit support):** grep for capital-letter labels next to methodology concept words — `Surface [A-Z]`, `Phase [0-9][a-z]`, `Mode [A-Z]`, `Form [A-Z]`, `Class [A-Z]`, `Type [A-Z]`, `Variant [A-Z]` — across forward-facing suite content (`primers/`, `domains/`, `supplements/`, `README.md`, `suite-development.md`) AND project content (project DESIGN.md, TODO.md, per-domain reviews). Each match is a candidate for the lookup-cost question: would a descriptive name carry the meaning here? The detector is mechanical; the judgment is human (or Sanity Check) — not every match is a defect, but every match is worth the question.
+
+**Companion review dimension:** Technical Writer Dim 12 ("Lettering / abbreviation lookup cost") evaluates project documentation against this discipline at Phase 3 review time. Suite-authoring discipline lives here (§ Naming and identifier discipline); project-review discipline lives in the TW domain prompt. The Documentation Reviewer pair (forthcoming) will eventually validate TW Dim 12 findings via the standard cold-reader pair pattern.
+
 ---
 
 ## Governing standard for project-level review logs
@@ -334,7 +352,7 @@ Each finding follows this structure:
 [rationale; for Accepted Risk and similar, include the named owner]
 ```
 
-- Finding title always includes the dim reference parenthetically (`(Dim 2)`, `(Dim 1, Dim 10)`, `(Rust supplement — path traversal)`, `(Phase 5 Surface B)` for Phase 5 work). Any trailing `(...)` group at the end of the title is the discipline-reference parenthetical; the per-project-review hook accepts any form per Review 74.
+- Finding title always includes the dim reference parenthetically (`(Dim 2)`, `(Dim 1, Dim 10)`, `(Rust supplement — path traversal)`, `(Phase 5 mutation testing)` for Phase 5 work). Any trailing `(...)` group at the end of the title is the discipline-reference parenthetical; the per-project-review hook accepts any form per Review 74.
 - Numbering is continuous within a Review (1, 2, 3, … across all classifications), not restarted per classification
 - Cross-references to other domain logs use Markdown links: `[QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) Finding 4` — not prose ("Logged in QE log")
 - Closer is exactly one of `**Resolution:**` (Resolved only) or `**Classification:**` (everything else). Mixing the two within a single domain's log is drift.
