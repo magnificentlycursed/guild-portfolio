@@ -278,7 +278,7 @@ The merge-gate-criteria block expands per `suite-development/suite-development.m
 
 Domains are organized into three types. All domain prompt files live under `domains/`.
 
-**The 16-domain surface is *available*, not *required*.** Default activation for new projects is the 7 core role domains plus VDD-IAR Alignment — that's the scaffold script's default and the typical portfolio-project shape (7–9 active domains per layer review). Extended role domains activate per the conditions in [`domains/DOMAIN-INDEX.md`](domains/DOMAIN-INDEX.md); Portfolio Assessment activates only on portfolio submissions. Per Review 42's Solution-Owner ratification (G-121 closure): the default scaffold encodes the practical floor; the full surface is for projects whose scope warrants it.
+**The 16-domain surface is *available*, not *required*.** Default activation for new projects is the **7 core domains** — six core role domains (SE, QE, UX, Security, SA, SO) plus the VDD-IAR Alignment meta domain. That's the scaffold script's default and the typical portfolio-project shape; activating extended domains by their criteria typically brings the per-layer review count to 8–10. Extended role domains (including Platform Engineer and Data Engineer, which are extended-with-strong-presumption — see G-178) activate per the conditions in [`domains/DOMAIN-INDEX.md`](domains/DOMAIN-INDEX.md); Portfolio Assessment activates only on portfolio submissions. Per Review 42's Solution-Owner ratification (G-121 closure): the default scaffold encodes the practical floor; the full surface is for projects whose scope warrants it.
 
 **Core role domains** — run on every project. The reviewer embodies a specific job role and brings that role's full professional lens:
 
@@ -288,15 +288,17 @@ Domains are organized into three types. All domain prompt files live under `doma
 | Quality Engineer | Quality Engineer / QA Engineer / Test Engineer | [QUALITY-ENGINEER-REVIEW.md](domains/role/QUALITY-ENGINEER-REVIEW.md) | Test system: acceptance criteria, falsifiability, Red Gate compliance, coverage meaningfulness, logic errors, dead code, dependencies, security surface, regression coverage, quality gates, TDD proxy indicators |
 | UX Designer | UX Designer / UX Researcher / Product Designer | [UX-REVIEW.md](domains/role/UX-REVIEW.md) | User experience: empty states, error messages, focus and keyboard behavior, visual consistency, affordances, feedback patterns, long content, native dialog quality. Standard dimensions assume browser interface — see `supplements/cli.md` for CLI projects. |
 | Security Engineer | Security Engineer / Application Security Engineer | [SECURITY-REVIEW.md](domains/role/SECURITY-REVIEW.md) | Input handling, persistence data validation, dependency CVEs, secret handling, information exposure, authentication and authorization, audit logging, data classification and control requirements |
-| Platform Engineer | Platform Engineer / DevOps Engineer / Infrastructure Engineer | [PLATFORM-ENGINEER-REVIEW.md](domains/role/PLATFORM-ENGINEER-REVIEW.md) | CI/CD pipeline, gate enforcement, DevSecOps (pre-commit hooks, security scanning, secret management, supply chain integrity, least privilege), infrastructure as code, containerization, environment parity, observability, performance |
 | Solution Architect | Solution Architect / Software Architect / Technical Lead | [SOLUTION-ARCHITECT-REVIEW.md](domains/role/SOLUTION-ARCHITECT-REVIEW.md) | Architecture: separation of concerns, coupling, data model integrity, interface contracts, state management, immutability, extensibility, technology fitness, complexity budget, decision documentation, session continuity, VSDD purity boundary map, external interface contracts, external service integration |
 | Solution Owner | Solution Owner / Product Owner / Product Manager | [SOLUTION-OWNER-REVIEW.md](domains/role/SOLUTION-OWNER-REVIEW.md) | Spec contract: spec coverage, scope creep, technology compliance, over-engineering, under-delivery, design fidelity, backlog candidates, prior-review additions, assignment compliance (phase-appropriate). Opens with a compliance table. DESIGN.md is the contract. |
-| Data Engineer | Data Engineer / Database Engineer / Data Platform Engineer | [DATA-ENGINEER-REVIEW.md](domains/role/DATA-ENGINEER-REVIEW.md) | Data layer: data model correctness, validation and normalization, schema evolution, data integrity, storage fitness, access patterns, serialization, consistency, sensitive data handling. See [DOMAIN-INDEX.md](domains/DOMAIN-INDEX.md) for scope-down guidance. |
 
-**Extended role domains** — active when a project's scope warrants them. Select based on deployment context and audience; document which are active in the project's design or task file:
+The seventh core domain is **VDD-IAR Alignment**, listed in the Meta domains table below.
+
+**Extended role domains** — active when a project's scope warrants them. Select based on deployment context and audience; document which are active in the project's design or task file. **Platform Engineer and Data Engineer are extended-with-strong-presumption** (G-178) — most projects beyond a local-toolchain CLI activate at least one; at capstone and production intent they are typically active.
 
 | Role | Job title | Prompt file | Focus |
 |---|---|---|---|
+| Platform Engineer | Platform Engineer / DevOps Engineer / Infrastructure Engineer | [PLATFORM-ENGINEER-REVIEW.md](domains/role/PLATFORM-ENGINEER-REVIEW.md) | CI/CD pipeline, gate enforcement, DevSecOps (pre-commit hooks, security scanning, secret management, supply chain integrity, least privilege), infrastructure as code, containerization, environment parity, observability, performance |
+| Data Engineer | Data Engineer / Database Engineer / Data Platform Engineer | [DATA-ENGINEER-REVIEW.md](domains/role/DATA-ENGINEER-REVIEW.md) | Data layer: data model correctness, validation and normalization, schema evolution, data integrity, storage fitness, access patterns, serialization, consistency, sensitive data handling. See [DOMAIN-INDEX.md](domains/DOMAIN-INDEX.md) for scope-down guidance. |
 | Red Team Hacker | Penetration Tester / Offensive Security Engineer | [RED-TEAM-REVIEW.md](domains/role/RED-TEAM-REVIEW.md) | Offensive security: threat modeling, attack surface enumeration, authentication bypass, authorization flaws, business logic abuse, injection chains, client-side attacks, information leakage, chained vulnerabilities, insider threat, automated attack resilience, supply chain exploitation |
 | Performance Engineer | Performance Engineer / Site Performance Engineer | [PERFORMANCE-ENGINEER-REVIEW.md](domains/role/PERFORMANCE-ENGINEER-REVIEW.md) | Runtime performance: time-to-interactive, main thread saturation, asset optimization, data scaling, N+1 patterns, caching, memory growth, performance budget, regression risk |
 | Technical Writer | Technical Writer / Developer Experience Engineer | [TECHNICAL-WRITER-REVIEW.md](domains/role/TECHNICAL-WRITER-REVIEW.md) | README completeness, documentation accuracy, architecture documentation, decision rationale, inline comment quality, API/interface docs, operational docs, CHANGELOG quality, AI session independence |
@@ -904,17 +906,19 @@ Review entries are stored outside the prompt files to keep the prompts stable an
 {project}/
   vsdd-suite/
     # Per-domain index files (one row per Review N, newest first; link to session file + anchor)
-    # Core domains (always active)
+    # Core domains (always active — 7 total)
+    SOFTWARE-ENGINEER-REVIEW.md
     QUALITY-ENGINEER-REVIEW.md
     UX-REVIEW.md
     SECURITY-REVIEW.md
-    PLATFORM-ENGINEER-REVIEW.md
     SOLUTION-ARCHITECT-REVIEW.md
     SOLUTION-OWNER-REVIEW.md
-    SOFTWARE-ENGINEER-REVIEW.md
-    DATA-ENGINEER-REVIEW.md
     VDD-IAR-ALIGNMENT-REVIEW.md
-    # Extended domains (include only those active on the project)
+    # Extended domains (include only those active on the project; PE + DE are
+    # extended-with-strong-presumption per G-178 and typically active beyond
+    # local-toolchain CLI scope)
+    PLATFORM-ENGINEER-REVIEW.md
+    DATA-ENGINEER-REVIEW.md
     RED-TEAM-REVIEW.md
     PERFORMANCE-ENGINEER-REVIEW.md
     TECHNICAL-WRITER-REVIEW.md

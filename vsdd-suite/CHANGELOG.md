@@ -4,6 +4,27 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-20 08:30Z (Review 70: PE + DE reclassified from core to extended-with-strong-presumption — 1 Resolved; v0.7.6)
+
+### Changed
+- **`vsdd-suite/domains/DOMAIN-INDEX.md`** § Core domains — intro rewritten from "These eight domains apply to all projects" to "Six core role domains plus the VDD-IAR Alignment meta domain (seven total) apply to all projects." Platform Engineer and Data Engineer rows removed from the core role table. New paragraph names VDD-IAR Alignment as the seventh core domain (listed in the Meta domains table). New `**Forward-only constraint (G-178, 2026-05-20)**` paragraph names the v0.7.6 cutoff for the reclassification.
+- **`vsdd-suite/domains/DOMAIN-INDEX.md`** § Extended domains — PE and DE rows added at the top of the extended table with named activation criteria (PE: managed pipeline / infrastructure / observability / any operational deployment surface beyond local-toolchain install; DE: persistent data through DB / managed schema / structured-storage integrity / external data systems). New paragraph above the table establishes the **extended-with-strong-presumption** framing — most projects beyond a local-toolchain CLI activate at least one; at capstone and production intent they are typically active.
+- **`vsdd-suite/domains/DOMAIN-INDEX.md`** § Intent calibration — learning-exercise row reframed: SE+QE+SO+VDD-IAR Alignment as the four fixed cores plus one rotating fourth role from {SA, Security, UX} (PE+DE removed from the rotation pool since now extended). Portfolio / capstone / production rows clarified to make PE+DE activation explicit per criteria, with capstone+production noting strong presumption at those intents. Prefix paragraph names "7 core" = (SE, QE, UX, Security, SA, SO, VDD-IAR Alignment).
+- **`vsdd-suite/README.md`** § Domains — PE and DE rows moved from the Core role table to the top of the Extended role table. Lead paragraph "Default activation is the 7 core role domains plus VDD-IAR Alignment" reworded to unambiguous "Default activation is the **7 core domains** — six core role domains (SE, QE, UX, Security, SA, SO) plus the VDD-IAR Alignment meta domain." New sentence under the core role table names VDD-IAR Alignment as the seventh core (cross-referenced to the Meta table). Extended table opens with the "extended-with-strong-presumption" framing for PE+DE.
+- **`vsdd-suite/README.md`** project-tree example — comment block reorganized: PE and DE moved from "# Core domains (always active)" to "# Extended domains" block with an inline note about extended-with-strong-presumption per G-178.
+- **`vsdd-suite/templates/scaffold-project.sh`** — header docstring, `DEFAULT_DOMAINS` array comment, and the no-args echo block reworded from "core but conditional" to "extended-with-strong-presumption (G-178)". Script behavior unchanged (default-domain list was already 7).
+
+### Resolved
+- **G-178** Core-domain count inconsistency between DOMAIN-INDEX.md (8 core role at the top, 7 in the intent calibration table) and README.md / scaffold-project.sh / worked example (consistently 7 = 6 role + 1 meta). Three different mental models existed in parallel. Resolution: demote PE and DE from core to extended-with-strong-presumption (operator selection from a three-option AskUserQuestion: A demote, B promote scaffold to 9, C add a third tier). Two-tier taxonomy preserved; PE and DE evaluate the same dimensions under the new classification. Surfaced by operator during a transition-progress (IAR→VSDD library) review. Full narrative: [Review 70](suite-development/review-log/2026-05-20-suite-review.md#review-70--2026-05-20-0830z).
+
+### Forward-only constraint
+Projects whose first IAR run predates v0.7.6 (today, 2026-05-20) retain PE/DE-as-core in their existing review logs and DESIGN.md notes per G-89; the reclassification does not invalidate prior records. New projects scaffolded at v0.7.6+ follow the new classification automatically. No PE/DE prompt content changed — same dimensions, same sycophancy check, same finding classification schema. Non-breaking against COMPATIBILITY.md (additive reclassification with forward-only carve-out).
+
+### Note
+**Backlog after Review 70: 0 Open + 7 Deferred** (G-159, G-168, G-169, G-170, G-171, G-172, G-177 — unchanged from Review 69; no new Deferred or Open gaps). The `check-suite-review-preamble.sh` hook (Review 68) validates the new Review 70 entry.
+
+---
+
 ## Unreleased — 2026-05-20 05:30Z (Review 69: review-log file split + filename-convention amendment — 1 Resolved; v0.7.5)
 
 ### Changed
