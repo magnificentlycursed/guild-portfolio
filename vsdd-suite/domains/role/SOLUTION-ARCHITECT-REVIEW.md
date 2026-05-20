@@ -25,7 +25,7 @@ Regression check: verify that architectural decisions from prior layers are stil
 **Language and interface supplement:** Consult `../../supplements/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`). Apply the **Solution Architect** section from the relevant supplement file in addition to the standard dimensions below.
 
 
-**Validator pair (Review 77):** `solution-owner` is the natural validator for SA findings routed via Raised-to-SO (the spec-change subset). For pure architecture-doctrine findings without an SO routing (e.g., a Dim 12 purity-boundary refactor that touches only implementation), `**Validator:** *self*` is acceptable with rationale per `../../suite-development/suite-development.md` § Validation loop discipline strict policy.
+**Validator pair (Review 77):** `solution-owner` is the natural validator for SA findings routed via Raised-to-SO (the spec-change subset). For pure architecture-doctrine findings without an SO routing (e.g., a Dim 12 purity-boundary refactor that touches only implementation), declare `**Validator:** sanity-check` per the meta-validator-of-last-resort pattern (Review 77 Finding 2) — Sanity Check confirms the architecture-doctrine finding's resolution coheres with DESIGN.md's verification architecture and doesn't introduce a spec-drift that should have been Raised-to-SO.
 ## Standard Evaluation Dimensions
 
 1. **Separation of concerns** — Are business logic, rendering, and storage concerns cleanly separated? Do established layer boundaries hold consistently?

@@ -98,6 +98,7 @@ DOMAIN_CLASSIFICATIONS: Dict[str, Set[str]] = {
     "vdd-iar-alignment": {"Resolved", "Dismissed", "Hallucinated"},
     "portfolio-assessment": {"Demonstrated", "Partial", "Absent", "Hallucinated"},
     "observability": {"Resolved", "Deferred", "Dismissed", "Hallucinated"},
+    "sanity-check": {"Resolved", "Dismissed", "Hallucinated"},  # Review 77 — meta-validator-of-last-resort + rubber-ducking surface
 }
 
 # Some domains use dim-first organization rather than classification-first
@@ -155,12 +156,16 @@ LIFECYCLE_FIELDS_THRESHOLD = "2026-05-21"
 KNOWN_DOMAIN_SLUGS = frozenset(DOMAIN_CLASSIFICATIONS.keys()) | {"documentation-reviewer"}
 
 # Domains blanket-allowlisted for `**Validator:** *self*` per
-# `suite-development.md` § Validation loop discipline. Portfolio Assessment's
-# entire classification universe is introspective (Demonstrated / Partial /
-# Absent / Hallucinated — none are defects with cross-domain validators);
-# the domain-level rationale is documented once in PORTFOLIO-ASSESSMENT-
-# REVIEW.md and covers all findings under the domain.
-SELF_VALIDATION_BLANKET_ALLOWLIST = {"portfolio-assessment"}
+# `suite-development.md` § Validation loop discipline. With the Sanity
+# Check meta domain (added in Review 77 Finding 2), the natural validator
+# of last resort is `sanity-check` rather than `*self*` for findings that
+# otherwise lack a cross-domain pair. The blanket allowlist is now empty
+# in normal operation — every finding has either a domain-specific
+# validator OR routes to sanity-check. The set is retained as the hook's
+# extension point for future domain-level allowlist additions; if a
+# future domain registers whose introspective work cannot be sanity-
+# checked structurally (none in scope today), it gets added here.
+SELF_VALIDATION_BLANKET_ALLOWLIST: set[str] = set()
 
 # Valid `**Status:**` values per Review 77 sub-state lifecycle.
 VALID_STATUS_VALUES = ("raised", "assigned", "fix-landed", "validated")

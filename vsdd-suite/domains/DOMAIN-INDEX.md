@@ -52,6 +52,7 @@ Meta domains do not evaluate the software itself. They evaluate methodology comp
 |---|---|---|
 | `meta/VDD-IAR-ALIGNMENT-REVIEW.md` | Process compliance: design-before-code, test discipline, layer gates, IAR integrity | At each layer gate close (dims 2–3) and as the final domain in the merge gate |
 | `meta/PORTFOLIO-ASSESSMENT-REVIEW.md` | Developer ownership: decision ownership, implementation understanding, directed development evidence | Portfolio projects and apprentice program submissions only |
+| `meta/SANITY-CHECK-REVIEW.md` | (1) Validator-of-last-resort: confirms findings owned by domains without a natural cross-domain pair (PE shift-left mechanizations, SA architecture-doctrine, QE test-discipline meta, Portfolio Assessment introspective dimensions, Security findings with no Red Team validation surface). (2) Rubber-ducking surface: structured listening + DESIGN.md/architecture context for developers articulating problems whose solution emerges in articulation. | Activated whenever another domain produces a finding requiring `**Validator:** sanity-check` per Review 77 lifecycle convention; activated on developer demand for rubber-ducking. No gate-requirement at any intent tier — Sanity Check is invoked by need, not by schedule. |
 
 ---
 
