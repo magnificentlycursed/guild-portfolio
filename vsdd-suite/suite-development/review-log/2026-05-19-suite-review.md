@@ -640,3 +640,87 @@ These are project-side findings against the reference implementation. bookmark-c
 Sycophancy self-audit: the Phase 5 primer's first run produced findings; I closed 4 of the 4 friction points it surfaced rather than dismissing any as "edge cases the primer doesn't need to cover." The temptation was to dismiss R3 (tool-install cost) as "obviously a per-operator concern" — rejected because the primer is what a new operator reads BEFORE running, so an upfront note saves the operator the discovery cost. The temptation was also to defer R1 as "judgment call about what counts as a 'purity claim source'" — rejected because the bookmark-cli case is concrete (`src/lib.rs:1-7` made a claim that diverged from DESIGN.md silence) and any first-Phase-5 operator on any Rust project with module docs will hit the same shape. Both temptations represent the same failure mode the Phase 5 primer's own Surface B sycophancy check warns against: rationalizing surviving findings as "not really gaps." The discipline applied to the primer as it does to project mutants.
 
 Most uncertain choice: R4 prescribes "dep-add lands as a separate commit before the property-test commits" — borrowing from the Phase 2a Red Gate boundary discipline. This may be over-prescriptive for small projects where dep-add and first-property could share a commit without harming reviewability. Forward-only carve-out preserves the prescription for v0.7.2+ starters; if a project's first Phase 5 session genuinely warrants a combined commit, the divergence is itself a Phase 5 log entry note rather than a discipline violation.
+
+---
+
+## Review 67 — 2026-05-20 03:15Z
+
+**Scope:** Operator-driven adversarial questions against the Review 64–66 Phase 5 / Phase 6 work, surfaced when reviewing bookmark-cli's first Phase 5 application. Two questions: (a) why does `PHASE-5-LOG.md` exist as a separate per-project file instead of folding Phase 5 findings into the existing per-domain review logs; (b) why did bookmark-cli's first Phase 5 session file only QE-domain findings when the Surface A.0 finding is SA territory. Question (b) is project-scope (closed in `bookmark-cli-phase5-adoption` branch by splitting the session into QE Review 2 + SA Review 1). Question (a) is suite-scope and this entry files it as Finding 1 / G-177 below.
+
+A third adversarial question from the same operator turn — chat-shorthand finding identifiers (`Q1`, `Q2`, `B1`, `B2`, `R1`–`R4`, `F1`–`F12`) have been leaking from chat into review-log artifacts, commit messages, and PR descriptions across Reviews 65 / 66 / the bookmark-cli adoption commit. The governing standard in `suite-development.md` § Suite review entry format prescribes only `**Finding N — Title**` (new findings) and `**G-XX — Title**` (gap-registry walks); chat shorthand is not a valid identifier in artifacts. Filed as Finding 2 below (Resolved-in-session — discipline correction; forward-only per G-89 leaves the historical references in place).
+
+The operator also raised a discipline question: prior reviews (specifically Reviews 63 and 66) over-promoted Resolved-in-session findings to suite-side G-IDs when the governing standard in `suite-development.md` § Suite review entry format reserves `### New gap registered` (and its G-ID assignment) for findings that need ongoing tracking — i.e., Deferred / Open findings, not Resolved-in-session. Review 65 was correct (G-170/G-171/G-172 for Deferred only); Reviews 63 (G-160–G-167 for 8 Resolved findings) and 66 (G-173–G-176 for 4 Resolved findings) over-promoted. Forward-only correction per G-89: historical G-IDs stay as committed records; **going forward, only Deferred / Open findings get G-IDs**. This review's Resolved finding (the discipline observation itself) does NOT get a G-ID.
+
+**Lens:** Adversarial-question-against-recent-work lens (closely related to a cold review but driven by operator question rather than fresh-session pass). Single defect-class: structural coherence of the Phase 5 record artifacts; whether they earn their duplication of the existing per-domain review log shape.
+
+**Session note:** In-session. Partial-isolation tradeoff: the same author who wrote the Phase 5 primer (Reviews 64–66) is now filing a structural finding against that primer. Compensation: the finding is grounded in concrete evidence from a real project application (bookmark-cli's PHASE-5-LOG.md Layer 1 entry contained ~50 lines of disposition narrative that also appears in QE Review 2 + SA Review 1; the duplication is observable, not narrative). The operator's question is the cold-reader signal — a reader unfamiliar with the Phase 5 primer's prescription asked the question my primer-internal logic did not.
+
+**Source:** `director-raised` — operator's adversarial question against the Phase 5 record structure in bookmark-cli; the underlying finding is structural and was implicit in the primer's design but not surfaced as a defect until the operator named it.
+
+---
+
+### Resolved
+
+**Finding 1 — Discipline drift on G-ID assignment in suite reviews 63 and 66 (corrected forward-only)**
+
+`suite-development.md` § Suite review entry format already specifies that `### New gap registered` (and G-ID assignment) is the format for findings "promoted to a tracked gap" — implying a deliberate promotion act. Resolved-in-session findings live under `### Resolved` with `**Finding N — Title**` shape per the same standard; no G-ID required. Review 65 followed this discipline correctly (G-170/G-171/G-172 for the 3 Deferred findings; 9 Resolved findings as `**Finding N**` without G-IDs). Reviews 63 and 66 drifted — Review 63 assigned G-160–G-169 to all 10 findings (8 Resolved + 2 Deferred); Review 66 assigned G-173–G-176 to 4 Resolved findings. The historical G-IDs are committed; forward-only G-89 applies — they stay as records of how the registry was populated at the time, even though the discipline was loose.
+
+**Resolution:** Discipline correction applied going forward. **From Review 67 onward, only Deferred / Open findings get suite-side G-IDs**; Resolved-in-session findings are `**Finding N — Title**` entries in the per-review narrative without G-IDs. The `FINDINGS-INDEX.md` registry rows G-160–G-167 and G-173–G-176 remain in place (forward-only — rewriting would break the audit trail and the cross-references in committed commit messages, COMPATIBILITY rows, and PR descriptions). The `suite-development.md` text already names the discipline; no governing-standard text change is needed. This finding does NOT itself receive a G-ID (it's Resolved-in-session per the corrected discipline).
+
+**Finding 2 — Chat-shorthand finding identifiers leaking into artifacts (corrected forward-only)**
+
+Across the recent work cycle, chat-shorthand identifiers (`Q1`/`Q2` for operator questions, `B1`/`B2` for bookmark-cli findings surfaced in Review 66's Phase 5 test, `R1`–`R4` for primer-refinement candidates, `F1`–`F12` for cold-subagent findings) have been propagating from chat conversation into review-log artifact text, commit messages, PR descriptions, and gap-registry row narratives. The governing standard in `suite-development.md` § Suite review entry format § Finding body prescribes exactly two valid identifier forms in artifacts: `**Finding N — Title**` for new findings within a review, and `**G-XX — Title**` for gap-registry-walk entries. Chat shorthand is not a valid artifact identifier.
+
+Most visible drift sites (committed; forward-only — not rewritten): Review 65 § Resolved used `**F10 — Title**` / `**F12 — Title**` etc. headers (should have been `Finding 1 / Finding 2`); Review 66 § Resolved referred to findings as "G-173 (R1)" through "G-176 (R4)" with the `R`-prefix carried into the SUITE-DEVELOPMENT-REVIEW row text and CHANGELOG entries; the bookmark-cli adoption commit (`ca663ac`) and PR #23 description reference "B1" and "B2" extensively. None of these can be rewritten without breaking commit-message cross-references in published commit history.
+
+**Resolution:** Going forward, artifacts (review-log entries, FINDINGS-INDEX rows, commit messages, PR descriptions, CHANGELOG entries, COMPATIBILITY rows) use **only** the two standard identifier forms. Chat-shorthand identifiers stay in the chat conversation that produced them; their job is to be ergonomic during synchronous discussion, not to be artifact identifiers. The discipline-drift correction itself does NOT receive a G-ID per the corrected Finding 1 discipline. Cleanup applied in this Review 67 entry before commit: the earlier chat references `(Q1)`, `(Q2)`, `(F1)`, `(B1)`, `(B2)` within Review 67's own narrative have been replaced with descriptive prose anchored to the finding's content rather than the chat-shorthand label.
+
+---
+
+### Deferred
+
+**G-177 — `vsdd-suite/PHASE-5-LOG.md` per-project file duplicates per-domain review logs without earning the duplication.**
+
+The Phase 5 primer (`primers/5-formal-hardening.md` § Phase 5 log format) prescribes a per-project `vsdd-suite/PHASE-5-LOG.md` file as the Phase 5 record. Surfaces A/A.0/B/C/D are written there. But the suite's existing project-level review log structure (per `suite-development.md` § Governing standard for project-level review logs) handles Phase 3 rounds via per-domain `<DOMAIN>-REVIEW.md` + `review-log/YYYY-MM-DD-<domain>.md` files; cross-domain coordination via the `**Coordination:**` line. Phase 5 work fits the same shape — a Surface B (mutation testing) round IS a QE round; a Surface A.0 (purity boundary verification) round IS an SA round.
+
+The bookmark-cli adoption (committed at `a33a289` on the `bookmark-cli-phase5-adoption` branch — see PR #23) demonstrates the duplication concretely: the Surface B disposition table appears in both `PHASE-5-LOG.md` Layer 1 entry and in QE Review 2 (Finding 1 body); the Surface A.0 finding similarly appears in both `PHASE-5-LOG.md` and SA Review 1 (Finding 1 body). The duplication is ~50 lines per per-session pair and grows linearly with project + layer count.
+
+**Two resolution candidates** (which one the project director chooses determines the primer revision):
+
+- **(a) Retire `PHASE-5-LOG.md`.** Phase 5 findings file under per-domain review logs with a `**Phase 5 surface:**` preamble tag on each round (e.g., `**Phase 5 surface:** B — mutation testing`). Phase 6's convergence record cites per-domain rounds directly via Markdown links. Cleaner; matches the existing structure; no separate file to maintain.
+- **(b) Make `PHASE-5-LOG.md` an index file.** Parallel to how `SUITE-DEVELOPMENT-REVIEW.md` indexes `review-log/` files at the suite level. `PHASE-5-LOG.md` becomes a one-table-per-layer index pointing at the per-domain rounds that did the actual Phase 5 work. Per-domain rounds carry the substantive content. Slight overhead (one extra file) but easier for Phase 6's convergence-check to cite a single document.
+
+**Trigger** (per G-130 deferral discipline): when a **second project** enters Phase 5 hardening (real evidence that the duplication compounds across projects), OR when the operator preemptively chooses one of the two resolution candidates. Observable on the second project's Phase 5 session opening.
+
+**Cost-of-deferral:** each Phase 5 project replicates the duplication shape; per-project Phase 5 records grow to duplicate per-domain records. A future Phase 6 author has to read both `PHASE-5-LOG.md` AND the per-domain rounds to confirm consistency. The audit trail is split across two artifacts that record the same dispositions. The cost grows linearly with project + layer count; at 1 project / 1 layer (the current bookmark-cli state), the cost is small but observable; at 5 projects / 3 layers, the duplication is structural debt.
+
+**Auto-Backlog clause:** if 2026-10-31 passes without a second project entering Phase 5, the gap auto-Backlogs and re-raises in the next suite review (the duplication may be load-bearing in ways the bookmark-cli case did not surface; revisit with new evidence at that point).
+
+**Coordinate with:** G-54 (parent — Phase 6 convergence check cites Phase 5 records), G-55 (parent — Phase 5 primer ownership), G-89 (forward-only — current Phase 5 records under bookmark-cli's first adoption stay as committed records under the prior primer shape), G-173 (Surface A.0 multi-source check), G-174 (Surface B 5-disposition class). Bookmark-cli's PHASE-5-LOG.md (committed at `a33a289`) includes a forward reference to this gap as documentation that the structural concern is acknowledged.
+
+---
+
+### New gap registered
+
+- **G-177** — `PHASE-5-LOG.md` per-project file duplicates per-domain review logs — Deferred with G-130 discipline (trigger: second project enters Phase 5; auto-Backlog 2026-10-31).
+
+---
+
+### Coordination
+
+The Review 67 disposition coordinates with:
+
+- **G-55 / G-54** (Addressed Review 64) — parent gaps. G-177 surfaces a structural defect introduced by Review 64's Phase 5 primer authoring; the parent closures hold (Phase 5 + Phase 6 ownership is unchanged), this is a refinement candidate within the existing surface.
+- **G-130** (Addressed prior) — deferral-trigger discipline applied (trigger + cost + auto-Backlog all named).
+- **G-89** (Addressed prior) — forward-only narrative-preservation. The discipline-drift acknowledgement under § Resolved does NOT retroactively renumber the historical G-IDs from Reviews 63 and 66; the prior IDs stay as committed records.
+- **PR #23 (`bookmark-cli-phase5-adoption`)** — forward references G-177 in `bookmark-cli/vsdd-suite/PHASE-5-LOG.md`. The forward reference resolves once both PRs merge (the suite-side PR registers G-177 first; the bookmark-cli PR's PHASE-5-LOG.md then cites a registered gap rather than a forward-pointing TODO).
+
+The closures do NOT regress any prior work. The discipline-drift correction is forward-only per G-89; the G-177 deferral is purely additive (new gap; existing primer unchanged).
+
+---
+
+### Summary
+
+1 Resolved finding (the discipline-drift correction; no G-ID per the corrected discipline). 1 Deferred new gap (G-177; PHASE-5-LOG.md duplication). Backlog after Review 67: **0 Open + 7 Deferred** (G-159, G-168, G-169, G-170, G-171, G-172, G-177 — all with G-130 trigger + cost + auto-Backlog). The Phase 5 / Phase 6 owned-by-suite state from Review 64 is unchanged; this review surfaces a structural refinement candidate without re-opening the parent gaps.
+
+Sycophancy self-audit: the operator's three adversarial points (PHASE-5-LOG duplication; G-ID over-assignment; chat-shorthand identifier leakage) were all real defects, and I addressed them honestly. G-177 is against my own Review 64 primer authoring — I authored PHASE-5-LOG.md as a separate file because the primer's first-draft prescription called for it; the cold review (Review 65 by subagent) and the first-real-project test (Review 66 by Phase 5 against bookmark-cli) both failed to surface the duplication concern. The operator's adversarial question was the first lens that caught it. Finding 1 (G-ID discipline) and Finding 2 (chat-shorthand identifiers) are process drifts in how I've been populating the registry and the review-log artifacts — the governing standard in `suite-development.md` already specified the correct disciplines; I drifted from them without noticing. This is the same shape as the suite's overall sycophancy discipline at the project level (the director's manual testing catches what cold-batch IAR misses, per G-132); applied here at the suite level via three director-raised observations rather than a cold review pass. All three are honest near-misses, none comfortable to flag against my own recent work.

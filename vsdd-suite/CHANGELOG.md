@@ -4,6 +4,23 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-20 03:15Z (Review 67: operator adversarial review of Reviews 64–66 work — 1 Deferred + 2 discipline corrections; v0.7.3)
+
+### Deferred
+
+- **G-177 (new)** — `vsdd-suite/PHASE-5-LOG.md` per-project file duplicates per-domain review logs without earning the duplication. The Phase 5 primer prescribed a separate per-project log when the suite's existing project-level review log structure handles cross-domain coordination via the `**Coordination:**` line mechanism. bookmark-cli's first Phase 5 adoption (PR #23) demonstrates the duplication concretely. Two resolution candidates: (a) retire `PHASE-5-LOG.md`; Phase 5 findings file under per-domain review logs with a `**Phase 5 surface:**` preamble tag; (b) make `PHASE-5-LOG.md` an index file pointing at per-domain rounds. Trigger: second project enters Phase 5 (real evidence the duplication compounds); auto-Backlog 2026-10-31. Surfaced by operator adversarial question against Reviews 64–66 work.
+
+### Note (discipline corrections — forward-only per G-89; no artifact changes to historical reviews)
+
+- **Finding 1 (Resolved — corrected forward-only):** Reviews 63 and 66 over-promoted Resolved-in-session findings to suite-side G-IDs. The governing standard in `suite-development.md` § Suite review entry format reserves G-IDs for findings "promoted to a tracked gap" — i.e., Deferred / Open findings that need ongoing tracking. Review 65 followed this discipline correctly (G-170/G-171/G-172 for Deferred only); Reviews 63 (G-160–G-169) and 66 (G-173–G-176) drifted by assigning G-IDs to Resolved findings. **Going forward, only Deferred / Open findings get suite-side G-IDs**; Resolved-in-session findings use `**Finding N — Title**` shape without G-IDs. Historical G-IDs stay as committed records.
+- **Finding 2 (Resolved — corrected forward-only):** Chat-shorthand finding identifiers (`Q1`/`Q2` for operator questions; `B1`/`B2` for project findings surfaced in Review 66's Phase 5 test; `R1`–`R4` for primer-refinement candidates; `F1`–`F12` for Review 65's cold-subagent findings) have been leaking from chat conversation into review-log artifact text, commit messages, PR descriptions, and gap-registry row narratives. The governing standard prescribes exactly two valid identifier forms in artifacts: `**Finding N — Title**` (new findings) and `**G-XX — Title**` (gap-registry walks). **Going forward, artifacts use only the two standard forms; chat shorthand stays in chat.** Historical drift (Review 65 `**F10 — Title**` headers; Review 66 `G-173 (R1)` style; bookmark-cli commit / PR #23 `B1`/`B2` references) stays as committed records.
+
+### Note
+
+**Backlog after Review 67: 0 Open + 7 Deferred** (G-159, G-168, G-169, G-170, G-171, G-172, G-177 — all with G-130 trigger + cost + auto-Backlog). The Phase 5 / Phase 6 owned-by-suite state from Review 64 is unchanged; this review files one structural refinement candidate (G-177) plus two discipline corrections that are themselves Resolved-in-session and do not receive G-IDs per the corrected discipline.
+
+---
+
 ## Unreleased — 2026-05-20 02:30Z (Review 66: Phase 5 primer refinements from bookmark-cli execution — 4 Addressed; v0.7.2)
 
 ### Changed
