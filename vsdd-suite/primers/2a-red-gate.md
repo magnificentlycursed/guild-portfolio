@@ -1,6 +1,8 @@
 # Session Primer: Red Gate (VSDD Phase 2a)
 
-Use this prompt at the start of a Phase 2a session — after the layer plan (`TODO.md` or the crosslink issue hierarchy for Phase 2+ projects) is complete and the layer is opened. The output of this session is a set of failing tests committed to the working tree — the "Red Gate" state that Phase 2b implementation will turn green.
+**Whitepaper alignment ([Review 79](../suite-development/review-log/2026-05-20-suite-review.md#review-79--2026-05-20-1730z) Finding 1):** the [VSDD whitepaper](https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00) names this step **"Test Suite Generation"** — the activity of authoring the layer's test surface. The suite's primer is named **"Red Gate"** to emphasize the suite-specific commit-discipline within Test Suite Generation: the failing-test state is committed as a distinct boundary before any Phase 2b implementation lands. Both names are used in the suite: "Test Suite Generation" is the canonical whitepaper-aligned activity name (used in cross-references that match the whitepaper); "Red Gate" is the suite's commit-discipline name (used in cross-references that emphasize the boundary commit). Choose by context — the broader activity is "Test Suite Generation"; the specific commit boundary within it is the "Red Gate".
+
+Use this prompt at the start of a Phase 2a session — after the layer plan (`TODO.md` or the crosslink issue hierarchy for Phase 2+ projects) is complete and the layer is opened. The output of this session is a set of failing tests committed to the working tree — the "Red Gate" state (the commit boundary) within Phase 2a's Test Suite Generation activity that Phase 2b implementation will turn green.
 
 Do not start Phase 2a without a layer plan. Tests written against undefined acceptance criteria produce a Red Gate that cannot be layer-gated.
 

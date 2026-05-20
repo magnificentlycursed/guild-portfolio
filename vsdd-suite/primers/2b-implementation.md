@@ -1,6 +1,8 @@
-# Session Primer: Implementation (VSDD Phase 2b)
+# Session Primer: Minimal Implementation (VSDD Phase 2b)
 
-Use this prompt at the start of a Phase 2b session — after `2a-red-gate.md` has been run, every layer test fails for the right reason, and the Red Gate state is committed. The output of this session is a passing test suite and a working implementation that satisfies the layer's acceptance criteria.
+**Whitepaper alignment ([Review 79](../suite-development/review-log/2026-05-20-suite-review.md#review-79--2026-05-20-1730z) Finding 1):** the [VSDD whitepaper](https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00) names this step **"Minimal Implementation"** — the "Minimal" qualifier is load-bearing; Phase 2b's posture is "write only enough code to pass the failing tests; no scope creep beyond the Red Gate's surface." The suite's primer was previously titled just "Implementation"; this primer aligns to the whitepaper's canonical name.
+
+Use this prompt at the start of a Phase 2b session — after `2a-red-gate.md` has been run, every layer test fails for the right reason, and the Red Gate state is committed. The output of this session is a passing test suite and a minimal working implementation that satisfies the layer's acceptance criteria — nothing beyond what the failing tests demand.
 
 Do not start implementation without a committed Red Gate. An implementation session that begins before the Red Gate commit cannot be distinguished from test-after work by VDD-IAR Alignment dim 4.
 

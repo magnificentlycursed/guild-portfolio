@@ -1,6 +1,8 @@
-# Session Primer: Feedback Integration (VSDD Phase 4)
+# Session Primer: Feedback Integration Loop (VSDD Phase 4)
 
-Use this prompt after a Phase 3 IAR round has produced a classified finding set and before the next implementation pass begins. The output of this session is a routed finding set — each real finding is assigned to the earliest VSDD phase that can correctly fix it, with the corresponding work scheduled there.
+**Whitepaper alignment ([Review 79](../suite-development/review-log/2026-05-20-suite-review.md#review-79--2026-05-20-1730z) Finding 1):** the [VSDD whitepaper](https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00) names this phase **"Feedback Integration Loop"** — the "Loop" qualifier is load-bearing; Phase 4 is the routing-back-to-earlier-phases activity that closes the IAR refinement loop. The primer was previously titled "Feedback Integration" (missing "Loop"); this primer aligns to the whitepaper's canonical name.
+
+Use this prompt after a Phase 3 IAR round has produced a classified finding set and before the next implementation pass begins. The output of this session is a routed finding set — each real finding is assigned to the earliest VSDD phase that can correctly fix it, with the corresponding work scheduled there. Phase 4 closes the loop back to Phases 1a / 1b / 1c / 2a / 2b / 2c / 5; the loop repeats until MVR.
 
 Do not start feedback integration with unclassified findings. A finding that has not been classified Resolved / Dismissed / Hallucinated / Accepted (etc.) does not have a routing decision yet — re-run the relevant Phase 3 domain to classify before routing.
 

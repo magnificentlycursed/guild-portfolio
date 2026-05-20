@@ -1,4 +1,6 @@
-# Session Primer: Adversarial Review (VSDD Phase 3)
+# Session Primer: Adversarial Refinement (VSDD Phase 3)
+
+**Whitepaper alignment ([Review 79](../suite-development/review-log/2026-05-20-suite-review.md#review-79--2026-05-20-1730z) Finding 1):** the [VSDD whitepaper](https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00) names this phase **"Adversarial Refinement (The VDD Roast)"** — the suite-internal abbreviation "IAR" (Iterative Adversarial Refinement) preserves "Refinement"; the primer's H1 was previously titled "Adversarial Review" which lost the "Refinement" semantics. This primer aligns to the whitepaper's canonical name. "Review session" remains accurate as descriptive prose for an individual round; "Adversarial Refinement" is the canonical name for the phase.
 
 Use this prompt at the start of a fresh AI session before running any IAR domain review. Paste it into a cold session — one that has not participated in building the project under review. The purpose of this primer is to establish adversarial posture before loading any domain prompt.
 

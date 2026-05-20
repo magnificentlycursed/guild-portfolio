@@ -1,0 +1,23 @@
+{
+  "_comment": "Shared project permissions for Claude Code. Blocks writes/edits outside the source tree at the Claude-Code tool layer. Note: subprocess writes (e.g., a Bash-invoked Python script that opens a file directly) are NOT caught by Write/Edit deny rules — they require OS-level sandboxing. See https://code.claude.com/docs/en/permissions and https://code.claude.com/docs/en/sandboxing for details. Path patterns use gitignore semantics: //path = absolute, ~/path = home, /path = project-root-relative, path = cwd-relative.",
+  "permissions": {
+    "deny": [
+      "Write(//tmp/**)",
+      "Edit(//tmp/**)",
+      "Write(//private/tmp/**)",
+      "Edit(//private/tmp/**)",
+      "Write(//var/**)",
+      "Edit(//var/**)",
+      "Write(//etc/**)",
+      "Edit(//etc/**)",
+      "Write(//usr/**)",
+      "Edit(//usr/**)",
+      "Write(//opt/**)",
+      "Edit(//opt/**)",
+      "Write(//System/**)",
+      "Edit(//System/**)",
+      "Write(//Library/**)",
+      "Edit(//Library/**)"
+    ]
+  }
+}
