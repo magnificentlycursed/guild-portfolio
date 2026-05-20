@@ -738,7 +738,9 @@ Classify each finding. Append the round to the domain's index file + a session f
 
 Per `primers/4-feedback-integration.md`: route every real finding to the earliest phase that can fix it correctly (spec defect → 1a; missing test → 2a; impl bug → 2b; suite gap → suite-dev). The routing keeps each phase's artifact authoritative — a Phase 2b fix to a spec defect leaves the spec wrong.
 
-**[crosslink]** Use route labels and `swarm fix --from-label` to parallelize the safe-to-parallelize subset (Phase 2b fixes, where the route is unambiguous and the test contract is already firm). Other routes (Phase 1a+1b / 1b / 2a) re-enter those phases manually — they need judgement, not parallelism:
+**[crosslink]** Use route labels and `swarm fix --from-label` to parallelize the safe-to-parallelize subset (Phase 2b fixes, where the route is unambiguous and the test contract is already firm). Other routes (Phase 1a+1b / 1c / 2a) re-enter those phases manually — they need judgement, not parallelism:
+
+**Label-vs-phase naming note (Review 68 Finding 10):** the route-label string `route:phase-1a` is preserved as a stable identifier per G-160 (suite Review 63 closure: "labels are identifiers, not scope-descriptors"). The *phase* the label refers to is named **Phase 1a+1b** in the suite's documentation and primer set (folds whitepaper Steps 1a + 1b). The label string is not renamed to `route:phase-1a+1b` because labels are queryable strings whose stability is load-bearing for any project that has already filed findings under the prior name; the phase-name change is documentation-only.
 
 ```sh
 # Apply route labels to filed findings (the primer's route table guides which label to apply)

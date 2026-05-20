@@ -135,6 +135,12 @@ Before ending the session, classify every finding. Valid classifications vary by
 
 A session that ends with unclassified findings has not completed the review. Log round number (`QE Review 1`, `Security Review 2`) and the finding progression — moving from real findings to hallucinated findings is evidence the process worked.
 
+## Source attribution (G-133 / Review 68 Finding 11)
+
+Every per-review entry's preamble must include a `**Source:**` line declaring how this round's findings were elicited. Per `suite-development/suite-development.md` § Per-review entry preamble, the valid values are: `domain-raised` (the cold adversary applying the domain's dimensions found the finding — the default for this primer's normal use), `director-raised` (the operator's manual testing / post-MVR exploration / non-domain-prompt-driven adversarial pass found the finding), `regression-replay` (a prior layer's adversarial reproducer re-run against the current binary), `external-feedback` (an upstream stakeholder / project consumer / methodology author surfaced the finding through prose feedback), or `mixed` (the round's findings span more than one source — name the sub-disposition explicitly).
+
+This primer's typical output is `domain-raised` — the cold adversary applying domain dimensions is exactly what this primer establishes. If your session deviates (e.g., the operator interrupts mid-round with a director-raised observation that becomes a finding; you re-run a prior reproducer that surfaces a regression), classify per the actual elicitation path, not per the primer-implied default. The Source field is the audit-trail granularity input to Portfolio Assessment dimensions on developer participation; a session that defaults silently when the actual elicitation was director-raised degrades the audit signal.
+
 ## If reviewing the IAR suite itself
 
 When the review target is the suite itself (not a project under review):

@@ -56,6 +56,29 @@ repos:
         files: ^(vsdd-suite/.*\.(md|sh)|.*/vsdd-suite/[^/]+\.md)$
         exclude: ^(vsdd-suite/(CHANGELOG|COMPATIBILITY)\.md|vsdd-suite/suite-development/SUITE-DEVELOPMENT-REVIEW\.md|.*/review-log/.*\.md|.*/FINDINGS-INDEX\.md)$
 
+      - id: check-suite-review-preamble
+        name: check suite-review and per-domain review-log preamble + finding-header discipline (IAR suite Review 68 hook)
+        language: script
+        # Mechanizes the discipline corrections from Reviews 67 + 68. Per
+        # `suite-development.md` § Per-review entry preamble (G-133) and §
+        # Suite review entry format: every per-review entry requires
+        # `**Scope:**`, `**Session note:**`, `**Source:**` preamble fields
+        # (suite-review entries additionally require `**Lens:**`); finding
+        # headers use only `**Finding N — Title**` or `**G-XX — Title**`
+        # forms (Review 67 Findings 1 + 2 corrections); each finding ends
+        # with `**Resolution:**` or `**Classification:**`; `**Source:**`
+        # value is one of `domain-raised` / `director-raised` /
+        # `regression-replay` / `external-feedback` / `mixed`.
+        # Forward-only per G-89: entries dated before 2026-05-20 are
+        # exempt. Per-entry `<!-- hook-bypass: <rationale> -->` HTML
+        # comment in the first 5 lines bypasses for that entry only;
+        # bypasses are themselves findings for the next registry-walk
+        # review.
+        entry: vsdd-suite/hooks/check-suite-review-preamble.sh
+        pass_filenames: true
+        # Scope to suite-review-log AND per-project review-log markdown.
+        files: ^(vsdd-suite/suite-development/review-log/.*\.md|.*/vsdd-suite/review-log/.*\.md)$
+
       - id: check-changelog-currency
         name: check CHANGELOG.md updated when source changes (IAR suite G-129 hook)
         language: script
