@@ -44,7 +44,7 @@ Before running any property-based tests, mutation tests, fuzzers, or proof harne
 - `DESIGN.md` § Verification architecture — the spec's named purity boundary (which functions are pure, deterministic, formally verifiable in principle).
 - **Module / package documentation in the implementation** — Rust module-level `//!` doc comments; Python module docstrings; TypeScript `/** @module */` JSDoc blocks; equivalent constructs in other languages. A module that opens with "Pure-core storage logic" makes a purity claim that any maintainer reading the code will take as authoritative.
 
-The audit checks (a) the implementation against the DESIGN.md claim, (b) the implementation against the module-doc claim, and (c) the DESIGN.md claim against the module-doc claim (cross-source consistency — discovered against bookmark-cli at Review 66 / G-173: `bookmark-cli`'s `src/lib.rs:1-7` claimed "Pure-core storage logic ... contains only pure functions" while its DESIGN.md § Verification architecture was silent on per-function purity; both diverged from the actual implementation).
+The audit checks (a) the implementation against the DESIGN.md claim, (b) the implementation against the module-doc claim, and (c) the DESIGN.md claim against the module-doc claim (cross-source consistency — discovered against the manual-method reference example at Review 66 / G-173: `vsdd-suite-reference-examples/bookmark-cli-manual/src/lib.rs:1-7` claimed "Pure-core storage logic ... contains only pure functions" while its `DESIGN.md` § Verification architecture was silent on per-function purity; both diverged from the actual implementation).
 
 For each function the project claims is pure (from either source):
 

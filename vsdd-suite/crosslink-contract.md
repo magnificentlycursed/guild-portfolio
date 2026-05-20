@@ -115,7 +115,7 @@ The unexpected-error column is the failure-mode catalog for Phase 3 reviewers �
 
 ## Contract testing
 
-There is currently no automated contract test that runs the worked example end-to-end against a pinned crosslink version. This is tracked as **G-112** in [`suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) — a reference implementation at e.g. `bookmark-cli/` that exercises the full worked example serves as the canary for both contract-drift detection (this file) and documentation-accuracy regression (G-106).
+There is currently no automated contract test that runs the worked example end-to-end against a pinned crosslink version. This is tracked as **G-112** in [`suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) — the reference implementations at [`../vsdd-suite-reference-examples/bookmark-cli-manual/`](../vsdd-suite-reference-examples/bookmark-cli-manual/) and [`../vsdd-suite-reference-examples/bookmark-cli-crosslink/`](../vsdd-suite-reference-examples/bookmark-cli-crosslink/) exercise the full worked example end-to-end in both operational modes; the crosslink-variant reference example serves as the canary for both contract-drift detection (this file) and documentation-accuracy regression (G-106).
 
 Until the reference implementation lands, contract drift detection is manual: a contributor must re-run the worked example end-to-end after any reported change to crosslink's CLI surface.
 
