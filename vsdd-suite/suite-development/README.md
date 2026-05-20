@@ -1,6 +1,6 @@
 # VSDD Suite — Suite Development
 
-This directory holds the materials for **evolving the suite itself** — adding domains, updating dimensions, running gap analysis, logging suite reviews. It is contributor-facing, not user-facing. Project teams using the suite to ship software should read [`../README.md`](../README.md) instead.
+This directory holds the materials for **evolving the suite itself** — adding domains, updating dimensions, registering and walking findings, logging suite reviews. It is contributor-facing, not user-facing. Project teams using the suite to ship software should read [`../README.md`](../README.md) instead.
 
 The split between `vsdd-suite/` (user-facing) and `vsdd-suite/suite-development/` (contributor-facing) is structural per G-93. Promotion of contributor content into the user-facing top level (or vice versa) is itself a suite-development decision, recorded here.
 
@@ -57,7 +57,7 @@ Some gaps are deferred against named reactivation triggers (e.g., "after `issue-
 
 ## Promoting project-scoped material to suite-level
 
-Project IAR sessions sometimes produce findings whose substance generalizes — a closure protocol, a primer addition, a missing dimension. Per the "earned by recurrence" doctrine, suite-level promotion requires evidence the pattern recurs across projects. One project's recurrence is project-scope evidence; suite-level addition should wait until a second project independently encounters the pattern, OR until the project-scoped resolution is explicitly promoted under its own §promotion mechanism.
+Project-level review sessions sometimes produce findings whose substance generalizes — a closure protocol, a primer addition, a missing dimension. Per the "earned by recurrence" doctrine, suite-level promotion requires evidence the pattern recurs across projects. One project's recurrence is project-scope evidence; suite-level addition should wait until a second project independently encounters the pattern, OR until the project-scoped resolution is explicitly promoted under its own §promotion mechanism.
 
 When a promotion happens, the project's CLOSURE-PROTOCOL.md (or equivalent) is moved to `../` or another suite-level location; the project's local copy becomes a stub pointing at the suite-level canonical version.
 

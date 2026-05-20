@@ -2,6 +2,102 @@
 
 ---
 
+## Review 72 — 2026-05-20 10:15Z
+
+**Scope:** Multi-artifact suite-development pass driven by operator-directed review of (a) the vsdd-suite README's Phase 5 / Phase 6 coverage and (b) suite-development governance documentation currency. Mid-session the operator promoted G-177 (Deferred) to Addressed via the explicit G-130 preemption mechanism, broadening the scope to retire the `PHASE-5-LOG.md` + `PHASE-6-CONVERGENCE.md` per-project artifact prescription across the suite + the bookmark-cli reference example. Artifacts read this round: `suite-development/suite-development.md` (governing standard, as session primer); `vsdd-suite/README.md` (Quickstart, per-layer flow diagram, Worked example, project-tree example, Merging gate, Running IAR sections); `primers/5-formal-hardening.md`; `primers/6-convergence.md`; `domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md` dim 13 + dim 14; `suite-development/FINDINGS-INDEX.md`; `suite-development/SUITE-DEVELOPMENT-REVIEW.md`; `suite-development/README.md`; `bookmark-cli/vsdd-suite/PHASE-5-LOG.md` + `DESIGN.md` + `src/lib.rs` + the SA and QE review log files + project CHANGELOG.
+
+**Lens:** Multi-lens cross-artifact consistency + currency audit — SO (spec / methodology scope), SA (architecture / convention coherence applied to the suite itself), TW (documentation currency and drift), VDD-IAR Alignment (process compliance for the suite as artifact). Three coordinated artifact-state checks: Phase 5/6 integration coverage; legacy IAR-suite verbiage cleanup; G-177 operator promotion (per-domain log pattern roll-out).
+
+**Session note:** In-session with the suite's authorial context — the same operator who promoted G-177 mid-session, directed the README review, and made the "stacked PRs are wrong; one PR at a time" workflow correction. Sycophancy compensation: every finding anchored to a specific file path and line range (grep-verified); the operator's directive that bookmark-cli is the reference example (so it migrates rather than gets a forward-only carve-out) was applied to remove the forward-only paragraphs I had initially written. Two course corrections during the session were applied immediately (PHASE-5-LOG retirement + reference-example migration framing) rather than deferred. Findings derived from artifact-state analysis (grep over PHASE-5-LOG / PHASE-6-CONVERGENCE / IAR-Suite / gap-analysis-run references), the user's specific directive prompts, and the governing standard's currency check.
+
+**Source:** mixed — `director-raised` for the session-opening Phase 5/6 README review prompt, the G-177 operator-promotion message, the bookmark-cli reference-example migration directive, and the workflow directives ("log suite-development sessions automatically" + "one PR at a time, no stacked PRs"); `domain-raised` for the legacy-verbiage findings (TW lens) and the cross-artifact consistency findings (SA lens) the operator-directed review surfaced.
+
+### Resolved
+
+**Finding 1 — `PHASE-5-LOG.md` + `PHASE-6-CONVERGENCE.md` per-project files retired (G-177 operator-promoted from Deferred to Addressed)**
+
+G-177 (Deferred since Review 67 with trigger "second project enters Phase 5 OR operator preemption") was operator-promoted to Addressed mid-session. The operator's directive: "PHASE-5-LOG.md + PHASE-6-CONVERGENCE.md should not exist; they violate conventions and are an anti-pattern." Resolution candidate (a) from G-177's row applied across the suite: retire the per-project files; Phase 5 findings file under per-domain review logs with `**Phase 5 surface:**` preamble tag; Phase 6 convergence record IS the final VDD-IAR Alignment review round.
+
+**Resolution scope:**
+
+| Artifact | Change |
+|---|---|
+| `primers/5-formal-hardening.md` § Phase 5 log format | Rewrote section: per-domain log pattern with per-surface→domain mapping (A / A.0 / D → SA; B / C → QE) + `**Phase 5 surface:**` preamble tag format. Surface C JS/TS distinction reworded to cite per-domain logs not PHASE-5-LOG.md. |
+| `primers/5-formal-hardening.md` § Manual mode + § Completion criteria #2 | Updated to cite per-domain rounds with preamble tag instead of PHASE-5-LOG.md. |
+| `primers/6-convergence.md` § Phase 6 convergence record format | Substantial rewrite: the convergence record IS the final VDD-IAR Alignment review round titled "Review N — Phase 6 four-dimensional convergence (project-terminal)" with the four-dimension attestations + cross-dimension consistency check + signed closing per the round entry format. |
+| `primers/6-convergence.md` § Crosslink mode + § Manual mode + § Completion criteria + § Anonymization-aware attestation + § Layer reference + Dimension 2 verification step / disposition record + Dimension 4 signal | All references to `vsdd-suite/PHASE-6-CONVERGENCE.md` and `vsdd-suite/PHASE-5-LOG.md` rewritten to cite the per-domain log rounds (with `**Phase 5 surface:**` preamble) and the final VDD-IAR Alignment round respectively. |
+| `domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md` dim 13 | Surface-activation check updated: evaluate per-domain rounds with the `**Phase 5 surface:**` preamble tag instead of PHASE-5-LOG.md per-layer entries. |
+| `domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md` dim 14 | Phase 6 convergence evaluation updated: evaluate the final VDD-IAR Alignment review round (the round titled "Review N — Phase 6 four-dimensional convergence (project-terminal)") instead of `vsdd-suite/PHASE-6-CONVERGENCE.md`. |
+| `vsdd-suite/README.md` Quickstart steps 7 + 8 (both modes) | Phase 5 step describes per-surface session filing in the per-domain log; Phase 6 step describes the final VDD-IAR Alignment round. |
+| `vsdd-suite/README.md` Worked example § Phase 5 + § Phase 6 walkthroughs (added in this session) | Authored from scratch using the per-domain log + final round pattern. |
+| `bookmark-cli/vsdd-suite/PHASE-5-LOG.md` (reference example) | Deleted via `git rm`. The substantive content (purity-boundary audit + cargo-mutants outputs + per-mutant disposition table) was already present in the per-domain logs (`review-log/2026-05-20-solution-architect.md` Review 1 + `review-log/2026-05-20-quality-engineer.md` Review 2); PHASE-5-LOG.md was an index/coordination file the per-domain rounds duplicated. |
+| `bookmark-cli/vsdd-suite/review-log/2026-05-20-solution-architect.md#review-1` | Added `**Phase 5 surface:** A.0 — purity-boundary verification for Layer 1` preamble tag; removed cross-references to `../PHASE-5-LOG.md` from Scope and Coordination lines. |
+| `bookmark-cli/vsdd-suite/review-log/2026-05-20-quality-engineer.md#review-2` | Added `**Phase 5 surface:** B — mutation testing for Layer 1 via cargo-mutants` preamble tag; removed cross-references to `../PHASE-5-LOG.md` from Scope, unviable-mutants paragraph, and Coordination lines. |
+| `bookmark-cli/vsdd-suite/QUALITY-ENGINEER-REVIEW.md` Reviews table | Row for Review 2 reworded to name the surface preamble explicitly + removed `../PHASE-5-LOG.md` citation. |
+| `bookmark-cli/DESIGN.md` § Project intent Phase 5 strategy line + § Verification architecture Phase 5 bullet | Reworded to cite the per-domain logs instead of `PHASE-5-LOG.md`. |
+| `bookmark-cli/src/lib.rs:148` doc comment | Updated to cite `vsdd-suite/QUALITY-ENGINEER-REVIEW.md` (Review 2 — Phase 5 Surface B) instead of `vsdd-suite/PHASE-5-LOG.md`. |
+| `bookmark-cli/CHANGELOG.md` | New top entry documenting the v0.7.8 migration with the file delete + cross-reference update list + historical-narrative preservation note. |
+
+**Forward-only narrative:** historical CHANGELOG / COMPATIBILITY / review-log entries that reference `PHASE-5-LOG.md` and `PHASE-6-CONVERGENCE.md` are preserved as audit-trail records per G-89. The CHANGELOG.md `## Unreleased — 2026-05-20 04:30Z (Review 68: ...)` entry mentioning `**G-177 (new)**` and the v0.7.0 / v0.7.1 / v0.7.3 COMPATIBILITY.md rows that reference the files reflect the state at the time of writing; the current state is described in this Review 72's CHANGELOG entry. PHASE-6-CONVERGENCE.md never existed on any project; no Phase 6 file deletion was needed.
+
+**Classification:** Resolved.
+
+**Finding 2 — README missing Phase 5 + Phase 6 operational integration (G-181)**
+
+`vsdd-suite/README.md` had Phase 5 + Phase 6 named in `## Suite scope`, the `## VSDD pipeline context` table, and the `## Session primers` table — but no operational integration. Specifically:
+
+- Both Quickstart sections (crosslink-primary and manual) stopped at Phase 4 / "Loop until MVR" with no step 7 (Phase 5) or step 8 (Phase 6).
+- The Per-layer flow ASCII diagram (G-136 closure) ended at "Merge layer" — no Phase 5 box (per-layer, between Phase 3 MVR and merge) and no Phase 6 box (project-terminal).
+- The Worked example walkthrough had `### Phase 1a+1b` through `### Phase 4 — Feedback Integration` + `### Loop until MVR` but no `### Phase 5 — Formal Hardening` or `### Phase 6 — Four-Dimensional Convergence` sections.
+- The project-tree example listed per-domain index files but did not name the Phase 5 / Phase 6 artifacts the methodology produces (which, post-G-177, are per-domain rounds with `**Phase 5 surface:**` preamble + the final VDD-IAR Alignment round; no separate per-project files).
+
+A new operator reading the README to learn the methodology would see Phase 5/6 named but have no operational guidance for executing them.
+
+**Resolution:** added Phase 5 + Phase 6 steps to both Quickstart sections; extended Per-layer flow diagram with Phase 5 (conditional, between layer-gate close and merge) and Phase 6 (project-terminal after every layer's Phase 5); added `### Phase 5 — Formal Hardening` + `### Phase 6 — Four-Dimensional Convergence` walkthrough sections to the Worked example with `[crosslink]` + `[manual]` blocks (the four-surfaces table for Phase 5; the four-dimensions table for Phase 6). All new content reflects the post-G-177 per-domain log + VDD-IAR Alignment final round pattern. The project-tree example was intentionally not updated to add new per-project files — per G-177, those files are retired.
+
+**Classification:** Resolved.
+
+**Finding 3 — Legacy "IAR Suite" / "gap analysis" verbiage in suite-development governance files (G-182)**
+
+Three suite-development files retained legacy IAR-suite / gap-analysis verbiage inconsistent with current VSDD Suite / Findings conventions:
+
+- `suite-development/FINDINGS-INDEX.md:1` — H1 "# IAR Suite Gap Analysis Log" (file was renamed from `GAP-ANALYSIS-LOG.md` to `FINDINGS-INDEX.md` in v0.4.0 per G-149, but the H1 was not updated).
+- `suite-development/FINDINGS-INDEX.md:3` — opening paragraph "This log tracks gap analysis runs against the IAR suite itself".
+- `suite-development/FINDINGS-INDEX.md:11` — section header "## How to run a gap analysis" — the "gap analysis run" framing was retired by `suite-development.md:407`.
+- `suite-development/SUITE-DEVELOPMENT-REVIEW.md:1` — H1 "# IAR Suite Review".
+- `suite-development/SUITE-DEVELOPMENT-REVIEW.md:3` — "The IAR suite is itself a software artifact" + "gap analysis log".
+- `suite-development/README.md:3` — "running gap analysis".
+- `suite-development/README.md:60` — "Project IAR sessions sometimes produce findings".
+
+A new contributor opening these files first would form a mental model out of date with the rest of the suite (where "VSDD Suite" is the current name and "suite review" is the unified session type per v0.4.0's mode-unification).
+
+**Resolution:**
+
+- FINDINGS-INDEX.md H1 → "# VSDD Suite Findings Index"; opening paragraph rewritten to "findings registry against the VSDD Suite itself"; § header "How to run a gap analysis" → "Adding and updating findings"; body rewritten to point at `suite-development.md` § Running gap analysis and § Suite review and review-log discipline as the canonical workflow source (single source of truth).
+- SUITE-DEVELOPMENT-REVIEW.md H1 → "# VSDD Suite Review Index"; opening paragraph reworded to "The VSDD Suite is itself a software artifact" + "expanded beyond its original VSDD Phase 3 (IAR) scope to own every VSDD phase 1a+1b through 6".
+- suite-development/README.md line 3 reworded to "registering and walking findings, logging suite reviews"; line 60 reworded to "Project-level review sessions sometimes produce findings whose substance generalizes."
+
+Per G-89 narrative-preservation policy: "gap" remains valid as a concept-level term (the registry IS the gap registry; G-IDs identify gaps); "gap analysis run" specifically — the retired session-type framing — is replaced by "suite review" with the `Lens` field distinguishing modes (defect-search / registry-walk / role-based). Historical narrative in older review-log entries that uses "gap analysis run" prose remains as committed records.
+
+**Classification:** Resolved.
+
+### Coordination
+
+This Review 72 entry registers and resolves three findings in-session (G-177 promoted from Deferred + G-181 + G-182). Cross-domain consequences:
+
+- **G-177 closure ripples** to every project that may adopt Phase 5 or Phase 6 in the future (the per-domain log + VDD-IAR Alignment final round pattern is the active prescription). bookmark-cli (the reference example) is migrated in this session; no other project has reached Phase 5 yet, so no other project migrations are needed.
+- **G-181 closure** depends on G-177's resolution (the README's Phase 5 + Phase 6 walkthroughs cite the post-G-177 per-domain pattern; if G-177 had been resolved with candidate (b) instead, the README content would have differed).
+- **G-182 closure** is independent of G-177 / G-181 but ships in the same Review 72 because it surfaces from the same TW currency-audit lens.
+
+**Operator workflow directives captured this session** (process feedback applicable to future suite-development sessions, saved as feedback memory at session close):
+
+1. **Suite-development sessions should be logged proactively.** When the operator is doing suite-development work, the agent should be logging suite-review entries and registering findings as the session progresses — not waiting to bundle work at session end. This Review 72 entry started mid-session in response to the directive.
+2. **No stacked PR pattern.** Reviews 70 + 71 were stacked PRs (#27 + #28) because they were authored as separate logical sessions that touched the same governance-file rows. Going forward: one PR at a time. This Review 72 ships as a single PR even though it folds in three findings (G-177 + G-181 + G-182) and a reference-example migration.
+
+**Coordination with `bookmark-cli`:** the reference example's migration (PHASE-5-LOG.md deletion + per-domain round preamble tags + DESIGN.md / src/lib.rs / per-domain index updates) is part of this Review 72's scope rather than a separate bookmark-cli session because the migration IS the operational consequence of G-177's resolution at the suite scope. The bookmark-cli CHANGELOG entry cross-references this Review 72.
+
+---
+
 ## Review 71 — 2026-05-20 09:15Z
 
 **Scope:** Multi-artifact transition-progress assessment of the IAR-to-VSDD library expansion. Artifacts re-read in this session: `suite-development/suite-development.md` (governing standard); `primers/3-review-session.md` (Phase 3 adversarial review primer); `README.md` (full text, with attention to § Domains, § Quickstart, § Worked example, project-tree example at ~line 905, § Merging gate at ~line 951); `domains/DOMAIN-INDEX.md` (core/extended classification, intent calibration); `COMPATIBILITY.md` (full version history v0.1.0 → v0.7.6); `templates/README.md` (customization checklist); `suite-development/FINDINGS-INDEX.md` (full registry walk, 178 rows). Trigger: operator request for a transition-progress analysis across SO / SA / TW / UX / QE lenses.

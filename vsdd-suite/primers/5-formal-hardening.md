@@ -100,7 +100,7 @@ For each named input-boundary surface:
 2. Run the language's fuzzing tool:
    - **Rust:** `cargo-fuzz` (libFuzzer-based) or `AFL.rs`
    - **C / C++:** `libFuzzer` or `AFL++`
-   - **JavaScript / TypeScript:** `fast-check` (the same tool used in Surface A on JS/TS — but the property shape is different: Surface A asserts spec invariants over generated inputs; Surface C asserts "doesn't crash / matches a fuzzing oracle" over `fc.string()` / `fc.uint8Array()` parser-input generators; the two uses register as two distinct Surface entries in `PHASE-5-LOG.md`, not as one combined entry); specialist tools for protocol decoding
+   - **JavaScript / TypeScript:** `fast-check` (the same tool used in Surface A on JS/TS — but the property shape is different: Surface A asserts spec invariants over generated inputs; Surface C asserts "doesn't crash / matches a fuzzing oracle" over `fc.string()` / `fc.uint8Array()` parser-input generators; the two uses register as two distinct rounds in their respective per-domain logs — Surface A in the SA log, Surface C in the QE log — not as one combined entry); specialist tools for protocol decoding
    - **Python:** `atheris` (libFuzzer for Python)
    - **Go:** stdlib `testing.Fuzz` (Go ≥ 1.18)
 3. Run for a time budget appropriate to the project's intent — capstone-intent typically uses 1+ hour budgets per fuzzer per release; production-intent uses CI-scheduled multi-hour budgets.
@@ -145,39 +145,22 @@ Work through these for each layer entering Phase 5:
 
 ## Phase 5 log format
 
-The Phase 5 log lives at `vsdd-suite/PHASE-5-LOG.md` in the project. One file per project (not per layer — the cumulative hardening artifact set is the project's verification audit trail; per-layer entries append).
+Phase 5 work files under the existing per-domain review log structure — no separate per-project Phase 5 file (G-177 closure, 2026-05-20). Each Phase 5 surface, per layer, becomes a new round entry in the per-domain log that owns that surface:
 
-Per-layer entry shape:
+| Surface | Per-domain log | Rationale |
+|---|---|---|
+| A (property-based testing) + A.0 (purity preamble) + D (formal proof) | `vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md` index + `review-log/<date>-solution-architect.md` session file | SA owns the purity-boundary map (Dim 12 — VSDD purity boundary) and formal-proof targets |
+| B (mutation testing) + C (fuzzing) | `vsdd-suite/QUALITY-ENGINEER-REVIEW.md` index + `review-log/<date>-quality-engineer.md` session file | QE owns the test system; mutation testing is QE Dim 2 (test falsifiability); fuzzing exercises test coverage at the parser boundary |
+
+A project may file Surface C under Security instead when the parser is named in the threat model — record the choice once in `DESIGN.md` § Verification architecture and stay consistent.
+
+Per-round preamble (added to the standard per-review preamble per `suite-development/suite-development.md` § Per-review entry preamble):
 
 ```markdown
-## Layer N — YYYY-MM-DD HH:MMZ
-
-**Phase 5 strategy:** [verbatim from DESIGN.md § Project intent]
-
-**Surfaces activated:** [A | B | C | D — list those exercised this layer]
-
-### Surface A — Property-based testing
-
-[Per property: name, invariant stated, tool, budget, outcome.]
-
-### Surface B — Mutation testing
-
-[Tool, threshold, kill rate, per-surviving-mutant disposition table.]
-
-### Surface C — Fuzzing
-
-[Per entry point: tool, budget elapsed, crashes found, corpus growth.]
-
-### Surface D — Formal proof
-
-[Per harness: tool, property established, lines of harness, CI integration status.]
-
-### Summary
-
-[Tally of findings routed via Phase 4 + Phase 5 gate status.]
+**Phase 5 surface:** B — mutation testing for Layer 1 via cargo-mutants
 ```
 
-The log is tagged with `Phase 5: <surfaces>` in the corresponding crosslink session note (crosslink mode) or in the project's CHANGELOG.md per-layer entry (manual mode).
+Surface-letter, layer reference, and tool are all named. The round body follows the standard per-domain log structure (Scope, Session note, Source, findings grouped by classification, Summary, Coordination). Surface-specific output (per-property invariant, per-mutant disposition table, per-fuzz-entry corpus, per-harness proof) goes into the round body's finding sections; an Open finding for a surviving mutant uses the per-mutant disposition table format.
 
 ---
 
@@ -208,7 +191,7 @@ Findings filed with `phase:5` label join the Phase 4 routing queue alongside Pha
 
 ## Manual mode
 
-Same discipline; the Phase 5 log file is the canonical artifact. Each surface's tool output (mutation kill rate, fuzzer corpus, property-test summary) is captured into `PHASE-5-LOG.md` with the per-surface section above. Findings routed via Phase 4 are recorded in the project's `FINDINGS-INDEX.md` with `phase:5` in the Source column (extending the G-133 Source taxonomy).
+Same discipline; the canonical artifact is the per-domain review log round with the `**Phase 5 surface:**` preamble tag (per G-177 closure). Each surface's tool output (mutation kill rate, fuzzer corpus, property-test summary) is captured in the appropriate per-domain round (SA for A/A.0/D; QE for B/C). Findings routed via Phase 4 are recorded in the project's `FINDINGS-INDEX.md` with `phase:5` in the Source column (extending the G-133 Source taxonomy).
 
 ---
 
@@ -217,7 +200,7 @@ Same discipline; the Phase 5 log file is the canonical artifact. Each surface's 
 Phase 5 is gate-complete for a layer when:
 
 1. The spec's verification architecture for this layer is verified — the purity boundary named in DESIGN.md matches the implementation's actual pure functions (catch the case where a "pure" function quietly took on I/O during implementation).
-2. Surfaces activated per the project's `**Phase 5 strategy:** planned — <scope>` declaration each have a recorded outcome in `PHASE-5-LOG.md`.
+2. Surfaces activated per the project's `**Phase 5 strategy:** planned — <scope>` declaration each have a recorded round in the appropriate per-domain log (SA for A/A.0/D; QE for B/C) with the `**Phase 5 surface:**` preamble tag.
 3. Every surviving mutant within the evaluation scope (default: spec-asserted code paths) has a per-mutant disposition (no aggregate-only reporting); out-of-scope omissions are named in the log preamble.
 4. Every Phase 5 finding routed to Phase 4 has either been Resolved (with the resulting Phase 5 re-run confirming the resolution) or Deferred-with-named-trigger per G-130.
 5. The project's `**Phase 5 strategy:**` declaration's named scope is complete (a `planned — property-based testing + mutation testing` declaration cannot close until both have run).

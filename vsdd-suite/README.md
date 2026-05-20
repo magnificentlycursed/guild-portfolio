@@ -66,7 +66,9 @@ Two parallel quickstarts — one per [operational mode](#two-modes-of-operation-
 3. **Phase 1c.** Fresh chat. Paste [`primers/1c-decomposition.md`](primers/1c-decomposition.md) + `DESIGN.md`. Build the layer hierarchy with `crosslink quick "<project>" -l epic`, one `crosslink milestone create` per layer, layer issues with `--parent <epic>`, acceptance criteria as sub-issues.
 4. **Phase 2a → 2b → 2c.** `crosslink session start && crosslink session work <layer-id>`. Fresh chat with [`primers/2a-red-gate.md`](primers/2a-red-gate.md) — write failing tests, commit. Fresh chat with [`primers/2b-implementation.md`](primers/2b-implementation.md) — make tests pass. Fresh chat with [`primers/2c-refactor.md`](primers/2c-refactor.md) — refactor while keeping tests green (or annotate "no refactor required"). Phase 2c → 3 gate: `crosslink swarm gate <phase-slug>`.
 5. **Phase 3.** `crosslink swarm review --agents <N> --mandate adversarial --file-issues --doc vsdd-suite/<DOMAIN>-REVIEW.md` for routine refinement rounds (N parallel cold-context adversaries; findings filed with `review-finding` label). Use manual dispatch (see manual quickstart below) when approaching MVR. Add structured G-138 labels during classification (`domain:<slug>`, `layer:N`, `round:N`, `classification:<class>`, `source:<source>`); `crosslink issue comment <id> "<rationale>" --kind <kind>` then `crosslink issue close <id>`.
-6. **Phase 4.** Fresh chat with [`primers/4-feedback-integration.md`](primers/4-feedback-integration.md). Apply route labels (`crosslink issue label <id> route:phase-<N>`); `crosslink issue block <future-layer-id> <route-finding-id>` for cross-layer dependencies; `crosslink swarm fix --from-label route:phase-2b --budget-aware` for the safely-parallelizable cohort. Loop until MVR.
+6. **Phase 4.** Fresh chat with [`primers/4-feedback-integration.md`](primers/4-feedback-integration.md). Apply route labels (`crosslink issue label <id> route:phase-<N>`); `crosslink issue block <future-layer-id> <route-finding-id>` for cross-layer dependencies; `crosslink swarm fix --from-label route:phase-2b --budget-aware` for the safely-parallelizable cohort. Loop Phase 3 → 4 → re-enter routed phases until MVR.
+7. **Phase 5 (optional at every intent; required-or-declared-not-applicable at capstone + production per G-162).** Per layer after Phase 3 reaches MVR. Fresh chat per surface with [`primers/5-formal-hardening.md`](primers/5-formal-hardening.md). Run the surfaces named in `DESIGN.md` § Project intent's `**Phase 5 strategy:** planned` declaration — A (property-based testing) and D (formal proof) file under SA; B (mutation testing) and C (fuzzing) file under QE; each new round carries a `**Phase 5 surface:**` preamble per G-177 resolution. Findings route via Phase 4 the same way Phase 3 findings do. Then close the layer milestone and merge.
+8. **Phase 6 (project-terminal; required-or-declared-not-applicable at capstone + production per G-162).** After every layer's Phase 5 closes. Fresh chat with [`primers/6-convergence.md`](primers/6-convergence.md). The convergence record is the final VDD-IAR Alignment review round (dim 14) attesting Spec MVR / Test MVR / Implementation MVR / Formal-verification MVR each independently plus the cross-dimension consistency check across spec-named behaviors. Close the project-terminal milestone via `crosslink milestone close <numeric-id>` (per G-167; recover the ID from `crosslink milestone list` first).
 
 ### Quickstart — manual (first-class fallback, same VSDD pipeline)
 
@@ -76,6 +78,8 @@ Two parallel quickstarts — one per [operational mode](#two-modes-of-operation-
 4. **Phase 2a → 2b → 2c.** Fresh chat per phase. Paste [`primers/2a-red-gate.md`](primers/2a-red-gate.md) → write failing tests → `git commit` the Red Gate boundary → paste [`primers/2b-implementation.md`](primers/2b-implementation.md) → make tests pass → run the test suite to verify clean (your language's runner: `cargo test`, `npm test`, `pytest`, etc.) → paste [`primers/2c-refactor.md`](primers/2c-refactor.md) → refactor while keeping tests green, or annotate "no refactor required" in `TODO.md`.
 5. **Phase 3.** *One fresh chat per active domain* (cold context per domain is the gold standard). **Default activation is the 7 core domains** (SE, QE, UX, Security, SA, SO, VDD-IAR Alignment); the scaffold script populates index files for these. Extended domains activate per [`domains/DOMAIN-INDEX.md`](domains/DOMAIN-INDEX.md). For each active domain, paste [`primers/3-review-session.md`](primers/3-review-session.md) + the domain prompt + the language supplement + the code under review. Classify findings. File rounds to per-domain index + per-session file `review-log/YYYY-MM-DD-<domain-slug>.md`. Append cross-cutting rows to `vsdd-suite/FINDINGS-INDEX.md` per the G-138 manual-path schema. Repeat for every active domain in its own fresh chat (no context sharing).
 6. **Phase 4.** Fresh chat. Paste [`primers/4-feedback-integration.md`](primers/4-feedback-integration.md). Record routing decisions in each finding's review-log entry per the primer's `## Without crosslink` section. Re-enter routed phases manually (fresh chat per re-routed phase). Loop Phase 3 → 4 → re-enter routed phases until MVR.
+7. **Phase 5 (optional at every intent; required-or-declared-not-applicable at capstone + production per G-162).** Per layer after Phase 3 reaches MVR. Fresh chat per surface. Paste [`primers/5-formal-hardening.md`](primers/5-formal-hardening.md). Run the surfaces named in `DESIGN.md` § Project intent's `**Phase 5 strategy:** planned` declaration — A (property-based testing) and D (formal proof) file under SA; B (mutation testing) and C (fuzzing) file under QE; each new round carries a `**Phase 5 surface:**` preamble per G-177 resolution. Then merge the layer (`git checkout -b layer-N+1 && git merge layer-N`).
+8. **Phase 6 (project-terminal; required-or-declared-not-applicable at capstone + production per G-162).** After every layer's Phase 5 closes. Fresh chat. Paste [`primers/6-convergence.md`](primers/6-convergence.md). The convergence record is the final VDD-IAR Alignment review round (dim 14) attesting Spec MVR / Test MVR / Implementation MVR / Formal-verification MVR each independently plus the cross-dimension consistency check across spec-named behaviors. Commit the signed round.
 
 That's the whole pipeline in both modes. Full walkthrough with starter prompts and per-phase `[crosslink]` / `[manual]` blocks below.
 
@@ -245,8 +249,36 @@ The pipeline table above is project-scoped. Within a single layer, the flow is a
        │           │   └──────────┬───────────────┘
        │           │              │ all 7 pass
        │           │              ▼
+       │           │   ┌──────────────────────────┐
+       │           │   │ Phase 5: Formal Hardening│
+       │           │   │  (optional at every      │
+       │           │   │   intent; required-or-   │
+       │           │   │   declared-not-applicable│
+       │           │   │   at capstone+ per G-162)│
+       │           │   │  Surfaces A/B/C/D per    │
+       │           │   │  DESIGN.md § Project     │
+       │           │   │  intent strategy line    │
+       │           │   └──────────┬───────────────┘
+       │           │              │ Phase 5 closes (or strategy = not applicable)
+       │           │              ▼
        │           │      ┌───────────────┐
        │           │      │ Merge layer   │
+       │           │      └───────────────┘
+       │           │              │
+       │           │              ▼ (after every layer closes Phase 5)
+       │           │   ┌──────────────────────────┐
+       │           │   │ Phase 6: Four-Dimensional│
+       │           │   │ Convergence (project-    │
+       │           │   │ terminal; required-or-   │
+       │           │   │ declared-not-applicable  │
+       │           │   │ at capstone+ per G-162)  │
+       │           │   │ Spec/Test/Impl/Formal MVR│
+       │           │   │ + cross-dim consistency  │
+       │           │   └──────────┬───────────────┘
+       │           │              │ convergence record committed
+       │           │              ▼
+       │           │      ┌───────────────┐
+       │           │      │ Project close │
        │           │      └───────────────┘
        │           │
        ▼           ▼
@@ -265,6 +297,10 @@ The pipeline table above is project-scoped. Within a single layer, the flow is a
 The Round N+1 case the diagram captures includes both directions: G-131 forces a continuation when new findings surface (Resolved, director-raised, regression-replay, Deferred-routed, Raised-to-SO adjudicated mid-round); G-151 prevents over-investment when MVR is genuinely reached. Both triggers compose at the same decision point — see `primers/3-review-session.md` § Round triggers for the full discipline.
 
 The merge-gate-criteria block expands per `suite-development/suite-development.md` § Layer-gate close criteria — seven baseline criteria including G-156's developer-voice retrospective requirement (criterion 7) and G-150's intent-calibrated active-domain set (informs criterion 1).
+
+**Phase 5 placement** — formal hardening sits between Phase 3 implementation-MVR and the layer-gate close. Phase 5 may surface new findings that route via Phase 4 back into Phase 3 (the surfaces A/B/C/D are themselves adversarial pressure of a different shape — see `primers/5-formal-hardening.md` § Phase 5 surface). When Phase 5 surfaces a route-able finding, the layer re-opens at the routed phase and Phase 5 re-runs on the closed state before merge. At learning-exercise and portfolio intents, Phase 5 may be declared `not applicable` with rationale (G-162); the diagram's Phase 5 box is then a no-op pass-through.
+
+**Phase 6 placement** — project-terminal, after every layer has closed its Phase 5. The diagram's Phase 6 box sits outside the per-layer loop because it fires once per project, not once per layer.
 
 ## Governing references
 
@@ -823,6 +859,112 @@ git checkout -b layer-2 && git merge layer-1
 ```
 
 The manual mode loses crosslink's `session last-handoff` retrieval but the handoff content is the same.
+
+### Phase 5 — Formal Hardening
+
+Per `primers/5-formal-hardening.md`: after a layer reaches Phase 3 implementation-MVR, harden the test suite with evidence-of-strength surfaces that IAR cold-batch review cannot produce. Phase 5 is optional at every intent and **required-or-declared-not-applicable** at capstone + production intent per G-162 — the `DESIGN.md § Project intent` block carries a `**Phase 5 strategy:**` line that is either `not applicable — <rationale>` or `planned — <named tooling and scope>`. The four surfaces are independent; the project's strategy line names which apply.
+
+- **Surface A** — property-based testing for the spec's purity-boundary functions (Rust: `proptest`; JS/TS: `fast-check`; Python: `hypothesis`)
+- **Surface A.0** — purity-boundary verification preamble (required for every Phase 5 layer entry per G-173) — audit DESIGN.md § Verification architecture *and* module/package documentation against the implementation for cross-source consistency
+- **Surface B** — mutation testing (Rust: `cargo-mutants`; JS/TS: `Stryker`; Python: `mutmut`); 5-disposition classification per surviving mutant (equivalent / missing-test / spec-gap / unviable / out-of-scope per G-174)
+- **Surface C** — fuzzing of parser / input-boundary surfaces (Rust: `cargo-fuzz`; JS/TS: `jsfuzz`; Python: `atheris`)
+- **Surface D** — formal proof harnesses for designated pure functions (Kani / CBMC / TLA+ / Coq / Lean / Liquid Haskell — strictly optional even within Phase 5)
+
+**Where Phase 5 findings file (G-177 resolution):** Phase 5 work files under the existing per-domain review log structure — no separate per-project Phase 5 file. Each Phase 5 round opens a new entry in the appropriate per-domain log with a `**Phase 5 surface:**` preamble tag identifying the surface (and layer if multi-layer). The domain that owns each surface:
+
+| Surface | Per-domain log | Rationale |
+|---|---|---|
+| A (property-based) + A.0 (purity preamble) + D (formal proof) | `vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md` + `review-log/<date>-solution-architect.md` | SA owns the purity-boundary map (Dim 12 — VSDD purity boundary) and formal-proof targets |
+| B (mutation testing) + C (fuzzing) | `vsdd-suite/QUALITY-ENGINEER-REVIEW.md` + `review-log/<date>-quality-engineer.md` | QE owns the test system; mutation testing is QE Dim 2 (test falsifiability); fuzzing exercises test coverage at the parser boundary |
+
+A project may file Surface C under Security instead when the parser is named in the threat model — record the choice once in `DESIGN.md` § Verification architecture and stay consistent. The preamble tag format: `**Phase 5 surface:** B — mutation testing for Layer 1 via cargo-mutants` (name the surface letter, the layer, and the tool).
+
+**[crosslink]** Phase 5 sessions are standard crosslink sessions scoped to the layer; the new round goes into the per-domain log with the preamble tag above. The `--mandate` flag does not change for Phase 5 — `crosslink swarm review` is for cold-batch adversarial review (Phase 3); Phase 5 sessions are manually-dispatched per surface so the operator can drive the property-design and mutant-disposition steps.
+
+```sh
+# Tool installs are first-Phase-5-session-per-project cost (G-175 — name in the round preamble):
+cargo install cargo-mutants                 # Surface B (1–2 min compile from source)
+rustup toolchain install nightly             # Surface C prerequisite (cargo-fuzz needs nightly)
+cargo install cargo-fuzz                     # Surface C
+# Surface A is a dev-dep add per G-176 (separate commit before property-test commits):
+git checkout -b layer-1-phase-5
+# Edit Cargo.toml: add proptest = "1" to [dev-dependencies]
+git add Cargo.toml && git commit -m "Phase 5 Surface A: add proptest dev-dependency"
+
+# Run the surfaces named in DESIGN.md's Phase 5 strategy:
+cargo test --features proptest               # Surface A: property tests pass
+cargo mutants --in-place                     # Surface B: mutation testing report
+# (cargo-fuzz / formal proof per language and project)
+
+# Append the new round to the relevant per-domain log (Surface B → QE; Surface A → SA);
+# round preamble carries **Phase 5 surface:** tag. Then close the layer:
+crosslink milestone close "$M1"
+git checkout -b layer-2 && git merge layer-1
+```
+
+**[manual]** Open a fresh chat per surface (Surface A, B, C, D run sequentially in their own sessions so the property-design / mutant-disposition cognition is dedicated). Paste `primers/5-formal-hardening.md`. Then a starter prompt like:
+
+> I'm running Phase 5 Surface B (mutation testing) for Layer 1 of `bookmark-cli`. Phase 3 closed at MVR (Hallucinated-only across SE/QE/UX/Security/SA/SO/VDD-IAR Alignment). DESIGN.md's `**Phase 5 strategy:**` declares Surface A + B + C as planned (Surface D not applicable — no formal-proof candidates).
+>
+> Run `cargo mutants --in-place` against the Layer 1 implementation. For every surviving mutant, classify into one of: (a) equivalent (with proof of equivalence in writing), (b) missing test (with the falsifying test added under the retroactive-Red-Gate (Phase 5 source) label per `primers/2b-implementation.md`), (c) spec-gap (route to Phase 4 / Phase 1a+1b), (d) unviable (the mutation does not compile or is type-system-rejected; not a behavioral signal — name it in the log for completeness), (e) out-of-scope (mutant in a code path Phase 5 deliberately did not target).
+>
+> Append the disposition table to `vsdd-suite/review-log/<today>-quality-engineer.md` as a new QE round with `**Phase 5 surface:** B — mutation testing for Layer 1 via cargo-mutants` preamble; cross-reference the round from `vsdd-suite/QUALITY-ENGINEER-REVIEW.md` index. Watch for the per-surface sycophancy check: rationalizing surviving mutants as "equivalent" without the equivalence proof in writing is itself a finding routed to Phase 3's next round on the layer.
+
+(Attach DESIGN.md, the Layer 1 implementation, the Phase 3 final-round summary, and `vsdd-suite/QUALITY-ENGINEER-REVIEW.md` for prior coverage assertions.) Then run the tool, classify each mutant, append the disposition table as a new QE round in the per-domain log, and commit.
+
+**Both modes:** Phase 5 findings that route back to Phase 1a+1b / 1c / 2a / 2b / 2c via Phase 4 re-open the layer at the routed phase before merge. A Phase 5 layer entry that omits the Surface A.0 purity-boundary preamble is itself a finding for VDD-IAR Alignment dim 13 (G-173 + primer 5 completion criteria #1). At learning-exercise or portfolio intent with `**Phase 5 strategy:** not applicable`, the entire phase is skipped explicitly — the strategy declaration in DESIGN.md is the audit record.
+
+### Phase 6 — Four-Dimensional Convergence
+
+Per `primers/6-convergence.md`: after every layer has closed Phase 5 (or declared it not applicable), the project-terminal gate fires once. Phase 6 attests that the project has reached MVR independently across all four dimensions and that the four dimensions are mutually consistent. Phase 6 is **required-or-declared-not-applicable at capstone + production intent** per G-162; learning-exercise and portfolio intents typically close at end of Phase 4 with `**Phase 6 strategy:** not applicable` in DESIGN.md.
+
+The four dimensions:
+
+| Dimension | What MVR means here | Evidence source |
+|---|---|---|
+| **Spec** | DESIGN.md is internally consistent, every spec-named behavior is testable, and no Phase 4 routing back to spec remains open | `DESIGN.md`; final Phase 3 round across all active domains (no `route:phase-1a` findings open) |
+| **Test** | Test suite at MVR per the Phase 3 final-round signal + Phase 5 Surface B mutation evidence (no missing-test dispositions open) | per-domain QE review log: final Phase 3 round + Phase 5 Surface B rounds (disposition tables) |
+| **Implementation** | All layers passed their final Phase 3 round at MVR + no subsequent layer's commits invalidated an earlier layer's MVR signal (G-172 deferred rollup discipline; until resolved, the operator authors the rollup manually) | per-domain review-log final rounds per layer + commit history showing later-layer scope did not touch earlier-layer files |
+| **Formal-verification** | Phase 5 Surface D formal proofs (where applicable) discharged + Phase 5 Surfaces A/B/C closed cleanly | per-domain SA review log: Surface A / A.0 / D rounds; per-domain QE review log: Surface B / C rounds |
+
+**The load-bearing addition is the cross-dimension consistency check** (G-54 closure): for every spec-named behavior in DESIGN.md, walk through Spec → Test → Implementation → Formal-verification and verify all four sources tell the same story. A behavior that the spec asserts but no test exercises is a Spec ↔ Test divergence; an implementation that exceeds the spec is a Spec ↔ Implementation divergence; a formal proof that targets a property the spec does not state is a Spec ↔ Formal divergence. Each divergence routes via Phase 4 before convergence is declared.
+
+**Where Phase 6 files (G-177 resolution):** the convergence record IS the final VDD-IAR Alignment review round — `vsdd-suite/review-log/<close-date>-vdd-iar-alignment.md` with a dedicated round entry titled "Review N — Phase 6 four-dimensional convergence (project-terminal)". The round's preamble names the four-dimension attestation; the round body cites per-domain rounds for each dimension's evidence; the round's closing block is the signed/dated convergence attestation. VDD-IAR Alignment dim 14 evaluates this round in the same per-domain review log structure used for every other domain — no separate per-project Phase 6 file.
+
+**[crosslink]** Phase 6 is one final session — open it in a fresh chat, author the final VDD-IAR Alignment round, then close the project-terminal milestone via numeric ID (per G-167):
+
+```sh
+# Fresh chat with primers/6-convergence.md loaded; work the driving questions
+# and produce the final VDD-IAR Alignment review round per the primer's
+# § Phase 6 convergence record format.
+
+# Recover the project-terminal milestone's numeric ID
+crosslink milestone list                     # find the "Project: bookmark-cli — terminal convergence" milestone ID
+crosslink milestone close <numeric-id>       # numeric ID per G-167 (names are not accepted)
+
+# Commit the signed final VDD-IAR Alignment round:
+git add vsdd-suite/VDD-IAR-ALIGNMENT-REVIEW.md vsdd-suite/review-log/*-vdd-iar-alignment.md
+git commit -m "Phase 6: four-dimensional convergence record (final VDD-IAR Alignment round, signed)"
+```
+
+**[manual]** Open a fresh chat. Paste `primers/6-convergence.md`. Then a starter prompt like:
+
+> I'm running Phase 6 (four-dimensional convergence) for `bookmark-cli` at project close. Capstone-intent project; 4 layers all closed Phase 5 with strategy = Surface A + B + C planned, Surface D not applicable.
+>
+> Attached: DESIGN.md, all 4 per-domain index files for the 7 core + Technical Writer extended domain, every per-session review-log file (including the Phase 5 Surface A/B/C rounds in the SA and QE logs).
+>
+> Author the final VDD-IAR Alignment round in `vsdd-suite/review-log/<today>-vdd-iar-alignment.md` titled "Review N — Phase 6 four-dimensional convergence (project-terminal)" per the primer's § Phase 6 convergence record format. For each dimension (Spec, Test, Implementation, Formal-verification) declare MVR with citations to the per-domain rounds that establish it. Then run the cross-dimension consistency check: for every spec-named behavior in DESIGN.md, name where the Test / Implementation / Formal-verification evidence lands; flag any divergence as a finding routed via Phase 4 (re-open the relevant phase before declaring convergence).
+>
+> Watch for the primer's sycophancy check: declaring convergence without naming the cross-dimension citations per behavior is the failure mode. A round that asserts "all four dimensions at MVR" without per-behavior evidence is the rubber-stamp variant the primer rejects.
+
+(Attach DESIGN.md, all per-domain index files + review-log files including the Phase 5 SA + QE rounds.) Commit the final VDD-IAR Alignment round:
+
+```sh
+git add vsdd-suite/VDD-IAR-ALIGNMENT-REVIEW.md vsdd-suite/review-log/*-vdd-iar-alignment.md
+git commit -m "Phase 6: four-dimensional convergence record (final VDD-IAR Alignment round, signed)"
+```
+
+**Both modes:** the convergence round is signed at the round's closing (the primer prescribes either a git commit hash signature or a developer-name attestation depending on anonymization posture). The project is project-terminal MVR when the round is committed and the four dimensions are all attested with citations to per-domain rounds. Phase 6 fires exactly once per project; it has no Round N+1 (unlike Phase 3) — if convergence cannot be declared, the routing returns the project to the relevant phase rather than running Phase 6 again.
 
 ## Running IAR
 

@@ -1,5 +1,28 @@
 # Changelog
 
+## vsdd-suite v0.7.8 migration — 2026-05-20
+
+**Scope:** Migrates `bookmark-cli` from the prior `vsdd-suite/PHASE-5-LOG.md` per-project file shape to the per-domain review log shape that vsdd-suite v0.7.8 prescribes (G-177 closure — operator-promoted from Deferred to Addressed). bookmark-cli is the suite's reference example, so it tracks the current convention rather than the forward-only carve-out.
+
+### Removed
+
+- **`vsdd-suite/PHASE-5-LOG.md`** (deleted) — the per-project Phase 5 record. All substantive content (purity-boundary audit table; cargo-mutants pre-B1 / post-B1 outputs; per-mutant disposition table; strategy declaration) was already mirrored in the per-domain rounds at `vsdd-suite/review-log/2026-05-20-solution-architect.md#review-1` (Surface A.0) and `vsdd-suite/review-log/2026-05-20-quality-engineer.md#review-2` (Surface B). The deletion eliminates the duplication G-177 named.
+
+### Changed
+
+- **`vsdd-suite/review-log/2026-05-20-solution-architect.md#review-1`** — added `**Phase 5 surface:** A.0 — purity-boundary verification for Layer 1` preamble tag per G-177 v0.7.8 convention. Removed the `../PHASE-5-LOG.md` cross-references from the Scope line and Coordination line.
+- **`vsdd-suite/review-log/2026-05-20-quality-engineer.md#review-2`** — added `**Phase 5 surface:** B — mutation testing for Layer 1 via cargo-mutants` preamble tag. Removed the `../PHASE-5-LOG.md` cross-references from the Scope line, the unviable-mutants paragraph, and the Coordination line.
+- **`vsdd-suite/QUALITY-ENGINEER-REVIEW.md`** — Reviews-table row for Review 2 reworded to name the `**Phase 5 surface:** B` preamble explicitly and remove the `../PHASE-5-LOG.md` final-sentence citation.
+- **`DESIGN.md`** — § Project intent Phase 5 strategy line + § Verification architecture Phase 5 hardening bullet reworded to cite the per-domain logs (SOLUTION-ARCHITECT-REVIEW.md for Surfaces A/A.0/D; QUALITY-ENGINEER-REVIEW.md for Surfaces B/C) instead of `vsdd-suite/PHASE-5-LOG.md`.
+- **`src/lib.rs::tests::save_creates_parent_directory_for_nested_path`** — doc comment updated to cite `vsdd-suite/QUALITY-ENGINEER-REVIEW.md` (Review 2 — Phase 5 Surface B) instead of `vsdd-suite/PHASE-5-LOG.md`.
+
+### Note
+Prior CHANGELOG entries that reference `vsdd-suite/PHASE-5-LOG.md` (the v0.7.2 adoption entry below) are preserved as historical-narrative records per G-89 forward-only narrative-preservation policy. The references in those entries reflect the state at the time of writing; the current state is described in this entry.
+
+No `PHASE-6-CONVERGENCE.md` ever existed on this project (bookmark-cli is portfolio-intent with `Phase 6 strategy: not applicable`); no Phase 6 migration is required.
+
+---
+
 ## v0.7.2 adoption + Phase 5 Layer 1 hardening — 2026-05-20 02:45Z
 
 **Scope:** Adopts the vsdd-suite v0.7.2 conventions (G-150 intent calibration, G-162 Phase 5/6 strategy declarations, G-55 Phase 5 ownership, G-54 Phase 6 ownership). Closes the 2 held findings (B1, B2) from the Review 66 Phase 5 test that had been blocked pending operator authorization on the reference impl. Lands on dedicated branch `bookmark-cli-phase5-adoption`.

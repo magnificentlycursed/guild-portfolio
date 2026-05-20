@@ -145,8 +145,8 @@ mod tests {
     /// for a nested-path target — Surface B (cargo-mutants) surfaced the gap
     /// at src/lib.rs:48 where `!parent.as_os_str().is_empty()` could be
     /// flipped without any test failing. Test added post-MVR; confirmed
-    /// passes against current implementation. See vsdd-suite/PHASE-5-LOG.md
-    /// Layer 1 Surface B disposition for the surviving mutant.
+    /// passes against current implementation. See vsdd-suite/QUALITY-ENGINEER-REVIEW.md
+    /// (Review 2 — Phase 5 Surface B) for the surviving mutant disposition.
     #[test]
     fn save_creates_parent_directory_for_nested_path() {
         let dir = tempfile::tempdir().unwrap();
