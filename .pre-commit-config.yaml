@@ -43,7 +43,7 @@ repos:
         # Registered as G-139 in vsdd-suite/suite-development/FINDINGS-INDEX.md
         # after two recurrences across four sessions of the same speculation-
         # then-late-correction failure mode.
-        entry: vsdd-suite/hooks/check-crosslink-references.sh
+        entry: vsdd-suite/hooks/check-crosslink-references.py
         pass_filenames: true
         # Scope to user-facing docs only. Historical-narrative files
         # (CHANGELOG, COMPATIBILITY, FINDINGS-INDEX, SUITE-DEVELOPMENT-REVIEW,
@@ -74,7 +74,7 @@ repos:
         # comment in the first 5 lines bypasses for that entry only;
         # bypasses are themselves findings for the next registry-walk
         # review.
-        entry: vsdd-suite/hooks/check-suite-review-preamble.sh
+        entry: vsdd-suite/hooks/check-suite-review-preamble.py
         pass_filenames: true
         # Scope to suite-review-log AND per-project review-log markdown.
         files: ^(vsdd-suite/suite-development/review-log/.*\.md|.*/vsdd-suite/review-log/.*\.md)$
@@ -82,7 +82,7 @@ repos:
       - id: check-project-review-discipline
         name: check project-level domain-review entry-structure discipline (VSDD suite Review 74 hook)
         language: script
-        # Parallel to check-suite-review-preamble.sh but focused on
+        # Parallel to check-suite-review-preamble.py but focused on
         # project-level review-log discipline: every Review entry must
         # contain a `### Summary` section, a `**Coordination:**` line
         # (with `*(none)*` placeholder allowed), classification-section
@@ -95,7 +95,7 @@ repos:
         # 2026-05-20 are exempt. Per-entry `<!-- hook-bypass: <rationale>
         # -->` HTML comment in the first 5 lines bypasses for that
         # entry only.
-        entry: vsdd-suite/hooks/check-project-review-discipline.sh
+        entry: vsdd-suite/hooks/check-project-review-discipline.py
         pass_filenames: true
         # Scope to per-project review-log markdown ONLY (suite-review
         # files at vsdd-suite/suite-development/review-log/ are
@@ -114,7 +114,7 @@ repos:
         # opt-in. Registered as G-129 in vsdd-suite/suite-development/
         # FINDINGS-INDEX.md after six consecutive ITC layer closes where
         # TW caught CHANGELOG staleness post-hoc.
-        entry: vsdd-suite/hooks/check-changelog-currency.sh
+        entry: vsdd-suite/hooks/check-changelog-currency.py
         pass_filenames: true
         # Covers all text files — the hook's per-file extension filter
         # (`.rs`, `.ts`, `.tsx`, `.js`, `.jsx`, `.py`, `.go`, `.md`, `.sh`,

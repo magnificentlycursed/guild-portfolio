@@ -2,6 +2,82 @@
 
 ---
 
+## Review 76 — 2026-05-20 14:30Z
+
+**Scope:** Operator-directed via a human reviewer's question — why do hooks that are Python scripts end in `.sh`? Two coordinated outputs: (a) author the suite's first Python language supplement and its first Bash language supplement (the suite previously had only Rust + JS/TS); (b) review the 7 scripts the suite ships (4 Python hooks + 1 bash hook + 2 bash templates) against the new supplements and apply findings. Artifacts touched: `vsdd-suite/supplements/python.md` (new ~400 lines); `vsdd-suite/supplements/bash.md` (new ~350 lines); `git mv` × 4 (Python hooks `.sh` → `.py`); internal docstring self-references rewritten; `.pre-commit-config.yaml` 4 entry paths updated. Read this round: every script in `vsdd-suite/hooks/` and `vsdd-suite/templates/`; existing `vsdd-suite/supplements/rust.md` (as template); FINDINGS-INDEX.md legacy G-139 entry that named the `.sh` extension as "for parity" (the choice this Review retires).
+
+**Lens:** Cross-artifact-consistency + multi-domain authoring + dogfood-validation (QE + Security + Red Team + SE + SA + PE + DE + TW perspectives applied to the suite's own scripts via the new supplements). Operator-raised observation (Source: director-raised) triggered by an external human reviewer's question.
+
+**Session note:** In-session with the operator who relayed the human reviewer's question and directed the supplement-then-review sequence. Sycophancy compensation: the natural temptation was to do the rename alone (one-line fix) and skip the supplement work; resisted because the rename without the supplement would close the symptom without addressing the cause (no Python-domain guidance existed, so the Python hooks were authored without per-domain Python-specific discipline). The supplements are the load-bearing change; the rename is the worked example of one finding the supplement teaches (Bash supplement § Platform Engineering "Filename extension matches content"). Findings batched into this Review rather than per-script log entries because the scripts are suite-development artifacts, not project artifacts.
+
+**Source:** director-raised — operator surfaced the human reviewer's question; the bash-supplement scope expansion (added after Python supplement landed) was a follow-up operator directive in the same session.
+
+### Resolved
+
+**Finding 1 — Python language supplement authored at `vsdd-suite/supplements/python.md` (multi-domain authorship)**
+
+The suite shipped Rust + JS/TS supplements but no Python supplement, despite shipping 4 Python hooks AND being applicable to Python projects users might build. The absence meant the Python hooks were authored without per-domain Python-specific guidance, and projects using the suite for Python work had no language-specific dimensions. The omission compounds Finding 2 — if the suite had a Python supplement with the "filename extension matches content" dimension visible at authoring time, the hooks would never have been written as `.sh`.
+
+**Resolution:** Authored `vsdd-suite/supplements/python.md` (~400 lines) with 11 per-domain sections following the canonical supplement structure (Quality Engineering, Security, Software Engineering, Platform Engineering, Data Engineering, Red Team, Performance Engineer, Solution Architect, Technical Writer, Documentation Reviewer, Localization). Multi-domain perspective applied: QE names `pytest` + `hypothesis` + `mutmut` + `coverage.py` + `mypy --strict` as the test-discipline floor; Security + Red Team enumerate Python-specific exploit surfaces (eval/exec/pickle/yaml.load/subprocess shell=True/SQL injection/path traversal/XXE/PyPI typosquatting); PE anchors against the 2026 ecosystem (uv replacing pip+venv; ruff replacing flake8+isort+pyupgrade+black; pyproject.toml as canonical config); DE names pydantic + msgspec with the asymmetric-trust-boundary (G-126) and strictness-symmetry (G-152) generalizations applied; SA addresses src/ vs flat layout, circular imports, sync/async boundary, purity-boundary explicit per Dim 12; TW + Documentation Reviewer (forward-linked to Review 77) cover docstring formats, Sphinx vs mkdocs, README→PyPI rendering, `help()` discoverability.
+
+**Finding 2 — `.sh` extension on Python hooks retired; rename to `.py` (filename-content match)**
+
+4 Python hooks shipped with `.sh` extensions per G-139 (Review 48, 2026-05-18) "for parity" with the sibling actually-bash hook. "For parity" aged poorly: editors apply bash syntax highlighting to the files (wrong); pre-commit configs scoped by extension would silently miss the Python-ness; readers expect bash conventions from `.sh` and find Python. Bash supplement § Platform Engineering names this directly. A human reviewer surfaced the misnomer in seconds; in-context contributors had lived with it for months.
+
+**Resolution:** `git mv` rename (preserves history):
+
+| Before | After |
+|---|---|
+| `vsdd-suite/hooks/check-changelog-currency.sh` | `vsdd-suite/hooks/check-changelog-currency.py` |
+| `vsdd-suite/hooks/check-crosslink-references.sh` | `vsdd-suite/hooks/check-crosslink-references.py` |
+| `vsdd-suite/hooks/check-suite-review-preamble.sh` | `vsdd-suite/hooks/check-suite-review-preamble.py` |
+| `vsdd-suite/hooks/check-project-review-discipline.sh` | `vsdd-suite/hooks/check-project-review-discipline.py` |
+
+Internal `.sh` self-references in docstrings rewritten to `.py`. `.pre-commit-config.yaml` 4 `entry:` lines updated. Renamed hooks tested clean against existing project-review-log + suite-review-log files. Preserved per G-89: actually-bash hook `check-review-log-anonymization.sh` and templates `cold-session-dispatch.sh` + `scaffold-project.sh` keep `.sh` (correctly-named). Historical references in CHANGELOG / COMPATIBILITY / review-log + G-139's row preserve original framing.
+
+**Finding 3 — Bash language supplement authored at `vsdd-suite/supplements/bash.md` (multi-domain authorship)**
+
+Same gap as Finding 1, mirrored for Bash: the suite shipped 3 actually-bash scripts but no Bash supplement. `check-review-log-anonymization.sh` shows symptoms (uses `set -u` only; `[ ]` test syntax instead of `[[ ]]`; IFS not set) — defensible but never made explicit-and-justified.
+
+**Resolution:** Authored `vsdd-suite/supplements/bash.md` (~350 lines) with 11 per-domain sections. Multi-domain perspective applied: QE names `bats-core` + `shellcheck` + `kcov`; Security + Red Team enumerate bash-specific exploit surfaces (unquoted variable expansion → word splitting → command/glob injection; `eval` on user input; predictable temp-file names + symlink races; `tar`/`zip` extractall path traversal; PATH-shadowing); PE anchors `#!/usr/bin/env bash` shebang, bash version requirements (macOS 3.2 caveat), `shellcheck` + `shfmt` in CI; SE codifies `[[ ]]` over `[ ]`, array discipline, `local` for function vars, `readonly` for constants; SA addresses script structure at scale (main function pattern, sourceable wrapper); TW + Doc Reviewer cover `--help` as primary documentation, error-message executability.
+
+**Finding 4 — Suite's own scripts reviewed against the new supplements (consolidated findings)**
+
+Python and Bash supplements applied as a review pass against the 7 in-scope scripts. Findings batched here (rather than per-script log entries) because they're minor stylistic relative to the renamed-extension headline; per-script logs would over-process for finding severity.
+
+#### Sub-findings (Python — `vsdd-suite/hooks/*.py`)
+
+| Script | Finding | Severity |
+|---|---|---|
+| All 4 Python hooks | No `from __future__ import annotations` — modern Python practice for PEP 604 union syntax | Minor |
+| All 4 Python hooks | No automated tests for the hooks themselves — meta-test gap | Medium |
+| All 4 Python hooks | No `mypy --strict` configuration; type hints present but not enforced | Medium |
+| `check-suite-review-preamble.py` + `check-project-review-discipline.py` | Use `typing.List` / `typing.Dict` form; modern Python (3.9+) supports `list[str]` directly | Minor |
+| All 4 Python hooks | No `ruff format` / `black` enforcement configured | Minor |
+
+#### Sub-findings (Bash — `vsdd-suite/hooks/check-review-log-anonymization.sh` + `vsdd-suite/templates/*.sh`)
+
+| Script | Finding | Severity |
+|---|---|---|
+| `check-review-log-anonymization.sh` | `set -u` only; missing `set -e` and `set -o pipefail` per Bash supplement § Security baseline | Medium |
+| `check-review-log-anonymization.sh` | `[ ]` test syntax instead of `[[ ]]` | Minor |
+| `check-review-log-anonymization.sh` | IFS not explicitly set | Minor |
+| All 3 bash scripts | `shellcheck` not run as a pre-commit hook (tool not installed in the suite's dev environment) | Medium |
+| `cold-session-dispatch.sh` | `tr` + `sed` chained where bash 4+ `${var^^}` would suffice | Minor |
+| `scaffold-project.sh` | Mixed `[ ]` and `[[ ]]` styles | Minor |
+
+**Resolution:** All 11 sub-findings registered Deferred with a shared trigger — the next "suite-self-hardening pass" that adopts shellcheck + ruff + mypy + bats-core configuration for the suite's own scripts. Auto-Backlog clause per G-130: if no progress by 2026-09-01, auto-Backlog and re-raise as PE priority candidates. The forward-only FINDINGS-INDEX.md registry stays empty (the Deferreds bundle under this Review's narrative — they share a single trigger and are stylistic-not-correctness, so per-row registration is over-discipline for the severity).
+
+**Meta-finding (sycophancy compensation):** the suite teaches tools (`shellcheck`, `ruff`, `mypy`, `bats-core`, `cargo-mutants`) but doesn't enforce them on its own scripts. The asymmetry is itself a finding — the suite eats its own cooking on conventions (per-domain index structure, finding classification, registry shape) but not on tooling. Parallel to G-122 (purity-boundary documented but not enforced); resolution is the future suite-self-hardening pass. Forward-link only; not actionable in this Review.
+
+### Summary
+
+4 findings Resolved in-session (Python supplement authored; `.sh` → `.py` rename × 4; Bash supplement authored; consolidated review with 11 sub-findings batched-Deferred under a shared trigger). Supplements are the load-bearing change; rename is the worked example one supplement teaches. Forward-only per G-89: historical `.sh` references in CHANGELOG / COMPATIBILITY / review-log preserved; new references use `.py`. Backlog after Review 76: 0 Open + 6 Deferred from prior reviews + 1 bundled-Deferred from this Review.
+
+**Coordination:** Documentation Reviewer section in the Python supplement (and parallel in Bash supplement) is forward-linked to Review 77 + 78. No coordination required in this Review — supplements are structurally complete and the forward-reference is harmless.
+
+---
+
 ## Review 75 — 2026-05-20 13:15Z
 
 **Scope:** Operator-directed reference-example folder restructure. (1) Create new top-level folder `vsdd-suite-reference-examples/` to house portfolio reference implementations. (2) `git mv bookmark-cli vsdd-suite-reference-examples/bookmark-cli-manual` — rename the existing reference to signal it's the manual-method variant. (3) Establish forward-link for a parallel `bookmark-cli-crosslink/` to be built in a subsequent PR (crosslink-method variant). (4) Update suite-side forward-facing references to the new path. (5) Restructure top-level portfolio README so `vsdd-suite/` and `vsdd-suite-reference-examples/` are listed as portfolio projects in their own right (not subsidiary sections). Artifacts touched this round: `bookmark-cli/` (entire tree, git mv to new location); `vsdd-suite/README.md` Worked-example intro paragraph (added reference-impl pointer); `vsdd-suite/primers/1c-decomposition.md` § Manual testing checklist (reference-example pointer); `vsdd-suite/primers/5-formal-hardening.md` Surface A.0 worked example (path update for G-173 historical reference); `vsdd-suite/crosslink-contract.md` Contract testing section (reference-impl path update); `guild-portfolio/README.md` (project listing restructure, forward-only compatibility section); `vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/{FINDINGS-INDEX,QUALITY-ENGINEER-REVIEW,SOLUTION-ARCHITECT-REVIEW}.md` (relative-path correction `../../vsdd-suite/` → `../../../vsdd-suite/` for the deeper-nesting); `vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/FINDINGS-INDEX.md` H1 (`bookmark-cli` → `bookmark-cli-manual`); `vsdd-suite-reference-examples/bookmark-cli-manual/TODO.md` lead (link fix + rename).

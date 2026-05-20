@@ -36,7 +36,7 @@ Bypass:
   posture — it bypasses the discipline G-129 was designed to enforce.
 
 Filename note: kept `.sh` extension for parity with the other suite
-hooks (`check-review-log-anonymization.sh`, `check-crosslink-references.sh`),
+hooks (`check-review-log-anonymization.sh`, `check-crosslink-references.py`),
 even though the implementation is Python. The shebang routes to python3.
 """
 
