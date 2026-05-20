@@ -1,12 +1,12 @@
 # Session Primer: Suite Development (Meta — Suite Contributors)
 
-Use this prompt at the start of any session whose purpose is developing the VSDD suite itself — adding or modifying domain files, updating dimensions, running gap analysis, or revising primers. Do not use this for reviewing projects under the suite; use `../primers/3-review-session.md` for that.
+Use this prompt at the start of any session whose purpose is developing the VSDD suite itself — adding or modifying domain files, updating dimensions, walking the findings registry, or revising primers. Do not use this for reviewing projects under the suite; use `../primers/3-review-session.md` for that.
 
 ---
 
 ## Prompt
 
-You are helping develop the **VSDD Suite** (Iterative Adversarial Refinement — IAR — is the Phase 3 component, not the suite's full scope). The suite is itself a software artifact: it has a specification (the VSDD and VDD methodology documents), a design (the domain structure, dimensions, supplement architecture, and session primer set), and an implementation (the domain prompt files, session primers, README, supplements/ supplements, gap analysis log, and DOMAIN-INDEX).
+You are helping develop the **VSDD Suite** (Iterative Adversarial Refinement — IAR — is the Phase 3 component, not the suite's full scope). The suite is itself a software artifact: it has a specification (the VSDD and VDD methodology documents), a design (the domain structure, dimensions, supplement architecture, and session primer set), and an implementation (the domain prompt files, session primers, README, supplements/ supplements, findings index, and DOMAIN-INDEX).
 
 The suite began as adversarial review prompts and dimensions for VSDD Phase 3. It has since expanded to house session primers for every VSDD phase the suite owns (Phase 1a+1b Spec Crystallization, Phase 1c Decomposition / Spec Review Gate, Phase 2a Red Gate, Phase 2b Implementation, Phase 2c Refactor, Phase 3 Adversarial Refinement, Phase 4 Feedback Integration) plus a meta-primer for suite-development sessions. The Phase 1a+1b/1c/2c labeling tracks the VSDD whitepaper's sub-phase taxonomy per G-96 (Review 62); project review logs that reference the prior Phase 1b naming remain valid records under the forward-only constraint. The directory was renamed to `vsdd-suite/` in Review 38 (G-88 closure) to match the expanded scope; "IAR" remains the name for the Phase 3 portion specifically and is preserved in historical project review logs that pre-date the rename per the forward-only constraint. See `../README.md` `## Suite scope` for the full artifact map.
 
@@ -27,7 +27,7 @@ The suite currently contains these artifact types:
 | Session primers | `../primers/` | Posture-setting prompts loaded at the start of a phase or session type |
 | Domain index | `../domains/DOMAIN-INDEX.md` | Authoritative core/extended classification with activation criteria |
 | README | `README.md` | Suite entry point: domain tables, primer table, running instructions, supplement table |
-| Gap analysis log | `FINDINGS-INDEX.md` | Running registry of identified suite gaps and their status |
+| Findings index | `FINDINGS-INDEX.md` | Cross-cutting registry of identified findings against the suite and their status. Same shape conventions as a project-level FINDINGS-INDEX so suite contributors and suite users encounter consistent registry conventions across scopes. |
 | Suite review index | `SUITE-DEVELOPMENT-REVIEW.md` | Index of adversarial review runs of the suite itself |
 | Changelog | `CHANGELOG.md` | Record of all non-trivial changes to suite artifacts |
 
@@ -355,7 +355,7 @@ Reviews without a Summary are incomplete. Reviews with cross-domain implications
 
 1. Name the failure class: what defect reaches users if this dimension is absent?
 2. Check whether an existing dimension in any domain already owns this failure class. If it does, flag the gap there rather than adding cross-domain overlap.
-3. Check the gap registry (`FINDINGS-INDEX.md`). If the gap is tracked, add the gap ID to the CHANGELOG entry for this change. If it is not tracked, add it and immediately mark it Addressed.
+3. Check the findings registry (`FINDINGS-INDEX.md`). If the finding is tracked, cite its anchor (legacy `G-XX` for pre-2026-05-20 entries; `Review N Finding M` for forward-only entries) in the CHANGELOG entry for this change. If it is not tracked, add it and immediately mark it Resolved.
 4. Write the dimension using the standard form: failure class in bold, explanation, named failure modes or attacks.
 
 ## Before adding a domain
@@ -368,43 +368,43 @@ Reviews without a Summary are incomplete. Reviews with cross-domain implications
 6. Add language and interface supplement sections where applicable. See **Supplement coverage** below.
 7. Add a suite review session entry in `review-log/YYYY-MM-DD-suite-review.md` (creating the file if no entry exists for that date) documenting the addition, rationale, defect class addressed, and dimensions that were considered and rejected. Add a corresponding row to the **Suite Reviews** table in `SUITE-DEVELOPMENT-REVIEW.md` linking to the entry.
 8. Add a `CHANGELOG.md` entry.
-9. Add a `FINDINGS-INDEX.md` entry if the domain addresses an existing open gap.
+9. Add a `FINDINGS-INDEX.md` entry if the domain addresses an existing open finding.
 
 ## Before modifying a domain
 
 1. State what defect the current version fails to catch — name a specific scenario where the current prompt produces a false pass.
 2. Make the change.
-3. Update the gap registry: if the gap was tracked, mark it Addressed with today's date. If it was not tracked, add it and immediately mark it Addressed.
+3. Update the findings registry: if the finding was tracked, mark it Resolved (forward-only registry) or Addressed (legacy registry) with today's date. If it was not tracked, add it and immediately mark it Resolved/Addressed per the registry section it lands in.
 4. Log the change in `CHANGELOG.md`.
 5. If the change is structural (new section, new classification schema, changed prompt format): add a suite review session entry in `review-log/YYYY-MM-DD-suite-review.md` and a corresponding row in the **Suite Reviews** table in `SUITE-DEVELOPMENT-REVIEW.md`.
 
-## Running gap analysis
+## Walking the findings registry
 
-Read `FINDINGS-INDEX.md` for the current open gaps, then read all domain files and evaluate whether each open gap has been addressed by recent changes. Follow the instructions at the top of that file.
+Read `FINDINGS-INDEX.md` for the current open findings (both registries — forward-only and legacy), then read all domain files and evaluate whether each open finding has been addressed by recent changes. Follow the instructions at the top of that file.
 
-**Gap registry discipline:** When a gap is resolved by a suite change, update the original row's status in place — change `Open` to `Addressed` and update the `Last Reviewed` date. Do not append a new row for an existing gap. New gaps get new rows; status changes update existing rows.
+**Registry discipline:** When a finding is resolved by a suite change, update the original row's status in place — change `Open` to `Resolved`/`Closed` (forward-only registry) or `Open` to `Addressed` (legacy registry) and update the `Last Reviewed` date. Do not append a new row for an existing finding. New findings get new rows; status changes update existing rows.
 
-A gap analysis session is one mode of suite review (registry-walk lens). Like any suite review session, it ends with:
-- All recently addressed gaps marked Addressed in `FINDINGS-INDEX.md` with the date
-- Any new gaps discovered added to the registry with a new G-ID
+A registry-walk session is one mode of suite review (registry-walk lens). Like any suite review session, it ends with:
+- All recently resolved findings updated in `FINDINGS-INDEX.md` with the date
+- Any new findings discovered added to the **Findings registry (forward-only)** section, identified by their originating `Review N Finding M` anchor (no `G-`/`F-` ID prefix — the legacy `G-` series is closed)
 - A `## Review N — date` entry in `review-log/YYYY-MM-DD-suite-review.md` (creating the file if no entry exists for that date) summarizing scope, findings, decisions, and suite changes made
 - A corresponding row added to the **Suite Reviews** table in `SUITE-DEVELOPMENT-REVIEW.md` linking to the new entry
 
-`FINDINGS-INDEX.md` contains only the registry table. Run narratives belong in `review-log/`. `SUITE-DEVELOPMENT-REVIEW.md` is the index of those narratives, not their home.
+`FINDINGS-INDEX.md` contains only the registry tables. Suite-review narratives belong in `review-log/`. `SUITE-DEVELOPMENT-REVIEW.md` is the index of those narratives, not their home.
 
 ## Suite review and review-log discipline
 
-The IAR suite has three parallel review-record artifacts. Their roles do not overlap:
+The VSDD Suite has three parallel review-record artifacts. Their roles do not overlap:
 
 - **`SUITE-DEVELOPMENT-REVIEW.md`** is an index. It contains one table — **Suite Reviews** — each row pointing to a session entry in `review-log/`.
 - **`review-log/YYYY-MM-DD-suite-review.md`** holds the actual session entries. One file per date; multiple sessions on the same date append to the same file (newest at the top).
-- **`FINDINGS-INDEX.md`** is the gap registry. Status only — no narrative. One row per gap; status changes update the row in place.
+- **`FINDINGS-INDEX.md`** is the findings registry. Status only — no narrative. One row per finding; status changes update the row in place. Two sections: forward-only registry (no ID prefix; identified by `Review N Finding M` anchor) and legacy registry (`G-01–G-182`, closed to new entries, preserved as historical anchors).
 
 Every non-trivial suite change requires a session entry in `review-log/` and a corresponding index row in `SUITE-DEVELOPMENT-REVIEW.md`. Non-trivial means: any addition or removal of a domain or primer, any new evaluation dimension, any structural change to the prompt format, or any change to sequencing or activation guidance.
 
 Mechanical fixes (typos, filename renames, path updates) do not require a session entry but should be logged in `CHANGELOG.md`.
 
-**One artifact type, multiple modes.** A suite review may apply fresh adversarial pressure (defect-search lens), walk the gap registry top-down (registry-walk lens), or both. The mode lives in the **Lens** field; it is not a separate artifact type. Sessions previously called "meta-reviews" and "gap analysis runs" are now both `Review N` entries — the distinction is mode, not kind.
+**One artifact type, multiple modes.** A suite review may apply fresh adversarial pressure (defect-search lens), walk the findings registry top-down (registry-walk lens), or both. The mode lives in the **Lens** field; it is not a separate artifact type. Sessions previously called "meta-reviews" and "gap analysis runs" are now both `Review N` entries — the distinction is mode, not kind. (The "gap analysis run" framing is retired; the underlying mode is preserved as the `registry-walk` lens.)
 
 ### Filename convention
 
@@ -423,19 +423,22 @@ The filename date is the **session start date in UTC**. When a session crosses m
 A `## Review N — date` entry in `review-log/YYYY-MM-DD-suite-review.md` must contain:
 
 1. **Header** — `## Review N — YYYY-MM-DD HH:MMZ`. Review numbers are **sequence-wide across all suite-review files** (Review 30 follows Review 29 even if they live in different date-named files); the timestamp is the session start in UTC.
-2. **Scope** — What artifacts were read this round (specific domain files, primers, supplements, README, gap registry rows, etc.) and what triggered the review (user request, follow-up to a prior finding, scheduled cadence, project type added). Cite specific files when narrow; "all 14 role domains, 2 meta domains, 5 primers" when broad.
+2. **Scope** — What artifacts were read this round (specific domain files, primers, supplements, README, findings registry rows, etc.) and what triggered the review (user request, follow-up to a prior finding, scheduled cadence, project type added). Cite specific files when narrow; "all 14 role domains, 2 meta domains, 5 primers" when broad.
 3. **Lens** — The angle the reviewer applied. Valid forms:
    - A **named defect class** ("coordination link format compliance", "classification schema coverage", "lang supplement symmetry").
-   - A **registry-walk scope** ("walk all open gaps", "review G-22 and G-30").
+   - A **registry-walk scope** ("walk all open findings", "review G-22 and G-30", "walk forward-only Open entries").
    - A **role-based lens** that applies one or more domain perspectives to the suite as artifact ("Solution Owner + Technical Writer + VDD-IAR Alignment"), or a named bundle of complementary defect-class lenses applied serially or in parallel ("five lenses applied serially — clarity, naming, ambiguity, consistency, transitional-state alignment").
 
    A diffuse lens produces a diffuse review. If a session has no specific lens, log it as a generalist pass and name the prior passes' specialization gaps it is filling.
-4. **Findings** grouped by classification heading. Valid headings:
-   - `### Resolved` — fix applied and verified during the session. Use both for newly-found defects fixed in-session and for previously-tracked gaps closed in-session (cite the G-ID).
-   - `### Dismissed` — concern reviewed and rejected; rationale required. Use both for newly-raised defects rejected and for previously-tracked gaps dismissed.
+4. **Findings** grouped by classification heading. Valid headings mirror the project-level finding classification universe so a suite contributor and a suite user encounter consistent conventions across scopes:
+   - `### Resolved` — fix applied and verified during the session. Use both for newly-found defects fixed in-session and for previously-tracked findings closed in-session (cite the anchor — legacy `G-XX` for pre-2026-05-20 entries; `Review N Finding M` for forward-only entries).
+   - `### Dismissed` — concern reviewed and rejected; rationale required. Use both for newly-raised defects rejected and for previously-tracked findings dismissed.
    - `### Hallucinated` — adversary-invented concern that does not apply; rationale required.
-   - `### New gap registered` — finding promoted to a tracked gap; G-ID stated; the registry row is added in `FINDINGS-INDEX.md`. This heading is **suite-review-specific** — it is not part of the project-level classification universe and is not valid in project-level review logs.
-5. **Finding body** — same shape as project-level review logs: `**Finding N — Title**` for new findings, `**G-XX — Title**` for gap-registry walk entries; prose body; then `**Resolution:**` (Resolved) or `**Classification:**` (everything else). Cross-references to other suite artifacts use Markdown links.
+   - `### Open` — finding registered as tracked work but not closed in-session; the registry row is added (forward-only section) or updated (legacy section) in `FINDINGS-INDEX.md`. Forward-only entries are identified by the originating `Review N Finding M` anchor; legacy entries continue to use their `G-XX` anchor.
+   - `### Deferred` — finding registered against a named reactivation trigger; cost-of-deferral, trigger condition, and auto-Backlog clause all named per the G-130 deferral discipline. Registry row added (forward-only) or updated (legacy).
+
+   `### New gap registered` is **retired** as of 2026-05-20 (Review 73). Existing session entries that used this heading remain valid as historical records per the forward-only narrative-preservation policy; new entries use `### Open` / `### Deferred` per the project-aligned classification universe.
+5. **Finding body** — same shape as project-level review logs: `**Finding N — Title**` for findings (whether newly-resolved in-session or newly-registered for tracking); `**G-XX — Title**` is the accepted heading form for legacy-registry walks (re-walking an entry registered before 2026-05-20). Prose body; then `**Resolution:**` (Resolved) or `**Classification:**` (everything else). Cross-references to other suite artifacts use Markdown links.
 6. **Closing** — no separate Summary required (the classification headings carry the tally). An optional `### Coordination` section may follow the classification sections when findings cluster around a single coordinated decision; use it to name the cluster and the bundled action (e.g., a single restructure pass at a future trigger). Cross-references inside the Coordination section use Markdown links to other suite artifacts. Follow-up findings introduced after the session has been logged must be marked `**Finding M — Title (added YYYY-MM-DD)**` and placed at the end of the original entry, not in a new entry. Do not silently amend prior findings.
 
 ### Session isolation
@@ -473,4 +476,4 @@ Supplements provide language-specific failure modes. Not every domain has langua
 | VDD-IAR Alignment | — | — | Language-agnostic (explicitly noted in domain file) |
 | Portfolio Assessment | — | — | Language-agnostic |
 
-Before closing any suite development session, verify this table is still accurate. If a domain is added or a supplement section is added, update this table and the gap registry.
+Before closing any suite development session, verify this table is still accurate. If a domain is added or a supplement section is added, update this table and the findings registry.
