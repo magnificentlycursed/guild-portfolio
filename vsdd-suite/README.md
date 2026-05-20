@@ -155,7 +155,7 @@ What lives here:
 - **Adversarial review prompts** (`domains/`) — role and meta domains for VSDD Phase 3, with evaluation dimensions and finding classification schemas
 - **Phase session primers** (`primers/`) — posture-setting prompts for VSDD Phases 1a+1b, 1c, 2a, 2b, 2c, 3, 4, 5, and 6
 - **Language and interface supplements** (`supplements/`) — language- and interface-specific dimensions composed with domain reviews
-- **Suite-development materials** (`suite-development/`) — the contributor primer, gap registry, suite-review index, and review-log session entries for evolving the suite itself; see [`suite-development/README.md`](suite-development/README.md)
+- **Suite-development materials** (`suite-development/`) — the contributor primer, findings registry, suite-review index, and review-log session entries for evolving the suite itself; see [`suite-development/README.md`](suite-development/README.md)
 
 Suite ownership: as of v0.7.0 (Review 64), every VSDD phase the methodology defines has a primer in this suite — Phase 1a+1b (spec crystallization including verification architecture), Phase 1c (decomposition / spec review gate), Phase 2a (Red Gate), Phase 2b (implementation), Phase 2c (refactor), Phase 3 (adversarial refinement / IAR), Phase 4 (feedback integration), Phase 5 (formal hardening — G-55 closed in Review 64), Phase 6 (four-dimensional convergence — G-54 closed in Review 64). Capstone + production intents must declare Phase 5 and Phase 6 strategies in `DESIGN.md` § Project intent per G-162; learning-exercise and portfolio intents may close at the end of Phase 4 by design.
 
@@ -368,7 +368,7 @@ Session primers establish posture and context at the start of a phase. Use the p
 | Feedback Integration | [`primers/4-feedback-integration.md`](primers/4-feedback-integration.md) | After a Phase 3 round has produced a classified finding set. Routes each finding to the earliest phase that can fix it (spec / decomposition / Red Gate / implementation / suite). Closes the IAR refinement loop. |
 | Formal Hardening | [`primers/5-formal-hardening.md`](primers/5-formal-hardening.md) | After each layer reaches Phase 3 implementation-MVR. Property-based testing, mutation testing, fuzzing, and (optionally) formal proofs for designated pure functions. Required-or-declared-not-applicable at capstone + production intents (G-162). |
 | Four-Dimensional Convergence | [`primers/6-convergence.md`](primers/6-convergence.md) | Project-terminal verification gate after every layer's Phase 5 closes. Produces a convergence record attesting spec/test/impl/formal MVR each independently and cross-dimension consistent. Required-or-declared-not-applicable at capstone + production intents. |
-| Suite Development | [`suite-development/suite-development.md`](suite-development/suite-development.md) | When developing the IAR suite itself — adding domains, updating dimensions, running gap analysis. Not for reviewing projects. |
+| Suite Development | [`suite-development/suite-development.md`](suite-development/suite-development.md) | When developing the VSDD suite itself — adding domains, updating dimensions, walking the findings registry. Not for reviewing projects. |
 
 The spec crystallization primer establishes the adversarial posture for spec *writing* — the adversary applies pressure during Phase 1a+1b, not only during Phase 3. A spec that was never argued with before implementation began will produce IAR findings that trace back to spec incompleteness, not implementation error.
 

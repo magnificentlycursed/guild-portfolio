@@ -18,7 +18,7 @@ This design principle is binding on suite contributors: when adding a primer, do
 |---|---|
 | [`suite-development.md`](suite-development.md) | The suite-development session primer. Load this at the start of any session that intends to modify suite artifacts — adding a domain, updating dimensions, registering a gap, running a suite review, restructuring the suite. Not for reviewing projects. |
 | [`SUITE-DEVELOPMENT-REVIEW.md`](SUITE-DEVELOPMENT-REVIEW.md) | Index of all suite review sessions. The suite is itself a software artifact and gets reviewed adversarially with the same discipline projects receive. Each session is logged in `review-log/YYYY-MM-DD-suite-review.md`; this file is the index. |
-| [`FINDINGS-INDEX.md`](FINDINGS-INDEX.md) | Living gap registry. Status-only table of every identified suite gap. Narratives live in the per-session review-log files; this file tracks status and links back to the session that registered the gap. |
+| [`FINDINGS-INDEX.md`](FINDINGS-INDEX.md) | Living findings registry. Status-only registry of every identified finding against the suite, structured to mirror the project-level FINDINGS-INDEX shape so suite contributors and suite users encounter consistent conventions across scopes. Two sections — a forward-only registry (no ID prefix; findings identified by `Review N Finding M` anchor) and a legacy registry (`G-01–G-182`, closed to new entries, preserved as historical anchors per the forward-only narrative-preservation policy). Narratives live in the per-session review-log files; this file tracks status and links back to the session that registered the finding. |
 | [`review-log/`](review-log/) | Per-session suite-review entries, one file per session date (`YYYY-MM-DD-suite-review.md`). The mode (defect-search vs. registry-walk) is recorded per entry in the `Lens` field — they share a single artifact type. |
 
 ### Pure core / effectful shell
@@ -39,9 +39,9 @@ The boundary is small by design — the suite is primarily content, not code. An
 A typical pass:
 
 1. **Open a suite-development session.** Load [`suite-development.md`](suite-development.md) as the session primer. This is a deliberate posture shift — you are modifying suite artifacts, not reviewing a project.
-2. **Pick a lens.** Either a *named defect class* ("primer naming consistency"), a *registry walk* ("walk all Open gaps registered before 2026-05-01"), or a *role-based lens* ("Solution Owner + Technical Writer pass on the README").
+2. **Pick a lens.** Either a *named defect class* ("primer naming consistency"), a *registry walk* ("walk all Open findings registered before 2026-05-01"), or a *role-based lens* ("Solution Owner + Technical Writer pass on the README").
 3. **Run the review.** Apply the lens to the relevant artifacts. Record findings in a new entry in [`review-log/`](review-log/) per the format in [`suite-development.md`](suite-development.md) § "Suite review entry format".
-4. **Update [`FINDINGS-INDEX.md`](FINDINGS-INDEX.md).** Any new gap registered, any status change to an existing gap, any closure — all get recorded in the registry. A session that registers a gap without updating the registry is an incomplete session.
+4. **Update [`FINDINGS-INDEX.md`](FINDINGS-INDEX.md).** Any new finding registered (in the forward-only section, identified by its `Review N Finding M` anchor — no new ID prefix), any status change to an existing finding (in either section), any closure — all get recorded in the registry. A session that registers a finding without updating the registry is an incomplete session.
 5. **Add a row to [`SUITE-DEVELOPMENT-REVIEW.md`](SUITE-DEVELOPMENT-REVIEW.md).** An unindexed session is invisible to future reviewers. The index is read first; the session file is read second.
 6. **Update [`../CHANGELOG.md`](../CHANGELOG.md)** if the session resulted in artifact changes (added/changed/removed). Suite-only narrative findings without artifact changes do not need a CHANGELOG entry — they live in the review-log only.
 

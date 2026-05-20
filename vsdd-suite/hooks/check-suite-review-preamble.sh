@@ -4,20 +4,32 @@ and project-level review-log files conform to the governing-standard
 preamble and finding-header forms.
 
 Mechanizes the discipline corrections from Review 67 + the drift findings
-from Review 68:
+from Review 68, and the gap-analysis-verbiage deprecation from Review 73:
 
-  - Review 67 Finding 1: only Deferred / Open findings get G-IDs; Resolved-
-    in-session findings use `**Finding N — Title**` (no G-ID).
+  - Review 67 Finding 1: only Deferred / Open findings get tracked-registry
+    anchors; Resolved-in-session findings use `**Finding N — Title**` (no
+    anchor in the heading — the anchor lives in the FINDINGS-INDEX row).
   - Review 67 Finding 2: artifact identifiers are ONLY `**Finding N — Title**`
-    and `**G-XX — Title**`. Chat-shorthand identifiers (`**F1 — `,
-    `**R1 — `, `**Q1 — `, `**B1 — `, `**R1 / G-173 — `) are not valid
-    artifact forms.
+    and `**G-XX — Title**` (the latter is the legacy-registry-anchor form,
+    accepted as historical-anchor walk per the Review 73 forward-only
+    convention shift). Chat-shorthand identifiers (`**F1 — `, `**R1 — `,
+    `**Q1 — `, `**B1 — `, `**R1 / G-173 — `) are not valid artifact forms.
   - Review 68 Finding 1: per-review preamble field `**Source:**` is
     Required-for-all-domains per `suite-development.md:275` (G-133); the
     hook fails on its absence.
   - Review 68 Findings 4 + 7: finding bodies must end with a closer line
-    (`**Resolution:**` for Resolved or `**Classification:**` for others);
-    new gap registrations require a `### New gap registered` section.
+    (`**Resolution:**` for Resolved or `**Classification:**` for others).
+  - Review 73 convention shift: the legacy `G-` series is closed; new
+    findings are identified by their originating `Review N Finding M`
+    anchor (the row in FINDINGS-INDEX forward-only section). The
+    `### New gap registered` heading is RETIRED — new findings tracked for
+    future work use `### Open` or `### Deferred` per the project-aligned
+    classification universe. Existing session entries that used the
+    retired heading remain valid as historical records per the
+    forward-only narrative-preservation policy; the hook accepts both
+    the retired heading and the project-aligned classification headings
+    without enforcement, since pre-2026-05-20 entries are out of
+    enforcement scope and post-2026-05-20 entries follow the new shape.
 
 Scope (per `.pre-commit-config.yaml` files-regex):
 
@@ -56,9 +68,15 @@ the file end):
      bold header or `---` or `### `).
      Closer absence is flagged.
 
-  5. If the entry contains any finding with `**G-XX — ` header (new gap
-     registration), the entry must include a `### New gap registered`
-     classification heading.
+  5. The `### New gap registered` classification heading is RETIRED per
+     the Review 73 convention shift (post-2026-05-20). New findings
+     tracked for future work use `### Open` / `### Deferred` per the
+     project-aligned classification universe. The hook does not enforce
+     either form on its own — Check 5 is advisory-grade by design (the
+     `### New gap registered` heading is preserved as valid for
+     historical entries; the project-aligned classification headings are
+     valid going forward; either is acceptable structurally and the
+     governing-standard prose covers the substantive distinction).
 
 Bypass:
 
@@ -258,12 +276,14 @@ def check_entry(
                 f"runs to line {header_idx + next_k}"
             )
 
-    # Check 5: skipped in v1 of the hook — distinguishing new-gap registrations
-    # from gap-registry walks (a `**G-XX — `-header finding that addresses an
-    # already-registered gap) requires reading the registry, which is out of
-    # scope for a hook. The `### New gap registered` section discipline is
-    # advisory-grade for now; future hook enhancement could load the registry
-    # and verify per-G-ID. Reference: Review 68 Finding 7.
+    # Check 5: retired in v2 of the hook (Review 73 convention shift).
+    # The `### New gap registered` heading is no longer the canonical form
+    # for newly-tracked findings; the project-aligned classification
+    # headings (`### Open` / `### Deferred`) are the forward-only form.
+    # Both are accepted structurally; the substantive distinction is
+    # covered by the governing-standard prose in suite-development.md
+    # § Suite review entry format. The hook intentionally does not enforce
+    # one form over the other.
 
     return failures
 

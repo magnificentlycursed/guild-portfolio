@@ -147,5 +147,5 @@ When the review target is the suite itself (not a project under review):
 
 - Findings are recorded in `vsdd-suite/review-log/YYYY-MM-DD-suite-review.md` — create the file if no entry exists for the date, or append to it if one does. Suite reviews are a single artifact type; the mode (defect-search vs. registry-walk) lives in the entry's Lens field.
 - Add a corresponding summary row to the **Suite Reviews** table in `vsdd-suite/suite-development/SUITE-DEVELOPMENT-REVIEW.md`. The index is read first by future reviewers; an unindexed session is invisible.
-- New gap registrations also need a row in `suite-development/FINDINGS-INDEX.md` linking to the new session entry.
+- New findings registered for tracking also need a row in `suite-development/FINDINGS-INDEX.md` (forward-only section, identified by their `Review N Finding M` anchor — no new ID prefix; the legacy `G-` series is closed) linking to the new session entry.
 - See the **Suite review entry format** section in `primers/../suite-development/suite-development.md` for the required entry structure.

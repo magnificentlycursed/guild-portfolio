@@ -1,6 +1,6 @@
 # VSDD Suite Findings Index
 
-This index tracks findings (gaps) against the VSDD Suite itself. It is distinct from project-level review logs, which evaluate specific projects. This file evaluates the suite's own coverage, completeness, and fitness for different project contexts. Session narratives live in [`review-log/YYYY-MM-DD-suite-review.md`](review-log/); this file is the status registry indexed by gap ID.
+This index tracks findings against the VSDD Suite itself. It is distinct from project-level review logs, which evaluate specific projects. This file evaluates the suite's own coverage, completeness, and fitness for different project contexts. Session narratives live in [`review-log/YYYY-MM-DD-suite-review.md`](review-log/); this file is the status registry indexed by the originating suite review's `Review N Finding M` anchor.
 
 The findings registry should be walked (per the `registry-walk` lens documented in [`suite-development.md`](suite-development.md) § Suite review entry format) when:
 - The suite gains or loses domains
@@ -8,32 +8,58 @@ The findings registry should be walked (per the `registry-walk` lens documented 
 - A post-mortem reveals a class of defect the suite did not catch
 - Significant time has passed and the technology or regulatory landscape has shifted
 
+## Conventions
+
+This file carries the same shape as a project-level [`FINDINGS-INDEX.md`](../templates/PROJECT-FINDINGS-INDEX-template.md) — a suite contributor and a suite user should encounter the same registry conventions whether they are working inside the suite or inside a project that uses the suite. Two-section structure (forward-only per Review 73, 2026-05-20):
+
+- **§ Findings registry (forward-only)** — new findings registered on or after 2026-05-20. Schema mirrors the project finding-index schema with columns adapted for suite scope: `| Review | Lens | Finding | Title | Source | Classification | Status | Anchor |`. No `G-`/`F-` ID prefix — findings are identified by their originating `Review N Finding M` anchor (the same pattern project FINDINGS-INDEX files use).
+- **§ Legacy registry (G-01–G-182, closed to new entries)** — findings registered before 2026-05-20 under the prior gap-analysis convention. Preserved as historical anchors per G-89's forward-only narrative-preservation policy; not retroactively renamed. Status updates to legacy rows continue in place (update the row, do not move it). Cross-references to legacy IDs (e.g., `G-34`, `G-89`, `G-130`) remain valid as historical anchors throughout the suite.
+
 ## Adding and updating findings
 
-The full session-and-registry workflow is documented in [`suite-development.md`](suite-development.md) § Running gap analysis and § Suite review and review-log discipline. Summary:
+The full session-and-registry workflow is documented in [`suite-development.md`](suite-development.md) § Walking the findings registry and § Suite review and review-log discipline. Summary:
 
 1. Open a suite-development session per [`suite-development.md`](suite-development.md) (load the contributor primer; pick a lens — defect-search, registry-walk, or role-based; record findings).
-2. Walk this registry top-down for any existing gaps relevant to the lens. Note which gaps are Open, Deferred, or Dismissed — do not re-litigate dismissed gaps without new evidence.
-3. For each existing gap touched: has it been Addressed by a recent suite change? Has the context changed? Is it still a gap? Update the row's Status + Last Reviewed date in place.
-4. Look for new gaps not in the registry. Consider: what class of defect would the suite fail to catch? What failure mode is not represented? Register new gaps with the next G-ID and link to the suite review entry that found them.
+2. Walk both registries top-down for any existing findings relevant to the lens. Note which are Open, Deferred, or Dismissed — do not re-litigate dismissed findings without new evidence.
+3. For each existing finding touched: has it been Resolved by a recent suite change? Has the context changed? Is it still open? Update the row's Status + Last Reviewed date in place.
+4. Look for new findings not in either registry. Consider: what class of defect would the suite fail to catch? What failure mode is not represented? Register new findings in the **Findings registry (forward-only)** with their `Review N Finding M` anchor and link to the suite review entry that found them. (Do not assign new G-IDs — the legacy series is closed.)
 5. Record the session narrative in a new (or appended) [`review-log/YYYY-MM-DD-suite-review.md`](review-log/) entry per the format in [`suite-development.md`](suite-development.md) § Suite review entry format, and add a summary row to [`SUITE-DEVELOPMENT-REVIEW.md`](SUITE-DEVELOPMENT-REVIEW.md).
-6. When a gap is Addressed by changing a domain file, primer, supplement, or other suite artifact, the artifact change lands as a commit + CHANGELOG entry; reference the commit's review entry from this registry's row narrative.
+6. When a finding is Resolved by changing a domain file, primer, supplement, or other suite artifact, the artifact change lands as a commit + CHANGELOG entry; reference the commit's review entry from this registry's row narrative.
 
 ## Reactivation triggers
 
-Some gaps are deferred against a named reactivation trigger rather than left Open. The most common bundled trigger was **"after `issue-tracker-cli` completes"**, originally shared by G-88, G-89, G-90, G-91, G-92, G-93, G-94, and G-95. The trigger fired on 2026-05-17. G-90 and G-94 had been promoted and addressed in [Review 33/34](review-log/2026-05-03-suite-review.md#review-33--2026-05-03-2300z); G-88, G-91, G-92, G-93, and G-95 were addressed in [Review 38](review-log/2026-05-17-suite-review.md#review-38--2026-05-17-0200z); G-89 was addressed in [Review 39](review-log/2026-05-17-suite-review.md#review-39--2026-05-17-0216z). The bundle is now fully closed. For reference, the trigger condition (preserved here in case a future bundle reuses the same trigger shape) is satisfied when **all three** of the following hold:
+Some findings are deferred against a named reactivation trigger rather than left Open. The most common bundled trigger was **"after `issue-tracker-cli` completes"**, originally shared by G-88, G-89, G-90, G-91, G-92, G-93, G-94, and G-95. The trigger fired on 2026-05-17. G-90 and G-94 had been promoted and addressed in [Review 33/34](review-log/2026-05-03-suite-review.md#review-33--2026-05-03-2300z); G-88, G-91, G-92, G-93, and G-95 were addressed in [Review 38](review-log/2026-05-17-suite-review.md#review-38--2026-05-17-0200z); G-89 was addressed in [Review 39](review-log/2026-05-17-suite-review.md#review-39--2026-05-17-0216z). The bundle is now fully closed. For reference, the trigger condition (preserved here in case a future bundle reuses the same trigger shape) is satisfied when **all three** of the following hold:
 
 1. All active `issue-tracker-cli` layers have been merged to its main branch.
 2. The final-merge VDD-IAR Alignment review for `issue-tracker-cli` has been logged with a closing summary.
 3. The project is archived per the portfolio convention — added to the portfolio README, post-mortem written, no further development planned.
 
-If `issue-tracker-cli` is abandoned, pivoted, or otherwise does not reach this state, the trigger is considered not-fired; gaps with this trigger should be re-evaluated individually rather than acted on against an implicit signal. Gaps whose substance does not actually depend on `issue-tracker-cli`-derived feedback (e.g., mechanical renames, upstream-whitepaper checks) may be promoted from Deferred to Open at any time without waiting on the bundled trigger; record the decoupling in `CHANGELOG.md` and update the registry row.
+If `issue-tracker-cli` is abandoned, pivoted, or otherwise does not reach this state, the trigger is considered not-fired; findings with this trigger should be re-evaluated individually rather than acted on against an implicit signal. Findings whose substance does not actually depend on `issue-tracker-cli`-derived feedback (e.g., mechanical renames, upstream-whitepaper checks) may be promoted from Deferred to Open at any time without waiting on the bundled trigger; record the decoupling in `CHANGELOG.md` and update the registry row.
 
-When the trigger fires, all gaps sharing it become eligible for reactivation. They do not all need to be addressed in the same pass — see each gap's row for individual coordination notes.
+When the trigger fires, all findings sharing it become eligible for reactivation. They do not all need to be addressed in the same pass — see each finding's row for individual coordination notes.
 
-## Gap Registry
+## Findings registry (forward-only)
 
-Living table of all identified gaps. Update statuses here as gaps are addressed or dismissed. Do not delete rows — mark them Addressed or Dismissed with rationale. Each ID links to the suite review entry where the gap was first identified.
+Findings registered on or after 2026-05-20 (Review 73 convention shift). Schema mirrors the project finding-index shape so a suite contributor and a suite user encounter the same registry conventions across scopes. No `G-`/`F-` ID prefix — findings are identified by their originating `Review N Finding M` anchor. Status updates land in place; rows are not deleted.
+
+| Review | Lens | Finding | Title | Source | Classification | Status | Anchor |
+|---|---|---|---|---|---|---|---|
+
+*(no forward-only findings registered yet — the next suite review that surfaces a tracked finding adds the first row here)*
+
+**Classification values:** Resolved · Dismissed · Hallucinated · Open · Deferred (matches the project-level finding classification universe per [`suite-development.md`](suite-development.md) § Finding classification schemas by domain type).
+
+**Status values:** Closed · Open · Deferred.
+
+**Source values** (per the per-review preamble Source field, [`suite-development.md`](suite-development.md) § Per-review entry preamble): `domain-raised` · `director-raised` · `regression-replay` · `external-feedback` · `mixed`.
+
+**Lens values:** named defect class (e.g., `primer-naming-consistency`, `polarity-sweep`, `cross-artifact-consistency`, `documentation-currency`, `dogfooding`); registry-walk scope (e.g., `registry-walk`, `registry-walk:open-speculative`); role-based lens (e.g., `solution-owner`, `solution-architect`, `technical-writer`, `quality-engineer`); cross-cutting mode (e.g., `cold-context-subagent`, `methodology-tested-against-reference-impl`, `adversarial-against-recent-work`, `upstream-author-feedback-mining`, `operator-raised-observation`). When a finding is surfaced inside a multi-lens review, record the specific sub-lens that elicited it; the review-level Lens stays in the [`SUITE-DEVELOPMENT-REVIEW.md`](SUITE-DEVELOPMENT-REVIEW.md) row.
+
+## Legacy registry (G-01–G-182, closed to new entries)
+
+Findings registered before 2026-05-20 under the prior gap-analysis convention. Preserved as-is per G-89's forward-only narrative-preservation policy — rows are not retroactively renamed, the column shape is not retroactively reshaped, and the legacy `G-XX` IDs remain valid as historical anchors throughout the suite. Status updates to legacy rows continue in place (e.g., a long-Open G-ID closing in a future review still updates its row here, not in the forward-only section).
+
+Update statuses here as findings are addressed or dismissed. Do not delete rows — mark them Addressed or Dismissed with rationale. Each ID links to the suite review entry where the finding was first identified.
 
 | ID | Gap | Type | Mission-Critical Severity | Speculative Severity | Status | Opened | Last Reviewed |
 |---|---|---|---|---|---|---|---|
@@ -236,6 +262,6 @@ Living table of all identified gaps. Update statuses here as gaps are addressed 
 | [G-179](review-log/2026-05-20-suite-review.md#review-71--2026-05-20-0915z) | `README.md` § Merging gate stale relative to `suite-development/suite-development.md` § Layer-gate close criteria. README enumerated 6 criteria (1: active IAR domains run; 2: refinement loop ran to MVR; 3: every finding terminal; 4: accepted risks documented; 5: VDD-IAR Alignment run; 6: results logged with round numbers); suite-development.md has 7 baseline criteria (the same 6 plus criterion 7 — G-156's hard gate on developer-voice PROCESS.md retrospective, landed 2026-05-18). README also lacked the G-131/G-151 trigger-discipline framing the canonical version carries. Two sources of truth invited drift — a reader landing on the README's Merging gate first (the natural reading path for new adopters) would get a 6-criterion mental model that the canonical source has since superseded. Surfaced by multi-lens transition-progress audit (Review 71, TW lens). Addressed in [Review 71](review-log/2026-05-20-suite-review.md#review-71--2026-05-20-0915z) by replacing the README's 6-criterion enumeration with a one-line pointer to the canonical 7-criteria set in `suite-development/suite-development.md` § Layer-gate close criteria; pointer names criterion 7 (G-156) and the G-131/G-151 trigger discipline explicitly; two-sentence follow-up mentions the project-level CLOSURE-PROTOCOL.md precedent (ITC). Net change: −12 lines / +3 lines in README; criterion content lives in one place. Coordinate with G-136 (per-layer flow diagram already references the canonical criteria — this completes the single-source-of-truth pattern), G-156 (criterion 7 source), G-131 + G-151 (trigger discipline) | Documentation gap | Medium | Low | Addressed | 2026-05-20 | 2026-05-20 |
 | [G-180](review-log/2026-05-20-suite-review.md#review-71--2026-05-20-0915z) | `templates/README.md` § Customization checklist does not name DESIGN.md § Project intent declaration. The checklist enumerates 6 per-domain field substitutions and a closing paragraph each for DESIGN.md and project README.md; the DESIGN.md paragraph names the primer to load but does not call out the `§ Project intent` declaration — the intent line is what gates the active-domain set, the stop-signal sensitivity, and (at capstone+ intent) the Phase 5 / Phase 6 strategy declarations. A first-time scaffolder following the checklist literally would customize per-domain index files first, then write DESIGN.md from the skeleton, possibly without realizing the active-domain set scaffolded should match the intent declared in DESIGN.md. The discoverability path is implicit (in DESIGN-template.md itself) but the customization checklist is the first artifact the scaffolder reads. Surfaced by multi-lens transition-progress audit (Review 71, TW lens — paired with G-179 in the same multi-artifact staleness sweep). Addressed in [Review 71](review-log/2026-05-20-suite-review.md#review-71--2026-05-20-0915z) by expanding the `For DESIGN.md` paragraph in `templates/README.md` § Customization checklist into a 2-step ordered list: (1) work the driving questions in the primer (unchanged); (2) declare `§ Project intent` first with one-sentence rationale naming what the intent gates and a warning about the over-investment variant being hard to catch in-project. Cross-references `domains/DOMAIN-INDEX.md` § Intent calibration. Coordinate with G-121 (scaffold-default ratification — intent declaration is the explicit input to the scaffold-default logic), G-150 (intent calibration — this is the customization-time touchpoint), G-162 (Phase 5/6 strategy declaration at capstone+ — depends on intent being declared first) | Documentation gap | Medium | Low | Addressed | 2026-05-20 | 2026-05-20 |
 
-**Status values:** Open · Addressed · Deferred · Dismissed · Context-Dependent
+**Status values (legacy registry):** Open · Addressed · Deferred · Dismissed · Context-Dependent. The forward-only registry uses the project-aligned set (Closed · Open · Deferred) with disposition tracked in the separate Classification column; the legacy registry's `Addressed` collapses Classification + Status into one column and is preserved as-is per the forward-only constraint.
 
 Session narratives are recorded in `review-log/YYYY-MM-DD-suite-review.md` files under `## Review N` headings, and indexed in `SUITE-DEVELOPMENT-REVIEW.md`.
