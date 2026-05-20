@@ -12,6 +12,7 @@ These dimensions supplement the standard IAR domain reviews for markdown (`.md`)
 
 ## Baseline standards
 
+- **GitHub is the canonical render target.** Per operator declaration ([Review 80](../suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 2): "Most of my markdown files are intended to be read on GitHub." The applicable style authority is the [GitHub Docs Style Guide](https://github.com/github/docs/blob/main/content/contributing/style-guide-and-content-model/style-guide.md). Where GitHub's guide overlaps with general markdown discipline, follow GitHub; where this supplement specifies a stricter / suite-specific convention, follow the suite. See [§ GitHub render-target conventions](#github-render-target-conventions) below for the codified subset.
 - **[CommonMark](https://commonmark.org/) + GFM is the floor.** All `.md` files in VSDD projects and the suite render through GitHub's renderer first. CommonMark defines the core syntax; GFM layers tables, task lists, autolinks, strikethrough, and heading anchors on top. Features outside CommonMark + GFM (Pandoc extensions, MyST roles, kramdown blocks) are out of scope for forward-facing suite content — they break on GitHub's renderer, which is where readers land.
 - **GFM tables** — pipe-delimited tables with header-separator row. Long cells should be hard-wrapped only if the table is hand-edited (the rendered output ignores in-cell line breaks anyway); machine-generated tables can be one-line-per-row.
 - **GFM task lists** — `- [ ]` / `- [x]` checkboxes. Used pervasively in `TODO.md` and `manual-tests/layer-N.md` per the [Review 74](../suite-development/review-log/2026-05-20-suite-review.md) manual-test split convention.
@@ -166,6 +167,60 @@ Markdown localization is a per-file translation workflow, distinct from code-str
 - **UTF-8 with explicit declaration where relevant** — Markdown files are UTF-8. Tools like [pandoc](https://pandoc.org/) honor explicit encoding declarations; GitHub renders UTF-8 by default. Right-to-left languages (Arabic, Hebrew) require special handling at the HTML rendering layer (`<html dir="rtl">`) — markdown alone can't express direction. Projects with RTL content should pair markdown with a renderer that handles bidirectional text.
 - **Pluralization and locale-sensitive prose** — Markdown prose written in English uses English plural rules. Translations into languages with non-binary plurals (Russian, Arabic, Polish) need the translator to restructure prose, not just replace words. The translation workflow's QA pass catches this; mechanical machine translation does not.
 - **Link target localization** — Links inside markdown can point at locale-specific targets (`https://docs.example.com/fr/...` for the French version). When the source link points at a generic English doc, the translation should update the link to the localized version where one exists. The translation tooling does not do this automatically — it's a translator-judgment task.
+
+---
+
+## GitHub render-target conventions
+
+Codified from the [GitHub Docs Style Guide](https://github.com/github/docs/blob/main/content/contributing/style-guide-and-content-model/style-guide.md) ([Review 80](../suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 2). These rules apply to forward-facing suite + reference-example content; pre-Review-80 prose is preserved per [G-89](../suite-development/FINDINGS-INDEX.md#g-89). Source-of-truth precedence: GitHub style guide → suite-development.md § Naming and identifier discipline → suite-development.md § Anchor-link convention → this supplement.
+
+**Headings.**
+- **Sentence case** — capitalize only the first word and proper nouns. The suite already follows this (per [Review 78](../suite-development/review-log/2026-05-20-suite-review.md#review-78--2026-05-20-1630z) Finding 4 — descriptive names are the primary identifier). Exception: methodology Title Case names from the [VSDD whitepaper](https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00) (Mutation Testing, Fuzz Testing, Purity Boundary Audit, Proof Execution, Red Gate, Minimal Implementation, Adversarial Refinement, Feedback Integration Loop, Convergence) — these are proper nouns by whitepaper convention.
+- **Never skip heading levels** — H2 → H4 without H3 is forbidden. Captured in [§ Anti-patterns](#anti-patterns) below; enforced by [markdownlint](https://github.com/DavidAnson/markdownlint) rule `MD001`.
+- **Unique H2 per page** — every H2 heading text must be unique within the file. Affects suite-development.md and review-log files where similar concerns recur — disambiguate via parenthetical (e.g., `## Resolution (Phase 1 — high-leverage entry points)`).
+- **Content between heading and subheading** — every H2 has at least one paragraph before its first H3. Stack-of-empty-headings is a defect.
+
+**Link text.**
+- **Descriptive link text, not "click here" / "see this" / "more"** — already codified in [Accessibility](#accessibility) below and [TW Dim 13](../domains/role/TECHNICAL-WRITER-REVIEW.md). The link text should answer "where does this take me" without surrounding context.
+- **Same link, single instance per article** — GitHub's style guide discourages repeating the same URL in one article. The suite's first-mention-per-file rule (per [suite-development.md § Anchor-link convention](../suite-development/suite-development.md#anchor-link-convention-for-cross-references-review-79-finding-3)) for external links matches this principle. Internal anchor-links remain low-cost-per-mention.
+
+**Inclusive language.**
+- **Allowlist / Denylist** (not whitelist / blacklist). **Default branch** or **main branch** (not master). **Decommission / Retire** (not kill / sunset). The suite has no historical whitelist/blacklist usage; the discipline is forward-looking.
+- **Avoid regional idioms and slang.** Suite-authored prose targets a global apprentice audience; idioms that read naturally to a US-native reader may opacify for a non-native speaker.
+- **Be accurate when referring to people.** Operator handles use the canonical form (`dollspace.gay` per [github.com/dollspace-gay](https://github.com/dollspace-gay), not invented variants); anonymized review-log artifacts use `<user>` / `<email>` / `<path>` placeholders per the [anonymization hook](../hooks/check-review-log-anonymization.sh).
+
+**Voice and tense.**
+- **Active voice; second person; present tense for procedures.** The suite uses second person ("you write the Red Gate test") and active voice consistently. Procedural primers (`primers/2a-red-gate.md`, `primers/2b-implementation.md`, etc.) are written in present-tense imperative ("Run the test suite. Confirm every new test fails."), matching GitHub's procedural-doc voice.
+- **Past tense for retrospective content** — `CHANGELOG.md` entries, `PROCESS.md` retrospectives, review-log Findings describing already-completed work use past tense ("Authored", "Resolved", "Swept across 16 files"). Forward-looking sections in the same artifact (`PR after Phase 2 anchor-link sweep`) use the appropriate forward tense.
+
+**Acronyms and abbreviations.**
+- **Spell out on first use; abbreviate after.** VSDD ([Verified Spec-Driven Development](https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00)), VDD ([Verified Development Discipline](https://gist.github.com/dollspace-gay/45c95ebfb5a3a3bae84d8bebd662cc25)), IAR (Iterative Adversarial Refinement), MVR (maximum viable refinement), QE (Quality Engineer), SE (Software Engineer), TW (Technical Writer), SA (Solution Architect), SO (Solution Owner), PE (Platform Engineer), DE (Data Engineer), TDD (test-driven development), GFM (GitHub-Flavored Markdown). The suite's [TW Dim 12](../domains/role/TECHNICAL-WRITER-REVIEW.md) catches missing first-use expansions at review time.
+- **Acceptable suite abbreviations that include the concept word** — `Dim N`, `Layer N`, `Round N`, `Finding N`, `Phase N`. These match GitHub's "abbreviation includes the noun" pattern.
+
+**Alerts and callouts.**
+- **GFM alerts** — `> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`, `> [!CAUTION]` per GitHub's [alert syntax](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts). Use for content that genuinely warrants reader attention; over-use degrades the signal. Maximum one alert per H2 section. Suite primers and domain prompts have historically used `**Bold prefix:**` inline emphasis instead of alerts — both are valid; alerts are reserved for risk + side-effect warnings (e.g., destructive operations, version-pin mismatches).
+
+**Code blocks.**
+- **Always specify language after the fence** — ` ```rust ` / ` ```python ` / ` ```bash ` / ` ```json ` / ` ```yaml ` / ` ```toml ` / ` ```diff ` — matches GitHub's syntax-highlighter language list. Unspecified language (` ``` `) drops syntax highlighting and is an anti-pattern.
+- **No command prompts (`$`, `>`) before the command itself** — `cargo test` not `$ cargo test`. The user pastes the line as-is.
+- **Comment out command output, don't fence it separately** — when showing expected output inline, prefix with `# ` so the block remains executable-or-readable as a single unit.
+- **Placeholders in `UPPERCASE-KEBAB-CASE` not `<angle-brackets>`** — `BRANCH-NAME` not `<branch-name>`. Avoids confusion with HTML/XML and renders cleanly in code blocks.
+
+**Tables.**
+- **Pipes at start AND end of every row** — `| col1 | col2 |` not `col1 | col2`. Improves diff readability and matches markdownlint's `MD055` rule.
+- **Every cell has a value** — empty cells use `None` or `Not applicable`. The suite's `*(not applicable)*` italicized placeholder is acceptable; bare empty cells are not.
+- **Left-align text columns by default** — GFM's `:---` (left), `:---:` (center), `---:` (right) syntax. The suite has no formal alignment policy; default left works for prose-content cells.
+- **Tables are for tabular data, not for layout** — captured in [§ Anti-patterns](#anti-patterns).
+
+**Alt text.**
+- **Start with the graphic type** — "Screenshot of...", "Diagram showing...", "Flowchart of...". Never start with "Image of..." or "Picture of...".
+- **Describe meaning, not appearance** — what the image conveys, not what it looks like.
+- **40–150 characters typical range** — under 40 usually misses context; over 150 belongs in the body prose.
+- **End with a period.** Screen readers pause appropriately.
+
+**File names and paths.**
+- **Kebab-case for content files** — `red-gate-test.rs` not `redGateTest.rs` or `red_gate_test.rs`. (The suite has historical exceptions for SCREAMING-CASE domain prompts (`TECHNICAL-WRITER-REVIEW.md`) and snake_case Python modules — those are appropriate to their context; new general-purpose content files default to kebab-case.)
+- **Descriptive image file names** — `phase-5-hardening-surface-mapping.png` not `image1.png`.
 
 ---
 

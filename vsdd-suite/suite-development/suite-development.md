@@ -119,7 +119,7 @@ When introducing a new methodology concept (a session type; a verification surfa
 
 **Mechanical detector pattern (audit support):** grep for capital-letter labels next to methodology concept words — `Surface [A-Z]`, `Phase [0-9][a-z]`, `Mode [A-Z]`, `Form [A-Z]`, `Class [A-Z]`, `Type [A-Z]`, `Variant [A-Z]` — across forward-facing suite content (`primers/`, `domains/`, `supplements/`, `README.md`, `suite-development.md`) AND project content (project DESIGN.md, TODO.md, per-domain reviews). Each match is a candidate for the lookup-cost question: would a descriptive name carry the meaning here? The detector is mechanical; the judgment is human (or Sanity Check) — not every match is a defect, but every match is worth the question.
 
-**Companion review dimension:** Technical Writer Dim 12 ("Lettering / abbreviation lookup cost") evaluates project documentation against this discipline at Phase 3 review time. Suite-authoring discipline lives here (§ Naming and identifier discipline); project-review discipline lives in the TW domain prompt. The Documentation Reviewer pair (forthcoming) will eventually validate TW Dim 12 findings via the standard cold-reader pair pattern.
+**Companion review dimension:** [Technical Writer](../domains/role/TECHNICAL-WRITER-REVIEW.md) Dim 12 ("Lettering / abbreviation lookup cost") evaluates project documentation against this discipline at Phase 3 review time. Suite-authoring discipline lives here (§ Naming and identifier discipline); project-review discipline lives in the TW domain prompt. The [Documentation Reviewer](../domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) pair (registered in [Review 80](review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z)) validates TW Dim 12 findings via the standard cold-reader pair pattern.
 
 ### Anchor-link convention for cross-references ([Review 79](review-log/2026-05-20-suite-review.md#review-79--2026-05-20-1730z) Finding 3)
 
@@ -154,7 +154,7 @@ When authoring forward-facing suite content (primers, domains, README, supplemen
 
 **First-mention-per-file rule:** external links land on the FIRST mention in each file (the highest-leverage placement — the reader clicks once and is anchored on the canonical source). Subsequent mentions in the same file are plain text. This avoids visual noise without sacrificing discoverability. Internal links land on every mention (low cost; same-page anchors).
 
-**Companion review dimension:** Technical Writer Dim 13 ("Inline-reference navigability") evaluates project documentation against this discipline at Phase 3 review time. The Documentation Reviewer pair (forthcoming) will eventually validate TW Dim 13 findings.
+**Companion review dimension:** [Technical Writer](../domains/role/TECHNICAL-WRITER-REVIEW.md) Dim 13 ("Inline-reference navigability") evaluates project documentation against this discipline at Phase 3 review time. The [Documentation Reviewer](../domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) pair (registered in [Review 80](review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z)) Dim 11 ("Inline-reference clickthrough validation") validates TW Dim 13 findings from the cold-reader seat — TW catches unlinked references at authoring time; Doc Reviewer catches broken or miscredited links at review time.
 
 ---
 

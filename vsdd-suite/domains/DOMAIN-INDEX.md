@@ -38,6 +38,7 @@ Platform Engineer and Data Engineer are **extended-with-strong-presumption**: mo
 | `role/RED-TEAM-REVIEW.md` | Red Team Hacker | Application has authentication, user-controlled input, network exposure, or data belonging to users other than the developer. Run after Security Engineer. |
 | `role/PERFORMANCE-ENGINEER-REVIEW.md` | Performance Engineer | Browser applications, server-side applications with network latency or SLAs, data-intensive tools, or any application where startup time or throughput is a user-visible concern. |
 | `role/TECHNICAL-WRITER-REVIEW.md` | Technical Writer | Any project intended for handoff, portfolio submission, external use, or operational deployment. For library projects: always active (API documentation is the primary deliverable). |
+| `role/DOCUMENTATION-REVIEWER-REVIEW.md` | Documentation Reviewer | Adversarial cold-reader pair to Technical Writer (the same shape as Security ↔ Red Team). Activates whenever Technical Writer activates — Doc Reviewer reads docs cold to surface implicit-knowledge / forward-reference / cross-reference defects that TW (the author) cannot see. Run AFTER Technical Writer; the pair compounds (TW writes from inside the project; Doc Reviewer reads from outside it). At capstone + production intent always active when TW is active; at portfolio intent active when project is intended for external reading. |
 | `role/ACCESSIBILITY-REVIEW.md` | Accessibility Engineer | All browser-rendered applications and native UI applications. Not applicable to headless services or CLI tools. When active, run in addition to (not instead of) UX domain. |
 | `role/PRIVACY-REVIEW.md` | Privacy Officer | Any application that collects, processes, or stores information about identifiable individuals — including single-user applications that store behavioral data. For applications with users other than the developer, full evaluation is required. |
 | `role/LOCALIZATION-REVIEW.md` | Localization Engineer | Any user-facing application that may be used by people speaking languages other than the implementation language, or with locale-specific formatting expectations. For applications explicitly scoped to a single locale, activate to verify the scope is correctly enforced. |
@@ -62,7 +63,7 @@ The "all cores plus warranted extended domains" default above is the right start
 
 The over-investment failure mode is harder to catch in-project than the under-investment one because more findings *feel* like more value — that's the framing G-150 names and the calibration this section operationalizes.
 
-The seven core domains (SE, QE, UX, Security, SA, SO, VDD-IAR Alignment) are abbreviated "7 core" below. The extended pool draws from {PE, DE, Red Team, Performance Engineer, Technical Writer, Accessibility, Privacy, Localization} per the activation criteria above.
+The seven core domains (SE, QE, UX, Security, SA, SO, VDD-IAR Alignment) are abbreviated "7 core" below. The extended pool draws from {PE, DE, Red Team, Performance Engineer, Technical Writer, Documentation Reviewer, Accessibility, Privacy, Localization} per the activation criteria above. Documentation Reviewer is the cold-reader pair to Technical Writer; they activate together.
 
 | Intent | Active core domains | Active extended domains | Stop-signal sensitivity (G-151) | Notes |
 |---|---|---|---|---|
