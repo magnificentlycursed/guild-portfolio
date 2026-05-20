@@ -22,7 +22,7 @@ You are helping verify four-dimensional convergence for a project under the Veri
 
 ## Project reference
 
-*(Paste the project's `DESIGN.md` § Project intent + `**Phase 5 strategy:**` + `**Phase 6 strategy:**` lines; the per-layer Phase 5 closure annotations from `PHASE-5-LOG.md`; the final Phase 3 round summaries per active domain; the project's CHANGELOG.md final-layer entry.)*
+*(Paste the project's `DESIGN.md` § Project intent + `**Phase 5 strategy:**` + `**Phase 6 strategy:**` lines; the per-layer Phase 5 closure rounds from the per-domain logs (SA log for Surface A/A.0/D rounds; QE log for Surface B/C rounds — each with the `**Phase 5 surface:**` preamble tag per G-177 closure); the final Phase 3 round summaries per active domain; the project's CHANGELOG.md final-layer entry.)*
 
 ---
 
@@ -48,9 +48,9 @@ Phase 6 evaluates four independent MVR signals. Each dimension has a distinct ex
 
 **Anti-signal:** Phase 5 ran and produced a 90%+ kill rate with no per-mutant disposition (aggregate-only reporting). The aggregate hides which mutants survived; a 90% rate with the surviving 10% all in spec-asserted invariants is materially weaker than 70% with surviving mutants all in logging code.
 
-**Verification step (per F5 — required, not aspirational):** before marking Dimension 2 Established, open each cited per-layer Surface B section in `PHASE-5-LOG.md` and confirm a per-mutant disposition table exists (rows: mutant location, mutation kind, disposition, rationale). A per-layer entry that reports only a kill-rate number with no disposition table fails Dimension 2 regardless of the rate. The Phase 6 convergence record must cite the specific dispositions, not just the aggregate — otherwise the gate is rubber-stamping aggregate metrics rather than verifying the Phase 5 discipline held.
+**Verification step (per F5 — required, not aspirational):** before marking Dimension 2 Established, open each cited per-layer Surface B round in `vsdd-suite/QUALITY-ENGINEER-REVIEW.md` + the linked `review-log/<date>-quality-engineer.md` session file and confirm a per-mutant disposition table exists (rows: mutant location, mutation kind, disposition, rationale). A per-layer entry that reports only a kill-rate number with no disposition table fails Dimension 2 regardless of the rate. The Phase 6 convergence round must cite the specific dispositions, not just the aggregate — otherwise the gate is rubber-stamping aggregate metrics rather than verifying the Phase 5 discipline held.
 
-**Disposition record:** the convergence record links the `PHASE-5-LOG.md` per-layer Surface B section + names the test-suite's kill rate + names the count of surviving mutants by disposition class (equivalent / missing-test-added / spec-gap-routed). If any cited layer's disposition table is absent or aggregate-only, Dimension 2 is Not Established and the layer is routed back to Phase 5 Surface B before Phase 6 can close.
+**Disposition record:** the convergence record links the per-layer QE Surface B round in `vsdd-suite/review-log/<date>-quality-engineer.md` (entered with `**Phase 5 surface:** B` preamble per G-177) + names the test-suite's kill rate + names the count of surviving mutants by disposition class (equivalent / missing-test-added / spec-gap-routed). If any cited layer's disposition table is absent or aggregate-only, Dimension 2 is Not Established and the layer is routed back to Phase 5 Surface B before Phase 6 can close.
 
 ### Dimension 3: Implementation MVR
 
@@ -66,7 +66,7 @@ Phase 6 evaluates four independent MVR signals. Each dimension has a distinct ex
 
 **Question:** For the project's declared formal-verification scope, has each formal-proof candidate either had its property proved OR been explicitly deferred with rationale?
 
-**Signal:** Phase 5 Surface D harnesses (proofs / bounded model checks / TLA+ specs) each have a recorded outcome in `PHASE-5-LOG.md` per the project's `**Phase 5 strategy:** planned — <scope>` declaration. For projects that declared `**Phase 5 strategy:** not applicable — <rationale>`, Dimension 4's signal is the rationale itself — the project is closing convergence on three of four dimensions, with the formal-verification dimension explicitly declared not applicable.
+**Signal:** Phase 5 Surface D harnesses (proofs / bounded model checks / TLA+ specs) each have a recorded outcome in the per-layer Surface D round under `vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md` + the linked `review-log/<date>-solution-architect.md` session file (entered with `**Phase 5 surface:** D` preamble per G-177) per the project's `**Phase 5 strategy:** planned — <scope>` declaration. For projects that declared `**Phase 5 strategy:** not applicable — <rationale>`, Dimension 4's signal is the rationale itself — the project is closing convergence on three of four dimensions, with the formal-verification dimension explicitly declared not applicable.
 
 **Anti-signal:** The project's `**Phase 5 strategy:**` listed formal-proof candidates but the harnesses never landed. Phase 6 cannot close with planned-but-not-executed Phase 5 scope.
 
@@ -108,47 +108,54 @@ The convergence check is *not* checking everything; it's checking the spec's *na
 
 ## Phase 6 convergence record format
 
-The record lives at `vsdd-suite/PHASE-6-CONVERGENCE.md` in the project. One file per project. The record is written once at project close (subsequent re-opens for follow-up work re-trigger Phase 6 for the affected dimensions; the original record is preserved as audit trail).
+The convergence record IS the final VDD-IAR Alignment review round (G-177 closure, 2026-05-20). No separate per-project Phase 6 file. The record is written once at project close as a new round in `vsdd-suite/VDD-IAR-ALIGNMENT-REVIEW.md` index + the linked `review-log/<close-date>-vdd-iar-alignment.md` session file (subsequent re-opens for follow-up work re-trigger a fresh Phase 6 convergence round; the original round is preserved as audit trail per the standard per-domain review log structure).
 
-Record shape:
+The round entry uses the standard per-review preamble per `suite-development/suite-development.md` § Per-review entry preamble plus a Phase 6 marker:
 
 ```markdown
-# Four-Dimensional Convergence — <Project name>
+## Review N — Phase 6 four-dimensional convergence (project-terminal) — YYYY-MM-DD HH:MMZ
 
-**Date:** YYYY-MM-DD HH:MMZ
+**Scope:** project-terminal convergence — all layers L1..LN closed Phase 5 (or declared `Phase 5 strategy: not applicable`); all per-domain Phase 3 final rounds reached MVR; cross-dimension consistency check pending in this round.
+
+**Session note:** [cold-session vs. in-session; sycophancy-compensation per the standard]
+
+**Source:** domain-raised — VDD-IAR Alignment dim 14 (Phase 6 four-dimensional convergence)
+
+**Phase 6 marker:** project-terminal convergence round.
+
 **Project intent:** <intent-level per DESIGN.md>
 **Phase 5 strategy:** <verbatim from DESIGN.md>
 **Phase 6 strategy:** <verbatim from DESIGN.md>
 
-## Dimension 1: Spec MVR
+### Dimension 1: Spec MVR
 
 **Established by:** [Solution Owner Review N at <layer> on <date>, with Phase 4 routing across Rounds N+1..N-X producing no `route:phase-1a+1b` destinations.]
 
 **Citations:** <cite the SO review log entries by link>
 
-## Dimension 2: Test MVR
+### Dimension 2: Test MVR
 
-**Established by:** [Phase 5 Surface B across layers L1..LN with kill rates <list>, surviving-mutant dispositions in PHASE-5-LOG.md.]
+**Established by:** [Phase 5 Surface B across layers L1..LN with kill rates <list>, surviving-mutant dispositions in the cited per-layer QE Surface B rounds.]
 
 (Or for not-applicable: "Phase 5 declared not applicable per DESIGN.md; test-suite MVR signal is QE final-round attestation against Dim 2 — explicitly weaker than mutation-tested signal.")
 
-**Citations:** <cite PHASE-5-LOG.md sections + QE final review>
+**Citations:** <cite per-layer QE Surface B rounds in `review-log/<date>-quality-engineer.md` + QE final Phase 3 round>
 
-## Dimension 3: Implementation MVR
+### Dimension 3: Implementation MVR
 
 **Established by:** [Phase 3 final round per active domain across layers L1..LN producing only Hallucinated findings.]
 
 **Citations:** <cite per-domain final review log entries>
 
-## Dimension 4: Formal-verification MVR
+### Dimension 4: Formal-verification MVR
 
-**Established by:** [Phase 5 Surface D harnesses <list> establishing properties <list>.]
+**Established by:** [Phase 5 Surface D harnesses <list> establishing properties <list>, cited from the per-layer SA Surface D rounds.]
 
 (Or for not-applicable: "Phase 5 declared `formal proof not applicable — <rationale>`. Convergence closes on three of four dimensions; formal-verification dimension explicitly out of scope.")
 
-**Citations:** <cite Surface D harnesses by file + property + tool>
+**Citations:** <cite per-layer SA Surface D rounds in `review-log/<date>-solution-architect.md` + per-harness proof reports>
 
-## Cross-dimension consistency check
+### Cross-dimension consistency check
 
 For each of the spec's named behaviors:
 
@@ -158,30 +165,38 @@ For each of the spec's named behaviors:
 
 (One row per spec-named behavior. Inconsistent rows are routed via Phase 4 before convergence is declared.)
 
-## Out-of-scope dimensions
+### Out-of-scope dimensions
 
 [Name the dimensions explicitly skipped, with the project intent + strategy declaration that authorized the skip.]
 
-## Convergence attestation
+### Convergence attestation
 
 [One paragraph: the convergence record's author asserts that the four (or three with formal-verification out-of-scope) dimensions have independently reached MVR and the cross-dimension consistency check holds. Signature line per the project's identity posture (see Anonymization-aware attestation below).]
+
+### Summary
+
+[One short paragraph: tally of dimensions Established, dimensions declared not applicable with rationale, cross-dimension inconsistencies routed via Phase 4 (zero at the closing round per the gate). Required per the per-review entry closing block standard.]
+
+**Coordination:** [Optional — if the convergence round prompted any spec amendments, link the SO log; if the round prompted any retroactive Phase 5 work, link the relevant per-domain rounds.]
 ```
 
-**Anonymization-aware attestation (F9 — applies when the project's identity posture is opt-in anonymized).** For projects that signal "scrub me" per `primers/3-review-session.md` § Confidentiality-aware citation (a `block local home directory paths` pre-commit hook; a `.gitconfig` with a noreply email; a scrubbed `Cargo.toml` author/repository fields), the attestation signature is **the closing-commit's git hash**, not the developer's real name. Format: `Signed: <commit-sha> on <YYYY-MM-DD HH:MMZ>.` where `<commit-sha>` is the commit that adds the attestation to `PHASE-6-CONVERGENCE.md`. The git hash is non-repudiable (a future reader can verify the commit is signed-off by the project's anonymized identity per the project's pre-commit hooks) and respects the anonymization discipline. For non-anonymized projects, the real name is acceptable; the audit signal is the same — a reader can verify the attestation against the project's commit history.
+**Anonymization-aware attestation (F9 — applies when the project's identity posture is opt-in anonymized).** For projects that signal "scrub me" per `primers/3-review-session.md` § Confidentiality-aware citation (a `block local home directory paths` pre-commit hook; a `.gitconfig` with a noreply email; a scrubbed `Cargo.toml` author/repository fields), the attestation signature is **the closing-commit's git hash**, not the developer's real name. Format: `Signed: <commit-sha> on <YYYY-MM-DD HH:MMZ>.` where `<commit-sha>` is the commit that adds the final round to the VDD-IAR Alignment review log. The git hash is non-repudiable (a future reader can verify the commit is signed-off by the project's anonymized identity per the project's pre-commit hooks) and respects the anonymization discipline. For non-anonymized projects, the real name is acceptable; the audit signal is the same — a reader can verify the attestation against the project's commit history.
 
 ---
 
 ## Crosslink mode
 
-Phase 6 record is committed alongside the rest of the project's `vsdd-suite/` artifacts. Crosslink integration is light — Phase 6 is project-terminal, so there's no ongoing session to instrument:
+Phase 6 round is committed alongside the rest of the project's `vsdd-suite/` artifacts. Crosslink integration is light — Phase 6 is project-terminal, so there's no ongoing session to instrument:
 
 ```sh
-# Author the convergence record (typically in a fresh chat with this primer loaded):
+# Author the final VDD-IAR Alignment round (typically in a fresh chat with this primer loaded):
 crosslink session start
 crosslink session work <project-epic-id>     # the project's top-level epic
-# (work the driving questions; produce PHASE-6-CONVERGENCE.md)
-git add vsdd-suite/PHASE-6-CONVERGENCE.md
-git commit -m "Phase 6: four-dimensional convergence record"
+# (work the driving questions; produce the new round entry in
+#  vsdd-suite/review-log/<close-date>-vdd-iar-alignment.md and update the
+#  vsdd-suite/VDD-IAR-ALIGNMENT-REVIEW.md index)
+git add vsdd-suite/VDD-IAR-ALIGNMENT-REVIEW.md vsdd-suite/review-log/*-vdd-iar-alignment.md
+git commit -m "Phase 6: four-dimensional convergence round (final VDD-IAR Alignment round, signed)"
 crosslink session end --notes "Project closed at four-dimensional convergence (or three-of-four with formal-verification declared not applicable)."
 
 # Final milestone close — `crosslink milestone close` takes a numeric ID, not a name (G-167 / crosslink-contract.md § Known limitations).
@@ -190,13 +205,13 @@ crosslink milestone list                                  # lists numeric IDs al
 crosslink milestone close <project-terminal-milestone-id> # substitute the numeric ID from the line above
 ```
 
-If a Phase 6 inconsistency is discovered mid-write, route via Phase 4 like any other finding — file a crosslink issue with `phase:6` + `route:phase-<destination>` labels and resume the convergence record after the routed work closes.
+If a Phase 6 inconsistency is discovered mid-write, route via Phase 4 like any other finding — file a crosslink issue with `phase:6` + `route:phase-<destination>` labels and resume the convergence round after the routed work closes.
 
 ---
 
 ## Manual mode
 
-Same record at `vsdd-suite/PHASE-6-CONVERGENCE.md`. Inconsistencies routed via Phase 4 are recorded in the project's `FINDINGS-INDEX.md` with `phase:6` in the Source column.
+Same final VDD-IAR Alignment round in `vsdd-suite/review-log/<close-date>-vdd-iar-alignment.md` with the index row appended to `vsdd-suite/VDD-IAR-ALIGNMENT-REVIEW.md`. Inconsistencies routed via Phase 4 are recorded in the project's `FINDINGS-INDEX.md` with `phase:6` in the Source column.
 
 ---
 
@@ -204,12 +219,12 @@ Same record at `vsdd-suite/PHASE-6-CONVERGENCE.md`. Inconsistencies routed via P
 
 Phase 6 is complete and the project is closed at four-dimensional convergence when:
 
-1. `vsdd-suite/PHASE-6-CONVERGENCE.md` exists with all four dimensions populated (or three populated and the fourth explicitly declared out of scope).
-2. The cross-dimension consistency check table has zero inconsistent rows.
-3. Every inconsistency surfaced during the check has been routed via Phase 4 to its earliest-correct phase and the routed work has landed (the resolution is part of the record's citations).
-4. The convergence attestation is signed and dated.
-5. The project's CHANGELOG.md final entry references `PHASE-6-CONVERGENCE.md`.
+1. A new round titled "Review N — Phase 6 four-dimensional convergence (project-terminal)" exists in `vsdd-suite/review-log/<close-date>-vdd-iar-alignment.md` with all four dimensions populated (or three populated and the fourth explicitly declared out of scope). The round is indexed in `vsdd-suite/VDD-IAR-ALIGNMENT-REVIEW.md`.
+2. The cross-dimension consistency check table in the round body has zero inconsistent rows.
+3. Every inconsistency surfaced during the check has been routed via Phase 4 to its earliest-correct phase and the routed work has landed (the resolution is part of the round's citations).
+4. The convergence attestation is signed and dated in the round's closing block.
+5. The project's CHANGELOG.md final entry references the Phase 6 convergence round by link.
 
-Phase 6 is not iterative — there is no "Round N+1 of Phase 6." Subsequent project work that touches the spec, tests, implementation, or formal-verification artifacts re-opens the project and triggers a fresh Phase 6 record (preserving the original as audit trail). Forward-only: a project's first Phase 6 closure is anchored to 2026-05-20 (Review 64 / v0.7.0); closures predating 2026-05-20 retain their prior implementation-MVR-only closure shape (G-54 carve-out).
+Phase 6 is not iterative — there is no "Round N+1 of Phase 6." Subsequent project work that touches the spec, tests, implementation, or formal-verification artifacts re-opens the project and triggers a fresh Phase 6 round (preserving the original as audit trail per the standard per-domain review log structure). Forward-only: a project's first Phase 6 closure is anchored to 2026-05-20 (Review 64 / v0.7.0); closures predating 2026-05-20 retain their prior implementation-MVR-only closure shape (G-54 carve-out).
 
 **Coordination with G-54 (Four-Dimensional Convergence partial ownership):** v0.7.0's Phase 6 primer closes G-54 by giving the suite ownership of all four dimensions' MVR signals and the cross-dimension consistency check. The check itself was the gap G-54 named — until v0.7.0, the suite only tracked implementation MVR; Phase 6 makes the other three dimensions equal first-class participants.
