@@ -2,6 +2,8 @@
 
 [Index](../QUALITY-ENGINEER-REVIEW.md)
 
+
+**Migration note (PR 6 / Review 78):** This pre-2026-05-21 review entry was authored under portfolio intent and the pre-Review-77 classification-centric finding model. Per PR 6's capstone-intent promotion + the G-177 reference-example-migrates precedent, the Review 77 lifecycle fields (`Owner` / `Status` / `Blocked by` / `Validator`) have been added retroactively to each non-Hallucinated finding so the reference example demonstrates current conventions. The hook's lifecycle-field enforcement (`check-project-review-discipline.py`) does NOT enforce on this date (pre-2026-05-21 cutoff), so the fields are aspirational here; the next-day Review-77-enforced rounds (Reviews dated 2026-05-21+) carry the same fields under the enforced standard.
 ---
 
 ## Review 1 — 2026-05-17 03:25Z
@@ -18,11 +20,21 @@
 
 **Finding 1 — Phase 2a → 2b commit boundary not enforced (Dim 2 — Red Gate compliance)**
 
+**Owner:** quality-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check — methodology-discipline finding without a natural cross-domain pair; Sanity Check applies DESIGN.md + the Phase 2a primer's discipline as the validation surface to confirm the documented scope-tradeoff is coherent with the reference-implementation context.
+
 `primers/2a-red-gate.md` requires the failing-test state to be committed before any Phase 2b implementation. In the reference-implementation session, `tests/bookmarks.rs` and `src/main.rs` + `src/lib.rs` were both written in the same chat session and the implementation was added before any commit of the test-only state. From the git history alone, a reviewer cannot distinguish "tests written first, made to fail, then implementation written" from "tests and implementation written together" — VDD-IAR Alignment dim 4 cannot verify the Red Gate property from the commit log.
 
 **Resolution:** Acknowledged in-session as a deliberate scope tradeoff of the reference-implementation context (Phase 2a and 2b combined into a single demonstration session). The Red Gate property is verified by inspection per the Session-note above; a real project following the suite would commit the Phase 2a Red Gate state separately. Flagged for the bookmark-cli `PROCESS.md` retrospective when one is written. The applied resolution is documentation, not a code change.
 
 **Finding 2 — Missing test coverage for two edge cases named in DESIGN.md (Dim 9 — regression coverage)**
+
+**Owner:** software-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** quality-engineer
 
 `DESIGN.md` § Edge case catalog enumerates: "Whitespace-only URL: `bm add "   "` → currently accepted; the user is responsible" and "URL containing newlines: accepted." Both are stated behaviors with no integration test in `tests/bookmarks.rs`. A future implementation change that begins rejecting whitespace-only URLs would not break any test and would constitute a silent contract regression.
 

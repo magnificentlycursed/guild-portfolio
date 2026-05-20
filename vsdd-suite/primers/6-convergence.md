@@ -22,7 +22,7 @@ You are helping verify four-dimensional convergence for a project under the Veri
 
 ## Project reference
 
-*(Paste the project's `DESIGN.md` § Project intent + `**Phase 5 strategy:**` + `**Phase 6 strategy:**` lines; the per-layer Phase 5 closure rounds from the per-domain logs (SA log for Surface A/A.0/D rounds; QE log for Surface B/C rounds — each with the `**Phase 5 surface:**` preamble tag per G-177 closure); the final Phase 3 round summaries per active domain; the project's CHANGELOG.md final-layer entry.)*
+*(Paste the project's `DESIGN.md` § Project intent + `**Phase 5 strategy:**` + `**Phase 6 strategy:**` lines; the per-layer Phase 5 closure rounds from the per-domain logs (SA log for property-based testing/A.0/D rounds; QE log for mutation testing/C rounds — each with the `**Phase 5 surface:**` preamble tag per G-177 closure); the final Phase 3 round summaries per active domain; the project's CHANGELOG.md final-layer entry.)*
 
 ---
 
@@ -44,13 +44,13 @@ Phase 6 evaluates four independent MVR signals. Each dimension has a distinct ex
 
 **Question:** Has the test suite reached the point where it would catch realistic defects?
 
-**Signal:** Phase 5 Surface B (mutation testing) produced a kill-rate report for each layer with every surviving mutant having a recorded disposition (per `primers/5-formal-hardening.md` § Surface B). For projects that declared `**Phase 5 strategy:** not applicable — <rationale>`, the project's mutation-test signal is replaced by the QE final-round attestation that the test suite satisfies QE Dim 2 (test falsifiability) without the mutation-tool evidence — explicitly weaker, named in the convergence record as such.
+**Signal:** Phase 5 mutation testing (mutation testing) produced a kill-rate report for each layer with every surviving mutant having a recorded disposition (per `primers/5-formal-hardening.md` § mutation testing). For projects that declared `**Phase 5 strategy:** not applicable — <rationale>`, the project's mutation-test signal is replaced by the QE final-round attestation that the test suite satisfies QE Dim 2 (test falsifiability) without the mutation-tool evidence — explicitly weaker, named in the convergence record as such.
 
 **Anti-signal:** Phase 5 ran and produced a 90%+ kill rate with no per-mutant disposition (aggregate-only reporting). The aggregate hides which mutants survived; a 90% rate with the surviving 10% all in spec-asserted invariants is materially weaker than 70% with surviving mutants all in logging code.
 
-**Verification step (per F5 — required, not aspirational):** before marking Dimension 2 Established, open each cited per-layer Surface B round in `vsdd-suite/QUALITY-ENGINEER-REVIEW.md` + the linked `review-log/<date>-quality-engineer.md` session file and confirm a per-mutant disposition table exists (rows: mutant location, mutation kind, disposition, rationale). A per-layer entry that reports only a kill-rate number with no disposition table fails Dimension 2 regardless of the rate. The Phase 6 convergence round must cite the specific dispositions, not just the aggregate — otherwise the gate is rubber-stamping aggregate metrics rather than verifying the Phase 5 discipline held.
+**Verification step (per F5 — required, not aspirational):** before marking Dimension 2 Established, open each cited per-layer mutation testing round in `vsdd-suite/QUALITY-ENGINEER-REVIEW.md` + the linked `review-log/<date>-quality-engineer.md` session file and confirm a per-mutant disposition table exists (rows: mutant location, mutation kind, disposition, rationale). A per-layer entry that reports only a kill-rate number with no disposition table fails Dimension 2 regardless of the rate. The Phase 6 convergence round must cite the specific dispositions, not just the aggregate — otherwise the gate is rubber-stamping aggregate metrics rather than verifying the Phase 5 discipline held.
 
-**Disposition record:** the convergence record links the per-layer QE Surface B round in `vsdd-suite/review-log/<date>-quality-engineer.md` (entered with `**Phase 5 surface:** B` preamble per G-177) + names the test-suite's kill rate + names the count of surviving mutants by disposition class (equivalent / missing-test-added / spec-gap-routed). If any cited layer's disposition table is absent or aggregate-only, Dimension 2 is Not Established and the layer is routed back to Phase 5 Surface B before Phase 6 can close.
+**Disposition record:** the convergence record links the per-layer QE mutation testing round in `vsdd-suite/review-log/<date>-quality-engineer.md` (entered with `**Phase 5 hardening:** mutation testing` preamble per G-177) + names the test-suite's kill rate + names the count of surviving mutants by disposition class (equivalent / missing-test-added / spec-gap-routed). If any cited layer's disposition table is absent or aggregate-only, Dimension 2 is Not Established and the layer is routed back to Phase 5 mutation testing before Phase 6 can close.
 
 ### Dimension 3: Implementation MVR
 
@@ -66,11 +66,11 @@ Phase 6 evaluates four independent MVR signals. Each dimension has a distinct ex
 
 **Question:** For the project's declared formal-verification scope, has each formal-proof candidate either had its property proved OR been explicitly deferred with rationale?
 
-**Signal:** Phase 5 Surface D harnesses (proofs / bounded model checks / TLA+ specs) each have a recorded outcome in the per-layer Surface D round under `vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md` + the linked `review-log/<date>-solution-architect.md` session file (entered with `**Phase 5 surface:** D` preamble per G-177) per the project's `**Phase 5 strategy:** planned — <scope>` declaration. For projects that declared `**Phase 5 strategy:** not applicable — <rationale>`, Dimension 4's signal is the rationale itself — the project is closing convergence on three of four dimensions, with the formal-verification dimension explicitly declared not applicable.
+**Signal:** Phase 5 formal proof harnesses (proofs / bounded model checks / TLA+ specs) each have a recorded outcome in the per-layer formal proof round under `vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md` + the linked `review-log/<date>-solution-architect.md` session file (entered with `**Phase 5 hardening:** formal proof` preamble per G-177) per the project's `**Phase 5 strategy:** planned — <scope>` declaration. For projects that declared `**Phase 5 strategy:** not applicable — <rationale>`, Dimension 4's signal is the rationale itself — the project is closing convergence on three of four dimensions, with the formal-verification dimension explicitly declared not applicable.
 
 **Anti-signal:** The project's `**Phase 5 strategy:**` listed formal-proof candidates but the harnesses never landed. Phase 6 cannot close with planned-but-not-executed Phase 5 scope.
 
-**Disposition record:** the convergence record cites each Surface D harness (file + property + tool) OR records the explicit `**Phase 6 strategy:** not applicable — <rationale>` declaration verbatim.
+**Disposition record:** the convergence record cites each formal proof harness (file + property + tool) OR records the explicit `**Phase 6 strategy:** not applicable — <rationale>` declaration verbatim.
 
 ---
 
@@ -83,7 +83,7 @@ For each of the spec's named behaviors:
 1. **Spec assertion:** What does `DESIGN.md` say the system does in this case?
 2. **Test assertion:** Does the test suite include a falsifying test for this behavior? Cite the test by file + name.
 3. **Implementation behavior:** Does the implementation exercise the behavior? Cite the source by file + function.
-4. **Formal-verification statement:** If the behavior is in scope for formal verification, does a Surface D harness establish it?
+4. **Formal-verification statement:** If the behavior is in scope for formal verification, does a formal proof harness establish it?
 
 A consistent project has every spec behavior backed by a test + implementation + (where applicable) formal proof, all in agreement. An inconsistent project has one of:
 
@@ -135,11 +135,11 @@ The round entry uses the standard per-review preamble per `suite-development/sui
 
 ### Dimension 2: Test MVR
 
-**Established by:** [Phase 5 Surface B across layers L1..LN with kill rates <list>, surviving-mutant dispositions in the cited per-layer QE Surface B rounds.]
+**Established by:** [Phase 5 mutation testing across layers L1..LN with kill rates <list>, surviving-mutant dispositions in the cited per-layer QE mutation testing rounds.]
 
 (Or for not-applicable: "Phase 5 declared not applicable per DESIGN.md; test-suite MVR signal is QE final-round attestation against Dim 2 — explicitly weaker than mutation-tested signal.")
 
-**Citations:** <cite per-layer QE Surface B rounds in `review-log/<date>-quality-engineer.md` + QE final Phase 3 round>
+**Citations:** <cite per-layer QE mutation testing rounds in `review-log/<date>-quality-engineer.md` + QE final Phase 3 round>
 
 ### Dimension 3: Implementation MVR
 
@@ -149,11 +149,11 @@ The round entry uses the standard per-review preamble per `suite-development/sui
 
 ### Dimension 4: Formal-verification MVR
 
-**Established by:** [Phase 5 Surface D harnesses <list> establishing properties <list>, cited from the per-layer SA Surface D rounds.]
+**Established by:** [Phase 5 formal proof harnesses <list> establishing properties <list>, cited from the per-layer SA formal proof rounds.]
 
 (Or for not-applicable: "Phase 5 declared `formal proof not applicable — <rationale>`. Convergence closes on three of four dimensions; formal-verification dimension explicitly out of scope.")
 
-**Citations:** <cite per-layer SA Surface D rounds in `review-log/<date>-solution-architect.md` + per-harness proof reports>
+**Citations:** <cite per-layer SA formal proof rounds in `review-log/<date>-solution-architect.md` + per-harness proof reports>
 
 ### Cross-dimension consistency check
 
