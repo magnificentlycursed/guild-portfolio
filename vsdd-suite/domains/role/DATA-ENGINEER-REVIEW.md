@@ -26,6 +26,8 @@ Regression check: verify that data written by prior versions of the application 
 
 **Language and interface supplement:** Consult `../../supplements/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`). Apply the **Data Engineering** section from the relevant supplement file in addition to the standard dimensions below — language supplements cover serialization libraries, schema evolution patterns, and validation idioms specific to the ecosystem.
 
+
+**Validator pair (Review 77):** `software-engineer` is the natural validator for DE findings whose fix is a storage / validation code change; `platform-engineer` is the natural validator when the fix is infra-level (schema migration mechanism, persistence-layer tooling). Resolved findings declare `**Validator:**` per the lifecycle convention in `../../suite-development/suite-development.md` § Validation loop discipline.
 ## Standard Evaluation Dimensions
 
 1. **Data model correctness** — Does the data model accurately represent the domain described in DESIGN.md? Are types precise? Are optional vs. required fields correctly distinguished? Are there missing fields or fields with the wrong type?

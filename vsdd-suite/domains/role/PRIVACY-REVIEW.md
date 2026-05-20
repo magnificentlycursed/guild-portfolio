@@ -24,6 +24,8 @@ Regression check: verify that data handling controls established in prior layers
 
 **Language and interface supplement:** No supplement required — privacy is language-agnostic. The data collected and its handling are the artifact; the language is incidental.
 
+
+**Validator pair (Review 77):** `security` is the natural validator for Privacy findings with a technical-mitigation surface (data-handling code, encryption-at-rest, sensitive-data redaction); `solution-owner` is the natural validator when the Privacy finding is a spec-level data-retention / consent / disclosure gap. Resolved findings declare `**Validator:**` per the lifecycle convention in `../../suite-development/suite-development.md` § Validation loop discipline.
 ## Standard Evaluation Dimensions
 
 1. **Data inventory** — What personally identifiable or potentially-identifying information does the application collect, store, process, or transmit? Build an explicit list: direct identifiers (name, email, phone, ID), indirect identifiers (IP address, device fingerprint, behavioral patterns, timestamps with fine granularity), sensitive categories (health, financial, location, biometric, political, religious). If the data inventory cannot be derived from the code and DESIGN.md, that is itself a finding — untracked data is unmanaged data.

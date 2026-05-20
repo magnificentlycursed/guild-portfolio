@@ -26,6 +26,8 @@ Regression check: verify that previously correct behavior has not been silently 
 
 **Language and interface supplement:** Consult `../../supplements/` for the supplement matching the project's primary language (e.g., `rust.md`, `javascript-typescript.md`) and interface type (e.g., `cli.md`). Apply the **Software Engineering** section from the relevant supplement files in addition to the standard dimensions below.
 
+
+**Validator pair (Review 77):** `quality-engineer` is the natural validator for SE findings whose fix is a code change — QE re-cold-reviews the updated implementation against the dim set that flagged the original gap. Resolved findings declare `**Validator:** quality-engineer` per the lifecycle convention in `../../suite-development/suite-development.md` § Validation loop discipline.
 **Domain boundary:** SE owns the implementation — correctness, naming, error handling, and complexity within module boundaries. QE owns the test system. When SE finds a bug, flag it here. If there is also no test covering that path, that is a separate QE finding — do not bundle them. Do not evaluate test architecture here; that belongs to QE.
 
 ## Standard Evaluation Dimensions

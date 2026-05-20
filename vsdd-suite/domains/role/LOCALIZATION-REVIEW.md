@@ -26,6 +26,8 @@ Regression check: verify that locale handling established in prior layers has no
 
 **Language and interface supplement:** Consult `../../supplements/` for the supplement matching the project's primary language. Apply the **Localization** section from the relevant supplement file in addition to the standard dimensions below — supplements specify language-specific i18n library guidance (Intl.* APIs, i18next, react-i18next for JavaScript/TypeScript; fluent-rs and rust-i18n for Rust).
 
+
+**Validator pair (Review 77):** `software-engineer` is the natural validator for Localization findings — most i18n issues fix as code changes (string externalization, locale-sensitive operation correction, plural-form usage). Resolved findings declare `**Validator:** software-engineer` per the lifecycle convention in `../../suite-development/suite-development.md` § Validation loop discipline.
 ## Standard Evaluation Dimensions
 
 1. **String externalization** — Are user-visible strings stored in a translatable resource file (JSON, YAML, `.po`, `Localizable.strings`, etc.) rather than hardcoded in application code? A string literal in a UI-rendering function is not translatable without a code change. Named check: search the codebase for string literals that would appear in the UI. Each one that is not in a resource file is a finding. For projects explicitly scoped to a single language: is that decision documented, and does the architecture make future externalization feasible without a full rewrite?

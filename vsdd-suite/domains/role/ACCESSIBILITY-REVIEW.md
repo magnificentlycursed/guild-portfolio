@@ -26,6 +26,8 @@ Regression check: verify that all previously-addressed accessibility improvement
 
 **Language and interface supplement:** See the **UX** section of `../../supplements/browser-app.md` for browser-specific accessibility dimensions (focus trap testing, contrast requirements, semantic HTML, reduced motion). Browser-app.md has no separate Accessibility section — the browser-specific accessibility content lives in its UX section. This domain goes deeper than those dimensions.
 
+
+**Validator pair (Review 77):** `software-engineer` is the natural validator for accessibility findings whose fix is a code change (ARIA attributes, focus-trap, contrast); `ux` is the natural validator for findings that require user-experience evaluation (the discipline of validating WHETHER a screen reader announces a state correctly is closer to UX's experiential discipline than SE's code-correctness discipline). Resolved findings declare `**Validator:**` per the lifecycle convention in `../../suite-development/suite-development.md` § Validation loop discipline.
 ## Standard Evaluation Dimensions
 
 1. **Automated scan baseline** — Run axe-core (or equivalent) and confirm zero violations. This is the floor, not the ceiling — axe catches ~30–40% of WCAG 2.1 AA failures. Record the tool, version, and result. A passing axe run with uncorrected manual-testing failures is still a failing accessibility review.

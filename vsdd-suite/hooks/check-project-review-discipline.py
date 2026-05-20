@@ -56,7 +56,18 @@ Forward-only:
   is parsed from the `## Review N — YYYY-MM-DD` heading.
 
 Authored Review 74 of the VSDD Suite (2026-05-20) parallel to the
-Review 68 / 73 suite-review hook.
+Review 68 / 73 suite-review hook. Extended Review 77 (2026-05-20) with
+the lifecycle-field checks: every non-Hallucinated finding has
+`**Owner:** <domain-slug>` (or the `### Raised to SO` shorthand);
+every Resolved finding has `**Validator:** <domain-slug | *self* —
+<rationale>>`; `**Validator:** *self*` requires a substantive
+rationale per the strict self-validation policy (Portfolio Assessment
+blanket-allowlisted at the domain level); `**Status:**` values are in
+the {raised, assigned, fix-landed, validated} set. Forward-only
+threshold for the lifecycle fields is 2026-05-21 (day-after-Review-77-
+adoption) — separate from the 2026-05-20 Review 74 threshold so
+pre-Review-77 entries that comply with Review 74 don't fail under
+Review 77's stricter rules.
 """
 
 from __future__ import annotations
@@ -64,7 +75,7 @@ from __future__ import annotations
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Set
 
 # Domain classification universes per suite-development.md § Finding
 # classification schemas by domain type. Set membership is checked
@@ -87,6 +98,7 @@ DOMAIN_CLASSIFICATIONS: Dict[str, Set[str]] = {
     "vdd-iar-alignment": {"Resolved", "Dismissed", "Hallucinated"},
     "portfolio-assessment": {"Demonstrated", "Partial", "Absent", "Hallucinated"},
     "observability": {"Resolved", "Deferred", "Dismissed", "Hallucinated"},
+    "sanity-check": {"Resolved", "Dismissed", "Hallucinated"},  # Review 77 — meta-validator-of-last-resort + rubber-ducking surface
 }
 
 # Some domains use dim-first organization rather than classification-first
@@ -127,8 +139,47 @@ FINDING_HEADER_ERRATA = re.compile(
 REQUIRED_CLOSING_SUMMARY = "### Summary"
 REQUIRED_CLOSING_COORDINATION = "**Coordination:**"
 
-# Forward-only date threshold.
+# Forward-only date threshold (Review 74 enforcement floor — applies to
+# Summary / Coordination / classification-heading / dim-reference checks).
 ENFORCEMENT_THRESHOLD = "2026-05-20"
+
+# Forward-only date threshold for Review 77 fields (Owner / Status /
+# Validator / strict self-validation). Separate threshold so pre-Review-77
+# entries with the Review 74-only convention don't fail under Review 77's
+# stricter rules.
+LIFECYCLE_FIELDS_THRESHOLD = "2026-05-21"
+
+# Known domain slugs (per `suite-development.md` § Domain slug convention)
+# — the canonical set against which Owner / Validator field values are
+# validated. Identical to DOMAIN_CLASSIFICATIONS.keys() but kept separate
+# for readability + future divergence.
+KNOWN_DOMAIN_SLUGS = frozenset(DOMAIN_CLASSIFICATIONS.keys()) | {"documentation-reviewer"}
+
+# Domains blanket-allowlisted for `**Validator:** *self*` per
+# `suite-development.md` § Validation loop discipline. With the Sanity
+# Check meta domain (added in Review 77 Finding 2), the natural validator
+# of last resort is `sanity-check` rather than `*self*` for findings that
+# otherwise lack a cross-domain pair. The blanket allowlist is now empty
+# in normal operation — every finding has either a domain-specific
+# validator OR routes to sanity-check. The set is retained as the hook's
+# extension point for future domain-level allowlist additions; if a
+# future domain registers whose introspective work cannot be sanity-
+# checked structurally (none in scope today), it gets added here.
+SELF_VALIDATION_BLANKET_ALLOWLIST: set[str] = set()
+
+# Valid `**Status:**` values per Review 77 sub-state lifecycle.
+VALID_STATUS_VALUES = ("raised", "assigned", "fix-landed", "validated")
+
+# Substantive-rationale pattern for `**Validator:** *self* — <rationale>`
+# (per the strict-self-validation policy). The rationale must be a
+# non-empty string after the `—` (em-dash) AND not match any of the
+# placeholder patterns below.
+SELF_VALIDATION_PLACEHOLDER_PATTERNS = (
+    re.compile(r"^\s*$"),
+    re.compile(r"^\s*TBD\s*$", re.IGNORECASE),
+    re.compile(r"^\s*N/?A\s*$", re.IGNORECASE),
+    re.compile(r"^\s*(no pair available|none|todo)\s*\.?\s*$", re.IGNORECASE),
+)
 
 
 def domain_slug_from_path(path: Path) -> str:
@@ -297,6 +348,194 @@ def check_entry(
             f"Domain slug convention "
             f"(known: {', '.join(sorted(DOMAIN_CLASSIFICATIONS.keys()))})"
         )
+
+    # Checks 6+ — Review 77 lifecycle fields (Owner / Status / Validator /
+    # Blocked by). Gated on a separate forward-only threshold so
+    # pre-Review-77 entries that comply with Review 74 don't fail under
+    # the stricter Review 77 rules.
+    if review_date < LIFECYCLE_FIELDS_THRESHOLD:
+        return failures
+
+    failures.extend(_check_lifecycle_fields(entry_lines, header_idx, path, domain_slug, review_n))
+
+    return failures
+
+
+def _check_lifecycle_fields(
+    entry_lines: List[str],
+    header_idx: int,
+    path: Path,
+    domain_slug: str,
+    review_n: str,
+) -> List[str]:
+    """Apply Review 77 lifecycle-field checks per finding within an entry.
+
+    Walks the entry looking for finding-header lines; for each finding,
+    determines its classification (from the most recent `### <heading>`
+    above it) and the field values that follow (Owner / Status /
+    Blocked by / Validator), and validates them against the
+    `suite-development.md` § Validation loop discipline rules.
+    """
+    failures: List[str] = []
+    current_classification = None
+
+    for k, line in enumerate(entry_lines):
+        m_h = CLASSIFICATION_HEADING.match(line)
+        if m_h:
+            heading_text = m_h.group(1).strip()
+            current_classification = re.sub(r"\s*\(.+\)\s*$", "", heading_text)
+            continue
+
+        if not line.startswith("**Finding ") and not line.startswith("**G-"):
+            continue
+        m_f = (
+            FINDING_HEADER.match(line)
+            or FINDING_HEADER_LEGACY.match(line)
+            or FINDING_HEADER_ERRATA.match(line)
+        )
+        if not m_f:
+            continue  # Heading-form validity is the suite-review hook's job.
+
+        # Hallucinated findings are exempt from the lifecycle field
+        # requirements (the finding didn't apply, so the lifecycle
+        # doesn't apply).
+        if current_classification == "Hallucinated":
+            continue
+
+        # Collect the finding body — runs from this header line until
+        # the next finding header, classification heading, horizontal
+        # rule, or entry end.
+        body_start = k + 1
+        body_end = len(entry_lines)
+        for j in range(body_start, len(entry_lines)):
+            nxt = entry_lines[j]
+            if (
+                nxt.startswith("**Finding ")
+                or nxt.startswith("**G-")
+                or nxt.startswith("### ")
+                or nxt.startswith("#### ")
+                or nxt.startswith("---")
+            ):
+                body_end = j
+                break
+        body_lines = entry_lines[body_start:body_end]
+
+        def find_field(field_name: str) -> "tuple[int, str] | None":
+            """Find a `**Field:**` line in the finding body and return its
+            (line-offset-within-body, value-after-field-marker) tuple,
+            or None if absent. Match anywhere in the line so a body that
+            embeds the field in prose (e.g., quoting another finding)
+            doesn't false-positive — the marker must START a line."""
+            marker = f"**{field_name}:**"
+            for bj, bline in enumerate(body_lines):
+                if bline.startswith(marker):
+                    value = bline[len(marker):].strip()
+                    return (bj, value)
+            return None
+
+        owner = find_field("Owner")
+        status = find_field("Status")
+        validator = find_field("Validator")
+        # `**Blocked by:**` is optional and not required-presence-checked;
+        # a future enhancement would resolve the cited anchor and refuse
+        # to close this finding if the blocker is still Open. Lookup
+        # deferred to that enhancement.
+
+        # Detect `### Raised to SO` sub-heading covering this finding —
+        # walk backward from the finding header to the most recent
+        # sub-heading.
+        raised_to_so = False
+        for j in range(k - 1, -1, -1):
+            prior = entry_lines[j]
+            if prior.startswith("**Finding ") or prior.startswith("**G-"):
+                break  # Hit a prior finding header; no Raised-to-SO covers us
+            if prior.startswith("### "):
+                if prior.startswith("### Raised to SO"):
+                    raised_to_so = True
+                break
+
+        # Check 6: Owner field required for non-Hallucinated findings
+        # (Raised-to-SO shorthand satisfies the requirement implicitly —
+        # Raised-to-SO is equivalent to `**Owner:** solution-owner`).
+        if owner is None and not raised_to_so:
+            failures.append(
+                f"{path}:{header_idx + k + 1}: Review {review_n} finding "
+                f"missing required `**Owner:** <domain-slug>` field under "
+                f"classification {current_classification!r} (Review 77 § "
+                f"Validation loop discipline; the `### Raised to SO` "
+                f"sub-heading is also accepted as Owner-equivalent)"
+            )
+
+        # Check 7: Owner value is a known domain slug.
+        if owner is not None:
+            owner_value = owner[1]
+            if owner_value not in KNOWN_DOMAIN_SLUGS:
+                failures.append(
+                    f"{path}:{header_idx + body_start + owner[0] + 1}: "
+                    f"Review {review_n} `**Owner:**` value "
+                    f"{owner_value!r} not in known domain-slug set "
+                    f"(known: {', '.join(sorted(KNOWN_DOMAIN_SLUGS))})"
+                )
+
+        # Check 8: Validator field required for Resolved findings.
+        if current_classification == "Resolved" and validator is None:
+            failures.append(
+                f"{path}:{header_idx + k + 1}: Review {review_n} Resolved "
+                f"finding missing required `**Validator:**` field "
+                f"(Review 77 § Validation loop discipline; use a domain "
+                f"slug for cross-domain validation OR `*self* — "
+                f"<rationale>` for self-validation per the strict policy)"
+            )
+
+        # Check 9: Validator value — domain slug OR `*self* — rationale`.
+        if validator is not None:
+            v_value = validator[1]
+            if v_value.startswith("*self*"):
+                # Strict self-validation check. Portfolio Assessment is
+                # blanket-allowlisted; for other domains, the rationale
+                # following `*self*` must be substantive.
+                if domain_slug in SELF_VALIDATION_BLANKET_ALLOWLIST:
+                    pass  # Blanket allowlist; no rationale required.
+                else:
+                    # Extract the rationale (after `*self*` and an em-dash
+                    # or hyphen separator).
+                    rationale = re.sub(r"^\*self\*\s*[—-]?\s*", "", v_value)
+                    is_placeholder = any(
+                        p.match(rationale)
+                        for p in SELF_VALIDATION_PLACEHOLDER_PATTERNS
+                    )
+                    if is_placeholder:
+                        failures.append(
+                            f"{path}:{header_idx + body_start + validator[0] + 1}: "
+                            f"Review {review_n} `**Validator:** *self*` "
+                            f"lacks substantive rationale (saw: "
+                            f"{rationale.strip()!r}). Per Review 77 strict "
+                            f"self-validation policy, name WHY no "
+                            f"cross-domain validator applies."
+                        )
+            elif v_value not in KNOWN_DOMAIN_SLUGS:
+                failures.append(
+                    f"{path}:{header_idx + body_start + validator[0] + 1}: "
+                    f"Review {review_n} `**Validator:**` value "
+                    f"{v_value!r} not in known domain-slug set and not "
+                    f"a `*self*` form (known: "
+                    f"{', '.join(sorted(KNOWN_DOMAIN_SLUGS))})"
+                )
+
+        # Check 10: Status value (if present) is in the valid set.
+        if status is not None:
+            s_value = status[1]
+            # Strip a trailing rationale clause (some Status values
+            # legitimately carry context, e.g., `**Status:** assigned
+            # (waiting on SO ratification)`).
+            s_root = re.sub(r"\s*\(.+\)\s*$", "", s_value).strip()
+            if s_root and s_root not in VALID_STATUS_VALUES:
+                failures.append(
+                    f"{path}:{header_idx + body_start + status[0] + 1}: "
+                    f"Review {review_n} `**Status:**` value {s_value!r} "
+                    f"not in valid set "
+                    f"{{{', '.join(VALID_STATUS_VALUES)}}}"
+                )
 
     return failures
 

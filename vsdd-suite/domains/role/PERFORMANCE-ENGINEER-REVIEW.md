@@ -26,6 +26,8 @@ Regression check: verify that performance characteristics established in prior l
 
 **Language and interface supplement:** Consult `../../supplements/` for the supplement matching the project's primary language. Apply the **Performance Engineer** section from the relevant supplement file in addition to the standard dimensions below — supplements specify language-specific tooling for profiling, benchmarking, and performance measurement.
 
+
+**Validator pair (Review 77):** `software-engineer` is the natural validator for Performance Engineer findings — PE measures and identifies hotspots; SE owns the code fix; PE re-measures against the same workload to confirm the regression closed. Resolved findings declare `**Validator:** software-engineer` per the lifecycle convention in `../../suite-development/suite-development.md` § Validation loop discipline.
 ## Standard Evaluation Dimensions
 
 1. **Time-to-interactive** — For browser apps: how long before the user can interact with a meaningful page? Is there render-blocking JavaScript or CSS? Are critical resources loaded first? Is the initial payload appropriate for the application's complexity? Measure with browser devtools (Lighthouse, Network panel) under simulated network conditions, not just on a local dev server.
