@@ -8,9 +8,11 @@
 # With no arguments, scaffolds the seven always-active core domains
 # (SOFTWARE-ENGINEER, QUALITY-ENGINEER, UX, SECURITY, SOLUTION-ARCHITECT,
 # SOLUTION-OWNER, VDD-IAR-ALIGNMENT). DATA-ENGINEER and PLATFORM-ENGINEER
-# are core but conditional — pass them explicitly if active for your project.
-# Pass any extended domain (RED-TEAM, PERFORMANCE-ENGINEER, TECHNICAL-WRITER,
-# ACCESSIBILITY, PRIVACY, LOCALIZATION) as additional arguments if active.
+# are extended-with-strong-presumption (G-178) — most projects beyond a local-
+# toolchain CLI activate at least one; pass them explicitly if active for your
+# project. Pass any other extended domain (RED-TEAM, PERFORMANCE-ENGINEER,
+# TECHNICAL-WRITER, ACCESSIBILITY, PRIVACY, LOCALIZATION) as additional
+# arguments if active.
 #
 # The script scaffolds the same directory shape whether you use crosslink
 # or run the suite manually. When the project has already been initialized
@@ -30,7 +32,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMPLATES_DIR="$SCRIPT_DIR"
 SUITE_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Default core domains. DATA-ENGINEER and PLATFORM-ENGINEER are core-but-conditional.
+# Default core domains. DATA-ENGINEER and PLATFORM-ENGINEER are
+# extended-with-strong-presumption (G-178) — passed explicitly when active.
 DEFAULT_DOMAINS=(
   SOFTWARE-ENGINEER
   QUALITY-ENGINEER
@@ -45,8 +48,9 @@ DOMAINS=("$@")
 if [ ${#DOMAINS[@]} -eq 0 ]; then
   DOMAINS=("${DEFAULT_DOMAINS[@]}")
   echo "No domains specified — scaffolding default seven core domains."
-  echo "If your project activates DATA-ENGINEER, PLATFORM-ENGINEER, or any extended"
-  echo "domain (RED-TEAM, PERFORMANCE-ENGINEER, TECHNICAL-WRITER, ACCESSIBILITY,"
+  echo "If your project activates any extended domain (DATA-ENGINEER and"
+  echo "PLATFORM-ENGINEER are extended-with-strong-presumption per G-178;"
+  echo "others: RED-TEAM, PERFORMANCE-ENGINEER, TECHNICAL-WRITER, ACCESSIBILITY,"
   echo "PRIVACY, LOCALIZATION), re-run with the activated domains as arguments."
   echo ""
 fi
