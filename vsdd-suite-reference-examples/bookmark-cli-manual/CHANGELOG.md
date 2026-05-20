@@ -1,5 +1,19 @@
 # Changelog
 
+## vsdd-suite v0.11.2 Documentation Reviewer activated at capstone — 2026-05-20 18:30Z (PR [#36](https://github.com/magnificentlycursed/guild-portfolio/pull/36) / [Review 80](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z))
+
+**Scope:** Activates [Documentation Reviewer](../../vsdd-suite/domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) on this reference example. Doc Reviewer is the adversarial cold-reader pair to [Technical Writer](../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md), registered in [Review 80](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z); both activate together at capstone intent.
+
+### Changed
+
+- **`DESIGN.md`** § Project intent — Active domain set expanded from **10 role + 1 meta = 11** → **11 role + 1 meta = 12** (Documentation Reviewer added to the capstone-tier extended domains). Anchor-link convention applied to the active-domain-set declaration (each domain name now links to its prompt file).
+
+### Added
+
+- **`vsdd-suite/DOCUMENTATION-REVIEWER-REVIEW.md`** (new project per-domain index stub) — Activation rationale + validator-pair declaration + language-supplement-load reference + sycophancy-check excerpt. Reviews-table empty; rounds populate when the cold-session Documentation Reviewer round runs as part of the queued 6-phase IAR execution.
+
+---
+
 ## vsdd-suite v0.11.0 capstone-intent promotion + 6-phase preparation — 2026-05-20 16:30Z (PR 6 / Review 78)
 
 **Scope:** Promotes `bookmark-cli-manual` from `portfolio` intent to `capstone` intent. Reference examples track current conventions per G-177 precedent — bookmark-cli-manual exists to teach the worked example end-to-end through all 6 VSDD phases, which requires capstone-intent bar. This PR lands the STRUCTURAL preparation; the cold-session IAR rounds for the newly-activated capstone domains + the Phase 6 four-dimensional convergence record + FINDINGS-INDEX repopulation land in **PR 7**.

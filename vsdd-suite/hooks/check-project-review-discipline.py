@@ -88,6 +88,7 @@ DOMAIN_CLASSIFICATIONS: Dict[str, Set[str]] = {
     "data-engineer": {"Resolved", "Deferred", "Dismissed", "Hallucinated"},
     "platform-engineer": {"Resolved", "Deferred", "Dismissed", "Hallucinated"},
     "technical-writer": {"Resolved", "Deferred", "Dismissed", "Hallucinated"},
+    "documentation-reviewer": {"Resolved", "Deferred", "Dismissed", "Hallucinated"},  # Review 80 — TW adversarial pair (cold-reader)
     "localization": {"Resolved", "Deferred", "Dismissed", "Accepted scope", "Hallucinated"},
     "performance-engineer": {"Resolved", "Deferred", "Dismissed", "Accepted limitation", "Hallucinated"},
     "accessibility": {"Resolved", "Deferred", "Dismissed", "Accepted deviation", "Hallucinated"},
@@ -153,7 +154,7 @@ LIFECYCLE_FIELDS_THRESHOLD = "2026-05-21"
 # — the canonical set against which Owner / Validator field values are
 # validated. Identical to DOMAIN_CLASSIFICATIONS.keys() but kept separate
 # for readability + future divergence.
-KNOWN_DOMAIN_SLUGS = frozenset(DOMAIN_CLASSIFICATIONS.keys()) | {"documentation-reviewer"}
+KNOWN_DOMAIN_SLUGS = frozenset(DOMAIN_CLASSIFICATIONS.keys())
 
 # Domains blanket-allowlisted for `**Validator:** *self*` per
 # `suite-development.md` § Validation loop discipline. With the Sanity
