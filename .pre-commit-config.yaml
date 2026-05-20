@@ -57,7 +57,7 @@ repos:
         exclude: ^(vsdd-suite/(CHANGELOG|COMPATIBILITY)\.md|vsdd-suite/suite-development/SUITE-DEVELOPMENT-REVIEW\.md|.*/review-log/.*\.md|.*/FINDINGS-INDEX\.md)$
 
       - id: check-suite-review-preamble
-        name: check suite-review and per-domain review-log preamble + finding-header discipline (IAR suite Review 68 hook)
+        name: check suite-review and per-domain review-log preamble + finding-header discipline (VSDD suite Review 68 hook)
         language: script
         # Mechanizes the discipline corrections from Reviews 67 + 68. Per
         # `suite-development.md` § Per-review entry preamble (G-133) and §
@@ -78,6 +78,29 @@ repos:
         pass_filenames: true
         # Scope to suite-review-log AND per-project review-log markdown.
         files: ^(vsdd-suite/suite-development/review-log/.*\.md|.*/vsdd-suite/review-log/.*\.md)$
+
+      - id: check-project-review-discipline
+        name: check project-level domain-review entry-structure discipline (VSDD suite Review 74 hook)
+        language: script
+        # Parallel to check-suite-review-preamble.sh but focused on
+        # project-level review-log discipline: every Review entry must
+        # contain a `### Summary` section, a `**Coordination:**` line
+        # (with `*(none)*` placeholder allowed), classification-section
+        # headings matching the domain's classification universe per
+        # `suite-development.md` § Finding classification schemas by
+        # domain type, and finding headers with a trailing discipline-
+        # reference parenthetical (`(Dim X)`, `(Phase 5 Surface B)`,
+        # `(Rust supplement — path traversal)`) for non-Hallucinated
+        # findings. Forward-only per G-89: entries dated before
+        # 2026-05-20 are exempt. Per-entry `<!-- hook-bypass: <rationale>
+        # -->` HTML comment in the first 5 lines bypasses for that
+        # entry only.
+        entry: vsdd-suite/hooks/check-project-review-discipline.sh
+        pass_filenames: true
+        # Scope to per-project review-log markdown ONLY (suite-review
+        # files at vsdd-suite/suite-development/review-log/ are
+        # validated by the preceding hook).
+        files: ^.*/vsdd-suite/review-log/.*\.md$
 
       - id: check-changelog-currency
         name: check CHANGELOG.md updated when source changes (IAR suite G-129 hook)

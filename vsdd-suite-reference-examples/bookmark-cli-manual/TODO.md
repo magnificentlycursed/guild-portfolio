@@ -1,8 +1,8 @@
-# TODO.md — bookmark-cli
+# TODO.md — bookmark-cli-manual
 
-Phase 1b output. Authored with [`../vsdd-suite/primers/1b-decomposition.md`](../vsdd-suite/primers/1b-decomposition.md) loaded. Each layer below is independently testable and shippable; acceptance criteria are observable behaviors (not implementation steps); the Red Gate test plan names the literal tests that must fail before any implementation lands per layer.
+Phase 1c output. Authored with [`../../vsdd-suite/primers/1c-decomposition.md`](../../vsdd-suite/primers/1c-decomposition.md) loaded (G-96 renamed Phase 1b → Phase 1c; this file predates the rename and is preserved per G-89 forward-only narrative-preservation policy). Each layer below is independently testable and shippable; acceptance criteria are observable behaviors (not implementation steps); the Red Gate test plan names the literal tests that must fail before any implementation lands per layer.
 
-This project is the reference implementation for the suite's worked example (G-112 in `vsdd-suite/suite-development/GAP-ANALYSIS-LOG.md`). Only Layer 1 is built out — Layers 2 and 3 are scoped but deferred to follow-on work.
+This project is the manual-method reference implementation for the suite's worked example (G-112 in [`../../vsdd-suite/suite-development/FINDINGS-INDEX.md`](../../vsdd-suite/suite-development/FINDINGS-INDEX.md)). Only Layer 1 is built out — Layers 2 and 3 are scoped but deferred to follow-on work. The capstone-intent promotion and 6-phase completion (Phase 5 hardening through Phase 6 four-dimensional convergence) lands in a subsequent PR; this PR's scope is the Review 73 / 74 / 75 convention shifts (findings-index reshape; manual-test split; reference-example folder restructure + rename).
 
 ---
 

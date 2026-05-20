@@ -75,6 +75,39 @@ For each layer, before writing any code, ask:
 
 For each layer, enumerate the test items as **runnable steps** — not one-line checklist entries. A checklist item that says "verify it works" cannot be executed by a tester who is not the author. The plan must be executable top-to-bottom from a clean checkout without consulting the developer or an AI.
 
+**File location (Review 74 convention shift — forward-only):** Manual testing plans live in `manual-tests/layer-N.md` files at the project root (siblings to `DESIGN.md` / `TODO.md` / `src/`), one file per layer. The `TODO.md` Layer N block's `**Manual Testing Checklist:**` field becomes a one-line pointer to the corresponding file. The split exists because per-layer manual-test plans with literal expected-output blocks per step run 50+ lines per step; bundling them inline in `TODO.md` mixes decomposition-plan concerns with test-plan concerns and inflates `TODO.md` past the size where it serves as a navigable decomposition map. Per-layer files are also independently diff-able, review-able, and citable by anchor from per-domain review logs (e.g., `[manual-tests/layer-3.md#step-3-empty-title-rejected](manual-tests/layer-3.md#step-3-empty-title-rejected)`). The convention applies forward-only to projects whose first layer-gate close lands on or after 2026-05-20 (Review 74 adoption); pre-existing projects retain their inline `TODO.md` checklist sections per the G-89 forward-only narrative-preservation policy. The reference examples ([`vsdd-suite-reference-examples/bookmark-cli-manual/`](../../vsdd-suite-reference-examples/bookmark-cli-manual/) for the manual method; [`vsdd-suite-reference-examples/bookmark-cli-crosslink/`](../../vsdd-suite-reference-examples/bookmark-cli-crosslink/) for the crosslink method) adopt the convention as part of their capstone-intent promotion — reference implementations are kept current with the conventions they teach.
+
+**Per-layer file structure (`manual-tests/layer-N.md`):**
+
+```markdown
+# Manual Testing — Layer N: [Capability]
+
+**Layer:** [`TODO.md` § Layer N](../TODO.md#layer-n-capability)
+**Tested against:** [git revision / layer-close date / binary build identifier]
+
+---
+
+## Step 0 — Update the installed binary (if applicable)
+
+[runnable step block per the standard below]
+
+---
+
+## Step 1 — [Happy path name]
+
+[runnable step block]
+
+---
+
+## Step 2 — [Error state name]
+
+[runnable step block]
+
+...
+```
+
+The test PLAN lives in the per-layer file; test EXECUTION records live in director-raised entries in the per-domain review logs (per `../suite-development/suite-development.md` § Per-review entry preamble `**Source:** director-raised`). The plan is reusable across rounds; each execution produces its own review-log entry that cites the file by anchor.
+
 **Manual testing is a second adversarial surface to IAR, not a checkbox (G-132).** The manual testing checklist is the surface where the director surfaces what artifact-reading does not catch. IAR domains read source code, tests, DESIGN.md, and prior review logs; they do not exercise the built binary against the spec's invariants. The director running manual tests does exactly that — and catches what cold-batch adversarial review misses. The canonical example is ITC L6 R3 SO R22: 11 cold-batch IAR domain reviews (including the dedicated Feature-5 review surface for the delete command) all missed the spec violation that "delete the highest-id issue, then create" reuses the deleted ID; the director executing manual checklist item 8 caught it on the first run. Treat **manual-test findings as Round N findings of equal weight to cold-session findings** — log them in the per-domain review log with `**Source:** director-raised` per the per-review entry preamble standard (`../suite-development/suite-development.md` § Per-review entry preamble § Source). Manual testing checklist deferred to a later round is itself a finding for VDD-IAR Alignment dim 3 — the merge gate requires the checklist closed (per `../suite-development/suite-development.md` § Layer-gate close criteria). **Quick-closure framing of manual testing is its own audit signal:** a 16-minute window between implementation and manual checklist closure with no commit-body specificity is the kind of finding a manager doing an investigation would flag in an incident report or audit; quick closure with commit-body specificity demonstrating actual execution is the discipline working. The Technical Writer review dimension on manual-test note quality (see TW domain prompt) evaluates the audit-trail signal alongside the closure.
 
 **Each step must include:**
@@ -200,17 +233,9 @@ The decomposition produces a `TODO.md` with this structure:
 - [ ] [Specific, observable criterion]
 ...
 
-**Manual Testing Checklist:**
+**Manual Testing Checklist:** [`manual-tests/layer-1.md`](manual-tests/layer-1.md)
 
-(Each item below is a placeholder for a runnable step block — full command + expected output + explicit clean-state and binary-lifecycle steps. See `### Manual testing checklist` above for the standard.)
-
-- [ ] Step 0 — Update the installed binary (when the layer changes runtime behavior)
-- [ ] Happy path
-- [ ] Each error state
-- [ ] Empty state (with pipe-consumer behavior if relevant)
-- [ ] Persistence: install → create → uninstall → reinstall → verify
-- [ ] Each edge case from DESIGN.md
-...
+(The full per-step plan with runnable commands + literal expected-output blocks + explicit clean-state and binary-lifecycle steps lives in the linked per-layer file per the Review 74 convention. See `### Manual testing checklist` above for the standard the file must satisfy. Pre-2026-05-20 projects retain inline TODO.md checklists under the forward-only carve-out.)
 
 **Red Gate — tests to write first:**
 - `[behavioral test name]` — asserts [what], fails against [stub behavior]
@@ -273,10 +298,10 @@ The decomposition is ready to move to Phase 2 (Red Gate / implementation) when:
 
 1. Every feature in DESIGN.md is covered by at least one layer
 2. Every layer has specific, independently verifiable acceptance criteria
-3. Every layer has a manual testing checklist
+3. Every layer has a manual testing checklist — for projects subject to the Review 74 convention (first layer-gate close on or after 2026-05-20), the checklist lives in `manual-tests/layer-N.md` and `TODO.md` Layer N points at it; for pre-cutoff projects, the inline `TODO.md` checklist remains valid
 4. Every layer has a Red Gate test plan (tests to write before implementation)
 5. The layers are ordered so each builds directly on the previous — no layer requires an unbuilt dependency
 6. **The active-IAR domain set per layer is intent-calibrated.** Every layer's `**IAR:**` line names the active-domain set, derived from `DESIGN.md` § Project intent per the table in `../domains/DOMAIN-INDEX.md` § Intent calibration. A layer with `**IAR:** all domains` for a learning-exercise project is over-investment; a layer with `**IAR:** SE only` for a production project is under-investment. Either pattern is a Phase 1c finding.
-7. For Phase 2+ projects: the crosslink issue hierarchy is created, one milestone per layer is created and populated, and `crosslink workflow diff` runs clean before the first session opens
+7. For Phase 2+ projects: the crosslink issue hierarchy is created, one milestone per layer is created and populated, and `crosslink workflow diff` runs clean before the first session opens. Per-layer manual-test files live in `manual-tests/layer-N.md` in both modes — crosslink replaces `TODO.md` as the decomposition source of truth, but the manual-test plan files stay at the project root regardless of mode; crosslink-mode projects reference them from the layer issue's comment thread.
 
 This plan will be evaluated against VDD-IAR Alignment dims 2 (layered decomposition), 3 (layer gate compliance), and 4 (test discipline). A TODO.md that lists features without acceptance criteria, or layers without manual testing checklists, will not pass the layer gate.

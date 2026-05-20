@@ -1,8 +1,8 @@
-# bookmark-cli — Findings Index
+# bookmark-cli-manual — Findings Index
 
 Cross-cutting registry of every classified finding across every domain and layer. The narrative for each finding lives in the per-session file linked from the row; this file is the index only.
 
-Structured like [`vsdd-suite/suite-development/GAP-ANALYSIS-LOG.md`](../../vsdd-suite/suite-development/GAP-ANALYSIS-LOG.md) — same column shape, same close-don't-delete discipline. Manual path of G-138 (project-level finding index); `bookmark-cli` is built via the suite-only path per G-117 ratification, so the manual path applies.
+Structured like [`vsdd-suite/suite-development/FINDINGS-INDEX.md`](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md) — same column shape, same close-don't-delete discipline. Manual-method reference implementation for G-138 (project-level finding index); `bookmark-cli-manual` is built via the suite-only path per G-117 ratification, so the manual path applies.
 
 **Reading convention:** the canonical narrative for each finding is in its per-session file, linked in the **Anchor** column. This file's rows are summaries for fast cross-cutting filtering.
 
@@ -37,4 +37,4 @@ Structured like [`vsdd-suite/suite-development/GAP-ANALYSIS-LOG.md`](../../vsdd-
 - [`TODO.md`](../TODO.md) — layer plans + manual testing checklists
 - Per-domain index files in this directory — round-level rollup per domain (QUALITY-ENGINEER-REVIEW.md and SOLUTION-ARCHITECT-REVIEW.md customized; five others remain as scaffolded stubs)
 - Per-session files in [`review-log/`](review-log/) — finding-level narratives
-- [`vsdd-suite/suite-development/suite-development.md`](../../vsdd-suite/suite-development/suite-development.md) § Project-level finding index — the governing standard for this file
+- [`vsdd-suite/suite-development/suite-development.md`](../../../vsdd-suite/suite-development/suite-development.md) § Project-level finding index — the governing standard for this file

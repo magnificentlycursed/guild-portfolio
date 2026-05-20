@@ -4,6 +4,51 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-20 13:15Z (Review 75: reference-example folder restructure — bookmark-cli renamed to bookmark-cli-manual and moved to vsdd-suite-reference-examples/; crosslink-variant reference reserved at vsdd-suite-reference-examples/bookmark-cli-crosslink/ for PR 3 — 1 Resolved; v0.8.1)
+
+### Changed
+- **Reference-example folder restructure (G-89 forward-only):** `git mv bookmark-cli vsdd-suite-reference-examples/bookmark-cli-manual` — preserves git history; rename signals the manual-method variant identity. New top-level folder `vsdd-suite-reference-examples/` holds the portfolio's reference implementations; the parallel `vsdd-suite-reference-examples/bookmark-cli-crosslink/` variant is reserved as a forward-link for PR 3 of the Review 73 / 74 / 75 sequence (capstone-intent promotion + 6-phase completion for both variants + crosslink-variant build from scratch).
+- **`vsdd-suite/README.md`** § Worked example intro paragraph — added reference-impl pointer naming both variants at their `vsdd-suite-reference-examples/` paths; framed as the two reference implementations that realize the walkthrough end-to-end. Worked-example overview table Phase 1c row Output column now reads "crosslink layer hierarchy (or `TODO.md`) + `manual-tests/` folder".
+- **`vsdd-suite/primers/1c-decomposition.md`** § Manual testing checklist file-location sub-section — reference-example pointer reframed to name both variants (`bookmark-cli-manual` + `bookmark-cli-crosslink`) as adopters of the new manual-test-split convention.
+- **`vsdd-suite/primers/5-formal-hardening.md`** Surface A.0 G-173 worked example — historical reference path updated from `bookmark-cli/src/lib.rs:1-7` to `vsdd-suite-reference-examples/bookmark-cli-manual/src/lib.rs:1-7`. G-173 the finding remains a historical anchor; the path-reference is updated forward-only.
+- **`vsdd-suite/crosslink-contract.md`** § Contract testing — citation now names both reference variants; the crosslink-method variant (forthcoming in PR 3) serves as the canary for contract-drift detection and G-106 closure verification.
+- **`guild-portfolio/README.md`** (top-level portfolio README) — project listing restructured. New `### VSDD Suite — Methodology project` entry naming the suite as its own portfolio project with a component-status table (primers, role/meta domains, supplements, two-mode integration, pre-commit hooks). Existing bookmark-cli entry reframed as `### VSDD Suite reference examples — Worked-example projects` naming both variants and their per-variant roles + forward-link for the crosslink variant. Standalone `## The suite` section retired (collapsed into the new project entry). `## Forward-only compatibility` section restated.
+- **`vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/{FINDINGS-INDEX,QUALITY-ENGINEER-REVIEW,SOLUTION-ARCHITECT-REVIEW}.md`** — relative-path correction `../../vsdd-suite/` → `../../../vsdd-suite/` for the deeper nesting (the move added one level). 3 files / 8 path-references rewritten.
+- **`vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/FINDINGS-INDEX.md`** H1 + opening paragraph — `bookmark-cli` → `bookmark-cli-manual`; the broken `GAP-ANALYSIS-LOG.md` reference at line 5 fixed (now points at `FINDINGS-INDEX.md` per G-149 closure, which had been applied to the suite but left stale on the reference example).
+- **`vsdd-suite-reference-examples/bookmark-cli-manual/TODO.md`** lead — H1 `bookmark-cli` → `bookmark-cli-manual`; broken `GAP-ANALYSIS-LOG.md` link fixed; framing paragraph updated to name the variant explicitly + note the capstone-intent promotion and 6-phase completion land in PR 3.
+
+### Resolved
+- **Review 75 Finding 1** — Reference-example folder restructure + bookmark-cli rename to bookmark-cli-manual. Two implicit roles disambiguated: the reference-example role (which the reference plays) and the manual-method-variant role (which the rename signals). Crosslink-method variant reserved as forward-link for PR 3. Top-level portfolio README restructured so vsdd-suite + reference examples are portfolio projects in their own right. Full narrative: [Review 75](suite-development/review-log/2026-05-20-suite-review.md#review-75--2026-05-20-1315z).
+
+### Note
+**Backlog after Review 75: 0 Open + 6 Deferred** (G-159, G-168, G-169, G-170, G-171, G-172 — unchanged from Review 74). Forward-only per G-89: historical CHANGELOG / COMPATIBILITY / review-log entries that reference `bookmark-cli/` (the pre-rename path) and legacy `G-117`, `G-138`, `G-177`, `G-178`, `G-181` registry rows are preserved as audit-trail records throughout the suite.
+
+---
+
+## Unreleased — 2026-05-20 12:30Z (Review 74: manual-test split convention + new project-review-discipline pre-commit hook — 2 Resolved; v0.8.0)
+
+### Added
+- **`vsdd-suite/hooks/check-project-review-discipline.sh`** (new file, ~250 lines Python) — pre-commit hook parallel to `check-suite-review-preamble.sh` (Review 68) enforcing project-level domain-review entry-structure discipline. Checks: `### Summary` section presence per Review entry; `**Coordination:**` line presence (with `*(none)*` placeholder allowed); classification-section headings matching the domain's classification universe (15 domain-specific universes encoded from `suite-development.md` § Finding classification schemas by domain type); finding-header discipline-reference parenthetical accepts `(Dim X)` / `(Phase 5 Surface B)` / `(Rust supplement — path traversal)` etc. (any trailing `(...)` group; Phase 5 surfaces and supplement references are equally valid per the standard's worked examples); domain-slug recognition vs. the canonical slug set. Portfolio Assessment skipped from classification-heading check (dim-first organization per `suite-development.md` § Finding sections exception). Forward-only enforcement threshold 2026-05-20. Per-entry `<!-- hook-bypass: <rationale> -->` HTML-comment escape valve. Tested clean against all 3 existing bookmark-cli-manual project-review logs.
+- **`.pre-commit-config.yaml`** — new `check-project-review-discipline` entry wired after the existing `check-suite-review-preamble` hook. Files-regex scopes to per-project review-log markdown only (`^.*/vsdd-suite/review-log/.*\.md$`); explicitly does NOT match suite-review-log files (those are owned by the preceding hook).
+
+### Changed
+- **`vsdd-suite/primers/1c-decomposition.md`** § Manual testing checklist — new **File location (Review 74 convention shift — forward-only)** sub-section naming the convention: manual-test plans live in `manual-tests/layer-N.md` files at the project root (siblings to `DESIGN.md` / `TODO.md` / `src/`), one file per layer; `TODO.md` Layer N's `**Manual Testing Checklist:**` field becomes a one-line pointer to the corresponding file. Structural rationale (size, diff-ability, citation by anchor); forward-only constraint with reference-example carve-out. Per-layer file structure spec added.
+- **`vsdd-suite/primers/1c-decomposition.md`** § TODO.md format template — per-Layer `**Manual Testing Checklist:**` block rewritten from inline placeholder bullets to a one-line pointer at `manual-tests/layer-N.md`.
+- **`vsdd-suite/primers/1c-decomposition.md`** § Completion criteria — criterion 3 updated to name the per-layer-file convention + forward-only carve-out; criterion 7 (Phase 2+ crosslink projects) clarifies per-layer manual-test files live in `manual-tests/layer-N.md` in both modes (crosslink projects reference them from the layer issue comment thread).
+- **`vsdd-suite/README.md`** Quickstart Phase 1c step — added the per-layer-file convention requirement alongside `TODO.md` authoring.
+- **`vsdd-suite/README.md`** § Session primers Decomposition (Spec Review Gate) row — "manual testing checklists" → "per-layer `manual-tests/layer-N.md` files (Review 74 convention; pre-cutoff projects retain inline TODO.md checklists)".
+- **`vsdd-suite/README.md`** § Worked example overview table Phase 1c row — Output column updated; manual-mode column adds "author one `manual-tests/layer-N.md` per layer".
+- **`vsdd-suite/domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md`** dim 9 — extended with the **File location** sub-paragraph naming the per-layer-file convention; pre-cutoff projects retain inline `TODO.md` checklists; a project whose `TODO.md` Layer N has a pointer but no actual `manual-tests/layer-N.md` file is a finding (pointer without target is a defect).
+
+### Resolved
+- **Review 74 Finding 1** — Manual testing plans split into per-layer files in a `manual-tests/` folder; `TODO.md` per-layer `**Manual Testing Checklist:**` becomes a one-line pointer. Forward-only with reference-example carve-out — pre-cutoff projects retain inline `TODO.md` checklists; reference examples (`bookmark-cli-manual/` and forthcoming `bookmark-cli-crosslink/`) adopt the convention as part of their capstone-intent promotion in PR 3. Full narrative: [Review 74](suite-development/review-log/2026-05-20-suite-review.md#review-74--2026-05-20-1230z).
+- **Review 74 Finding 2** — New `check-project-review-discipline.sh` pre-commit hook enforces project-level domain-review entry-structure discipline parallel to Review 68's suite-review hook. Closes the asymmetry the operator surfaced ("similar to the hook that maintains suite-review discipline there should be one for domain review discipline too"). Full narrative: [Review 74](suite-development/review-log/2026-05-20-suite-review.md#review-74--2026-05-20-1230z).
+
+### Note
+**Backlog after Review 74: 0 Open + 6 Deferred** (G-159, G-168, G-169, G-170, G-171, G-172 — unchanged from Review 73). Forward-only per G-89: pre-cutoff project review-log entries are not enforced by the new hook; pre-cutoff project TODO.md files retain inline manual-testing-checklist sections.
+
+---
+
 ## Unreleased — 2026-05-20 11:30Z (Review 73: suite-development findings registry reshaped forward-only to mirror project FINDINGS-INDEX shape; "gap analysis" / `G-XX` verbiage retired going forward — 1 Resolved; v0.7.9)
 
 ### Changed
