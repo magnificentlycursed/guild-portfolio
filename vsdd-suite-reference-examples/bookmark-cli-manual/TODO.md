@@ -2,7 +2,7 @@
 
 Phase 1c output. Authored with [`../../vsdd-suite/primers/1c-decomposition.md`](../../vsdd-suite/primers/1c-decomposition.md) loaded (G-96 renamed Phase 1b → Phase 1c; this file predates the rename and is preserved per G-89 forward-only narrative-preservation policy). Each layer below is independently testable and shippable; acceptance criteria are observable behaviors (not implementation steps); the Red Gate test plan names the literal tests that must fail before any implementation lands per layer.
 
-This project is the manual-method reference implementation for the suite's worked example (G-112 in [`../../vsdd-suite/suite-development/FINDINGS-INDEX.md`](../../vsdd-suite/suite-development/FINDINGS-INDEX.md)). Only Layer 1 is built out — Layers 2 and 3 are scoped but deferred to follow-on work. The capstone-intent promotion and 6-phase completion (Phase 5 hardening through Phase 6 four-dimensional convergence) lands in a subsequent PR; this PR's scope is the Review 73 / 74 / 75 convention shifts (findings-index reshape; manual-test split; reference-example folder restructure + rename).
+This project is the manual-method reference implementation for the suite's worked example (G-112 in [`../../vsdd-suite/suite-development/FINDINGS-INDEX.md`](../../vsdd-suite/suite-development/FINDINGS-INDEX.md)). Only Layer 1 is built out — Layers 2 and 3 are scoped but deferred to follow-on work. **As of PR 6 / Review 78, bookmark-cli-manual is at `capstone` intent** with all 6 VSDD phases demonstrated end-to-end (1a+1b spec → 1c decomposition → 2a Red Gate → 2b implementation → 2c refactor (no-refactor annotation) → 3 IAR (10 active domains) → 4 routing → 5 Surfaces A.0+B hardening → 6 four-dimensional convergence).
 
 ---
 
@@ -26,51 +26,20 @@ This project is the manual-method reference implementation for the suite's worke
 
 All four tests live in `tests/bookmarks.rs` and invoke the compiled binary via `assert_cmd` per CLI supplement § Quality Engineering ("integration tests invoke the binary"). Each uses `tempfile::tempdir()` for an isolated `BOOKMARK_CLI_DB` per test — no shared state between tests.
 
-**Manual testing checklist** (per `primers/1b-decomposition.md` § Manual testing checklist, runnable-step standard):
+**Manual Testing Checklist:** [`manual-tests/layer-1.md`](manual-tests/layer-1.md)
 
-```sh
-# Setup: fresh install of the binary
-cd <portfolio>/bookmark-cli
-cargo install --path . --force --quiet
-# Verify binary is on PATH:
-which bm   # expect: ~/.cargo/bin/bm
+(Per Review 74 manual-test split convention — the full per-step plan with runnable commands + literal expected-output blocks lives in the linked per-layer file. Migrated from the prior inline-in-TODO.md shape as part of PR 6's capstone-intent promotion.)
 
-# Test 1 — happy path
-export BOOKMARK_CLI_DB="$(mktemp -d)/bookmarks.json"
-bm add https://example.com
-# expect exit 0, stdout empty, stderr empty
-cat "$BOOKMARK_CLI_DB"
-# expect a JSON document with one bookmark object, url=https://example.com, timestamp=current UTC
-
-# Test 2 — empty URL rejection
-bm add ""
-# expect exit 1, stderr "Error: URL cannot be empty.", stdout empty
-echo "exit=$?"   # expect: exit=1
-
-# Test 3 — list ordering
-bm add https://first.example
-sleep 1
-bm add https://second.example
-bm list
-# expect: two lines, second.example first (newest), first.example second
-
-# Test 4 — empty list
-rm "$BOOKMARK_CLI_DB"
-bm list
-# expect exit 0, stdout empty, stderr "No bookmarks yet."
-
-# Cleanup
-rm -rf "$(dirname "$BOOKMARK_CLI_DB")"
-unset BOOKMARK_CLI_DB
-cargo uninstall bookmark-cli --quiet
-```
+**Phase 2c (refactor):** `no refactor required` (per `../../vsdd-suite/primers/2c-refactor.md` § Completion criteria #5 explicit-skip annotation). Layer 1's implementation (`src/lib.rs` + `src/main.rs`) is small enough that the Phase 2b artifact already exhibits the idiomatic Rust patterns the refactor primer's scope catalog targets (extract-and-name; collapse-and-inline; reshape-data-flow; surface-purity-boundary; idiomatic-alignment; language-supplement rules). The purity boundary was explicitly surfaced by SA Review 1 (Phase 5 Surface A.0); no further refactor warranted. The explicit-skip annotation here satisfies VDD-IAR Alignment dim 12 (Phase 2c refactor discipline per G-161) — silent-skip would be a finding; this annotation is the alternative.
 
 **Layer-gate criteria:**
 
 1. All four Red Gate tests pass: `cargo test --test bookmarks`.
 2. `cargo build --release` succeeds with no warnings.
-3. The manual testing checklist above runs clean (every step produces the expected exit/stdout/stderr).
-4. Phase 3 IAR reviews complete for the 7 default-active core domains (per G-121 doctrine: SE, QE, UX, Security, SA, SO, VDD-IAR Alignment); each domain reaches MVR or no findings.
+3. The manual testing checklist at `manual-tests/layer-1.md` runs clean (every step produces the expected exit/stdout/stderr).
+4. Phase 3 IAR reviews complete for the **capstone-active domain set** per `../../vsdd-suite/domains/DOMAIN-INDEX.md` § Intent calibration: 7 cores (SE, QE, UX, Security, SA, SO, VDD-IAR Alignment) + capstone-tier extended (Performance Engineer, Red Team, Platform Engineer, Technical Writer); each domain reaches MVR or zero-findings. (Data Engineer evaluated and ruled out — bookmark-cli's flat JSON storage falls below the activation threshold per G-178; the absence is documented as deliberate.)
+5. Phase 5 Surfaces A.0 (purity boundary) + B (mutation testing) both at closure with the per-domain log preambles per G-177 — Surface A.0 in SA Review 1; Surface B in QE Review 2.
+6. Phase 6 four-dimensional convergence record landed as the final VDD-IAR Alignment review round titled "Review N — Phase 6 four-dimensional convergence (project-terminal)" per primer 6 + G-177.
 
 ---
 

@@ -4,6 +4,29 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-20 16:30Z (Review 78: bookmark-cli-manual capstone-intent promotion + 6-phase structural preparation — 1 Resolved; v0.11.0)
+
+### Changed (reference example — `vsdd-suite-reference-examples/bookmark-cli-manual/`)
+- **`DESIGN.md`** § Project intent — promoted from `portfolio` to `capstone` with intent-transition note. Active domain set declared as **10 role + 1 meta = 11** (6 core role + VDD-IAR Alignment meta + 4 extended: Performance Engineer, Platform Engineer, Red Team, Technical Writer). DE evaluated and ruled out per G-178 activation threshold. Sanity Check meta domain available on-demand. Phase 6 strategy promoted from `not applicable` to `planned` with concrete scope.
+- **`TODO.md`** Layer 1 — `**Manual Testing Checklist:**` block split out per Review 74 (inline → one-line pointer to `manual-tests/layer-1.md`). New `**Phase 2c (refactor):**` annotation declaring `no refactor required` per primer 2c-refactor.md § Completion criteria #5 explicit-skip pattern.
+- **3 existing review-log files migrated** with Review 77 lifecycle fields per G-177 reference-example-migrates precedent (`2026-05-17-quality-engineer.md`, `2026-05-20-quality-engineer.md`, `2026-05-20-solution-architect.md`). Each non-Hallucinated finding gained Owner / Status / Blocked-by / Validator fields. Migration-note paragraph at top of each file. Fields aspirational on these pre-2026-05-21 dates (hook gates on 2026-05-21+); PR 7 rounds will be enforced.
+- **`vsdd-suite/FINDINGS-INDEX.md`** schema extended with Owner + Validator columns per Review 77; existing 5 rows updated with migrated Owner/Validator values.
+- **5 pre-existing stub per-domain indexes customized** (SE, UX, Security, SO, VDD-IAR Alignment) — template placeholders filled with bookmark-cli-manual-specific values.
+
+### Added (reference example — `vsdd-suite-reference-examples/bookmark-cli-manual/`)
+- **`manual-tests/layer-1.md`** (new ~140 lines) — Layer 1 manual-test plan per Review 74 convention. 6 step blocks with literal expected-output blocks.
+- **`PROCESS.md`** (new ~80 lines) — first-person retrospective skeleton per G-156 layer-gate close criterion 7. **AI-co-authored disclosure** at top — discipline G-156 specifies director-authored prose; this file demonstrates the FORMAT, with prose that must be overwritten by the operator to satisfy the gate.
+- **`INSTALL-VERIFICATION.md`** (new ~70 lines) — Platform Engineer Dim 38 third-party install verification record per G-155. **AI-co-authored disclosure** at top — the AI cannot satisfy this gate (non-author fresh-system requirement); the file documents the verification procedure the operator would execute.
+- **4 new per-domain index files** — `PERFORMANCE-ENGINEER-REVIEW.md`, `PLATFORM-ENGINEER-REVIEW.md`, `RED-TEAM-REVIEW.md`, `TECHNICAL-WRITER-REVIEW.md`. Each customized for bookmark-cli-manual with activation rationale + supplement references + sycophancy-check excerpt + empty Reviews table (rounds populate in PR 7).
+
+### Resolved
+- **Review 78 Finding 1** — bookmark-cli-manual capstone-intent promotion + structural preparation for 6-phase walk. PR 6 ships the structural prep; PR 7 will execute the IAR rounds + Phase 6 convergence. Full narrative: [Review 78](suite-development/review-log/2026-05-20-suite-review.md#review-78--2026-05-20-1630z).
+
+### Note
+**Backlog after Review 78: 0 Open + 7 Deferred** (G-159, G-168, G-169, G-170, G-171, G-172 unchanged + Review 76 Finding 4 bundled-Deferred — no new findings registered this Review). **PR 7 (queued):** execute 9 cold-session IAR rounds (SE, UX, Security, SO, VDD-IAR Alignment, Performance Engineer, Platform Engineer, Red Team, Technical Writer) + Phase 6 four-dimensional convergence record (final VDD-IAR Alignment round per G-177) + repopulate bookmark-cli-manual FINDINGS-INDEX with new finding rows. **PR 8 (queued):** bookmark-cli-crosslink built from scratch (capstone + 6-phase + crosslink workflow throughout). **PR 9+ (queued):** Documentation Reviewer domain registration; apply Doc Reviewer to both reference variants; suite self-compliance arc (suite gets its own DESIGN.md + retroactive TODO.md + Phase 5 hardening + Phase 6 convergence). The cumulative arc lands the suite as a self-compliant VSDD project — long-running but bounded.
+
+---
+
 ## Unreleased — 2026-05-20 15:45Z (Review 77: ownership / blocking / validation lifecycle methodology + new Sanity Check meta domain — 2 Resolved; v0.10.0)
 
 ### Added

@@ -2,6 +2,8 @@
 
 [Index](../QUALITY-ENGINEER-REVIEW.md)
 
+
+**Migration note (PR 6 / Review 78):** This pre-2026-05-21 review entry was authored under portfolio intent and the pre-Review-77 classification-centric finding model. Per PR 6's capstone-intent promotion + the G-177 reference-example-migrates precedent, the Review 77 lifecycle fields (`Owner` / `Status` / `Blocked by` / `Validator`) have been added retroactively to each non-Hallucinated finding so the reference example demonstrates current conventions. The hook's lifecycle-field enforcement (`check-project-review-discipline.py`) does NOT enforce on this date (pre-2026-05-21 cutoff), so the fields are aspirational here; the next-day Review-77-enforced rounds (Reviews dated 2026-05-21+) carry the same fields under the enforced standard.
 ---
 
 ## Review 2 — 2026-05-20 02:45Z
@@ -21,6 +23,11 @@
 ### Resolved
 
 **Finding 1 — Surface B surviving non-equivalent mutant (Phase 5 Surface B / G-174 5-disposition universe)**
+
+**Owner:** software-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** quality-engineer
 
 `cargo-mutants v27.0.0` Surface B against the Phase 3-MVR codebase produced 11 mutants. Pre-B1 outcome: 7 caught / 1 missed / 3 unviable — kill rate on viable mutants 7/8 = **87.5%**.
 
