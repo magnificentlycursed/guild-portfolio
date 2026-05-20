@@ -954,13 +954,6 @@ Only include log files for the domains active on the project. Each per-domain in
 
 ## Merging gate
 
-Before a layer may be merged:
+The canonical layer-gate close criteria live in [`suite-development/suite-development.md`](suite-development/suite-development.md) § Layer-gate close criteria — seven baseline criteria including G-131/G-151 trigger discipline (continue when any new real finding surfaces; stop when MVR is reached) and G-156's hard gate on developer-voice PROCESS.md retrospectives (criterion 7). Pre-2026-05-18 projects retain the prior advisory framing per the forward-only carve-out documented there; new layer-gate closes follow the seven-criterion set.
 
-1. All active IAR domains have completed at least one full run scoped to that layer
-2. The refinement loop has run to MVR — the final round produces only hallucinated findings or no findings
-3. Every finding is either **resolved** (fix applied and verified), **dismissed** (rationale documented), or **hallucinated** (push back documented)
-4. Accepted risks are explicitly documented with rationale
-5. VDD-IAR Alignment has been run and process compliance confirmed
-6. Results are logged with round numbers in the respective log files under `{project}/vsdd-suite/`
-
-No active domain may be skipped. A domain with zero findings is a valid outcome — log it with `**Scope:**`, round number, and `**Tests:**` lines so the record is complete.
+A project may codify additional criteria in its own `CLOSURE-PROTOCOL.md` (per `issue-tracker-cli`'s precedent) but may not weaken the baseline.
