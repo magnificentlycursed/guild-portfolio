@@ -84,6 +84,24 @@ impl BookmarkStore {
     /// file content is non-empty and fails JSON parsing per `DESIGN.md`
     /// § `bm list` failure contract (exit 2 in the caller).
     pub fn load(path: &Path) -> Result<Self> {
+        // Symlink-follow rejection per `DESIGN.md` § Threat model — applies
+        // to both load and save sides per the symlink-hardening discipline.
+        // Closes [Red Team Review 1
+        // Finding 5](../vsdd-suite/review-log/2026-05-20-red-team.md#r2-f5).
+        // The Round 1 fix narrowed this to `save` only; Round 2 surfaced
+        // that `load` was unchanged and still followed symlinks (read-side
+        // oracle: a parse-error vs. empty vs. valid-JSON triple-channel
+        // signal on whether the pointed-to file's contents conform to the
+        // bookmark-store shape). Symmetric rejection on load + save closes
+        // both halves of the discipline.
+        if let Ok(meta) = std::fs::symlink_metadata(path) {
+            if meta.file_type().is_symlink() {
+                return Err(anyhow!(
+                    "refusing to read through symlink at {}: this is the symlink-hardening discipline declared in DESIGN.md § Threat model",
+                    path.display()
+                ));
+            }
+        }
         if !path.exists() {
             return Ok(Self::default());
         }
@@ -310,9 +328,39 @@ pub fn display_safe(s: &str) -> String {
 /// `DESIGN.md` § Threat model (U+200B–U+200F, U+202A–U+202E,
 /// U+2066–U+2069, U+FEFF). `is_control()` already covers the Cc range.
 const fn is_format_char(c: char) -> bool {
+    // Unicode `Cf` (Format) category subset covering known terminal-escape-
+    // injection + Trojan-Source vectors. Closes [Red Team Review 1
+    // Finding 6](../vsdd-suite/review-log/2026-05-20-red-team.md#r2-f6) —
+    // the Round 1 fix's named-subset matcher missed several `Cf` ranges that
+    // the Rust supplement § Security identifies as bypass vectors. Coverage:
+    //
+    // - U+061C — Arabic Letter Mark (bidi format char, missing in R1)
+    // - U+200B..=200F — zero-width chars + LRM/RLM
+    // - U+202A..=202E — explicit bidi formatting (RLE/LRE/PDF/LRO/RLO)
+    // - U+2060..=2064 — word joiner + invisible math chars
+    // - U+2066..=2069 — isolate bidi formatting
+    // - U+FEFF — zero-width no-break space / BOM
+    // - U+FFF9..=FFFB — interlinear annotation anchors
+    // - U+180B..=180D, U+180F — Mongolian Free Variation Selectors
+    // - U+FE00..=FE0F — Variation Selectors 1-16 (Trojan-Source supplementary)
+    // - U+E0001 — language tag
+    // - U+E0020..=E007F — tag characters (Trojan-Source supplementary plane)
+    // - U+E0100..=E01EF — Variation Selectors 17-256
     matches!(
         c as u32,
-        0x200B..=0x200F | 0x202A..=0x202E | 0x2066..=0x2069 | 0xFEFF
+        0x061C
+            | 0x200B..=0x200F
+            | 0x202A..=0x202E
+            | 0x2060..=0x2064
+            | 0x2066..=0x2069
+            | 0xFEFF
+            | 0xFFF9..=0xFFFB
+            | 0x180B..=0x180D
+            | 0x180F
+            | 0xFE00..=0xFE0F
+            | 0xE0001
+            | 0xE0020..=0xE007F
+            | 0xE0100..=0xE01EF
     )
 }
 

@@ -285,9 +285,15 @@ fn save_refuses_symlink_target() {
         .assert()
         .failure()
         .code(2)
-        .stderr(predicate::str::contains(
-            "refusing to write through symlink",
-        ));
+        // Symlink rejection fires on either the load() pass or the save()
+        // pass depending on order — both are valid (Red Team Round 2
+        // Finding 5: symmetric symlink hardening on both sides).
+        .stderr(
+            predicate::str::contains("symlink").and(
+                predicate::str::contains("refusing to read through")
+                    .or(predicate::str::contains("refusing to write through")),
+            ),
+        );
 
     let after = fs::read(&target).expect("symlink target must remain readable");
     assert_eq!(
@@ -422,4 +428,75 @@ fn save_leaves_no_orphan_temp_files() {
         "expected exactly the store file, got {entries:?}"
     );
     assert_eq!(entries[0], "bookmarks.json");
+}
+
+/// `BookmarkStore::load` symmetric symlink-rejection: if `$BOOKMARK_CLI_DB`
+/// is a symlink, `bm list` also refuses (not just `bm add`). Closes
+/// [Red Team Review 1 Round 2 Finding 5](../vsdd-suite/review-log/2026-05-20-red-team.md#r2-f5).
+#[cfg(unix)]
+#[test]
+fn load_refuses_symlink_target() {
+    let dir = tempdir().unwrap();
+    let target = dir.path().join("real_target.json");
+    fs::write(&target, b"{\"bookmarks\":[]}\n").unwrap();
+    let link = dir.path().join("link.json");
+    std::os::unix::fs::symlink(&target, &link).unwrap();
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &link)
+        .args(["list"])
+        .assert()
+        .failure()
+        .code(2)
+        .stderr(predicate::str::contains("refusing to read through symlink"));
+}
+
+/// `bm` unknown-subcommand with a control-byte-bearing argv argument:
+/// clap renders the argument verbatim in its error message; we sanitize
+/// through `display_safe` so ANSI escapes do not reach the terminal raw.
+/// Closes [Security Review 1 Round 2 Finding 4](../vsdd-suite/review-log/2026-05-20-security.md#r2-f4).
+#[test]
+fn unknown_subcommand_with_ansi_escape_is_sanitized() {
+    let output = Command::cargo_bin("bm")
+        .unwrap()
+        .arg("\x1b[31mfrobnicate")
+        .assert()
+        .failure()
+        .code(64)
+        .get_output()
+        .stderr
+        .clone();
+    let rendered = String::from_utf8(output).expect("stderr should be UTF-8");
+    // Defense-in-depth: the `display_safe` wrapper around `err.render()`
+    // ensures no raw control bytes reach stderr regardless of clap's own
+    // argv handling. The current clap version pre-strips many control
+    // sequences before quoting; our sanitizer remains the final guarantee.
+    // Closes Security Round 2 Finding 4.
+    assert!(
+        !rendered.contains('\x1b'),
+        "raw ESC byte must not reach stderr; got {rendered:?}"
+    );
+}
+
+/// `bm --help` includes the usage examples + exit-code table per the
+/// `long_about` text. Closes [UX Review 1 Finding 4](../vsdd-suite/review-log/2026-05-20-ux.md).
+#[test]
+fn help_text_includes_usage_examples_and_exit_codes() {
+    let output = Command::cargo_bin("bm")
+        .unwrap()
+        .arg("--help")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let rendered = String::from_utf8(output).expect("stdout should be UTF-8");
+    assert!(rendered.contains("Examples:"), "Examples section missing");
+    assert!(rendered.contains("bm add"), "bm add example missing");
+    assert!(
+        rendered.contains("Exit codes:"),
+        "Exit codes section missing"
+    );
+    assert!(rendered.contains("64"), "exit 64 documented missing");
 }
