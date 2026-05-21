@@ -1,6 +1,6 @@
 # External Review — @shimmermathlabs.com — 2026-05-21
 
-<!-- PR #43 closed the queued hook-update: bsky.app/profile/ is now in the check-review-log-anonymization.sh allowlist; the hook-bypass that previously lived here is no longer needed. -->
+<!-- PR #43 closed the queued hook-update: bsky.app/profile/ is now in the check-anonymization.sh allowlist (the hook that scans every committed text file, renamed at PR #43 from check-review-log-anonymization.sh when consolidated with no-home-dir-paths); the hook-bypass that previously lived here is no longer needed. -->
 
 
 ## Reviewer
@@ -90,7 +90,7 @@ Upstream-suite recurrence-prevention candidates routed from this review (per [Re
 
 1. Primer 1c § Manual testing checklist — add a worked example distinguishing "silent on success" vs "intentionally-empty fenced block" expected-output wording
 2. Install-verification template file-inventory section — make the expected-`ls` enumeration a templated section
-3. Suite-internal-terminology containment hook (parallel to `check-review-log-anonymization.sh`) — scan user-facing project artifacts for suite-internal audit-trail language
+3. Suite-internal-terminology containment hook (parallel to the repo-wide `check-anonymization.sh`) — scan user-facing project artifacts for suite-internal audit-trail language
 4. Primer 1c § Manual testing checklist — add a scripted-vs-human-split discipline clause
 
 ## Notes
