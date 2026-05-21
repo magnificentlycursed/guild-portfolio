@@ -4,6 +4,10 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-21 13:30Z ([Review 88](suite-development/review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z): Phase 6 attestation routing + Nathan-thread UX/TW/QE cluster mining + external-review-log subfolder pattern + 2 new hooks (check-external-review-anonymization + check-suite-internal-terminology) + primer 1c discipline extensions — 6 Findings Resolved; v0.14.0; PR [#42](https://github.com/magnificentlycursed/guild-portfolio/pull/42)) — full Review 88 entry covers the cascade; the upstream-suite-mitigation list is in [Review 88 Finding 3](suite-development/review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z); the external-review-log codification is in [Finding 4](suite-development/review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z); the Phase 6 attestation is at [bookmark-cli-manual VDD-IAR Alignment Review 3](../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-vdd-iar-alignment.md).
+
+---
+
 ## Unreleased — 2026-05-21 12:30Z ([Reviews 84 + 85 + 86 + 87](suite-development/review-log/2026-05-21-suite-review.md): upstream-suite remediation + per-domain-index retirement + Doc Reviewer R4 + three-audience rename + external-feedback mining + GitHub Actions supplement + PR template merge-gate + PROCESS.md three-audience-lens + live CI failure mining + tool/prompt-error-as-finding methodology codification with operator-refined per-error-class ownership — 15 Findings Resolved; v0.13.0; PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40))
 
 ### Added (suite-side — tool/prompt-error methodology codification, [Review 87](suite-development/review-log/2026-05-21-suite-review.md#review-87--2026-05-21-1230z))

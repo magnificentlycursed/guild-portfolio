@@ -27,7 +27,7 @@ git clone https://github.com/magnificentlycursed/guild-portfolio.git
 cd guild-portfolio/vsdd-suite-reference-examples/bookmark-cli-manual
 ```
 
-Expected: clone succeeds; directory exists; `ls` shows `Cargo.toml`, `DESIGN.md`, `TODO.md`, `src/`, `tests/`, `manual-tests/` (including `manual-tests/install-verification.md` — this file), `vsdd-suite/`, `PROCESS.md`.
+Expected: clone succeeds; directory exists. `ls` shows the project-config files (`Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `deny.toml`, `.gitignore`), the source + test directories (`src/`, `tests/`), the documentation surfaces (`README.md`, `DESIGN.md`, `TODO.md`, `PROCESS.md`, `CHANGELOG.md`), the manual-test plans (`manual-tests/layer-1.md`, `manual-tests/install-verification.md` — this file), and the VSDD audit trail (`vsdd-suite/` containing `FINDINGS-INDEX.md` + per-session files under `review-log/`). The `Cargo.lock`, `rust-toolchain.toml`, and `deny.toml` files exist per [`../DESIGN.md`](../DESIGN.md) § Project-level details (`Cargo.lock` committed for reproducible builds; `rust-toolchain.toml` pins the toolchain; `deny.toml` is the [`cargo deny`](https://github.com/EmbarkStudios/cargo-deny) supply-chain policy). A `target/` directory will appear after Step 2's `cargo install` runs — it is a build artifact, gitignored.
 
 ### Step 2 — Install the binary from the project directory
 
@@ -62,6 +62,6 @@ Each row of the table below is one verification attempt. Per [G-155](../../../vs
 ## Coordination with other artifacts
 
 - **[`layer-1.md`](layer-1.md)** — the test plan the verifier executes (sibling file in this `manual-tests/` directory).
-- **[`../PROCESS.md`](../PROCESS.md)** — first-person retrospective; the verifier's experience could be recorded as an addendum if the verifier is willing to author a brief reflection on the install experience (cold-reader signal that complements TW Dim 11 audit trail).
+- **[`../PROCESS.md`](../PROCESS.md)** — first-person retrospective; the verifier's experience could be recorded as an addendum if the verifier is willing to author a brief reflection on the install experience (cold-reader signal that complements the project's documentation audit trail).
 - **[`../vsdd-suite/review-log/`](../vsdd-suite/review-log/)** — Platform Engineer's per-session review-log files (matching `*-platform-engineer.md`) and the [`../vsdd-suite/FINDINGS-INDEX.md`](../vsdd-suite/FINDINGS-INDEX.md) project finding registry. Dim 38 (Fresh-system install verification) per the [Platform Engineer domain prompt](../../../vsdd-suite/domains/role/PLATFORM-ENGINEER-REVIEW.md) is evaluated against this file's contents.
 - **[`../DESIGN.md` § Project intent](../DESIGN.md#project-intent)** — declared capstone intent; [G-162](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-162) strategy declarations include the verification commitment.

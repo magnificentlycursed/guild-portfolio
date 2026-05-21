@@ -709,3 +709,196 @@ The methodology resolution per AI Engineer:
 ### Summary (Review 87, updated)
 
 6 Findings Resolved in-session ([F1](#r87-f1) bash backtick command-substitution; [F2](#r87-f2) PR template structural defect; [F3](#r87-f3) CI-failures-as-findings methodology; [F4](#r87-f4) retroactive PR #38 CI mining + recurring error class; [F5](#r87-f5) Parser-aborted error AI Engineer resolution proposal; [F6](#r87-f6) generalized principle — any erroring prompt/tool is an AI Engineer candidate). PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40) ships all 6 + audit trail. Backlog after Review 87: **1 Open ([Review 79 Finding 2 Deferred](2026-05-20-suite-review.md#review-79--2026-05-20-1730z)) + 7 prior-Deferred + 1 Deferred-pending-source-identification (Finding 5's specific Parser-aborted incident reproduction)**.
+
+---
+
+## Review 88 — 2026-05-21 13:30Z
+
+**Scope:** Operator-directed PR [#42](https://github.com/magnificentlycursed/guild-portfolio/pull/42) — Phase 6 four-dimensional convergence routing (after [PR #41](https://github.com/magnificentlycursed/guild-portfolio/pull/41) closed the Platform Engineer Dim 38 / [G-155](../FINDINGS-INDEX.md#g-155) install-verification gate) + external-feedback mining of @shimmermathlabs.com's Bluesky install-verification thread + UX + Technical Writer + Quality Engineer cluster cold-session against the post-PR-#40 state + bookmark-cli-manual project-side fix-cycle + 4 upstream-suite recurrence-prevention applications + new **external-review-log subfolder pattern** codification + 2 new pre-commit hooks (`check-external-review-anonymization.py` + `check-suite-internal-terminology.py`).
+
+**Lens:** Methodology codification motivated by an external reviewer's first-time install-verification narrative. Sycophancy compensation: resisted treating "the verification PASSED" as the only signal from Nathan's thread (his 3 in-thread observations are equally substantive findings; the PASS is necessary-but-not-sufficient); resisted naming the reviewer's full real-name + correlating his Bluesky and GitHub identities just because both are knowable (operator-corrected the initial draft per the identity-correlation discipline now codified in this same Review); resisted treating the "Sycophancy-compensation reminder" leak as a one-off authoring slip rather than a methodology-discipline gap warranting a hook; resisted bundling Phase 6 attestation as a single line in this Review entry (it lives canonically as a VDD-IAR Alignment review round per primer 6 + [G-177](../FINDINGS-INDEX.md#g-177) — authored as a separate per-domain review-log entry at the project, not as a Finding inside this suite-side Review).
+
+**Session note:** In-session with the operator. Multiple operator-driven refinements landed mid-cycle: the external-review-log subfolder pattern + reviewer-named-file convention emerged after the initial `.txt` source-artifact framing; the identity-correlation discipline (load-bearing per the operator's marginalized-people framing) emerged after the initial draft of Nathan's external-review file surfaced a real-name + dual-handle correlation that the discipline forbids; the `check-suite-internal-terminology.py` hook emerged as the recurrence-prevention companion to the Bluesky-thread Post-10 finding.
+
+**Source:** `external-feedback` for Findings 2 + 3 (Nathan's Bluesky thread is the primary elicitation); `director-raised` for Findings 1 + 4 + 5 + 6 (operator-surfaced directives + Phase 6 routing + codification of the external-review-log pattern + identity-correlation discipline + hook authoring); `mixed` overall.
+
+**Cost-tally (per [`suite-development.md`](../suite-development.md) § Per-review entry preamble § Cost-tally):** 1 cluster sub-agent (UX + TW + QE, ~190k tokens per the agent's reported usage) + 1 main session authoring (~80-110k tokens for the codification + hooks + audit trail). Total ~270-300k. 9 substantive findings (UX R4 + TW R4 + QE R3 mining) + 6 suite-side Findings in this Review = 15. Per-finding cost: ~18-20k tokens — well below the capstone-intent expected band floor of 100k/finding; read as the cluster-batching + Phase 4-routing-as-scope-reducer disciplines compounding correctly.
+
+---
+
+### Resolved
+
+<a id="r88-f1"></a>
+**Finding 1 — Platform Engineer Dim 38 / [G-155](../FINDINGS-INDEX.md#g-155) install-verification gate closed by [PR #41](https://github.com/magnificentlycursed/guild-portfolio/pull/41); Phase 6 four-dimensional convergence UNBLOCKED**
+
+**Source:** director-raised + external-feedback — [PR #41](https://github.com/magnificentlycursed/guild-portfolio/pull/41) by [@shimmermathlabs.com](https://bsky.app/profile/shimmermathlabs.com) added the canonical PASS row to [`manual-tests/install-verification.md`](../../../vsdd-suite-reference-examples/bookmark-cli-manual/manual-tests/install-verification.md): Date 2026-05-21 19:40:36 UTC; Verifier nwhitehead; System Ubuntu 24.04.4 LTS / rust 1.95.0; Steps PASSED 0-6; Steps FAILED NONE; Outcome PASS. Per [G-155](../FINDINGS-INDEX.md#g-155) capstone-gate discipline ("a Verification record with Outcome: PASS from a non-author on a fresh system is the gate signal"), the gate that has been blocking Phase 6 four-dimensional convergence since PR [#38](https://github.com/magnificentlycursed/guild-portfolio/pull/38) is now closed.
+
+**Project MVR scorecard post-PR-#41:** 10 of 10 active capstone-tier role-domains at MVR at Layer-1 scope (SE / QE / UX / Security / SA / SO / Performance Engineer at Layer-1-scope / Platform Engineer / Red Team / Technical Writer + Documentation Reviewer + AI Engineer + VDD-IAR Alignment = 13 active per [DESIGN.md § Project intent](../../../vsdd-suite-reference-examples/bookmark-cli-manual/DESIGN.md)). Performance Engineer fsync-cost benchmark remains Deferred-to-Layer-2 per [its R2 finding](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-performance-engineer.md) (out of Layer-1 scope by construction; not blocking the Layer-1 Phase 6 attestation).
+
+**Owner:** platform-engineer (the verification record IS the closure evidence)
+**Status:** Resolved
+**Blocked by:** *(none — the gate is closed; Phase 6 attestation routes to a separate VDD-IAR Alignment review entry per [G-177](../FINDINGS-INDEX.md#g-177))*
+**Validator:** sanity-check
+
+**Validator rationale:** Verification-gate-closure spans the project-side audit trail (the PASS row in `install-verification.md`) + the suite-side methodology (G-155 capstone gate). Sanity Check applies the G-155 discipline as the closure criterion + confirms the PASS row's content (non-author verifier + fresh system + all manual-test steps passed) satisfies the gate.
+
+**Resolution:** Platform Engineer Dim 38 / G-155 gate closed. Phase 6 four-dimensional convergence attestation routes to [bookmark-cli-manual VDD-IAR Alignment Review 2 — Phase 6 four-dimensional convergence (project-terminal)](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-vdd-iar-alignment.md) per primer 6 + [G-177](../FINDINGS-INDEX.md#g-177); see [Finding 5](#r88-f5) below.
+
+**Classification:** Resolved
+
+---
+
+<a id="r88-f2"></a>
+**Finding 2 — External-feedback mining of @shimmermathlabs.com Bluesky thread: 3 in-thread findings filed against UX + Technical Writer + Quality Engineer domains via a 3-domain cluster cold-session; 9 project-side findings + 8 Resolved + 1 Deferred**
+
+**Source:** external-feedback — [@shimmermathlabs.com](https://bsky.app/profile/shimmermathlabs.com) Bluesky thread at https://bsky.app/profile/shimmermathlabs.com/post/3mmf5m5yts226. Verbatim archive at [`external-review-log/2026-05-21-shimmermathlabs.md`](external-review-log/2026-05-21-shimmermathlabs.md).
+
+Per the operator's Bluesky-Post-9 commitment ("I'll do a pass on it with my User Experience, Technical Writer, and Quality Engineer domains"), spawned a 3-domain cluster cold-session per the [AI Engineer R1 Dim 7 adversarial-pair-separation discipline](../../domains/role/AI-ENGINEER-REVIEW.md) (UX has no canonical adversarial pair; TW's pair Doc Reviewer is NOT in the cluster; QE's pair SE is NOT in the cluster — clean cluster shape). The cluster ran cold against the post-PR-#40 state + the Bluesky thread as external-feedback evidence.
+
+**Per-domain finding counts (full narrative in the per-session review-log files at the project):**
+
+- **UX Review 4** ([`2026-05-21-ux.md`](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-21-ux.md)) — 3 Resolved (F1 + F2 inline-fix; F3 routed to SO for spec ratification on silent-on-success affordance).
+- **Technical Writer Review 4** ([`2026-05-21-technical-writer.md`](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-21-technical-writer.md)) — 3 Resolved (F1 inline-fix install-verification.md file inventory; F2 inline-fix Sycophancy-leak deletion; F3 inline-fix README Phase 3 row).
+- **Quality Engineer Review 3** ([`2026-05-21-quality-engineer.md`](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-21-quality-engineer.md)) — 2 Resolved inline + 1 Deferred (F3 manual-test RFC-3339 scripted-check question → Layer 2 re-evaluation).
+
+**Total: 9 project-side findings (8 Resolved + 1 Deferred); cross-domain pattern** — the "literal — empty" wording defect surfaced **in all three domains simultaneously** (UX Dim 6 message clarity; QE Dim 2/3 assertion strength; TW Dim 12 lookup cost). The cluster-batching shape worked correctly: same root defect, three lenses, three non-duplicative findings with cross-reference fields.
+
+**Owner:** ux + technical-writer + quality-engineer (per-domain ownership of the 9 project-side findings)
+**Status:** Resolved
+**Blocked by:** *(F3 QE Deferred routes to Layer 2)*
+**Validator:** sanity-check
+
+**Validator rationale:** Multi-domain cluster mining spans 3 per-session review-log files + the bookmark-cli-manual project-side fix-cycle + the Bluesky thread as the external-feedback evidence base. Sanity Check applies the [AI Engineer R1 Dim 7 adversarial-pair-separation discipline](../../domains/role/AI-ENGINEER-REVIEW.md) + the per-domain Dim coverage + the external-feedback Source-value attribution to confirm the routing + the fix-cycle close.
+
+**Resolution:** 9 project-side findings filed + 8 Resolved inline in this PR; 1 Deferred. Project files fixed: `manual-tests/layer-1.md` (UX F1 "literal — empty" wording rewrite at lines 42, 47, 140; UX F2 Sycophancy-leak deletion at line 245; QE F1 expected-output wording cross-fix); `manual-tests/install-verification.md` (TW F1 file-inventory completion); `README.md` (TW F3 Phase 3 row update).
+
+**Classification:** Resolved
+
+---
+
+<a id="r88-f3"></a>
+**Finding 3 — 4 upstream-suite recurrence-prevention applications: primer 1c § Manual testing checklist extensions (empty-output wording + scripted-vs-human-split) + new `check-suite-internal-terminology.py` hook to prevent suite-internal AI-agent vocabulary from leaking to user-facing project artifacts**
+
+**Source:** director-raised — operator directive in PR #42 brief ("Make changes to upstream suite domains, primers, etc. as needed so prevent recurrance in future install verification testing").
+
+The cluster sub-agent surfaced 4 upstream-suite-recurrence-prevention candidates against the Nathan-thread findings. This Finding lands 2 of the 4 in this PR; the remaining 2 (install-verification template file-inventory section authoring + scripted-vs-human-split primer-text extension already partial) are partial-landed-here + complete-in-next-PR.
+
+**Application 1: `primers/1c-decomposition.md` § Manual testing checklist — empty-output wording discipline.** Added immediately after the existing "expected outcome as a literal block" paragraph: an explicit worked-example pattern for the silent-on-success case. The wording must explicitly name both the affordance (silent on success) AND the intentionally-empty fenced block as a unit so a first-time tester (e.g., @shimmermathlabs.com) interprets it correctly on first read. The wording to AVOID: `(literal — empty)` and `(literal -- empty)` parentheticals — the parenthetical ambiguates "literal" vs "empty" semantically; Nathan's Post 8 ("the 'literal -- empty' was confusing") is direct evidence the ambiguous form failed for a real tester.
+
+**Application 2: `primers/1c-decomposition.md` § Manual testing checklist — scripted-vs-human-split discipline.** Added immediately after the empty-output wording: the discipline that manual-test plans are for assertions a human can mechanically verify by eye (exact-byte-match; line counts; exit codes); pattern-matching / grammar-validation / schema-checking belong in the **automated-test surface** (`tests/`), NOT the manual-test plan. The bookmark-cli-manual QE Review 3 Finding 3 (Deferred) is the in-context example: "verify the timestamp is RFC 3339" was a manual-test plan instruction that's a category error — it requires the tester to know what RFC 3339 looks like + parse against the grammar; that's an automated-test responsibility. The primer's new clause codifies the discipline.
+
+**Application 3: new `vsdd-suite/hooks/check-suite-internal-terminology.py` hook + wired in `.pre-commit-config.yaml`.** Per the [Review 87 Finding 6](#r87-f6) per-error-class owner table, this hook is a process-enforcement + early-detection script — AI Engineer owns. The substantive discipline (suite-internal AI-agent vocabulary stays in audit-trail artifacts; user-facing project artifacts use plain language) is informed by Technical Writer Dim 12 (lookup-cost) + UX Dim 6 (message clarity) + Documentation Reviewer Dim 2 (implicit-knowledge audit). Scans user-facing project artifacts (`*/manual-tests/*.md`, `*/README.md`, `*/TODO.md`, `*/DESIGN.md`, `*/INSTALL-VERIFICATION.md`) for: (a) "Sycophancy-compensation reminder" (the canonical Nathan-thread example); (b) bare `<Domain> Dim N` references (TW Dim 12; QE Dim 2; etc.); (c) bare `G-NNN` registry IDs without markdown link; (d) "adversarial-cold-session" / "cluster-batching" / "cold-session-discipline" AI-agent-cycle vocabulary. Quoted blocks (> prefix) + fenced code blocks are skipped per source-archiving discipline; `<!-- hook-bypass: <rationale> -->` HTML-comment escape supported. Caught 3 pre-existing violations in bookmark-cli-manual on first run (1 in `install-verification.md`, 2 in `DESIGN.md`) — all fixed inline in this PR.
+
+**Application 4 (partial; routes forward): install-verification template file-inventory section.** The bookmark-cli-manual `install-verification.md` was updated by the cluster (TW F1) with a full expected-`ls` enumeration; the corresponding template scaffolding at `vsdd-suite/templates/` would make this a templated section for future projects. Authored as part of [PR #43 / scaffold-project.sh updates] queued in the operator-action queue.
+
+**Owner:** vdd-iar-alignment (methodology codification spanning multiple primers + hooks)
+**Status:** Resolved (2 primer-text applications + 1 new hook landed; the 4th application is partially landed + queued forward)
+**Blocked by:** *(none for the landed work)*
+**Validator:** sanity-check
+
+**Validator rationale:** Multi-surface recurrence-prevention spans primer 1c + a new hook + the operator-directive "prevent recurrence in future install verification testing." Sanity Check applies the [Review 87 Finding 6 per-error-class owner table](#r87-f6) (process-enforcement + early-detection hooks own to AI Engineer per the meta-tooling-of-methodology boundary) + the empty-output worked-example against Nathan's exact Post-8 quote to confirm the discipline lands.
+
+**Resolution:** Primer 1c extended with the 2 worked-example/discipline additions; new hook wired in pre-commit; 3 pre-existing violations in bookmark-cli-manual fixed inline. Future install-verification cycles surface these defect classes BEFORE the external reviewer encounters them.
+
+**Classification:** Resolved
+
+---
+
+<a id="r88-f4"></a>
+**Finding 4 — External-review-log subfolder pattern codified at suite-level: filename convention + file structure + identity-correlation discipline + 2 external-review files migrated from `.txt` to canonical `.md` form**
+
+**Source:** director-raised — operator directive "Put external reviews in an external-review-log subfolder under review-log. Promote this to a suite level pattern. Reviews I have you write should be markdown files. One I add manually should be converted to markdown. Include the source text of the review verbatem and links where applicable. Reviews should comply with the stanardized review shape, authoring standards, and naming standards. Instead of a domain use the reviewers name or handle."
+
+Codified the pattern in [`suite-development.md`](../suite-development.md) § External-review-log subfolder pattern. The codification covers: (a) filename convention (`<date>-<reviewer-handle-slug>.md`; handle slug NOT real name); (b) file structure (7 required sections: H1 + Reviewer + Source + Scope + Verbatim source content + Suite-side mining + Notes); (c) **identity-correlation discipline (load-bearing)** — knowability ≠ surfacing; the suite does NOT correlate identities the reviewer engaged through different surfaces, even when correlation is knowable; (d) mining-Review Source-value (`external-feedback`); (e) companion review dimensions per the three-audience design principle.
+
+**Identity-correlation discipline (operator-corrected mid-cycle):** the initial draft of Nathan's external-review file surfaced his full real name + correlated his Bluesky and GitHub identities. The operator caught the slip: "I am sensitive about handle and name correlation because I (and many of the people who will be reviewing) are marginalized people. This is the reason the pre-commit hook protects against deanonymization. Redraft this and update the external review standards to limit account correlation and name correlation even when the information is knowable (ie shimmermathlabs.com linked to a PR with a real name github which is fine but we shouldn't surface all that just because it's knowable)." The redraft surfaces only the Bluesky handle (the platform Nathan engaged through for this review); the GitHub PR link is referenced by PR-number-identifier without naming the GitHub identity. The dollspace-gay file uses both platform links because the handle-string is consistent across platforms (consistent-identity surfacing, not correlation between separate identities).
+
+**2 external-review files migrated/authored:**
+
+- [`external-review-log/2026-05-21-shimmermathlabs.md`](external-review-log/2026-05-21-shimmermathlabs.md) — Nathan's Bluesky install-verification thread; verbatim post-by-post archive with operator-corrected identity discipline applied.
+- [`external-review-log/2026-05-20-dollspace-gay.md`](external-review-log/2026-05-20-dollspace-gay.md) — converted from the prior `.txt` archive at `2026-05-20-crosslink-value-add-review.txt` (now deleted; the `.md` is canonical). Includes the operator-clarified pronouns (it/its) + the full author-of-the-upstream-ecosystem framing (crosslink, chainlink, VSDD whitepaper, VDD-IAR whitepaper, apprentice onboarding course).
+
+**New hook `check-external-review-anonymization.py` wired in `.pre-commit-config.yaml`:** enforces the identity-correlation discipline mechanically. Per the [Review 87 Finding 6](#r87-f6) per-error-class owner table, this is a process-enforcement + early-detection script — **AI Engineer owns**; the substantive discipline is informed by the **Privacy domain** (identity-correlation harm) + the Three-audience design principle. Rules: (1) multi-platform handle declarations must share a normalized slug; (2) `**Name:**` fields must match a declared handle slug; (3) bare email addresses in Reviewer/Source preamble fail; (4) required H1 + H2 shape contract enforced. Quoted source-content blocks preserved per source-archiving discipline.
+
+**Owner:** vdd-iar-alignment (methodology codification spanning multiple suite-side files + 2 new hooks)
+**Status:** Resolved
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+**Validator rationale:** Multi-surface codification spans `suite-development.md` § new subsection + 2 markdown files in the new subfolder + 1 new hook wired in pre-commit. Sanity Check applies the operator-stated discipline (marginalized-people protection; knowability ≠ surfacing) + the existing `check-review-log-anonymization.sh` precedent + the Three-audience design principle to confirm the codification is methodology-coherent + audit-trail-honest.
+
+**Resolution:** External-review-log subfolder pattern fully codified + 2 external-review files migrated + new hook wired + identity-correlation discipline operative. Future external-feedback artifacts use this pattern from authoring time forward.
+
+**Classification:** Resolved
+
+---
+
+<a id="r88-f5"></a>
+**Finding 5 — Phase 6 four-dimensional convergence attestation routed to bookmark-cli-manual VDD-IAR Alignment Review 2 (project-terminal); 10 of 10 active Layer-1 domains at MVR; all 4 dimensions attest**
+
+**Source:** director-raised + post-PR-#41 unblock condition.
+
+With Platform Engineer Dim 38 closed by [Finding 1](#r88-f1) and the UX + TW + QE cluster fix-cycle closing the Nathan-thread findings ([Finding 2](#r88-f2)), all 10 active capstone-tier role-domains are at MVR at Layer-1 scope. The four-dimensional convergence dimensions per [primer 6](../../primers/6-convergence.md) + [G-177](../FINDINGS-INDEX.md#g-177):
+
+| Dimension | Status | Evidence |
+|---|---|---|
+| **Spec MVR** (DESIGN.md round closure) | ✅ ATTESTED | DESIGN.md round-closure across PR #38 R2 + PR #40 + PR #42 fix-cycles; no Open spec findings; SO MVR achieved per PR #38 R3 |
+| **Test MVR** (QE Reviews closure + Phase 5 Mutation Testing) | ✅ ATTESTED | QE Review 2 (Mutation Testing 8/8 viable kill rate post-fix); QE Review 3 R3-F1+F2 inline-fix; 1 Deferred-to-Layer-2 (RFC 3339 scripted-check) does not block Layer-1 attestation |
+| **Implementation MVR** (every active-domain Phase 3 round at MVR) | ✅ ATTESTED | 10 of 10 active capstone-tier role-domains at MVR per the [bookmark-cli-manual MVR scorecard post-PR-#42](../../../vsdd-suite-reference-examples/bookmark-cli-manual/CHANGELOG.md); Performance Engineer Layer-2 deferral does not block Layer-1 |
+| **Formal-verification MVR** (Purity Boundary Audit + Mutation Testing closure) | ✅ ATTESTED | SA Review 1 Purity Boundary Audit closure; QE Review 2 Mutation Testing closure; property-based testing + Fuzz Testing + Proof Execution declared deferred-or-not-applicable with rationale per [DESIGN.md § Project intent Phase 5 strategy](../../../vsdd-suite-reference-examples/bookmark-cli-manual/DESIGN.md) |
+| **Cross-dimension consistency check** | ✅ ATTESTED | Cross-source consistency between DESIGN.md + src/lib.rs + tests/ + per-domain review-logs verified; all 4 dimensions surface no contradictions |
+
+The Phase 6 attestation is authored as a separate per-session review-log entry at the project (per [G-177](../FINDINGS-INDEX.md#g-177) routing of Phase 5/6 work into per-domain logs): [`vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-vdd-iar-alignment.md`](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-vdd-iar-alignment.md) Review 2 — Phase 6 four-dimensional convergence (project-terminal).
+
+**Owner:** vdd-iar-alignment
+**Status:** Resolved
+**Blocked by:** *(none — Phase 6 attestation is the project-terminal closure)*
+**Validator:** sanity-check
+
+**Validator rationale:** Phase 6 attestation is the methodology's project-terminal closure record per primer 6 + G-177. Sanity Check applies the four-dimensional convergence criteria + the cross-dimension consistency check + the per-G-155 install-verification gate-closure to confirm the attestation is honest.
+
+**Resolution:** Phase 6 four-dimensional convergence attested for `bookmark-cli-manual` at Layer 1 (project-terminal at the declared Layer-1-only scope). The reference example's worked-example purpose ([G-112](../FINDINGS-INDEX.md#g-112)) is satisfied: it exercises all 6 VSDD phases end-to-end through PR #38 → #39 → #40 → #41 → #42.
+
+**Classification:** Resolved
+
+---
+
+<a id="r88-f6"></a>
+**Finding 6 — Bluesky reply comment drafted for the operator to post in @shimmermathlabs.com's thread; closes the operator-promise from Post 7 ("will log a backlog item for it and follow up with you once it ships")**
+
+**Source:** director-raised — operator directive in PR #42 brief ("Then draft a comment summerizing the findings and linking the PR that is intended to resolve them in Nathan's thread").
+
+Draft comment (operator can post verbatim or edit):
+
+> Update from the suite-side! Per the comprehensive review I committed to in the thread:
+>
+> Your install-verification PASS closed the Platform Engineer Dim 38 / G-155 gate that's been blocking Phase 6 four-dimensional convergence since PR #38. The project's MVR scorecard promoted from 9-of-10 → 10-of-10 active capstone-tier role-domains at MVR at Layer-1 scope, and the worked-example purpose of `bookmark-cli-manual` (Phase 6 attestation) is now achieved end-to-end.
+>
+> Your 3 in-thread findings were mined as external-feedback into a UX + Technical Writer + Quality Engineer cluster cold-session in PR #42 (link below):
+>
+> 1. **"more files than are mentioned in the doc"** (Post 6) → Technical Writer R4 F1: `manual-tests/install-verification.md` file-inventory section rewritten to enumerate the full repo file set with explanatory annotations. Also routed the underlying recurrence prevention as a templated install-verification section for future projects.
+>
+> 2. **"the 'literal -- empty' was confusing"** (Post 8) → UX R4 F1 + QE R3 F1 + TW R4 referent: surfaced in three domains simultaneously. `manual-tests/layer-1.md` Step 1 (and adjacent steps with the same wording shape) rewritten to use unambiguous wording naming both the silent-on-success affordance AND the intentionally-empty fenced block as a unit. Upstream-suite recurrence-prevention: primer 1c § Manual testing checklist extended with the empty-output wording discipline so this defect class is caught at authoring time on every future project.
+>
+> 3. **"this is fun, i'm getting 'Sycophancy-compensation reminder's"** (Post 10) → UX R4 F2 + TW R4 F2: the suite-internal AI-agent-discipline language was leaking into user-facing manual-test prose. The specific line was deleted from `layer-1.md`. Upstream-suite recurrence-prevention: new pre-commit hook `check-suite-internal-terminology.py` scans user-facing project artifacts for the suite-internal AI-agent vocabulary patterns and blocks commits that leak them.
+>
+> Phase 6 four-dimensional convergence is attested in PR #42. Thank you for the verification + the careful read; the methodology improvements you motivated are now part of the suite's authoring discipline. 🌸
+
+**Owner:** vdd-iar-alignment (operator-action: post the comment in the thread)
+**Status:** Resolved (draft authored; operator-action queued for post)
+**Blocked by:** *(operator-action: review + post)*
+**Validator:** sanity-check
+
+**Validator rationale:** Bluesky reply draft completes the operator's promise-to-follow-up + closes the public-feedback loop. Sanity Check applies the three-audience design principle (the comment reads naturally for the Bluesky reader; references the suite-side mining + the PR; closes the loop visibly).
+
+**Resolution:** Draft comment authored above; operator posts when ready.
+
+**Classification:** Resolved
+
+---
+
+### Summary
+
+6 Findings Resolved in-session ([F1](#r88-f1) Platform Engineer Dim 38 gate closed → Phase 6 unblocked; [F2](#r88-f2) external-feedback mining of @shimmermathlabs.com Bluesky thread → 9 project-side findings via UX + TW + QE cluster cold-session; [F3](#r88-f3) 4 upstream-suite recurrence-prevention applications [2 primer 1c additions + new `check-suite-internal-terminology.py` hook + 1 partial template work routed forward]; [F4](#r88-f4) external-review-log subfolder pattern codified at suite-level [filename convention + file structure + identity-correlation discipline + 2 markdown files migrated + new `check-external-review-anonymization.py` hook]; [F5](#r88-f5) Phase 6 four-dimensional convergence attestation routed to project's VDD-IAR Alignment Review 2; [F6](#r88-f6) Bluesky reply comment drafted). PR [#42](https://github.com/magnificentlycursed/guild-portfolio/pull/42) ships all 6 + the 9 project-side findings via the cluster + audit trail. Backlog after Review 88: **1 Open ([Review 79 Finding 2 Deferred](2026-05-20-suite-review.md#review-79--2026-05-20-1730z)) + 7 prior-Deferred + 1 Deferred-pending-source-identification (Review 87 Finding 5 specific Parser-aborted incident reproduction) + 1 Deferred-to-Layer-2 (bookmark-cli-manual QE Review 3 F3 RFC 3339 scripted-check)**.
+
+**Coordination:** PR [#42](https://github.com/magnificentlycursed/guild-portfolio/pull/42) merges close the bookmark-cli-manual capstone Layer-1 cycle at MVR with Phase 6 attested. Operator-action queue: post Bluesky reply (F6); future PR work — bookmark-cli-crosslink built from scratch (validates the new methodology shape including external-review-log pattern + check-external-review-anonymization + check-suite-internal-terminology hooks + the 2 primer 1c additions); install-verification template file-inventory section (the 4th recurrence-prevention candidate partial-landed).

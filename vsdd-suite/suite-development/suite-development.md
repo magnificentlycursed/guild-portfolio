@@ -701,6 +701,55 @@ A cold-session suite review is permitted and produces stronger adversarial press
 
 The session entry is the narrative record. The `FINDINGS-INDEX.md` row is the status indicator for gaps. The `SUITE-DEVELOPMENT-REVIEW.md` row is the index pointer for the session. Never put narrative in the registry; never omit the registry update; never omit the index row. An unindexed session is invisible to future reviewers.
 
+### External-review-log subfolder pattern ([Review 88](review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z))
+
+External-feedback artifacts (Bluesky thread captures; emailed prose feedback; GitHub issue narratives; methodology-author commentary; any reviewer-produced prose received from outside the suite's authoring loop) live in [`review-log/external-review-log/`](review-log/external-review-log/) rather than at the `review-log/` root. The subfolder separation prevents external prose from drifting into the per-date suite-review canonical-pattern (which expects the `YYYY-MM-DD-suite-review.md` shape + the suite-review hook's preamble discipline) and provides a stable destination for reviewer-named archive files.
+
+**Filename convention:** `<date>-<reviewer-handle-slug>.md`. The slug is the reviewer's authored handle (Bluesky / GitHub) — NOT a real name. Lowercase + hyphens + no `@`-prefix + no platform-prefix. One file per reviewer per date. Examples: `2026-05-20-dollspace-gay.md`, `2026-05-21-shimmermathlabs.md`.
+
+#### File structure (standardized)
+
+1. `# External Review — @<handle> — <Date>` (handle, not real name)
+2. `## Reviewer` — Handle (+ link) / Pronouns (optional) / Relationship to suite
+3. `## Source` — Type / URL / API URL / Captured / Archive provenance / Verbatim attestation
+4. `## Scope of what the reviewer addressed` — one paragraph of operator-solicitation context + what the reviewer evaluated
+5. `## Verbatim source content` — the prose verbatim; quoted with attribution per post / per message
+6. `## Suite-side mining` — cross-reference to the canonical mining-Review + per-finding routing table
+7. `## Notes` — operator-context, archiving notes, sycophancy-compensation declarations
+
+#### Identity-correlation discipline (load-bearing)
+
+**The rule: knowability ≠ surfacing.** The suite does NOT correlate identities that the reviewer engaged through different surfaces, even when correlation is knowable (e.g., a Bluesky thread + a GitHub PR signed with a real name + an email visible in git author info — all three may be technically observable; the suite still surfaces only the platform the reviewer used to engage THIS review).
+
+The discipline:
+
+- **Single-platform reviewer:** name only the platform the reviewer engaged on. Bluesky thread → only Bluesky handle. GitHub issue → only GitHub handle. Email-only feedback → handle/pseudonym the reviewer signed with.
+- **Multi-platform reviewer, same-identity-string across platforms:** name both platforms only when the handle-string is the same across platforms (e.g., `dollspace-gay` on GitHub + `dollspace.gay` on Bluesky — same identity-name after slug-normalization). This is consistent-identity surfacing, not correlation between separate identities.
+- **Multi-platform reviewer, different identity strings:** name ONLY the platform the reviewer engaged on for THIS review. Do NOT name the other platform's identity even when correlation is knowable. The principle: knowability is not surfacing; the suite does NOT surface what the reviewer didn't themselves surface in the engagement.
+- **Real-name field:** declared as `**Name:**` ONLY when the name IS the handle (e.g., a reviewer who signs as their first/last legal name uses that). Otherwise omit. The suite never surfaces a real name that differs from the handle.
+- **Pronouns:** optional + reviewer-authored. Default to no pronoun field; add the field only when the reviewer has declared them.
+- **Email addresses:** never surfaced in the Reviewer or Source preamble. If an email appears in quoted source content (e.g., an emailed feedback artifact), it stays in the verbatim block but is NOT promoted to the preamble's identity-surface.
+- **Downstream-artifact cross-references:** PR-number-references, commit-SHA-references, gist-URL-references are linked by their canonical artifact-identifier (PR #41; commit 98ead5b; gist URL). The reader who clicks through reaches the downstream identity-surface on their own; that is the reviewer's authored choice when they filed the downstream artifact, not the suite's correlation work. The external-review file MUST NOT name the downstream-artifact's identity-attribution alongside the engagement-platform's identity (e.g., "this Bluesky reviewer is also @<handle> on GitHub" is exactly the correlation-surfacing this discipline forbids).
+
+**Why:** the operator (and many people who will be reviewing) are marginalized people. Surfacing real names + handles in correlated form has historically been a vector for harm. The pre-commit hooks [`block local home directory paths`](../../.pre-commit-config.yaml) + [`check-review-log-anonymization.sh`](../hooks/check-review-log-anonymization.sh) already enforce this discipline at the suite-side review-log surface (protecting the local-user from leaking identity through suite-side authoring). The new hook [`check-external-review-anonymization.py`](../hooks/check-external-review-anonymization.py) ([Review 88](review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z); wired in `.pre-commit-config.yaml`) extends the discipline to external-author content — it parses each file in `external-review-log/`, extracts handle-slug declarations, flags multi-platform handle declarations whose slugs don't share a normalized substring, flags `**Name:**` fields that don't match a declared handle slug, and flags bare email addresses in the Reviewer or Source preamble.
+
+#### Hook ownership (per the [Review 87 Finding 6](review-log/2026-05-21-suite-review.md#review-87--2026-05-21-1230z) per-error-class owner table)
+
+The `check-external-review-anonymization.py` hook is a **process-enforcement + early-detection script** — process-enforcement because it gates commits on identity-correlation discipline; early-detection because it catches authoring violations before the artifact reaches review. Per the Review 87 Finding 6 boundary, the hook is **owned by AI Engineer** (the meta-tooling-of-methodology surface). The discipline it enforces is informed by the **Privacy domain** (when active for a project; ~always active at capstone+ intent) — Privacy provides the substantive concern about identity-correlation harm; AI Engineer provides the hook's mechanization + the [Dim 11 audit-trail machine-readability](../domains/role/AI-ENGINEER-REVIEW.md) discipline that the hook's structured rule set implements. Three-audience compliance: the rules are human-readable (the hook's docstring + the `## Identity-correlation discipline` section above), structurally machine-parseable (per-rule predicates against an `external-review-log/*.md` file's preamble), and operator-overridable via the `<!-- hook-bypass: <rationale> -->` HTML-comment escape that bypasses are themselves findings.
+
+#### Mining-Review Source-value
+
+The mining-Review entry that processes an external-review file uses `**Source:** external-feedback` per [`primers/3-review-session.md`](../primers/3-review-session.md) § Source attribution. The mining-Review owns the per-finding classification + routing + per-domain ownership; the external-review file records WHO said WHAT WHEN (with the identity-correlation discipline applied). The two artifacts pair: external-review file = evidence-archive; mining-Review = methodology-interpretation.
+
+Multiple external-review files from the same window may be batched into a single mining-Review (precedent: [Review 85](review-log/2026-05-21-suite-review.md#review-85--2026-05-21-1130z) mined `2026-05-20-dollspace-gay.md`; [Review 88](review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z) mined `2026-05-21-shimmermathlabs.md` + codified this very pattern).
+
+#### Companion review dimensions
+
+- AI Engineer [Dim 11 audit-trail machine-readability](../domains/role/AI-ENGINEER-REVIEW.md) — the structured per-finding routing table at the bottom of each external-review file is the agent-readable surface; the file's H1 + H2 shape contract is parser-stable per the Review 80 Agent-API surface section above.
+- Technical Writer [Dim 11 audience-fit calibration](../domains/role/TECHNICAL-WRITER-REVIEW.md) — the prose-quality of the file's preamble + Notes sections.
+- Documentation Reviewer [Dim 4 cross-reference resolution](../domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) — the mining-Review back-links.
+- [Privacy](../domains/role/PRIVACY-REVIEW.md) — identity-correlation discipline as the substantive concern motivating the hook's rule set; when Privacy is active for a project, the external-review-log subfolder's adherence to the discipline is an active review surface for that domain.
+
 ## Supplement coverage
 
 Supplements provide language-specific failure modes. Not every domain has language-specific concerns — process-compliance and portfolio domains (VDD-IAR Alignment, Portfolio Assessment, Solution Owner) are language-agnostic.
