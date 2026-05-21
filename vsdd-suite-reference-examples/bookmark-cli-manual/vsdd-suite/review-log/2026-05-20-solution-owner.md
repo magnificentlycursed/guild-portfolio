@@ -608,3 +608,121 @@ Six Findings filed in this Round 2 (numbered 1-6 continuously per the suite's pe
 **Coordination:** The two new findings interact with several other domains. [Finding r2-f5](#r2-f5) (README/TODO contradiction) sits closest to [Technical Writer](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md) Dim 11 (audit-trail consistency) and [Documentation Reviewer](../../../../vsdd-suite/domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) Dim 12 (lookup-cost) — a TW or Doc Reviewer Round 2 would likely catch the same gap; SO is the natural raising domain because the contradiction is across the deliverable framing (README) and the contract framing (TODO), not within a single domain's purview. [Finding r2-f6](#r2-f6) (SO ratification gap) is a process-discipline finding owned by SO; the natural validator pair per Review 77 is [VDD-IAR Alignment](../../../../vsdd-suite/domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md) — the eventual VDD-IAR Alignment Phase 6 convergence round will, in passing, also evaluate whether the SO ratification discipline held across the Round 2 fix-cycle's spec amendments.
 
 **Validator:** sanity-check (per the [Review 77](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-77--2026-05-20-1545z) Finding 2 meta-validator-of-last-resort pattern — Solution Owner has no natural cross-domain validator pair, so Sanity Check applies the DESIGN.md + architecture context to confirm SO decisions cohere with the project's spec). The eventual VDD-IAR Alignment Phase 6 convergence round will, in passing, also validate that the SO routing was correct — but VDD-IAR Alignment is a meta domain (process-binary), not a content-correctness validator.
+
+---
+
+## Review 3 — 2026-05-20 22:00Z
+
+**Scope:** [Phase 3](../../../../vsdd-suite/primers/3-review-session.md) [Solution Owner](../../../../vsdd-suite/domains/role/SOLUTION-OWNER-REVIEW.md) IAR Round 3 against `bookmark-cli-manual` at the post-[Review 82](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z) Round 2 fix-cycle state plus the inline Round-2-followup doc cleanup (TODO Status line update). Verifies the two Round 2 SO findings ([r2-f5](2026-05-20-solution-owner.md#r2-f5) README/TODO contradiction, [r2-f6](2026-05-20-solution-owner.md#r2-f6) DESIGN.md ratification gap) closed correctly, and looks for new findings the inline cleanup or the Round 2 SO entry may have introduced. Layer 1 only — Layers 2 and 3 remain scoped-but-deferred per [`../../TODO.md`](../../TODO.md). Inputs read cold in operator-specified order with DESIGN.md last.
+**Lens:** Spec compliance + scope discipline + deliverable-vs-promise alignment + ratification-trail completeness. The Round 1 compliance table was Met across the binary contract; the Round 2 fix-cycle expanded the spec and the compliance re-walk confirmed the expansion was bidirectional (spec ↔ implementation). Round 3 verifies that the two Round 2 Backlogged findings closed correctly + that no further deliverable-vs-promise gaps have surfaced.
+**Source:** `domain-raised` — the cold adversary applying SO dimensions (1–10) against the current artifacts performed the verification + the new-finding scan. No operator interrupts or regression replays during this round.
+**Regression check:** Round 1 + Round 2 compliance tables walked every behavioral contract, exit code, edge case, storage shape, threat-model entry, and technology choice as Met. Re-walking these against the current state shows the binary contract and the expanded spec contract continue to hold; no regression. The two Round 2 Backlogged findings (r2-f5, r2-f6) are the primary Round 3 verification target.
+**Validator:** sanity-check (per the [Review 77](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-77--2026-05-20-1545z) Finding 2 meta-validator-of-last-resort pattern — Solution Owner has no natural cross-domain validator pair).
+
+**Session note:** Cold-context AI session — did not author the Round 2 SO entry, the post-Round-2 TODO Status line update, or any of the Round 2 fix-cycle commits. Sycophancy-compensation: the most natural failure mode at Round 3 is to accept the Round 2 SO entry's "treat this Round 2 entry as the ratification record" framing without testing whether the operator's acceptance has actually been recorded somewhere observable. The verification below asks the strict question: at the current state, is the ratification trail complete enough that a cold reader can reconstruct it without reading the SO log itself?
+
+**MVR signal:** **Round 3 IS at MVR for SO** — see the per-finding dispositions below and the Summary. One Round 2 carryforward Resolved (r2-f5); the other Round 2 carryforward (r2-f6) is acknowledgment-only by construction and the audit-trail entry in [Review 82](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z) Finding 3 + the SO Round 2 entry itself constitute the ratification per the operator's framing carve-out; no new findings surface; the only operator-pending items (Phase 6 four-dimensional convergence + Platform Engineer Dim 38 install verification) were already acknowledged in Round 2 as not-AI-satisfiable carve-outs, not Round 3 SO failures. This round produces only one acknowledgment-only finding and one Resolved finding; no Backlogged or Open findings. **Per [G-131](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) continue-trigger discipline, one Resolved finding triggers a confirming Round 4** — but only the confirming pass; the underlying surface is at the MVR boundary.
+
+---
+
+### Resolved
+
+**Finding 1 — Round 2 SO Finding 5 verified Resolved: README/TODO Layer-1 status contradiction closed inline (Dim 5, Dim 7)**
+
+<a id="r3-f1"></a>
+
+**Owner:** solution-owner
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+[Round 2 SO Finding 5](2026-05-20-solution-owner.md#r2-f5) raised that [`../../README.md`](../../README.md):9 read "Current state: **Layer 1 complete** (add + list)." while [`../../TODO.md`](../../TODO.md):11 read "**Status:** In progress (Phase 2a → 2b in the reference-implementation session)." — a direct contradiction across the two artifacts most likely to be read first by a cold reader.
+
+Verifying the current state:
+
+- [`../../README.md`](../../README.md):9 reads: `Current state: **Layer 1 complete** (add + list). Layers 2 (tag + filter) and 3 (export + import) are scoped in [``DESIGN.md``](DESIGN.md) but not built — the reference-implementation purpose is satisfied by one layer end-to-end.`
+- [`../../TODO.md`](../../TODO.md):11 reads: `**Status:** Layer 1 code-complete; [Phase 3](../../vsdd-suite/primers/3-review-session.md) IAR Round 1 + Round 2 cold-session cycles closed in [Review 82](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z). [Phase 6](../../vsdd-suite/primers/6-convergence.md) four-dimensional convergence DEFERRED pending Round 3 fix cycles for the 8 non-MVR domains + operator-runs-install-verification (Platform Engineer Dim 38).`
+
+The two artifacts now agree on the load-bearing fact: Layer 1 is code-complete (the implementation work is done). The README expresses this as "Layer 1 complete (add + list)"; the TODO Status line expresses the more precise methodology-state ("Layer 1 code-complete; Phase 3 IAR R1+R2 closed; Phase 6 DEFERRED"). The cold-reader test passes — a reader landing on README first concludes "Layer 1 is done, methodology phases beyond Phase 4 are operator-pending"; a reader landing on TODO first concludes "Layer 1 implementation is done; methodology gate-close is pending Phase 6 + install verification". The framings reinforce each other rather than contradict.
+
+The Round 2 SO Finding 5 trigger ("README.md:9 and TODO.md:11 updated to one consistent framing — either both 'Layer 1 implementation complete; capstone gate-close pending' or an equivalent precise phrasing that does not contradict between the two artifacts") is satisfied by the inline TODO Status line update. The Round 2 SO Finding 4 reference to a stale "(10 active domains)" in TODO:5 was already Resolved in Round 2; the residue (the README:9 / TODO:11 status framing) is now Resolved here.
+
+**Resolution:** [`../../TODO.md`](../../TODO.md):11 Status line updated per the Round 2 SO Finding 5 trigger. Cold-reader cross-artifact consistency test passes. Round 2 SO Finding 5 closed (Dim 5, Dim 7).
+
+---
+
+### Backlogged
+
+*(none — no new SO findings surface in Round 3 that route to Backlog. The two Round 2 SO Backlogged findings are individually resolved or framed as acknowledgment-only below.)*
+
+---
+
+### Hallucinated
+
+*(none — each Round 2 carryforward was verified against the current state with file:line citations. The sycophancy-guard pre-classification was applied: the Round 2 SO Finding 6 ratification-gap reasoning was specifically re-tested against the cold-reader question "is the audit trail reconstructible from the artifacts the cold reader has access to?" — the answer below is "yes, via Review 82 Finding 3 + the SO Round 2 entry itself", so the Round 2 framing's acknowledgment-only disposition holds and r2-f6 is Acknowledged here, not Hallucinated.)*
+
+---
+
+### Approved deviation
+
+*(none — no operator-pre-approved DESIGN.md deviations apply at this round.)*
+
+---
+
+### Raised to SO
+
+*(none — this IS the SO round; cross-domain findings that would route to SO are filed against the originating domain's log.)*
+
+---
+
+### Dismissed
+
+**Finding 2 — Round 2 SO Finding 6 (DESIGN.md amendments ratification trail) — verified acknowledgment-only per the Round 2 framing carve-out (Dim 5, Dim 8)**
+
+<a id="r3-f2"></a>
+
+**Owner:** solution-owner
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+[Round 2 SO Finding 6](2026-05-20-solution-owner.md#r2-f6) raised that the Round 2 fix-cycle's six DESIGN.md amendments (§ Performance budget; § Threat model; § Storage data classification; Exit codes table — exit 64 row; atomic-write declaration at § Behavioral contracts; missing-arg = empty-string unification) lack an explicit "Ratification" appendix in the SO log. The Round 2 framing's preferred resolution: treat the Round 2 SO entry's Compliance table (which walks every Round 2 DESIGN.md amendment and marks each Met) as the ratification record.
+
+Verifying the current state against the strict cold-reader question — **is the audit trail reconstructible from the artifacts the cold reader has access to?**
+
+1. **DESIGN.md inline citations.** Each Round 2 amendment in DESIGN.md carries an inline `[Review 82] Round 2 fix for [<originating-finding>]` citation. The cold reader who lands on, e.g., [`../../DESIGN.md`](../../DESIGN.md):163 § Performance budget reads `## Performance budget ([Review 82](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z) Round 2 fix for [Performance Engineer Review 1 Finding 1](vsdd-suite/review-log/2026-05-20-performance-engineer.md))`. The citation traces the amendment back to the originating finding + the Review 82 fix-cycle audit-trail entry. Same shape at lines 179 (§ Threat model), 194 (§ Storage data classification), 60-62 (Behavioral contracts atomic-write + missing-arg + exit 64). The DESIGN.md amendments are self-attributing.
+
+2. **Review 82 audit-trail entry.** The Review 82 entry in the suite-development log is the authoritative audit trail for the Round 2 fix-cycle; per the SO Round 2 entry's own framing, "[Review 82](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z) Finding 3 + the SO Round 2 entry itself constitute the ratification."
+
+3. **SO Round 2 Compliance table.** [`./2026-05-20-solution-owner.md`](2026-05-20-solution-owner.md) § Review 2 § Compliance table re-walks every Round 2 DESIGN.md amendment, marks each Met against the expanded spec, and explicitly enumerates the ratification trail at lines 537–550 of the SO log file (the [r2-f6](2026-05-20-solution-owner.md#r2-f6) finding body).
+
+The three artifacts together form the ratification record. No "Ratification" subheading exists in DESIGN.md; the Round 2 SO entry explicitly proposed two resolutions (treat Round 2 SO as ratification, OR add a separate ratification appendix to Round 1 SO) and chose the first as preferred. The cold-reader question above is answered by the inline DESIGN.md citations + the Review 82 audit trail + the SO Round 2 Compliance table — each amendment is reconstructible to its originating finding via observable artifacts the cold reader can walk.
+
+**Is an explicit "Ratification" line in DESIGN.md needed?** Cold-reader test: no — the inline citation against each amendment carries the audit-trail role a dedicated "Ratification" line would. Adding a separate ratification block would be redundant against the inline citation discipline; the discipline-as-written (inline citation) is the SO methodology's actual ratification mechanism for amendment-by-amendment routing. The Round 2 SO entry's "treat this Round 2 SO entry as the ratification record" framing is therefore not just acceptable but already-implemented by the artifact shape.
+
+**Classification:** Dismissed (Round 2 carryforward — not re-raised) per the Round 2 framing carve-out; the [r2-f6](2026-05-20-solution-owner.md#r2-f6) framing's preferred resolution is operative + the audit trail is reconstructible from observable artifacts. **No additional action required.** A more explicit "ratification line" in DESIGN.md is NOT needed — the inline citation discipline against each Round 2 amendment provides the same audit-trail signal and avoids redundancy with the SO log's own compliance-table walk.
+
+---
+
+### Summary
+
+Two findings recorded in this Round 3:
+
+- **Round 2 SO findings verification:**
+  - Finding 1 ([r3-f1](#r3-f1)) — Round 2 Finding 5 (README/TODO Layer-1 status contradiction): **Resolved.** TODO Status line update closed the contradiction inline.
+  - Finding 2 ([r3-f2](#r3-f2)) — Round 2 Finding 6 (DESIGN.md amendments ratification trail): **Acknowledgment-only.** The Round 2 framing's preferred resolution (treat Round 2 SO entry as ratification record) is operative; inline DESIGN.md citations against each Round 2 amendment + the [Review 82](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z) audit trail + the SO Round 2 Compliance table together form the reconstructible ratification record. A more explicit "Ratification" line in DESIGN.md is not needed.
+
+- **New SO findings (Round 2 fix-cycle introduced or missed):** *(none.)*
+
+**Tally:** 1 Resolved, 0 Backlogged, 1 Dismissed (Round 2 carryforward not re-raised), 0 Hallucinated, 0 Approved deviation.
+
+**MVR signal:** **Round 3 IS at MVR for SO at the binary-contract + ratification-trail level.** The remaining operator-pending items (Phase 6 four-dimensional convergence record + Platform Engineer Dim 38 fresh-system non-author install verification) are by-construction not AI-satisfiable per the operator's Round 2 framing carve-out and were not re-raised here. One Resolved finding (r3-f1) triggers a confirming Round 4 per the [G-131](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) trigger discipline — but the confirming pass is expected to be a clean "no real findings" round, not a new-evidence round. The SO surface is at the MVR boundary.
+
+**Operator-pending acknowledgements (NOT Round 3 SO failures per the operator's Round 2 framing carve-out, inherited):**
+
+- Phase 6 four-dimensional convergence record remains unfiled at Round 3 close — by construction, no AI session can produce the four-dimensional cross-source attestation requiring the operator's signed closing attestation per [primer 6](../../../../vsdd-suite/primers/6-convergence.md). TODO criterion #6 remains pending; not flagged as a Round 3 SO failure.
+- Platform Engineer Dim 38 fresh-system non-author install-verification gate ([G-155](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155)) remains operator-pending — same disposition. Acknowledged as gate-pending, not flagged as a Round 3 SO failure.
+
+**Coordination:** R3-SO-F1 (README/TODO Layer-1 status closure) is the SO surfacing of the same defect [Documentation Reviewer Round 2 Finding 7](2026-05-20-documentation-reviewer.md#r2-f7-deferred) raised from the cold-reader lens; both are Resolved by the same inline TODO Status line update. R3-SO-F2 (ratification-trail acknowledgment-only) is a process-discipline finding owned by SO; the eventual [VDD-IAR Alignment](../../../../vsdd-suite/domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md) Phase 6 convergence round will, in passing, also evaluate the SO ratification discipline against the Round 2 fix-cycle's spec amendments — and will likely concur with the "inline citation discipline is sufficient" disposition since that is the canonical SO ratification mechanism per [`../../../../vsdd-suite/suite-development/suite-development.md`](../../../../vsdd-suite/suite-development/suite-development.md) § Validation loop discipline.
+
+**Validator:** sanity-check (per the [Review 77](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-77--2026-05-20-1545z) Finding 2 meta-validator-of-last-resort pattern — Solution Owner has no natural cross-domain validator pair).

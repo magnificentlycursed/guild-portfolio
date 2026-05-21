@@ -542,3 +542,147 @@ The Round 2 fix cycle achieved its primary objective — every Round 1 SE findin
 - [Finding 7](#r2-f7) — Surface to [QE](../QUALITY-ENGINEER-REVIEW.md) for fault-injection test-design (how to cover the (b)/(c)/(d) write-mid-flight failure modes); surface to [Red Team](../RED-TEAM-REVIEW.md) for the orphan-temp-file inode-exhaustion adversarial surface (low-severity at single-user Layer 1 but real).
 - [Finding 5](#r2-f5) residual-deny-set gap — Surface to [Platform Engineer](../PLATFORM-ENGINEER-REVIEW.md) for the CI side (`cargo clippy -- -D warnings` enforcement against the full supplement-standard deny set) and to [Solution Architect](../SOLUTION-ARCHITECT-REVIEW.md) for the single-source-of-truth tension between [`src/lib.rs`](../../src/lib.rs) `#![deny/warn]` attributes and [`Cargo.toml`](../../Cargo.toml) `[lints]` table (two sources of lint configuration; potential drift).
 - **Non-SE-owned observation surfaced for [TW](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md):** Round 1's Coordination section flagged the `PROT_37` / `PROT_41` / `PROT_30` / `PROT_40` / `PROT_46` placeholder-looking tokens in [`DESIGN.md`](../../DESIGN.md) and [`manual-tests/layer-1.md`](../../manual-tests/layer-1.md). The current [`DESIGN.md`](../../DESIGN.md) no longer uses `PROT_37` / `PROT_41` as section identifiers (the behavioral-contracts section is now under descriptive headings `### `bm add <url>`` and `### `bm list``); references to "PROT_37" remain in the prose (line 60-62) as historical-narrative anchors. The migration to descriptive headings is the post-Review-78 [naming and identifier discipline](../../../../vsdd-suite/suite-development/suite-development.md#naming-and-identifier-discipline-review-78-finding-4) outcome. Re-flag to TW only as confirmation that the migration is complete and the residual prose references are intentional historical-narrative anchors per the [G-89](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-89) forward-only discipline.
+
+---
+
+## Review 3 — 2026-05-20 22:00Z
+
+**Layer:** 1
+**Tested against:** commit `9b915b1` (current `main` as of 2026-05-20)
+**Round:** 3
+**Active domain set:** 11 role + 1 meta = 12 (per [DESIGN.md § Project intent](../../DESIGN.md))
+**Scope:** Cold-context [Software Engineer](../../../../vsdd-suite/domains/role/SOFTWARE-ENGINEER-REVIEW.md) IAR Round 3 verification of [Round 2 SE Findings 6 + 7](2026-05-20-software-engineer.md#review-2--2026-05-20-2100z) against the current post-fix state, plus an independent cold pass for adjacent defects per the [Phase 3 primer](../../../../vsdd-suite/primers/3-review-session.md) § Round triggers [G-131](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) continue-trigger discipline. Round 2 closed with two new substantive findings (R2-F6 `bm --help`/`--version` exit-code regression; R2-F7 orphan temp file on partial write); both have been fixed inline since.
+**Lens:** SE Dim 1 (Correctness), Dim 2 (Error handling), Dim 4 (Function and method design), Dim 8 (Defensive coding), Dim 12 (Test seam attack surface — re-scanned mechanically). [Rust supplement](../../../../vsdd-suite/supplements/rust.md) § Software Engineering applied to the now-stabilized post-R2-fix surface in [`src/main.rs`](../../src/main.rs) `handle_parse_error` + [`src/lib.rs`](../../src/lib.rs) `BookmarkStore::save`. Documentation and performance dimensions remain deferred to [TW](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md) / [PE](../../../../vsdd-suite/domains/role/PERFORMANCE-ENGINEER-REVIEW.md) (both active).
+**Session note:** Cold cluster-batched session. The reviewer did not author the Round 2 fixes and reads the post-fix artifacts fresh. Sycophancy-guard: the Round 2 findings shipped fixes that look plausible in prose; this round examines each fix byte-for-byte against the Round 2 finding's named contract and the SE dimension that surfaced the gap. The cluster framing means three domains share one session — the SE pass below runs first and does not leak cross-domain context into the PE/Platform passes that follow; each is treated as an independent cold cycle.
+**Source:** `domain-raised` — every finding's classification is elicited by re-applying the SE dimensions to the post-R2-fix artifacts.
+**Assumption surfacing:** The clap-error-kind matching at [`src/main.rs:108-114`](../../src/main.rs) relies on clap 4's `ErrorKind::DisplayHelp` and `ErrorKind::DisplayVersion` being distinct, stable enum variants. Verified against [clap 4 `ErrorKind` documentation](https://docs.rs/clap/4/clap/error/enum.ErrorKind.html); the variant names have been stable across clap 4.x minor releases since 4.0.0 — assumption holds at the declared MSRV (`rust-version = "1.78"`, [`Cargo.toml:10`](../../Cargo.toml)). The `clap::Error::print()` call writes to stdout for `DisplayHelp`/`DisplayVersion` and stderr for actual errors (verified against clap source) — the convention the fix relies on is documented behavior, not implementation-defined drift.
+
+---
+
+### Resolved
+
+**Finding 1 — `bm --help` / `bm --version` exit 0 (Dim 1, Dim 2)**
+
+<a id="r3-f1"></a>
+
+**Owner:** software-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** quality-engineer
+
+[Round 2 SE Finding 6](2026-05-20-software-engineer.md#r2-f6) raised the regression introduced by the R1-F1/F3 fix cycle: replacing `Cli::parse()` with `Cli::try_parse()` + `handle_parse_error` routed `ErrorKind::DisplayHelp` / `ErrorKind::DisplayVersion` through the default branch, producing `ExitCode::from(64)` on `bm --help` / `bm --version`. Verifying the Round 2 → Round 3 fix:
+
+1. **Implementation path.** [`src/main.rs:108-114`](../../src/main.rs) `handle_parse_error` now matches the two display-error kinds explicitly:
+
+   ```rust
+   if matches!(
+       err.kind(),
+       ErrorKind::DisplayHelp | ErrorKind::DisplayVersion
+   ) {
+       let _ = err.print();
+       return ExitCode::SUCCESS;
+   }
+   ```
+
+   The branch precedes the `MissingRequiredArgument` branch (lines 116-129) and the default exit-64 branch (lines 137-139), so a `DisplayHelp` / `DisplayVersion` error is intercepted before any usage-error rendering can apply. The `let _ = err.print()` invocation writes the help/version text to stdout (per clap's `print()` behavior for those two kinds — verified against clap 4 source), so the user-facing output destination is also correct.
+
+2. **Test coverage.** [`tests/bookmarks.rs:373-394`](../../tests/bookmarks.rs) declares two integration tests:
+   - `bm_help_exits_0` (lines 373-382) — invokes `bm --help`; asserts `.success()` + `.code(0)` + stdout contains `"Capture URLs"` (the help-text marker from the `#[command(about = ...)]` attribute at [`src/main.rs:31`](../../src/main.rs)).
+   - `bm_version_exits_0` (lines 386-394) — invokes `bm --version`; asserts `.success()` + `.code(0)`.
+
+   Both tests are #[test]-attribute discovered (no `#[ignore]`), so they run on every `cargo test --locked` invocation. The CI workflow at [`.github/workflows/bookmark-cli-manual.yml:80`](../../../../.github/workflows/bookmark-cli-manual.yml) `cargo test --locked` exercises both.
+
+3. **Spec alignment.** [`DESIGN.md` § Exit codes](../../DESIGN.md) — the `bm --help` / `bm --version` invocations are listed as expected `bm` invocations; the table assigns exit 0 to "Success (including empty `bm list`)". The fix aligns the implementation with the spec's exit-0 contract for the informational-request path.
+
+4. **Adjacent-defect scan.** The `clap::Error::print()` call writes to stdout for `DisplayHelp`/`DisplayVersion` per clap convention; for the *actual* error branches at line 138 the code uses `eprint!(display_safe(&rendered))` (lines 137-138) which correctly routes through `display_safe` for sanitization (closes [Security R2 F4](2026-05-20-security.md) — separate domain, surfaced here only as cross-domain validation that the fix is internally consistent). The two paths route to different streams correctly; the `let _ = err.print()` shape silently discards a write error, which is acceptable for an exit-0 path (the user already has the help text on stdout; a write error to stdout at exit is non-recoverable).
+
+**Resolution:** The Round 2 → Round 3 fix is structurally sound. The match-arm + integration tests close the help/version exit-code regression cleanly; both the spec contract (exit 0) and the user-facing output destination (stdout) are correct. No adjacent defect surfaced in re-application. (Dim 1, Dim 2)
+
+---
+
+**Finding 2 — Orphan temp file cleanup on `write_temp_file` partial failure (Dim 8)**
+
+<a id="r3-f2"></a>
+
+**Owner:** software-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** quality-engineer
+
+[Round 2 SE Finding 7](2026-05-20-software-engineer.md#r2-f7) raised the orphan-temp-file leak: the rename-failure path at [`src/lib.rs:188-198`](../../src/lib.rs) cleaned up the temp file but the `write_temp_file` failure path at [`src/lib.rs:170-184`](../../src/lib.rs) did not. The R2 finding named the named-fix shape:
+
+```rust
+if let Err(e) = write_temp_file(&tmp_path, json.as_bytes()) {
+    let _ = std::fs::remove_file(&tmp_path);   // best-effort cleanup
+    return Err(e).with_context(|| { ... });
+}
+```
+
+Verifying the post-R2 fix:
+
+1. **Implementation path.** [`src/lib.rs:170-184`](../../src/lib.rs) now matches the R2-named shape exactly:
+
+   ```rust
+   let tmp_path = temp_sibling_path(path);
+   if let Err(e) = write_temp_file(&tmp_path, json.as_bytes()) {
+       // Cleanup orphan temp file on partial write failure
+       // (Round 2 SE Finding 7). ...
+       let _ = std::fs::remove_file(&tmp_path);
+       return Err(e).with_context(|| {
+           format!(
+               "writing temp file for atomic save at {}",
+               tmp_path.display()
+           )
+       });
+   }
+   ```
+
+   The `let _ = std::fs::remove_file(&tmp_path)` at line 177 is the cleanup; the comment block (lines 171-176) cites Round 2 SE F7 and names the rationale — `write_temp_file`'s `create_new` open may have succeeded before `write_all`/`sync_all` failed, so the temp file may exist on disk when the error propagates. The `_ = ` discard pattern preserves the original write failure as the surfaced error rather than masking it with a cleanup-side failure.
+
+   Cross-checked against the parallel cleanup at the rename-failure path ([`src/lib.rs:188-198`](../../src/lib.rs)): both error paths now match the same best-effort-cleanup shape. The two paths together cover the full failure surface — (a) `write_temp_file` succeeds + `rename` fails: cleanup at line 191; (b) `write_temp_file` fails (any of `open`/`write_all`/`sync_all`): cleanup at line 177. The success path completes the rename and the temp path is consumed by the rename, so no cleanup is needed.
+
+2. **Test coverage.** [`tests/bookmarks.rs:406-431`](../../tests/bookmarks.rs) `save_leaves_no_orphan_temp_files` is `#[cfg(unix)] #[test]`; it invokes `bm add` against a fresh tempdir-backed store and asserts the parent directory contains exactly one file (`bookmarks.json`) — no `.tmp.<pid>.<nanos>` siblings. The test exercises the success path's no-orphan guarantee (the rename consumes the temp path on success). The doc comment at lines 396-405 explicitly acknowledges that the test does NOT exercise the (b)/(c)/(d) write-mid-flight failure modes the R2 finding named — those require fault-injection (filesystem-quota cap or write-stream fake) which is genuinely difficult to land deterministically in an integration test. The cold-pass classification: the test validates the success path's no-orphan behavior; the failure-path cleanup is verified by code-inspection only, which is acceptable given the R2 finding's own framing ("Simulating (b)/(c) failure deterministically in an integration test is difficult").
+
+3. **Spec alignment.** [`DESIGN.md` line 61](../../DESIGN.md) — "Atomic write — partial writes MUST NOT occur. The implementation uses a temporary file in the destination directory + atomic rename per POSIX `rename(2)` semantics. If write or rename fails, the storage file's prior state is preserved." The orphan-temp-file cleanup is not directly required by the spec (the spec is silent on temp-file hygiene), but it is implied by the "prior state is preserved" framing in the user-visible directory sense — if the user inspects the directory after a failure, they should see the prior state, not a half-written `.tmp.<pid>.<nanos>` file. The Round 2 finding correctly raised this as an adjacent concern; the post-fix state honors the implied contract.
+
+4. **Adjacent-defect scan.** The `_ = std::fs::remove_file(&tmp_path)` calls at lines 177 and 191 deliberately discard the cleanup-side error. This is correct for the cleanup-side failure-mode tree: (a) temp file does not exist (e.g., `open` failed at the syscall level → cleanup is a no-op-with-`ENOENT`); (b) temp file exists but cannot be removed (e.g., parent directory permissions changed mid-operation) — surfacing this masks the *original* failure, which is the more diagnostic signal for the operator. The `_ = ` pattern correctly preserves the original error.
+
+**Resolution:** The Round 2 → Round 3 fix lands the R2-F7 named cleanup pattern exactly. Both the success-path no-orphan-guarantee test and the code-inspection-verified failure-path cleanup are in place. No adjacent defect surfaced in re-application. (Dim 8)
+
+---
+
+### Hallucinated
+
+*(none — both Round 2 SE findings are addressed by structurally sound fixes with file:line-cited code changes + integration test coverage where deterministic-testability permits. The R2-F7 fault-injection-testing gap is not re-raised because the R2 finding itself acknowledged the test-difficulty and named the success-path no-orphan test as the in-scope assertion. The cold-pass independent dim-by-dim re-scan against the post-fix code surfaced no new defects — see Summary for the negative-result discipline.)*
+
+---
+
+### Dismissed
+
+*(none)*
+
+---
+
+### Deferred
+
+*(none — no new findings raised this round; nothing to defer.)*
+
+---
+
+### Summary
+
+2 findings classified: 2 Resolved (validating R2-F6 and R2-F7 fix landings); 0 Dismissed; 0 Deferred; 0 Hallucinated; 0 new findings.
+
+The Round 2 → Round 3 fix cycle landed both R2 findings cleanly: (a) [`src/main.rs:108-114`](../../src/main.rs) intercepts `ErrorKind::DisplayHelp | ErrorKind::DisplayVersion` with explicit `ExitCode::SUCCESS` + the two integration tests at [`tests/bookmarks.rs:373-394`](../../tests/bookmarks.rs) cover the help/version exit-0 contract; (b) [`src/lib.rs:177`](../../src/lib.rs) cleans up the orphan temp file on `write_temp_file` partial failure + the [`tests/bookmarks.rs:406-431`](../../tests/bookmarks.rs) `save_leaves_no_orphan_temp_files` integration test asserts the success path produces no temp orphans.
+
+The cold-pass independent dim-by-dim re-scan against the post-fix code: SE Dim 12 (test seam attack surface) — `grep -E 'INTERNAL_|TEST_|_FORCE_|_BYPASS_|_SEAM|cfg\(any\(test|debug_assertions|debug_assert!' src/` against the current `src/` returns no new hits beyond the `#[cfg(test)]` and `#[cfg(unix)]` gates that have existed since Round 1. The `BOOKMARK_CLI_DB` env-var read at [`src/main.rs:69`](../../src/main.rs) is documented user configuration per [DESIGN.md § Interface definitions](../../DESIGN.md), not a test seam. The post-fix `handle_parse_error` and the post-fix `save`'s cleanup branches are both narrow, well-bounded surfaces — no new conditional branches that would expand the test seam attack surface. The `#[allow(...)]` block in [`src/lib.rs:367-377`](../../src/lib.rs) on `mod tests` correctly carries the `reason = "..."` attribute naming the restriction-group lint allow-list with citation to Platform Engineer Round 2 Finding 13 — the allow is justified, scoped to `#[cfg(test)]`, and does not bleed into release-binary behavior.
+
+**MVR signal: REACHED.** Per [Phase 3 primer](../../../../vsdd-suite/primers/3-review-session.md) § Round triggers [G-151](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-151) stop trigger discipline: this round produced no new real findings — every finding above is a Resolved validation of a prior R2 finding, and the cold-pass independent dim-by-dim re-scan produced no Hallucinated or Deferred findings either. The layer is at MVR for the SE domain: the round after the last new-finding round (R2, which raised R2-F6 + R2-F7) produces only Resolved verifications and no new findings. Per the primer's stop-trigger formulation: "**MVR is reached.** Running Round N+1 from this state requires explicit director justification."
+
+**Coordination:**
+
+- [Finding 1](#r3-f1) — `bm --help` / `bm --version` test coverage (R2-F6 routing concern) is now in-tree at [`tests/bookmarks.rs:373-394`](../../tests/bookmarks.rs). The R2 cross-domain coordination handoff to [QE](../QUALITY-ENGINEER-REVIEW.md) (test-design gap) is closed.
+- [Finding 2](#r3-f2) — orphan temp-file cleanup is now in-tree. The R2 cross-domain coordination handoff to [QE](../QUALITY-ENGINEER-REVIEW.md) (fault-injection test-design) remains as a Layer-2 follow-up per R2's own framing; the Round 3 cold pass does not re-raise this because the R2 finding correctly named the difficulty in advance. The [Red Team](../RED-TEAM-REVIEW.md) cross-domain concern (orphan-temp-file inode-exhaustion adversarial surface) closes as Resolved by the cleanup; the surface is no longer reachable through `bm add` failure paths.
+- Cross-cluster: this SE round closes its MVR signal independently of the Performance and Platform sub-sections below; the three engineering-cluster domains do not gate on each other for MVR.
+
+---

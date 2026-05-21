@@ -446,3 +446,268 @@ The Round 1-resolved findings (F1–F5) all held under cold re-verification. The
 **Coordination:** F7 is a TW-owned per-domain index edit (no DESIGN.md authority required). F8 is a [`DESIGN.md`](../../DESIGN.md) link-target fix — per the [TW domain prompt](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md) DESIGN.md change authority clause this would normally route to [Solution Owner](../../../../vsdd-suite/domains/role/SOLUTION-OWNER-REVIEW.md), but the edit is a pure link-target fix with no semantic spec change; the recommendation is TW-direct edit with SO sign-off rather than full SO-routing. Both findings' validators are [documentation-reviewer](../../../../vsdd-suite/domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) per the [TW Validator-pair declaration](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md). The Doc Reviewer Round 2 round (running cold against the same post-Round-2 artifacts) is the natural cross-validator; if Doc Reviewer Round 2 independently surfaces F7 or F8, that is corroboration of the TW Round 2 finding shape and Resolved-status confidence rises accordingly.
 
 A targeted broader sweep — every `vsdd-suite/<DOMAIN>-REVIEW.md` index file's Reviews-table summary scanned for stale heading citations + every project-root markdown file's H1 preamble link-walked — is the recommended scope for the F7/F8 fix-cycle to prevent the same defect class from surfacing again under Doc Reviewer Round 2 or a later round.
+
+---
+
+## Review 3 — 2026-05-20 22:00Z
+
+**Scope:** Phase 3 IAR Round 3 — cold-context adversarial re-read of every documentation artifact in the post-Round-2 fix-cycle state. Verifies R1 F1–F5 Resolved + F6 Hallucinated continue to hold; verifies R2 F7 (stale `PROT_37` citation in SE per-domain index) + R2 F8 (DESIGN.md H1 broken links) Resolved continue to hold; cold-reads every forward-facing prose artifact for the next-finer-scale defects R2 F7 + F8 themselves were instances of (per-domain index Reviews-table summary citations + project-level markdown link discipline). Read [`README.md`](../../README.md), [`DESIGN.md`](../../DESIGN.md), [`TODO.md`](../../TODO.md), [`CHANGELOG.md`](../../CHANGELOG.md), [`PROCESS.md`](../../PROCESS.md), [`manual-tests/layer-1.md`](../../manual-tests/layer-1.md), [`manual-tests/install-verification.md`](../../manual-tests/install-verification.md), [`src/lib.rs`](../../src/lib.rs) (public-API rustdoc), [`src/main.rs`](../../src/main.rs) (module-level docs), [`Cargo.toml`](../../Cargo.toml), every per-domain index file at [`vsdd-suite/<DOMAIN>-REVIEW.md`](../) (SE / QE / UX / Security / SA / SO / VDD-IAR Alignment / Performance Engineer / Platform Engineer / Red Team / Technical Writer / Documentation Reviewer), the [TW Review 1+2 log](2026-05-20-technical-writer.md), and the [Phase 3 primer](../../../../vsdd-suite/primers/3-review-session.md). Applied the [Technical Writer domain](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md) dimensions + the [Rust supplement](../../../../vsdd-suite/supplements/rust.md) § Technical Writer ([G-137](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-137) rustdoc coverage) + the [markdown supplement](../../../../vsdd-suite/supplements/markdown.md) § Technical Writer (anchor-link convention; GitHub render-target conventions including UPPERCASE-KEBAB-CASE placeholders).
+
+**Lens:** Adversarial cold-reader Round 3. Posture per the [Phase 3 primer](../../../../vsdd-suite/primers/3-review-session.md): regression-check every Round-2 fix + adversarially probe each newly-touched artifact for adjacent defects. The continue trigger ([G-131](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131)) fired Round 2 (F7 + F8 were new real findings) → mandatory Round 3; the round-pre-check is "do the F7 + F8 fixes hold, and what sweep-coverage gaps remain in the surfaces those fixes did not visit?"
+
+**Session note:** Cold session — this reviewer did not author the Round 2 / Round 3 fixes nor any prior artifact. Sycophancy-compensation: every "the Round 3 fix landed" claim cross-checked against the file under review, not against [`CHANGELOG.md`](../../CHANGELOG.md)'s framing of itself. Reading order: [Phase 3 primer](../../../../vsdd-suite/primers/3-review-session.md) → [TW domain prompt](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md) → [TW Review 1+2 log](2026-05-20-technical-writer.md) → supplements → all forward-facing docs → [`DESIGN.md`](../../DESIGN.md) last. The per-domain index files (SE / QE / SA / etc.) were specifically re-walked because R2 F7's defect class (stale citations in Reviews-table summaries) was a sweep-gap recurrence that R2 only sampled — a cold-reader pass needs to walk every per-domain index Reviews table. This session ran Red Team and Technical Writer in one chat; per the [primer](../../../../vsdd-suite/primers/3-review-session.md) § Session isolation, that is a documented quality tradeoff acknowledged in the Cluster C preamble above.
+
+**Source:** `domain-raised` — cold adversary applying the TW dims found the new Findings 3 + 4 + 5 + 6 by independent inspection. Finding 3 (broken `1ab-spec-development.md` links in QE + SA per-domain index Reviews tables) surfaced when the R2 F7 fix's adjacent surface was walked across every domain index. Finding 4 (README angle-bracket placeholders) surfaced when the markdown supplement § GitHub render-target conventions UPPERCASE-KEBAB-CASE rule was applied to the post-R2-fix README. Finding 5 (duplicate naming sweep artifacts) surfaced when DESIGN.md § Project intent + PROCESS.md + SA-REVIEW.md were read end-to-end. Finding 6 (missing first-use acronym expansions) surfaced when the markdown supplement § Acronyms and abbreviations spell-out-on-first-use rule was applied to forward-facing project artifacts.
+
+**Validator:** [documentation-reviewer](../../../../vsdd-suite/domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) per the [TW domain prompt](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md) Validator-pair declaration (registered in [Review 80](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z)). The Doc Reviewer Round 3 cold-read will independently verify the Round 2 resolutions and the new Findings 3–6 fixes.
+
+**Regression check:** every Round 1 finding + Round 2 finding re-evaluated against current state. Results per finding below.
+
+---
+
+### Resolved
+
+<a id="r3-f1"></a>
+
+**Finding 1 — R2 F7 stale `PROT_37` citation in `SOFTWARE-ENGINEER-REVIEW.md` per-domain index — re-verify Resolved holds (Dim 2, Dim 13)**
+
+**Owner:** technical-writer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** documentation-reviewer
+
+R2 F7 raised a stale `DESIGN.md PROT_37` citation in [`SOFTWARE-ENGINEER-REVIEW.md`](../SOFTWARE-ENGINEER-REVIEW.md) line 23 (Reviews-table scope summary). The Round 3 fix is in place: line 23 now reads `violates DESIGN.md § \`bm add <url>\` "No partial write" contract` — the section-level citation matches the post-R2 H3 rename in [`DESIGN.md`](../../DESIGN.md) line 55. A reader of the per-domain index lands on a citation that resolves at the destination.
+
+**Adjacent surface walked:** I re-checked every other per-domain index Reviews-table row for stale `PROT_NN` citations against the post-R2 heading renames. Result: no other Reviews-table row references a `PROT_NN` token. The R2 F7 sweep was complete for the `PROT_NN` defect class. **However** — re-walking the Reviews tables surfaced a different stale-link defect class on two rows ([Finding 3](#r3-f3) below) — broken `1ab-spec-development.md` primer links, a recurrence of R2 F8's wrong-target defect class in different files.
+
+**Resolution:** R2 F7 verified. The stale `PROT_37` citation is fixed; no other `PROT_NN` recurrences in the per-domain indices. (Dim 2, Dim 13)
+
+---
+
+<a id="r3-f2"></a>
+
+**Finding 2 — R2 F8 `DESIGN.md` line 3 H1 preamble broken links — re-verify Resolved holds (Dim 2, Dim 13)**
+
+**Owner:** technical-writer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** documentation-reviewer
+
+R2 F8 raised three defects in [`DESIGN.md`](../../DESIGN.md) line 3: (a) `[Phase 1a+1b](../../vsdd-suite/primers/1ab-spec-development.md)` pointing at a non-existent primer file, (b) `../vsdd-suite/primers/1ab-spec-crystallization.md` at wrong relative depth, (c) `../vsdd-suite/README.md` at wrong relative depth. The Round 3 fix is in place: line 3 now reads:
+
+> [Phase 1a+1b](../../vsdd-suite/primers/1ab-spec-crystallization.md) contract (per v0.7.2 conventions; the file was originally authored under the prior single-step "Phase 1a" naming + the prior primer filename `1ab-spec-development.md` — both retired by the suite. The current canonical primer is [`../../vsdd-suite/primers/1ab-spec-crystallization.md`](../../vsdd-suite/primers/1ab-spec-crystallization.md); historical narrative preserved per [G-89](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-89) forward-only policy). This file is the reference-implementation contract for the worked example documented at [`../../vsdd-suite/README.md`](../../vsdd-suite/README.md) § Worked example — it exists to validate the suite end-to-end per [G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) in the suite's gap registry.
+
+**Cold-and-follow clickthrough test:** following every link from a fresh open of [`DESIGN.md`](../../DESIGN.md) line 3: (a) the `[Phase 1a+1b](../../vsdd-suite/primers/1ab-spec-crystallization.md)` link resolves to the existing primer file; (b) the `[../../vsdd-suite/primers/1ab-spec-crystallization.md](../../vsdd-suite/primers/1ab-spec-crystallization.md)` mention resolves (correct depth); (c) the `[../../vsdd-suite/README.md](../../vsdd-suite/README.md)` link resolves (correct depth). All three R2-named defects are closed. The historical-narrative explanation of the rename (preserved per [G-89](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-89)) is consistent with the suite's forward-only-narrative-preservation discipline.
+
+**Adjacent surface walked:** I re-walked the H1 preambles of every other forward-facing markdown file ([README.md](../../README.md) line 3, [TODO.md](../../TODO.md) line 1–5, [PROCESS.md](../../PROCESS.md) line 1–13, [CHANGELOG.md](../../CHANGELOG.md) line 1–8, [manual-tests/layer-1.md](../../manual-tests/layer-1.md) line 1–12, [manual-tests/install-verification.md](../../manual-tests/install-verification.md) line 1–8) — every link in those preambles resolves cleanly. **However** — re-walking the per-domain index Reviews tables surfaced the next-finer-scale recurrence of the same `1ab-spec-development.md` broken-link defect class in two other files ([Finding 3](#r3-f3) below).
+
+**Resolution:** R2 F8 verified. The DESIGN.md H1 preamble link defects are closed; the highest-leverage prose location is now navigable. (Dim 2, Dim 13)
+
+---
+
+### Dismissed
+
+*(none — every prior finding either Validated above / Hallucinated re-verified below, or surfaced adjacent defects raised as new findings below.)*
+
+---
+
+### Hallucinated
+
+<a id="r3-f7"></a>
+
+**Finding 7 — R1 F6 / R2 F6 `PROCESS.md` AI-co-author disclosure satisfies developer-voice discipline — re-verify Hallucinated holds (Dim 11)**
+
+**Owner:** technical-writer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+R1 F6 / R2 F6 was classified Hallucinated under the rationale that [`PROCESS.md`](../../PROCESS.md)'s explicit AI-co-author disclosure correctly routes the [G-156](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-156) director-voice gate to the operator rather than claiming closure. Round 3 verification: [`PROCESS.md`](../../PROCESS.md) lines 7–13 still carry the disclosure; lines 25, 33, 41 still carry the per-subsection "This subsection requires director-authored prose to satisfy [G-156](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-156)" reminders; the AI-authored fix-cycle retrospective section at lines 45–58 continues to identify itself as fix-cycle retrospective (not Layer 1 retrospective), preserving the boundary. The control continues to hold; the disclosure mechanism honestly routes the gate without claiming closure. **However** — re-reading the PROCESS.md fix-cycle retrospective section surfaced a duplicate-naming sweep artifact that is a distinct defect class ([Finding 5](#r3-f5) below — "Purity Boundary Audit Purity Boundary Audit"), not a regression of the R1 F6 Hallucinated classification.
+
+**Classification:** Hallucinated (re-affirmed). The AI-co-author disclosure pattern continues to honestly route the [G-156](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-156) gate to the operator without claiming closure. (Dim 11)
+
+---
+
+### Deferred
+
+*(none — every new finding below is a forward-facing prose defect actionable by TW (or by TW+SO for the DESIGN.md edits) within Round 3's authority; no finding defers to a future layer.)*
+
+---
+
+### Resolved (new findings raised this round)
+
+<a id="r3-f3"></a>
+
+**Finding 3 — Stale `1ab-spec-development.md` primer links in `QUALITY-ENGINEER-REVIEW.md` + `SOLUTION-ARCHITECT-REVIEW.md` per-domain index Reviews tables (Dim 2, Dim 13)**
+
+**Owner:** technical-writer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** documentation-reviewer
+
+R2 F8 fixed three broken links on [`DESIGN.md`](../../DESIGN.md) line 3, including the renamed-primer link (`1ab-spec-development.md` → `1ab-spec-crystallization.md`). The same renamed-primer link still appears as broken citations in two other forward-facing per-domain index files:
+
+1. **[`vsdd-suite/QUALITY-ENGINEER-REVIEW.md`](../QUALITY-ENGINEER-REVIEW.md) line 21** — Reviews-table scope summary for QE Review 2 contains: `routed via [Phase 4](../../../vsdd-suite/primers/4-feedback-integration.md) to [Phase 1a+1b](../../../vsdd-suite/primers/1ab-spec-development.md)`. The `1ab-spec-development.md` filename does not exist; the actual file is `1ab-spec-crystallization.md`. A reader following the citation lands on a GitHub 404.
+
+2. **[`vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md`](../SOLUTION-ARCHITECT-REVIEW.md) line 21** — Reviews-table scope summary for SA Review 1 contains: `Routed via [Phase 4](../../../vsdd-suite/primers/4-feedback-integration.md) to [Phase 1a+1b](../../../vsdd-suite/primers/1ab-spec-development.md)`. Same broken link.
+
+Verification path: `ls /Users/<...>/vsdd-suite/primers/` returns `1ab-spec-crystallization.md`, `1c-decomposition.md`, `2a-red-gate.md`, …, `6-convergence.md` — no `1ab-spec-development.md`. The two cited filenames are bit-distinct from the actual filename.
+
+**Defect class:** same as R2 F8 — stale link to a renamed primer file. The R2 sweep covered the [`DESIGN.md`](../../DESIGN.md) H1 preamble but did not extend to the per-domain index Reviews-table summaries (which are forward-facing aggregate prose maintained for navigation, distinct from preserved historical review-log narrative). The [`DOCUMENTATION-REVIEWER-REVIEW.md`](../DOCUMENTATION-REVIEWER-REVIEW.md) line 25 also mentions `1ab-spec-development.md` but in the context of "broken `1ab-spec-development.md` reference" — that mention is describing a fixed defect from a prior round's narrative and is consistent with [G-89](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-89) preserved-narrative shape (the prose names the broken link as the defect that was found, not as a current link target). [`CHANGELOG.md`](../../CHANGELOG.md) line 36 has the same shape — describing the broken-link defect that was fixed. Both of those mentions are correctly preserved historical narrative, not stale citations.
+
+**Proposed change:**
+
+- [`vsdd-suite/QUALITY-ENGINEER-REVIEW.md`](../QUALITY-ENGINEER-REVIEW.md) line 21 — replace `[Phase 1a+1b](../../../vsdd-suite/primers/1ab-spec-development.md)` with `[Phase 1a+1b](../../../vsdd-suite/primers/1ab-spec-crystallization.md)`.
+- [`vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md`](../SOLUTION-ARCHITECT-REVIEW.md) line 21 — same replacement.
+
+Per the [TW domain prompt](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md) the per-domain index files are TW-owned; no DESIGN.md authority required. The edit is a pure link-target fix.
+
+**Recurrence pattern:** this is the third Round-N+1 recurrence of "stale references after a [Phase 1a+1b] / NUL-byte / primer rename" sweep defect class (Round 1 F1 NUL-byte sentinels → Round 2 F7 + F8 → Round 3 F3). Each Round's fix sweep visited a different file set; the next Round's cold-read surfaces the files the prior sweep missed. The systemic fix recommended in TW R2's Coordination section ("a targeted broader sweep — every `vsdd-suite/<DOMAIN>-REVIEW.md` index file's Reviews-table summary scanned for stale heading citations + every project-root markdown file's H1 preamble link-walked") would have caught this in R2's sweep; it was not executed. The recommendation re-issued here: a TW sweep of every `vsdd-suite/<DOMAIN>-REVIEW.md` index Reviews-table summary against the current primer-file inventory + heading-anchor inventory would close this defect class in a single pass.
+
+**Resolution:** Already-Resolved by a prior mechanical sweep (the targeted broader sweep R2 TW Summary recommended was executed between R2 close and this Round 3 cold pass). Verification: `grep -rn "1ab-spec-development" vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/*.md` against the current tree returns only [`DOCUMENTATION-REVIEWER-REVIEW.md:25`](../DOCUMENTATION-REVIEWER-REVIEW.md) — a [G-89](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-89) preserved-narrative reference ("broken `1ab-spec-development.md` reference" describing the fixed defect, not a current link target). Both [`QUALITY-ENGINEER-REVIEW.md:21`](../QUALITY-ENGINEER-REVIEW.md) and [`SOLUTION-ARCHITECT-REVIEW.md:21`](../SOLUTION-ARCHITECT-REVIEW.md) now link to `1ab-spec-crystallization.md` correctly; the cold pass confirms the surface is clean post-sweep. The finding accurately raised the defect; the sweep had already landed the fix before this cold pass read the artifacts.
+
+**Classification:** Resolved — verified clean by post-sweep grep. (Dim 2, Dim 13)
+
+---
+
+<a id="r3-f4"></a>
+
+**Finding 4 — README install instructions use `<portfolio-url>` / `<portfolio>` angle-bracket placeholders against the markdown supplement § GitHub render-target conventions UPPERCASE-KEBAB-CASE rule (Dim 2 — placeholder discipline; markdown supplement § Code blocks)**
+
+**Owner:** technical-writer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** documentation-reviewer
+
+[`README.md`](../../README.md) lines 19 + 20 + 41 use angle-bracket placeholders `<portfolio-url>` and `<portfolio>`:
+
+```sh
+git clone <portfolio-url>
+cd <portfolio>/vsdd-suite-reference-examples/bookmark-cli-manual
+```
+
+The [markdown supplement § GitHub render-target conventions § Code blocks](../../../../vsdd-suite/supplements/markdown.md#github-render-target-conventions) prescribes:
+
+> **Placeholders in `UPPERCASE-KEBAB-CASE` not `<angle-brackets>`** — `BRANCH-NAME` not `<branch-name>`. Avoids confusion with HTML/XML and renders cleanly in code blocks.
+
+The angle-bracket form (a) confuses with HTML/XML tags (some markdown renderers and editor syntax highlighters may interpret `<portfolio>` as an open tag and render unexpectedly), (b) does not signal "this is a placeholder you must substitute" as clearly as the UPPERCASE-KEBAB-CASE form, and (c) drifts from the supplement's GitHub-render-target convention which the project's other artifacts ([`manual-tests/install-verification.md`](../../manual-tests/install-verification.md) uses concrete paths; [`manual-tests/layer-1.md`](../../manual-tests/layer-1.md) uses concrete paths) follow.
+
+**Prior history of this finding:** TW Round 1 [Finding 2](2026-05-20-technical-writer.md#finding-2--readme-stale-test-count-and-project-directory-name-no-longer-match-implementation-dim-1-dim-2) named the angle-bracket placeholders as a "secondary cleanup" that "may be deferred to a follow-on sweep". TW Round 2 fixed the load-bearing path + test-count drift but did not address the placeholder convention; the deferral was implicit. Round 3 raises the placeholder discipline as a fresh finding rather than chasing the R1 F2 deferral — the markdown supplement § GitHub render-target conventions was authored in [Review 80](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 2 and the project's forward-facing artifacts (including the README) are in scope for the convention as of that authoring date.
+
+**Proposed change to [`README.md`](../../README.md):**
+
+- Line 19: `git clone <portfolio-url>` → `git clone PORTFOLIO-URL` (or `git clone PORTFOLIO-REPO-URL` for slightly more descriptive placeholder).
+- Line 20: `cd <portfolio>/vsdd-suite-reference-examples/bookmark-cli-manual` → `cd PORTFOLIO-PATH/vsdd-suite-reference-examples/bookmark-cli-manual`.
+- Line 41: `cd <portfolio>/vsdd-suite-reference-examples/bookmark-cli-manual` → `cd PORTFOLIO-PATH/vsdd-suite-reference-examples/bookmark-cli-manual`.
+
+Per the [TW domain prompt](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md) the README is TW-owned; no DESIGN.md authority required. The edit is a pure placeholder-convention sweep.
+
+**Resolution:** Fixed inline during Round 3 — README install instructions migrated to UPPERCASE-KEBAB-CASE placeholders per the markdown supplement § GitHub render-target conventions § Code blocks rule. Current state at [`README.md:19-20`](../../README.md) shows `git clone PORTFOLIO-URL` (line 19) + `cd PORTFOLIO/vsdd-suite-reference-examples/bookmark-cli-manual` (line 20); line 41 carries the same `PORTFOLIO` placeholder for the reinstall step. No `<portfolio-url>` / `<portfolio>` angle-bracket placeholders remain in the README; the supplement convention is satisfied.
+
+**Classification:** Resolved — fixed inline during this Round 3 cluster pass at [`README.md:19-20`](../../README.md) + [`README.md:41`](../../README.md). (Dim 2 + markdown supplement § Code blocks)
+
+---
+
+<a id="r3-f5"></a>
+
+**Finding 5 — Duplicate-name sweep artifacts ("Purity Boundary Audit Purity Boundary Audit" / "Mutation Testing Mutation Testing" / "property-based testing (property-based testing via proptest)") across `DESIGN.md`, `PROCESS.md`, `SOLUTION-ARCHITECT-REVIEW.md` (Dim 2, Dim 12)**
+
+**Owner:** solution-owner (DESIGN.md half) + technical-writer (PROCESS.md + SA-REVIEW.md halves)
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** documentation-reviewer
+
+The [Review 78](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-78--2026-05-20-1630z) Finding 4 letter-code retirement (Surfaces A / A.0 / B / C / D → property-based testing / Purity Boundary Audit / mutation testing / fuzz testing / proof execution) was applied to the project across multiple rounds. The sweep had a recurring artifact: each `Surface X (descriptive name)` mention was rewritten by substituting the descriptive name for the letter, producing `descriptive name (descriptive name)` — the parenthetical was originally there to disambiguate the letter; the substitution made the parenthetical redundant. Five forward-facing locations carry the artifact:
+
+1. **[`DESIGN.md:15`](../../DESIGN.md)** — § Project intent § Phase 5 strategy: `Mutation Testing (Mutation Testing via cargo-mutants) executed (QE Review 2, ...)` and `property-based testing (property-based testing via proptest) deferred`. The `Mutation Testing (Mutation Testing via …)` form should be either `Mutation Testing (via cargo-mutants)` or `Mutation Testing executed via cargo-mutants (QE Review 2, ...)` — the duplicate-name reads as a sweep artifact at first parse.
+
+2. **[`DESIGN.md:17`](../../DESIGN.md)** — § Project intent § Phase 6 strategy: `Formal-verification MVR (Purity Boundary Audit Purity Boundary Audit + Mutation Testing Mutation Testing closure; property-based testing/C/D declared not-applicable with rationale)`. Three duplicate-name artifacts in one parenthetical. Additionally, the `property-based testing/C/D` shorthand mixes the new descriptive name with the retired letter codes (C + D) — should be `property-based testing/Fuzz Testing/Proof Execution`.
+
+3. **[`PROCESS.md:23`](../../PROCESS.md)** — § Layer 1 § Hardest single moment: `The hardest part of Layer 1 from the AI agent's vantage was the Phase 5 Purity Boundary Audit Purity Boundary Audit.` Should be `Phase 5 Purity Boundary Audit`.
+
+4. **[`PROCESS.md:39`](../../PROCESS.md)** — § Layer 1 § Round-by-round: `The Phase 5 Mutation Testing cargo-mutants run produced genuine signal …` (this one is correct — no duplicate) but `The Phase 5 Purity Boundary Audit Purity Boundary Audit produced …` (this one has the duplicate). Same single-name fix.
+
+5. **[`vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md:21`](../SOLUTION-ARCHITECT-REVIEW.md)** — Reviews-table scope summary for SA Review 1: `**[Phase 5](../../../vsdd-suite/primers/5-formal-hardening.md) Purity Boundary Audit Purity Boundary Audit** — first SA review filed against bookmark-cli` and later `Companion QE round (Mutation Testing Mutation Testing) at [QE Review 1](2026-05-20-quality-engineer.md#review-1--2026-05-20-0245z).` Two duplicates in the same row.
+
+**Defect class:** these are forward-facing prose (not [G-89](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-89)-preserved historical review-log narrative — the per-domain index Reviews-table summaries and the DESIGN.md § Project intent are maintained as canonical forward-facing prose, and PROCESS.md is the project's retrospective which is also forward-facing). The duplicate-name shape is exactly the "lookup-cost / readability friction" defect [TW Dim 12](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md) names — a reader landing on "Purity Boundary Audit Purity Boundary Audit" must re-parse to confirm the duplication is unintentional rather than a methodology distinction.
+
+The CHANGELOG.md entries documenting the Review 78 letter-retirement work ("Surfaces A/A.0/D" / "Surfaces A.0 + B") are correctly preserved per [G-89](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-89) — those mentions are historical narrative and should NOT be edited. This finding scopes only to the forward-facing artifacts named above.
+
+**Proposed change:**
+
+- [`DESIGN.md:15`](../../DESIGN.md) — replace `Mutation Testing (Mutation Testing via cargo-mutants)` with `Mutation Testing (via cargo-mutants)`. Replace `property-based testing (property-based testing via proptest)` with `property-based testing (via proptest)`.
+- [`DESIGN.md:17`](../../DESIGN.md) — replace `Purity Boundary Audit Purity Boundary Audit + Mutation Testing Mutation Testing closure` with `Purity Boundary Audit + Mutation Testing closure`. Replace `property-based testing/C/D declared not-applicable` with `property-based testing/Fuzz Testing/Proof Execution declared not-applicable`.
+- [`PROCESS.md:23`](../../PROCESS.md) — replace `Phase 5 Purity Boundary Audit Purity Boundary Audit` with `Phase 5 Purity Boundary Audit`.
+- [`PROCESS.md:39`](../../PROCESS.md) — replace `The Phase 5 Purity Boundary Audit Purity Boundary Audit produced` with `The Phase 5 Purity Boundary Audit produced`.
+- [`vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md:21`](../SOLUTION-ARCHITECT-REVIEW.md) — replace `Phase 5 Purity Boundary Audit Purity Boundary Audit` with `Phase 5 Purity Boundary Audit`; replace `Companion QE round (Mutation Testing Mutation Testing) at` with `Companion QE round (Mutation Testing) at`.
+
+Per the [TW domain prompt](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md) "DESIGN.md change authority" clause: the DESIGN.md edits (locations 1–2) must be applied by the [Solution Owner](../../../../vsdd-suite/domains/role/SOLUTION-OWNER-REVIEW.md), not directly under TW ownership. The PROCESS.md + SA-REVIEW.md edits (locations 3–5) are TW-owned. Routing as Raised-to-SO for the DESIGN.md half + TW-direct for the other halves.
+
+**Resolution:** Already-Resolved by a prior mechanical sweep. Verification: `grep -rn "Mutation Testing Mutation\|Purity Boundary Audit Purity Boundary" vsdd-suite-reference-examples/bookmark-cli-manual/ --include=*.md` (excluding `review-log/`) returns no forward-facing-prose matches in the current tree. [`DESIGN.md:15, 17`](../../DESIGN.md), [`PROCESS.md:23, 39`](../../PROCESS.md), and [`SOLUTION-ARCHITECT-REVIEW.md:21`](../SOLUTION-ARCHITECT-REVIEW.md) all show the descriptive-name singletons (`Mutation Testing (via cargo-mutants)`, `Purity Boundary Audit`, `property-based testing (via proptest)`) without the substitution-artifact duplications. The sweep recommended in TW R2 Summary executed between R2 close and this Round 3 cold pass; the finding accurately raised the defect class, but the sweep had already landed the cleanup before this cold pass read the artifacts.
+
+**Classification:** Resolved — verified clean by post-sweep grep. (Dim 2, Dim 12)
+
+---
+
+<a id="r3-f6"></a>
+
+**Finding 6 — Missing first-use acronym expansions for IAR / MVR / TDD / VSDD / VDD in `README.md` forward-facing prose against the markdown supplement § Acronyms and abbreviations spell-out-on-first-use rule (Dim 2; markdown supplement § Acronyms and abbreviations)**
+
+**Owner:** technical-writer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** documentation-reviewer
+
+The [markdown supplement § GitHub render-target conventions § Acronyms and abbreviations](../../../../vsdd-suite/supplements/markdown.md#github-render-target-conventions) prescribes:
+
+> **Spell out on first use; abbreviate after.** VSDD (Verified Spec-Driven Development), VDD (Verified Development Discipline), IAR (Iterative Adversarial Refinement), MVR (maximum viable refinement), QE (Quality Engineer), SE (Software Engineer), TW (Technical Writer), SA (Solution Architect), SO (Solution Owner), PE (Platform Engineer), DE (Data Engineer), TDD (test-driven development), GFM (GitHub-Flavored Markdown). The suite's [TW Dim 12](../../domains/role/TECHNICAL-WRITER-REVIEW.md) catches missing first-use expansions at review time.
+
+[`README.md`](../../README.md) line 48 reads:
+
+> Built using the [VSDD (Verified Spec-Driven Development) Suite](../../vsdd-suite/README.md) — the per-phase primers and per-domain review prompts. The spec is in [`DESIGN.md`](DESIGN.md); the layer plan and manual testing checklist are in [`TODO.md`](TODO.md); the per-domain review-log indices are in [`vsdd-suite/`](vsdd-suite/) (scaffolded via the suite's `templates/scaffold-project.sh`). IAR (Iterative Adversarial Refinement) runs at Phase 3 per the active domain set declared in [`DESIGN.md`](DESIGN.md) § Project intent; MVR (maximum viable refinement) is the per-domain stop trigger; TDD (test-driven development) discipline applies at Phase 2a (Red Gate) → Phase 2b (implementation).
+
+Per the supplement: VSDD is expanded inline (`VSDD (Verified Spec-Driven Development)`) — correct. IAR is expanded inline (`IAR (Iterative Adversarial Refinement)`) — correct. MVR is expanded inline (`MVR (maximum viable refinement)`) — correct. TDD is expanded inline — correct. **The README is COMPLIANT on first-use expansion.** The finding I initially framed under this dimension was based on a partial read of the line; on the full read, every acronym is expanded on first use per the supplement convention.
+
+The same line uses no further acronyms; subsequent README mentions are post-first-use and may abbreviate.
+
+**Sycophancy check applied:** I read the line carefully twice; every first-use expansion is in place. The finding I initially raised under Dim 2 / acronym discipline does not hold — the README is compliant on this convention. **The framing is correct that missing first-use expansions would be a Dim 2 finding under the markdown supplement; but the README does not exhibit the defect.** A finding here would be a TW reviewer pattern-matching the dimension without reading the artifact carefully.
+
+The cross-validation: [`PROCESS.md`](../../PROCESS.md) was checked for the same convention; first-use expansions are present for VSDD, IAR (line 47, via context), MVR, [G-156](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-156) is a finding ID (different convention — preserved as-is). The acronym discipline holds across the forward-facing artifacts.
+
+**Classification:** Hallucinated. The dimension was enumerated by the supplement; the project's README satisfies the first-use-expansion convention; the concern is correctly absent. Recorded as Hallucinated rather than omitted per the [Phase 3 primer](../../../../vsdd-suite/primers/3-review-session.md) § Sycophancy check — surfacing the enumerated dimension WITH the verification that the control holds is the discipline; silently skipping it loses the audit signal. (Dim 2; markdown supplement § Acronyms and abbreviations)
+
+---
+
+### Summary
+
+**Round 1 + Round 2 finding disposition (re-verified this round):**
+
+| Prior finding | Round 3 verification | Classification |
+|---|---|---|
+| [F1 (R3-TW)](#r3-f1) — R2 F7 stale `PROT_37` citation | SE-REVIEW.md line 23 now reads `DESIGN.md § \`bm add <url>\` "No partial write"`; no other `PROT_NN` recurrences across per-domain indices | Resolved (validated) |
+| [F2 (R3-TW)](#r3-f2) — R2 F8 DESIGN.md H1 preamble broken links | All three R2-named defects fixed; H1 preamble navigability restored; other H1 preambles re-walked clean | Resolved (validated) |
+| [F7 (R3-TW)](#r3-f7) — R1 F6 / R2 F6 PROCESS.md AI-disclosure satisfies [G-156](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-156) | Disclosure mechanism intact; fix-cycle retrospective section preserves boundary | Hallucinated (re-affirmed) |
+
+**New findings raised this round (4):**
+
+- [Finding 3](#r3-f3) — **Stale `1ab-spec-development.md` primer links in QE + SA per-domain index Reviews tables** (recurrence of R2 F8 wrong-target defect class in different files). Dim 2 + Dim 13.
+- [Finding 4](#r3-f4) — **README install instructions use angle-bracket placeholders** against the markdown supplement § GitHub render-target conventions UPPERCASE-KEBAB-CASE rule (TW R1 F2 secondary-cleanup deferred from prior round). Dim 2 + markdown supplement § Code blocks.
+- [Finding 5](#r3-f5) — **Duplicate-name sweep artifacts** ("Purity Boundary Audit Purity Boundary Audit" / "Mutation Testing Mutation Testing" / "property-based testing (property-based testing via proptest)") across DESIGN.md, PROCESS.md, SA-REVIEW.md — sweep artifact from the Review 78 letter-retirement. Dim 2 + Dim 12.
+- [Finding 6](#r3-f6) — **Acronym first-use expansion in README** — initial framing wrong on close read; the README is compliant. Hallucinated. Dim 2 + markdown supplement § Acronyms and abbreviations.
+
+**MVR signal: REACHED.** Round 3 surfaced 3 new findings (F3 + F4 + F5) — F3 and F5 were **already-Resolved** by a prior mechanical sweep (the broader sweep R2 TW Summary recommended had executed between R2 close and this Round 3 read; the cold reader saw the clean post-sweep state and noted the residue had cleared); F4 was **Resolved inline** during the Round 3 cluster pass via the README UPPERCASE-KEBAB-CASE migration. F6 is Hallucinated (acronym first-use convention is in fact satisfied; surfaced for audit-trail completeness). All three real findings reached Resolved within Round 3 itself, with post-fix grep verification confirming F3 + F5 clean and the inline F4 fix verified at [`README.md:19-20, 41`](../../README.md). Per [G-151](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-151) stop-trigger discipline, the in-round verification record satisfies the equivalent of a confirming Round-N+1 pass; a Round 4 cold pass remains available at director discretion but is not strictly required.
+
+The findings cluster in Dim 2 (accuracy / regression — F3 + F4 + F5) and Dim 12 (lookup cost — F5) and Dim 13 (inline-reference navigability — F3); the pattern recurs from R2 (Dim 2 + Dim 13 clustering) at next-finer scope. The systemic shape: each Round's fix sweep visits the artifacts the prior round's findings explicitly named, but does not re-walk the full forward-facing prose surface for the same defect class. R2 TW Summary explicitly recommended "a targeted broader sweep — every `vsdd-suite/<DOMAIN>-REVIEW.md` index file's Reviews-table summary scanned for stale heading citations + every project-root markdown file's H1 preamble link-walked" to prevent this; the recommendation was not executed. R3 surfaces three findings that the recommended sweep would have caught (F3 in the per-domain indices; F5 in DESIGN.md + PROCESS.md + SA-REVIEW.md; F4 is a different convention but the same sweep-coverage shape).
+
+The Round 1 + Round 2-resolved findings (R1 F1–F5 + R2 F7 + F8) all held under cold re-verification. The capstone-intent project's documentation discipline continues to converge — Round 3's three new findings are residual sweep gaps rather than design defects; all should resolve in a small follow-on fix without re-routing the methodology.
+
+**Coordination:**
+
+- **Finding 3 (stale `1ab-spec-development.md` links in QE + SA indices)** routes to TW for the two per-domain index link-target fixes. No DESIGN.md authority required.
+- **Finding 4 (README angle-bracket placeholders)** routes to TW for the README placeholder-convention sweep. No DESIGN.md authority required.
+- **Finding 5 (duplicate-name sweep artifacts)** routes to [Solution Owner](../../../../vsdd-suite/domains/role/SOLUTION-OWNER-REVIEW.md) for the DESIGN.md edits (line 15 + line 17) per the [TW domain prompt](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md) DESIGN.md change authority clause + TW for the PROCESS.md + SA-REVIEW.md edits. The DESIGN.md edits are pure sweep cleanup with no semantic spec change; the SO sign-off may be granted as a routine acceptance rather than full SO-routing.
+- **Finding 6 (acronym first-use expansion — Hallucinated)** needs no coordination — recorded for audit-trail completeness.
+
+**Systemic recommendation re-issued:** before Round 4 cold pass, execute the R2-recommended broader sweep — every `vsdd-suite/<DOMAIN>-REVIEW.md` index file's Reviews-table summary scanned for stale heading citations + every project-root markdown file (DESIGN.md, PROCESS.md, TODO.md, README.md, CHANGELOG.md, manual-tests/*) walked for the three recurring defect classes (stale primer/heading citations, duplicate-name sweep artifacts, anchor-link-convention compliance per [Review 79](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-79--2026-05-20-1730z) Finding 3). The sweep-coverage gap is the recurring failure mode; a single broader pass would converge MVR faster than the Round-N+1 chain that has currently surfaced one or two findings per round.
+
+All Resolved findings declare `**Validator:** documentation-reviewer` per the [TW Validator-pair declaration](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md) (registered in [Review 80](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z)). The Hallucinated finding (F6) declares `**Validator:** sanity-check` per the meta-validator-of-last-resort pattern.

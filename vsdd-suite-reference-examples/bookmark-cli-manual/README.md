@@ -16,8 +16,8 @@ Current state: **Layer 1 complete** (add + list). Layers 2 (tag + filter) and 3 
 ## Install
 
 ```sh
-git clone <portfolio-url>
-cd <portfolio>/vsdd-suite-reference-examples/bookmark-cli-manual
+git clone PORTFOLIO-URL
+cd PORTFOLIO/vsdd-suite-reference-examples/bookmark-cli-manual
 cargo install --locked --path . --force
 which bm   # expect: ~/.cargo/bin/bm
 ```
@@ -38,7 +38,7 @@ bm list
 ## Test
 
 ```sh
-cd <portfolio>/vsdd-suite-reference-examples/bookmark-cli-manual
+cd PORTFOLIO/vsdd-suite-reference-examples/bookmark-cli-manual
 cargo test
 # expect: all tests pass — the test suite (currently ~19 lib + integration tests at Layer 1, post-Round-2 fix cycle) covers the behavioral contracts in DESIGN.md.
 ```

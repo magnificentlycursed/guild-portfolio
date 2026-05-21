@@ -15,9 +15,10 @@
 cd vsdd-suite-reference-examples/bookmark-cli-manual
 cargo install --locked --path . --force --quiet
 which bm
+echo "exit: $?"
 ```
 
-Expected `which bm` behavior: the command MUST exit 0 AND print a path containing `/.cargo/bin/bm` (the absolute path under the user's cargo home — note `which` does NOT tilde-expand, so the literal output is something like `/Users/<you>/.cargo/bin/bm` on macOS or `/home/<you>/.cargo/bin/bm` on Linux). The textual prefix is shell-dependent; do not assert on the prefix, only on the `/.cargo/bin/bm` suffix substring.
+Expected `which bm` behavior: the command MUST exit 0 AND print a path containing `/.cargo/bin/bm` (the absolute path under the user's cargo home — note `which` does NOT tilde-expand, so the literal output is something like `/Users/<you>/.cargo/bin/bm` on macOS or `/home/<you>/.cargo/bin/bm` on Linux). The textual prefix is shell-dependent; do not assert on the prefix, only on the `/.cargo/bin/bm` suffix substring. The trailing `echo "exit: $?"` line (mirroring the Step 1/3/4/5/6 convention) must show `exit: 0`.
 
 (On macOS / Linux the cargo-home default is `~/.cargo/bin`. If `which bm` returns a path ending in `/.cargo/bin/bm` the install is current; any other path indicates the installed binary is shadowed by an older build elsewhere on PATH.)
 

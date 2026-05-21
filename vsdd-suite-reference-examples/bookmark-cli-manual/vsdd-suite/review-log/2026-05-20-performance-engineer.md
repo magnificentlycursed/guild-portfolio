@@ -473,3 +473,99 @@ The fsync is **not gratuitous** — it is the durability half of the atomic-save
 **MVR signal: NOT REACHED.** Round 2 surfaced one new real finding (R2-F7) under PE Dim 10 (regression risk — *"adding a synchronous operation in a hot code path"*). Per the [G-131](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) continue-trigger discipline a single new real finding mandates Round N+1; PE Round 3 is therefore mandatory after R2-F7 measurement work lands. The Round 2 fix-cycle resolved every Round 1 finding (F1 + F4 via direct artifact change; F2 + F5 via spec-absorbed Deferred discipline; F3 + F6 via spec-absorbed accepted-limitation citations), and Round 2 itself did not produce a Hallucinated finding — the finding progression is **6 real Round 1 findings → 6 verified Round 1 resolutions + 1 new real Round 2 finding**, which is the canonical "fix cycle worked + cold pass catches the new defect the fix introduced" shape the primer's continue-trigger framing was written to handle.
 
 **Coordination:** R2-F1 routes to [`vsdd-suite/SOLUTION-OWNER-REVIEW.md`](../SOLUTION-OWNER-REVIEW.md) — the spec amendment landed via Round 2 fix cycle but the SO log has not yet recorded the adjudication as a discrete SO Round entry; the natural follow-up is a Solution Owner Round 2 entry noting the DESIGN.md § Performance budget addition. R2-F4 cross-references [Platform Engineer Review 1 Finding 6](2026-05-20-platform-engineer.md) (the Platform Engineer round owns the manifest-edit work; this round owns the PE-side validation of the chosen values). R2-F2 + R2-F5 carry the same Layer 2 trigger and same auto-Backlog clauses Round 1 established; the per-finding routing to [`vsdd-suite/PLATFORM-ENGINEER-REVIEW.md`](../PLATFORM-ENGINEER-REVIEW.md) (bench harness) and [`vsdd-suite/QUALITY-ENGINEER-REVIEW.md`](../QUALITY-ENGINEER-REVIEW.md) (scaling tests) is unchanged from Round 1. R2-F7 routes to [`vsdd-suite/SOFTWARE-ENGINEER-REVIEW.md`](../SOFTWARE-ENGINEER-REVIEW.md) (atomic-save owner; the durability/cost trade-off is the SE-owned interface) with [`vsdd-suite/PLATFORM-ENGINEER-REVIEW.md`](../PLATFORM-ENGINEER-REVIEW.md) as the validator pair (the install-verification surface is the natural home for measured-budget evidence). Round 1's anchor list (`<a id="r1-f1">` through `<a id="r1-f6">`) remains the cross-reference surface for the original findings; Round 2's anchors (`<a id="r2-f1">` through `<a id="r2-f7">`) are the cross-reference surface for the verifications + the new R2-F7 finding.
+
+---
+
+## Review 3 — 2026-05-20 22:00Z
+
+**Layer:** 1
+**Tested against:** commit `9b915b1` (current `main` as of 2026-05-20)
+**Round:** 3
+**Active domain set:** 11 role + 1 meta = 12 (per [DESIGN.md § Project intent](../../DESIGN.md))
+**Scope:** Cold-context [Performance Engineer](../../../../vsdd-suite/domains/role/PERFORMANCE-ENGINEER-REVIEW.md) IAR Round 3 verification of [Round 2 PE Finding R2-F7](2026-05-20-performance-engineer.md#r2-f7) — the atomic-save `fsync`/`lstat`/`rename` syscall-additions Deferred-not-blocking status against the current [DESIGN.md § Performance budget](../../DESIGN.md). Round 2 closed at MVR-not-yet-reached on the strength of R2-F7 alone; this Round 3 cold pass verifies (a) the perf budget declarations in DESIGN.md haven't changed since Round 2, (b) R2-F7's Deferred-with-named-trigger discipline is intact, (c) no new perf defects in the now-stabilized Layer 1 surface.
+**Lens:** PE Dim 4 (Data scaling), Dim 7 (Memory growth — N/A for short-lived CLI but re-checked), Dim 8 (Performance budget), Dim 9 (Performance testing methodology), Dim 10 (Regression risk). [Rust supplement](../../../../vsdd-suite/supplements/rust.md) § Performance Engineer (Criterion benchmarks; debug-vs-release profile; allocation patterns) applied to the post-R2-fix state — no new code paths since Round 2 close, so this round is primarily verification rather than fresh-surface adversarial pressure.
+**Session note:** Cold cluster-batched session. Independent cold pass for PE — no reasoning leak from the SE sub-section above. The R2 round closed with R2-F7 as the new finding; the R2 finding was classified Deferred at the time with the Layer 2 implementation start trigger named. This Round 3 pass verifies the Deferred discipline is intact, not that R2-F7 has been resolved (resolution requires `hyperfine` measurement against the declared budget, which is operator-executable at Layer 2 start per the R2 trigger framing).
+**Source:** `domain-raised` — applying PE Dims 8, 9, 10 + the Rust supplement § Performance Engineer to the current artifacts.
+**Scope carve-outs (unchanged from R1/R2):** Dim 1 (time-to-interactive — browser apps), Dim 2 (main-thread / event-loop blocking), Dim 3 (asset optimization — browser), Dim 5 (N+1 access patterns — single-invocation CLI), Dim 6 (caching / memoization in long-lived process), Dim 7 (memory growth over long sessions) remain inapplicable to a short-lived CLI process per [Round 1 § Scope carve-outs](2026-05-20-performance-engineer.md#review-1--2026-05-20-1930z) and the Round 2 re-statement.
+**Assumption surfacing:** [DESIGN.md:163-177](../../DESIGN.md) § Performance budget remains the contract this round evaluates against. The R2-F7 finding correctly cited the budget at the time (`< 100 ms p95 at ≤ 1,000 bookmarks` for `bm add` / `bm list`; `< 50 ms p95` for `bm --help` / `bm --version`). Verified the budget table at lines 167-171 of the current DESIGN.md still declares those exact values — the budget has not silently widened or tightened since Round 2, so R2-F7's measurement-gap framing applies unchanged.
+
+---
+
+### Deferred
+
+**Finding 1 — R2-F7 (atomic-save `fsync` + `lstat` + `rename` syscall cost) — Deferred-not-blocking status intact (Dim 10)**
+
+<a id="r3-f1"></a>
+
+**Owner:** software-engineer (atomic-save owner per R2-F7 routing)
+**Status:** raised (Deferred carrying R2-F7 trigger forward)
+**Blocked by:** *(none — the deferral is to Layer 2 implementation start OR first `hyperfine` measurement, whichever comes first; the named trigger is operator-executable rather than block-on-prior-finding.)*
+
+[`src/lib.rs:148-201`](../../src/lib.rs) `BookmarkStore::save` continues to use the atomic-save sequence Round 2 identified: `symlink_metadata` (line 150) → `OpenOptions::create_new + mode 0600` (lines 265-269) → `write_all(bytes)` + `write_all(b"\n")` (lines 270-271) → `sync_all` (line 272) → `rename` (line 188). The syscall count and the `fsync` cost contour are unchanged from Round 2 — no code-level revision to `save` has landed between Round 2 and Round 3.
+
+[`DESIGN.md:163-177`](../../DESIGN.md) § Performance budget is unchanged since Round 2:
+
+| Metric | Budget (p95) | Measurement |
+|---|---|---|
+| `bm --help` / `bm --version` startup | < 50 ms wall-clock on commodity laptop | Manual observation; `hyperfine` acceptable for sanity-check |
+| `bm add <url>` end-to-end | < 100 ms wall-clock on a store with ≤ 1,000 bookmarks | Same |
+| `bm list` end-to-end | < 100 ms wall-clock on a store with ≤ 1,000 bookmarks | Same |
+
+The R2-F7 finding's central claim — the `fsync` introduces a measurable cost the declared budget hasn't been re-measured against — remains true at the cold-read level. The supplement's [Rust § Performance Engineer](../../../../vsdd-suite/supplements/rust.md) "synchronous operation in a hot code path" failure-mode framing applies to `sync_all` as it did at Round 2. No `hyperfine` measurement record has been added between Round 2 and Round 3 (verified: `grep -rn "hyperfine" vsdd-suite-reference-examples/bookmark-cli-manual/` returns only the DESIGN.md table reference at line 169 and prose mentions in [Round 2 R2-F7](2026-05-20-performance-engineer.md#r2-f7) — no measurement artifact, no `manual-tests/perf-baseline.md`, no CI workflow step).
+
+The deferral discipline is intact per the three-component [G-130](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-130) check:
+
+1. **Trigger named:** Layer 2 implementation start OR first manual `hyperfine` measurement against the declared budget (whichever comes first). The Round 2 framing established the dual-trigger shape; the Round 3 cold pass confirms no new evidence has emerged that would invalidate the Layer-2-or-first-measurement trigger.
+2. **Cost-of-deferral named:** Round 2 named it ("Each `bm add` between now and the measurement is operating against an unverified p95 budget claim ... if real-world measurement reveals 250 ms p95 on (say) a network-mounted home directory, the spec's budget claim is wrong"). Cost is bounded and operator-resolvable; not a regression introduced this round.
+3. **Auto-Backlog clause inherited from Round 2:** Layer 2 R2 closure without a `hyperfine` measurement → auto-Backlog and re-raise as a Platform Engineer fresh-system install-verification concern. Inherited cleanly.
+
+The cold-pass independent re-application of PE Dim 10: the `save` hot path's syscall sequence is unchanged from Round 2; no new synchronous operations have been added; no widening of data access patterns has occurred. R2-F7 is the only outstanding regression-risk surface and it remains correctly Deferred.
+
+**Cost-of-deferral (Round 3 update):** Carrying forward from Round 2 — the cost-of-deferral framing has not changed because the artifact state is identical to Round 2 close. The 100 ms p95 budget remains a spec-claimed-but-not-measured number for the post-atomic-save build.
+
+**Auto-Backlog clause:** Unchanged from Round 2. If Layer 2 closes without a `hyperfine` measurement of `bm add` against the declared 100 ms p95 budget, the finding auto-Backlogs at Layer 2 R2 and re-raises as a Platform Engineer fresh-system install-verification concern.
+
+**Classification:** Deferred — Layer 2 implementation start (or first hyperfine measurement, whichever comes first). The Round 2 deferral discipline is intact; no new evidence supports overriding the trigger. (Dim 10)
+
+---
+
+### Resolved
+
+*(none — Round 3 carries no fix verifications. The R2 round closed all R1 findings as Resolved or Accepted limitation or Deferred-with-discipline-intact; the only outstanding finding at Round 2 close was R2-F7, which is operator-/Layer-2-blocked and not AI-resolvable in this PR cycle.)*
+
+---
+
+### Accepted limitation
+
+*(none new — R1-F3 (cumulative O(n²) cost) and R1-F6 (pretty-print serialization) remain Accepted limitation per [Round 2 R2-F3](2026-05-20-performance-engineer.md#r2-f3) and [R2-F6](2026-05-20-performance-engineer.md#r2-f6); the DESIGN.md § Performance budget acceptance citations are unchanged.)*
+
+---
+
+### Dismissed
+
+*(none)*
+
+---
+
+### Hallucinated
+
+*(none — the single Deferred finding above is R2-F7 carried forward with the Round 2 deferral discipline intact; the cold pass surfaces no new defects. Per the [Phase 3 primer](../../../../vsdd-suite/primers/3-review-session.md) discipline, a finding that is Deferred-discipline-intact at Round N+1 is not Hallucinated — the verification IS the round's work product, and the Deferred status is the methodology-correct routing for a finding whose resolution requires operator-executable measurement.)*
+
+---
+
+### Summary
+
+1 finding classified: 1 Deferred (R3-PE-F1 / R2-F7 carried forward with G-130 discipline intact); 0 Resolved; 0 Accepted limitation new; 0 Dismissed; 0 Hallucinated; 0 new findings.
+
+The Round 2 → Round 3 cycle introduced no new perf-relevant code paths. The atomic-save sequence at [`src/lib.rs:148-201`](../../src/lib.rs) is unchanged; the perf budget declarations at [`DESIGN.md:163-177`](../../DESIGN.md) are unchanged; the R2-F7 measurement gap remains correctly Deferred to Layer 2 implementation start or first `hyperfine` measurement. The cold-pass independent re-application of PE Dims 4, 8, 9, 10 produced no new findings: no widening of data access patterns, no new synchronous operations in hot paths, no budget drift, no new dependency additions that would change allocation patterns.
+
+**MVR signal: NOT YET REACHED for the Performance Engineer domain.** Per [Phase 3 primer](../../../../vsdd-suite/primers/3-review-session.md) § Round triggers [G-131](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) continue-trigger discipline, the layer is at MVR when "the round *after* the last new-finding round produces only Hallucinated findings or no findings." Round 2 raised R2-F7 as a real Deferred finding; Round 3 (this round) raised zero new findings and verified R2-F7's Deferred discipline is intact. On the strict interpretation of the stop trigger, this is the MVR-equivalent state: the round after the last new-finding round (Round 2) produced no new findings. **However**, R2-F7 itself is Deferred-not-Resolved, and the budget claim it cited remains unmeasured. The methodology-correct posture is: **MVR-blocked-by-deferred-measurement** — the AI-resolvable surface is at MVR, but the budget-verification gap that R2-F7 named is operator-executable rather than AI-executable, so the domain advances to "no further AI-executable findings" rather than to fully-Resolved MVR. The Round 4 trigger fires when the operator runs `hyperfine` against `bm add` and either confirms the < 100 ms p95 claim (R2-F7 closes as Resolved) or surfaces a budget violation (R2-F7 escalates to a new in-tree finding).
+
+The R2-F7 Deferred status holds the right shape: trigger named, cost-of-deferral named, auto-Backlog clause inherited. The Round 3 work product is verifying the discipline, not producing fresh findings.
+
+**Coordination:**
+
+- [Finding 1](#r3-f1) (R2-F7 carried forward) — routes to [`vsdd-suite/SOFTWARE-ENGINEER-REVIEW.md`](../SOFTWARE-ENGINEER-REVIEW.md) as the atomic-save owner; [`vsdd-suite/PLATFORM-ENGINEER-REVIEW.md`](../PLATFORM-ENGINEER-REVIEW.md) remains the validator pair (the install-verification surface is the natural home for measured-budget evidence per Round 2's framing). The validator-pair routing is unchanged from Round 2.
+- Cross-cluster: this PE round closes at MVR-blocked-by-deferred-measurement independently of the SE sub-section above (which closed at MVR-reached) and the Platform sub-section below. The cluster-batched session does not require all three domains to share a single MVR state — each domain advances independently per its own finding progression.
+
+---

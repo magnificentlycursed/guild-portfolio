@@ -94,6 +94,19 @@ impl BookmarkStore {
         // signal on whether the pointed-to file's contents conform to the
         // bookmark-store shape). Symmetric rejection on load + save closes
         // both halves of the discipline.
+        //
+        // **Residual TOCTOU — Red Team Round 3 Finding 2 (Accepted risk):**
+        // the `symlink_metadata` check and the subsequent `read_to_string`
+        // are separate syscalls; an attacker with concurrent filesystem
+        // write access to the parent directory could swap a regular file
+        // for a symlink in the race window. Tight fix is
+        // `OpenOptions::custom_flags(O_NOFOLLOW)`, which would require a
+        // `libc` dep (operator-sign-off-gated) or fragile per-OS literal
+        // constants. The race window is on the order of microseconds; the
+        // threat model declares single-user local tool with no concurrent
+        // adversary in the user's home directory; the save side uses
+        // `rename(2)` which is atomic regardless. Documented in
+        // `DESIGN.md` § Threat model — residual risks.
         if let Ok(meta) = std::fs::symlink_metadata(path) {
             if meta.file_type().is_symlink() {
                 return Err(anyhow!(
@@ -323,44 +336,70 @@ pub fn display_safe(s: &str) -> String {
     out
 }
 
-/// The Unicode Cf (format) characters in scope for the threat model:
-/// zero-width joiners + bidi controls + BOM. This is the named set in
-/// `DESIGN.md` § Threat model (U+200B–U+200F, U+202A–U+202E,
-/// U+2066–U+2069, U+FEFF). `is_control()` already covers the Cc range.
+/// A **curated** set of Unicode format-category codepoints that
+/// `display_safe` escapes. Per `DESIGN.md` § Threat model, this is not a
+/// claim of full Cf-category coverage (full coverage would require a
+/// Unicode-properties dependency such as `unicode-general-category`); it
+/// is a hand-maintained enumeration of the known terminal-escape-injection,
+/// Trojan-Source, and invisible-glyph spoofing vectors. New bypass codepoints
+/// are added as adversarial review surfaces them; the in-function comment
+/// lists every range in scope so a reader does not need to grep the matcher.
+/// `is_control()` already covers the Cc range.
 const fn is_format_char(c: char) -> bool {
-    // Unicode `Cf` (Format) category subset covering known terminal-escape-
-    // injection + Trojan-Source vectors. Closes [Red Team Review 1
-    // Finding 6](../vsdd-suite/review-log/2026-05-20-red-team.md#r2-f6) —
-    // the Round 1 fix's named-subset matcher missed several `Cf` ranges that
-    // the Rust supplement § Security identifies as bypass vectors. Coverage:
+    // Curated Unicode-format-category subset covering known terminal-escape-
+    // injection + Trojan-Source + invisible-glyph spoofing vectors. Initial
+    // coverage closes [Red Team Review 1
+    // Finding 6](../vsdd-suite/review-log/2026-05-20-red-team.md#r2-f6).
+    // Round 3 [Red Team Review 1 Finding 3](../vsdd-suite/review-log/2026-05-20-red-team.md#r3-f3)
+    // extended coverage with the additional Cf codepoints listed below. The
+    // matcher is intentionally curated (vs. categorical) so that the audit
+    // surface — every codepoint we claim defense against — is reviewable in
+    // one place. Coverage:
     //
-    // - U+061C — Arabic Letter Mark (bidi format char, missing in R1)
+    // - U+00AD — SOFT HYPHEN (classic invisible URL-spoof primitive; R3)
+    // - U+0600..=0605 — Arabic number signs + ALM-class (R3)
+    // - U+061C — Arabic Letter Mark (bidi format char)
+    // - U+06DD — Arabic end of ayah (R3)
+    // - U+070F — Syriac abbreviation mark (R3)
+    // - U+08E2 — Arabic disputed end of ayah (R3)
+    // - U+180B..=180D, U+180F — Mongolian Free Variation Selectors
     // - U+200B..=200F — zero-width chars + LRM/RLM
     // - U+202A..=202E — explicit bidi formatting (RLE/LRE/PDF/LRO/RLO)
     // - U+2060..=2064 — word joiner + invisible math chars
     // - U+2066..=2069 — isolate bidi formatting
+    // - U+FE00..=FE0F — Variation Selectors 1-16 (Trojan-Source supplementary)
     // - U+FEFF — zero-width no-break space / BOM
     // - U+FFF9..=FFFB — interlinear annotation anchors
-    // - U+180B..=180D, U+180F — Mongolian Free Variation Selectors
-    // - U+FE00..=FE0F — Variation Selectors 1-16 (Trojan-Source supplementary)
+    // - U+110BD, U+110CD — Kaithi number sign + end-of-text marker (R3)
+    // - U+13430..=13438 — Egyptian hieroglyph format controls (R3)
+    // - U+1BCA0..=1BCA3 — Duployan shorthand format controls (R3)
     // - U+E0001 — language tag
     // - U+E0020..=E007F — tag characters (Trojan-Source supplementary plane)
     // - U+E0100..=E01EF — Variation Selectors 17-256
     matches!(
         c as u32,
-        0x061C
+        0x00AD
+            | 0x0600..=0x0605
+            | 0x061C
+            | 0x06DD
+            | 0x070F
+            | 0x08E2
+            | 0x180B..=0x180D
+            | 0x180F
             | 0x200B..=0x200F
             | 0x202A..=0x202E
             | 0x2060..=0x2064
             | 0x2066..=0x2069
+            | 0xFE00..=0xFE0F
             | 0xFEFF
             | 0xFFF9..=0xFFFB
-            | 0x180B..=0x180D
-            | 0x180F
-            | 0xFE00..=0xFE0F
-            | 0xE0001
-            | 0xE0020..=0xE007F
-            | 0xE0100..=0xE01EF
+            | 0x1_10BD
+            | 0x1_10CD
+            | 0x1_3430..=0x1_3438
+            | 0x1_BCA0..=0x1_BCA3
+            | 0xE_0001
+            | 0xE_0020..=0xE_007F
+            | 0xE_0100..=0xE_01EF
     )
 }
 
@@ -434,11 +473,11 @@ mod tests {
     }
 
     /// retroactive Red Gate (Phase 5 source): save creates parent directory
-    /// for a nested-path target — Surface B (cargo-mutants) surfaced the gap
+    /// for a nested-path target — Mutation Testing (cargo-mutants) surfaced the gap
     /// at src/lib.rs:48 where `!parent.as_os_str().is_empty()` could be
     /// flipped without any test failing. Test added post-MVR; confirmed
     /// passes against current implementation. See vsdd-suite/QUALITY-ENGINEER-REVIEW.md
-    /// (Review 2 — Phase 5 Surface B) for the surviving mutant disposition.
+    /// (Review 2 — Phase 5 Mutation Testing) for the surviving mutant disposition.
     #[test]
     fn save_creates_parent_directory_for_nested_path() {
         let dir = tempfile::tempdir().unwrap();

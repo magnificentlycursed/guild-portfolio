@@ -14,7 +14,9 @@ Structured like [`vsdd-suite/suite-development/FINDINGS-INDEX.md`](../../../vsdd
 - **By layer:** `grep "| L1 |"`
 - **By classification:** `grep "| Resolved |"` / `| Hallucinated |` / `| Open |` / `| Deferred |`
 - **By source:** `grep "| director-raised |"` / `| domain-raised |` / `| regression-replay |`
-- **Open findings only:** `grep "| Open |"` (currently: 4 Open — SO Round 1 (2026-05-20 19:30Z) filed F-006/F-007 Backlogged and F-008/F-009 Open per the deliverable-vs-promise + documentation-defect Findings; resolution paths tracked in the per-Finding `Blocked by:` lifecycle fields)
+- **Open findings only:** `grep "| Open \\|"`. **Post-Round-3 status (Review 82 Finding 5 close):** 7 of 10 active capstone-tier domains at MVR (SE / Security / UX / Red Team / Technical Writer / Solution Owner / VDD-IAR Alignment); 2 operator-gated MVR-blocked (Platform Engineer install-verification per [G-155](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155); Performance Engineer fsync-cost benchmark deferred to Layer 2); 1 Deferred-carryforward not-at-MVR (Documentation Reviewer sweep-discipline gap — routed to PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40) upstream-suite-remediation). 0 Open findings in production code; per-finding `Blocked by:` lifecycle fields in the per-session review-log files track resolution paths for the remaining Documentation Reviewer carryforwards.
+
+**Round 2 + Round 3 outcomes:** 14 new Round 2 findings + 8 new Round 3 findings (3 UX inline-fixed; 2 Red Team — 1 inline-fixed, 1 Accepted risk; 3 TW — 2 already-Resolved by sweep, 1 inline-fixed). Per-finding narratives in the per-session files under `## Review 2 — 2026-05-20 21:00Z` + `## Review 3 — 2026-05-20 22:00Z` sections; per-domain index files' Reviews tables carry the round-level rollups. The Round 2 + Round 3 individual findings are NOT enumerated as separate rows in this registry to avoid duplicating the per-session narratives — the per-domain index Reviews tables + per-session `Review N` anchors are the canonical lookup path.
 
 ---
 
@@ -57,8 +59,8 @@ Schema extended in PR 6 / Review 78 with `Owner` + `Validator` columns per Revie
 ## Cross-references
 
 - [`README.md`](../README.md) — project README
-- [`DESIGN.md`](../DESIGN.md) — Phase 1a contract
+- [`DESIGN.md`](../DESIGN.md) — Phase 1a+1b contract
 - [`TODO.md`](../TODO.md) — layer plans + manual testing checklists
-- Per-domain index files in this directory — round-level rollup per domain (QUALITY-ENGINEER-REVIEW.md and SOLUTION-ARCHITECT-REVIEW.md customized; five others remain as scaffolded stubs)
+- Per-domain index files in this directory — round-level rollup per domain. All 11 active role-domain indexes + the VDD-IAR Alignment meta index are populated with their respective Round 1 + Round 2 + Round 3 entries (post-Review-82 capstone IAR execution).
 - Per-session files in [`review-log/`](review-log/) — finding-level narratives
 - [`vsdd-suite/suite-development/suite-development.md`](../../../vsdd-suite/suite-development/suite-development.md) § Project-level finding index — the governing standard for this file

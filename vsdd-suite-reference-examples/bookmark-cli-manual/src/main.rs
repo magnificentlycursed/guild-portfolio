@@ -45,9 +45,7 @@ use std::process::ExitCode;
                     0   success (including empty `bm list`)\n  \
                     1   user error (empty URL or missing positional)\n  \
                     2   storage error (file unreadable, corrupt JSON, write failure)\n  \
-                    64  CLI usage error (unknown subcommand, unknown flag)\n\
-                  \n\
-                  Closes UX Review 1 Finding 4 (help-text usage example gap)."
+                    64  CLI usage error (unknown subcommand, unknown flag)"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -85,7 +83,13 @@ fn emit_storage_error(e: &anyhow::Error, kind: &str) {
         "Hint: check that the storage file at {} {}",
         display_safe(&path.display().to_string()),
         match kind {
-            "load" => "exists, is a regular file (not a symlink), and is readable.",
+            // Load Hint covers BOTH the filesystem-cause cases AND the
+            // JSON-content cause — the most common failure after first
+            // successful use is corrupt JSON, not a missing/permission
+            // failure. Round 3 UX Finding 7.
+            "load" =>
+                "exists, is a readable regular file (not a symlink), AND contains valid JSON \
+                 conforming to the store shape — try `cat <path>` to inspect the contents.",
             "save" => "is writable, its parent directory exists, and the path is not a symlink.",
             _ => "is accessible to the current user.",
         }

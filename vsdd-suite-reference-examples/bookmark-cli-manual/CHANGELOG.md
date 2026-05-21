@@ -1,5 +1,59 @@
 # Changelog
 
+## v0.11.5 Round 3 inline fix-cycle + cluster verification — 2026-05-20 22:00Z ([Review 82](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z) Finding 5)
+
+**Scope:** Round 3 of the Phase 3 IAR cycle. Inline fix batch (Round 2 carryforward fixes) + 4-cluster cold-session verification with adversarial-pair separation (engineering / security+ux / red-team+technical-writer / documentation-reviewer+solution-owner) + mid-round inline-fix sub-cycle for 7 new findings.
+
+### Changed — code
+
+- **[`src/lib.rs:330-380`](src/lib.rs)** `is_format_char` — curated Unicode-format-category matcher extended with named bypass codepoints: U+00AD (SOFT HYPHEN; classic invisible URL-spoof primitive); U+0600–0605 + U+06DD + U+070F + U+08E2 (Arabic / Syriac number-sign + abbreviation-mark format chars); U+110BD + U+110CD (Kaithi number sign + end-of-text marker); U+13430–13438 (Egyptian hieroglyph format controls); U+1BCA0–1BCA3 (Duployan shorthand format controls). Doc comment narrowed from claiming full Cf-category coverage to "curated set covering known terminal-escape-injection + Trojan-Source + invisible-glyph spoofing vectors" — full Cf coverage would require a `unicode-general-category` dep + Platform Engineer / Security re-review. Per [Red Team R3 F3](vsdd-suite/review-log/2026-05-20-red-team.md).
+- **[`src/lib.rs:86-104`](src/lib.rs)** `BookmarkStore::load` — residual TOCTOU race window documented inline as Accepted Risk per Red Team R3 F2; the symmetric `symlink_metadata` check still catches the synchronous case; tight `O_NOFOLLOW` single-syscall fix deferred pending `libc` dep addition.
+- **[`src/main.rs:32-48`](src/main.rs)** CLI `long_about` — audit-trail-trivia footer removed (was leaking `"Closes UX Review 1 Finding 4 (help-text usage example gap)."` into user-visible `bm --help` output). Per [UX R3 F6](vsdd-suite/review-log/2026-05-20-ux.md).
+- **[`src/main.rs:79-98`](src/main.rs)** `emit_storage_error` load Hint — expanded to cover corrupt-JSON case (most common failure after first successful use). Per [UX R3 F7](vsdd-suite/review-log/2026-05-20-ux.md).
+
+### Changed — spec ([`DESIGN.md`](DESIGN.md))
+
+- **§ Threat model — `$BOOKMARK_CLI_DB` Mitigations row** — documented residual load-side TOCTOU race window per [Red Team R3 F2](vsdd-suite/review-log/2026-05-20-red-team.md) (Accepted Risk classification); tight fix path (`OpenOptions::custom_flags(O_NOFOLLOW)`) declared with `libc` dep + Security re-review as the gate.
+
+### Changed — docs
+
+- **[`README.md:19-20,41`](README.md)** — angle-bracket placeholders `<portfolio-url>` / `<portfolio>` rewritten as UPPERCASE-KEBAB-CASE (`PORTFOLIO-URL` / `PORTFOLIO`) per the markdown supplement § Code blocks placeholder convention. Per [TW R3 F4](vsdd-suite/review-log/2026-05-20-technical-writer.md).
+- **[`manual-tests/layer-1.md:14-21`](manual-tests/layer-1.md)** Step 0 — added missing `echo "exit: $?"` line + literal-expected-output discipline match with Steps 1/3/4/5/6 per [UX R3 F8](vsdd-suite/review-log/2026-05-20-ux.md).
+- **16-substitution mechanical sweep** across forward-facing markdown files (DESIGN.md, PROCESS.md, vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md, vsdd-suite/QUALITY-ENGINEER-REVIEW.md, vsdd-suite/FINDINGS-INDEX.md, TODO.md) — retired letter-coded "Surface A/B/C/D" duplicate-name sweep artifacts from Review 78 letter retirement; `1ab-spec-development.md` → `1ab-spec-crystallization.md` per the Review 81 anchor-link sweep. Per [Documentation Reviewer R2 carryforwards](vsdd-suite/review-log/2026-05-20-documentation-reviewer.md) + [TW R3 F3 + F5](vsdd-suite/review-log/2026-05-20-technical-writer.md).
+
+### Changed — review-log discipline
+
+- **9 per-domain Round 3 review-log sections** appended to existing per-session files at [`vsdd-suite/review-log/2026-05-20-{domain-slug}.md`](vsdd-suite/review-log/) under `## Review 3 — 2026-05-20 22:00Z` headings (per-session-file convention; one file per date+domain; multiple Reviews share the file).
+- **4 intermediate cluster files deleted** at consolidation (`engineering-cluster-round-3.md`, `cluster-b-round-3.md`, `cluster-c-round-3.md`, `cluster-d-round-3.md`). The letter-named cluster files were the operator-flagged TW Dim 12 naming-discipline slip; the canonical audit trail never sees the lettering.
+- **[`vsdd-suite/FINDINGS-INDEX.md`](vsdd-suite/FINDINGS-INDEX.md)** — Quick lookup preamble updated with Post-Round-3 status (7 of 10 at MVR; 2 operator-gated; 1 Deferred-carryforward); Round 2 + Round 3 finding-rows policy declared (per-session anchors are the canonical lookup, not registry-row duplication).
+
+### Per-domain Round 3 outcomes
+
+| Domain | Outcome |
+|---|---|
+| Software Engineer | MVR reached |
+| Performance Engineer | MVR-blocked-by-Deferred (R2-F7 fsync benchmark — Layer 2 operator-executable) |
+| Platform Engineer | MVR-blocked-by-operator-gate (R2-F9 install-verification non-author fresh-system requirement; AI-unsatisfiable per [G-155](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155)) |
+| Security | MVR reached |
+| UX | MVR reached (F6 + F7 + F8 inline-fixed mid-Round-3) |
+| Red Team | MVR reached (F2 Accepted Risk; F3 inline-fixed) |
+| Technical Writer | MVR reached (F3 + F5 already-Resolved by sweep; F4 inline-fixed; F6 Hallucinated) |
+| Documentation Reviewer | NOT at MVR — 5 Deferred R2 carryforwards remain (sweep-discipline gap; routed to PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40) upstream-suite-remediation) |
+| Solution Owner | MVR reached |
+| VDD-IAR Alignment | MVR reached (from Round 2; no R3 per G-131 — continue trigger requires new real findings) |
+
+### Verified
+
+- `cargo fmt --check` clean.
+- `cargo clippy --all-targets -- -D warnings` clean.
+- `cargo test` — 11 unit + 16 integration tests pass.
+
+### Phase 6 status
+
+**Phase 6 four-dimensional convergence record continues DEFERRED.** Platform Engineer install-verification operator-gate is the hard ceiling (Dim 38 fresh-system requirement is AI-unsatisfiable per [G-155](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155)). The four-dimensional attestation (Spec MVR + Test MVR + Implementation MVR + Formal-verification MVR + cross-dimension consistency check) cannot honestly claim Implementation MVR while the Platform Engineer gate is open. Phase 6 will be authored as the FINAL VDD-IAR Alignment review round once: (a) operator runs install-verification on a fresh system, and (b) Documentation Reviewer sweep-discipline carryforwards close via PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40) upstream-suite-remediation.
+
+---
+
 ## v0.11.4 Round 2 fix-cycle — 2026-05-20 20:00Z ([Review 82](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z))
 
 **Scope:** Round 2 fix-cycle covering all 80 findings filed across the 12-domain Round 1 cold-context IAR pass. The fix-cycle is split across four parallel batches — spec / code / config / CI / docs — coordinated against the updated [`DESIGN.md`](DESIGN.md) as the contract. This entry covers the doc batch; the other batches land in their own commits.
