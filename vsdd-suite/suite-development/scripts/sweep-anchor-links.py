@@ -41,10 +41,13 @@ from typing import Dict, List, Tuple
 
 EXTERNAL_LINKS: Dict[str, str] = {
     # governing documents (first occurrence per file)
-    "VSDD whitepaper": "https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00",
-    "VDD whitepaper":  "https://gist.github.com/dollspace-gay/45c95ebfb5a3a3bae84d8bebd662cc25",
+    "VSDD whitepaper":              "https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00",
+    "VDD whitepaper":               "https://gist.github.com/dollspace-gay/45c95ebfb5a3a3bae84d8bebd662cc25",
+    "VDD-IAR whitepaper":           "https://gist.github.com/dollspace-gay/45c95ebfb5a3a3bae84d8bebd662cc25",
+    # upstream ecosystem (first occurrence per file)
+    "apprentice onboarding course": "https://github.com/Navigators-Guild/apprentice-onboarding",
     # people (first occurrence per file)
-    "dollspace.gay":   "https://github.com/dollspace-gay",
+    "dollspace.gay":                "https://github.com/dollspace-gay",
     # first-party dependency
     "crosslink":       "https://github.com/forecast-bio/crosslink",
     # well-known OSS tooling
