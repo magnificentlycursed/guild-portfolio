@@ -1,27 +1,41 @@
 #!/usr/bin/env bash
-# Scans IAR review-log markdown files for identity-revealing patterns the
-# project under review may be opt-in anonymizing out of source code. Review
-# logs cite paths and command transcripts by nature, so the source-code
-# anonymization hook's pattern set is too narrow for them; this hook adds
-# the user's git-config name, email, and home directory.
+# Scans ANY committed text file for identity-revealing patterns the developer
+# may be opt-in anonymizing. Consolidates two previously-separate hooks at
+# PR #43:
+#   - `no-home-dir-paths` (at `issue-tracker-cli/.pre-commit-hooks/check-no-home-paths.sh`)
+#     — narrow HOME-path check with no public-URL allowlist
+#   - `review-log-anonymization` (this file's previous filename
+#     `check-review-log-anonymization.sh`) — user.name + user.email + HOME
+#     check with public-URL allowlist; previously scoped to review-log markdown
+# This consolidated hook is a superset (HOME + name + email + allowlist) and
+# applies suite-wide to every committed text file. Per operator directive at
+# PR #43: "The anonymization check should be broadened to include logs,
+# commits, etc. Basically it should apply to all committed files. Both
+# anonymization hooks should be repo wide. Might make sense to combine them."
+# The legacy `check-no-home-paths.sh` at issue-tracker-cli/ is retired in
+# place (kept for narrative preservation per G-89) with a deprecation header
+# pointing here.
 #
 # Patterns are read from `git config` and the runtime environment — no
 # identity values are hardcoded in this script. Configure with
 # `git config user.name "<value>"` and `git config user.email "<value>"`
-# (typical noreply settings) before committing review logs.
+# (typical noreply settings) before committing.
 #
 # Public-URL contexts are allowed: the project may opt in to publishing the
 # git handle as the public repository URL (`Cargo.toml` `repository` field,
-# `package.json` `repository`, etc.). Lines that contain `github.com/`,
-# `gitlab.com/`, `bitbucket.org/`, or `*.noreply.<host>` are skipped — the
-# handle is deliberately public there. Bare identity citations on other
+# `package.json` `repository`, etc.) or as the reviewer's authored Bluesky
+# handle on a profile URL (per the external-review-log subfolder pattern at
+# `vsdd-suite/suite-development/suite-development.md` § Identity-correlation
+# discipline). Lines that contain `github.com/`, `gitlab.com/`,
+# `bitbucket.org/`, `bsky.app/profile/`, or `*.noreply.<host>` are skipped —
+# the handle is deliberately public there. Bare identity citations on other
 # lines (`/Users/<handle>/`, free-text mention of the developer's name) are
 # rejected.
 #
-# Designed to be invoked by pre-commit with `pass_filenames: true`. The
-# caller is responsible for narrowing `files:` to review-log markdown only
-# (see `.pre-commit-config.yaml`). This script does not re-filter — it
-# checks every file argument it receives.
+# Designed to be invoked by pre-commit with `pass_filenames: true` and
+# `types: [text]`. The caller may narrow `files:` further for specific
+# overrides, but the default at PR #43+ is suite-wide application. This
+# script does not re-filter — it checks every file argument it receives.
 
 set -u
 
@@ -32,7 +46,7 @@ home_dir=${HOME:-}
 # Lines containing any of these tokens are exempt: the identity value on
 # such lines is being used as a public URL component, not a leak. Adjust the
 # allowlist if a project uses a different forge.
-public_url_allowlist='github\.com/|gitlab\.com/|bitbucket\.org/|noreply\.'
+public_url_allowlist='github\.com/|gitlab\.com/|bitbucket\.org/|bsky\.app/profile/|noreply\.'
 
 status=0
 

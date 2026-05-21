@@ -8,29 +8,25 @@ repos:
 
   - repo: local
     hooks:
-      - id: no-home-dir-paths
-        name: block local home directory paths
+      - id: anonymization
+        name: anonymization (IAR suite hook — repo-wide; consolidates `no-home-dir-paths` + `review-log-anonymization` at PR #43)
         language: script
-        entry: issue-tracker-cli/.pre-commit-hooks/check-no-home-paths.sh
+        # Suite-level hook: lives at vsdd-suite/hooks/ so it carries with
+        # the suite if the suite is forked into a separate repo. PR #43
+        # consolidated two previously-separate hooks (`no-home-dir-paths`
+        # at `issue-tracker-cli/.pre-commit-hooks/check-no-home-paths.sh`
+        # + `review-log-anonymization` at this suite-level path) into a
+        # single repo-wide check. The consolidated hook is a superset of
+        # both — HOME path + git user.name + git user.email + public-URL
+        # allowlist — applied to every committed text file. Per operator
+        # directive at PR #43: "Both anonymization hooks should be repo
+        # wide. Might make sense to combine them." Allows public-URL
+        # contexts (github.com/, gitlab.com/, bitbucket.org/,
+        # bsky.app/profile/, noreply.*). Registered as G-98 in
+        # vsdd-suite/suite-development/FINDINGS-INDEX.md.
+        entry: vsdd-suite/hooks/check-anonymization.sh
         pass_filenames: true
         types: [text]
-
-      - id: review-log-anonymization
-        name: review-log anonymization (IAR suite hook)
-        language: script
-        # Suite-level hook: lives at vsdd-suite/hooks/
-        # so it carries with the suite if the suite is forked into a separate
-        # repo. Scoped to IAR review-log markdown only — the source-code
-        # no-home-dir-paths hook above covers everything else. Allows public
-        # URL contexts (github.com/, gitlab.com/, bitbucket.org/, noreply.*).
-        # Registered as G-98 in vsdd-suite/suite-development/FINDINGS-INDEX.md.
-        entry: vsdd-suite/hooks/check-review-log-anonymization.sh
-        pass_filenames: true
-        # Covers: suite-internal markdown (vsdd-suite/**), future-project IAR
-        # markdown (<project>/vsdd-suite/**), and completed-project IAR
-        # markdown still using the legacy directory name (<project>/iterative-
-        # adversarial-refinement/**) per the G-88 forward-only constraint.
-        files: ^(vsdd-suite/.*\.md|.*/iterative-adversarial-refinement/.*\.md|.*/vsdd-suite/.*\.md)$
 
       - id: check-crosslink-references
         name: check crosslink command/flag citations against installed CLI (IAR suite G-139 hook)

@@ -133,7 +133,7 @@ CI/CD check failures are findings, not silent fixes. When a workflow run fails o
 | `cargo test` / `cargo clippy` / compiler / linter (artifact-domain tools) | **Software Engineer** / **Quality Engineer** per tool purpose | Per existing SE/QE Dim coverage |
 | AI-inline-execution tool/command (bash + `gh` + sub-agent spawn + LLM tool call run inline by the AI to execute a prompt) | **AI Engineer** | AI Engineer Dim 4 + 5 + 11 + 12; the AI's own execution surface |
 | Process-enforcement scripts/hooks (merge-gate workflow [`pr-checklist.yml`](../../.github/workflows/pr-checklist.yml); methodology-discipline gates) | **AI Engineer** | Meta-tooling-of-methodology surface |
-| Early-detection scripts/hooks (pre-commit hooks `check-suite-review-preamble.py`, `check-project-review-discipline.py`, `check-changelog-currency`, `check-crosslink-references.sh`, `check-review-log-anonymization.sh`; authoring-discipline checks) | **AI Engineer** | Methodology-meta-tooling surface |
+| Early-detection scripts/hooks (pre-commit hooks `check-suite-review-preamble.py`, `check-project-review-discipline.py`, `check-changelog-currency`, `check-crosslink-references.py`, `check-anonymization.sh`, `check-external-review-anonymization.py`, `check-suite-internal-terminology.py`; authoring-discipline checks) | **AI Engineer** | Methodology-meta-tooling surface |
 | Failed link checker (broken anchor; 404 external) | **Documentation Reviewer** (Dim 11) | Content-side cross-reference resolution |
 | Failed markdown render in user-facing docs (GitHub UI render; external doc-site builder) | **Technical Writer** / **Documentation Reviewer** | User-facing documentation tool surface |
 
