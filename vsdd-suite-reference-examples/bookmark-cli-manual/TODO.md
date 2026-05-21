@@ -1,14 +1,14 @@
 # TODO.md — bookmark-cli-manual
 
-Phase 1c output. Authored with [`../../vsdd-suite/primers/1c-decomposition.md`](../../vsdd-suite/primers/1c-decomposition.md) loaded (G-96 renamed Phase 1b → Phase 1c; this file predates the rename and is preserved per G-89 forward-only narrative-preservation policy). Each layer below is independently testable and shippable; acceptance criteria are observable behaviors (not implementation steps); the Red Gate test plan names the literal tests that must fail before any implementation lands per layer.
+[Phase 1c](../../vsdd-suite/primers/1c-decomposition.md) output. Authored with [`../../vsdd-suite/primers/1c-decomposition.md`](../../vsdd-suite/primers/1c-decomposition.md) loaded ([G-96](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-96) renamed Phase 1b → Phase 1c; this file predates the rename and is preserved per [G-89](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-89) forward-only narrative-preservation policy). Each layer below is independently testable and shippable; acceptance criteria are observable behaviors (not implementation steps); the Red Gate test plan names the literal tests that must fail before any implementation lands per layer.
 
-This project is the manual-method reference implementation for the suite's worked example (G-112 in [`../../vsdd-suite/suite-development/FINDINGS-INDEX.md`](../../vsdd-suite/suite-development/FINDINGS-INDEX.md)). Only Layer 1 is built out — Layers 2 and 3 are scoped but deferred to follow-on work. **As of PR 6 / Review 78, bookmark-cli-manual is at `capstone` intent** with all 6 VSDD phases demonstrated end-to-end (1a+1b spec → 1c decomposition → 2a Red Gate → 2b implementation → 2c refactor (no-refactor annotation) → 3 IAR (10 active domains) → 4 routing → 5 Surfaces A.0+B hardening → 6 four-dimensional convergence).
+This project is the manual-method reference implementation for the suite's worked example ([G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) in [`../../vsdd-suite/suite-development/FINDINGS-INDEX.md`](../../vsdd-suite/suite-development/FINDINGS-INDEX.md)). Only Layer 1 is built out — Layers 2 and 3 are scoped but deferred to follow-on work. **As of PR 6 / Review 78, bookmark-cli-manual is at `capstone` intent** with all 6 VSDD phases demonstrated end-to-end (1a+1b spec → 1c decomposition → 2a Red Gate → 2b implementation → 2c refactor (no-refactor annotation) → 3 IAR (10 active domains) → 4 routing → 5 Surfaces A.0+B hardening → 6 four-dimensional convergence).
 
 ---
 
 ## Layer 1 — Add and List
 
-**Status:** In progress (Phase 2a → 2b in the reference-implementation session).
+**Status:** In progress ([Phase 2a](../../vsdd-suite/primers/2a-red-gate.md) → 2b in the reference-implementation session).
 
 **Acceptance criteria** (observable behaviors from outside the binary):
 
@@ -30,16 +30,16 @@ All four tests live in `tests/bookmarks.rs` and invoke the compiled binary via `
 
 (Per Review 74 manual-test split convention — the full per-step plan with runnable commands + literal expected-output blocks lives in the linked per-layer file. Migrated from the prior inline-in-TODO.md shape as part of PR 6's capstone-intent promotion.)
 
-**Phase 2c (refactor):** `no refactor required` (per `../../vsdd-suite/primers/2c-refactor.md` § Completion criteria #5 explicit-skip annotation). Layer 1's implementation (`src/lib.rs` + `src/main.rs`) is small enough that the Phase 2b artifact already exhibits the idiomatic Rust patterns the refactor primer's scope catalog targets (extract-and-name; collapse-and-inline; reshape-data-flow; surface-purity-boundary; idiomatic-alignment; language-supplement rules). The purity boundary was explicitly surfaced by SA Review 1 (Phase 5 Purity Boundary Audit); no further refactor warranted. The explicit-skip annotation here satisfies VDD-IAR Alignment dim 12 (Phase 2c refactor discipline per G-161) — silent-skip would be a finding; this annotation is the alternative.
+**[Phase 2c](../../vsdd-suite/primers/2c-refactor.md) (refactor):** `no refactor required` (per `../../vsdd-suite/primers/2c-refactor.md` § Completion criteria #5 explicit-skip annotation). Layer 1's implementation (`src/lib.rs` + `src/main.rs`) is small enough that the [Phase 2b](../../vsdd-suite/primers/2b-implementation.md) artifact already exhibits the idiomatic [Rust](https://www.rust-lang.org/) patterns the refactor primer's scope catalog targets (extract-and-name; collapse-and-inline; reshape-data-flow; surface-purity-boundary; idiomatic-alignment; language-supplement rules). The purity boundary was explicitly surfaced by SA Review 1 ([Phase 5](../../vsdd-suite/primers/5-formal-hardening.md) Purity Boundary Audit); no further refactor warranted. The explicit-skip annotation here satisfies [VDD-IAR Alignment](../../vsdd-suite/domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md) dim 12 (Phase 2c refactor discipline per [G-161](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-161)) — silent-skip would be a finding; this annotation is the alternative.
 
 **Layer-gate criteria:**
 
 1. All four Red Gate tests pass: `cargo test --test bookmarks`.
 2. `cargo build --release` succeeds with no warnings.
 3. The manual testing checklist at `manual-tests/layer-1.md` runs clean (every step produces the expected exit/stdout/stderr).
-4. Phase 3 IAR reviews complete for the **capstone-active domain set** per `../../vsdd-suite/domains/DOMAIN-INDEX.md` § Intent calibration: 7 cores (SE, QE, UX, Security, SA, SO, VDD-IAR Alignment) + capstone-tier extended (Performance Engineer, Red Team, Platform Engineer, Technical Writer); each domain reaches MVR or zero-findings. (Data Engineer evaluated and ruled out — bookmark-cli's flat JSON storage falls below the activation threshold per G-178; the absence is documented as deliberate.)
-5. Phase 5 Surfaces A.0 (purity boundary) + B (Mutation Testing) both at closure with the per-domain log preambles per G-177 — Purity Boundary Audit in SA Review 1; Mutation Testing in QE Review 2.
-6. Phase 6 four-dimensional convergence record landed as the final VDD-IAR Alignment review round titled "Review N — Phase 6 four-dimensional convergence (project-terminal)" per primer 6 + G-177.
+4. [Phase 3](../../vsdd-suite/primers/3-review-session.md) IAR reviews complete for the **capstone-active domain set** per `../../vsdd-suite/domains/DOMAIN-INDEX.md` § Intent calibration: 7 cores (SE, QE, [UX](../../vsdd-suite/domains/role/UX-REVIEW.md), [Security](../../vsdd-suite/domains/role/SECURITY-REVIEW.md), SA, SO, VDD-IAR Alignment) + capstone-tier extended ([Performance Engineer](../../vsdd-suite/domains/role/PERFORMANCE-ENGINEER-REVIEW.md), [Red Team](../../vsdd-suite/domains/role/RED-TEAM-REVIEW.md), [Platform Engineer](../../vsdd-suite/domains/role/PLATFORM-ENGINEER-REVIEW.md), [Technical Writer](../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md)); each domain reaches MVR or zero-findings. ([Data Engineer](../../vsdd-suite/domains/role/DATA-ENGINEER-REVIEW.md) evaluated and ruled out — bookmark-cli's flat JSON storage falls below the activation threshold per [G-178](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-178); the absence is documented as deliberate.)
+5. Phase 5 Surfaces A.0 (purity boundary) + B (Mutation Testing) both at closure with the per-domain log preambles per [G-177](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-177) — Purity Boundary Audit in SA Review 1; Mutation Testing in QE Review 2.
+6. [Phase 6](../../vsdd-suite/primers/6-convergence.md) four-dimensional convergence record landed as the final VDD-IAR Alignment review round titled "Review N — Phase 6 four-dimensional convergence (project-terminal)" per primer 6 + [G-177](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-177).
 
 ---
 
@@ -52,7 +52,7 @@ All four tests live in `tests/bookmarks.rs` and invoke the compiled binary via `
 - `bm list --tag <label>` filters by label
 - Multiple labels per bookmark allowed; comma-separated input or repeated `--tag` flag
 
-**Why deferred:** the reference-implementation purpose (G-112) is satisfied by Layer 1 alone — one layer end-to-end through the suite proves the worked example pattern.
+**Why deferred:** the reference-implementation purpose ([G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112)) is satisfied by Layer 1 alone — one layer end-to-end through the suite proves the worked example pattern.
 
 ---
 

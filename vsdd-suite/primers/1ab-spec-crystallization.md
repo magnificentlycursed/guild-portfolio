@@ -1,12 +1,12 @@
 # Session Primer: Spec Crystallization (VSDD Phase 1a+1b)
 
-Use this prompt at the start of a new project before writing any code. Paste it into a fresh AI session, then fill in the project description section. The output of this session is a `DESIGN.md` that will pass VDD-IAR Alignment dim 1 scrutiny.
+Use this prompt at the start of a new project before writing any code. Paste it into a fresh AI session, then fill in the project description section. The output of this session is a `DESIGN.md` that will pass [VDD-IAR Alignment](../domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md) dim 1 scrutiny.
 
 This is not a review prompt. It is a construction prompt — it drives the creation of a complete specification. The adversarial pressure is applied *during* spec writing, not after.
 
-**Whitepaper alignment (G-96, refined Review 63 / G-160).** This single primer covers the VSDD whitepaper's **Step 1a (Behavioral Specification)** and **Step 1b (Verification Architecture)** together — both happen in the same DESIGN.md authoring pass. The suite-side phase label is **Phase 1a+1b** to make the dual scope visible at a glance (prior label `Phase 1a` alone made the missing 1b row in the phase table read as forgotten rather than absorbed). Behavioral contracts, edge case catalog, interface definitions, and the verification architecture (purity boundary, automatable-vs-manual split, Phase-5 formal-proof candidates) are all written here. The whitepaper's Step 1c (Spec Review Gate) is the suite's Phase 1c (Decomposition) — see `primers/1c-decomposition.md`. Forward-only: project review logs that reference `Phase 1a` alone under the prior suite convention remain valid records.
+**Whitepaper alignment ([G-96](../suite-development/FINDINGS-INDEX.md#g-96), refined Review 63 / [G-160](../suite-development/FINDINGS-INDEX.md#g-160)).** This single primer covers the [VSDD whitepaper](https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00)'s **Step 1a (Behavioral Specification)** and **Step 1b (Verification Architecture)** together — both happen in the same DESIGN.md authoring pass. The suite-side phase label is **[Phase 1a+1b](1ab-spec-development.md)** to make the dual scope visible at a glance (prior label `Phase 1a` alone made the missing 1b row in the phase table read as forgotten rather than absorbed). Behavioral contracts, edge case catalog, interface definitions, and the verification architecture (purity boundary, automatable-vs-manual split, Phase-5 formal-proof candidates) are all written here. The whitepaper's Step 1c (Spec Review Gate) is the suite's [Phase 1c](1c-decomposition.md) (Decomposition) — see `primers/1c-decomposition.md`. Forward-only: project review logs that reference `Phase 1a` alone under the prior suite convention remain valid records.
 
-**Session medium:** The default is a fresh chat session into which you paste this primer. Projects using crosslink may instead launch the session via `crosslink design [description] [--issue <id>] [--gh-issue <id>]`, which opens a foreground design session pre-loaded with the named issue's context and writes the draft to `.design/<slug>.md`. Iterating later uses `crosslink design --continue <slug>`. The primer text below is the same in either medium — `crosslink design` provides the session container, not the spec discipline. See `README.md` § Worked example: A VSDD session with crosslink.
+**Session medium:** The default is a fresh chat session into which you paste this primer. Projects using [crosslink](https://github.com/forecast-bio/crosslink) may instead launch the session via `crosslink design [description] [--issue <id>] [--gh-issue <id>]`, which opens a foreground design session pre-loaded with the named issue's context and writes the draft to `.design/<slug>.md`. Iterating later uses `crosslink design --continue <slug>`. The primer text below is the same in either medium — `crosslink design` provides the session container, not the spec discipline. See `README.md` § Worked example: A VSDD session with crosslink.
 
 ---
 
@@ -20,7 +20,7 @@ You are helping create a software specification under the Verified Spec-Driven D
 - **Behavioral contracts**: for each feature, explicit preconditions (what must be true for the operation to be valid), postconditions (what the system guarantees after the operation), and invariants (what is always true regardless of operation sequence)
 - **Exhaustive edge case catalog**: boundary values, empty inputs, malformed inputs, and failure modes enumerated before implementation, not discovered during debugging
 - **Interface definitions**: explicit data shapes, validation rules, and error responses at every system boundary — not implied by the implementation
-- **Verification architecture**: a map of which behaviors are automatable, which require manual testing, and (for Phase 5+) which properties are candidates for formal proof. The spec should identify the purity boundary: which functions are pure (deterministic, no I/O, formally verifiable) and which are effectful (I/O, storage, rendering)
+- **Verification architecture**: a map of which behaviors are automatable, which require manual testing, and (for [Phase 5](5-formal-hardening.md)+) which properties are candidates for formal proof. The spec should identify the purity boundary: which functions are pure (deterministic, no I/O, formally verifiable) and which are effectful (I/O, storage, rendering)
 - **Scope boundary**: what is explicitly out of scope is as important as what is in scope. An unconstrained spec grows
 
 **What a bad spec looks like:** A feature list. A list of "the app will..." statements. A description of the happy path with no failure modes. A data model without invariants. A UI description without empty states or error states. An acceptance criterion that the developer and reviewer would interpret differently.
@@ -90,7 +90,7 @@ For each piece of stored data, ask:
 
 Before finalizing the spec, define:
 - Which features can be verified with automated tests alone?
-- Which require a human to evaluate (judgment-dependent UX, visual output, platform behavior)?
+- Which require a human to evaluate (judgment-dependent [UX](../domains/role/UX-REVIEW.md), visual output, platform behavior)?
 - Which functions will be pure (no I/O, deterministic output, formally verifiable in principle)?
 - What is the purity boundary: where does deterministic business logic end and effectful code begin?
 
@@ -123,7 +123,7 @@ The spec is ready to move to Phase 1c (decomposition / Spec Review Gate) when:
 5. The out-of-scope section explicitly names excluded features with rationale
 6. You cannot find an undefined behavior after genuine adversarial pressure using the self-adversary check above
 
-**Promotion (crosslink users):** When the draft passes the completion criteria, promote it from `.design/<slug>.md` to the project's `DESIGN.md`. The `.design/` drafts are working files; `DESIGN.md` is the contract that Phase 3 evaluates against. Projects without crosslink write `DESIGN.md` directly — there is no separate draft file.
+**Promotion (crosslink users):** When the draft passes the completion criteria, promote it from `.design/<slug>.md` to the project's `DESIGN.md`. The `.design/` drafts are working files; `DESIGN.md` is the contract that [Phase 3](3-review-session.md) evaluates against. Projects without crosslink write `DESIGN.md` directly — there is no separate draft file.
 
 ---
 

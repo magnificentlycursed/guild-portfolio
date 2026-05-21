@@ -4,13 +4,13 @@ A single-user command-line tool for capturing URLs at the terminal and recalling
 
 ## What this is
 
-`bookmark-cli` is the **reference implementation** for the [VSDD Suite](../vsdd-suite/README.md)'s worked example — it exists to validate the suite's documented workflow end-to-end (G-112 in the suite's gap registry). It is small by design and intentionally limited in scope. A user who wants a real bookmark manager should use a browser or a dedicated tool; this is a portfolio demonstration artifact.
+`bookmark-cli` is the **reference implementation** for the [VSDD Suite](../vsdd-suite/README.md)'s worked example — it exists to validate the suite's documented workflow end-to-end ([G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) in the suite's gap registry). It is small by design and intentionally limited in scope. A user who wants a real bookmark manager should use a browser or a dedicated tool; this is a portfolio demonstration artifact.
 
 Current state: **Layer 1 complete** (add + list). Layers 2 (tag + filter) and 3 (export + import) are scoped in [`DESIGN.md`](DESIGN.md) but not built — the reference-implementation purpose is satisfied by one layer end-to-end.
 
 ## Prerequisites
 
-- Rust 1.78+ (`cargo --version` to check)
+- [Rust](https://www.rust-lang.org/) 1.78+ (`cargo --version` to check)
 - macOS or Linux (Windows untested)
 
 ## Install
@@ -56,7 +56,7 @@ Phase progression for Layer 1:
 | 2a | [`tests/bookmarks.rs`](tests/bookmarks.rs) Red Gate | ✓ Complete (4 failing tests committed before implementation) |
 | 2b | [`src/lib.rs`](src/lib.rs), [`src/main.rs`](src/main.rs) | ✓ Complete (8/8 tests pass) |
 | 3 | [`vsdd-suite/<DOMAIN>-REVIEW.md`](vsdd-suite/) per-domain indices | Scaffolded; rounds-in-progress (this is reference-implementation work, not a real merge gate) |
-| 4 | Phase 4 routing | N/A — no live findings to route |
+| 4 | [Phase 4](../../vsdd-suite/primers/4-feedback-integration.md) routing | N/A — no live findings to route |
 
 ## License
 

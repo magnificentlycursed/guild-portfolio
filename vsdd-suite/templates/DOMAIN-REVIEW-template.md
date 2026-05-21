@@ -1,6 +1,6 @@
 # {{ROLE_TITLE}} Review Log (Index)
 
-This review log is part of the [VSDD Suite](../../README.md). The Phase 3 adversarial review for this domain runs as one cold-context session per round; this file indexes the rounds. Round narratives live in [`review-log/`](review-log/) — see the Reviews table below.
+This review log is part of the [VSDD Suite](../../README.md). The [Phase 3](../primers/3-review-session.md) adversarial review for this domain runs as one cold-context session per round; this file indexes the rounds. Round narratives live in [`review-log/`](review-log/) — see the Reviews table below.
 
 **Reviewer role: {{ROLE_TITLE}}** ({{ROLE_VARIANTS}})
 
@@ -11,8 +11,8 @@ This review log is part of the [VSDD Suite](../../README.md). The Phase 3 advers
 
 **Language supplement applied:** {{LANGUAGE_SUPPLEMENT_LINE}}
 <!-- Examples:
-  Language supplement applied: `../../supplements/rust.md` (Quality Engineer section).
-  Language supplement applied: `../../supplements/javascript-typescript.md` (Security section).
+  Language supplement applied: `../../supplements/rust.md` ([Quality Engineer](../domains/role/QUALITY-ENGINEER-REVIEW.md) section).
+  Language supplement applied: `../../supplements/javascript-typescript.md` ([Security](../domains/role/SECURITY-REVIEW.md) section).
   Language supplement applied: Not applicable. This is a meta domain; no language-specific dimensions.
 -->
 

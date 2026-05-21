@@ -4,7 +4,7 @@ One-sentence description of what this project does, in user-visible terms.
 
 ## What this is
 
-Two or three paragraphs expanding the one-sentence description. Name the target user, the problem the project solves, and the project's current state (Phase 2b in-progress on Layer N; layer-N-complete; etc.). Link to [`DESIGN.md`](DESIGN.md) for the full behavioral contract.
+Two or three paragraphs expanding the one-sentence description. Name the target user, the problem the project solves, and the project's current state ([Phase 2b](../primers/2b-implementation.md) in-progress on Layer N; layer-N-complete; etc.). Link to [`DESIGN.md`](DESIGN.md) for the full behavioral contract.
 
 **Methodology intent:** `<learning-exercise | portfolio | capstone | production>` — see [`DESIGN.md`](DESIGN.md) § Project intent for what this intent declares about the IAR scope the project runs.
 
@@ -12,13 +12,13 @@ Two or three paragraphs expanding the one-sentence description. Name the target 
 
 What a user needs to run this project from a clean checkout.
 
-- Language toolchain and version (e.g., Rust 1.78+, Node 20+, Python 3.11+)
+- Language toolchain and version (e.g., [Rust](https://www.rust-lang.org/) 1.78+, Node 20+, [Python](https://www.python.org/) 3.11+)
 - System dependencies (if any)
-- Optional: any AI tool or tracker (e.g., crosslink) used in development — only required for contributors
+- Optional: any AI tool or tracker (e.g., [crosslink](https://github.com/forecast-bio/crosslink)) used in development — only required for contributors
 
 ## Install
 
-Step-by-step commands from a clean checkout. The Technical Writer review's clone-and-follow test applies here: if any step fails when run from a fresh environment, this section is incomplete.
+Step-by-step commands from a clean checkout. The [Technical Writer](../domains/role/TECHNICAL-WRITER-REVIEW.md) review's clone-and-follow test applies here: if any step fails when run from a fresh environment, this section is incomplete.
 
 ```sh
 git clone <repo-url>

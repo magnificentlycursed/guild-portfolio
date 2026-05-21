@@ -1,8 +1,8 @@
 # Solution Owner Review Log (Index)
 
-This review log is part of the [VSDD Suite](../../../vsdd-suite/README.md). The Phase 3 adversarial review for this domain runs as one cold-context session per round; this file indexes the rounds. Round narratives live in [`review-log/`](review-log/) — see the Reviews table below.
+This review log is part of the [VSDD Suite](../../../vsdd-suite/README.md). The [Phase 3](../../../vsdd-suite/primers/3-review-session.md) adversarial review for this domain runs as one cold-context session per round; this file indexes the rounds. Round narratives live in [`review-log/`](review-log/) — see the Reviews table below.
 
-**Reviewer role: Solution Owner** (Solution Owner / Product Owner / Engineering Lead)
+**Reviewer role: [Solution Owner](../../../vsdd-suite/domains/role/SOLUTION-OWNER-REVIEW.md)** (Solution Owner / Product Owner / Engineering Lead)
 
 Evaluates spec coherence + scope discipline + compliance with the assignment brief. Sole authority for DESIGN.md changes.
 

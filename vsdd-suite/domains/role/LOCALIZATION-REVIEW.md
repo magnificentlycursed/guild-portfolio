@@ -2,7 +2,7 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
-**Reviewer role: Localization Engineer** (Localization Engineer / L10n Engineer / Internationalization Engineer)
+**Reviewer role: [Localization](LOCALIZATION-REVIEW.md) Engineer** (Localization Engineer / L10n Engineer / Internationalization Engineer)
 
 The purpose of this review is to evaluate whether the application is prepared to support multiple languages and locales — either now or in the future. Internationalization (i18n) is the architectural work of making localization possible: separating user-visible strings from code, handling locale-sensitive formatting, and accommodating text expansion. Localization (L10n) is the work of providing content in a specific locale. This review evaluates i18n readiness; L10n content itself is out of scope unless a specific locale is being validated.
 
@@ -20,11 +20,11 @@ Regression check: verify that locale handling established in prior layers has no
 
 **Coordination:** Flag findings that overlap with [UX-REVIEW.md](UX-REVIEW.md) (layout flexibility, text overflow), [SOFTWARE-ENGINEER-REVIEW.md](SOFTWARE-ENGINEER-REVIEW.md) (string handling, encoding), [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) (i18n architecture decisions), and [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md) (locale testing in CI).
 
-**DESIGN.md change authority:** If a finding requires a change to `DESIGN.md`, classify it "Raised to SO" and document the proposed change and rationale. Do not apply the change. `DESIGN.md` is a controlled spec document — the Solution Owner is the sole domain authorized to modify it.
+**DESIGN.md change authority:** If a finding requires a change to `DESIGN.md`, classify it "Raised to SO" and document the proposed change and rationale. Do not apply the change. `DESIGN.md` is a controlled spec document — the [Solution Owner](SOLUTION-OWNER-REVIEW.md) is the sole domain authorized to modify it.
 
 **Sycophancy check:** An agent generates strings, validation rules, and format assumptions based on its training distribution, which is heavily weighted toward English and US locale conventions. It will not flag its own locale assumptions because they are invisible to it — they are the default. The adversary must surface every place where a locale assumption is baked in and evaluate whether it is intentional and documented or accidental and fragile.
 
-**Language and interface supplement:** Consult `../../supplements/` for the supplement matching the project's primary language. Apply the **Localization** section from the relevant supplement file in addition to the standard dimensions below — supplements specify language-specific i18n library guidance (Intl.* APIs, i18next, react-i18next for JavaScript/TypeScript; fluent-rs and rust-i18n for Rust).
+**Language and interface supplement:** Consult `../../supplements/` for the supplement matching the project's primary language. Apply the **Localization** section from the relevant supplement file in addition to the standard dimensions below — supplements specify language-specific i18n library guidance (Intl.* APIs, i18next, react-i18next for JavaScript/[TypeScript](https://www.typescriptlang.org/); fluent-rs and rust-i18n for [Rust](https://www.rust-lang.org/)).
 
 
 **Validator pair (Review 77):** `software-engineer` is the natural validator for Localization findings — most i18n issues fix as code changes (string externalization, locale-sensitive operation correction, plural-form usage). Resolved findings declare `**Validator:** software-engineer` per the lifecycle convention in `../../suite-development/suite-development.md` § Validation loop discipline.

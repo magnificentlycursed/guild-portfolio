@@ -1,8 +1,8 @@
 # Crosslink Dependency Contract
 
-The VSDD suite teaches projects to apply the Solution Architect External Interface Contracts dimensions (Dims 13–22 in [`domains/role/SOLUTION-ARCHITECT-REVIEW.md`](domains/role/SOLUTION-ARCHITECT-REVIEW.md)). This file is the suite's own application of those dimensions to its dependency on the [crosslink](https://github.com/forecast-bio/crosslink) CLI.
+The VSDD suite teaches projects to apply the [Solution Architect](domains/role/SOLUTION-ARCHITECT-REVIEW.md) External Interface Contracts dimensions (Dims 13–22 in [`domains/role/SOLUTION-ARCHITECT-REVIEW.md`](domains/role/SOLUTION-ARCHITECT-REVIEW.md)). This file is the suite's own application of those dimensions to its dependency on the [crosslink](https://github.com/forecast-bio/crosslink) CLI.
 
-**Reason this file exists:** registered as G-118 in [`suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) by Review 41 (Solution Architect lens, dogfooding gap). The worked example in [`README.md`](README.md) § Worked example invokes 8+ crosslink commands with specific flags; this file makes the dependency surface explicit.
+**Reason this file exists:** registered as [G-118](suite-development/FINDINGS-INDEX.md#g-118) in [`suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) by Review 41 (Solution Architect lens, dogfooding gap). The worked example in [`README.md`](README.md) § Worked example invokes 8+ [crosslink](https://github.com/forecast-bio/crosslink) commands with specific flags; this file makes the dependency surface explicit.
 
 ---
 
@@ -21,10 +21,10 @@ The worked example invokes these crosslink commands. Each is part of the contrac
 | Setup | `crosslink init` | Initialize `.crosslink/`, issues.db, embedded policy | (none) |
 | Setup | `crosslink workflow diff` | Verify deployed policy matches embedded defaults | (none) |
 | Setup | `crosslink agent --help` | Identity setup discovery | (none) |
-| Setup | `crosslink knowledge import <DIRECTORY> --tag <tag>` | Register suite primers, activated domain prompts, and supplements as knowledge pages (G-146 / G-163 / G-164; invoked by `templates/scaffold-project.sh`) | `--tag`, positional `<DIRECTORY>`; `--overwrite` for re-import on suite version bump |
+| Setup | `crosslink knowledge import <DIRECTORY> --tag <tag>` | Register suite primers, activated domain prompts, and supplements as knowledge pages ([G-146](suite-development/FINDINGS-INDEX.md#g-146) / [G-163](suite-development/FINDINGS-INDEX.md#g-163) / [G-164](suite-development/FINDINGS-INDEX.md#g-164); invoked by `templates/scaffold-project.sh`) | `--tag`, positional `<DIRECTORY>`; `--overwrite` for re-import on suite version bump |
 | Setup | `crosslink knowledge sync` | Initialize the knowledge cache when `knowledge import` reports `Sync cache not initialized` | (none) |
-| 1a | `crosslink design "<desc>"` | Open Phase 1a+1b session container with `.design/<slug>.md` working draft | (none) |
-| 1a | `crosslink design --continue <slug>` | Resume the Phase 1a+1b draft when a Phase 4 route brings work back | `--continue` |
+| 1a | `crosslink design "<desc>"` | Open [Phase 1a+1b](primers/1ab-spec-development.md) session container with `.design/<slug>.md` working draft | (none) |
+| 1a | `crosslink design --continue <slug>` | Resume the Phase 1a+1b draft when a [Phase 4](primers/4-feedback-integration.md) route brings work back | `--continue` |
 | 1b | `crosslink quick "<title>" -p <pri> -l <label> [--parent <id>] [--quiet]` | Create epic, layer issue, acceptance criterion | `-p`, `-l`, `--parent`, `--quiet` |
 | 1b | `crosslink milestone create "<name>"` | Create per-layer milestone container | (none) |
 | 1b | `crosslink milestone add "<name>" "<issue-id>"` | Attach layer issue to its milestone | (none) |
@@ -47,7 +47,7 @@ The worked example invokes these crosslink commands. Each is part of the contrac
 
 ### G-138 finding-index commands (crosslink path)
 
-The G-138 project-level finding index (cross-cutting registry) uses the same `issue` subcommand surface as Phase 3 above, with an explicit label-axis convention. All commands verified against installed crosslink v0.8.0 on 2026-05-17.
+The [G-138](suite-development/FINDINGS-INDEX.md#g-138) project-level finding index (cross-cutting registry) uses the same `issue` subcommand surface as [Phase 3](primers/3-review-session.md) above, with an explicit label-axis convention. All commands verified against installed crosslink v0.8.0 on 2026-05-17.
 
 | Used for | Command | Verified flags |
 |---|---|---|
@@ -66,7 +66,7 @@ For audit clarity — these commands exist in crosslink but the suite does not r
 
 `crosslink kickoff` (suite uses `swarm` instead), `crosslink container` (not in scope), `crosslink sentinel` (not in scope), `crosslink style` (not in scope — the suite carries its own house-style discipline via per-domain reviews), `crosslink mc` / `crosslink serve` / `crosslink tui` (TUI is mentioned as a quick-lookup option but not as a workflow dependency), `crosslink trust` / `crosslink locks` / `crosslink migrate` (operational; not part of the suite's documented workflow), `crosslink config` (used by crosslink-using projects as needed; not suite-documented), `crosslink context` / `crosslink integrity` / `crosslink compact` / `crosslink prune` (housekeeping; not suite-documented), `crosslink timer` (time-tracking; not in scope).
 
-**Note:** `crosslink knowledge` moved from the "does not depend on" list to the dependency surface table above as of v0.5.0 (G-146) — `scaffold-project.sh` registers primers, activated domain prompts, and supplements via `crosslink knowledge import`. `crosslink sync` likewise moved into the dependency surface (knowledge import requires the cache to be initialized; `crosslink knowledge sync` is the explicit invocation when an import surfaces a sync-cache-not-initialized error).
+**Note:** `crosslink knowledge` moved from the "does not depend on" list to the dependency surface table above as of v0.5.0 ([G-146](suite-development/FINDINGS-INDEX.md#g-146)) — `scaffold-project.sh` registers primers, activated domain prompts, and supplements via `crosslink knowledge import`. `crosslink sync` likewise moved into the dependency surface (knowledge import requires the cache to be initialized; `crosslink knowledge sync` is the explicit invocation when an import surfaces a sync-cache-not-initialized error).
 
 ### Known limitations (suite-discovered against crosslink v0.8.0)
 
@@ -74,10 +74,10 @@ These are not breaking-change items — they are surface limitations the suite h
 
 | Command surface | Observed behavior | Suite's workaround | Source |
 |---|---|---|---|
-| `crosslink milestone create --quiet` | The `--quiet` flag does not reduce output to just the milestone ID — `Created milestone #N: <title>` is still printed. The README's worked example previously assumed `--quiet` returned the ID (parallel to `crosslink quick --quiet`). | The worked example extracts the milestone ID via `awk '/^Created milestone/ {gsub(/[#:]/,"",$3); print $3}'`. Alternative: invoke `crosslink milestone list` after creation. | G-167 (registered Review 63) — discovered during G-106 sample-output capture. |
-| `crosslink milestone add/show/close <ID>` | The `<ID>` argument is a numeric milestone ID, not a milestone name. The prior worked example used the milestone-name form which fails with `error: invalid value 'Layer 1: ...' for '<ID>': invalid digit found in string`. | The worked example captures the milestone ID into a shell variable at `milestone create` time and passes the numeric ID to subsequent commands. | G-106 closure (Review 62). |
-| `crosslink swarm gate <phase-slug>` | Requires `crosslink swarm init --doc <design>` to have run first AND all planned agents to be resolved. The README previously treated `swarm gate` as a standalone "run the test suite" command. | Solo projects use clean `cargo test` (or equivalent) as the gate; multi-agent swarm builds use `crosslink swarm gate <phase>` after `swarm init` + agent resolution. | G-106 closure (Review 62). |
-| `crosslink swarm review --doc <PATH>` | The `--doc` flag is the **output path** for the consolidated findings document, not the per-agent input prompt. The README's prior phrasing was ambiguous; a new reader could read `--doc vsdd-suite/SOFTWARE-ENGINEER-REVIEW.md` as "use this domain prompt for the review." | Per-agent input prompts are loaded from `vsdd-suite-domain`-tagged crosslink knowledge pages (G-146); `--doc` only specifies where the aggregated findings doc is written. | G-106 closure (Review 62). |
+| `crosslink milestone create --quiet` | The `--quiet` flag does not reduce output to just the milestone ID — `Created milestone #N: <title>` is still printed. The README's worked example previously assumed `--quiet` returned the ID (parallel to `crosslink quick --quiet`). | The worked example extracts the milestone ID via `awk '/^Created milestone/ {gsub(/[#:]/,"",$3); print $3}'`. Alternative: invoke `crosslink milestone list` after creation. | [G-167](suite-development/FINDINGS-INDEX.md#g-167) (registered Review 63) — discovered during [G-106](suite-development/FINDINGS-INDEX.md#g-106) sample-output capture. |
+| `crosslink milestone add/show/close <ID>` | The `<ID>` argument is a numeric milestone ID, not a milestone name. The prior worked example used the milestone-name form which fails with `error: invalid value 'Layer 1: ...' for '<ID>': invalid digit found in string`. | The worked example captures the milestone ID into a shell variable at `milestone create` time and passes the numeric ID to subsequent commands. | [G-106](suite-development/FINDINGS-INDEX.md#g-106) closure (Review 62). |
+| `crosslink swarm gate <phase-slug>` | Requires `crosslink swarm init --doc <design>` to have run first AND all planned agents to be resolved. The README previously treated `swarm gate` as a standalone "run the test suite" command. | Solo projects use clean `cargo test` (or equivalent) as the gate; multi-agent swarm builds use `crosslink swarm gate <phase>` after `swarm init` + agent resolution. | [G-106](suite-development/FINDINGS-INDEX.md#g-106) closure (Review 62). |
+| `crosslink swarm review --doc <PATH>` | The `--doc` flag is the **output path** for the consolidated findings document, not the per-agent input prompt. The README's prior phrasing was ambiguous; a new reader could read `--doc vsdd-suite/SOFTWARE-ENGINEER-REVIEW.md` as "use this domain prompt for the review." | Per-agent input prompts are loaded from `vsdd-suite-domain`-tagged crosslink knowledge pages ([G-146](suite-development/FINDINGS-INDEX.md#g-146)); `--doc` only specifies where the aggregated findings doc is written. | [G-106](suite-development/FINDINGS-INDEX.md#g-106) closure (Review 62). |
 
 A discovered limitation is **not** a breaking change against this contract — it is a doctrine-clarification for the suite's documented workflow. If a limitation becomes blocking (a suite-documented command stops producing the workaround's expected output, e.g., `crosslink milestone create` stops printing the `#N` line we parse), that IS a breaking change against this contract and triggers the response in `## Breaking-change definition` above.
 
@@ -111,11 +111,11 @@ When the suite's worked example invokes a crosslink command, the expected and un
 | `crosslink swarm fix --from-label` | Returns non-zero if any fix-agent worktree fails; per-agent results captured | Silent agent failure; un-fixed findings claimed-fixed |
 | `crosslink session end --notes "<text>"` | Persists notes; returns zero | Drops notes silently; returns zero |
 
-The unexpected-error column is the failure-mode catalog for Phase 3 reviewers — if a Phase 3 Platform Engineer review observes an unexpected-error case, that is a finding against either crosslink (file upstream) or against the suite's documented expectation (file a suite gap).
+The unexpected-error column is the failure-mode catalog for Phase 3 reviewers — if a Phase 3 [Platform Engineer](domains/role/PLATFORM-ENGINEER-REVIEW.md) review observes an unexpected-error case, that is a finding against either crosslink (file upstream) or against the suite's documented expectation (file a suite gap).
 
 ## Contract testing
 
-There is currently no automated contract test that runs the worked example end-to-end against a pinned crosslink version. This is tracked as **G-112** in [`suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) — the reference implementations at [`../vsdd-suite-reference-examples/bookmark-cli-manual/`](../vsdd-suite-reference-examples/bookmark-cli-manual/) and [`../vsdd-suite-reference-examples/bookmark-cli-crosslink/`](../vsdd-suite-reference-examples/bookmark-cli-crosslink/) exercise the full worked example end-to-end in both operational modes; the crosslink-variant reference example serves as the canary for both contract-drift detection (this file) and documentation-accuracy regression (G-106).
+There is currently no automated contract test that runs the worked example end-to-end against a pinned crosslink version. This is tracked as **[G-112](suite-development/FINDINGS-INDEX.md#g-112)** in [`suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) — the reference implementations at [`../vsdd-suite-reference-examples/bookmark-cli-manual/`](../vsdd-suite-reference-examples/bookmark-cli-manual/) and [`../vsdd-suite-reference-examples/bookmark-cli-crosslink/`](../vsdd-suite-reference-examples/bookmark-cli-crosslink/) exercise the full worked example end-to-end in both operational modes; the crosslink-variant reference example serves as the canary for both contract-drift detection (this file) and documentation-accuracy regression ([G-106](suite-development/FINDINGS-INDEX.md#g-106)).
 
 Until the reference implementation lands, contract drift detection is manual: a contributor must re-run the worked example end-to-end after any reported change to crosslink's CLI surface.
 
@@ -123,5 +123,5 @@ Until the reference implementation lands, contract drift detection is manual: a 
 
 - [`README.md`](README.md) — the worked example that invokes the commands above.
 - [`domains/role/SOLUTION-ARCHITECT-REVIEW.md`](domains/role/SOLUTION-ARCHITECT-REVIEW.md) — SA External Interface Contracts dimensions (Dims 13–22) the suite teaches.
-- [`suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) — G-111 (version-pinning), G-112 (reference implementation), G-118 (this file's reason-for-being), G-120 (suite versioning that anchors the "Tested against" line).
+- [`suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) — [G-111](suite-development/FINDINGS-INDEX.md#g-111) (version-pinning), [G-112](suite-development/FINDINGS-INDEX.md#g-112) (reference implementation), [G-118](suite-development/FINDINGS-INDEX.md#g-118) (this file's reason-for-being), [G-120](suite-development/FINDINGS-INDEX.md#g-120) (suite versioning that anchors the "Tested against" line).
 - [`domains/role/PLATFORM-ENGINEER-REVIEW.md`](domains/role/PLATFORM-ENGINEER-REVIEW.md) — PE coordinates with SA on CLI dependency surfaces.
