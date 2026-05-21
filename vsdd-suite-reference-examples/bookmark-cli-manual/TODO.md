@@ -8,7 +8,7 @@ This project is the manual-method reference implementation for the suite's worke
 
 ## Layer 1 — Add and List
 
-**Status:** In progress ([Phase 2a](../../vsdd-suite/primers/2a-red-gate.md) → 2b in the reference-implementation session).
+**Status:** Layer 1 code-complete; [Phase 3](../../vsdd-suite/primers/3-review-session.md) IAR Round 1 + Round 2 cold-session cycles closed in [Review 82](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z). [Phase 6](../../vsdd-suite/primers/6-convergence.md) four-dimensional convergence DEFERRED pending Round 3 fix cycles for the 8 non-MVR domains + operator-runs-install-verification (Platform Engineer Dim 38).
 
 **Acceptance criteria** (observable behaviors from outside the binary):
 

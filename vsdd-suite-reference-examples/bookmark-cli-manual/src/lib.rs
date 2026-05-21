@@ -317,6 +317,16 @@ const fn is_format_char(c: char) -> bool {
 }
 
 #[cfg(test)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::missing_errors_doc,
+    clippy::missing_panics_doc,
+    reason = "Restriction-group lints from [lints.clippy] apply to production code; \
+              tests use unwrap/expect/panic freely per Rust supplement test-helper convention. \
+              Platform Engineer Round 2 Finding 13."
+)]
 mod tests {
     use super::*;
     use chrono::TimeZone;

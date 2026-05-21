@@ -20,4 +20,4 @@ Read individual rounds via the links in the Reviews table below. This file is th
 
 | Review | Date | File | Scope summary |
 |---|---|---|---|
-| [Review 1](review-log/2026-05-20-software-engineer.md#review-1--2026-05-20-1930z) | 2026-05-20 19:30Z | `review-log/2026-05-20-software-engineer.md` | Phase 3 IAR Round 1 — 5 Findings (4 Open + 1 Raised to SO). Headline: non-atomic `BookmarkStore::save` violates DESIGN.md PROT_37 "No partial write" + missing-arg exit-code mismatch (clap exits 2 vs spec's 1) + mutable `pub` fields exposed + no crate-level lint floor. Continue trigger fires; SE Round 2 mandatory after fixes. |
+| [Review 1](review-log/2026-05-20-software-engineer.md#review-1--2026-05-20-1930z) | 2026-05-20 19:30Z | `review-log/2026-05-20-software-engineer.md` | Phase 3 IAR Round 1 — 5 Findings (4 Open + 1 Raised to SO). Headline: non-atomic `BookmarkStore::save` violates DESIGN.md § `bm add <url>` "No partial write" contract + missing-arg exit-code mismatch (clap exits 2 vs spec's 1) + mutable `pub` fields exposed + no crate-level lint floor. Continue trigger fires; SE Round 2 mandatory after fixes. |

@@ -66,3 +66,16 @@ missing_docs = "deny"
 [lints.clippy]
 all = { level = "deny", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
+
+# Restriction-group lints per the Rust supplement § Software Engineering
+# deny-set standard. Closes Platform Engineer Round 2 Finding 13 — the
+# clippy::all group does not include restriction-group lints by design,
+# so they need explicit `level` declarations. Layer 1 production code is
+# `.unwrap`/`.expect`/`.panic`-free in non-test paths (verified in SE
+# Round 1); these denials encode that discipline as a compiler-enforced
+# invariant rather than a review-time check.
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"
