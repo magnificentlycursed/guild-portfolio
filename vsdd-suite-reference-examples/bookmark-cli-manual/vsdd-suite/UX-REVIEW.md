@@ -20,4 +20,4 @@ Read individual rounds via the links in the Reviews table below. This file is th
 
 | Review | Date | File | Scope summary |
 |---|---|---|---|
-| *(no rounds filed yet — populated when the corresponding cold-session review lands in PR 7)* | | | |
+| [Review 1](review-log/2026-05-20-ux.md#review-1--2026-05-20-1930z) | 2026-05-20 19:30Z | `review-log/2026-05-20-ux.md` | Phase 3 IAR Round 1 — 9 Findings (6 Open + 1 Raised to SO + 2 Dismissed + 0 Resolved + 0 Hallucinated). Cluster: manual-test plan executability gaps + CLI `--help` text quality + storage error remediation hints. NUL-byte placeholder corruption in DESIGN.md + manual-tests/layer-1.md flagged cross-domain to TW + SO. G-131 continue trigger fires; Round 2 mandatory. |

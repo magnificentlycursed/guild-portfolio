@@ -22,4 +22,4 @@ Read individual rounds via the links in the Reviews table below. This file is th
 
 | Review | Date | File | Scope summary |
 |---|---|---|---|
-| *(no rounds filed yet — populated when the cold-session Documentation Reviewer round runs as part of the bookmark-cli-manual 6-phase IAR execution; see [Review 78](../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-78--2026-05-20-1630z) Finding 1 Coordination section)* | | | |
+| [Review 1](review-log/2026-05-20-documentation-reviewer.md#review-1--2026-05-20-1930z) | 2026-05-20 19:30Z | `review-log/2026-05-20-documentation-reviewer.md` | Phase 3 IAR Round 1 (first cold-reader pass on the reference example since Documentation Reviewer registered in Review 80) — 13 Open Findings. Cluster: clone-and-follow fidelity (Dim 1) — wrong install directory; cross-reference resolution (Dim 4) + clickthrough validation (Dim 11) — broken `1ab-spec-development.md` reference, broken install-verification.md relative paths, mid-PR anchor drift; documentation rot (Dim 6) — README test count, TODO.md domain count, search/replace stutters. G-131 continue trigger; Round 2 mandatory. |

@@ -1,0 +1,16 @@
+# Pins the Rust toolchain every contributor and CI runner uses, so lockfile
+# resolution + clippy-warning set + rustc behavior stay reproducible across
+# environments. The channel is a recent stable that satisfies the MSRV declared
+# in DESIGN.md § Constraints (1.78+); pairs with `rust-version = "1.78"` in
+# Cargo.toml which is the cargo-resolver-visible MSRV signal for consumers.
+#
+# Round 2 fix per Platform Engineer Review 1 Finding 2
+# (vsdd-suite/review-log/2026-05-20-platform-engineer.md).
+#
+# See: TOML supplement § Platform Engineering — `rust-toolchain.toml` for
+# toolchain pinning; Rust supplement § Platform Engineering — Toolchain pinning.
+
+[toolchain]
+channel = "1.95"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

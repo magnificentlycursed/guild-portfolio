@@ -2,8 +2,19 @@
 name = "bookmark-cli"
 version = "0.1.0"
 edition = "2021"
+# `rust-version` mechanizes the MSRV declared in DESIGN.md § Constraints — Cargo
+# refuses to build with an older toolchain. Pair with rust-toolchain.toml, which
+# pins the toolchain every contributor uses; rust-version is the manifest-level
+# MSRV cargo-resolver-visible signal. Round 2 fix per Platform Engineer Review 1
+# Findings 2 + 3 (vsdd-suite/review-log/2026-05-20-platform-engineer.md).
+rust-version = "1.78"
 description = "Reference implementation for the VSDD suite's worked example. Captures URLs at the terminal and recalls them later."
-license = "MIT"
+readme = "README.md"
+# Dual-licensed per the Rust ecosystem convention and the portfolio precedent
+# at issue-tracker-cli/Cargo.toml line 8. Round 2 fix per Platform Engineer
+# Review 1 Finding 3.
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/magnificentlycursed/guild-portfolio"
 publish = false
 
 [[bin]]
@@ -25,3 +36,46 @@ anyhow = "1"
 assert_cmd = "2"
 predicates = "3"
 tempfile = "3"
+
+# ---------------------------------------------------------------------------
+# Release profile — declared explicitly per the TOML supplement § Platform
+# Engineering "declare the chosen value and a one-line rationale" discipline.
+# Canonical settings for a CLI binary distributed via `cargo install`; matches
+# the supplement's § Performance Engineer recommendation that long-lived
+# release artifacts favor fat LTO + single codegen unit. Round 2 fix per
+# Platform Engineer Review 1 Finding 6.
+# ---------------------------------------------------------------------------
+[profile.release]
+opt-level = 3          # cargo default — declared for clarity
+lto = "fat"            # max cross-crate inlining; slower compile, smaller + faster binary
+codegen-units = 1      # single codegen unit enables full-crate optimization
+panic = "abort"        # smaller binary; no unwinding (no catch_unwind in this crate)
+strip = "symbols"      # strip debug symbols from the release binary
+
+# ---------------------------------------------------------------------------
+# Crate-level lint configuration — single-crate project, so lints land at the
+# crate level rather than via workspace inheritance. The deny set tracks the
+# Rust supplement § Software Engineering "standard deny set" with `pedantic`
+# as warn to surface guidance without blocking. Round 2 fix per Platform
+# Engineer Review 1 Finding 11.
+# ---------------------------------------------------------------------------
+[lints.rust]
+unsafe_code = "deny"
+missing_docs = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+
+# Restriction-group lints per the Rust supplement § Software Engineering
+# deny-set standard. Closes Platform Engineer Round 2 Finding 13 — the
+# clippy::all group does not include restriction-group lints by design,
+# so they need explicit `level` declarations. Layer 1 production code is
+# `.unwrap`/`.expect`/`.panic`-free in non-test paths (verified in SE
+# Round 1); these denials encode that discipline as a compiler-enforced
+# invariant rather than a review-time check.
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"

@@ -1,5 +1,100 @@
 # Changelog
 
+## v0.11.5 Round 3 inline fix-cycle + cluster verification — 2026-05-20 22:00Z ([Review 82](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z) Finding 5)
+
+**Scope:** Round 3 of the Phase 3 IAR cycle. Inline fix batch (Round 2 carryforward fixes) + 4-cluster cold-session verification with adversarial-pair separation (engineering / security+ux / red-team+technical-writer / documentation-reviewer+solution-owner) + mid-round inline-fix sub-cycle for 7 new findings.
+
+### Changed — code
+
+- **[`src/lib.rs:330-380`](src/lib.rs)** `is_format_char` — curated Unicode-format-category matcher extended with named bypass codepoints: U+00AD (SOFT HYPHEN; classic invisible URL-spoof primitive); U+0600–0605 + U+06DD + U+070F + U+08E2 (Arabic / Syriac number-sign + abbreviation-mark format chars); U+110BD + U+110CD (Kaithi number sign + end-of-text marker); U+13430–13438 (Egyptian hieroglyph format controls); U+1BCA0–1BCA3 (Duployan shorthand format controls). Doc comment narrowed from claiming full Cf-category coverage to "curated set covering known terminal-escape-injection + Trojan-Source + invisible-glyph spoofing vectors" — full Cf coverage would require a `unicode-general-category` dep + Platform Engineer / Security re-review. Per [Red Team R3 F3](vsdd-suite/review-log/2026-05-20-red-team.md).
+- **[`src/lib.rs:86-104`](src/lib.rs)** `BookmarkStore::load` — residual TOCTOU race window documented inline as Accepted Risk per Red Team R3 F2; the symmetric `symlink_metadata` check still catches the synchronous case; tight `O_NOFOLLOW` single-syscall fix deferred pending `libc` dep addition.
+- **[`src/main.rs:32-48`](src/main.rs)** CLI `long_about` — audit-trail-trivia footer removed (was leaking `"Closes UX Review 1 Finding 4 (help-text usage example gap)."` into user-visible `bm --help` output). Per [UX R3 F6](vsdd-suite/review-log/2026-05-20-ux.md).
+- **[`src/main.rs:79-98`](src/main.rs)** `emit_storage_error` load Hint — expanded to cover corrupt-JSON case (most common failure after first successful use). Per [UX R3 F7](vsdd-suite/review-log/2026-05-20-ux.md).
+
+### Changed — spec ([`DESIGN.md`](DESIGN.md))
+
+- **§ Threat model — `$BOOKMARK_CLI_DB` Mitigations row** — documented residual load-side TOCTOU race window per [Red Team R3 F2](vsdd-suite/review-log/2026-05-20-red-team.md) (Accepted Risk classification); tight fix path (`OpenOptions::custom_flags(O_NOFOLLOW)`) declared with `libc` dep + Security re-review as the gate.
+
+### Changed — docs
+
+- **[`README.md:19-20,41`](README.md)** — angle-bracket placeholders `<portfolio-url>` / `<portfolio>` rewritten as UPPERCASE-KEBAB-CASE (`PORTFOLIO-URL` / `PORTFOLIO`) per the markdown supplement § Code blocks placeholder convention. Per [TW R3 F4](vsdd-suite/review-log/2026-05-20-technical-writer.md).
+- **[`manual-tests/layer-1.md:14-21`](manual-tests/layer-1.md)** Step 0 — added missing `echo "exit: $?"` line + literal-expected-output discipline match with Steps 1/3/4/5/6 per [UX R3 F8](vsdd-suite/review-log/2026-05-20-ux.md).
+- **16-substitution mechanical sweep** across forward-facing markdown files (DESIGN.md, PROCESS.md, vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md, vsdd-suite/QUALITY-ENGINEER-REVIEW.md, vsdd-suite/FINDINGS-INDEX.md, TODO.md) — retired letter-coded "Surface A/B/C/D" duplicate-name sweep artifacts from Review 78 letter retirement; `1ab-spec-development.md` → `1ab-spec-crystallization.md` per the Review 81 anchor-link sweep. Per [Documentation Reviewer R2 carryforwards](vsdd-suite/review-log/2026-05-20-documentation-reviewer.md) + [TW R3 F3 + F5](vsdd-suite/review-log/2026-05-20-technical-writer.md).
+
+### Changed — review-log discipline
+
+- **9 per-domain Round 3 review-log sections** appended to existing per-session files at [`vsdd-suite/review-log/2026-05-20-{domain-slug}.md`](vsdd-suite/review-log/) under `## Review 3 — 2026-05-20 22:00Z` headings (per-session-file convention; one file per date+domain; multiple Reviews share the file).
+- **4 intermediate cluster files deleted** at consolidation (`engineering-cluster-round-3.md`, `cluster-b-round-3.md`, `cluster-c-round-3.md`, `cluster-d-round-3.md`). The letter-named cluster files were the operator-flagged TW Dim 12 naming-discipline slip; the canonical audit trail never sees the lettering.
+- **[`vsdd-suite/FINDINGS-INDEX.md`](vsdd-suite/FINDINGS-INDEX.md)** — Quick lookup preamble updated with Post-Round-3 status (7 of 10 at MVR; 2 operator-gated; 1 Deferred-carryforward); Round 2 + Round 3 finding-rows policy declared (per-session anchors are the canonical lookup, not registry-row duplication).
+
+### Per-domain Round 3 outcomes
+
+| Domain | Outcome |
+|---|---|
+| Software Engineer | MVR reached |
+| Performance Engineer | MVR-blocked-by-Deferred (R2-F7 fsync benchmark — Layer 2 operator-executable) |
+| Platform Engineer | MVR-blocked-by-operator-gate (R2-F9 install-verification non-author fresh-system requirement; AI-unsatisfiable per [G-155](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155)) |
+| Security | MVR reached |
+| UX | MVR reached (F6 + F7 + F8 inline-fixed mid-Round-3) |
+| Red Team | MVR reached (F2 Accepted Risk; F3 inline-fixed) |
+| Technical Writer | MVR reached (F3 + F5 already-Resolved by sweep; F4 inline-fixed; F6 Hallucinated) |
+| Documentation Reviewer | NOT at MVR — 5 Deferred R2 carryforwards remain (sweep-discipline gap; routed to PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40) upstream-suite-remediation) |
+| Solution Owner | MVR reached |
+| VDD-IAR Alignment | MVR reached (from Round 2; no R3 per G-131 — continue trigger requires new real findings) |
+
+### Verified
+
+- `cargo fmt --check` clean.
+- `cargo clippy --all-targets -- -D warnings` clean.
+- `cargo test` — 11 unit + 16 integration tests pass.
+
+### Phase 6 status
+
+**Phase 6 four-dimensional convergence record continues DEFERRED.** Platform Engineer install-verification operator-gate is the hard ceiling (Dim 38 fresh-system requirement is AI-unsatisfiable per [G-155](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155)). The four-dimensional attestation (Spec MVR + Test MVR + Implementation MVR + Formal-verification MVR + cross-dimension consistency check) cannot honestly claim Implementation MVR while the Platform Engineer gate is open. Phase 6 will be authored as the FINAL VDD-IAR Alignment review round once: (a) operator runs install-verification on a fresh system, and (b) Documentation Reviewer sweep-discipline carryforwards close via PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40) upstream-suite-remediation.
+
+---
+
+## v0.11.4 Round 2 fix-cycle — 2026-05-20 20:00Z ([Review 82](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z))
+
+**Scope:** Round 2 fix-cycle covering all 80 findings filed across the 12-domain Round 1 cold-context IAR pass. The fix-cycle is split across four parallel batches — spec / code / config / CI / docs — coordinated against the updated [`DESIGN.md`](DESIGN.md) as the contract. This entry covers the doc batch; the other batches land in their own commits.
+
+### Changed — spec ([`DESIGN.md`](DESIGN.md))
+
+- **§ Behavioral contracts** — `bm add` (no positional argument) now treated identically to `bm add ""` per [SE Review 1 Finding 1](vsdd-suite/review-log/2026-05-20-software-engineer.md); atomic-write semantics declared for `bm add` storage write (temp file + atomic rename per POSIX `rename(2)`) per [SE Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-software-engineer.md); CLI usage error (unknown subcommand / unknown flag) now exits 64 per `sysexits.h` `EX_USAGE` to disambiguate from exit 2 storage errors per [SE Review 1 Finding 3](vsdd-suite/review-log/2026-05-20-software-engineer.md).
+- **§ Exit codes table** — new row for exit 64 (CLI usage error) per `sysexits.h` `EX_USAGE`.
+- **§ Performance budget** (new section) — Layer 1 commitments: `bm --help` / `bm --version` startup < 50 ms p95; `bm add` / `bm list` end-to-end < 100 ms p95 at ≤ 1,000 bookmarks; scale ceiling 10,000 bookmarks; benchmarking infrastructure deferred to Layer 2+ per [Performance Engineer Review 1](vsdd-suite/review-log/2026-05-20-performance-engineer.md).
+- **§ Threat model** (new section) — in-scope adversaries (co-tenant on shared Unix host; adversary-controlled `$BOOKMARK_CLI_DB`; adversary-supplied URL contents → terminal-escape / bidi / zero-width chars); mitigations (mode 0600; symlink-follow rejection; `display_safe` sanitizer); out-of-scope adversaries with acceptance rationale per [Security Review 1](vsdd-suite/review-log/2026-05-20-security.md) + [Red Team Review 1](vsdd-suite/review-log/2026-05-20-red-team.md).
+- **§ Storage data classification** (new section) — captured bookmarks classified *confidential*; storage file written with mode 0600 (Unix; `#[cfg(unix)]` gated); Windows file-permission semantics deferred per [Security Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-security.md).
+
+### Changed — code (owned by the code-fix agent; lands in parallel commits)
+
+- **`src/lib.rs`** `BookmarkStore::save` — atomic-write semantics (temp file in destination dir + atomic rename); symlink rejection on save target; file mode 0600 set via `OpenOptions::mode()` behind `#[cfg(unix)]` gate.
+- **`src/lib.rs`** — `display_safe` sanitizer added; wraps every user-derived value before any `eprintln!` / `println!` / `Display` interpolation; escapes `is_control()` (Cc) chars + `Cf` format chars while preserving `\n` `\t`.
+- **`src/lib.rs`** `BookmarkStore` — field-level encapsulation; rustdoc on every `pub` item; `#![deny(missing_docs)]` lint enabled at crate level.
+- **`src/main.rs`** — missing-positional-argument path intercepts clap's default exit 2 usage-error and routes through the spec-contracted exit 1 + `Error: URL cannot be empty.\n` shape; unknown-subcommand / unknown-flag path intercepts clap's default and emits exit 64.
+- **`tests/bookmarks.rs`** — new integration tests covering atomic save, symlink rejection, file mode 0600 on Unix, sanitizer, missing-arg parity with empty-string, unknown-subcommand exit 64.
+
+### Changed — config + CI (owned by config-fix + CI-fix agents)
+
+- **`Cargo.toml`** — lint floor (clippy + missing_docs); `[lints.rust]` block enabling `missing_docs = "deny"`.
+- **`rust-toolchain.toml`** (new) — pinned per [Platform Engineer Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-platform-engineer.md).
+- **`deny.toml`** (new) — `cargo deny check` policy per [Security Review 1 Finding 3](vsdd-suite/review-log/2026-05-20-security.md) + [Platform Engineer Review 1 Finding 4](vsdd-suite/review-log/2026-05-20-platform-engineer.md).
+- **`.github/workflows/`** (new) — GitHub Actions workflow: build + test + clippy + cargo-deny on push / PR per [Platform Engineer Review 1](vsdd-suite/review-log/2026-05-20-platform-engineer.md).
+
+### Changed — docs (this batch)
+
+- **[`README.md`](README.md)** — test-count claim updated from "8 tests pass (4 lib + 4 integration)" to a stable-across-fix-cycle framing referencing the current ~19-test suite ([Technical Writer Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-technical-writer.md) + [Documentation Reviewer Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-documentation-reviewer.md) + [UX Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-ux.md)); install-path `cd <portfolio>/bookmark-cli` → `cd <portfolio>/vsdd-suite-reference-examples/bookmark-cli-manual` ([Documentation Reviewer Review 1 Finding 1](vsdd-suite/review-log/2026-05-20-documentation-reviewer.md)); relative-depth fix `../vsdd-suite/README.md` → `../../vsdd-suite/README.md` ([Documentation Reviewer Review 1 Finding 3](vsdd-suite/review-log/2026-05-20-documentation-reviewer.md)); VSDD / IAR / MVR / TDD acronyms expanded on first use ([Documentation Reviewer Review 1 Finding 12](vsdd-suite/review-log/2026-05-20-documentation-reviewer.md)); Phase 4 row updated to reflect Round 2 fix-cycle routing ([Solution Owner Review 1 Finding 1](vsdd-suite/review-log/2026-05-20-solution-owner.md)); `--locked` flag added to every `cargo install` invocation.
+- **[`TODO.md`](TODO.md)** — "10 active domains" → "12 active domains" per [Documentation Reviewer Review 1 Finding 8](vsdd-suite/review-log/2026-05-20-documentation-reviewer.md); Documentation Reviewer added to the layer-gate criterion 4 capstone-extended list; retired letter-coded "Surface A.0 / B" verbiage replaced with descriptive "Purity Boundary Audit + Mutation Testing" Title-Case names ([Technical Writer Review 1 Finding 4](vsdd-suite/review-log/2026-05-20-technical-writer.md) + [Documentation Reviewer Review 1 Finding 6](vsdd-suite/review-log/2026-05-20-documentation-reviewer.md)).
+- **[`manual-tests/layer-1.md`](manual-tests/layer-1.md)** — Step 1 expected on-disk JSON shape corrected from bare array to object-wrapped `{"bookmarks": [...]}` form matching the [DESIGN.md § Storage format](DESIGN.md#storage-format-json-file) spec ([Solution Owner Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-solution-owner.md) + [UX Review 1 Finding 3](vsdd-suite/review-log/2026-05-20-ux.md)); Step 5 `cd` made absolute-path-safe by capturing `$PROJECT_DIR` before uninstall ([UX Review 1 Finding 6](vsdd-suite/review-log/2026-05-20-ux.md)); Step 5 `which bm` post-uninstall expectation relaxed from literal-match "bm not found" to a behavioral assertion (non-zero exit + no path printed; exact textual output is shell-dependent) ([UX Review 1 Finding 7](vsdd-suite/review-log/2026-05-20-ux.md) + [Documentation Reviewer Review 1 Finding 11](vsdd-suite/review-log/2026-05-20-documentation-reviewer.md)); session-state preamble added naming the single-uninterrupted-shell-session-OR-absolute-`BOOKMARK_CLI_DB` requirement ([Documentation Reviewer Review 1 Finding 13](vsdd-suite/review-log/2026-05-20-documentation-reviewer.md)); new Step 6 verifies file mode 0600 on Unix via `stat -f %A` (macOS) / `stat -c %a` (Linux); `cargo install` invocations updated to use `--locked`.
+- **[`manual-tests/install-verification.md`](manual-tests/install-verification.md)** — sibling-link path corrections (`manual-tests/layer-1.md` → `layer-1.md`; `PROCESS.md` → `../PROCESS.md`; `DESIGN.md` → `../DESIGN.md`) ([Technical Writer Review 1 Finding 3](vsdd-suite/review-log/2026-05-20-technical-writer.md) + [Documentation Reviewer Review 1 Finding 10](vsdd-suite/review-log/2026-05-20-documentation-reviewer.md)); AI-co-authored disclosure framing made explicit with "AI-author cannot satisfy this gate" reminder and operator-required `Outcome` row reminder.
+- **[`PROCESS.md`](PROCESS.md)** — broken primer reference `1ab-spec-development.md` → `1ab-spec-crystallization.md` corrected ([Documentation Reviewer Review 1 Finding 4](vsdd-suite/review-log/2026-05-20-documentation-reviewer.md)); new "Round 1 IAR + Round 2 fix-cycle retrospective" section summarizing the 80 findings + the four-batch fix shape + the operator-gated install-verification remainder (covers the spec / code / docs / config / CI fix highlights and the [Technical Writer Review 1 Finding 1](vsdd-suite/review-log/2026-05-20-technical-writer.md) NUL-byte sentinel closure).
+
+### Note
+
+**Install-verification gate remains operator-pending.** [G-155](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155) Platform Engineer Dim 38 fresh-system non-author install verification cannot be satisfied by any AI session — by construction. The Phase 6 four-dimensional convergence is therefore still deferred until the operator executes the fresh-system install attempt and records a PASS row in [`manual-tests/install-verification.md`](manual-tests/install-verification.md). Every other Round 1 domain finding reaches MVR or zero-findings under this Round 2 fix-cycle.
+
+---
+
 ## vsdd-suite v0.11.2 Documentation Reviewer activated at capstone — 2026-05-20 18:30Z (PR [#36](https://github.com/magnificentlycursed/guild-portfolio/pull/36) / [Review 80](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z))
 
 **Scope:** Activates [Documentation Reviewer](../../vsdd-suite/domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) on this reference example. Doc Reviewer is the adversarial cold-reader pair to [Technical Writer](../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md), registered in [Review 80](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z); both activate together at capstone intent.

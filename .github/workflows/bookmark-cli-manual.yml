@@ -1,0 +1,134 @@
+name: CI — bookmark-cli-manual
+
+# Closes Platform Engineer Review 1 Finding 1:
+# https://github.com/magnificentlycursed/guild-portfolio/blob/main/vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-platform-engineer.md
+# Modeled on the sibling `issue-tracker-cli.yml` but split into separate jobs
+# (fmt / clippy / test / deny / audit) so a single failure isolates to one
+# job rather than collapsing the whole pipeline.
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'vsdd-suite-reference-examples/bookmark-cli-manual/**'
+      - '.github/workflows/bookmark-cli-manual.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'vsdd-suite-reference-examples/bookmark-cli-manual/**'
+      - '.github/workflows/bookmark-cli-manual.yml'
+
+defaults:
+  run:
+    working-directory: vsdd-suite-reference-examples/bookmark-cli-manual
+
+jobs:
+  fmt:
+    name: cargo fmt --check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # master at 2026-05-04
+        with:
+          # Explicit toolchain pin matching `rust-toolchain.toml`. The action
+          # only auto-discovers `rust-toolchain.toml` at repo root; this
+          # project lives in a subdirectory so the file isn't visible to the
+          # action's discovery path. Mirror the pin explicitly per the sibling
+          # `issue-tracker-cli.yml` pattern.
+          toolchain: 1.95
+          components: rustfmt
+
+      - name: Format check
+        run: cargo fmt --check
+
+  clippy:
+    name: cargo clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # master at 2026-05-04
+        with:
+          toolchain: 1.95
+          components: clippy
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32  # v2
+        with:
+          workspaces: vsdd-suite-reference-examples/bookmark-cli-manual
+
+      - name: Clippy
+        run: cargo clippy --all-targets --locked -- -D warnings
+
+  test:
+    name: cargo test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # master at 2026-05-04
+        with:
+          toolchain: 1.95
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32  # v2
+        with:
+          workspaces: vsdd-suite-reference-examples/bookmark-cli-manual
+
+      # `--locked` (per Platform Engineer Review 1 Finding 8): require
+      # Cargo.lock to match Cargo.toml's resolved versions so CI exercises
+      # the same dependency graph the developer shipped.
+      - name: Test
+        run: cargo test --locked
+
+  deny:
+    name: cargo deny check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # master at 2026-05-04
+        with:
+          toolchain: 1.95
+
+      # Closes Platform Engineer Review 1 Finding 4 (deny.toml) — gates on
+      # CVEs, license violations, banned/duplicate crates, and disallowed
+      # sources simultaneously. Tool version pinned per the supply-chain
+      # discipline established at PE R8 Finding 6 on the sibling project.
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --locked --version 0.19.4
+
+      - name: cargo deny check
+        run: cargo deny --locked check
+
+  audit:
+    name: cargo audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # master at 2026-05-04
+        with:
+          toolchain: 1.95
+
+      # Closes Platform Engineer Review 1 Finding 5 — fast advisory-only
+      # CVE check against Cargo.lock. Runs parallel to `cargo deny check`
+      # per the Rust supplement § PE (both controls are prescribed); kept
+      # as a separate job so an advisory-only failure does not mask a
+      # license/bans/sources failure from `cargo deny`.
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked --version 0.22.1
+
+      - name: Dependency audit
+        run: cargo audit
