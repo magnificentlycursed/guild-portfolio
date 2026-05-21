@@ -1,13 +1,20 @@
 #!/usr/bin/env bash
 # Scans ANY committed text file for identity-revealing patterns the developer
-# may be opt-in anonymizing. Broadened from review-log-only scope at PR #43
-# (per operator directive: "The anonymization check should be broadened to
-# include logs, commits, etc. Basically it should apply to all committed
-# files"). The previous narrow scope rested on the assumption that source
-# code is identity-free by construction; that assumption doesn't hold once
-# the suite carries markdown audit trails, supplementary docs, hook source
-# itself, etc. — every committed text file may quote a path, a name, an email,
-# or a transcript that leaks identity. Apply the same discipline everywhere.
+# may be opt-in anonymizing. Consolidates two previously-separate hooks at
+# PR #43:
+#   - `no-home-dir-paths` (at `issue-tracker-cli/.pre-commit-hooks/check-no-home-paths.sh`)
+#     — narrow HOME-path check with no public-URL allowlist
+#   - `review-log-anonymization` (this file's previous filename
+#     `check-review-log-anonymization.sh`) — user.name + user.email + HOME
+#     check with public-URL allowlist; previously scoped to review-log markdown
+# This consolidated hook is a superset (HOME + name + email + allowlist) and
+# applies suite-wide to every committed text file. Per operator directive at
+# PR #43: "The anonymization check should be broadened to include logs,
+# commits, etc. Basically it should apply to all committed files. Both
+# anonymization hooks should be repo wide. Might make sense to combine them."
+# The legacy `check-no-home-paths.sh` at issue-tracker-cli/ is retired in
+# place (kept for narrative preservation per G-89) with a deprecation header
+# pointing here.
 #
 # Patterns are read from `git config` and the runtime environment — no
 # identity values are hardcoded in this script. Configure with

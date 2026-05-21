@@ -8,29 +8,23 @@ repos:
 
   - repo: local
     hooks:
-      - id: no-home-dir-paths
-        name: block local home directory paths
-        language: script
-        entry: issue-tracker-cli/.pre-commit-hooks/check-no-home-paths.sh
-        pass_filenames: true
-        types: [text]
-
-      - id: review-log-anonymization
-        name: anonymization (IAR suite hook — broadened to all committed text files at PR #43)
+      - id: anonymization
+        name: anonymization (IAR suite hook — repo-wide; consolidates `no-home-dir-paths` + `review-log-anonymization` at PR #43)
         language: script
         # Suite-level hook: lives at vsdd-suite/hooks/ so it carries with
         # the suite if the suite is forked into a separate repo. PR #43
-        # broadened scope from IAR-review-log-only to ALL committed text
-        # files per operator directive ("The anonymization check should be
-        # broadened to include logs, commits, etc. Basically it should
-        # apply to all committed files"). Allows public-URL contexts
-        # (github.com/, gitlab.com/, bitbucket.org/, bsky.app/profile/,
-        # noreply.*). Registered as G-98 in
-        # vsdd-suite/suite-development/FINDINGS-INDEX.md. The `id` is
-        # preserved as `review-log-anonymization` for backward-compatibility
-        # with prior `<!-- hook-bypass: ... -->` references that named the
-        # hook by its old id; the `name` reflects the broadened scope.
-        entry: vsdd-suite/hooks/check-review-log-anonymization.sh
+        # consolidated two previously-separate hooks (`no-home-dir-paths`
+        # at `issue-tracker-cli/.pre-commit-hooks/check-no-home-paths.sh`
+        # + `review-log-anonymization` at this suite-level path) into a
+        # single repo-wide check. The consolidated hook is a superset of
+        # both — HOME path + git user.name + git user.email + public-URL
+        # allowlist — applied to every committed text file. Per operator
+        # directive at PR #43: "Both anonymization hooks should be repo
+        # wide. Might make sense to combine them." Allows public-URL
+        # contexts (github.com/, gitlab.com/, bitbucket.org/,
+        # bsky.app/profile/, noreply.*). Registered as G-98 in
+        # vsdd-suite/suite-development/FINDINGS-INDEX.md.
+        entry: vsdd-suite/hooks/check-anonymization.sh
         pass_filenames: true
         types: [text]
 
