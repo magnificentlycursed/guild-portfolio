@@ -2,7 +2,7 @@
 
 [Phase 1c](../../vsdd-suite/primers/1c-decomposition.md) output. Authored with [`../../vsdd-suite/primers/1c-decomposition.md`](../../vsdd-suite/primers/1c-decomposition.md) loaded ([G-96](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-96) renamed Phase 1b → Phase 1c; this file predates the rename and is preserved per [G-89](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-89) forward-only narrative-preservation policy). Each layer below is independently testable and shippable; acceptance criteria are observable behaviors (not implementation steps); the Red Gate test plan names the literal tests that must fail before any implementation lands per layer.
 
-This project is the manual-method reference implementation for the suite's worked example ([G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) in [`../../vsdd-suite/suite-development/FINDINGS-INDEX.md`](../../vsdd-suite/suite-development/FINDINGS-INDEX.md)). Only Layer 1 is built out — Layers 2 and 3 are scoped but deferred to follow-on work. **As of PR 6 / Review 78, bookmark-cli-manual is at `capstone` intent** with all 6 VSDD (Verified Spec-Driven Development) phases demonstrated end-to-end (1a+1b spec → 1c decomposition → 2a Red Gate → 2b implementation → 2c refactor (no-refactor annotation) → 3 IAR (Iterative Adversarial Refinement) (13 active domains) → 4 routing → 5 Purity Boundary Audit + Mutation Testing hardening → 6 four-dimensional convergence).
+This project is the manual-method reference implementation for the suite's worked example ([G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) in [`../../vsdd-suite/suite-development/FINDINGS-INDEX.md`](../../vsdd-suite/suite-development/FINDINGS-INDEX.md)). **As of PR 6 / Review 78, bookmark-cli-manual is at `capstone` intent** with all 6 VSDD (Verified Spec-Driven Development) phases demonstrated end-to-end (1a+1b spec → 1c decomposition → 2a Red Gate → 2b implementation → 2c refactor → 3 IAR (Iterative Adversarial Refinement) (13 active domains) → 4 routing → 5 Purity Boundary Audit + Mutation Testing hardening → 6 four-dimensional convergence). Layer 1 closed project-terminal at PR #42; Layer 2 (tag + filter) is the active layer per the post-PR-#43 cycle. Layer 3 (export + import) remains scoped only.
 
 ---
 
@@ -43,16 +43,53 @@ All four tests live in `tests/bookmarks.rs` and invoke the compiled binary via `
 
 ---
 
-## Layer 2 — Tag and filter (deferred)
+## Layer 2 — Tag and filter
 
-**Status:** Scoped only. Not in scope for this reference implementation.
+**Status:** Active per post-PR-#43 cycle. Promoted from "deferred — scoped only" to capstone-active per operator directive after Layer 1 reached project-terminal MVR at PR #42. The Layer 2 cycle closes three Layer-1 Deferred-to-Layer-2 items: [Performance Engineer Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-performance-engineer.md) (benchmarking infrastructure → hyperfine sanity-check at `manual-tests/layer-2.md`), Finding 5 (data-scaling sentinel tests at 100/1,000/10,000-bookmark cliffs in `tests/scaling.rs`), and the operator-queued fsync benchmark item (parent-directory `fsync` after `rename(2)` for durability).
 
-**Acceptance criteria sketch:**
-- `bm tag <bookmark-index> <label>` attaches a label
-- `bm list --tag <label>` filters by label
-- Multiple labels per bookmark allowed; comma-separated input or repeated `--tag` flag
+**Acceptance criteria** (observable behaviors from outside the binary):
 
-**Why deferred:** the reference-implementation purpose ([G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112)) is satisfied by Layer 1 alone — one layer end-to-end through the suite proves the worked example pattern.
+- **AC 5:** `bm tag <url> <label>` against a store where one or more bookmarks have `url` exactly: appends `<label>` to each matching bookmark's `tags` field (idempotent — second invocation with the same arguments produces an identical post-state); exits 0; stdout silent.
+- **AC 6:** `bm tag <url> <label>` against a store where no bookmark has `url`: exits 1 with stderr `Error: no bookmark found with URL <url>.\n`; the store file is not rewritten.
+- **AC 7:** `bm tag` with empty URL (both `bm tag "" <label>` and `bm tag` missing the URL positional): exits 1 with stderr `Error: URL cannot be empty.\n`; no file write. (Mirrors the `bm add` empty-URL contract per DESIGN.md.)
+- **AC 8:** `bm tag` with empty label (both `bm tag <url> ""` and `bm tag <url>` missing the label positional): exits 1 with stderr `Error: tag label cannot be empty.\n`; no file write.
+- **AC 9:** `bm list --tag <label>` returns only the bookmarks whose `tags` field contains `<label>`, in newest-first ordering, exits 0. Empty filter result: stderr `No bookmarks match the supplied filter.\n`, exit 0 (filter empty-state is distinct from store empty-state).
+- **AC 10:** `bm list --tag <label1> --tag <label2>` returns the OR-union of bookmarks matching either label (a bookmark with `["label1"]` matches; with `["label2"]` matches; with `["label1", "label2"]` matches; with `["label3"]` does not match). Newest-first ordering preserved; exit 0.
+- **AC 11:** `bm list --tag ""`: exits 1 with stderr `Error: tag label cannot be empty.\n` (parallel to AC 8 input invariant).
+- **AC 12:** `bm tag` against a Layer-1-format store (bookmarks without `tags` field): the missing field deserializes to empty `Vec<String>`; the post-tag save emits the field for every bookmark (touched and untouched alike) — forward-only migration shape.
+- **AC 13:** Durability: every `bm add` and `bm tag` save fsyncs the destination file's parent directory after `rename(2)` (Unix; `#[cfg(unix)]`-gated). A `bm list` immediately after a successful `bm tag` reflects the change even after a synthesized power-fail (the rename has crossed the durability boundary).
+
+**Red Gate test plan** (per `primers/2a-red-gate.md` — these tests must fail before any implementation lands; tests are added to `tests/bookmarks.rs` alongside the existing Layer 1 tests):
+
+- `tests_tag_attaches_label_to_matching_bookmark` — adds a bookmark, invokes `bm tag <url> rust`, asserts exit 0 + stderr empty + store file contains the URL bookmark with `tags: ["rust"]`.
+- `tests_tag_is_idempotent` — adds a bookmark, invokes `bm tag <url> rust` twice, asserts second invocation exits 0 + the bookmark's `tags` is exactly `["rust"]` (not `["rust", "rust"]`).
+- `tests_tag_rejects_unknown_url` — adds bookmark A, invokes `bm tag B nonsense`, asserts exit 1 + stderr matches `Error: no bookmark found with URL B.\n` exactly + the store file is byte-identical to its pre-invocation state.
+- `tests_tag_rejects_empty_url` — adds a bookmark, invokes `bm tag "" rust`, asserts exit 1 + stderr matches `Error: URL cannot be empty.\n`.
+- `tests_tag_rejects_empty_label` — adds a bookmark, invokes `bm tag <url> ""`, asserts exit 1 + stderr matches `Error: tag label cannot be empty.\n`.
+- `tests_tag_against_layer_1_format_file_migrates_forward` — writes a Layer-1-format JSON file directly (no `tags` field per bookmark), invokes `bm tag <url> rust`, asserts exit 0 + the post-write file contains explicit `tags: ["rust"]` on the tagged bookmark AND explicit `tags: []` on every other bookmark.
+- `tests_tag_against_duplicate_url_tags_all_matches` — adds the same URL twice (append-only permits this), invokes `bm tag <url> rust`, asserts exit 0 + both bookmarks have `tags: ["rust"]` post-save.
+- `tests_list_with_tag_filter_returns_matching_bookmarks` — adds three bookmarks A/B/C, tags A and C with `rust`, invokes `bm list --tag rust`, asserts exit 0 + stdout matches `<ts-C> C\n<ts-A> A\n` (newest-first) + stderr empty.
+- `tests_list_with_tag_filter_empty_match_emits_filter_empty_state` — adds two bookmarks (untagged), invokes `bm list --tag rust`, asserts exit 0 + stdout silent + stderr matches `No bookmarks match the supplied filter.\n`.
+- `tests_list_with_tag_filter_repeated_flag_is_or_semantics` — adds three bookmarks A/B/C, tags A with `rust` and B with `go`, invokes `bm list --tag rust --tag go`, asserts exit 0 + stdout contains both A and B (newest-first) but not C.
+- `tests_list_with_tag_filter_against_empty_store_emits_store_empty_state` — invokes `bm list --tag rust` against absent store, asserts exit 0 + stderr matches `No bookmarks yet.\n` (store empty-state takes precedence over filter empty-state per DESIGN.md edge-case catalog).
+- `tests_list_with_empty_tag_label_rejected` — adds a bookmark, invokes `bm list --tag ""`, asserts exit 1 + stderr matches `Error: tag label cannot be empty.\n`.
+- `tests_list_rfc3339_scripted_check` (closes Layer-1-Deferred QE item) — adds three bookmarks with small delays, invokes `bm list`, asserts every emitted timestamp matches the RFC 3339 grammar at byte level via a `chrono::DateTime::parse_from_rfc3339` round-trip — not merely a regex eyeball. The Red Gate failure mode is intentional ambiguity in the Layer-1 implementation (any deviation from strict RFC 3339 — missing-`Z`, ambiguous-offset, sub-microsecond precision drift — is a finding).
+- `tests_save_fsyncs_parent_directory` (closes operator-queued PE fsync item) — adds a bookmark, asserts the `save` codepath invoked `fsync(2)` on the parent directory FD after the `rename(2)`. Implementation strategy: extract the durable-save into a function whose effect is observable from a unit test (an injected counter or trace-line on the unix path); the integration test asserts the observable.
+
+**Layer 2 manual testing checklist:** [`manual-tests/layer-2.md`](manual-tests/layer-2.md) — parallel to `manual-tests/layer-1.md`. Includes the `hyperfine` sanity-check sub-section that closes Layer-1-Deferred [Performance Engineer Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-performance-engineer.md).
+
+**Layer 2 data-scaling tests:** `tests/scaling.rs` with `#[ignore]`-gated sentinels at 100/1,000/10,000 bookmark cliffs. Asserts the budget table in DESIGN.md § Performance budget holds against programmatically-generated stores. CI runs `cargo test -- --ignored` in a separate job so the `cargo test` default stays fast. Closes Layer-1-Deferred [Performance Engineer Review 1 Finding 5](vsdd-suite/review-log/2026-05-20-performance-engineer.md).
+
+**[Phase 2c](../../vsdd-suite/primers/2c-refactor.md) (refactor):** annotation deferred to post-Phase-2b — if the Layer 2 implementation surfaces a refactor opportunity (collapse-and-inline; extract-and-name; shared-helper between `bm add` and `bm tag` durable-save paths), the annotation will name the refactor; otherwise the explicit-skip annotation pattern from Layer 1 applies. The Phase 2c entry will be added inline below this paragraph at the close of Phase 2b.
+
+**Layer-gate criteria:**
+
+1. All Red Gate tests above pass: `cargo test --test bookmarks` + `cargo test -- --ignored` (scaling).
+2. `cargo build --release` succeeds with no warnings.
+3. The manual testing checklist at `manual-tests/layer-2.md` runs clean (every step produces the expected exit/stdout/stderr).
+4. [Phase 3](../../vsdd-suite/primers/3-review-session.md) IAR reviews complete for the 13-domain capstone-active set per the post-PR-#39 DOMAIN-INDEX.md § Intent calibration; each domain reaches MVR or zero-findings. ([Data Engineer](../../vsdd-suite/domains/role/DATA-ENGINEER-REVIEW.md) re-evaluated for Layer 2: still ruled out — tags-as-`Vec<String>` is still flat JSON below the [G-178](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-178) activation threshold.)
+5. Phase 5 Layer 2 rounds at closure: Purity Boundary Audit re-runs against the extended pure surface; Mutation Testing re-runs against the extended impl with 100% kill rate maintenance or named-rationale drop; property-based testing via proptest now activated against the tag-idempotence + filter-OR-monotonicity properties.
+6. [Phase 6](../../vsdd-suite/primers/6-convergence.md) four-dimensional convergence record landed as the next VDD-IAR Alignment review round titled "Review N — Phase 6 four-dimensional convergence (project-terminal Layer 2)" per primer 6 + [G-177](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-177).
 
 ---
 
