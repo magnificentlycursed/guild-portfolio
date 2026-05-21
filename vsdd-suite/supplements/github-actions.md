@@ -111,6 +111,36 @@ GitHub Actions runner-minute cost discipline is the CI analogue to the AI Engine
 
 ---
 
+## Workflow failure discipline
+
+CI/CD check failures are findings, not silent fixes. When a workflow run fails on a PR, the failure is adversarial evidence — the workflow caught a defect that the in-author review missed, exactly the IAR adversarial-cold-session pattern applied to mechanical CI checks. The discipline:
+
+- **Log the failure as a finding.** Every CI failure has a Defect (what failed), a Domain (whose review-log records the finding — typically Platform Engineer for workflow-config defects, Quality Engineer for test-discipline defects, Software Engineer for build defects, Security for deny/audit defects, Documentation Reviewer for link-check defects, AI Engineer for CI cost/efficiency defects), and a Resolution (the fix evidence). The finding is recorded in the appropriate domain's per-session review-log in the project being PR-ed (for project IAR cycles) OR in the suite-side review-log (for suite-development PRs that introduce or modify workflows).
+- **Classify per the domain's classification universe.** Most CI failures Resolve in-session with the fix that lands in the PR. Some route Deferred (e.g., a flaky test deferred to Phase 5 hardening; a Layer-2-only check that fails at Layer 1). Some Dismiss (e.g., a check that fired against a pre-PR commit; the latest commit passes; the failure is no longer reproducible). Hallucinated is rare for CI events (the workflow either failed or didn't) but applies when the failure was a transient infrastructure issue not reproducible on retry.
+- **Route per Phase 4 if the defect surfaces an upstream phase.** A CI failure that reveals a spec defect routes to Phase 1a+1b; a missing test routes to Phase 2a; an implementation defect routes to Phase 2b; a workflow-config defect routes to Phase 2b (workflow YAML is code); a methodology gap (the discipline that should have caught this is missing from the suite) routes to Suite-development per [primer 4](../primers/4-feedback-integration.md) § Suite gap row.
+- **Force-push without a finding record is the anti-pattern.** A `git push --force` that overwrites a failed-CI commit with a fixed commit, with no audit-trail record of the failure that motivated the fix, breaks the regression-check discipline — future cycles can't verify the defect class is closed because the defect-class evidence was overwritten. See [Anti-patterns](#anti-patterns) below.
+- **PR template's Completion checklist names the discipline.** Per the [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md) § CI failure findings sub-section: every PR's Completion checklist includes a line attesting that all CI failures encountered during this PR have been logged + worked as findings (or "None — no CI failures encountered"). The merge-gate workflow at [`.github/workflows/pr-checklist.yml`](../../.github/workflows/pr-checklist.yml) verifies this line is ticked along with the rest of the merge-gating checklist.
+
+**Why the discipline matters at scale:** CI checks are the most repeatable adversarial reviewers the methodology has — every push runs every check, no cost beyond runner minutes. The signal density is high; the audit-trail records are the methodology's calibration data. A project whose CI fails 10 times during a PR but whose review log says "0 CI failures encountered" has degraded its own audit trail; future contributors reading the history will conclude the project's CI is well-calibrated when in fact the calibration is being silently iterated against. The "log as finding" discipline preserves the signal; the workflow-failure entries in the audit trail are the methodology's evidence base for tuning future CI configurations + future Phase 1a+1b spec authoring + future Phase 2a test authoring.
+
+**Companion review dimensions:** [Platform Engineer](../domains/role/PLATFORM-ENGINEER-REVIEW.md) Dim CI/CD pipeline + DevSecOps; [Quality Engineer](../domains/role/QUALITY-ENGINEER-REVIEW.md) Dim test discipline + Red Gate compliance; [AI Engineer](../domains/role/AI-ENGINEER-REVIEW.md) Dim 11 audit-trail machine-readability (the CI-failure-as-finding entries are part of the machine-readable audit trail).
+
+**Per-error-class owner table (generalized from CI-only to all tool/prompt errors per [Review 87 Finding 6](../suite-development/review-log/2026-05-21-suite-review.md#review-87--2026-05-21-1230z)):** the principle "tool/prompt errors are findings, not silent fixes" extends beyond CI/CD to the full error-event surface. The per-error-class owner is determined by Dim coverage:
+
+| Error class | Canonical owner | Why |
+|---|---|---|
+| CI/CD check that builds/tests/lints the artifact | **Platform Engineer** | PE Dim CI/CD pipeline + DevSecOps |
+| `cargo test` / `cargo clippy` / compiler / linter (artifact-domain tools) | **Software Engineer** / **Quality Engineer** per tool purpose | Per existing SE/QE Dim coverage |
+| AI-inline-execution tool/command (bash + `gh` + sub-agent spawn + LLM tool call run inline by the AI to execute a prompt) | **AI Engineer** | AI Engineer Dim 4 + 5 + 11 + 12; the AI's own execution surface |
+| Process-enforcement scripts/hooks (merge-gate workflow [`pr-checklist.yml`](../../.github/workflows/pr-checklist.yml); methodology-discipline gates) | **AI Engineer** | Meta-tooling-of-methodology surface |
+| Early-detection scripts/hooks (pre-commit hooks `check-suite-review-preamble.py`, `check-project-review-discipline.py`, `check-changelog-currency`, `check-crosslink-references.sh`, `check-review-log-anonymization.sh`; authoring-discipline checks) | **AI Engineer** | Methodology-meta-tooling surface |
+| Failed link checker (broken anchor; 404 external) | **Documentation Reviewer** (Dim 11) | Content-side cross-reference resolution |
+| Failed markdown render in user-facing docs (GitHub UI render; external doc-site builder) | **Technical Writer** / **Documentation Reviewer** | User-facing documentation tool surface |
+
+The boundary is **meta-tooling-of-methodology** (AI Engineer) vs **artifact-shipping-tools** (Platform Engineer + per-artifact-domain). See [`AI-ENGINEER-REVIEW.md`](../domains/role/AI-ENGINEER-REVIEW.md) § Error-event ownership boundary for the canonical statement.
+
+---
+
 ## PR template + merge-gate integration
 
 The [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md) is part of the GitHub Actions surface — it's the human-authored side of the PR-validation discipline; the workflow-gated checks are the mechanical side. The pair (template + workflow) implements the merge-gate completion checklist.
@@ -135,6 +165,7 @@ The [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md)
 - **"Cache key includes timestamps"** — A cache key with a time-varying input (`${{ github.run_id }}`, `${{ now() }}`) busts the cache on every run, defeating the purpose. Cache keys should be deterministic against the inputs they're caching for.
 - **"30+ minute workflow"** — Without a declared time budget + a corresponding `timeout-minutes:` cap, workflows can run for the GHA default of 360 minutes when they hang. Declare a budget; cap timeouts; alert on overruns.
 - **"PR draft findings ignored at merge"** — Spot-check items in a PR draft ("[ ] grep returns clean") that are never executed before merge. The completion-checklist + merge-gate workflow closes this gap; the discipline is to use them.
+- **"Silent CI-failure fix-and-force-push"** — A failed CI check on a PR motivates a fix; the operator amends or force-pushes a new commit; the fix lands; CI goes green; the failure is never recorded as a finding. The audit trail loses the signal that a defect-class existed + that it was caught by the workflow; future cycles can't regression-check the defect class. The discipline (per [§ Workflow failure discipline](#workflow-failure-discipline) above) is to log the failure as a finding in the appropriate domain's review-log BEFORE the fix lands, then mark the finding Resolved when the fix is verified.
 
 ---
 

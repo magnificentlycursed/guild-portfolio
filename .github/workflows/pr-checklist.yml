@@ -65,7 +65,7 @@ jobs:
           ')
 
           if [ -z "$checklist_section" ]; then
-            echo "::error::PR body does not contain a `## Completion checklist (merge-gating)` section."
+            echo "::error::PR body does not contain a '## Completion checklist (merge-gating)' section."
             echo "::error::The .github/PULL_REQUEST_TEMPLATE.md provides the canonical structure — restore it."
             exit 1
           fi
@@ -81,13 +81,13 @@ jobs:
           placeholder_count=$(printf '%s\n' "$checklist_section" | grep -cE '^[[:space:]]*-[[:space:]]+\[[[:space:]]\][[:space:]]+\[' || true)
 
           if [ "$unchecked_count" -gt 0 ]; then
-            echo "::error::PR completion checklist has $unchecked_count unchecked item(s) — all must be `- [x]` before merge."
+            echo "::error::PR completion checklist has $unchecked_count unchecked item(s) — all must be checked (\`- [x]\`) before merge."
             echo ""
             echo "Unchecked items:"
             printf '%s\n' "$checklist_section" | grep -nE '^[[:space:]]*-[[:space:]]+\[[[:space:]]\]' || true
             echo ""
             if [ "$placeholder_count" -gt 0 ]; then
-              echo "::warning::$placeholder_count item(s) appear to be unfilled template placeholders (lines matching `- [ ] [...]`)."
+              echo "::warning::$placeholder_count item(s) appear to be unfilled template placeholders (lines matching '- [ ] [placeholder]')."
               echo "::warning::Replace the bracketed placeholders with concrete spot-check conditions, OR delete the placeholder lines if not applicable."
             fi
             exit 1

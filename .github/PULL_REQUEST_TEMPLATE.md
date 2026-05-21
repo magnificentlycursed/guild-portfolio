@@ -79,10 +79,22 @@ Spot-check items go here, NOT in informal prose. Each item names a verifiable co
 - [ ] Spot-check: [name the condition + the verification command + the expected output]
 - [ ] [add more spot-checks as needed]
 
-### Operator-action queue (post-merge)
+### Tool/CI failure findings (per `supplements/github-actions.md` § Workflow failure discipline + per-error-class owner table)
 
 <!--
-Items the operator must take action on AFTER merge — typically upstream filings, CI configuration changes, branch-protection updates, install-verification runs. NOT merge-gating; these are tracked separately.
+Every tool/CI/prompt error encountered while authoring this PR is logged here as a finding with classification + routing per primer 4 + the per-error-class owner table in supplements/github-actions.md. A "fix-and-force-push" without a finding record is the silent-fix anti-pattern.
+
+Per [Review 87 Finding 6](vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md) per-error-class ownership: CI/CD checks that build/test/lint the artifact → Platform Engineer; AI-inline-execution tool/command errors (bash + gh + sub-agent + LLM tool) → AI Engineer; process-enforcement scripts/hooks (merge-gate workflow; methodology-discipline gates) → AI Engineer; early-detection scripts/hooks (pre-commit) → AI Engineer; artifact-domain tool errors (cargo test / clippy / compile) → SE / QE per Dim coverage; link checker → Documentation Reviewer.
+
+If no tool/CI/prompt errors were encountered during this PR's authoring, write "None" and tick the box.
+-->
+
+- [ ] All tool/CI/prompt errors encountered during this PR have been logged + worked as findings + routed to the correct per-error-class owner (or "None — no tool/CI/prompt errors encountered")
+
+## Operator-action queue (post-merge; NOT merge-gating)
+
+<!--
+Items the operator must take action on AFTER merge — typically upstream filings, CI configuration changes, branch-protection updates, install-verification runs. NOT merge-gating; tracked separately. This section is intentionally OUTSIDE the `## Completion checklist` heading so the pr-checklist.yml merge-gate workflow does not flag these items as blocking merge. The discipline is to leave them unchecked while the PR is open; the operator ticks them as they are completed post-merge.
 -->
 
 - [ ] [post-merge operator action 1]

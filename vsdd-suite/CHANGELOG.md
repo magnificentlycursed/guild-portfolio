@@ -4,6 +4,32 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-21 12:30Z ([Reviews 84 + 85 + 86 + 87](suite-development/review-log/2026-05-21-suite-review.md): upstream-suite remediation + per-domain-index retirement + Doc Reviewer R4 + three-audience rename + external-feedback mining + GitHub Actions supplement + PR template merge-gate + PROCESS.md three-audience-lens + live CI failure mining + tool/prompt-error-as-finding methodology codification with operator-refined per-error-class ownership — 15 Findings Resolved; v0.13.0; PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40))
+
+### Added (suite-side — tool/prompt-error methodology codification, [Review 87](suite-development/review-log/2026-05-21-suite-review.md#review-87--2026-05-21-1230z))
+
+- **[`vsdd-suite/domains/role/AI-ENGINEER-REVIEW.md`](domains/role/AI-ENGINEER-REVIEW.md)** § Error-event ownership boundary — new paragraph after Coordination clarifying AI Engineer owns AI-inline-execution + process-enforcement + early-detection surfaces; does NOT own artifact-CI/CD (Platform Engineer) or artifact-domain tools (SE/QE/etc. per existing Dim coverage). Closes [Review 87 Finding 6](suite-development/review-log/2026-05-21-suite-review.md#review-87--2026-05-21-1230z).
+- **[`vsdd-suite/supplements/github-actions.md`](supplements/github-actions.md)** § Workflow failure discipline — new per-error-class owner table extending the CI-only scope (Finding 3) to the generalized error-event class (Finding 6). Covers 8 error classes with explicit owner + rationale.
+- **[`.github/PULL_REQUEST_TEMPLATE.md`](../.github/PULL_REQUEST_TEMPLATE.md)** § Tool/CI failure findings (renamed from § CI failure findings) — attestation line covers any erroring prompt or tool encountered during PR authoring + names the per-error-class owner routing.
+
+### Changed (suite-side — 2 process-enforcement defects fixed, [Review 87](suite-development/review-log/2026-05-21-suite-review.md#review-87--2026-05-21-1230z) Findings 1 + 2)
+
+- **[`.github/workflows/pr-checklist.yml`](../.github/workflows/pr-checklist.yml)** — fixed 3 bash backtick command-substitution defects in echo strings (lines 68, 84, 90 area). Backticks were interpreted as command substitution + executed `-` as command + corrupted the operator-visible error message. Fix: escape-or-quote replacement.
+- **[`.github/PULL_REQUEST_TEMPLATE.md`](../.github/PULL_REQUEST_TEMPLATE.md)** — restructured: promoted `### Operator-action queue (post-merge)` from H3 sub-section under `## Completion checklist` H2 to its own `## Operator-action queue (post-merge; NOT merge-gating)` H2 section. The structural separation makes the `pr-checklist.yml` workflow's parser behavior match the operator's intent (only items inside `## Completion checklist` are merge-gating).
+
+### Resolved (added to existing Reviews 84 + 85 + 86 closures)
+
+- **[Review 87](suite-development/review-log/2026-05-21-suite-review.md#review-87--2026-05-21-1230z) Finding 1** — `pr-checklist.yml` bash backtick defect (3 sites) fixed; owner re-classified ai-engineer per Finding 6 (process-enforcement workflow).
+- **[Review 87](suite-development/review-log/2026-05-21-suite-review.md#review-87--2026-05-21-1230z) Finding 2** — PR template structural defect (Operator-action queue H3 inside Completion checklist H2) fixed; owner re-classified ai-engineer per Finding 6.
+- **[Review 87](suite-development/review-log/2026-05-21-suite-review.md#review-87--2026-05-21-1230z) Finding 3** — Methodology codification "Failed PR CI/CD checks are findings, not silent fixes" across 3 surfaces.
+- **[Review 87](suite-development/review-log/2026-05-21-suite-review.md#review-87--2026-05-21-1230z) Finding 4** — Retroactive PR #38 CI mining: 4 failed runs all "'toolchain' is a required input"; recurring error class identified (dtolnay/rust-toolchain auto-discovery limitation in subdirectory projects); underlying fix already landed in PR #38 commit 98ead5b.
+- **[Review 87](suite-development/review-log/2026-05-21-suite-review.md#review-87--2026-05-21-1230z) Finding 5** — "Parser aborted" error AI Engineer Dim 11 framing + methodology resolution proposal (machine-readability budget per artifact class + regression-check on artifact size + 4-step playbook); specific incident Deferred-pending-source-identification.
+- **[Review 87](suite-development/review-log/2026-05-21-suite-review.md#review-87--2026-05-21-1230z) Finding 6** — Methodology codification with 4 operator-driven refinements landing the final per-error-class ownership scope.
+
+**Backlog after Reviews 84 + 85 + 86 + 87: 1 Open ([Review 79 Finding 2 Deferred](suite-development/review-log/2026-05-20-suite-review.md#review-79--2026-05-20-1730z)) + 7 prior-Deferred + 1 Deferred-pending-source-identification (Review 87 Finding 5 specific Parser-aborted incident reproduction)**.
+
+---
+
 ## Unreleased — 2026-05-21 12:00Z ([Reviews 84 + 85 + 86](suite-development/review-log/2026-05-21-suite-review.md): upstream-suite remediation — 4 methodology fixes + per-domain-index retirement + Doc Reviewer Round 4 + three-audience rename + external-feedback mining + GitHub Actions supplement + PR template rewrite + pr-checklist.yml merge-gating workflow + PROCESS.md three-audience-lens optimization — 9 Findings Resolved; v0.13.0; PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40))
 
 ### Added (suite-side — GitHub Actions supplement + PR template merge-gate integration, [Review 86](suite-development/review-log/2026-05-21-suite-review.md#review-86--2026-05-21-1200z))
