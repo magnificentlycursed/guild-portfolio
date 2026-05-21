@@ -1,6 +1,6 @@
 # External Review — @shimmermathlabs.com — 2026-05-21
 
-<!-- hook-bypass: the operator's handle `@magnificentlycursed.com` appears in verbatim source-content quotes as the author attribution of operator-posted Bluesky messages within a `[@handle](https://bsky.app/profile/handle)` markdown link form. Per primer 3 § Confidentiality-aware citation: this is a public-URL context (bsky.app/profile/ is a public identity surface the operator authored themselves). The check-review-log-anonymization.sh hook's current URL-allowlist recognizes github.com/gitlab.com/bitbucket.org/noreply.* but not bsky.app yet; updating the hook to add bsky.app/profile/ to the allowlist is a queued follow-up per [Review 88 Finding 4 codification](../2026-05-21-suite-review.md#review-88--2026-05-21-1330z) operator-action queue. -->
+<!-- PR #43 closed the queued hook-update: bsky.app/profile/ is now in the check-review-log-anonymization.sh allowlist; the hook-bypass that previously lived here is no longer needed. -->
 
 
 ## Reviewer

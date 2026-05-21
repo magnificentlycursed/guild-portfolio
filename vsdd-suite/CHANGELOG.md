@@ -4,6 +4,24 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-21 ([PR #43](https://github.com/magnificentlycursed/guild-portfolio/pull/43): broaden anonymization hook to all committed text files + allowlist `bsky.app/profile/` + document Review-85 upstream-crosslink operator-action-queue deferral)
+
+### Changed (suite-side anonymization discipline)
+
+- **[`.pre-commit-config.yaml`](../.pre-commit-config.yaml)** `review-log-anonymization` hook entry — scope broadened from IAR-review-log markdown only to all committed text files (`types: [text]`; `files:` filter removed). Per the operator's directive ("The anonymization check should be broadened to include logs, commits, etc. Basically it should apply to all committed files") — the prior narrow scope rested on the assumption that source code is identity-free by construction; that assumption doesn't hold once the suite carries markdown audit trails, supplementary docs, hook source, etc. The `id` is preserved as `review-log-anonymization` for backward-compatibility with prior `<!-- hook-bypass: ... -->` references that named the hook by its old id; the `name` reflects the broadened scope.
+- **[`vsdd-suite/hooks/check-review-log-anonymization.sh`](hooks/check-review-log-anonymization.sh)** — docstring rewritten to reflect the broader scope. Public-URL allowlist extended with `bsky.app/profile/` (per the queued operator-action item from PR #42; the Nathan-thread external-review file's hook-bypass is now removable). Dry-run against all currently-committed files: clean (zero pre-existing violations).
+- **[`vsdd-suite/suite-development/review-log/external-review-log/2026-05-21-shimmermathlabs.md`](suite-development/review-log/external-review-log/2026-05-21-shimmermathlabs.md)** — hook-bypass HTML comment removed (the bsky.app/profile/ allowlist addition makes it unnecessary).
+
+### Changed (documentation)
+
+- **[`vsdd-suite/suite-development/review-log/external-review-log/2026-05-20-dollspace-gay.md`](suite-development/review-log/external-review-log/2026-05-20-dollspace-gay.md)** § Notes — new "Operator-action queue (deferred — post-operator-priority-cycle)" sub-section documenting the deferral of the 13 upstream crosslink coordination items (7 CLI bugs + 5 absorbability concepts + 1 typed-label / `--label-schema` proposal) per operator framing in PR #43 ("I have a lot of queued work that I want to complete before enhancements to crosslink"). Names the filing destination (https://github.com/forecast-bio/crosslink/issues), the suggested bundling (9 GitHub issues), and the deferral trigger (operator queued-work bandwidth). Per [primer 4 § "Defer routing to the next round" anti-pattern](primers/4-feedback-integration.md): "deferred" is acceptable WITH a named trigger.
+
+### Operator-action (post-merge)
+
+- **Branch protection rule applied to `main` via GitHub API** before PR #43: required status check `Verify completion checklist` from PR #41's `pr-checklist.yml` workflow now gates merge. Admins can bypass; force-push still permitted (admins only); no PR-review requirement.
+
+---
+
 ## Unreleased — 2026-05-21 13:30Z ([Review 88](suite-development/review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z): Phase 6 attestation routing + Nathan-thread UX/TW/QE cluster mining + external-review-log subfolder pattern + 2 new hooks (check-external-review-anonymization + check-suite-internal-terminology) + primer 1c discipline extensions — 6 Findings Resolved; v0.14.0; PR [#42](https://github.com/magnificentlycursed/guild-portfolio/pull/42)) — full Review 88 entry covers the cascade; the upstream-suite-mitigation list is in [Review 88 Finding 3](suite-development/review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z); the external-review-log codification is in [Finding 4](suite-development/review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z); the Phase 6 attestation is at [bookmark-cli-manual VDD-IAR Alignment Review 3](../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-vdd-iar-alignment.md).
 
 ---

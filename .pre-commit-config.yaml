@@ -16,21 +16,23 @@ repos:
         types: [text]
 
       - id: review-log-anonymization
-        name: review-log anonymization (IAR suite hook)
+        name: anonymization (IAR suite hook — broadened to all committed text files at PR #43)
         language: script
-        # Suite-level hook: lives at vsdd-suite/hooks/
-        # so it carries with the suite if the suite is forked into a separate
-        # repo. Scoped to IAR review-log markdown only — the source-code
-        # no-home-dir-paths hook above covers everything else. Allows public
-        # URL contexts (github.com/, gitlab.com/, bitbucket.org/, noreply.*).
-        # Registered as G-98 in vsdd-suite/suite-development/FINDINGS-INDEX.md.
+        # Suite-level hook: lives at vsdd-suite/hooks/ so it carries with
+        # the suite if the suite is forked into a separate repo. PR #43
+        # broadened scope from IAR-review-log-only to ALL committed text
+        # files per operator directive ("The anonymization check should be
+        # broadened to include logs, commits, etc. Basically it should
+        # apply to all committed files"). Allows public-URL contexts
+        # (github.com/, gitlab.com/, bitbucket.org/, bsky.app/profile/,
+        # noreply.*). Registered as G-98 in
+        # vsdd-suite/suite-development/FINDINGS-INDEX.md. The `id` is
+        # preserved as `review-log-anonymization` for backward-compatibility
+        # with prior `<!-- hook-bypass: ... -->` references that named the
+        # hook by its old id; the `name` reflects the broadened scope.
         entry: vsdd-suite/hooks/check-review-log-anonymization.sh
         pass_filenames: true
-        # Covers: suite-internal markdown (vsdd-suite/**), future-project IAR
-        # markdown (<project>/vsdd-suite/**), and completed-project IAR
-        # markdown still using the legacy directory name (<project>/iterative-
-        # adversarial-refinement/**) per the G-88 forward-only constraint.
-        files: ^(vsdd-suite/.*\.md|.*/iterative-adversarial-refinement/.*\.md|.*/vsdd-suite/.*\.md)$
+        types: [text]
 
       - id: check-crosslink-references
         name: check crosslink command/flag citations against installed CLI (IAR suite G-139 hook)
