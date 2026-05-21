@@ -3,7 +3,7 @@
 #
 # Usage:
 #   cd <your-project>
-#   /path/to/vsdd-suite/templates/scaffold-project.sh [domain1 domain2 ...]
+#   /path/to/vsdd-suite/templates/scaffold-project.sh [--with-per-domain-indexes] [domain1 domain2 ...]
 #
 # With no arguments, scaffolds the seven always-active core domains
 # (SOFTWARE-ENGINEER, QUALITY-ENGINEER, UX, SECURITY, SOLUTION-ARCHITECT,
@@ -13,6 +13,19 @@
 # project. Pass any other extended domain (RED-TEAM, PERFORMANCE-ENGINEER,
 # TECHNICAL-WRITER, ACCESSIBILITY, PRIVACY, LOCALIZATION) as additional
 # arguments if active.
+#
+# Per-domain index files are OPTIONAL as of v0.13.0 (Review 84 — see
+# `suite-development/suite-development.md` § Structure). The default scaffold
+# now creates the project's `vsdd-suite/review-log/` folder and
+# `vsdd-suite/FINDINGS-INDEX.md` (the canonical project-level review-log
+# navigation surface) but does NOT create per-domain `<DOMAIN>-REVIEW.md`
+# index files. Pass `--with-per-domain-indexes` (must appear before any
+# domain arguments) to opt into the prior shape — the script then copies
+# the `DOMAIN-REVIEW-template.md` template for each activated domain. The
+# `bookmark-cli-manual` reference example retired its per-domain indexes in
+# PR #40 and is the new canonical reference shape; future projects that
+# want a per-domain navigation surface organized by domain rather than by
+# date+domain use the opt-in flag.
 #
 # The script scaffolds the same directory shape whether you use crosslink
 # or run the suite manually. When the project has already been initialized
@@ -43,6 +56,14 @@ DEFAULT_DOMAINS=(
   SOLUTION-OWNER
   VDD-IAR-ALIGNMENT
 )
+
+# Per-domain index files are optional as of v0.13.0 (Review 84). Default: off.
+# Opt in with --with-per-domain-indexes; must appear before any domain arguments.
+WITH_PER_DOMAIN_INDEXES=0
+if [ "${1:-}" = "--with-per-domain-indexes" ]; then
+  WITH_PER_DOMAIN_INDEXES=1
+  shift
+fi
 
 DOMAINS=("$@")
 if [ ${#DOMAINS[@]} -eq 0 ]; then
@@ -83,16 +104,25 @@ else
   echo "vsdd-suite/FINDINGS-INDEX.md already exists — skipped"
 fi
 
-# Copy per-domain index templates
-for domain in "${DOMAINS[@]}"; do
-  target="vsdd-suite/${domain}-REVIEW.md"
-  if [ ! -f "$target" ]; then
-    cp "$TEMPLATES_DIR/DOMAIN-REVIEW-template.md" "$target"
-    echo "Created $target (from template — customize per templates/README.md)"
-  else
-    echo "$target already exists — skipped"
-  fi
-done
+# Per-domain index templates are OPTIONAL as of v0.13.0 (Review 84).
+# The canonical default is review-log/ + FINDINGS-INDEX.md (already created
+# above) as the navigation surface. Pass --with-per-domain-indexes to opt
+# into the prior shape (one <DOMAIN>-REVIEW.md per activated domain).
+if [ "$WITH_PER_DOMAIN_INDEXES" -eq 1 ]; then
+  for domain in "${DOMAINS[@]}"; do
+    target="vsdd-suite/${domain}-REVIEW.md"
+    if [ ! -f "$target" ]; then
+      cp "$TEMPLATES_DIR/DOMAIN-REVIEW-template.md" "$target"
+      echo "Created $target (from template — customize per templates/README.md)"
+    else
+      echo "$target already exists — skipped"
+    fi
+  done
+else
+  echo "Per-domain index files (vsdd-suite/<DOMAIN>-REVIEW.md) not created — default since v0.13.0."
+  echo "Project navigates via vsdd-suite/review-log/ + vsdd-suite/FINDINGS-INDEX.md."
+  echo "Pass --with-per-domain-indexes (before any domain arguments) to opt into the prior shape."
+fi
 
 # Record the suite version this scaffold was done against (if a VERSION file exists)
 # This anchors the project's suite usage to a specific suite revision.
@@ -165,10 +195,19 @@ cat <<'EOF'
 
 Scaffold complete. Next steps:
 
-1. Customize the placeholders in each vsdd-suite/<DOMAIN>-REVIEW.md per
-   templates/README.md § Customization checklist. The role line, sycophancy
-   check, and language supplement come verbatim from the domain prompt
-   file in vsdd-suite/domains/role/<DOMAIN>-REVIEW.md.
+1. The default project navigation surface is vsdd-suite/review-log/ +
+   vsdd-suite/FINDINGS-INDEX.md (the canonical shape as of v0.13.0 —
+   Review 84). New rounds land as session files at
+   vsdd-suite/review-log/YYYY-MM-DD-<domain-slug>.md and each finding
+   appends a row to vsdd-suite/FINDINGS-INDEX.md (or files as a labelled
+   crosslink issue in crosslink mode).
+
+   If you opted into the prior per-domain-index shape via
+   --with-per-domain-indexes, customize the placeholders in each
+   vsdd-suite/<DOMAIN>-REVIEW.md per templates/README.md § Customization
+   checklist. The role line, sycophancy check, and language supplement
+   come verbatim from the domain prompt file in
+   vsdd-suite/domains/role/<DOMAIN>-REVIEW.md.
 
 2. Open Phase 1a+1b — load vsdd-suite/primers/1ab-spec-crystallization.md
    in a fresh AI chat session and work the driving questions to populate

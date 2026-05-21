@@ -19,6 +19,8 @@ Declare one of the four intent levels below. The intent gates the IAR intensity 
 
 **[Phase 6](../primers/6-convergence.md) strategy:** `<one-sentence Phase 6 declaration — required at capstone and production intents; optional at lower tiers. Choose: "not applicable — <rationale>" OR "planned — <which of the four axes converge and how>." See DOMAIN-INDEX § Phase 5 / Phase 6 strategy declaration (G-162).>`
 
+**Cold-session budget:** `<required at capstone and production intents; optional at lower tiers. Name: max rounds before stop-trigger consultation; max agents per round; per-finding token cost band; model selection ceiling. Default to the intent's band from` [`../domains/DOMAIN-INDEX.md`](../domains/DOMAIN-INDEX.md) `§ Cold-session budget per intent, OR name an explicit per-project deviation with rationale. Example: "capstone default — max 4 rounds; max 10 parallel agents per round (or 4-cluster batched with adversarial-pair separation); 100k–300k tokens per substantive finding; Opus 4.7 for SA/Security/Red Team/VDD-IAR Alignment/AI Engineer; Sonnet 4.6 for the remaining domains; Haiku 4.5 for mechanical-sweep delegated sub-agents." See` [`../primers/3-review-session.md`](../primers/3-review-session.md) `§ Pre-cycle methodology check for the cycle-spawn declaration discipline and` [`../suite-development/suite-development.md`](../suite-development/suite-development.md) `§ Per-review entry preamble § Cost-tally for the after-action cost report discipline.>`
+
 ## What this project does
 
 One paragraph. State the user-visible purpose in concrete behavioral terms. A reader who knows nothing about the project must finish this paragraph able to describe what it does.

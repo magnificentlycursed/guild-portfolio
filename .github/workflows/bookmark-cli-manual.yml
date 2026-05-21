@@ -18,6 +18,19 @@ on:
       - 'vsdd-suite-reference-examples/bookmark-cli-manual/**'
       - '.github/workflows/bookmark-cli-manual.yml'
 
+# Per the VSDD suite's `supplements/github-actions.md` § Security § `permissions:` block:
+# read-only access is sufficient for build + test + lint workflows. Declaring explicitly
+# prevents the workflow from inheriting org-default-permissive scope.
+permissions:
+  contents: read
+
+# Per `supplements/github-actions.md` § Platform Engineering § Concurrency control:
+# cancel obsolete runs from supersession pushes to save runner minutes + reduce
+# status-check noise. Per-ref grouping (not per-PR) so direct pushes also cancel.
+concurrency:
+  group: 'bookmark-cli-manual-${{ github.ref }}'
+  cancel-in-progress: true
+
 defaults:
   run:
     working-directory: vsdd-suite-reference-examples/bookmark-cli-manual
@@ -26,6 +39,9 @@ jobs:
   fmt:
     name: cargo fmt --check
     runs-on: ubuntu-latest
+    # Per `supplements/github-actions.md` § Platform Engineering § Workflow time budget:
+    # ~5 min observed median; 10 min cap catches hangs without over-allowing.
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
@@ -47,6 +63,9 @@ jobs:
   clippy:
     name: cargo clippy
     runs-on: ubuntu-latest
+    # Per `supplements/github-actions.md` § Platform Engineering § Workflow time budget:
+    # ~5 min observed median; 10 min cap catches hangs without over-allowing.
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
@@ -68,6 +87,9 @@ jobs:
   test:
     name: cargo test
     runs-on: ubuntu-latest
+    # Per `supplements/github-actions.md` § Platform Engineering § Workflow time budget:
+    # ~5 min observed median; 10 min cap catches hangs without over-allowing.
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
@@ -91,6 +113,9 @@ jobs:
   deny:
     name: cargo deny check
     runs-on: ubuntu-latest
+    # Per `supplements/github-actions.md` § Platform Engineering § Workflow time budget:
+    # ~5 min observed median; 10 min cap catches hangs without over-allowing.
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
@@ -113,6 +138,9 @@ jobs:
   audit:
     name: cargo audit
     runs-on: ubuntu-latest
+    # Per `supplements/github-actions.md` § Platform Engineering § Workflow time budget:
+    # ~5 min observed median; 10 min cap catches hangs without over-allowing.
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4

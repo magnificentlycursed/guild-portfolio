@@ -78,6 +78,56 @@ repos:
         pass_filenames: true
         # Scope to suite-review-log AND per-project review-log markdown.
         files: ^(vsdd-suite/suite-development/review-log/.*\.md|.*/vsdd-suite/review-log/.*\.md)$
+        # external-review-log/ has its own shape contract (Reviewer + Source +
+        # Verbatim source content sections; reviewer-named files; identity-
+        # correlation discipline) per Review 88 — handled by the
+        # check-external-review-anonymization hook below, NOT by this hook's
+        # suite-review-preamble pattern.
+        exclude: ^vsdd-suite/suite-development/review-log/external-review-log/
+
+      - id: check-suite-internal-terminology
+        name: check suite-internal-terminology containment in user-facing project artifacts (VSDD suite Review 88 hook)
+        language: python
+        # Per `suite-development.md` § External-review-log subfolder pattern
+        # (companion hook) — codified at Review 88 (PR #42) after
+        # @shimmermathlabs.com's external-feedback Post 10 surfaced
+        # "Sycophancy-compensation reminder" leaking into user-facing
+        # manual-test prose. Scans user-facing project artifacts
+        # (manual-tests/*.md; README.md; TODO.md; DESIGN.md;
+        # INSTALL-VERIFICATION.md) for suite-internal AI-agent-discipline
+        # vocabulary:
+        # - "Sycophancy-compensation reminder"
+        # - Bare `<Domain> Dim N` references (TW Dim 12; QE Dim 2; etc.)
+        # - Bare `G-NNN` registry IDs without markdown link
+        # - "adversarial-cold-session" / "cluster-batching" / "cold-session-discipline"
+        # Quoted blocks (> prefix) + fenced code blocks are skipped per
+        # source-archiving discipline. `<!-- hook-bypass: <rationale> -->`
+        # in the first 5 lines bypasses for that file only.
+        entry: vsdd-suite/hooks/check-suite-internal-terminology.py
+        pass_filenames: true
+        files: ^([^/]+/manual-tests/.*\.md|[^/]+/README\.md|[^/]+/TODO\.md|[^/]+/DESIGN\.md|[^/]+/INSTALL-VERIFICATION\.md|.*/manual-tests/[^/]+\.md|.*/(README|TODO|DESIGN|INSTALL-VERIFICATION)\.md)$
+        exclude: ^(vsdd-suite/|.*/vsdd-suite/|.*/PROCESS\.md|.*/CHANGELOG\.md|.*/COMPATIBILITY\.md)
+        require_serial: false
+
+      - id: check-external-review-anonymization
+        name: check external-review-log identity-correlation discipline (VSDD suite Review 88 hook)
+        language: python
+        # Per `suite-development.md` § External-review-log subfolder pattern §
+        # Identity-correlation discipline (Review 88, PR #42):
+        # - Multi-platform handle declarations must share a normalized slug
+        #   (e.g., dollspace-gay/dollspace.gay OK; nwhitehead/shimmermathlabs FAIL)
+        # - `**Name:**` fields must match a declared handle slug (real names
+        #   that differ from any handle are correlation-surfacing — FAIL)
+        # - Bare email addresses in Reviewer/Source preamble are FAIL (emails
+        #   in quoted source-content blocks are preserved per source-archiving)
+        # - H1 + required H2 sections (Reviewer + Source) enforce shape contract
+        # Operator-context: the suite (and many reviewers) are marginalized
+        # people; surfacing real names + handles in correlated form has
+        # historically been a vector for harm. Knowability ≠ surfacing.
+        entry: vsdd-suite/hooks/check-external-review-anonymization.py
+        pass_filenames: true
+        files: ^vsdd-suite/suite-development/review-log/external-review-log/.*\.md$
+        require_serial: false
 
       - id: check-project-review-discipline
         name: check project-level domain-review entry-structure discipline (VSDD suite Review 74 hook)

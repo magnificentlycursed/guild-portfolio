@@ -58,3 +58,14 @@ Phase 2a is complete and ready to hand off to Phase 2b when:
 2. Every new test fails when run, and the failure reason confirms the missing-feature cause (not a setup error)
 3. The Red Gate state is committed — the commit hash is the verifiable boundary between Phase 2a and Phase 2b
 4. No implementation logic has been written this session — `2b-implementation.md` runs next against the Red Gate commit
+
+
+## Three-audience lens
+
+This Red Gate primer serves all three audiences of the [three-audience design principle](../suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3) ([Review 80](../suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3; renamed in [Review 84](../suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z) Finding 4):
+
+- **Suite developers** evolving this primer treat the prose as the methodology-authoring surface for Phase 2a Red Gate — changes here are methodology shifts requiring their own Review.
+- **Suite users** running a session against this primer treat it as the canonical step-by-step for Phase 2a Red Gate on their own project; the completion criteria are what their next layer-gate or phase-close commit is checked against.
+- **AI agents** loaded with this primer as cold-session context treat it as the spec for the session's authoring shape (file locations, classification vocabulary, the audit-trail entries this session produces); the primer's named artifacts + their schemas are the agent-API contract for what the session writes.
+
+See [`../suite-development/suite-development.md`](../suite-development/suite-development.md) [§ Three-audience design principle](../suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3) for the full discipline.

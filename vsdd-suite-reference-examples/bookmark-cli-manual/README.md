@@ -45,7 +45,7 @@ cargo test
 
 ## How this was built
 
-Built using the [VSDD (Verified Spec-Driven Development) Suite](../../vsdd-suite/README.md) — the per-phase primers and per-domain review prompts. The spec is in [`DESIGN.md`](DESIGN.md); the layer plan and manual testing checklist are in [`TODO.md`](TODO.md); the per-domain review-log indices are in [`vsdd-suite/`](vsdd-suite/) (scaffolded via the suite's `templates/scaffold-project.sh`). IAR (Iterative Adversarial Refinement) runs at Phase 3 per the active domain set declared in [`DESIGN.md`](DESIGN.md) § Project intent; MVR (maximum viable refinement) is the per-domain stop trigger; TDD (test-driven development) discipline applies at Phase 2a (Red Gate) → Phase 2b (implementation).
+Built using the [VSDD (Verified Spec-Driven Development) Suite](../../vsdd-suite/README.md) — the per-phase primers and per-domain review prompts. The spec is in [`DESIGN.md`](DESIGN.md); the layer plan and manual testing checklist are in [`TODO.md`](TODO.md); the per-session review-log files are in [`vsdd-suite/review-log/`](vsdd-suite/review-log/) and the project finding registry is at [`vsdd-suite/FINDINGS-INDEX.md`](vsdd-suite/FINDINGS-INDEX.md) (scaffolded via the suite's `templates/scaffold-project.sh`). IAR (Iterative Adversarial Refinement) runs at Phase 3 per the active domain set declared in [`DESIGN.md`](DESIGN.md) § Project intent; MVR (maximum viable refinement) is the per-domain stop trigger; TDD (test-driven development) discipline applies at Phase 2a (Red Gate) → Phase 2b (implementation).
 
 Phase progression for Layer 1:
 
@@ -55,7 +55,7 @@ Phase progression for Layer 1:
 | 1b | [`TODO.md`](TODO.md) | Complete |
 | 2a | [`tests/bookmarks.rs`](tests/bookmarks.rs) Red Gate | Complete (4 failing tests committed before implementation) |
 | 2b | [`src/lib.rs`](src/lib.rs), [`src/main.rs`](src/main.rs) | Complete (all tests pass) |
-| 3 | [`vsdd-suite/<DOMAIN>-REVIEW.md`](vsdd-suite/) per-domain indices | Scaffolded; rounds-in-progress (this is reference-implementation work, not a real merge gate) |
+| 3 | per-session [`vsdd-suite/review-log/`](vsdd-suite/review-log/) files + [`vsdd-suite/FINDINGS-INDEX.md`](vsdd-suite/FINDINGS-INDEX.md) registry | Complete (7 of 12 active domains at MVR; 2 operator-gated MVR-blocked — Platform Engineer install-verification + Performance Engineer fsync benchmark deferred to Layer 2; 1 Deferred sweep-discipline carryforward routed to suite-level remediation; AI Engineer R1 closed in PR #39; Round 4 cluster — UX/TW/QE — closed in PR #42 post-Nathan-Bluesky-thread feedback) |
 | 4 | [Phase 4](../../vsdd-suite/primers/4-feedback-integration.md) routing | Routed 80 findings through Phase 4 → fix cycle → Round 2 verification ([Review 82](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z)) |
 
 ## License

@@ -98,3 +98,14 @@ The crosslink session does not need a dedicated `session work` re-attach for Pha
 ## Manual mode
 
 Same discipline; the boundary is tracked in `TODO.md` rather than crosslink. After Phase 2b implementation commits, open a fresh chat with this primer, refactor or annotate-no-refactor, commit (or record the no-refactor decision in `TODO.md` Layer N), run the test suite to confirm green, then proceed to Phase 3.
+
+
+## Three-audience lens
+
+This refactor primer serves all three audiences of the [three-audience design principle](../suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3) ([Review 80](../suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3; renamed in [Review 84](../suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z) Finding 4):
+
+- **Suite developers** evolving this primer treat the prose as the methodology-authoring surface for Phase 2c refactor — changes here are methodology shifts requiring their own Review.
+- **Suite users** running a session against this primer treat it as the canonical step-by-step for Phase 2c refactor on their own project; the completion criteria are what their next layer-gate or phase-close commit is checked against.
+- **AI agents** loaded with this primer as cold-session context treat it as the spec for the session's authoring shape (file locations, classification vocabulary, the audit-trail entries this session produces); the primer's named artifacts + their schemas are the agent-API contract for what the session writes.
+
+See [`../suite-development/suite-development.md`](../suite-development/suite-development.md) [§ Three-audience design principle](../suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3) for the full discipline.

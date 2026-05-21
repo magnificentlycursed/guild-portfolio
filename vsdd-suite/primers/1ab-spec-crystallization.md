@@ -160,3 +160,14 @@ Explicit exclusions with brief rationale.
 ```
 
 This structure will be evaluated against VDD-IAR Alignment dim 1. A design doc that enumerates only features without behavioral contracts, invariants, or edge cases is an incomplete spec.
+
+
+## Three-audience lens
+
+This spec-authoring primer serves all three audiences of the [three-audience design principle](../suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3) ([Review 80](../suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3; renamed in [Review 84](../suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z) Finding 4):
+
+- **Suite developers** evolving this primer treat the prose as the methodology-authoring surface for Phase 1a+1b spec crystallization — changes here are methodology shifts requiring their own Review.
+- **Suite users** running a session against this primer treat it as the canonical step-by-step for Phase 1a+1b spec crystallization on their own project; the completion criteria are what their next layer-gate or phase-close commit is checked against.
+- **AI agents** loaded with this primer as cold-session context treat it as the spec for the session's authoring shape (file locations, classification vocabulary, the audit-trail entries this session produces); the primer's named artifacts + their schemas are the agent-API contract for what the session writes.
+
+See [`../suite-development/suite-development.md`](../suite-development/suite-development.md) [§ Three-audience design principle](../suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3) for the full discipline.

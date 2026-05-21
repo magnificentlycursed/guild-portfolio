@@ -428,3 +428,89 @@ The operator-blocked exception is [Finding 3](#r2-f3) ([`manual-tests/install-ve
 - **[Finding 7](#r2-f7) (Phase 2a Red Gate single-commit — historical):** coordinates with the natural-next-step QE Round 2 which would evaluate the Round-2-fix-cycle-added tests' own Red Gate state separately.
 
 **Refinement-signal posture:** Round 2 closed at MVR for VDD-IAR Alignment — 0 new real findings; 2 Resolved verifying Round 1 progress; 5 Dismissed verifying Round 1 historical / operator-blocked defects against current evidence. Per the [primer 3 § Stop trigger](../../../vsdd-suite/primers/3-review-session.md) discipline, Round 3 is NOT mandatory for VDD-IAR Alignment; opening Round 3 would require new evidence per the stop-trigger discipline. The next VDD-IAR Alignment-domain artifact is the Phase 6 four-dimensional convergence-record round, gated on operator-execution of the install-verification ([Finding 3](#r2-f3)).
+
+---
+
+## Review 3 — Phase 6 four-dimensional convergence (project-terminal) — 2026-05-21 13:30Z
+
+**Layer:** 1 (project-terminal scope per [DESIGN.md § Layers 2 and 3 — deferred](../../DESIGN.md))
+**Round:** 3 — the canonical **Phase 6 four-dimensional convergence record** per [primer 6](../../../../vsdd-suite/primers/6-convergence.md) + [G-177](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-177). This round closes the project's IAR cycle at MVR for the declared Layer-1-only scope.
+**Scope:** Cross-source consistency check across the four convergence dimensions (Spec MVR + Test MVR + Implementation MVR + Formal-verification MVR) following [PR #41](https://github.com/magnificentlycursed/guild-portfolio/pull/41) closing the Platform Engineer Dim 38 / [G-155](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155) install-verification gate + [PR #42](https://github.com/magnificentlycursed/guild-portfolio/pull/42) closing the UX + Technical Writer + Quality Engineer Round 4 / Round 4 / Round 3 fix-cycle motivated by [@shimmermathlabs.com](https://bsky.app/profile/shimmermathlabs.com)'s install-verification thread.
+**Lens:** Convergence attestation. Sycophancy compensation: resisted treating "all the rounds closed" as the convergence-attestation criterion (the criterion is cross-source consistency at the point of attestation, not the historical existence of closed rounds); resisted bundling Phase 6 attestation as a single line in the suite-side [Review 88](../../../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z) (it lives canonically here as the project-terminal record per primer 6 + G-177).
+**Source:** `director-raised` — this Review is operator-directed as the project-terminal closure following the Platform Engineer Dim 38 gate closure ([PR #41](https://github.com/magnificentlycursed/guild-portfolio/pull/41)) + the UX/TW/QE Round 4/4/3 fix-cycle ([PR #42](https://github.com/magnificentlycursed/guild-portfolio/pull/42)).
+**Validator:** sanity-check (project-terminal cross-dimension consistency check has no natural domain-pair-validator).
+**Session note:** In-session with the operator during PR #42 closing. Attestation derives from the cross-source check applied to the post-PR-#42 state of the project artifacts; the four-dimensional convergence is asserted with evidence citations per dimension below.
+
+---
+
+### Resolved
+
+**Finding 1 — Phase 6 four-dimensional convergence attested (project-terminal at Layer 1)**
+
+<a id="r3-f1"></a>
+
+**Owner:** vdd-iar-alignment
+**Status:** Attested (project-terminal)
+**Blocked by:** *(none — this Review IS the closure)*
+**Validator:** sanity-check
+
+**Attestation per dimension:**
+
+#### Dimension 1 — Spec MVR (DESIGN.md round closure)
+
+[`DESIGN.md`](../../DESIGN.md) has reached round closure across PR [#38](https://github.com/magnificentlycursed/guild-portfolio/pull/38) R2 + PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40) + PR [#42](https://github.com/magnificentlycursed/guild-portfolio/pull/42) fix-cycles. Solution Owner R3 reached MVR per [PR #38 Review 82 Finding 5](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z). No Open spec findings; all Raised-to-SO findings have been adjudicated. Cross-source check: DESIGN.md § Verification architecture explicitly names the purity boundary; § Threat model names the in-scope adversaries + their mitigations; § Storage data classification names mode 0600 + confidential classification; § Performance budget names Layer-1 startup + add/list budgets; § Cold-session budget names the capstone-default budget per the new [`DOMAIN-INDEX.md`](../../../../vsdd-suite/domains/DOMAIN-INDEX.md) § Cold-session budget per intent codification. **Spec MVR: ATTESTED.**
+
+#### Dimension 2 — Test MVR (QE Reviews closure + Phase 5 Mutation Testing)
+
+[Quality Engineer Review 2](2026-05-20-quality-engineer.md) closed the Mutation Testing surface (cargo-mutants 8/8 viable kill rate post-fix; the missing falsifying test for the save-to-nested-path case was added as `save_creates_parent_directory_for_nested_path` per the retroactive-Red-Gate Phase 5 source label). [Quality Engineer Review 3](2026-05-21-quality-engineer.md) closed 2 of 3 Nathan-thread findings inline (F1 expected-output wording + F2 file-inventory); F3 (RFC 3339 scripted-check) is Deferred-to-Layer-2 per primer 1c § Manual testing checklist § Scripted-vs-human-split discipline ([Review 88 Finding 3](../../../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z)) — the Layer-2 deferral does not block the Layer-1 attestation because it routes pattern-matching/grammar-validation work to the automated-test surface where it belongs. **Test MVR: ATTESTED at Layer-1 scope.**
+
+#### Dimension 3 — Implementation MVR (every active-domain Phase 3 round at MVR)
+
+All 10 active capstone-tier role-domains at MVR at Layer-1 scope:
+
+| Domain | MVR Status | Closing Round |
+|---|---|---|
+| Software Engineer | ✅ MVR | R3 per PR #38 close |
+| Quality Engineer | ✅ MVR | R3 per PR #42 close |
+| UX | ✅ MVR | R4 per PR #42 close |
+| Security | ✅ MVR | R3 per PR #38 close |
+| Solution Architect | ✅ MVR | R1 Phase 5 close |
+| Solution Owner | ✅ MVR | R3 per PR #38 close |
+| Performance Engineer | ✅ MVR at Layer-1 scope | R2 (fsync benchmark deferred-to-Layer-2 by construction) |
+| Platform Engineer | ✅ MVR | Dim 38 gate closed by [PR #41](https://github.com/magnificentlycursed/guild-portfolio/pull/41) |
+| Red Team | ✅ MVR | R3 per PR #38 close |
+| Technical Writer | ✅ MVR | R4 per PR #42 close |
+| Documentation Reviewer | ✅ MVR | R4 per PR #40 close |
+| AI Engineer | ✅ MVR | R1 per PR #39 + R2 F6/F7/F8 closure per PR #40 |
+| VDD-IAR Alignment | ✅ MVR | R3 (this Review) |
+
+**Implementation MVR: ATTESTED at Layer-1 scope** (10 of 10 role-domains + 1 meta + 2 phase-5-active SA/QE = 13 active per [`DESIGN.md § Project intent`](../../DESIGN.md)).
+
+#### Dimension 4 — Formal-verification MVR (Purity Boundary Audit + Mutation Testing closure)
+
+Per [DESIGN.md § Project intent § Phase 5 strategy](../../DESIGN.md): Purity Boundary Audit executed ([Solution Architect Review 1](2026-05-20-solution-architect.md), 2026-05-20); Mutation Testing executed ([Quality Engineer Review 2](2026-05-20-quality-engineer.md), 2026-05-20, 100% kill rate on 8 viable mutants); property-based testing via proptest declared **deferred** (Layer-1 purity boundary is shallow — one pure function); Fuzz Testing + Proof Execution declared **not applicable** (no safety-critical / cryptographic / input-boundary attack surface warrants the tooling). All four Phase 5 surfaces are either closed or explicitly declared deferred/not-applicable with rationale. **Formal-verification MVR: ATTESTED.**
+
+**Cross-dimension consistency check:** Read in cold-context order: DESIGN.md → src/lib.rs → tests/bookmarks.rs → per-domain review-logs in [`vsdd-suite/review-log/`](../). The four dimensions reference each other without contradiction:
+
+- DESIGN.md § Verification architecture cites src/lib.rs's purity-boundary structure → matches src/lib.rs ✓
+- DESIGN.md § Threat model cites the `display_safe` sanitizer + atomic-save semantics + mode 0600 → matches src/lib.rs + tests/bookmarks.rs ✓
+- DESIGN.md § Storage data classification cites the mode-0600-on-Unix discipline → matches src/lib.rs + tests/bookmarks.rs ✓
+- per-domain review-logs cite specific DESIGN.md sections + src/file:line locations → all citations verified ✓
+- [`vsdd-suite/FINDINGS-INDEX.md`](../FINDINGS-INDEX.md) cross-cutting registry reflects the per-domain review-log state ✓
+- [`vsdd-suite/CHANGELOG.md`](../../CHANGELOG.md) v0.11.4 + v0.11.5 + v0.12.0 + v0.12.1 + v0.12.2 + v0.12.3 entries narrate the cycle without contradicting per-domain attestations ✓
+
+**Cross-dimension consistency: ATTESTED.**
+
+**Project-terminal closure declaration:** `bookmark-cli-manual` reaches Phase 6 four-dimensional convergence at Layer 1. The reference-example purpose ([G-112](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112)) is satisfied: the project exercises all 6 VSDD phases end-to-end (Phase 1a+1b spec → Phase 1c decomposition → Phase 2a Red Gate → Phase 2b implementation → Phase 2c refactor (no-refactor annotation) → Phase 3 IAR (13 active domains across 4 rounds; cluster-batching with adversarial-pair separation demonstrated in PR #38 R3) → Phase 4 routing → Phase 5 Purity Boundary Audit + Mutation Testing → Phase 6 four-dimensional convergence). Layers 2 and 3 remain explicitly deferred per [TODO.md § Layers 2 and 3 (Scoped only)](../../TODO.md); they would receive their own Phase 6 attestations at their respective layer-gate closures.
+
+**Resolution:** Phase 6 four-dimensional convergence attested for `bookmark-cli-manual` at Layer 1 (project-terminal at the declared Layer-1-only scope).
+
+**Classification:** Resolved
+
+---
+
+### Summary
+
+1 Finding Resolved in-session — Phase 6 four-dimensional convergence attested across all 4 dimensions + cross-dimension consistency check passed. **`bookmark-cli-manual` Phase 6 four-dimensional convergence: ATTESTED (project-terminal at Layer 1).** The reference-example purpose ([G-112](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112)) is fully satisfied: all 6 VSDD phases demonstrated end-to-end including the project-terminal Phase 6 closure. Backlog after Review 3: 0 (project-terminal at Layer 1; Layer-2 and Layer-3 work explicitly deferred per the project's declared scope).
+
+**Coordination:** This Review is the project-terminal closure record. Cross-references: suite-side [Review 88 Finding 5](../../../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z) routes Phase 6 attestation here; the bookmark-cli-manual [`CHANGELOG.md`](../../CHANGELOG.md) v0.12.3 entry references this Review as the Phase 6 closure; the project's [`PROCESS.md`](../../PROCESS.md) retrospective points here as the closure record for the Layer-1 cycle.

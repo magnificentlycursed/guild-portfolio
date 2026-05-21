@@ -54,3 +54,14 @@ A layer is implementation-complete and ready for IAR when:
 4. No implemented behavior exists that has no test covering it
 
 The layer is ready for **IAR** (Phase 3), not merge. IAR runs next. Do not merge before the active domains reach MVR.
+
+
+## Three-audience lens
+
+This implementation primer serves all three audiences of the [three-audience design principle](../suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3) ([Review 80](../suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3; renamed in [Review 84](../suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z) Finding 4):
+
+- **Suite developers** evolving this primer treat the prose as the methodology-authoring surface for Phase 2b implementation — changes here are methodology shifts requiring their own Review.
+- **Suite users** running a session against this primer treat it as the canonical step-by-step for Phase 2b implementation on their own project; the completion criteria are what their next layer-gate or phase-close commit is checked against.
+- **AI agents** loaded with this primer as cold-session context treat it as the spec for the session's authoring shape (file locations, classification vocabulary, the audit-trail entries this session produces); the primer's named artifacts + their schemas are the agent-API contract for what the session writes.
+
+See [`../suite-development/suite-development.md`](../suite-development/suite-development.md) [§ Three-audience design principle](../suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3) for the full discipline.

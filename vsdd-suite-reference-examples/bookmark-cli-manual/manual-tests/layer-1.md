@@ -39,12 +39,12 @@ echo "exit: $?"
 cat "$BOOKMARK_CLI_DB"
 ```
 
-Expected stdout for `bm add` (literal — empty):
+Expected stdout for `bm add` — none (the command is silent on success; the fenced block below is intentionally empty):
 
 ```
 ```
 
-Expected stderr for `bm add` (literal — empty):
+Expected stderr for `bm add` — none (the command emits nothing to stderr on success; the fenced block below is intentionally empty):
 
 ```
 ```
@@ -137,7 +137,7 @@ Expected stderr (literal):
 No bookmarks yet.
 ```
 
-Expected stdout for `bm list` (literal — empty):
+Expected stdout for `bm list` — none (the empty-state message routes to stderr so pipe-consumers like `bm list | grep ...` don't see placeholder text; the fenced block below is intentionally empty):
 
 ```
 ```
@@ -241,5 +241,3 @@ Per primer 3 § Manual testing is a second adversarial surface to IAR ([G-132](.
 
 - **Insight-reached / no findings** — all 6 steps reached expected outputs; record the session timestamp + the `Tested against:` field above + a one-line "passed clean" note. No per-domain review-log entry needed.
 - **Findings surfaced** — any step diverged from expected; record each divergence as a finding in the per-domain review log (the natural-pair domain — typically QE for test-discipline issues; [UX](../../../vsdd-suite/domains/role/UX-REVIEW.md) for output-quality concerns; SE for binary-behavior bugs) with `**Source:** director-raised` per the per-review-preamble standard ([G-133](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-133)), the divergence cited file:line + the expected vs. observed output, and the appropriate `**Owner:**` per Review 77 lifecycle.
-
-Sycophancy-compensation reminder: a 16-minute closure window with per-item specificity is the discipline working; a 16-minute closure with no per-item observed-vs-expected notes is the kind of finding a manager would flag in an audit (per TW Dim 11 [G-132](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-132)).

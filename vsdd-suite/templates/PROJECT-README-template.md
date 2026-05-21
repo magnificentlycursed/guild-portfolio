@@ -46,6 +46,8 @@ How to run the test suite.
 
 Brief paragraph noting the methodology (VSDD via the [VSDD suite](https://github.com/<suite-repo-url>)), the layer structure, and where to find the spec ([`DESIGN.md`](DESIGN.md)) and the per-domain review history ([`vsdd-suite/`](vsdd-suite/)). Useful for future-you and any reviewer evaluating process artifacts.
 
+The project's audit-trail artifacts ([`vsdd-suite/FINDINGS-INDEX.md`](vsdd-suite/FINDINGS-INDEX.md) + per-session files in [`vsdd-suite/review-log/`](vsdd-suite/review-log/)) are authored for the three audiences of the methodology's [three-audience design principle](../suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3): the project's contributors + future maintainers / cold readers (both human audiences) + AI agents performing structured lookups. The column shape + classification vocabulary + per-Finding anchor IDs are stable agent-API surface — see [`vsdd-suite/suite-development/suite-development.md`](../suite-development/suite-development.md) [§ Agent-API surface](../suite-development/suite-development.md#agent-api-surface-review-80-finding-3) for the full contract.
+
 ## License
 
 (your license here)

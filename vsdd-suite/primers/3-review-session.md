@@ -38,6 +38,25 @@ Suite-level controls help but do not substitute for reviewer judgement: `vsdd-su
 
 ---
 
+## Pre-cycle methodology check (capstone + production intent — [AI Engineer R1 F8](../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-21-ai-engineer.md))
+
+When running a multi-agent IAR cycle (parallel cold-session adversarial review at capstone or production intent; cluster-batching cycles; any cycle with more than 4 agent-spawns), open the cycle's suite-side review-log entry with a **pre-cycle declaration** naming the chosen shape + budget + rate-limit headroom + model selection. The declaration is operator-authored at cycle-spawn time, not retrospective. It exists so the AI Engineer Round-N+1 verification can regression-check actual cost against declared cost — without a declaration, "the cycle reached its target state at the chosen shape" is sunk-cost reasoning, not calibration evidence.
+
+Required pre-cycle declaration fields:
+
+- **Spawn shape:** N agents per round; cluster vs. per-domain; expected total agent-spawns across the cycle. State the adversarial-pair-separation invariant explicitly if cluster-batching ([Security](../domains/role/SECURITY-REVIEW.md) ↔ [Red Team](../domains/role/RED-TEAM-REVIEW.md) and [Technical Writer](../domains/role/TECHNICAL-WRITER-REVIEW.md) ↔ [Documentation Reviewer](../domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) pair-members on different agents).
+- **Per-cycle budget:** max-rounds before stop-trigger consultation; max-agents-per-round ceiling; per-cycle estimated token consumption against the intent-tier expected band per [`domains/DOMAIN-INDEX.md`](../domains/DOMAIN-INDEX.md) § Intent calibration § Cold-session budget.
+- **Rate-limit headroom:** Anthropic daily-token-limit headroom estimated against the prior 24 hours' usage; named fallback plan if mid-cycle rate-limit-hit occurs (retry shape; cache-warmed restart; cluster-shape downgrade).
+- **Model selection per task class:** [Opus 4.7](../README.md) for highest-complexity adversarial review (typically Security / Red Team / SA / VDD-IAR Alignment); [Sonnet 4.6](../README.md) for mid-complexity domain reviews (SE / UX / Performance Engineer / Platform Engineer); [Haiku 4.5](../README.md) for mechanical sweep or audit-trail-only passes (project-side stale-citation sweeps; finding-rows registry walks). When the cycle uses a uniform model, name the rationale; when mixed, name the per-cluster mapping.
+
+The pre-cycle declaration is closed by an **after-action cost report** in the cycle's audit-trail entry per [`suite-development/suite-development.md`](../suite-development/suite-development.md) § Governing standard for project-level review logs § Cost-tally discipline (capstone+ intent only — AI Engineer R1 F6). The pair (pre-cycle declaration → after-action cost report) is the AI Engineer Dim 13 pre-cycle methodology check applied at the cycle boundary.
+
+**Cycles exempt from the pre-cycle declaration:**
+
+- Single-agent rounds (one cold-session per domain, run serially) — the operator can make the spawn decision inline without compounding cost risk.
+- Sub-agent delegation from a main session where the sub-agent's scope is the work product, not adversarial review (e.g., the main session delegates a mechanical sweep to a Haiku 4.5 sub-agent).
+- Learning-exercise intent — most learning-exercise projects use serial single-agent review by default; the discipline overhead doesn't match the assignment bar.
+
 ## Before starting a domain review
 
 **If DESIGN.md does not exist:** Stop. The absence of a design document is itself a finding for VDD-IAR Alignment dim 1. Do not proceed with other domain reviews — there is no spec to evaluate against. Log the absence and wait for the spec to exist.
@@ -151,3 +170,14 @@ When the review target is the suite itself (not a project under review):
 - Add a corresponding summary row to the **Suite Reviews** table in `vsdd-suite/suite-development/SUITE-DEVELOPMENT-REVIEW.md`. The index is read first by future reviewers; an unindexed session is invisible.
 - New findings registered for tracking also need a row in `suite-development/FINDINGS-INDEX.md` (forward-only section, identified by their `Review N Finding M` anchor — no new ID prefix; the legacy `G-` series is closed) linking to the new session entry.
 - See the **Suite review entry format** section in `primers/../suite-development/suite-development.md` for the required entry structure.
+
+
+## Three-audience lens
+
+This review-session primer serves all three audiences of the [three-audience design principle](../suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3) ([Review 80](../suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3; renamed in [Review 84](../suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z) Finding 4):
+
+- **Suite developers** evolving this primer treat the prose as the methodology-authoring surface for Phase 3 IAR review — changes here are methodology shifts requiring their own Review.
+- **Suite users** running a session against this primer treat it as the canonical step-by-step for Phase 3 IAR review on their own project; the completion criteria are what their next layer-gate or phase-close commit is checked against.
+- **AI agents** loaded with this primer as cold-session context treat it as the spec for the session's authoring shape (file locations, classification vocabulary, the audit-trail entries this session produces); the primer's named artifacts + their schemas are the agent-API contract for what the session writes.
+
+See [`../suite-development/suite-development.md`](../suite-development/suite-development.md) [§ Three-audience design principle](../suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3) for the full discipline.
