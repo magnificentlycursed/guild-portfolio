@@ -9,7 +9,7 @@ The suite's Phase 3 component (IAR) is not a pre-merge checkpoint — it is an a
 The suite supports two modes for operations: **[crosslink](https://github.com/forecast-bio/crosslink)-primary** (recommended) and **manual** (first-class supported fallback).
 
 - **Crosslink-primary mode** uses [crosslink](https://github.com/forecast-bio/crosslink) to mechanize dispatch (`crosslink swarm review`, `crosslink swarm fix`), finding tracking (labeled crosslink issues), session handoff (`crosslink session end --notes`), cross-domain coordination (`crosslink issue relate`/`block`), and optionally primer auto-injection via `crosslink knowledge`. This is the recommended path because the mechanisms compound (queryable finding labels; structured issue graph; built-in audit trail; multi-agent worktree isolation by construction).
-- **Manual mode** is the first-class fallback — every feature of the crosslink-primary mode has a documented manual equivalent at the same depth: per-domain index files + `review-log/YYYY-MM-DD-<slug>.md` per-session files for finding tracking; `FINDINGS-INDEX.md` for the cross-cutting registry; prose `**Coordination:**` and `**Session note:**` markers in review-log entries; manual chat-session ritual for dispatch. Manual mode is not a stripped-down subset; it is tested and documented to feature parity with the crosslink mode.
+- **Manual mode** is the first-class fallback — every feature of the crosslink-primary mode has a documented manual equivalent at the same depth: `review-log/YYYY-MM-DD-<slug>.md` per-session files for finding tracking; `FINDINGS-INDEX.md` for the cross-cutting registry (optional per-domain `<DOMAIN>-REVIEW.md` index files available via the scaffold script's `--with-per-domain-indexes` flag for projects that want a domain-organized navigation surface); prose `**Coordination:**` and `**Session note:**` markers in review-log entries; manual chat-session ritual for dispatch. Manual mode is not a stripped-down subset; it is tested and documented to feature parity with the crosslink mode.
 
 Cross-mode migration is supported via `crosslink import` / `crosslink export` (the labeled-issue and markdown finding-index shapes mirror each other deliberately for this purpose).
 
@@ -72,11 +72,11 @@ Two parallel quickstarts — one per [operational mode](#two-modes-of-operation-
 
 ### Quickstart — manual (first-class fallback, same VSDD pipeline)
 
-1. **Scaffold.** `cd <your-project> && <path-to-vsdd-suite>/templates/scaffold-project.sh` — creates `vsdd-suite/` directory, per-domain index files, `FINDINGS-INDEX.md`, `DESIGN.md` skeleton, project `README.md`.
+1. **Scaffold.** `cd <your-project> && <path-to-vsdd-suite>/templates/scaffold-project.sh` — creates `vsdd-suite/` directory, `review-log/` folder, `FINDINGS-INDEX.md`, `DESIGN.md` skeleton, project `README.md`. Per-domain index files (`vsdd-suite/<DOMAIN>-REVIEW.md`) are optional as of v0.13.0 and are not created by default; pass `--with-per-domain-indexes` (before any domain arguments) to opt in.
 2. **Phase 1a+1b.** Fresh chat. Paste [`primers/1ab-spec-crystallization.md`](primers/1ab-spec-crystallization.md). Write `DESIGN.md`. Commit.
 3. **Phase 1c.** Fresh chat. Paste [`primers/1c-decomposition.md`](primers/1c-decomposition.md) + `DESIGN.md`. Write `TODO.md` per the primer's `## TODO.md format` section AND author one `manual-tests/layer-N.md` file per layer per the primer's `## Manual testing checklist` standard (Review 74 convention — forward-only for first layer-gate close on or after 2026-05-20; pre-cutoff projects retain inline `TODO.md` manual-testing-checklist sections).
 4. **Phase 2a → 2b → 2c.** Fresh chat per phase. Paste [`primers/2a-red-gate.md`](primers/2a-red-gate.md) → write failing tests → `git commit` the Red Gate boundary → paste [`primers/2b-implementation.md`](primers/2b-implementation.md) → make tests pass → run the test suite to verify clean (your language's runner: `cargo test`, `npm test`, `pytest`, etc.) → paste [`primers/2c-refactor.md`](primers/2c-refactor.md) → refactor while keeping tests green, or annotate "no refactor required" in `TODO.md`.
-5. **Phase 3.** *One fresh chat per active domain* (cold context per domain is the gold standard). **Default activation is the 7 core domains** (SE, QE, [UX](domains/role/UX-REVIEW.md), Security, SA, SO, VDD-IAR Alignment); the scaffold script populates index files for these. Extended domains activate per [`domains/DOMAIN-INDEX.md`](domains/DOMAIN-INDEX.md). For each active domain, paste [`primers/3-review-session.md`](primers/3-review-session.md) + the domain prompt + the language supplement + the code under review. Classify findings. File rounds to per-domain index + per-session file `review-log/YYYY-MM-DD-<domain-slug>.md`. Append cross-cutting rows to `vsdd-suite/FINDINGS-INDEX.md` per the [G-138](suite-development/FINDINGS-INDEX.md#g-138) manual-path schema. Repeat for every active domain in its own fresh chat (no context sharing).
+5. **Phase 3.** *One fresh chat per active domain* (cold context per domain is the gold standard). **Default activation is the 7 core domains** (SE, QE, [UX](domains/role/UX-REVIEW.md), Security, SA, SO, VDD-IAR Alignment). Extended domains activate per [`domains/DOMAIN-INDEX.md`](domains/DOMAIN-INDEX.md). For each active domain, paste [`primers/3-review-session.md`](primers/3-review-session.md) + the domain prompt + the language supplement + the code under review. Classify findings. File rounds to per-session file `review-log/YYYY-MM-DD-<domain-slug>.md` (and to the optional per-domain index file, if the project opted in via `scaffold-project.sh --with-per-domain-indexes`). Append cross-cutting rows to `vsdd-suite/FINDINGS-INDEX.md` per the [G-138](suite-development/FINDINGS-INDEX.md#g-138) manual-path schema. Repeat for every active domain in its own fresh chat (no context sharing).
 6. **Phase 4.** Fresh chat. Paste [`primers/4-feedback-integration.md`](primers/4-feedback-integration.md). Record routing decisions in each finding's review-log entry per the primer's `## Without crosslink` section. Re-enter routed phases manually (fresh chat per re-routed phase). Loop Phase 3 → 4 → re-enter routed phases until MVR.
 7. **Phase 5 (optional at every intent; required-or-declared-not-applicable at capstone + production per [G-162](suite-development/FINDINGS-INDEX.md#g-162)).** Per layer after Phase 3 reaches MVR. Fresh chat per surface. Paste [`primers/5-formal-hardening.md`](primers/5-formal-hardening.md). Run the surfaces named in `DESIGN.md` § Project intent's `**Phase 5 strategy:** planned` declaration — A (property-based testing) and D (Proof Execution) file under SA; B (Mutation Testing) and C (Fuzz Testing) file under QE; each new round carries a `**Phase 5 surface:**` preamble per [G-177](suite-development/FINDINGS-INDEX.md#g-177) resolution. Then merge the layer (`git checkout -b layer-N+1 && git merge layer-N`).
 8. **Phase 6 (project-terminal; required-or-declared-not-applicable at capstone + production per [G-162](suite-development/FINDINGS-INDEX.md#g-162)).** After every layer's Phase 5 closes. Fresh chat. Paste [`primers/6-convergence.md`](primers/6-convergence.md). The convergence record is the final VDD-IAR Alignment review round (dim 14) attesting Spec MVR / Test MVR / Implementation MVR / Formal-verification MVR each independently plus the cross-dimension consistency check across spec-named behaviors. Commit the signed round.
@@ -85,7 +85,7 @@ That's the whole pipeline in both modes. Full walkthrough with starter prompts a
 
 ## Bringing the suite into your project
 
-Each project under the suite gets its own `<your-project>/vsdd-suite/` directory containing the per-domain index files (created from templates) and a `review-log/` directory. The suite source (this repo's `vsdd-suite/`) is the *upstream*; each project gets a *copy* of the parts it uses.
+Each project under the suite gets its own `<your-project>/vsdd-suite/` directory containing a `review-log/` directory for per-session files, `FINDINGS-INDEX.md` for the cross-cutting registry, and optionally per-domain `<DOMAIN>-REVIEW.md` index files (opt-in via `scaffold-project.sh --with-per-domain-indexes` for projects that want a domain-organized navigation surface). The suite source (this repo's `vsdd-suite/`) is the *upstream*; each project gets a *copy* of the parts it uses.
 
 **The canonical default: manual copy via `scaffold-project.sh`.** Run the scaffold script from your new project's root — it copies the templates and prints next-step guidance. This is the suite's recommended mechanism per Review 42's Solution-Owner ratification ([G-117](suite-development/FINDINGS-INDEX.md#g-117) closure): minimum-viable for portfolio scale; matches the suite's existing tech surface (markdown + bash); no new infrastructure to learn. The script lives at `<path-to-vsdd-suite>/templates/scaffold-project.sh` — see the next section for invocation.
 
@@ -118,20 +118,25 @@ cd <your-project>
 cd <your-project>
 mkdir -p vsdd-suite/review-log
 
-# Copy the generic per-domain index template, renamed per domain (one cp per active domain).
-# Example for a CLI project (7 core domains, no PE/DE/extended):
-for domain in SOFTWARE-ENGINEER QUALITY-ENGINEER UX SECURITY SOLUTION-ARCHITECT SOLUTION-OWNER VDD-IAR-ALIGNMENT; do
-  cp <path-to-vsdd-suite>/templates/DOMAIN-REVIEW-template.md vsdd-suite/${domain}-REVIEW.md
-done
+# Copy the cross-cutting findings registry (manual-mode equivalent of crosslink-labelled-issue tracking)
+cp <path-to-vsdd-suite>/templates/PROJECT-FINDINGS-INDEX-template.md vsdd-suite/FINDINGS-INDEX.md
 
 # Copy the DESIGN.md and project README skeletons
 cp <path-to-vsdd-suite>/templates/DESIGN-template.md DESIGN.md
 cp <path-to-vsdd-suite>/templates/PROJECT-README-template.md README.md
+
+# OPTIONAL (per-domain index files, retired as default in v0.13.0 — Review 84):
+# Only do this if your project wants a domain-organized navigation surface in
+# addition to the date-organized review-log/. Example for a CLI project (7
+# core domains, no PE/DE/extended):
+# for domain in SOFTWARE-ENGINEER QUALITY-ENGINEER UX SECURITY SOLUTION-ARCHITECT SOLUTION-OWNER VDD-IAR-ALIGNMENT; do
+#   cp <path-to-vsdd-suite>/templates/DOMAIN-REVIEW-template.md vsdd-suite/${domain}-REVIEW.md
+# done
 ```
 
-**The primers, domain prompts, and supplements are NOT copied into your project** — they are loaded into AI chat sessions from the suite repo when needed. Only the per-project artifacts (index files, review-log session files, DESIGN.md, project README) live in your project tree.
+**The primers, domain prompts, and supplements are NOT copied into your project** — they are loaded into AI chat sessions from the suite repo when needed. Only the per-project artifacts (review-log session files, `FINDINGS-INDEX.md`, DESIGN.md, project README, and optionally per-domain index files if the project opted in) live in your project tree.
 
-After scaffolding, **customize the placeholders** in each copied file per [`templates/README.md`](templates/README.md) § Customization checklist — `{{ROLE_TITLE}}`, `{{ROLE_VARIANTS}}`, `{{SYCOPHANCY_CHECK}}` etc. come verbatim from the corresponding domain prompt file in `domains/role/<DOMAIN>-REVIEW.md`.
+After scaffolding, **customize the placeholders** in each copied file per [`templates/README.md`](templates/README.md) § Customization checklist. If the project opted into per-domain index files (`scaffold-project.sh --with-per-domain-indexes`), the `{{ROLE_TITLE}}`, `{{ROLE_VARIANTS}}`, `{{SYCOPHANCY_CHECK}}` placeholders in each `vsdd-suite/<DOMAIN>-REVIEW.md` come verbatim from the corresponding domain prompt file in `domains/role/<DOMAIN>-REVIEW.md`; default-shape projects (no per-domain index files) skip that step.
 
 ### Crosslink knowledge auto-injection (G-146)
 
@@ -158,6 +163,8 @@ What lives here:
 - **Suite-development materials** (`suite-development/`) — the contributor primer, findings registry, suite-review index, and review-log session entries for evolving the suite itself; see [`suite-development/README.md`](suite-development/README.md)
 
 Suite ownership: as of v0.7.0 (Review 64), every VSDD phase the methodology defines has a primer in this suite — Phase 1a+1b (spec crystallization including verification architecture), Phase 1c (decomposition / spec review gate), Phase 2a (Red Gate), [Phase 2b](primers/2b-implementation.md) (implementation), Phase 2c (refactor), Phase 3 (adversarial refinement / IAR), Phase 4 (feedback integration), Phase 5 (formal hardening — [G-55](suite-development/FINDINGS-INDEX.md#g-55) closed in Review 64), Phase 6 (four-dimensional convergence — [G-54](suite-development/FINDINGS-INDEX.md#g-54) closed in Review 64). Capstone + production intents must declare Phase 5 and Phase 6 strategies in `DESIGN.md` § Project intent per [G-162](suite-development/FINDINGS-INDEX.md#g-162); learning-exercise and portfolio intents may close at the end of Phase 4 by design.
+
+**Three audiences ([Review 80](suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3; renamed in [Review 84](suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z) Finding 4):** every audit-trail artifact this suite produces (and prescribes for projects) is authored for three audiences simultaneously — **suite developers** (contributors extending the suite), **suite users** (project teams applying VSDD), and **AI agents** (structured lookups by Owner / Status / Validator / Classification). The schema is stable agent-API surface and applies symmetrically suite-side and project-side: what the suite teaches users is what the suite enforces on its own contributors. See [`suite-development/suite-development.md`](suite-development/suite-development.md) [§ Three-audience design principle](suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3) for the discipline + [§ Agent-API surface](suite-development/suite-development.md#agent-api-surface-review-80-finding-3) for the full machine-readable contract.
 
 ## VSDD pipeline context
 
@@ -405,7 +412,7 @@ The example project is a hypothetical CLI bookmark manager (`bookmark-cli`); sub
 | 2a | [`2a-red-gate.md`](primers/2a-red-gate.md) | Failing tests committed as the Phase 2a → 2b boundary | `crosslink session start`, `session work` then write + commit failing tests | Fresh chat + write + commit failing tests; tracking via TODO.md | Failing-test Red Gate commit |
 | 2b | [`2b-implementation.md`](primers/2b-implementation.md) | Implementation that makes the Red Gate pass; no new tests | Implementation commit | Implementation + manual `cargo test` (or equivalent) | Passing test suite |
 | 2c | [`2c-refactor.md`](primers/2c-refactor.md) | Optional refactor while tests stay green (whitepaper Step 2c per [G-96](suite-development/FINDINGS-INDEX.md#g-96)); skip is explicit ("no refactor required" annotation), not silent | Refactor commit + `cargo test` (solo gate); `crosslink swarm gate <slug>` formalizes the gate in multi-agent swarm builds (requires `swarm init --doc` first per [G-106](suite-development/FINDINGS-INDEX.md#g-106)) | Refactor commit + `cargo test` confirms green; manual annotation in `TODO.md` if skipped | Refactor commit OR explicit-skip annotation |
-| 3 | [`3-review-session.md`](primers/3-review-session.md) | Cold-context adversarial review per active domain, classified findings | `crosslink swarm review --agents N --mandate adversarial --file-issues --doc <path>` for routine volume; manual dispatch (right column) for high-stakes / approaching-MVR | One fresh chat per active domain + paste primer + domain prompt + supplement + code; append round to per-domain index + per-session file; append row to `FINDINGS-INDEX.md` | Per-domain review logs + cross-cutting finding index |
+| 3 | [`3-review-session.md`](primers/3-review-session.md) | Cold-context adversarial review per active domain, classified findings | `crosslink swarm review --agents N --mandate adversarial --file-issues --doc <path>` for routine volume; manual dispatch (right column) for high-stakes / approaching-MVR | One fresh chat per active domain + paste primer + domain prompt + supplement + code; append round to per-session file (and to optional per-domain index if the project opted in); append row to `FINDINGS-INDEX.md` | Per-session review-log files + cross-cutting finding index (optional per-domain index files for projects that opt in) |
 | 4 | [`4-feedback-integration.md`](primers/4-feedback-integration.md) | Each finding routed to the earliest phase that can fix it | `crosslink issue label route:*`, `swarm fix --from-label`, `issue block` | Record routing in each finding's review-log entry per primer's `## Without crosslink` section; re-enter routed phases manually | Routed finding set; closure once each phase's gate holds |
 
 Full walkthrough below. Scan the overview first; read the detail when you need the starter prompts and the per-phase commands.
@@ -705,7 +712,7 @@ The Phase 2c → 3 boundary is reached when (a) `cargo test` passes clean after 
 
 ### Phase 3 — Adversarial Refinement
 
-Per `primers/3-review-session.md`: open ONE fresh chat per active domain (cold context is the gold standard); paste the primer + that single domain's prompt + the code under review; classify every finding; log findings to the per-domain review log per the project-level review log governing standard in [`suite-development/suite-development.md`](suite-development/suite-development.md).
+Per `primers/3-review-session.md`: open ONE fresh chat per active domain (cold context is the gold standard); paste the primer + that single domain's prompt + the code under review; classify every finding; log findings to the domain's per-session review-log file per the project-level review log governing standard in [`suite-development/suite-development.md`](suite-development/suite-development.md).
 
 **Activation deduction for `bookmark-cli`:** SE, QE, UX, Security, SA, SO, VDD-IAR Alignment are active. PE not active because `bookmark-cli` ships via `cargo install` to the user's local toolchain with no server pipeline; DE not active because storage is flat JSON in a single file with no managed database. For projects with different shapes — a deployed web service activates PE; a SQLite-backed CLI activates DE — see [`domains/DOMAIN-INDEX.md`](domains/DOMAIN-INDEX.md) for the activation criteria per domain.
 
@@ -717,7 +724,7 @@ Swarm dispatch (routine volume) — `--doc <PATH>` is the **output path** for th
 
 ```sh
 crosslink swarm review --agents 6 --mandate adversarial --file-issues \
-    --doc vsdd-suite/SOFTWARE-ENGINEER-REVIEW.md
+    --doc vsdd-suite/review-log/$(date -u +%Y-%m-%d)-software-engineer.md
 ```
 
 The consolidated findings are written to the `--doc` path; the per-finding crosslink issues are filed in the tracker with the `review-finding` label. `crosslink issue list -l review-finding` enumerates them for classification.
@@ -762,11 +769,11 @@ Interpretation: `crosslink issue close` writes a CHANGELOG.md entry as a side ef
 >
 > Close the session with a `### Summary` line tallying findings by class and a `**Coordination:**` line naming any cross-domain handoffs.
 
-Classify each finding. Append the round to the domain's index file + a session file in `review-log/YYYY-MM-DD-<domain-slug>.md` (slug convention in `suite-development/suite-development.md` § Structure). Append a row to `vsdd-suite/FINDINGS-INDEX.md` per the [G-138](suite-development/FINDINGS-INDEX.md#g-138) manual-path schema. Repeat for every active domain in its own fresh chat (no context sharing — the gold standard discipline that crosslink mode replicates via `swarm review`'s per-agent worktree isolation).
+Classify each finding. Append the round to a session file in `review-log/YYYY-MM-DD-<domain-slug>.md` (slug convention in `suite-development/suite-development.md` § Structure); if the project opted into the per-domain index shape, also append a row to the domain's `<DOMAIN>-REVIEW.md` Reviews table. Append a row to `vsdd-suite/FINDINGS-INDEX.md` per the [G-138](suite-development/FINDINGS-INDEX.md#g-138) manual-path schema. Repeat for every active domain in its own fresh chat (no context sharing — the gold standard discipline that crosslink mode replicates via `swarm review`'s per-agent worktree isolation).
 
 **Both modes — exit signal.** If a full domain pass produces only Hallucinated findings, MVR is reached for that domain. Repeat until all active domains hit MVR.
 
-**Two end states reach MVR — both must be logged:** (a) the round produces only Hallucinated findings (the adversary tried and could not find anything real); (b) the round produces zero findings at all (the adversary looked and found nothing). Both are valid MVR signals, but **silent zero-finding rounds are a structural error** — a future reader of the per-domain log must be able to distinguish "we reviewed Layer 1 and found nothing" from "we forgot to review Layer 1." Log the zero-finding round explicitly with `*(none)*` placeholders under each classification heading per the governing standard in [`suite-development/suite-development.md`](suite-development/suite-development.md) § Finding sections.
+**Two end states reach MVR — both must be logged:** (a) the round produces only Hallucinated findings (the adversary tried and could not find anything real); (b) the round produces zero findings at all (the adversary looked and found nothing). Both are valid MVR signals, but **silent zero-finding rounds are a structural error** — a future reader of the per-session review-log file must be able to distinguish "we reviewed Layer 1 and found nothing" from "we forgot to review Layer 1." Log the zero-finding round explicitly with `*(none)*` placeholders under each classification heading per the governing standard in [`suite-development/suite-development.md`](suite-development/suite-development.md) § Finding sections.
 
 **Pausing and resuming an in-progress Phase 3 review.** A full Phase 3 across 6+ active domains is ~3 hours of focused work; pausing is the common case. The cold-context discipline means **you cannot resume the same chat session for the same domain** — context staleness defeats the adversarial value. Two options:
 
@@ -815,19 +822,19 @@ crosslink issue close <id>
 
 > I'm running Phase 4 for Layer 1 of `bookmark-cli` after Round 1 across SE, QE, UX, Security, SA, SO.
 >
-> Attached: the per-domain review logs from this round (`vsdd-suite/SE-REVIEW.md`, `vsdd-suite/QE-REVIEW.md`, …), DESIGN.md, the Layer 1 plan, and the implementation source.
+> Attached: the per-session review-log files from this round (`vsdd-suite/review-log/<today>-software-engineer.md`, `vsdd-suite/review-log/<today>-quality-engineer.md`, …), `vsdd-suite/FINDINGS-INDEX.md`, DESIGN.md, the Layer 1 plan, and the implementation source.
 >
 > For every finding NOT classified Hallucinated, apply the primer's routing table to assign one of: `route:phase-1a` (spec defect), `route:phase-1c` (decomposition gap), `route:phase-2a` (missing/wrong test), `route:phase-2b` (implementation defect), `route:phase-2c` (refactor regression), `route:suite` (the adversary couldn't have caught it with current dimensions). Watch for the primary failure mode the primer names: routing every finding to Phase 2b, collapsing the pipeline.
 >
 > For each finding output a row: `<finding-id> | <route> | <owning artifact> | <gate that must hold for closure> | <sequencing — does another finding need to land first?>`. Multi-phase chains get one row per phase.
 
-(Attach the per-domain review logs and DESIGN.md.) For each finding, record the route in the finding's review-log entry per the primer's `## Without crosslink` section AND in the row's Status column in `vsdd-suite/FINDINGS-INDEX.md`. Re-enter the routed phase (re-open the spec; re-write the Red Gate test; etc.) and close the finding (update the FINDINGS-INDEX row's Status to Closed and add a closure annotation in the review-log entry) when the phase's gate holds for the routed change.
+(Attach the per-session review-log files for this round and DESIGN.md.) For each finding, record the route in the finding's review-log entry per the primer's `## Without crosslink` section AND in the row's Status column in `vsdd-suite/FINDINGS-INDEX.md`. Re-enter the routed phase (re-open the spec; re-write the Red Gate test; etc.) and close the finding (update the FINDINGS-INDEX row's Status to Closed and add a closure annotation in the review-log entry) when the phase's gate holds for the routed change.
 
 ### Loop until MVR
 
 Phase 3 → Phase 4 → re-enter Phase 1a+1b/1b/2a/2b as routes dictate → Phase 3 again. The layer merges when one full Phase 3 round across all active domains produces only Hallucinated findings or no findings (`primers/3-review-session.md` § Session isolation; README § The refinement loop).
 
-Track the round-by-round progression in the per-domain review logs. The MVR signal is visible in the domain index file: a Review row whose Scope summary reads "no real findings (all Hallucinated)" is the exit condition. Same exit signal in both modes.
+Track the round-by-round progression via the per-session review-log files (and the cross-cutting `FINDINGS-INDEX.md` registry). The MVR signal is visible in the latest session file for each active domain: a Round whose Scope summary reads "no real findings (all Hallucinated)" is the exit condition. Same exit signal in both modes. Projects that opted into the per-domain index also see the MVR signal at-a-glance in the index's Reviews table.
 
 **[crosslink]** Close the layer milestone and end the session with handoff notes the next session will read. **`crosslink milestone close` takes a numeric milestone ID**, not a milestone name ([G-106](suite-development/FINDINGS-INDEX.md#g-106) finding, consistent with `milestone add` / `milestone show`):
 
@@ -871,16 +878,16 @@ Per `primers/5-formal-hardening.md`: after a layer reaches Phase 3 implementatio
 - **Fuzz Testing** — Fuzz Testing of parser / input-boundary surfaces (Rust: `cargo-fuzz`; JS/TS: `jsfuzz`; Python: `atheris`)
 - **Proof Execution** — Proof Execution harnesses for designated pure functions (Kani / CBMC / TLA+ / Coq / Lean / Liquid Haskell — strictly optional even within Phase 5)
 
-**Where Phase 5 findings file ([G-177](suite-development/FINDINGS-INDEX.md#g-177) resolution):** Phase 5 work files under the existing per-domain review log structure — no separate per-project Phase 5 file. Each Phase 5 round opens a new entry in the appropriate per-domain log with a `**Phase 5 surface:**` preamble tag identifying the surface (and layer if multi-layer). The domain that owns each surface:
+**Where Phase 5 findings file ([G-177](suite-development/FINDINGS-INDEX.md#g-177) resolution):** Phase 5 work files under the existing per-session review-log structure — no separate per-project Phase 5 file. Each Phase 5 round opens a new entry in the appropriate domain's session file with a `**Phase 5 surface:**` preamble tag identifying the surface (and layer if multi-layer). The domain that owns each surface:
 
-| Surface | Per-domain log | Rationale |
+| Surface | Per-session file (and optional per-domain index, if used) | Rationale |
 |---|---|---|
-| A (property-based) + A.0 (purity preamble) + D (Proof Execution) | `vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md` + `review-log/<date>-solution-architect.md` | SA owns the purity-boundary map (Dim 12 — VSDD purity boundary) and formal-proof targets |
-| B (Mutation Testing) + C (Fuzz Testing) | `vsdd-suite/QUALITY-ENGINEER-REVIEW.md` + `review-log/<date>-quality-engineer.md` | QE owns the test system; Mutation Testing is QE Dim 2 (test falsifiability); Fuzz Testing exercises test coverage at the parser boundary |
+| A (property-based) + A.0 (purity preamble) + D (Proof Execution) | `review-log/<date>-solution-architect.md` (plus a row in `vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md` if the project opted into the per-domain index) | SA owns the purity-boundary map (Dim 12 — VSDD purity boundary) and formal-proof targets |
+| B (Mutation Testing) + C (Fuzz Testing) | `review-log/<date>-quality-engineer.md` (plus a row in `vsdd-suite/QUALITY-ENGINEER-REVIEW.md` if the project opted into the per-domain index) | QE owns the test system; Mutation Testing is QE Dim 2 (test falsifiability); Fuzz Testing exercises test coverage at the parser boundary |
 
 A project may file Fuzz Testing under Security instead when the parser is named in the threat model — record the choice once in `DESIGN.md` § Verification architecture and stay consistent. The preamble tag format: `**Phase 5 hardening:** Mutation Testing — Mutation Testing for Layer 1 via cargo-mutants` (name the surface letter, the layer, and the tool).
 
-**[crosslink]** Phase 5 sessions are standard crosslink sessions scoped to the layer; the new round goes into the per-domain log with the preamble tag above. The `--mandate` flag does not change for Phase 5 — `crosslink swarm review` is for cold-batch adversarial review (Phase 3); Phase 5 sessions are manually-dispatched per surface so the operator can drive the property-design and mutant-disposition steps.
+**[crosslink]** Phase 5 sessions are standard crosslink sessions scoped to the layer; the new round goes into the owning domain's per-session review-log file with the preamble tag above (and into the per-domain index too, if the project opted into the index shape). The `--mandate` flag does not change for Phase 5 — `crosslink swarm review` is for cold-batch adversarial review (Phase 3); Phase 5 sessions are manually-dispatched per surface so the operator can drive the property-design and mutant-disposition steps.
 
 ```sh
 # Tool installs are first-Phase-5-session-per-project cost (G-175 — name in the round preamble):
@@ -897,7 +904,7 @@ cargo test --features proptest               # property-based testing: property 
 cargo mutants --in-place                     # Mutation Testing: Mutation Testing report
 # (cargo-fuzz / Proof Execution per language and project)
 
-# Append the new round to the relevant per-domain log (Mutation Testing → QE; property-based testing → SA);
+# Append the new round to the relevant domain's per-session file (Mutation Testing → QE; property-based testing → SA);
 # round preamble carries **Phase 5 surface:** tag. Then close the layer:
 crosslink milestone close "$M1"
 git checkout -b layer-2 && git merge layer-1
@@ -909,9 +916,9 @@ git checkout -b layer-2 && git merge layer-1
 >
 > Run `cargo mutants --in-place` against the Layer 1 implementation. For every surviving mutant, classify into one of: (a) equivalent (with proof of equivalence in writing), (b) missing test (with the falsifying test added under the retroactive-Red-Gate (Phase 5 source) label per `primers/2b-implementation.md`), (c) spec-gap (route to Phase 4 / Phase 1a+1b), (d) unviable (the mutation does not compile or is type-system-rejected; not a behavioral signal — name it in the log for completeness), (e) out-of-scope (mutant in a code path Phase 5 deliberately did not target).
 >
-> Append the disposition table to `vsdd-suite/review-log/<today>-quality-engineer.md` as a new QE round with `**Phase 5 hardening:** Mutation Testing — Mutation Testing for Layer 1 via cargo-mutants` preamble; cross-reference the round from `vsdd-suite/QUALITY-ENGINEER-REVIEW.md` index. Watch for the per-surface sycophancy check: rationalizing surviving mutants as "equivalent" without the equivalence proof in writing is itself a finding routed to Phase 3's next round on the layer.
+> Append the disposition table to `vsdd-suite/review-log/<today>-quality-engineer.md` as a new QE round with `**Phase 5 hardening:** Mutation Testing — Mutation Testing for Layer 1 via cargo-mutants` preamble; if the project opted into the per-domain index, also cross-reference the round from `vsdd-suite/QUALITY-ENGINEER-REVIEW.md`. Watch for the per-surface sycophancy check: rationalizing surviving mutants as "equivalent" without the equivalence proof in writing is itself a finding routed to Phase 3's next round on the layer.
 
-(Attach DESIGN.md, the Layer 1 implementation, the Phase 3 final-round summary, and `vsdd-suite/QUALITY-ENGINEER-REVIEW.md` for prior coverage assertions.) Then run the tool, classify each mutant, append the disposition table as a new QE round in the per-domain log, and commit.
+(Attach DESIGN.md, the Layer 1 implementation, the Phase 3 final-round summary, and prior QE session files for prior coverage assertions.) Then run the tool, classify each mutant, append the disposition table as a new QE round in the QE session file, and commit.
 
 **Both modes:** Phase 5 findings that route back to Phase 1a+1b / 1c / 2a / 2b / 2c via Phase 4 re-open the layer at the routed phase before merge. A Phase 5 layer entry that omits the Purity Boundary Audit purity-boundary preamble is itself a finding for VDD-IAR Alignment dim 13 ([G-173](suite-development/FINDINGS-INDEX.md#g-173) + primer 5 completion criteria #1). At learning-exercise or portfolio intent with `**Phase 5 strategy:** not applicable`, the entire phase is skipped explicitly — the strategy declaration in DESIGN.md is the audit record.
 
@@ -924,13 +931,13 @@ The four dimensions:
 | Dimension | What MVR means here | Evidence source |
 |---|---|---|
 | **Spec** | DESIGN.md is internally consistent, every spec-named behavior is testable, and no Phase 4 routing back to spec remains open | `DESIGN.md`; final Phase 3 round across all active domains (no `route:phase-1a` findings open) |
-| **Test** | Test suite at MVR per the Phase 3 final-round signal + Phase 5 Mutation Testing mutation evidence (no missing-test dispositions open) | per-domain QE review log: final Phase 3 round + Phase 5 Mutation Testing rounds (disposition tables) |
-| **Implementation** | All layers passed their final Phase 3 round at MVR + no subsequent layer's commits invalidated an earlier layer's MVR signal ([G-172](suite-development/FINDINGS-INDEX.md#g-172) deferred rollup discipline; until resolved, the operator authors the rollup manually) | per-domain review-log final rounds per layer + commit history showing later-layer scope did not touch earlier-layer files |
-| **Formal-verification** | Phase 5 Proof Execution formal proofs (where applicable) discharged + Phase 5 Surfaces A/B/C closed cleanly | per-domain SA review log: property-based testing / A.0 / D rounds; per-domain QE review log: Mutation Testing / C rounds |
+| **Test** | Test suite at MVR per the Phase 3 final-round signal + Phase 5 Mutation Testing mutation evidence (no missing-test dispositions open) | QE per-session review-log files: final Phase 3 round + Phase 5 Mutation Testing rounds (disposition tables) |
+| **Implementation** | All layers passed their final Phase 3 round at MVR + no subsequent layer's commits invalidated an earlier layer's MVR signal ([G-172](suite-development/FINDINGS-INDEX.md#g-172) deferred rollup discipline; until resolved, the operator authors the rollup manually) | per-session review-log final rounds per layer + commit history showing later-layer scope did not touch earlier-layer files |
+| **Formal-verification** | Phase 5 Proof Execution formal proofs (where applicable) discharged + Phase 5 Surfaces A/B/C closed cleanly | SA per-session review-log files: property-based testing / A.0 / D rounds; QE per-session review-log files: Mutation Testing / C rounds |
 
 **The load-bearing addition is the cross-dimension consistency check** ([G-54](suite-development/FINDINGS-INDEX.md#g-54) closure): for every spec-named behavior in DESIGN.md, walk through Spec → Test → Implementation → Formal-verification and verify all four sources tell the same story. A behavior that the spec asserts but no test exercises is a Spec ↔ Test divergence; an implementation that exceeds the spec is a Spec ↔ Implementation divergence; a Proof Execution that targets a property the spec does not state is a Spec ↔ Formal divergence. Each divergence routes via Phase 4 before convergence is declared.
 
-**Where Phase 6 files ([G-177](suite-development/FINDINGS-INDEX.md#g-177) resolution):** the convergence record IS the final VDD-IAR Alignment review round — `vsdd-suite/review-log/<close-date>-vdd-iar-alignment.md` with a dedicated round entry titled "Review N — Phase 6 four-dimensional convergence (project-terminal)". The round's preamble names the four-dimension attestation; the round body cites per-domain rounds for each dimension's evidence; the round's closing block is the signed/dated convergence attestation. VDD-IAR Alignment dim 14 evaluates this round in the same per-domain review log structure used for every other domain — no separate per-project Phase 6 file.
+**Where Phase 6 files ([G-177](suite-development/FINDINGS-INDEX.md#g-177) resolution):** the convergence record IS the final VDD-IAR Alignment review round — `vsdd-suite/review-log/<close-date>-vdd-iar-alignment.md` with a dedicated round entry titled "Review N — Phase 6 four-dimensional convergence (project-terminal)". The round's preamble names the four-dimension attestation; the round body cites per-session rounds across domains for each dimension's evidence; the round's closing block is the signed/dated convergence attestation. VDD-IAR Alignment dim 14 evaluates this round in the same per-session review-log structure used for every other domain — no separate per-project Phase 6 file.
 
 **[crosslink]** Phase 6 is one final session — open it in a fresh chat, author the final VDD-IAR Alignment round, then close the project-terminal milestone via numeric ID (per [G-167](suite-development/FINDINGS-INDEX.md#g-167)):
 
@@ -944,7 +951,7 @@ crosslink milestone list                     # find the "Project: bookmark-cli �
 crosslink milestone close <numeric-id>       # numeric ID per G-167 (names are not accepted)
 
 # Commit the signed final VDD-IAR Alignment round:
-git add vsdd-suite/VDD-IAR-ALIGNMENT-REVIEW.md vsdd-suite/review-log/*-vdd-iar-alignment.md
+git add vsdd-suite/review-log/*-vdd-iar-alignment.md vsdd-suite/FINDINGS-INDEX.md
 git commit -m "Phase 6: four-dimensional convergence record (final VDD-IAR Alignment round, signed)"
 ```
 
@@ -952,20 +959,21 @@ git commit -m "Phase 6: four-dimensional convergence record (final VDD-IAR Align
 
 > I'm running Phase 6 (four-dimensional convergence) for `bookmark-cli` at project close. Capstone-intent project; 4 layers all closed Phase 5 with strategy = property-based testing + B + C planned, Proof Execution not applicable.
 >
-> Attached: DESIGN.md, all 4 per-domain index files for the 7 core + Technical Writer extended domain, every per-session review-log file (including the Phase 5 property-based testing/B/C rounds in the SA and QE logs).
+> Attached: DESIGN.md, `vsdd-suite/FINDINGS-INDEX.md`, every per-session review-log file across the 7 core + Technical Writer extended domain (including the Phase 5 property-based testing/B/C rounds in the SA and QE session files).
 >
-> Author the final VDD-IAR Alignment round in `vsdd-suite/review-log/<today>-vdd-iar-alignment.md` titled "Review N — Phase 6 four-dimensional convergence (project-terminal)" per the primer's § Phase 6 convergence record format. For each dimension (Spec, Test, Implementation, Formal-verification) declare MVR with citations to the per-domain rounds that establish it. Then run the cross-dimension consistency check: for every spec-named behavior in DESIGN.md, name where the Test / Implementation / Formal-verification evidence lands; flag any divergence as a finding routed via Phase 4 (re-open the relevant phase before declaring convergence).
+> Author the final VDD-IAR Alignment round in `vsdd-suite/review-log/<today>-vdd-iar-alignment.md` titled "Review N — Phase 6 four-dimensional convergence (project-terminal)" per the primer's § Phase 6 convergence record format. For each dimension (Spec, Test, Implementation, Formal-verification) declare MVR with citations to the per-session round files that establish it. Then run the cross-dimension consistency check: for every spec-named behavior in DESIGN.md, name where the Test / Implementation / Formal-verification evidence lands; flag any divergence as a finding routed via Phase 4 (re-open the relevant phase before declaring convergence).
 >
 > Watch for the primer's sycophancy check: declaring convergence without naming the cross-dimension citations per behavior is the failure mode. A round that asserts "all four dimensions at MVR" without per-behavior evidence is the rubber-stamp variant the primer rejects.
 
-(Attach DESIGN.md, all per-domain index files + review-log files including the Phase 5 SA + QE rounds.) Commit the final VDD-IAR Alignment round:
+(Attach DESIGN.md, `vsdd-suite/FINDINGS-INDEX.md`, and all review-log files including the Phase 5 SA + QE rounds.) Commit the final VDD-IAR Alignment round:
 
 ```sh
-git add vsdd-suite/VDD-IAR-ALIGNMENT-REVIEW.md vsdd-suite/review-log/*-vdd-iar-alignment.md
+# Stage the final round's session file (and the per-domain index file too, only if the project opted into the index shape).
+git add vsdd-suite/review-log/*-vdd-iar-alignment.md vsdd-suite/FINDINGS-INDEX.md
 git commit -m "Phase 6: four-dimensional convergence record (final VDD-IAR Alignment round, signed)"
 ```
 
-**Both modes:** the convergence round is signed at the round's closing (the primer prescribes either a git commit hash signature or a developer-name attestation depending on anonymization posture). The project is project-terminal MVR when the round is committed and the four dimensions are all attested with citations to per-domain rounds. Phase 6 fires exactly once per project; it has no Round N+1 (unlike Phase 3) — if convergence cannot be declared, the routing returns the project to the relevant phase rather than running Phase 6 again.
+**Both modes:** the convergence round is signed at the round's closing (the primer prescribes either a git commit hash signature or a developer-name attestation depending on anonymization posture). The project is project-terminal MVR when the round is committed and the four dimensions are all attested with citations to per-session round files. Phase 6 fires exactly once per project; it has no Round N+1 (unlike Phase 3) — if convergence cannot be declared, the routing returns the project to the relevant phase rather than running Phase 6 again.
 
 ## Running IAR
 
@@ -1043,44 +1051,44 @@ Per-project IAR runs evaluate individual projects using the [`domains/meta/PORTF
 
 ## Review logs
 
-Review entries are stored outside the prompt files to keep the prompts stable and reusable. The shape is **per-domain index + per-session entries** (parallel to the suite's own `SUITE-DEVELOPMENT-REVIEW.md` + `review-log/` pattern). Logs live at:
+Review entries are stored outside the prompt files to keep the prompts stable and reusable. The canonical shape (as of v0.13.0 — Review 84) is **per-session entries + cross-cutting registry**; **per-domain index files are optional**, opt-in via `scaffold-project.sh --with-per-domain-indexes`. Logs live at:
 
 ```
 {project}/
   vsdd-suite/
-    # Per-domain index files (one row per Review N, newest first; link to session file + anchor)
-    # Core domains (always active — 7 total)
-    SOFTWARE-ENGINEER-REVIEW.md
-    QUALITY-ENGINEER-REVIEW.md
-    UX-REVIEW.md
-    SECURITY-REVIEW.md
-    SOLUTION-ARCHITECT-REVIEW.md
-    SOLUTION-OWNER-REVIEW.md
-    VDD-IAR-ALIGNMENT-REVIEW.md
-    # Extended domains (include only those active on the project; PE + DE are
-    # extended-with-strong-presumption per G-178 and typically active beyond
-    # local-toolchain CLI scope)
-    PLATFORM-ENGINEER-REVIEW.md
-    DATA-ENGINEER-REVIEW.md
-    RED-TEAM-REVIEW.md
-    PERFORMANCE-ENGINEER-REVIEW.md
-    TECHNICAL-WRITER-REVIEW.md
-    ACCESSIBILITY-REVIEW.md
-    PRIVACY-REVIEW.md
-    LOCALIZATION-REVIEW.md
+    FINDINGS-INDEX.md        # cross-cutting registry — required (manual mode);
+                             # crosslink mode uses labelled issues as the equivalent
     review-log/
-      # Per-session entry files (one per UTC date per domain; multiple rounds same day share file)
+      # Per-session entry files — one per UTC date per active domain;
+      # multiple rounds the same day share a file. The filename slug names
+      # the domain, so date-organized navigation already surfaces "which
+      # domain" without a separate index file.
+      YYYY-MM-DD-software-engineer.md
       YYYY-MM-DD-quality-engineer.md
+      YYYY-MM-DD-ux.md
       YYYY-MM-DD-security.md
-      YYYY-MM-DD-platform-engineer.md
-      # … one file per (date, domain) pair on which a round was filed
+      YYYY-MM-DD-solution-architect.md
+      YYYY-MM-DD-solution-owner.md
+      YYYY-MM-DD-vdd-iar-alignment.md
+      # … plus session files for any extended domains active on the project
+      # (PE + DE extended-with-strong-presumption per G-178; RED-TEAM,
+      # PERFORMANCE-ENGINEER, TECHNICAL-WRITER, ACCESSIBILITY, PRIVACY,
+      # LOCALIZATION otherwise).
+
+    # OPTIONAL — per-domain index files (only present when the project opted
+    # in via `scaffold-project.sh --with-per-domain-indexes` or by manual
+    # creation; the `bookmark-cli-manual` reference example retired its 13
+    # per-domain index files in PR #40):
+    # SOFTWARE-ENGINEER-REVIEW.md
+    # QUALITY-ENGINEER-REVIEW.md
+    # … etc., one per active domain.
 ```
 
-**Forward-only constraint:** This index-plus-session structure applies to projects starting after 2026-05-17 ([G-89](suite-development/FINDINGS-INDEX.md#g-89) closure date). Projects whose first IAR run predates that date (e.g., `bookmark-manager/iterative-adversarial-refinement/` and `issue-tracker-cli/iterative-adversarial-refinement/`) retain their existing single-file-per-domain structure (one accumulating file per domain holding all rounds) and must not be retroactively split.
+**Forward-only constraint:** This per-session-plus-registry structure applies to projects starting after 2026-05-17 ([G-89](suite-development/FINDINGS-INDEX.md#g-89) closure date). Projects whose first IAR run predates that date (e.g., `bookmark-manager/iterative-adversarial-refinement/` and `issue-tracker-cli/iterative-adversarial-refinement/`) retain their existing single-file-per-domain structure (one accumulating file per domain holding all rounds) and must not be retroactively split. The per-domain-index optionality shift is forward-only as of v0.13.0: projects that already created per-domain index files retain them; new projects scaffolded at v0.13.0+ default to no per-domain index files.
 
 The `supplements/` folder, `suite-development/FINDINGS-INDEX.md`, `suite-development/SUITE-DEVELOPMENT-REVIEW.md`, `suite-development/review-log/`, and `primers/` live in the suite template, not in individual projects.
 
-Only include log files for the domains active on the project. Each per-domain index file conforms to the **project-level review log governing standard** in [`suite-development/suite-development.md`](suite-development/suite-development.md) § Structure / File-level header / Per-session file header: index file holds file-level header (reviewer role, activation if extended, language supplement applied, sycophancy check) + Reviews table; per-session files hold round entries with the standard per-review preamble (`Scope`, `Session note`, optional domain-specific fields), classification-first finding sections drawn from each domain's allowed schema (e.g., `### Resolved`, `### Dismissed`, `### Hallucinated`, plus `### Accepted Risk` for Security/Red Team/Privacy, `### Backlogged` for Solution Owner, etc.), each finding titled `**Finding N — Title (Dim X)**`, and a closing `### Summary` with a `**Coordination:**` line. Portfolio Assessment is the documented exception (dim-first organization).
+Only include log files for the domains active on the project. Per-session files conform to the **project-level review log governing standard** in [`suite-development/suite-development.md`](suite-development/suite-development.md) § Structure / Per-session file header: per-session files hold round entries with the standard per-review preamble (`Scope`, `Session note`, optional domain-specific fields), classification-first finding sections drawn from each domain's allowed schema (e.g., `### Resolved`, `### Dismissed`, `### Hallucinated`, plus `### Accepted Risk` for Security/Red Team/Privacy, `### Backlogged` for Solution Owner, etc.), each finding titled `**Finding N — Title (Dim X)**`, and a closing `### Summary` with a `**Coordination:**` line. Portfolio Assessment is the documented exception (dim-first organization). When the project opts into the per-domain index, each index file additionally holds the file-level header (reviewer role, activation if extended, language supplement applied, sycophancy check) + Reviews table per § File-level header.
 
 **Domain slug convention for session files** (used in the per-session filename `review-log/YYYY-MM-DD-<slug>.md`; lowercase, hyphenated, no `-review` suffix — the `review-log/` directory conveys that):
 

@@ -71,7 +71,7 @@ The operative pattern: each round's spawn-prompt context-load includes (a) the d
 
 ---
 
-**Finding 3 — Audit-trail machine-readability holds under the Agent-API surface contract; the 9 per-domain review-log files parse cleanly under the dual-audience design principle (Dim 11)**
+**Finding 3 — Audit-trail machine-readability holds under the Agent-API surface contract; the 9 per-domain review-log files parse cleanly under the three-audience design principle (Dim 11)** <!-- [Review 84 rename] "dual-audience" → "three-audience" per the [Review 84](../../../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z) Finding 4 rename; the file is still in active discipline-iteration (PR #40 same cycle as PR #39), so forward-facing rewrite is allowed -->
 
 <a id="r1-f3"></a>
 
@@ -84,14 +84,14 @@ Spot-check against [Review 80](../../../../vsdd-suite/suite-development/review-l
 
 The 4 Round 3 intermediate cluster files (`engineering-cluster-round-3.md`, `cluster-b-round-3.md`, `cluster-c-round-3.md`, `cluster-d-round-3.md`) were deleted at consolidation per [Review 82](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z) Finding 5's file-consolidation-note, so the canonical audit trail never sees the cluster-file shape. An Agent-API consumer landing on the per-session-file directory sees the canonical per-domain shape with `## Review 1 / Review 2 / Review 3` headings inside; no consolidation cost is paid by the consumer.
 
-The Dim 11 cost is operative at near-zero — the dual-audience design principle ([Review 80](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3) was authored before the bookmark-cli-manual cycle ran, so every per-domain file was authored against the contract from the start. The Round-1-fix-cycle didn't have to retrofit the anchor IDs because they were already in the spawn-prompt template.
+The Dim 11 cost is operative at near-zero — the three-audience design principle ([Review 80](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3; renamed from "Dual-audience" in [Review 84](../../../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z) Finding 4) was authored before the bookmark-cli-manual cycle ran, so every per-domain file was authored against the contract from the start. The Round-1-fix-cycle didn't have to retrofit the anchor IDs because they were already in the spawn-prompt template. <!-- [Review 84 rename] "dual-audience" → "three-audience" -->
 
 **Owner:** ai-engineer
 **Status:** validated
 **Blocked by:** *(none)*
 **Validator:** sanity-check
 
-**Validator rationale:** Dim-11 finding spans the [`markdown.md`](../../../../vsdd-suite/supplements/markdown.md) supplement + the suite-development.md § Agent-API surface contract + the 9 per-domain review-log files; no single role-domain pair-validator. Sanity Check applies the dual-audience design principle's named regex/grep patterns to the observed audit trail.
+**Validator rationale:** Dim-11 finding spans the [`markdown.md`](../../../../vsdd-suite/supplements/markdown.md) supplement + the suite-development.md § Agent-API surface contract + the 9 per-domain review-log files; no single role-domain pair-validator. Sanity Check applies the three-audience design principle's named regex/grep patterns to the observed audit trail. <!-- [Review 84 rename] "dual-audience" → "three-audience" -->
 
 **Resolution:** Audit-trail machine-readability holds under the Agent-API surface contract; documented in this finding for future-cycle regression-check.
 

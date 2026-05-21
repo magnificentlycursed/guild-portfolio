@@ -1,3 +1,17 @@
+<!--
+OPTIONAL TEMPLATE — per-domain index files are NOT created by default as of
+v0.13.0 ([Review 84](../suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z)).
+New projects scaffolded at v0.13.0+ navigate via `review-log/` (per-session
+files) + `FINDINGS-INDEX.md` (cross-cutting registry) without a per-domain
+index. The `bookmark-cli-manual` reference example retired its 13 per-domain
+index files in PR #40 and is the new canonical reference shape.
+
+This template exists for projects that opt in to the per-domain index — either
+via `templates/scaffold-project.sh --with-per-domain-indexes` or by manual
+copy. See [`suite-development/suite-development.md`](../suite-development/suite-development.md)
+§ Structure for the canonical default and the opt-in rationale.
+-->
+
 # {{ROLE_TITLE}} Review Log (Index)
 
 This review log is part of the [VSDD Suite](../../README.md). The [Phase 3](../primers/3-review-session.md) adversarial review for this domain runs as one cold-context session per round; this file indexes the rounds. Round narratives live in [`review-log/`](review-log/) — see the Reviews table below.

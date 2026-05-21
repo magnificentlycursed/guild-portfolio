@@ -1015,3 +1015,147 @@ Resolved: 2 (R2-F2 fully, R2-F7 inline; R2-F1's DESIGN.md:3 site partially). Def
 **Coordination:** Several findings overlap with [Technical Writer](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md) Round 3 concerns by adversarial-pair construction — R3-DR-F2 (stutters) and R3-DR-F4 (lettering) are cold-reader pairs to [TW Dim 12](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md). R3-DR-F1 / R3-DR-F3 / R3-DR-F5 (broken links, broken anchors, FINDINGS-INDEX rot) are cold-reader pairs to [TW Dim 13](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md) inline-reference clickthrough validation. The TW Round 3 in the parallel cluster should see substantially the same surface and is expected to reach a similar disposition.
 
 ---
+
+## Review 4 — 2026-05-21 11:00Z
+
+**Layer:** 1
+**Tested against:** post-PR-#40 state of `bookmark-cli-manual` (per-domain index files retired; methodology fixes for AI Engineer R1 F6/F7/F8 + Doc Reviewer `grep -rn` pattern landed upstream).
+**Round:** 4
+**Active domain set:** 12 role + 1 meta = 13 (per [DESIGN.md § Project intent](../../DESIGN.md); AI Engineer added in suite-side [Review 83](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-83--2026-05-21-1000z); per-domain index navigation surface retired per [Review 84](../../../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z)).
+
+**Scope:** Phase 4-routed verification of the 5 Documentation Reviewer Round 3 Deferred carryforwards. NOT a re-scan of the whole project; specifically the 5 carryforwards' fix-status against the post-PR-#40 state.
+
+**Lens:** Adversarial cold-reader pair to [Technical Writer](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md). The verification applies the newly-codified `grep -rn before claiming closure` discipline ([`primers/4-feedback-integration.md`](../../../../vsdd-suite/primers/4-feedback-integration.md) § Anti-patterns — "Site-specific fix declared closure") to each carryforward: the Resolved classification requires grep-clean evidence for the defect class across the project's forward-facing files, not just the cited site(s).
+
+**Supplement applied:** [`markdown.md`](../../../../vsdd-suite/supplements/markdown.md) (every artifact is markdown; cross-reference resolution + anchor-link compliance per Documentation Reviewer Dim 4 + Dim 11).
+
+**Cold-session declaration:** This is an in-session verification, NOT a cold-context adversarial pass. The discipline tradeoff is named explicitly: a cold-session would burn ~5-15k tokens on what is mechanically a grep-verification of carryforward defect classes; the AI Engineer R1 F2 (Phase 4 routing as Round-2+ scope-reducer) + Dim 2 (token economy per finding) discipline supports the in-session verification posture for this specific shape (mechanical defect-class closure with grep evidence as the canonical resolution proof). The cold-reader regression-check is deferred to PR #42+'s next full Doc Reviewer round (which spawns cold against post-#40 state and verifies the 5 closures held + surfaces any NEW defects the post-#40 state introduced).
+
+**Session note:** In-session with the operator during PR #40 authoring. The verification is structurally Phase-4-routed-and-Phase-3-Round-N+1: PR #40's upstream methodology fixes + project-side per-domain-index retirement closed several carryforwards by elimination (the deleted files cannot host stale citations); the remaining carryforwards verified inline via `grep -rn` evidence.
+
+**Source:** `director-raised` — the verification was triggered by the AI Engineer R1 F6/F7/F8 Deferred findings + the operator's PR #40 sequencing directive, not by a cold-reader cycle. The Round 4 round-trigger is the [G-131](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) continue-trigger (the R3 round produced 5 Deferred real findings; Round 4 is mandatory). The Round 4 verification's `director-raised` Source disposition is honest about the elicitation path — a cold-reader Round 4 would file `domain-raised`.
+
+---
+
+### Resolved
+
+**Finding 1 — R3 carryforward F1 (broken `1ab-spec-development.md` link in SOLUTION-ARCHITECT-REVIEW.md + QUALITY-ENGINEER-REVIEW.md Reviews-table) — Resolved by per-domain-index retirement (Dim 4, Dim 6, Dim 11)**
+
+<a id="r4-f1"></a>
+
+**Owner:** documentation-reviewer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+**Validator rationale:** Standard adversarial-pair validation — Doc Reviewer surfaces from cold-reader seat; TW validates from authorial seat. Here, the resolution is by file deletion (per the PR #40 per-domain-index retirement decision), so TW's authorial-seat validation reduces to confirming the deletion was intentional and the navigation rewrite covers the lost surface. Both confirmed in [Review 84](../../../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z) Finding 1 + 2.
+
+Per the PR #40 retirement decision, `vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md` and `vsdd-suite/QUALITY-ENGINEER-REVIEW.md` were deleted. The broken `1ab-spec-development.md` citations in those files' Reviews-tables are auto-resolved by elimination — no file means no stale citation. The cited sites' navigation surface (which Review N findings the cited review-log file pertained to) is preserved via the new canonical navigation path: `vsdd-suite/review-log/2026-05-20-solution-architect.md` + `vsdd-suite/review-log/2026-05-20-quality-engineer.md` are still present and contain the same `## Review N` sections that the deleted index Reviews-tables referenced.
+
+**`grep -rn before claiming closure` evidence:** `grep -rn "1ab-spec-development" --include="*.md" . | grep -v "review-log/" | grep -v "CHANGELOG.md"` returns 1 line: `DESIGN.md:3` — and that line is the narrative-preservation mention explicitly preserved per [G-89](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-89) forward-only narrative policy ("the prior primer filename `1ab-spec-development.md` — both retired by the suite"). The narrative-preservation site is correct authoring; not a stale citation. Defect class clean.
+
+**Resolution:** Per-domain index retirement auto-resolves the broken citations in SA-REVIEW.md + QE-REVIEW.md. Grep-clean evidence confirms no surviving stale `1ab-spec-development` citation in forward-facing files (the one DESIGN.md hit is G-89-preserved narrative).
+
+**Classification:** Resolved
+
+---
+
+**Finding 2 — R3 carryforward F2 (stutters across DESIGN.md / SA-REVIEW.md / QE-REVIEW.md / PROCESS.md) — Resolved by per-domain-index retirement + grep-clean across remaining sites (Dim 6)**
+
+<a id="r4-f2"></a>
+
+**Owner:** documentation-reviewer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+**Validator rationale:** Stutter defects ("Purity Boundary Audit Purity Boundary Audit" / "Mutation Testing Mutation Testing" / "property-based testing (property-based testing via proptest)") were the Review 78 letter-retirement sweep-script substitution artifacts. The PR #38 R3 inline-fix batch addressed several; PR #40's per-domain-index retirement removes the SA-REVIEW.md + QE-REVIEW.md surfaces; the DESIGN.md + PROCESS.md sites need verification.
+
+`vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md` and `vsdd-suite/QUALITY-ENGINEER-REVIEW.md` were deleted (per Finding 1's resolution path); their stutter sites are auto-resolved by elimination.
+
+**`grep -rn before claiming closure` evidence:** `grep -rnE "Purity Boundary Audit Purity Boundary Audit|Mutation Testing Mutation Testing|property-based testing \(property-based testing" --include="*.md" . | grep -v "review-log/"` returns ZERO matches across the project. Defect class clean.
+
+**Resolution:** Stutters fully cleaned across forward-facing project files. The two remaining sites that could host the defect class (DESIGN.md + PROCESS.md) verified grep-clean.
+
+**Classification:** Resolved
+
+---
+
+**Finding 3 — R3 carryforward F3 (SOLUTION-ARCHITECT-REVIEW.md Reviews-table broken QE Review 1 anchor) — Resolved by per-domain-index retirement (Dim 4, Dim 11)**
+
+<a id="r4-f3"></a>
+
+**Owner:** documentation-reviewer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+**Validator rationale:** The broken anchor was specifically in SA-REVIEW.md's Reviews-table companion-link to QE Review 1. With SA-REVIEW.md deleted, the broken anchor is auto-resolved.
+
+**`grep -rn before claiming closure` evidence:** Searched for `#review-1--2026-05-20-0245z` to confirm no other forward-facing file embeds the stale anchor citation: `grep -rn "#review-1--2026-05-20-0245z" --include="*.md" . | grep -v "review-log/" | grep -v "CHANGELOG.md"` returns zero forward-facing matches. The historical CHANGELOG mention of "QE Review 1" in v0.11.4 + earlier entries is G-89-preserved narrative (the prior anchor was correct at the time of authoring; the rename to "Review 2 — 2026-05-20 02:45Z" happened later). Defect class clean.
+
+**Resolution:** Per-domain index retirement auto-resolves. No forward-facing stale-anchor citation remains for this defect class.
+
+**Classification:** Resolved
+
+---
+
+**Finding 4 — R3 carryforward F4 (letter-coded "Surface A/C/D" in DESIGN.md + QUALITY-ENGINEER-REVIEW.md) — Resolved by per-domain-index retirement + DESIGN.md prior sweep (Dim 2, Dim 6)**
+
+<a id="r4-f4"></a>
+
+**Owner:** documentation-reviewer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+**Validator rationale:** The letter-coded "Surfaces A/C/D" residue was the Review 78 letter-retirement sweep's incomplete coverage. PR #38 R3 inline-fix batch's mechanical sweep cleaned DESIGN.md to use descriptive Title Case names ("Purity Boundary Audit / Mutation Testing / property-based testing / Fuzz Testing / Proof Execution"); PR #40 retirement removes QE-REVIEW.md.
+
+**`grep -rn before claiming closure` evidence:** `grep -rnE "Surface A|Surface B|Surface C|Surface D|/C/D" --include="*.md" . | grep -v "review-log/" | grep -v "CHANGELOG.md"` returns ZERO matches across forward-facing project files. Defect class clean.
+
+**Resolution:** Letter-coded Surface identifiers fully retired from forward-facing project surfaces. The historical CHANGELOG mentions in v0.7.2 / v0.7.8 entries are G-89-preserved narrative (the lettering was canonical at the time those entries were authored).
+
+**Classification:** Resolved
+
+---
+
+**Finding 5 — R3 carryforward F5 (FINDINGS-INDEX.md cross-reference + open-count + customization-status stale) — Resolved by PR #39 + PR #40 inline updates (Dim 4, Dim 6)**
+
+<a id="r4-f5"></a>
+
+**Owner:** documentation-reviewer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+**Validator rationale:** The FINDINGS-INDEX.md staleness was three-pronged: (a) Cross-references section claimed "11 active role-domain indexes" (later "12 ... including AI Engineer"); (b) the "Round 2 + Round 3 outcomes" preamble referenced per-domain index Reviews-tables as canonical lookup; (c) Quick lookup preamble had stale Open-count claims.
+
+[PR #39](https://github.com/magnificentlycursed/guild-portfolio/pull/39) updated (a) and (c) (Open-count rewrite + AI Engineer added). PR #40 updated (a) again (per-domain indexes retired; navigation now via `review-log/` + this registry) and updated (b) (the Round 2 + Round 3 outcomes preamble now references per-session `Review N` anchors directly rather than per-domain index Reviews-tables).
+
+**`grep -rn before claiming closure` evidence:** The FINDINGS-INDEX.md file was rewritten in this PR (line 19 + line 74 per the PR #40 commit). Re-reading the file end-to-end confirms: Quick lookup preamble names "12 active role-domain indexes" with the parenthetical now clarifying retirement; Round 2 + Round 3 outcomes paragraph names `review-log/` as canonical navigation; Cross-references list names per-session files in `review-log/` instead of per-domain indexes. The three staleness sites are all rewritten.
+
+**Resolution:** FINDINGS-INDEX.md rewritten in PR #40 to reflect the post-retirement navigation shape. The three staleness sites named in R3 F5 are all closed.
+
+**Classification:** Resolved
+
+---
+
+### Dismissed
+
+*(none — every R3 carryforward verified to Resolution)*
+
+---
+
+### Hallucinated
+
+*(none — the R3 carryforwards were all real defects; this Round 4 verification confirms their closure rather than re-classifying them)*
+
+---
+
+### Summary
+
+5 carryforwards from Round 3 Resolved by the PR #40 cycle (3 by per-domain-index retirement's elimination of the defect-hosting files; 2 by grep-clean evidence across the remaining forward-facing surface, applying the newly-codified `grep -rn before claiming closure` discipline). **MVR signal:** **REACHED.** All Round 3 real findings are now Resolved; this Round 4 verification produced zero new real findings; the next Documentation Reviewer round (in a future PR cycle, run cold against post-PR-#40 state) is the regression-check pass per [G-131](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) — if it produces only Hallucinated or zero findings, the Documentation Reviewer domain MVR is confirmed at the next cycle. Until that cold cycle runs, this in-session verification is the discipline-honest declaration: "the carryforwards are Resolved by the evidence; the regression-check is deferred to the next cold cycle."
+
+**Cost-tally (per [`suite-development/suite-development.md`](../../../../vsdd-suite/suite-development/suite-development.md) § Per-review entry preamble § Cost-tally):** in-session verification; no agent-spawn; ~0 incremental token cost beyond the 4 grep invocations + the per-finding write-up. The in-session shape was chosen per AI Engineer R1 F2 (Phase 4 routing as Round-2+ scope-reducer) + Dim 2 (token economy per finding); a cold-session would have burned ~5-15k tokens on mechanical grep-verification that produced the same evidence.
+
+**Coordination:** This Round 4 verification + the PR #40 cycle close Documentation Reviewer at MVR. The 8-of-10-domains-MVR scorecard from PR #38 Round 3 promotes to **9 of 10 at MVR** (Doc Reviewer joins SE / Security / UX / Red Team / TW / SO / VDD-IAR Alignment); the 2 operator-gated domains (Platform Engineer install-verification; Performance Engineer fsync benchmark) remain. Phase 6 four-dimensional convergence remains DEFERRED pending operator install-verification + the next cold Documentation Reviewer regression-check.

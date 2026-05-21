@@ -476,7 +476,7 @@ mod tests {
     /// for a nested-path target — Mutation Testing (cargo-mutants) surfaced the gap
     /// at src/lib.rs:48 where `!parent.as_os_str().is_empty()` could be
     /// flipped without any test failing. Test added post-MVR; confirmed
-    /// passes against current implementation. See vsdd-suite/QUALITY-ENGINEER-REVIEW.md
+    /// passes against current implementation. See vsdd-suite/review-log/2026-05-20-quality-engineer.md
     /// (Review 2 — Phase 5 Mutation Testing) for the surviving mutant disposition.
     #[test]
     fn save_creates_parent_directory_for_nested_path() {

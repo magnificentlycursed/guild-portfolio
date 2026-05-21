@@ -94,4 +94,6 @@ These dimensions apply when the project consumes external services at runtime: t
 
 ---
 
-Review entries are logged in per-session files at `vsdd-suite/review-log/YYYY-MM-DD-solution-architect.md` inside the project being reviewed; the per-domain index at `vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md` aggregates rounds (newest-first) and is the entry point for browsing the domain's review history. See `vsdd-suite/suite-development/suite-development.md` § Governing standard for project-level review logs.
+Findings from this domain serve all three audiences of the methodology (suite developers + suite users + AI agents) — see [`suite-development.md`](../../suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3) § Three-audience design principle ([Review 80](../../suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3; renamed in [Review 84](../../suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z) Finding 4).
+
+Review entries are logged in per-session files at `vsdd-suite/review-log/YYYY-MM-DD-solution-architect.md` inside the project being reviewed; the project's `vsdd-suite/FINDINGS-INDEX.md` aggregates cross-cutting findings. The optional per-domain index at `vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md` activates when the project opts in via the scaffold script's `--with-per-domain-indexes` flag. See `vsdd-suite/suite-development/suite-development.md` § Governing standard for project-level review logs.

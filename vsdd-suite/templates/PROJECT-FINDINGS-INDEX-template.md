@@ -8,6 +8,8 @@ Structured like [`vsdd-suite/suite-development/FINDINGS-INDEX.md`](../../vsdd-su
 
 **Reading convention:** the canonical narrative for each finding is in its per-session file, linked in the **Anchor** column. This file's rows are summaries for fast cross-cutting filtering (by domain, layer, classification, source). Use a markdown viewer's table filter (or `grep`) for quick lookup.
 
+**Three audiences ([Review 80](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3; renamed in [Review 84](../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z) Finding 4):** this index is authored for (1) **the project's contributors** (suite-user-audience analog: the project's own developer team reading their registry to understand what's been found + what's still open); (2) **future maintainers + cold readers** (suite-user-audience analog: someone cloning the repo and reading the registry as their first signal of the project's quality discipline); (3) **AI agents** (structured lookups by Owner / Status / Validator / Classification / Lens — same shape as the suite-side registry). The column shape + lookup idioms are stable agent-API surface, identical to [`vsdd-suite/suite-development/FINDINGS-INDEX.md`](../../vsdd-suite/suite-development/FINDINGS-INDEX.md) — a contributor or agent that grep'd cleanly there grep's cleanly here. See [`vsdd-suite/suite-development/suite-development.md`](../../vsdd-suite/suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3) [§ Three-audience design principle](../../vsdd-suite/suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3).
+
 ---
 
 ## Quick lookup

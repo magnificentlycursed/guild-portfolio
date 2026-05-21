@@ -45,7 +45,7 @@ cargo test
 
 ## How this was built
 
-Built using the [VSDD (Verified Spec-Driven Development) Suite](../../vsdd-suite/README.md) — the per-phase primers and per-domain review prompts. The spec is in [`DESIGN.md`](DESIGN.md); the layer plan and manual testing checklist are in [`TODO.md`](TODO.md); the per-domain review-log indices are in [`vsdd-suite/`](vsdd-suite/) (scaffolded via the suite's `templates/scaffold-project.sh`). IAR (Iterative Adversarial Refinement) runs at Phase 3 per the active domain set declared in [`DESIGN.md`](DESIGN.md) § Project intent; MVR (maximum viable refinement) is the per-domain stop trigger; TDD (test-driven development) discipline applies at Phase 2a (Red Gate) → Phase 2b (implementation).
+Built using the [VSDD (Verified Spec-Driven Development) Suite](../../vsdd-suite/README.md) — the per-phase primers and per-domain review prompts. The spec is in [`DESIGN.md`](DESIGN.md); the layer plan and manual testing checklist are in [`TODO.md`](TODO.md); the per-session review-log files are in [`vsdd-suite/review-log/`](vsdd-suite/review-log/) and the project finding registry is at [`vsdd-suite/FINDINGS-INDEX.md`](vsdd-suite/FINDINGS-INDEX.md) (scaffolded via the suite's `templates/scaffold-project.sh`). IAR (Iterative Adversarial Refinement) runs at Phase 3 per the active domain set declared in [`DESIGN.md`](DESIGN.md) § Project intent; MVR (maximum viable refinement) is the per-domain stop trigger; TDD (test-driven development) discipline applies at Phase 2a (Red Gate) → Phase 2b (implementation).
 
 Phase progression for Layer 1:
 

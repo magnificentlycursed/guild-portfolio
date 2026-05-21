@@ -1,12 +1,54 @@
 # Changelog
 
+## v0.12.1 Per-domain index retirement + Cold-session budget declaration + Doc Reviewer Round 4 closure — 2026-05-21 11:00Z ([Review 84](../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z))
+
+**Scope:** PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40) — upstream-suite remediation cycle applied at the reference example. Per-domain index files retired (the reference-example demonstrates the new methodology shape after the operator's redundancy evaluation); new Cold-session budget declaration in DESIGN.md (per the new methodology requirement); Doc Reviewer Round 4 verification closes the 5 R3 carryforwards (Doc Reviewer reaches MVR).
+
+### Removed — per-domain index navigation surface
+
+- **13 per-domain index files deleted** at [`vsdd-suite/<DOMAIN>-REVIEW.md`](vsdd-suite/) (12 role + 1 meta). The reference example now navigates exclusively via `review-log/` + `FINDINGS-INDEX.md`.
+
+### Changed — spec ([`DESIGN.md`](DESIGN.md))
+
+- **§ Project intent — new Cold-session budget declaration line** below the Phase 6 strategy declaration. Required at capstone + production intent per the new methodology fix in [`../../vsdd-suite/domains/DOMAIN-INDEX.md`](../../vsdd-suite/domains/DOMAIN-INDEX.md) § Cold-session budget per intent. Names: max 4 rounds; max 10 parallel agents or 4-cluster batched; 100k-300k tokens per substantive finding band; Opus 4.7 for SE/Security/Red Team/SA/SO/VDD-IAR Alignment/AI Engineer; Sonnet 4.6 for UX/PE/Platform/TW/Doc Reviewer/QE; Haiku 4.5 for mechanical-sweep delegated sub-agents.
+
+### Changed — reference rewrites for per-domain index retirement
+
+- **[`README.md`](README.md)** + **[`src/lib.rs`](src/lib.rs)** + **[`manual-tests/install-verification.md`](manual-tests/install-verification.md)** + **[`vsdd-suite/FINDINGS-INDEX.md`](vsdd-suite/FINDINGS-INDEX.md)** + **[`DESIGN.md`](DESIGN.md)** — ~7 reference rewrites total replacing per-domain index citations with the canonical replacement target (specific per-session review-log file; FINDINGS-INDEX for cross-finding queries; suite-side domain prompt for methodology cites).
+
+### Changed — review-log discipline
+
+- **[`vsdd-suite/review-log/2026-05-20-documentation-reviewer.md`](vsdd-suite/review-log/2026-05-20-documentation-reviewer.md)** — appended `## Review 4 — 2026-05-21 11:00Z` section. Phase-4-routed verification of the 5 Round 3 Deferred carryforwards: 3 Resolved by per-domain-index retirement's elimination; 2 Resolved by grep-clean evidence applying the newly-codified `grep -rn before claiming closure` discipline. **Doc Reviewer MVR reached.**
+
+### Per-domain MVR scorecard promotes from 7 of 10 → 9 of 10 at MVR
+
+| Domain | Status after PR #40 |
+|---|---|
+| Software Engineer | MVR reached (PR #38 Round 3) |
+| Performance Engineer | MVR-blocked-by-Deferred (R2-F7 fsync benchmark — Layer 2) |
+| Platform Engineer | MVR-blocked-by-operator-gate (R2-F9 install-verification) |
+| Security | MVR reached (PR #38 Round 3) |
+| UX | MVR reached (PR #38 Round 3 inline-fix) |
+| Red Team | MVR reached (PR #38 Round 3 inline-fix + Accepted risk) |
+| Technical Writer | MVR reached (PR #38 Round 3 inline-fix) |
+| **Documentation Reviewer** | **MVR reached (PR #40 Round 4 verification — NEW)** |
+| Solution Owner | MVR reached (PR #38 Round 3) |
+| VDD-IAR Alignment | MVR reached (PR #38 Round 2) |
+| **AI Engineer** | **MVR reached (PR #39 R1 + PR #40 closes F6/F7/F8 — NEW)** |
+
+### Phase 6 status
+
+**Phase 6 four-dimensional convergence record continues DEFERRED.** Platform Engineer install-verification operator-gate is the AI-unsatisfiable hard ceiling per [G-155](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155).
+
+---
+
 ## v0.12.0 AI Engineer domain registration + first cold-session round — 2026-05-21 10:00Z ([Review 83](../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-83--2026-05-21-1000z))
 
 **Scope:** Reference example's capstone-active-domain set extended with the newly-registered [AI Engineer](../../vsdd-suite/domains/role/AI-ENGINEER-REVIEW.md) role-domain (cost-and-quality discipline for AI-agent usage in the IAR cycle). First cold-session Round 1 filed against PR [#38](https://github.com/magnificentlycursed/guild-portfolio/pull/38)'s 3-round cycle as the new domain's first audit.
 
 ### Added — review-log discipline
 
-- **[`vsdd-suite/AI-ENGINEER-REVIEW.md`](vsdd-suite/AI-ENGINEER-REVIEW.md)** — new per-domain index stub at the reference example. Active domain promotes from 11 role + 1 meta = 12 → **12 role + 1 meta = 13** at capstone intent.
+- **AI Engineer domain activation** — Active domain promotes from 11 role + 1 meta = 12 → **12 role + 1 meta = 13** at capstone intent. Round 1 review filed at [`vsdd-suite/review-log/2026-05-21-ai-engineer.md`](vsdd-suite/review-log/2026-05-21-ai-engineer.md).
 - **[`vsdd-suite/review-log/2026-05-21-ai-engineer.md`](vsdd-suite/review-log/2026-05-21-ai-engineer.md)** — Round 1 cold-session review against PR #38's R1 + R2 + R3 cycle. **10 findings filed: 5 Resolved + 3 Deferred + 1 Dismissed + 1 Hallucinated**.
 
 ### Changed — spec ([`DESIGN.md`](DESIGN.md))

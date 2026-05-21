@@ -305,3 +305,14 @@ The decomposition is ready to move to Phase 2 (Red Gate / implementation) when:
 7. For Phase 2+ projects: the crosslink issue hierarchy is created, one milestone per layer is created and populated, and `crosslink workflow diff` runs clean before the first session opens. Per-layer manual-test files live in `manual-tests/layer-N.md` in both modes — crosslink replaces `TODO.md` as the decomposition source of truth, but the manual-test plan files stay at the project root regardless of mode; crosslink-mode projects reference them from the layer issue's comment thread.
 
 This plan will be evaluated against VDD-IAR Alignment dims 2 (layered decomposition), 3 (layer gate compliance), and 4 (test discipline). A TODO.md that lists features without acceptance criteria, or layers without manual testing checklists, will not pass the layer gate.
+
+
+## Three-audience lens
+
+This decomposition primer serves all three audiences of the [three-audience design principle](../suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3) ([Review 80](../suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3; renamed in [Review 84](../suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z) Finding 4):
+
+- **Suite developers** evolving this primer treat the prose as the methodology-authoring surface for Phase 1c decomposition — changes here are methodology shifts requiring their own Review.
+- **Suite users** running a session against this primer treat it as the canonical step-by-step for Phase 1c decomposition on their own project; the completion criteria are what their next layer-gate or phase-close commit is checked against.
+- **AI agents** loaded with this primer as cold-session context treat it as the spec for the session's authoring shape (file locations, classification vocabulary, the audit-trail entries this session produces); the primer's named artifacts + their schemas are the agent-API contract for what the session writes.
+
+See [`../suite-development/suite-development.md`](../suite-development/suite-development.md) [§ Three-audience design principle](../suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3) for the full discipline.

@@ -62,5 +62,5 @@ Each row of the table below is one verification attempt. Per [G-155](../../../vs
 
 - **[`layer-1.md`](layer-1.md)** — the test plan the verifier executes (sibling file in this `manual-tests/` directory).
 - **[`../PROCESS.md`](../PROCESS.md)** — first-person retrospective; the verifier's experience could be recorded as an addendum if the verifier is willing to author a brief reflection on the install experience (cold-reader signal that complements TW Dim 11 audit trail).
-- **[`../vsdd-suite/PLATFORM-ENGINEER-REVIEW.md`](../vsdd-suite/PLATFORM-ENGINEER-REVIEW.md)** — Platform Engineer's per-domain index. Dim 38 (Fresh-system install verification) is evaluated against this file's contents.
+- **[`../vsdd-suite/review-log/`](../vsdd-suite/review-log/)** — Platform Engineer's per-session review-log files (matching `*-platform-engineer.md`) and the [`../vsdd-suite/FINDINGS-INDEX.md`](../vsdd-suite/FINDINGS-INDEX.md) project finding registry. Dim 38 (Fresh-system install verification) per the [Platform Engineer domain prompt](../../../vsdd-suite/domains/role/PLATFORM-ENGINEER-REVIEW.md) is evaluated against this file's contents.
 - **[`../DESIGN.md` § Project intent](../DESIGN.md#project-intent)** — declared capstone intent; [G-162](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-162) strategy declarations include the verification commitment.

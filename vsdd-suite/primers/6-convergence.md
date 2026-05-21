@@ -230,3 +230,14 @@ Phase 6 is complete and the project is closed at four-dimensional convergence wh
 Phase 6 is not iterative — there is no "Round N+1 of Phase 6." Subsequent project work that touches the spec, tests, implementation, or formal-verification artifacts re-opens the project and triggers a fresh Phase 6 round (preserving the original as audit trail per the standard per-domain review log structure). Forward-only: a project's first Phase 6 closure is anchored to 2026-05-20 (Review 64 / v0.7.0); closures predating 2026-05-20 retain their prior implementation-MVR-only closure shape (G-54 carve-out).
 
 **Coordination with G-54 (Four-Dimensional Convergence partial ownership):** v0.7.0's Phase 6 primer closes G-54 by giving the suite ownership of all four dimensions' MVR signals and the cross-dimension consistency check. The check itself was the gap G-54 named — until v0.7.0, the suite only tracked implementation MVR; Phase 6 makes the other three dimensions equal first-class participants.
+
+
+## Three-audience lens
+
+This convergence primer serves all three audiences of the [three-audience design principle](../suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3) ([Review 80](../suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3; renamed in [Review 84](../suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z) Finding 4):
+
+- **Suite developers** evolving this primer treat the prose as the methodology-authoring surface for Phase 6 convergence — changes here are methodology shifts requiring their own Review.
+- **Suite users** running a session against this primer treat it as the canonical step-by-step for Phase 6 convergence on their own project; the completion criteria are what their next layer-gate or phase-close commit is checked against.
+- **AI agents** loaded with this primer as cold-session context treat it as the spec for the session's authoring shape (file locations, classification vocabulary, the audit-trail entries this session produces); the primer's named artifacts + their schemas are the agent-API contract for what the session writes.
+
+See [`../suite-development/suite-development.md`](../suite-development/suite-development.md) [§ Three-audience design principle](../suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3) for the full discipline.

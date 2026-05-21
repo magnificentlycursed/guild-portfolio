@@ -156,7 +156,10 @@ When authoring forward-facing suite content (primers, domains, README, supplemen
 
 **Companion review dimension:** [Technical Writer](../domains/role/TECHNICAL-WRITER-REVIEW.md) Dim 13 ("Inline-reference navigability") evaluates project documentation against this discipline at Phase 3 review time. The [Documentation Reviewer](../domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) pair (registered in [Review 80](review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z)) Dim 11 ("Inline-reference clickthrough validation") validates TW Dim 13 findings from the cold-reader seat — TW catches unlinked references at authoring time; Doc Reviewer catches broken or miscredited links at review time.
 
-### Dual-audience design principle ([Review 80](review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3)
+<a id="dual-audience-design-principle-review-80-finding-3"></a>
+### Three-audience design principle ([Review 80](review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3; renamed in [Review 84](review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z) Finding 4 from "Dual-audience" — the historical "dual" framing pre-dated the suite-developers / suite-users split being made explicit in Review 80's body. The HTML anchor `dual-audience-design-principle-review-80-finding-3` is preserved above for backward link compatibility per [G-89](FINDINGS-INDEX.md#g-89); forward-facing references use the new `three-audience-design-principle-review-80-finding-3` anchor below.)
+
+<a id="three-audience-design-principle-review-80-finding-3"></a>
 
 The suite's audit-trail artifacts — [`FINDINGS-INDEX.md`](FINDINGS-INDEX.md), the [`SUITE-DEVELOPMENT-REVIEW.md`](SUITE-DEVELOPMENT-REVIEW.md) index, per-Review entries in [`review-log/`](review-log/), and per-project finding indexes + per-domain review logs in projects under review — are authored for **three audiences simultaneously**:
 
@@ -176,7 +179,16 @@ Operator wording: "The findings index and the review logs are intended for two a
 4. **Narrative + structured-fact pairs.** A Finding body has prose narrative for the human (developer or user) + the lifecycle fields ( `**Owner:**` / `**Status:**` / `**Blocked by:**` / `**Validator:**` ) for the agent. A Review entry's Summary is prose for the human + the classification-sub-section totals + Backlog count for the agent. The registry table is structured for the agent + the linked Review prose is narrative for the human.
 5. **Suite-side and project-side parity.** What the suite enforces on its own audit trail (via [`check-suite-review-preamble.py`](../hooks/check-suite-review-preamble.py)) is what it teaches projects to apply (via [`check-project-review-discipline.py`](../hooks/check-project-review-discipline.py)). The shape is symmetric: a user reading a suite-side Review entry and then authoring a project-side review-log entry encounters the same Finding-header pattern, the same classification universe, the same lifecycle fields. A developer evolving the suite-side schema must update both hooks + the agent-API contract below + the templates in [`templates/`](../templates/) — the shape changes everywhere or nowhere.
 
-**Companion review dimensions:** [TW Dim 12](../domains/role/TECHNICAL-WRITER-REVIEW.md) (lookup-cost) + [Dim 13](../domains/role/TECHNICAL-WRITER-REVIEW.md) (inline-reference navigability) already enforce the narrative side. The agent-side schema-stability contract is enforced by the [`check-suite-review-preamble.py`](../hooks/check-suite-review-preamble.py) + [`check-project-review-discipline.py`](../hooks/check-project-review-discipline.py) hooks. The dual-audience principle names what the hooks defend.
+**Companion review dimensions per audience** ([Review 84](review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z) Finding 4 — each audience has a primary domain whose review applies the audience's lens; the four domains together cover the three-audience surface):
+
+| Audience | Primary domain | Companion dim(s) | Coverage |
+|---|---|---|---|
+| **Suite developers** (contributors extending the methodology) | [Solution Owner](../domains/role/SOLUTION-OWNER-REVIEW.md) | SO scope-discipline + over-engineering + under-delivery | Ensures the methodology evolution stays calibrated to its declared scope; contributors extending the suite get spec-contract pressure. |
+| **Suite users** (project teams applying VSDD) | [Documentation Reviewer](../domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) | Doc Reviewer Dim 1 clone-and-follow fidelity + Dim 2 implicit-knowledge audit + Dim 7 recovery-from-confusion | Ensures the user audience can adopt the methodology without operator hand-holding; cold-reader pressure surfaces what the suite-developer authoring missed. |
+| **AI agents** (parallel cold-session reviewers + main-session orchestrators) | [AI Engineer](../domains/role/AI-ENGINEER-REVIEW.md) | AI Engineer Dim 11 audit-trail machine-readability + Dim 1 session isolation + Dim 8 Phase 4 routing | Ensures the agent audience can parse + grep + cold-load the audit trail efficiently; cost-discipline pressure surfaces machine-readability defects + redundant context-load. |
+| **Cross-audience narrative quality** | [Technical Writer](../domains/role/TECHNICAL-WRITER-REVIEW.md) | TW Dim 12 lookup-cost + Dim 13 inline-reference navigability | Ensures narrative is readable for both human audiences (developer + user); the agent-side schema-stability contract is enforced by hooks (see below). |
+
+The four-domain coverage is the methodology's own three-audience check: TW writes the narrative; Doc Reviewer reads cold from the user seat; AI Engineer audits from the agent seat; SO scopes from the developer seat. The agent-side schema-stability contract is enforced by the [`check-suite-review-preamble.py`](../hooks/check-suite-review-preamble.py) + [`check-project-review-discipline.py`](../hooks/check-project-review-discipline.py) hooks. The three-audience principle names what the hooks defend + what the four-domain coverage validates.
 
 ### Agent-API surface ([Review 80](review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3)
 
@@ -306,16 +318,19 @@ The catalog is non-exhaustive; agents may compose new lookups from the documente
 
 A project-level review log is the artifact produced by running a domain review on a project under review. The domain prompt file specifies *what* to evaluate; this standard specifies *what the resulting log must contain*. Drift in log structure makes cross-domain reading harder and hides governance gaps — apply this standard whenever a new project-level log is created or an existing one is updated.
 
-### Structure (per-domain index + per-session entries)
+### Structure (per-session entries + cross-cutting registry; per-domain index is optional)
 
-**Forward-only constraint:** This index-plus-session-file structure applies to projects starting after 2026-05-17 (G-89 closure date). Projects whose first IAR run predates that date retain their existing single-file-per-domain structure (one accumulating file per domain holding all rounds) and must not be retroactively split. Reference: G-89's row in [`FINDINGS-INDEX.md`](FINDINGS-INDEX.md).
+**Forward-only constraint:** This review-log-plus-FINDINGS-INDEX structure applies to projects starting after 2026-05-17 (G-89 closure date). Projects whose first IAR run predates that date retain their existing single-file-per-domain structure (one accumulating file per domain holding all rounds) and must not be retroactively split. Reference: G-89's row in [`FINDINGS-INDEX.md`](FINDINGS-INDEX.md).
 
-For a new project, each active domain produces two file shapes:
+For a new project, each active domain produces per-session files; the cross-cutting registry is project-wide; the per-domain index file is optional and activates only when a project wants a navigation surface organized by domain rather than by date+domain:
 
-| Artifact | Location | Content |
-|---|---|---|
-| **Per-domain index file** | `<project>/vsdd-suite/<DOMAIN>-REVIEW.md` (e.g., `vsdd-suite/QUALITY-ENGINEER-REVIEW.md`) | File-level header (see below) + a **Reviews** table indexing every round filed for that domain. One row per round, newest at the top. Each row links to the session file's anchor for that round. This file is the index; it does not contain finding narratives. |
-| **Per-session file** | `<project>/vsdd-suite/review-log/YYYY-MM-DD-<domain-slug>.md` | The actual round entries. One file per UTC date; if multiple rounds for the same domain happen on the same date, they share a file (new rounds appended at the top of the file, newest first within the date). One file per (date, domain) pair. |
+| Artifact | Required? | Location | Content |
+|---|---|---|---|
+| **Per-session file** | **Required.** One per (date, domain) pair on which a round is filed. | `<project>/vsdd-suite/review-log/YYYY-MM-DD-<domain-slug>.md` | The actual round entries. One file per UTC date per domain; if multiple rounds for the same domain happen on the same date, they share a file (new rounds appended at the top of the file, newest first within the date). |
+| **Cross-cutting findings registry** | **Required.** Project-wide. | `<project>/vsdd-suite/FINDINGS-INDEX.md` (manual mode) or the crosslink issue tracker with `domain:<slug>` / `layer:N` / `round:N` / `classification:<class>` labels ([G-138](FINDINGS-INDEX.md#g-138)) | One row (or one labelled issue) per finding across every domain and layer. The cross-cutting view that answers "show me all Open findings" or "show me everything raised on Layer 2." |
+| **Per-domain index file** | **Optional.** | `<project>/vsdd-suite/<DOMAIN>-REVIEW.md` (e.g., `vsdd-suite/QUALITY-ENGINEER-REVIEW.md`) | File-level header (see below) + a **Reviews** table indexing every round filed for that domain. One row per round, newest at the top. Each row links to the session file's anchor for that round. This file is the index; it does not contain finding narratives. Activates when the project wants a domain-organized navigation surface in addition to the date-organized `review-log/`. |
+
+**Per-domain index file is optional as of Review 84.** Per [Review 84](review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z), the `bookmark-cli-manual` reference example retired its 13 per-domain index files; the project now navigates exclusively via `review-log/` + `FINDINGS-INDEX.md`. The per-domain index was effectively required prior to PR #40; PR #40's operator decision is that the per-domain index is redundant with `review-log/` (date-organized navigation already names the domain via the filename slug) + `FINDINGS-INDEX.md` (cross-cutting view answers every multi-round / multi-domain query the per-domain index served). Future projects scaffolded at v0.13.0+ default to no per-domain index files; the template at [`templates/DOMAIN-REVIEW-template.md`](../templates/DOMAIN-REVIEW-template.md) remains for projects that opt in via the scaffold script's `--with-per-domain-indexes` flag or by manual creation. The `bookmark-cli-manual` post-retirement shape is the new canonical reference; pre-PR-#40 reference projects with per-domain index files in place retain them as historical record per the G-89 forward-only carve-out.
 
 **Domain slug convention** for the session-file name: lowercase, hyphenated, derived from the role title (no `-review` suffix — the `review-log/` directory conveys it). Examples:
 
@@ -336,9 +351,9 @@ For a new project, each active domain produces two file shapes:
 - VDD-IAR Alignment → `vdd-iar-alignment`
 - Portfolio Assessment → `portfolio-assessment`
 
-**Cross-domain references** between findings: link directly to the session file with the round's anchor, not to the index. Use the same `[text](path)` form the gap registry uses: `[QE Review 4](review-log/2026-06-15-quality-engineer.md#review-4--2026-06-15-1400z) Finding 2`. Linking through the index adds a navigation hop without informational value.
+**Cross-domain references** between findings: link directly to the session file with the round's anchor (never to the optional per-domain index, even when present). Use the same `[text](path)` form the gap registry uses: `[QE Review 4](review-log/2026-06-15-quality-engineer.md#review-4--2026-06-15-1400z) Finding 2`. The session file is the canonical narrative target for all cross-references.
 
-**Why the split:** Cross-domain reading is faster (the index is one screen, not hundreds of lines of accumulated rounds); session-file scoping makes scoped-search (`grep` for a specific date or round) cleaner; multi-round closure trails are visible at the index level (a reviewer can see at a glance how many rounds it took to reach MVR); large projects don't produce single domain files in the multi-thousand-line range. The pattern mirrors the suite's own [`SUITE-DEVELOPMENT-REVIEW.md`](SUITE-DEVELOPMENT-REVIEW.md) + `review-log/` structure, which has been load-tested with 38+ sessions and works.
+**Why per-session files + a cross-cutting registry are the canonical default:** session-file scoping makes scoped-search (`grep` for a specific date or round) cleaner; the filename slug already names the domain, so date-organized navigation surfaces the same information a per-domain index would; the cross-cutting registry (`FINDINGS-INDEX.md` or labelled crosslink issues) answers every multi-round / multi-domain query that motivated the per-domain index in the prior shape. Large projects don't produce single domain files in the multi-thousand-line range. The pattern mirrors the suite's own [`SUITE-DEVELOPMENT-REVIEW.md`](SUITE-DEVELOPMENT-REVIEW.md) + `review-log/` structure (the suite retains its own per-domain index as a contributor-facing artifact because the suite's review cadence is denser than any single project's).
 
 ### Project-level finding index (cross-cutting registry)
 
@@ -415,9 +430,9 @@ Every `Deferred` finding in a project review log must name three things:
 
 **Why deferral-trigger discipline is a hard standard:** ITC PROCESS.md L6 named this gap explicitly ("I need a mechanism to make sure deferred items are properly worked. Maybe like some sort of task manager lol lmao") and L7 ("Clearer task ownership will resolve this in future projects"). The deferral-as-procrastination pattern recurred across multiple layers before the §3 mechanism caught it. Per the "earned by recurrence" doctrine, two-layer recurrence in one project plus operator-named pain is sufficient to promote the discipline from project-scope to suite-default. Reference: G-130's row in [`FINDINGS-INDEX.md`](FINDINGS-INDEX.md). Coordinate with G-133 (Source field — director-raised findings are often what re-opens an auto-Backlogged finding the cold adversary missed).
 
-### File-level header (top of the per-domain index file)
+### File-level header (top of the per-domain index file, when used)
 
-The per-domain index file opens with these elements, in order:
+When the project uses the optional per-domain index (per the structure table above, projects scaffolded at v0.13.0+ default to no per-domain index; this section applies only to projects that opt in via the scaffold script's `--with-per-domain-indexes` flag or by manual creation), the per-domain index file opens with these elements, in order:
 
 1. **H1 title** — `# [Role] Review Log (Index)`
 2. **Suite link line** — standard text linking to the project's `README.md` and noting the review is part of the VSDD suite
@@ -442,12 +457,12 @@ Rows are ordered newest-first. The summary column is one sentence; the canonical
 
 ### Per-session file header
 
-The session file opens with a simple H1 (`# [Role] Review — YYYY-MM-DD`). No file-level metadata is duplicated from the index — a reader who landed on a session file without context can follow the rounds back to the index via the `[Index](../<DOMAIN>-REVIEW.md)` link in the H1's footer line if needed (this footer link is optional; the round entries inside reference back to the index implicitly through the index's reverse links).
+The session file opens with a simple H1 (`# [Role] Review — YYYY-MM-DD`). No file-level metadata is duplicated from anywhere — the file is self-describing via the filename slug (domain) and the H1 date. When the project uses the optional per-domain index, a reader can follow the rounds back to it via an `[Index](../<DOMAIN>-REVIEW.md)` link in the H1's footer line if desired; this footer link is optional in all cases and is omitted entirely for projects that do not use the per-domain index.
 
 ```
 # Quality Engineer Review — 2026-06-15
 
-[Index](../QUALITY-ENGINEER-REVIEW.md)
+[Index](../QUALITY-ENGINEER-REVIEW.md)  <!-- optional; omit if the project does not use the per-domain index -->
 
 ---
 
@@ -479,6 +494,7 @@ Within a session file, rounds are ordered newest-first (matching the index order
 - **Reference:** non-DESIGN.md authoritative source the review evaluates against (Solution Owner reviewing against the assignment brief)
 - **Regression check:** prior-review verification (any domain when a prior review for the same scope exists)
 - **Assumption surfacing:** dependency and library-API verification (Quality Engineer, per the QE prompt's G-20/G-21/G-23 obligations) — one short paragraph per review naming assumptions verified or flagged
+- **Cost-tally** (capstone + production intent; multi-agent cycle-closing entries — [AI Engineer R1 F6](../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-21-ai-engineer.md)): after-action cost report closing the pre-cycle declaration authored per [`primers/3-review-session.md`](../primers/3-review-session.md) § Pre-cycle methodology check. One short paragraph naming: total agent-spawns this cycle; estimated total token consumption (Anthropic API usage as observed or estimated from per-agent context-load size × turn count); per-substantive-finding token cost (total ÷ non-Hallucinated finding count); rate-limit-hit events (none / count + retry shape); model-selection actual-vs-declared (matched / drifted with rationale). The pair (pre-cycle declaration → after-action cost report) is the AI Engineer Dim 13 pre-cycle methodology check applied at the cycle boundary; the audit-trail-stays-honest-without-it discipline is what the cost-tally field defends. Cycles exempt from the pre-cycle declaration (single-agent rounds; sub-agent delegation for non-adversarial work; learning-exercise intent) are also exempt from the cost-tally field.
 
 A reviewer who finds they need a preamble field that is not in either list should propose adding it to this standard rather than introducing it ad-hoc. Examples of fields that are **not** valid additions: `Preamble`, `Governing methodology`, `Mutation analysis method`, free-form `Test count` lines — these duplicate `Scope` or `Session note`, or belong inside individual findings or the closing summary. The ownership / validation lifecycle fields (`Owner`, `Status`, `Blocked by`, `Validator`) live in the per-finding body, NOT the entry preamble — they describe per-finding state, not per-entry state.
 

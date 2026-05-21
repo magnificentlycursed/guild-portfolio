@@ -208,3 +208,14 @@ Phase 5 is gate-complete for a layer when:
 When (1)–(5) hold, the layer is Phase-5-MVR. Phase 6 (Four-Dimensional Convergence) is the cross-layer convergence gate — see `primers/6-convergence.md` for its entry conditions.
 
 **Forward-only:** Phase 5 ownership in the suite is new as of 2026-05-20 (Review 64 / v0.7.0; [G-55](../suite-development/FINDINGS-INDEX.md#g-55) closure). Projects whose first layer-gate close predates 2026-05-20 are not retroactively required to retro-fit Phase 5 work; they continue under the prior "skip Phase 5 unless safety-critical" framing. Capstone-intent projects whose first layer-gate close is on or after 2026-05-20 must declare Phase 5 strategy ([G-162](../suite-development/FINDINGS-INDEX.md#g-162) enforcement; not new — promoted 2026-05-19).
+
+
+## Three-audience lens
+
+This hardening primer serves all three audiences of the [three-audience design principle](../suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3) ([Review 80](../suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3; renamed in [Review 84](../suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z) Finding 4):
+
+- **Suite developers** evolving this primer treat the prose as the methodology-authoring surface for Phase 5 formal hardening — changes here are methodology shifts requiring their own Review.
+- **Suite users** running a session against this primer treat it as the canonical step-by-step for Phase 5 formal hardening on their own project; the completion criteria are what their next layer-gate or phase-close commit is checked against.
+- **AI agents** loaded with this primer as cold-session context treat it as the spec for the session's authoring shape (file locations, classification vocabulary, the audit-trail entries this session produces); the primer's named artifacts + their schemas are the agent-API contract for what the session writes.
+
+See [`../suite-development/suite-development.md`](../suite-development/suite-development.md) [§ Three-audience design principle](../suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3) for the full discipline.
