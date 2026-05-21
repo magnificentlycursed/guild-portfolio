@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.12.2 PROCESS.md three-audience-lens optimization — 2026-05-21 12:00Z ([Review 86](../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-86--2026-05-21-1200z) Finding 4)
+
+**Scope:** PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40) — operator-directed evaluation of the AI-authored PROCESS.md against review-log evidence + three-audience-lens optimization. The 3 AI-author "what was hardest" claims verified against review-log evidence (all 3 PROVEN OUT); existing stumbling points gained three-audience treatment; 3 new post-PR-#38/#39/#40 stumbling points added.
+
+### Changed — PROCESS.md
+
+- **Top-of-file three-audience-lens preamble** added explaining the three-audience optimization (suite developers / suite users / AI agents) per [Review 86](../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-86--2026-05-21-1200z) Finding 4 + cross-referencing the [Three-audience design principle](../../vsdd-suite/suite-development/suite-development.md#three-audience-design-principle-review-80-finding-3). The format applies to capstone+ intent PROCESS.md content as a discipline.
+- **Existing 3 Layer-1 stumbling points** each gained a `**Three-audience lens:**` paragraph naming what each audience should take from the stumbling point + a `**Review-log evidence:**` line citing the specific Finding F + Review N that proves the claim.
+- **3 NEW post-PR-#38/#39/#40 stumbling points added:**
+  - **Stumbling point 4** — 80 Round-1 findings as spec/test under-investment signal disguised as IAR thoroughness (Review 82 Finding 2 evidence).
+  - **Stumbling point 5** — Operator-directive correction cost: 3 mid-cycle slips in PR #38 (Round 2 filename violation; wrong adversarial-pair clustering; cluster-letter naming) named in the feedback memory + AI Engineer R1 F4 evidence.
+  - **Stumbling point 6** — Site-specific fix declared closure: Doc Reviewer R3 carryforward pattern that motivated the [`grep -rn before claiming closure`](../../vsdd-suite/primers/4-feedback-integration.md) discipline authored in Review 84 Finding 1.
+
+### Verified — AI-author claims against review-log evidence (all 3 PROVEN OUT)
+
+| Claim | Review-log evidence | Verdict |
+|---|---|---|
+| "Phase 5 Purity Boundary Audit was hardest" | F-004 — [SA Review 1 Finding 1](vsdd-suite/review-log/2026-05-20-solution-architect.md) (3-way divergence between src/lib.rs:1-7 module doc + DESIGN.md silence + 3-of-4 effectful methods; Resolved by DESIGN.md rewrite) | PROVEN OUT |
+| "Phase 2a Red Gate framing was wrong" | F-001 — [QE Review 1 Finding 1](vsdd-suite/review-log/2026-05-17-quality-engineer.md) ("Phase 2a → 2b commit boundary not enforced"; Resolved by post-hoc documentation) | PROVEN OUT |
+| "Mutation Testing + Purity Boundary Audit produced genuine signal vs ceremony" | F-005 — [QE Review 2 Finding 1](vsdd-suite/review-log/2026-05-20-quality-engineer.md) (7/8 pre-fix kill rate; missing falsifying test for save-to-nested-path; Resolved); F-004 again; AI Engineer R1 ~21k tokens/finding (below capstone band floor of 100k — efficient discipline zone) | PROVEN OUT |
+
+---
+
 ## v0.12.1 Per-domain index retirement + Cold-session budget declaration + Doc Reviewer Round 4 closure — 2026-05-21 11:00Z ([Review 84](../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z))
 
 **Scope:** PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40) — upstream-suite remediation cycle applied at the reference example. Per-domain index files retired (the reference-example demonstrates the new methodology shape after the operator's redundancy evaluation); new Cold-session budget declaration in DESIGN.md (per the new methodology requirement); Doc Reviewer Round 4 verification closes the 5 R3 carryforwards (Doc Reviewer reaches MVR).

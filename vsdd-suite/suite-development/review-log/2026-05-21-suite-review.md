@@ -345,3 +345,135 @@ Spawned a cold-session AI Engineer Round 1 agent (sub-agent delegation per the A
 1 Finding Resolved in-session ([Finding 1](#r85-f1) = External-feedback mining of dollspace-gay's value-add review; 7 crosslink CLI bugs + 5 absorbability concepts + 2 validation findings; all routed to operator-action queue for upstream crosslink filing; no suite-side fixes needed; the vsdd-suite design validated by the methodology author). PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40) ships the mining + the audit trail. Backlog after Review 85: **1 Open ([Review 79 Finding 2 Deferred](2026-05-20-suite-review.md#review-79--2026-05-20-1730z)) + 7 prior-Deferred** (unchanged — no new suite-side findings registered beyond in-session Resolved).
 
 **Coordination:** Operator-action queue post-PR-#40: file 7 upstream crosslink CLI bugs (Section 1 of source artifact) + 5 upstream crosslink concept-absorbability coordination asks (Section 4 of source artifact) + 1 typed-label/`--label-schema` upstream ask (Section 3 of source artifact). These filings happen in crosslink's issue tracker, outside the vsdd-suite audit trail. The suite's responsibility ends at routing + recording the mining outcome.
+
+---
+
+## Review 86 — 2026-05-21 12:00Z
+
+**Scope:** Operator-directed PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40) expansion — GitHub Actions supplement authoring + PR template rewrite (canonical references to `manual-tests/` instead of duplication; merge-gating completion checklist) + new `pr-checklist.yml` workflow that gates merge on completion-checklist closure + `.github/workflows/bookmark-cli-manual.yml` workflow update against the new supplement (permissions block + concurrency control + timeout caps) + PROCESS.md three-audience-lens optimization at `bookmark-cli-manual` (the AI-author's "what was hardest" / "what I got wrong" / "what the process felt like" claims evaluated against review-log evidence — all 3 PROVEN OUT — then optimized for the three-audience model; 3 NEW post-PR-#38/#39/#40 stumbling points added with three-audience treatment).
+
+**Lens:** Multi-domain supplement authoring + reference-example PR-template integration + AI-authored retrospective's three-audience lens application. Sycophancy compensation: resisted authoring the supplement as Platform-Engineer-only (the operator's directive said "using relevant domains" — multi-domain authoring per the toml.md / cli.md precedent); resisted leaving the PR template's manual-test-plan duplication in place (the operator-surfaced complaint about redundancy is the canonical Documentation Reviewer Dim 4 finding); resisted authoring the PR-checklist workflow as informational-only (the operator's directive named "validate it's completion before allowing merge" — the workflow must be merge-gating, not advisory); resisted treating the AI-author's PROCESS.md stumbling-point claims as authoritative without cross-referencing the review-log evidence; resisted adding new PROCESS.md stumbling points without evidence in the review-log history (each new stumbling point cites the specific Review N + Finding F that proves it).
+
+**Session note:** In-session with the operator. The supplement work and PROCESS.md evaluation were operator-surfaced mid-cycle (after Review 85's external-feedback mining); applying the cluster-batching-NOT-needed shape for the single-author work; one main session authoring all artifacts.
+
+**Source:** `director-raised` — operator directives during PR #40 ("Create a Github Actions supplement using relevant domains. Apply it to the cicd pipeline and PR template. Pay particular attention to the manual test plan in the PR draft." + "Also evaluate the Agent-authored PROCESS.md. This file includes claims about what was difficult for the AI author. Evaluate whether these claims are proven out by the review log history. Optimize the stumbling points for a three-audience model. Use the appropriate domains.").
+
+**Cost-tally (per [`suite-development.md`](../suite-development.md) § Per-review entry preamble § Cost-tally):** in-session authoring of (a) 1 supplement (~250 lines); (b) 1 PR template rewrite; (c) 1 new workflow file (~120 lines); (d) workflow update to bookmark-cli-manual.yml (3 additions); (e) PROCESS.md three-audience-lens rewrites + 3 new stumbling-point sections (~250 lines); (f) audit-trail cascade. Estimated total: ~80-110k tokens incremental on top of the existing PR #40 work; ~30-40k tokens per substantive finding (within the capstone-intent expected band lower-bound). No agent-spawns this Review (single-author work; cluster-batching not applicable to single-author authoring).
+
+---
+
+### Resolved
+
+<a id="r86-f1"></a>
+**Finding 1 — GitHub Actions supplement authored at `vsdd-suite/supplements/github-actions.md`; canonical CI/CD platform discipline codified across 8 role-domain perspectives**
+
+**Source:** director-raised — operator directive "Create a Github Actions supplement using relevant domains."
+
+Authored [`vsdd-suite/supplements/github-actions.md`](../../supplements/github-actions.md) (~280 lines) following the [`toml.md`](../../supplements/toml.md) / [`cli.md`](../../supplements/cli.md) multi-domain supplement precedent. Per-domain sections cover: Platform Engineer (PRIMARY — workflow shape, job decomposition, runner selection, matrix builds, caching, concurrency, reusable workflows, artifact handling, MSRV+toolchain pinning consistency); Security (SHA-pinning third-party actions; `permissions:` block at most-restrictive granularity; secret handling; `pull_request_target` pwn-request audit; third-party action vetting; Dependabot/Renovate for action version monitoring; GITHUB_TOKEN scope minimization); AI Engineer (CI cost discipline at runner-minute scale — per-merge budget bands; cache hit rate as the runner-minute multiplier; re-run strategy; matrix-shape token-economy analogue; concurrency-cancel; CI cost-tally in the audit trail); Technical Writer (workflow YAML readability; named-step discipline; status-check labels matching the work they do; magic-numbers anti-pattern); Documentation Reviewer (clone-and-follow fidelity for users replicating CI locally via `act`; workflow file as cold-readable documentation; status-check vs branch-protection alignment); Solution Owner (which CI behaviors are spec-promised vs incidental; required-vs-optional checks in branch protection; scope discipline against CI-feature-creep; PR template + merge-gate completion checklist as SO-owned artifacts); Quality Engineer (Red Gate at CI — failing tests actually fail the build; coverage threshold enforcement; structured test reporting); Performance Engineer (workflow execution-time budget; cache effectiveness audit; long-compile-job mitigation).
+
+Closing sections: PR template + merge-gate integration (the supplement's section linking the supplement to the operational artifacts); Anti-patterns (11 anti-patterns); Three-audience lens application (per the [Three-audience design principle](../suite-development.md#three-audience-design-principle-review-80-finding-3) — suite developers + suite users + AI agents each have a use case for the supplement; the supplement is multi-audience by construction).
+
+**Owner:** platform-engineer (primary domain for the supplement)
+**Status:** Resolved
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+**Validator rationale:** Multi-domain supplement authoring spans 8 role-domain perspectives; no single role-domain pair-validator. Sanity Check applies the existing supplement precedent ([`toml.md`](../../supplements/toml.md), [`cli.md`](../../supplements/cli.md)) shape + per-domain-section presence + Anti-patterns section + Three-audience lens application to confirm the supplement is structurally complete and methodology-aligned.
+
+**Resolution:** [`vsdd-suite/supplements/github-actions.md`](../../supplements/github-actions.md) authored + ready for application to GitHub Actions workflows + PR template + branch-protection rules.
+
+**Classification:** Resolved
+
+---
+
+<a id="r86-f2"></a>
+**Finding 2 — PR template rewritten to reference `manual-tests/` canonically + structured merge-gating completion checklist; `pr-checklist.yml` workflow gates merge on checklist closure**
+
+**Source:** director-raised — operator directives "Apply it to the cicd pipeline and PR template" + "Pay particular attention to the manual test plan in the PR draft. This is redundant to the manual-tests folder. Findings in the PR draft should be addressed as part of the manual testing plan and resolved before PR finalization if possible. Make a completion check list in the testing plan and validate it's completion before allowing merge."
+
+**Pre-rewrite state of `.github/PULL_REQUEST_TEMPLATE.md`:** generic layer-gate checklist with project-specific sub-sections; no canonical reference to `manual-tests/`; no merge-gate enforcement mechanism. The operator's complaint about "redundant to the manual-tests folder" was the canonical [Documentation Reviewer Dim 4](../../domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) (cross-reference resolution) + [TW Dim 12](../../domains/role/TECHNICAL-WRITER-REVIEW.md) (lookup-cost) finding applied to PR-template content.
+
+**Post-rewrite state:** [`.github/PULL_REQUEST_TEMPLATE.md`](../../../.github/PULL_REQUEST_TEMPLATE.md) restructured with: (a) Summary + Audit-trail references (links to suite-side Review N + project-side per-session review-log files + CHANGELOG entries); (b) Test plan section that REFERENCES `manual-tests/layer-N.md` + `manual-tests/install-verification.md` canonically and does NOT duplicate their content; (c) Completion checklist section (merge-gating) sub-divided into Pre-commit + CI / Audit-trail discipline / Methodology discipline / PR draft + spot-checks / Operator-action queue; (d) Sycophancy compensation declarations + Notes sections.
+
+**Merge-gating mechanism:** new workflow [`.github/workflows/pr-checklist.yml`](../../../.github/workflows/pr-checklist.yml) parses the PR body on every `pull_request` event (opened / edited / synchronize / reopened / ready_for_review), identifies the `## Completion checklist` section, fails the run if any `- [ ]` items remain unchecked. The workflow declares `permissions: contents: read + pull-requests: read` (minimum scope); applies concurrency-cancel-in-progress per PR number to save runner minutes; caps `timeout-minutes: 2` since the workflow is body-parse-only. Branch protection rule (operator-action; configured in GitHub UI; named in the post-merge operator-action queue) requires the "PR completion checklist / verify-checklist" status check to pass before merge.
+
+**Spot-check item discipline (operator-emphasized):** PR draft spot-checks ("[ ] Spot-check: grep returns clean") now belong in the completion checklist with verifiable evidence linked, NOT in informal-prose checkboxes. The merge-gate workflow ensures every spot-check is ticked with evidence before merge. The discipline is named in the supplement's [§ PR template + merge-gate integration](../../supplements/github-actions.md) section.
+
+**Owner:** solution-owner (PR template is SO-owned per the supplement)
+**Status:** Resolved
+**Blocked by:** branch-protection-rule-configuration (operator-action post-merge; AI cannot configure repo settings via API without authorized scope; the workflow file itself is in place and ready)
+**Validator:** sanity-check
+
+**Validator rationale:** PR-template + merge-gate workflow spans documentation-discipline (the template's reference-canonical-not-duplicate shape per Dim 4) + operational-deployment-discipline (the workflow's permissions + concurrency + timeout shape per the new supplement's Platform Engineering section) + scope-discipline (the SO-owned per-project layer-gate criteria extension). No single role-domain pair-validator.
+
+**Resolution:** PR template + merge-gating workflow in place. PR #40's own description rewritten to use the new template shape (verifies the template is operationally usable). Branch-protection rule configuration is operator-action post-merge.
+
+**Classification:** Resolved
+
+---
+
+<a id="r86-f3"></a>
+**Finding 3 — `bookmark-cli-manual.yml` workflow updated against the new GitHub Actions supplement; 3 baseline gaps closed (permissions block + concurrency control + timeout caps)**
+
+**Source:** director-raised — operator directive "Apply it to the cicd pipeline."
+
+**Pre-update state of [`.github/workflows/bookmark-cli-manual.yml`](../../../.github/workflows/bookmark-cli-manual.yml):** the workflow already complied with most of the supplement's Platform Engineering section (5 separate jobs for fmt/clippy/test/deny/audit per the failure-isolation discipline; SHA-pinned third-party actions; Swatinem/rust-cache; explicit toolchain pin matching `rust-toolchain.toml`; `paths:` filters for per-project scope; `--locked` for cargo invocations). Three baseline gaps relative to the new supplement:
+
+| Gap | Supplement section | Fix |
+|---|---|---|
+| No `permissions:` block | Security § `permissions:` block at most-restrictive granularity | Added `permissions: contents: read` at workflow level |
+| No `concurrency:` control | Platform Engineering § Concurrency control for redundant runs | Added `concurrency: { group: 'bookmark-cli-manual-${{ github.ref }}', cancel-in-progress: true }` |
+| No `timeout-minutes:` caps | Platform Engineering § Workflow execution-time budget | Added `timeout-minutes: 10` per job (~5 min observed median; 10 min cap catches hangs per supplement's "2x median" guidance) |
+
+**Owner:** platform-engineer
+**Status:** Resolved
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+**Validator rationale:** Workflow update against a newly-authored supplement is a self-validating shape — the supplement names the discipline; the workflow demonstrates compliance. Sanity Check verifies the 3 additions are syntactically valid YAML + don't break the existing 5-job decomposition.
+
+**Resolution:** [`.github/workflows/bookmark-cli-manual.yml`](../../../.github/workflows/bookmark-cli-manual.yml) updated. CI continues to pass; the additions are additive (no behavior change for the existing jobs).
+
+**Classification:** Resolved
+
+---
+
+<a id="r86-f4"></a>
+**Finding 4 — `PROCESS.md` AI-author "what was hardest" claims evaluated against review-log history; all 3 claims PROVEN OUT; three-audience lens applied to existing 3 stumbling points + 3 NEW post-PR-#38/#39/#40 stumbling points added**
+
+**Source:** director-raised — operator directive "Also evaluate the Agent-authored PROCESS.md. This file includes claims about what was difficult for the AI author. Evaluate whether these claims are proven out by the review log history. Optimize the stumbling points for a three-audience model. Use the appropriate domains."
+
+**Claim 1 ("Phase 5 Purity Boundary Audit was hardest"):** PROVEN OUT — [SA Review 1 Finding 1](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-solution-architect.md) (Resolved; spec rewritten in-session); [F-004 in FINDINGS-INDEX](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/FINDINGS-INDEX.md) confirms the 3-way divergence (src/lib.rs:1-7 module doc + DESIGN.md silence + impl reality with 3-of-4 effectful methods) was surfaced + resolved.
+
+**Claim 2 ("Phase 2a Red Gate framing was wrong"):** PROVEN OUT — [QE Review 1 Finding 1](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-17-quality-engineer.md) ("Phase 2a → 2b commit boundary not enforced"; Resolved by post-hoc documentation); [F-001 in FINDINGS-INDEX](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/FINDINGS-INDEX.md) confirms the scope-tradeoff acceptance was logged.
+
+**Claim 3 ("Mutation Testing + Purity Boundary Audit produced genuine signal vs ceremony"):** PROVEN OUT — [QE Review 2 Finding 1](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-quality-engineer.md) (7/8 pre-fix mutation kill rate; missing falsifying test for save-to-nested-path case; Resolved by adding the falsifying test post-hoc per retroactive-Red-Gate label); [F-005 in FINDINGS-INDEX](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/FINDINGS-INDEX.md); the AI Engineer R1 cost-tally (~21k tokens/finding — well below the capstone-intent floor of 100k/finding) suggests the project is operating in discipline-working-efficiently zone, not over-investment zone.
+
+**Three-audience lens optimization (operator-emphasized):** Each existing stumbling point in PROCESS.md gained a `**Three-audience lens:**` paragraph following the AI-authored scaffold. The lens names what each audience should take from the stumbling point: suite developers (methodology hardening opportunity); suite users (anticipation in their own work); AI agents (AI-author default to recognize + avoid). The treatment makes the AI-authored reference example more useful for capstone-intent projects whose director-authors will replace the AI-authored prose with their own per [G-156](../FINDINGS-INDEX.md#g-156) — the three-audience format is the shape the director's prose should take.
+
+**Three NEW post-PR-#38/#39/#40 stumbling points added to PROCESS.md:**
+
+- **Stumbling point 4 — 80 Round-1 findings is a spec/test under-investment signal disguised as IAR thoroughness.** Per [Review 82 Finding 2](2026-05-20-suite-review.md#review-82--2026-05-20-2000z): 80 findings across 10 domains at Round 1 is double-coded — IAR discipline works (real defects surfaced) AND pre-IAR phases under-invested (the in-author self-check that should reduce Round-1 scope). The methodology fix is to add a pre-IAR self-check checklist to primers 1a+1b / 2a / 2b.
+- **Stumbling point 5 — Operator-directive correction cost (3 mid-cycle slips in PR #38).** Per the [feedback memory on avoiding lettering](https://github.com/magnificentlycursed/guild-portfolio) + [AI Engineer R1 F4](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-21-ai-engineer.md): 3 slips required rework (per-session-file naming; adversarial-pair separation; descriptive-cluster naming). The methodology fix is to codify operator-directive corrections back into the methodology so future cycles don't repeat them.
+- **Stumbling point 6 — Site-specific fix declared closure (Doc Reviewer R3 pattern).** Per the [Doc Reviewer R1+R2+R3 carryforward pattern](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-documentation-reviewer.md): AI-author default of "fix the cited site; declare closure" missed adjacent sites with the same defect class. The methodology fix is the [`grep -rn before claiming closure` anti-pattern](../../primers/4-feedback-integration.md) authored in Review 84 Finding 1.
+
+Each new stumbling point gets the three-audience lens treatment + cites the specific Review N + Finding F that proves the claim.
+
+**Owner:** vdd-iar-alignment
+**Status:** Resolved
+**Blocked by:** *(none — the PROCESS.md is AI-authored reference-example scaffolding; the three-audience treatment makes the scaffolding more useful for future director-authors who will overwrite it per G-156)*
+**Validator:** sanity-check
+
+**Validator rationale:** PROCESS.md three-audience-lens optimization spans evidence verification (cross-reference AI-author claims against review-log Findings) + methodology authoring (the three-audience treatment as a discipline pattern) + scope discipline (3 new stumbling points selected per their named-in-review-log status, not invented). No single role-domain pair-validator. Sanity Check applies the [Three-audience design principle](../suite-development.md#three-audience-design-principle-review-80-finding-3) + the review-log evidence + the G-156 director-authored-prose discipline to confirm the optimization is methodology-aligned + audit-trail-cited.
+
+**Resolution:** PROCESS.md three-audience-lens optimization complete. 3 AI-author claims verified against review-log evidence (all 3 PROVEN OUT). 3 existing stumbling points gained three-audience treatment. 3 new post-PR-#38/#39/#40 stumbling points added with three-audience treatment + review-log citations. The reference-example PROCESS.md is now a more complete teaching artifact for capstone-intent projects.
+
+**Classification:** Resolved
+
+---
+
+### Summary
+
+4 Findings Resolved in-session ([Finding 1](#r86-f1) = GitHub Actions supplement authored across 8 role-domain perspectives + Anti-patterns + Three-audience lens; [Finding 2](#r86-f2) = PR template rewrite + `pr-checklist.yml` merge-gating workflow + spot-check-discipline codification; [Finding 3](#r86-f3) = `bookmark-cli-manual.yml` workflow updated against the new supplement — 3 baseline gaps closed (permissions block + concurrency control + timeout caps); [Finding 4](#r86-f4) = PROCESS.md AI-author claims evaluated against review-log evidence — all 3 PROVEN OUT — three-audience lens applied to existing 3 stumbling points + 3 NEW post-PR-#38/#39/#40 stumbling points added with three-audience treatment). PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40) ships the GitHub Actions discipline codification + the PR-validation merge-gate integration + the PROCESS.md three-audience teaching artifact + audit trail. Backlog after Review 86: **1 Open ([Review 79 Finding 2 Deferred](2026-05-20-suite-review.md#review-79--2026-05-20-1730z)) + 7 prior-Deferred** (unchanged — the operator-action queue from Review 85 still routes upstream to crosslink; Review 86 produced no new suite-side findings beyond in-session Resolved).
+
+**Coordination:** Post-PR-#40 queue per operator sequencing (unchanged from Review 85's coordination note + extended with Review 86's operator-action queue): file 13 upstream crosslink coordination items (Review 85 Finding 1) + configure branch-protection rule for the new "PR completion checklist / verify-checklist" required status check (Review 86 Finding 2) + run install-verification on a fresh non-author system at some future operator-determined time (closes the Platform Engineer Dim 38 gate per [G-155](../FINDINGS-INDEX.md#g-155); promotes Platform Engineer to MVR; unlocks Phase 6 four-dimensional convergence per the PR #38 deferral). Future PR queue: PR #41 = bookmark-cli-crosslink built from scratch (validates the new methodology shape from genesis including the GitHub Actions supplement + PR template + Cold-session budget declaration + Three-audience lens applied throughout); PR #42+ = bookmark-cli-manual Round 5+ cycles + Phase 6 attestation.

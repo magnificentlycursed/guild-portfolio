@@ -1,0 +1,106 @@
+name: PR completion checklist
+
+# Per the VSDD suite's GitHub Actions supplement § PR template + merge-gate integration:
+# This workflow gates merge on the PR description's completion checklist closure.
+# It parses the PR body, identifies the `## Completion checklist (merge-gating)` section
+# (and its `### sub-section` items), and fails the run if any `- [ ]` items remain
+# unchecked within that section.
+#
+# To enforce this as a required check at merge time, configure branch protection rules
+# in the GitHub UI to require the "PR completion checklist / verify-checklist" status.
+#
+# Lives under .github/workflows/ per the per-workflow-per-concern decomposition
+# discipline; named `pr-checklist.yml` to match the status check label.
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+    branches: [main]
+
+# Read-only access to the PR body is sufficient; declare permissions explicitly per
+# the supplement's Security § `permissions:` block at the most-restrictive granularity.
+permissions:
+  contents: read
+  pull-requests: read
+
+# Cancel obsolete runs from supersession pushes per the supplement's Platform Engineering
+# § Concurrency control for redundant runs.
+concurrency:
+  group: 'pr-checklist-${{ github.event.pull_request.number }}'
+  cancel-in-progress: true
+
+jobs:
+  verify-checklist:
+    name: Verify completion checklist
+    runs-on: ubuntu-latest
+    # Cap runtime at 2 minutes — this is a body-parse + grep operation. A workflow run
+    # that takes longer than 2 minutes is hung; surface the failure rather than letting
+    # GHA's 360-minute default trap the cost.
+    timeout-minutes: 2
+    steps:
+      - name: Verify all completion-checklist items are checked
+        env:
+          # The PR body is multi-line; pass via env var to preserve newlines + avoid
+          # shell-injection from PR-author-controlled markdown content.
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -eu
+
+          # Sentinel: workflow opt-out for draft PRs. Drafts are not merge-ready by
+          # convention; running the checklist verification on every draft edit creates
+          # status-check noise. The workflow still runs but exits 0 with an explanatory
+          # message.
+          if [ "${{ github.event.pull_request.draft }}" = "true" ]; then
+            echo "PR is in draft state — completion-checklist verification skipped."
+            echo "Mark the PR ready-for-review to trigger verification."
+            exit 0
+          fi
+
+          # Extract the `## Completion checklist` section from the PR body. The section
+          # runs from its H2 heading through the next H2 (or EOF).
+          checklist_section=$(printf '%s\n' "$PR_BODY" | awk '
+            /^## Completion checklist/ { in_section = 1; next }
+            in_section && /^## / { in_section = 0 }
+            in_section { print }
+          ')
+
+          if [ -z "$checklist_section" ]; then
+            echo "::error::PR body does not contain a `## Completion checklist (merge-gating)` section."
+            echo "::error::The .github/PULL_REQUEST_TEMPLATE.md provides the canonical structure — restore it."
+            exit 1
+          fi
+
+          # Count unchecked items in the section. The pattern `- [ ]` is the canonical
+          # GFM checkbox; trailing whitespace + leading indentation tolerated.
+          unchecked_count=$(printf '%s\n' "$checklist_section" | grep -cE '^[[:space:]]*-[[:space:]]+\[[[:space:]]\]' || true)
+
+          # Count checked items + carve out template-placeholder lines (lines that start
+          # with `- [ ] [` are template scaffolding for spot-check additions — they're
+          # cosmetic placeholders the PR author should remove or fill in; treat them as
+          # unchecked but emit a distinct error message).
+          placeholder_count=$(printf '%s\n' "$checklist_section" | grep -cE '^[[:space:]]*-[[:space:]]+\[[[:space:]]\][[:space:]]+\[' || true)
+
+          if [ "$unchecked_count" -gt 0 ]; then
+            echo "::error::PR completion checklist has $unchecked_count unchecked item(s) — all must be `- [x]` before merge."
+            echo ""
+            echo "Unchecked items:"
+            printf '%s\n' "$checklist_section" | grep -nE '^[[:space:]]*-[[:space:]]+\[[[:space:]]\]' || true
+            echo ""
+            if [ "$placeholder_count" -gt 0 ]; then
+              echo "::warning::$placeholder_count item(s) appear to be unfilled template placeholders (lines matching `- [ ] [...]`)."
+              echo "::warning::Replace the bracketed placeholders with concrete spot-check conditions, OR delete the placeholder lines if not applicable."
+            fi
+            exit 1
+          fi
+
+          # Sanity check: at least one checked item must be present. A PR with zero
+          # checklist items means the template's checklist was stripped; that's the
+          # silent-permissive-merge failure mode the workflow defends against.
+          checked_count=$(printf '%s\n' "$checklist_section" | grep -cE '^[[:space:]]*-[[:space:]]+\[x\]' || true)
+          if [ "$checked_count" -eq 0 ]; then
+            echo "::error::PR completion checklist contains zero checked items."
+            echo "::error::Either the template's checklist was stripped, or no items have been verified yet."
+            exit 1
+          fi
+
+          echo "PR completion checklist verified: $checked_count checked item(s); 0 unchecked."
