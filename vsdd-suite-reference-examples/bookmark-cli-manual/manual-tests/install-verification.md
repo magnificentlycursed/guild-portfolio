@@ -52,6 +52,7 @@ Each row of the table below is one verification attempt. Per [G-155](../../../vs
 
 | Date (UTC) | Verifier | System (OS / Rust toolchain) | Manual-test steps that PASSED | Manual-test steps that FAILED / details | Outcome | Notes |
 |---|---|---|---|---|---|---|
+| Thu May 21 07:40:36 PM UTC 2026 | nwhitehead | Ubuntu 24.04.4 LTS / rust 1.95.0 | 0-6 | NONE | PASS | |
 | *(pending)* | *(non-author operator)* | *(fresh-system context)* | *(per manual-tests/layer-1.md execution)* | *(divergences, if any)* | *(PASS / FAIL)* | *(any context)* |
 
 **Per [G-155](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155) / [G-156](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-156) capstone-gate discipline:** a Verification record with **Outcome: PASS** from a non-author on a fresh system is the gate signal. Until at least one PASS row exists, the project's capstone closure is pending Platform Engineer Dim 38.
