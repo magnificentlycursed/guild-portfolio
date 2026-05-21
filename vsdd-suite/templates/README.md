@@ -6,10 +6,10 @@ Scaffolding artifacts for new projects adopting the VSDD suite. These templates 
 
 | Template | Purpose | Copied to |
 |---|---|---|
-| `DESIGN-template.md` | Skeleton for the project's `DESIGN.md` (Phase 1a+1b output). Mirrors the driving-question structure from `primers/1ab-spec-crystallization.md` so the first session has a structured starting point. | `<your-project>/DESIGN.md` |
+| `DESIGN-template.md` | Skeleton for the project's `DESIGN.md` ([Phase 1a+1b](../primers/1ab-spec-development.md) output). Mirrors the driving-question structure from `primers/1ab-spec-crystallization.md` so the first session has a structured starting point. | `<your-project>/DESIGN.md` |
 | `PROJECT-README-template.md` | Skeleton for the project's user-facing README — purpose, prerequisites, run/test, link to DESIGN.md. | `<your-project>/README.md` |
 | `DOMAIN-REVIEW-template.md` | Generic per-domain index file. Copy and customize per active domain (role, activation, language supplement, sycophancy check from the domain prompt file). | `<your-project>/vsdd-suite/<DOMAIN>-REVIEW.md` (one per active domain) |
-| `PROJECT-FINDINGS-INDEX-template.md` | Cross-cutting findings registry (manual-mode equivalent of G-138). One row per finding across every domain and layer, structured like the suite's FINDINGS-INDEX.md. Skip in crosslink mode — `crosslink issue` with the labeled-issue convention is the queryable equivalent (see `vsdd-suite/suite-development/suite-development.md` § Project-level finding index). | `<your-project>/vsdd-suite/FINDINGS-INDEX.md` (single file per project, manual mode only) |
+| `PROJECT-FINDINGS-INDEX-template.md` | Cross-cutting findings registry (manual-mode equivalent of [G-138](../suite-development/FINDINGS-INDEX.md#g-138)). One row per finding across every domain and layer, structured like the suite's FINDINGS-INDEX.md. Skip in [crosslink](https://github.com/forecast-bio/crosslink) mode — `crosslink issue` with the labeled-issue convention is the queryable equivalent (see `vsdd-suite/suite-development/suite-development.md` § Project-level finding index). | `<your-project>/vsdd-suite/FINDINGS-INDEX.md` (single file per project, manual mode only) |
 | `scaffold-project.sh` | Helper script: creates `vsdd-suite/` + `review-log/` in a target project, copies the templates, prints next-step guidance. | run from project root |
 
 ## Usage
@@ -44,7 +44,7 @@ Crosslink and the suite are separate tools that each scaffold their own state in
 
 For each per-domain `<DOMAIN>-REVIEW.md` you copy:
 
-1. Replace `{{ROLE_TITLE}}` with the role name from the domain prompt's `Reviewer role:` line (e.g., "Quality Engineer").
+1. Replace `{{ROLE_TITLE}}` with the role name from the domain prompt's `Reviewer role:` line (e.g., "[Quality Engineer](../domains/role/QUALITY-ENGINEER-REVIEW.md)").
 2. Replace `{{ROLE_VARIANTS}}` with the variants from the same line (e.g., "Quality Engineer / QA Engineer / Test Engineer").
 3. Replace `{{PURPOSE}}` with one paragraph stating what this domain evaluates for *this specific project*.
 4. **For extended domains only:** fill in the `**Activation:**` line with the named conditions and your project-specific rationale. For core/meta domains, delete the Activation line.
@@ -54,6 +54,6 @@ For each per-domain `<DOMAIN>-REVIEW.md` you copy:
 For `DESIGN.md`:
 
 1. Work the driving questions in `vsdd-suite/primers/1ab-spec-crystallization.md` rather than filling in the skeleton structurally — the skeleton is a placeholder, not a fill-in-the-blanks form.
-2. **Declare `§ Project intent` first** (`learning-exercise` / `portfolio` / `capstone` / `production`). The intent gates the active-domain set (per `vsdd-suite/domains/DOMAIN-INDEX.md` § Intent calibration), the stop-signal sensitivity, and at capstone+ intent the Phase 5 / Phase 6 strategy declarations. The wrong intent over-invests or under-invests methodology effort and the over-investment variant is hard to catch in-project. Declare the intent before customizing the per-domain index files so the active-domain set you scaffold matches the intent you'll review against.
+2. **Declare `§ Project intent` first** (`learning-exercise` / `portfolio` / `capstone` / `production`). The intent gates the active-domain set (per `vsdd-suite/domains/DOMAIN-INDEX.md` § Intent calibration), the stop-signal sensitivity, and at capstone+ intent the [Phase 5](../primers/5-formal-hardening.md) / [Phase 6](../primers/6-convergence.md) strategy declarations. The wrong intent over-invests or under-invests methodology effort and the over-investment variant is hard to catch in-project. Declare the intent before customizing the per-domain index files so the active-domain set you scaffold matches the intent you'll review against.
 
-For project `README.md`: this is your user-facing entry point; expand and edit freely as the project takes shape. The skeleton just establishes existence so Phase 3 Technical Writer reviews have an artifact to evaluate.
+For project `README.md`: this is your user-facing entry point; expand and edit freely as the project takes shape. The skeleton just establishes existence so [Phase 3](../primers/3-review-session.md) [Technical Writer](../domains/role/TECHNICAL-WRITER-REVIEW.md) reviews have an artifact to evaluate.

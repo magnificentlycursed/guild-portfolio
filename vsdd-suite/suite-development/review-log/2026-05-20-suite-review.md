@@ -2,6 +2,67 @@
 
 ---
 
+## Review 81 — 2026-05-20 19:15Z
+
+**Scope:** Operator-directed Phase 2 mechanical anchor-link sweep — closes the sub-finding deferred under [Review 79](#review-79--2026-05-20-1730z) Finding 3 ("Sweep deferred to follow-up PR — Phase 2 comprehensive mechanical sweep"). Applies the [anchor-link convention](../suite-development.md#anchor-link-convention-for-cross-references-review-79-finding-3) authored in Review 79 + the per-Finding anchor convention authored in [Review 80](#review-80--2026-05-20-1830z) Finding 3 across the bulk of forward-facing suite content + reference-example project content that wasn't covered by [PR #35](https://github.com/magnificentlycursed/guild-portfolio/pull/35)'s Phase 1 high-leverage entry-point sweep.
+
+**Lens:** Mechanical convention application + script-driven discipline. Sycophancy compensation: resisted writing the sweep prose by hand across 40+ files (the convention is well-defined enough that a careful script with protections — code-fence + inline-code + existing-link + heading masking — is the audit-trail-honest tool; hand-sweep at this scale invites silent inconsistencies); resisted promoting the sweep script to a pre-commit hook (per the "earned by recurrence" doctrine — the convention now lives at authoring time via [TW Dim 13](../../domains/role/TECHNICAL-WRITER-REVIEW.md) and [Documentation Reviewer Dim 11](../../domains/role/DOCUMENTATION-REVIEWER-REVIEW.md); hook-mechanization is a future enhancement IF recurrence triggers fire).
+
+**Session note:** In-session with the operator. The sweep script (`vsdd-suite/suite-development/scripts/sweep-anchor-links.py`, ~250 lines) is authored as a project-tracked tool (not a scratch file outside the source tree per the [Review 79](#review-79--2026-05-20-1730z) Finding 6 AI-operator boundary policy). The script is committed alongside the swept files so future contributors can re-run + extend it if the convention's substitution maps grow.
+
+**Source:** director-raised — operator selected this PR per the post-PR-#36 phasing.
+
+### Resolved
+
+**Finding 1 — Phase 2 mechanical anchor-link sweep across 44 forward-facing files**
+
+<a id="r81-f1"></a>
+
+The [Review 79](#review-79--2026-05-20-1730z) Finding 3 anchor-link convention introduced the discipline + applied it to high-leverage entry points (portfolio README + 5 primer whitepaper-alignment notes + the Review 79 entry itself + the 6 new supplements). The deferred Phase 2 sweep covered the remaining forward-facing content: 16 role-domain prompts (12 newly swept; 2 hand-swept in [Review 80](#review-80--2026-05-20-1830z); 2 either already linked or no candidates), 3 meta-domain prompts (Portfolio Assessment, VDD-IAR Alignment, Sanity Check), suite [`README.md`](../../README.md), [`crosslink-contract.md`](../../crosslink-contract.md), [`DOMAIN-INDEX.md`](../../domains/DOMAIN-INDEX.md) (re-sweep for missed substitutions), 4 primers (`1ab-spec-crystallization.md`, `1c-decomposition.md`, `2c-refactor.md`, `5-formal-hardening.md`), 5 templates ([`DESIGN-template.md`](../../templates/DESIGN-template.md), [`DOMAIN-REVIEW-template.md`](../../templates/DOMAIN-REVIEW-template.md), [`PROJECT-FINDINGS-INDEX-template.md`](../../templates/PROJECT-FINDINGS-INDEX-template.md), [`PROJECT-README-template.md`](../../templates/PROJECT-README-template.md), templates/[`README.md`](../../templates/README.md)), and the bookmark-cli-manual project content (DESIGN.md, TODO.md, PROCESS.md, README.md, manual-tests/layer-1.md, manual-tests/install-verification.md, 10 per-domain index files).
+
+**Owner:** technical-writer (the canonical authoring-discipline-owner for documentation; the mechanical sweep is a TW concern + the script is a TW tool).
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check — cross-cutting mechanical sweep spans 44 files; no single role-domain pair-validator. Sanity Check applies the [Review 79](#review-79--2026-05-20-1730z) Finding 3 anchor-link convention + the protection rules (code fences, inline code, existing links, HTML anchors, headings) + the first-mention-per-file rule + the [G-89](../FINDINGS-INDEX.md#g-89) forward-only carve-out to confirm the sweep didn't damage any historical or protected content.
+
+**Sweep script** (committed at [`vsdd-suite/suite-development/scripts/sweep-anchor-links.py`](../scripts/sweep-anchor-links.py)):
+
+- **Protection layer:** masks code fences (` ```...``` `), inline code (` `...` `), existing markdown links (`[text](url)`), image links (`![alt](src)`), HTML anchor tags (`<a id="...">...</a>`), and entire heading lines (`# ` through `###### `) before substitution. Originals restored after substitution completes.
+- **Substitution layer:**
+  - **G-N (unlinked):** every occurrence → `[G-N](relative/path/to/FINDINGS-INDEX.md#g-N)`. Two-digit and three-digit G-IDs both matched.
+  - **External mentions:** first per-file occurrence → linked (VSDD whitepaper, VDD whitepaper, dollspace.gay, crosslink, Python, Rust, TypeScript, pytest, ruff, mypy, shellcheck, bats-core, Pre-commit, Claude Code).
+  - **Domain names:** first per-file occurrence → linked (18 entries — 15 role + 3 meta).
+  - **Phase / primer names:** first per-file occurrence → linked (10+ patterns, longest-first ordering).
+- **Exclusion layer:** historical files (CHANGELOG, COMPATIBILITY, pre-Review-79 review-log entries) + the 2026-05-20-suite-review.md file itself (hand-swept) + SUITE-DEVELOPMENT-REVIEW.md (mostly historical Review rows) + the 6 new supplements (already convention-compliant from authoring time) + the 3 pre-restructure projects (bookmark-cli, bookmark-manager, issue-tracker-cli per [G-89](../FINDINGS-INDEX.md#g-89)).
+
+**Resolution scope:**
+
+| Category | Files swept | Total chars added |
+|---|---|---|
+| Suite top-level | 2 ([`README.md`](../../README.md) + [`crosslink-contract.md`](../../crosslink-contract.md)) | +5,927 |
+| Domain prompts | 14 (12 role + 2 meta; TW + Documentation Reviewer hand-swept in [Review 80](#review-80--2026-05-20-1830z)) | +5,418 |
+| Primers | 4 (`1ab-spec-crystallization.md`, `1c-decomposition.md`, `2c-refactor.md`, `5-formal-hardening.md`; 5 whitepaper-alignment-note primers + `3-review-session.md` + `4-feedback-integration.md` already swept in earlier work) | +2,437 |
+| Templates | 5 (DESIGN-template, DOMAIN-REVIEW-template, PROJECT-FINDINGS-INDEX-template, PROJECT-README-template, README) | +1,505 |
+| bookmark-cli-manual top-level | 6 (DESIGN.md, TODO.md, PROCESS.md, README.md, manual-tests/{layer-1, install-verification}.md) | +5,063 |
+| bookmark-cli-manual per-domain indexes | 10 (SE, SA, SO, QE, UX, Security, PE, Platform Engineer, Red Team, TW, VDD-IAR Alignment) | +2,503 |
+| **Total** | **41 files** | **+22,853 chars** |
+
+3 additional files were swept in the script's earlier dry-run + spot-check phase (Sanity Check meta domain, DOMAIN-INDEX, suite README) before the bulk sweep — for an overall total of **44 files swept** in PR [#37](https://github.com/magnificentlycursed/guild-portfolio/pull/37).
+
+**Forward-only constraint:** the swept files are all forward-facing per [G-89](../FINDINGS-INDEX.md#g-89). Historical content (suite CHANGELOG, COMPATIBILITY, pre-Review-79 review-log entries, the 3 pre-restructure portfolio projects) was excluded by the script's `SKIP_RE` patterns. The convention applies to new prose authored on or after [Review 79](#review-79--2026-05-20-1730z) (2026-05-20); historical prose stays as authored.
+
+**Why this earns its own PR rather than bundling into an earlier Review:** mechanical mass-substitution across 44 files is its own review surface. A regex bug or protection-rule defect would damage many files at once — bundling into [PR #35](https://github.com/magnificentlycursed/guild-portfolio/pull/35) (Review 79's authoring PR) or [PR #36](https://github.com/magnificentlycursed/guild-portfolio/pull/36) (Documentation Reviewer registration) would have mixed convention-authoring concerns with mechanical-application concerns + obscured both. The focused-PR pattern lets the sweep stand on its own audit surface. The sweep script is itself a project artifact (lives at [`scripts/sweep-anchor-links.py`](../scripts/sweep-anchor-links.py)) — future contributors can re-run + extend the substitution maps if the convention grows.
+
+**Resolution:** 44 files swept. Convention is now applied across the bulk of forward-facing suite content + reference example. [TW Dim 13](../../domains/role/TECHNICAL-WRITER-REVIEW.md) (Inline-reference navigability) + [Documentation Reviewer Dim 11](../../domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) (Inline-reference clickthrough validation) catch future violations at review time. The deferred sub-finding under [Review 79](#review-79--2026-05-20-1730z) Finding 3 ("Sweep deferred to follow-up PR") is closed.
+
+### Summary
+
+1 finding Resolved in-session ([Finding 1](#r81-f1) = Phase 2 mechanical anchor-link sweep across 44 forward-facing files; +22,853 chars; script-driven with protections). Closes the deferred sub-finding from [Review 79](#review-79--2026-05-20-1730z) Finding 3. PR [#37](https://github.com/magnificentlycursed/guild-portfolio/pull/37) ships the sweep + the sweep script as a project-tracked tool. Backlog after Review 81: **1 Open ([Review 79 Finding 2 Deferred](#review-79--2026-05-20-1730z) — Green Gate + smoke tests) + 7 prior-Deferred** (unchanged — no new findings registered this Review beyond in-session Resolved).
+
+**Coordination:** the bookmark-cli-manual 6-phase IAR execution (next PR per operator phasing `3, 1, 2, 4`) now starts against a fully anchor-linked codebase — the IAR rounds + Phase 6 convergence record will exemplify the convention by construction. The bookmark-cli-crosslink reference variant (later PR) will be built from genesis under the convention. The suite-self-compliance arc continues to be the longer-term follow-on.
+
+---
+
 ## Review 80 — 2026-05-20 18:30Z
 
 **Scope:** Operator-directed registration of the [Documentation Reviewer](../../domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) role domain as the adversarial cold-reader pair to [Technical Writer](../../domains/role/TECHNICAL-WRITER-REVIEW.md). The domain draft has existed across the prior PR cycle but stayed untracked (held back from each PR's diff intentionally) until this dedicated registration PR per the "one PR at a time" pattern. The same adversarial shape as [Security](../../domains/role/SECURITY-REVIEW.md) ↔ [Red Team](../../domains/role/RED-TEAM-REVIEW.md) — TW writes docs from inside the project; Doc Reviewer reads cold from outside. Forward-link reciprocity unwound: every prior reference to "Documentation Reviewer (forthcoming)" in [TW](../../domains/role/TECHNICAL-WRITER-REVIEW.md) Dim 12 + Dim 13 + Validator-pair paragraph + [`suite-development.md`](../suite-development.md) § Naming and identifier discipline + § Anchor-link convention now points at the now-registered domain file. Bookmark-cli-manual capstone-intent active-domain set updated from **10 role + 1 meta = 11** → **11 role + 1 meta = 12** (Doc Reviewer activates whenever TW activates at capstone+ intent).

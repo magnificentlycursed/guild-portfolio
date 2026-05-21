@@ -1,8 +1,8 @@
 # Session Primer: Refactor (VSDD Phase 2c)
 
-Use this prompt after Phase 2b has produced a green test suite for the current layer and the implementation commit is on disk. The output of this session is a refactored implementation that holds the same green test suite, committed as a distinct Phase 2c commit before the layer enters Phase 3 (IAR).
+Use this prompt after [Phase 2b](2b-implementation.md) has produced a green test suite for the current layer and the implementation commit is on disk. The output of this session is a refactored implementation that holds the same green test suite, committed as a distinct [Phase 2c](2c-refactor.md) commit before the layer enters [Phase 3](3-review-session.md) (IAR).
 
-Phase 2c is the third step of the test-driven loop named in the VSDD whitepaper: red → green → refactor. The suite previously folded refactor pressure into Phase 3 review feedback (and continues to — IAR findings against the implementation drive refactor work via Phase 4 routing). This primer covers the *intra-Phase-2* refactor step that the whitepaper specifies as part of the TDD loop itself, before any cold-context adversarial review.
+Phase 2c is the third step of the test-driven loop named in the [VSDD whitepaper](https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00): red → green → refactor. The suite previously folded refactor pressure into Phase 3 review feedback (and continues to — IAR findings against the implementation drive refactor work via [Phase 4](4-feedback-integration.md) routing). This primer covers the *intra-Phase-2* refactor step that the whitepaper specifies as part of the TDD loop itself, before any cold-context adversarial review.
 
 **Phase 2c is optional but not invisible.** A layer may legitimately have no refactor work — the minimal implementation may already be clean. In that case the layer's record names Phase 2c as "no refactor required, implementation passes the refactor checklist as-landed" with a one-line rationale. A silent skip is a discipline gap; an explicit "no work needed" annotation is the discipline working.
 
@@ -10,7 +10,7 @@ Phase 2c is the third step of the test-driven loop named in the VSDD whitepaper:
 
 ## Prompt
 
-You are helping refactor a software layer's implementation under the Verified Spec-Driven Development (VSDD) methodology. This is Phase 2c: Refactor. The Phase 2a Red Gate is committed; the Phase 2b implementation is committed; every test in the layer's Red Gate is green; no previously-passing test from prior layers is failing.
+You are helping refactor a software layer's implementation under the Verified Spec-Driven Development (VSDD) methodology. This is Phase 2c: Refactor. The [[Phase 2a](2a-red-gate.md) Red Gate](2a-red-gate.md) is committed; the [Phase 2b implementation](2b-implementation.md) is committed; every test in the layer's Red Gate is green; no previously-passing test from prior layers is failing.
 
 **Your posture:** Improve the implementation's internal shape without changing what it does. Every behavioral assertion in the Red Gate still holds. Every test stays green. No test is added, no test is removed, no test changes scope. The refactor commit reads as a refactor — a Phase 3 SE reviewer should be able to diff Phase 2b → 2c and see only structural improvement, not new behavior.
 
@@ -35,12 +35,12 @@ Phase 2c refactor work falls into the following categories. A refactor commit ma
 3. **Reshape data flow.** A mutable accumulator becomes a fold. A multi-step pipeline becomes named intermediate values. The data shape at each step is unchanged from the test's perspective.
 4. **Surface the purity boundary.** Move pure logic out of an effectful function so it can be tested directly. The existing test suite continues to exercise the effectful entry point; new tests for the pure function are deferred to a follow-on Phase 2a if warranted.
 5. **Align with the language's idioms.** A `for` loop becomes a comprehension where idiomatic. An early-return chain replaces a deeply nested conditional. The language supplement's style notes (e.g., `supplements/rust.md` SE dimensions) name what idiomatic looks like in this language.
-6. **Apply named refactor rules from the language supplement.** If `supplements/rust.md` or `supplements/javascript-typescript.md` SE dimensions name specific refactor rules (e.g., "prefer `?` over `match` for error propagation in Rust"), this is the place to apply them.
+6. **Apply named refactor rules from the language supplement.** If `supplements/rust.md` or `supplements/javascript-typescript.md` SE dimensions name specific refactor rules (e.g., "prefer `?` over `match` for error propagation in [Rust](https://www.rust-lang.org/)"), this is the place to apply them.
 
 Out of scope for Phase 2c — defer to a later phase:
 
 - **New features.** Belong in a future layer's Phase 2a/2b cycle.
-- **New validation, new error paths, new behavior under any condition.** A spec gap; surface to Phase 1a+1b routing.
+- **New validation, new error paths, new behavior under any condition.** A spec gap; surface to [Phase 1a+1b](1ab-spec-development.md) routing.
 - **Performance optimization that changes algorithmic complexity.** Treat as a separate behavior contract — requires a new spec assertion (memory bounds, latency target) and a new Phase 2a test. Phase 2c may apply micro-optimizations that the test suite does not measure (e.g., remove an unnecessary clone) but does not change Big-O.
 - **Test refactoring.** Tests are part of the Red Gate contract; their structure changes only when the spec changes. A test-suite refactor is its own Phase 2a/2c cycle (red → still-green refactor of test code).
 - **Renaming a public API.** Belongs in Phase 1a+1b (the spec defines the API surface). A rename that breaks the test names is a behavioral change; the test contract includes the public API names.
@@ -76,7 +76,7 @@ After Phase 2c commits (or is explicitly skipped with annotation), the layer ent
 
 ## Crosslink mode (Phase 2+ projects using crosslink)
 
-In crosslink mode, Phase 2c is recorded as a session segment within the active layer's session:
+In [crosslink](https://github.com/forecast-bio/crosslink) mode, Phase 2c is recorded as a session segment within the active layer's session:
 
 ```sh
 # After Phase 2b commits and tests are green:

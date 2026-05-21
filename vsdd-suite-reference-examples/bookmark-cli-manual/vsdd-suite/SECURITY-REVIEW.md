@@ -1,8 +1,8 @@
 # Security Engineer Review Log (Index)
 
-This review log is part of the [VSDD Suite](../../../vsdd-suite/README.md). The Phase 3 adversarial review for this domain runs as one cold-context session per round; this file indexes the rounds. Round narratives live in [`review-log/`](review-log/) — see the Reviews table below.
+This review log is part of the [VSDD Suite](../../../vsdd-suite/README.md). The [Phase 3](../../../vsdd-suite/primers/3-review-session.md) adversarial review for this domain runs as one cold-context session per round; this file indexes the rounds. Round narratives live in [`review-log/`](review-log/) — see the Reviews table below.
 
-**Reviewer role: Security Engineer** (Security Engineer / Application Security / AppSec)
+**Reviewer role: [Security](../../../vsdd-suite/domains/role/SECURITY-REVIEW.md) Engineer** (Security Engineer / Application Security / AppSec)
 
 Evaluates the security posture: input validation, threat surface, secrets discipline, error-message escape.
 

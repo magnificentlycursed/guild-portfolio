@@ -1,8 +1,8 @@
 # Performance Engineer Review Log (Index)
 
-This review log is part of the [VSDD Suite](../../../vsdd-suite/README.md). The Phase 3 adversarial review for this domain runs as one cold-context session per round; this file indexes the rounds. Round narratives live in [`review-log/`](review-log/) — see the Reviews table below.
+This review log is part of the [VSDD Suite](../../../vsdd-suite/README.md). The [Phase 3](../../../vsdd-suite/primers/3-review-session.md) adversarial review for this domain runs as one cold-context session per round; this file indexes the rounds. Round narratives live in [`review-log/`](review-log/) — see the Reviews table below.
 
-**Reviewer role: Performance Engineer** (Performance Engineer / SRE / Site Reliability Engineer)
+**Reviewer role: [Performance Engineer](../../../vsdd-suite/domains/role/PERFORMANCE-ENGINEER-REVIEW.md)** (Performance Engineer / SRE / Site Reliability Engineer)
 
 Evaluates the performance characteristics of the implementation: hotspots, allocation patterns, async/sync boundary, benchmarking discipline. Capstone-tier evaluation of whether performance claims have evidence.
 

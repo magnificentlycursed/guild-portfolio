@@ -1,12 +1,12 @@
 # Platform Engineer Review Log (Index)
 
-This review log is part of the [VSDD Suite](../../../vsdd-suite/README.md). The Phase 3 adversarial review for this domain runs as one cold-context session per round; this file indexes the rounds. Round narratives live in [`review-log/`](review-log/) — see the Reviews table below.
+This review log is part of the [VSDD Suite](../../../vsdd-suite/README.md). The [Phase 3](../../../vsdd-suite/primers/3-review-session.md) adversarial review for this domain runs as one cold-context session per round; this file indexes the rounds. Round narratives live in [`review-log/`](review-log/) — see the Reviews table below.
 
-**Reviewer role: Platform Engineer** (Platform Engineer / DevOps Engineer / Release Engineer)
+**Reviewer role: [Platform Engineer](../../../vsdd-suite/domains/role/PLATFORM-ENGINEER-REVIEW.md)** (Platform Engineer / DevOps Engineer / Release Engineer)
 
-Evaluates build/install/distribution discipline: `Cargo.lock` commitment, toolchain pinning, CI compatibility, dependency audit, fresh-system install verification (G-155 dim 38 — capstone-required).
+Evaluates build/install/distribution discipline: `Cargo.lock` commitment, toolchain pinning, CI compatibility, dependency audit, fresh-system install verification ([G-155](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155) dim 38 — capstone-required).
 
-**Activation:** G-178 strong-presumption activation; capstone-required for the fresh-system install verification per G-155 dim 38.
+**Activation:** [G-178](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-178) strong-presumption activation; capstone-required for the fresh-system install verification per [G-155](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155) dim 38.
 
 **Language supplement applied:** `../../../vsdd-suite/supplements/rust.md` § Platform Engineering + `../../../vsdd-suite/supplements/cli.md` § Platform Engineering.
 

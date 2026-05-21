@@ -2,11 +2,11 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
-**Reviewer role: Accessibility Engineer** (Accessibility Engineer / A11y Specialist)
+**Reviewer role: [Accessibility](ACCESSIBILITY-REVIEW.md) Engineer** (Accessibility Engineer / A11y Specialist)
 
 The purpose of this review is to evaluate whether the application is usable by people with disabilities — including motor, visual, auditory, and cognitive disabilities. Accessibility is not a polish concern. An interface that cannot be operated by keyboard, or that is invisible to a screen reader, excludes users and in many jurisdictions creates legal exposure. WCAG 2.1 Level AA is the standard floor.
 
-This domain applies to all browser-rendered applications and native UI applications. CLI tools and headless services are exempt. The UX domain covers accessibility in passing; this domain applies adversarial pressure to accessibility specifically and at depth.
+This domain applies to all browser-rendered applications and native UI applications. CLI tools and headless services are exempt. The [UX](UX-REVIEW.md) domain covers accessibility in passing; this domain applies adversarial pressure to accessibility specifically and at depth.
 
 ## Current Review Prompt
 
@@ -20,7 +20,7 @@ Regression check: verify that all previously-addressed accessibility improvement
 
 **Coordination:** Flag findings that overlap with [UX-REVIEW.md](UX-REVIEW.md) (cognitive accessibility, error messaging, affordances), [SECURITY-REVIEW.md](SECURITY-REVIEW.md) (ARIA attributes that leak implementation details), and [PLATFORM-ENGINEER-REVIEW.md](PLATFORM-ENGINEER-REVIEW.md) (CI integration of automated accessibility scanning).
 
-**DESIGN.md change authority:** If a finding requires a change to `DESIGN.md`, classify it "Raised to SO" and document the proposed change and rationale. Do not apply the change. `DESIGN.md` is a controlled spec document — the Solution Owner is the sole domain authorized to modify it.
+**DESIGN.md change authority:** If a finding requires a change to `DESIGN.md`, classify it "Raised to SO" and document the proposed change and rationale. Do not apply the change. `DESIGN.md` is a controlled spec document — the [Solution Owner](SOLUTION-OWNER-REVIEW.md) is the sole domain authorized to modify it.
 
 **Sycophancy check:** Accessibility failures are the most commonly rationalized class of bug. "Users with disabilities aren't our target audience" is not a rationale — it is a scope decision that requires explicit justification and acceptance from the project owner. An agent reviewing its own accessibility implementation will frequently dismiss failures with "the semantic meaning is clear from context" or "screen reader users would understand this" without having tested with a screen reader. Every dismissed finding requires a specific, verifiable reason.
 

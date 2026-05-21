@@ -1,10 +1,10 @@
 # Software Engineer Review Log (Index)
 
-This review log is part of the [VSDD Suite](../../../vsdd-suite/README.md). The Phase 3 adversarial review for this domain runs as one cold-context session per round; this file indexes the rounds. Round narratives live in [`review-log/`](review-log/) — see the Reviews table below.
+This review log is part of the [VSDD Suite](../../../vsdd-suite/README.md). The [Phase 3](../../../vsdd-suite/primers/3-review-session.md) adversarial review for this domain runs as one cold-context session per round; this file indexes the rounds. Round narratives live in [`review-log/`](review-log/) — see the Reviews table below.
 
-**Reviewer role: Software Engineer** (Software Engineer / Backend Engineer)
+**Reviewer role: [Software Engineer](../../../vsdd-suite/domains/role/SOFTWARE-ENGINEER-REVIEW.md)** (Software Engineer / Backend Engineer)
 
-Evaluates implementation quality: idiomatic Rust use; error handling; module structure; clippy compliance; future-self maintainability.
+Evaluates implementation quality: idiomatic [Rust](https://www.rust-lang.org/) use; error handling; module structure; clippy compliance; future-self maintainability.
 
 **Activation:** Core domain — always active at capstone intent.
 

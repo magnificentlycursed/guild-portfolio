@@ -1,12 +1,12 @@
 # (meta domain — no reviewer-role persona) Review Log (Index)
 
-This review log is part of the [VSDD Suite](../../../vsdd-suite/README.md). The Phase 3 adversarial review for this domain runs as one cold-context session per round; this file indexes the rounds. Round narratives live in [`review-log/`](review-log/) — see the Reviews table below.
+This review log is part of the [VSDD Suite](../../../vsdd-suite/README.md). The [Phase 3](../../../vsdd-suite/primers/3-review-session.md) adversarial review for this domain runs as one cold-context session per round; this file indexes the rounds. Round narratives live in [`review-log/`](review-log/) — see the Reviews table below.
 
-Evaluates VDD methodology compliance: design-before-code, test discipline, layer gates, IAR integrity, Phase 4 routing fidelity. The meta domain that catches process drift.
+Evaluates VDD methodology compliance: design-before-code, test discipline, layer gates, IAR integrity, [Phase 4](../../../vsdd-suite/primers/4-feedback-integration.md) routing fidelity. The meta domain that catches process drift.
 
-**Activation:** Core meta domain — always active at capstone intent. Per G-156: criterion 7 (PROCESS.md retrospective) is a hard gate at capstone.
+**Activation:** Core meta domain — always active at capstone intent. Per [G-156](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-156): criterion 7 (PROCESS.md retrospective) is a hard gate at capstone.
 
-**Language supplement applied:** Not applicable. VDD-IAR Alignment evaluates process compliance; language-specific dimensions belong in the role domains.
+**Language supplement applied:** Not applicable. [VDD-IAR Alignment](../../../vsdd-suite/domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md) evaluates process compliance; language-specific dimensions belong in the role domains.
 
 **Sycophancy check:** The meta-process review is itself subject to sycophancy if the agent that built the project also assesses whether the methodology was followed. The adversary must evaluate process artifacts against the standard, not against the agent's recollection of intent.
 

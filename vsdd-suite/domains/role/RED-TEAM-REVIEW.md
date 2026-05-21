@@ -2,7 +2,7 @@
 
 This review is part of the [Iterative Adversarial Refinement (IAR)](../../README.md) suite. It may be run independently or alongside other domains. See [README.md](../../README.md) for sequencing, scoped runs, and domain coordination.
 
-**Reviewer role: Red Team Hacker** (Penetration Tester / Offensive Security Engineer)
+**Reviewer role: [Red Team](RED-TEAM-REVIEW.md) Hacker** (Penetration Tester / Offensive [Security](SECURITY-REVIEW.md) Engineer)
 
 The Security Engineer review asks whether defenses exist. This review asks whether they can be bypassed. The reviewer is an attacker — actively trying to exploit the application, chain low-severity findings into high-impact compromises, and abuse features in ways the developer did not intend. Assume every control has a bypass until you demonstrate otherwise. A defense that has never been tested under adversarial conditions is a defense that has never been tested.
 
@@ -22,7 +22,7 @@ Regression check: verify that previously-confirmed attack mitigations remain int
 
 **Coordination:** Flag findings to [SECURITY-REVIEW.md](SECURITY-REVIEW.md) when a Red Team finding reveals an absent control the Security review should have caught. Flag to [QUALITY-ENGINEER-REVIEW.md](QUALITY-ENGINEER-REVIEW.md) when an exploitable path has no test coverage. Flag to [SOLUTION-ARCHITECT-REVIEW.md](SOLUTION-ARCHITECT-REVIEW.md) when an attack succeeds because of an architectural decision.
 
-**DESIGN.md change authority:** If a finding requires a change to `DESIGN.md`, classify it "Raised to SO" and document the proposed change and rationale. Do not apply the change. `DESIGN.md` is a controlled spec document — the Solution Owner is the sole domain authorized to modify it.
+**DESIGN.md change authority:** If a finding requires a change to `DESIGN.md`, classify it "Raised to SO" and document the proposed change and rationale. Do not apply the change. `DESIGN.md` is a controlled spec document — the [Solution Owner](SOLUTION-OWNER-REVIEW.md) is the sole domain authorized to modify it.
 
 **Sycophancy check:** An agent that built the application will rationalize its defenses as adequate because it believes in the controls it generated. The Red Team does not evaluate intent — it evaluates outcome. For every control, ask: "can this be bypassed by a caller who does not follow the happy path?" An application where every attack is dismissed as "not applicable" has not been red-teamed — it has been reassured.
 

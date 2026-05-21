@@ -1,8 +1,8 @@
 # Red Team Review Log (Index)
 
-This review log is part of the [VSDD Suite](../../../vsdd-suite/README.md). The Phase 3 adversarial review for this domain runs as one cold-context session per round; this file indexes the rounds. Round narratives live in [`review-log/`](review-log/) — see the Reviews table below.
+This review log is part of the [VSDD Suite](../../../vsdd-suite/README.md). The [Phase 3](../../../vsdd-suite/primers/3-review-session.md) adversarial review for this domain runs as one cold-context session per round; this file indexes the rounds. Round narratives live in [`review-log/`](review-log/) — see the Reviews table below.
 
-**Reviewer role: Red Team** (Red Team / Offensive Security / Penetration Tester)
+**Reviewer role: [Red Team](../../../vsdd-suite/domains/role/RED-TEAM-REVIEW.md)** (Red Team / Offensive [Security](../../../vsdd-suite/domains/role/SECURITY-REVIEW.md) / Penetration Tester)
 
 Adversarial pair to Security. Challenges Security's threat model from the outside; enumerates attack surfaces that the inside-the-model perspective normalized as acceptable.
 

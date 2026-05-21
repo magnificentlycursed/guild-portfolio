@@ -2,13 +2,13 @@
 
 This review log is part of the [VSDD Suite](../../README.md) and may run independently of the rest of the suite.
 
-Sanity Check is a **meta domain** serving two purposes:
+[Sanity Check](SANITY-CHECK-REVIEW.md) is a **meta domain** serving two purposes:
 
-1. **Primary — validator of last resort:** the natural cross-domain validator for findings owned by domains whose work has no obvious adversarial pair. Replaces `**Validator:** *self*` for the cases where self-validation would otherwise be the only option (PE shift-left mechanizations; SA architecture-doctrine findings without a Raised-to-SO routing; QE test-discipline meta findings; Portfolio Assessment introspective dimensions). Per Review 77's lifecycle convention, Sanity Check provides a structured meta-validation surface so the validation-loop discipline doesn't degrade into "I'll just self-validate" friction.
+1. **Primary — validator of last resort:** the natural cross-domain validator for findings owned by domains whose work has no obvious adversarial pair. Replaces `**Validator:** *self*` for the cases where self-validation would otherwise be the only option (PE shift-left mechanizations; SA architecture-doctrine findings without a Raised-to-SO routing; QE test-discipline meta findings; [Portfolio Assessment](PORTFOLIO-ASSESSMENT-REVIEW.md) introspective dimensions). Per Review 77's lifecycle convention, Sanity Check provides a structured meta-validation surface so the validation-loop discipline doesn't degrade into "I'll just self-validate" friction.
 
-2. **Secondary — rubber-ducking surface:** a dedicated session type for the developer working through a problem whose solution emerges in the act of articulation. The session takes DESIGN.md + the relevant architecture (per the Solution Architect's worked output) + the developer's prose articulation of the problem as input, and applies structured listening — surfacing inconsistencies, hidden assumptions, and coherence gaps that the developer's in-context view misses. The "duck" is structured; the rubber is the developer's own articulation pressure.
+2. **Secondary — rubber-ducking surface:** a dedicated session type for the developer working through a problem whose solution emerges in the act of articulation. The session takes DESIGN.md + the relevant architecture (per the [Solution Architect](../role/SOLUTION-ARCHITECT-REVIEW.md)'s worked output) + the developer's prose articulation of the problem as input, and applies structured listening — surfacing inconsistencies, hidden assumptions, and coherence gaps that the developer's in-context view misses. The "duck" is structured; the rubber is the developer's own articulation pressure.
 
-Sanity Check is a meta domain (parallel to VDD-IAR Alignment and Portfolio Assessment) — no reviewer-role persona by design. The role's distinctive value is structural: it's the meta-validator that closes the otherwise-self-validated cases.
+Sanity Check is a meta domain (parallel to [VDD-IAR Alignment](VDD-IAR-ALIGNMENT-REVIEW.md) and Portfolio Assessment) — no reviewer-role persona by design. The role's distinctive value is structural: it's the meta-validator that closes the otherwise-self-validated cases.
 
 ## Current Review Prompt
 

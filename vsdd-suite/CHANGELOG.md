@@ -4,6 +4,28 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-20 19:15Z ([Review 81](suite-development/review-log/2026-05-20-suite-review.md#review-81--2026-05-20-1915z): Phase 2 mechanical anchor-link sweep across 44 forward-facing files + sweep script committed as project-tracked tool — 1 Resolved; v0.11.3; PR [#37](https://github.com/magnificentlycursed/guild-portfolio/pull/37))
+
+### Added (suite-side — Phase 2 sweep tool, [Review 81](suite-development/review-log/2026-05-20-suite-review.md#review-81--2026-05-20-1915z) Finding 1)
+- **[`vsdd-suite/suite-development/scripts/sweep-anchor-links.py`](suite-development/scripts/sweep-anchor-links.py)** (new file, ~250 lines) — Mechanical anchor-link sweep script applying the [Review 79](suite-development/review-log/2026-05-20-suite-review.md#review-79--2026-05-20-1730z) Finding 3 convention. Protection layer (masks code fences + inline code + existing links + HTML anchors + headings); substitution layer (G-N every occurrence; external/domain/primer first-per-file); exclusion layer (historical files per [G-89](suite-development/FINDINGS-INDEX.md#g-89)). Project-tracked tool — future contributors can re-run + extend the substitution maps.
+
+### Changed (suite-side — Phase 2 sweep mechanical-application, [Review 81](suite-development/review-log/2026-05-20-suite-review.md#review-81--2026-05-20-1915z) Finding 1)
+- **44 forward-facing files swept (+22,853 chars total):**
+  - Suite top-level: [`README.md`](README.md), [`crosslink-contract.md`](crosslink-contract.md)
+  - Domain prompts (14): 12 role-domain prompts (excluding TW + Documentation Reviewer hand-swept in PRs #35-#36) + 3 meta-domain prompts ([Portfolio Assessment](domains/meta/PORTFOLIO-ASSESSMENT-REVIEW.md), [VDD-IAR Alignment](domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md), [Sanity Check](domains/meta/SANITY-CHECK-REVIEW.md)) + [DOMAIN-INDEX](domains/DOMAIN-INDEX.md) re-sweep
+  - Primers (4): `1ab-spec-crystallization.md`, `1c-decomposition.md`, `2c-refactor.md`, `5-formal-hardening.md` (the 5 whitepaper-alignment-note primers + `3-review-session.md` + `4-feedback-integration.md` were swept in earlier work)
+  - Templates (5): `DESIGN-template.md`, `DOMAIN-REVIEW-template.md`, `PROJECT-FINDINGS-INDEX-template.md`, `PROJECT-README-template.md`, `README.md`
+  - bookmark-cli-manual top-level (6): `DESIGN.md`, `TODO.md`, `PROCESS.md`, `README.md`, `manual-tests/layer-1.md`, `manual-tests/install-verification.md`
+  - bookmark-cli-manual per-domain indexes (10): SE, SA, SO, QE, UX, Security, PE, Platform Engineer, Red Team, TW, VDD-IAR Alignment
+- **Closes the deferred sub-finding** under [Review 79](suite-development/review-log/2026-05-20-suite-review.md#review-79--2026-05-20-1730z) Finding 3 ("Sweep deferred to follow-up PR — Phase 2 comprehensive mechanical sweep").
+
+### Resolved
+- **[Review 81](suite-development/review-log/2026-05-20-suite-review.md#review-81--2026-05-20-1915z) Finding 1** — Phase 2 mechanical anchor-link sweep across 44 forward-facing files. Full narrative: [Review 81](suite-development/review-log/2026-05-20-suite-review.md#review-81--2026-05-20-1915z).
+
+**Backlog after Review 81: 1 Open ([Review 79 Finding 2 Deferred](suite-development/review-log/2026-05-20-suite-review.md#review-79--2026-05-20-1730z)) + 7 prior-Deferred** (unchanged — the Phase 2 sweep closes the deferred sub-finding under Review 79 Finding 3; the deferred Green Gate / smoke-tests work from Review 79 Finding 2 remains Open).
+
+---
+
 ## Unreleased — 2026-05-20 18:30Z ([Review 80](suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z): Documentation Reviewer role-domain registration + GitHub Docs Style Guide adopted as canonical render-target authority + triple-audience design principle (suite developers + users + agents) + comprehensive Agent-API surface — 3 Resolved; v0.11.2; PR [#36](https://github.com/magnificentlycursed/guild-portfolio/pull/36))
 
 ### Added (suite-side — triple-audience design principle + Agent-API surface, [Review 80](suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3)
