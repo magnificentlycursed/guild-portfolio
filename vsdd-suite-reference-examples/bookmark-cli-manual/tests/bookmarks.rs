@@ -500,3 +500,524 @@ fn help_text_includes_usage_examples_and_exit_codes() {
     );
     assert!(rendered.contains("64"), "exit 64 documented missing");
 }
+
+// ===========================================================================
+// Layer 2 — Phase 2a Red Gate tests (tag + filter)
+//
+// Per `TODO.md` § Layer 2 Red Gate test plan + `DESIGN.md` § `bm tag <url>
+// <label>` (Layer 2) / § `bm list --tag <label>` (Layer 2). Each test below
+// invokes the compiled `bm` binary via `assert_cmd` against an isolated
+// `BOOKMARK_CLI_DB`. The tests are written before the implementation lands;
+// they must fail against the Layer-1-only binary and pass against the
+// Layer-2 binary.
+// ===========================================================================
+
+/// AC 5 — `bm tag <url> <label>` appends the label to the matching
+/// bookmark's `tags` field and exits 0.
+#[test]
+fn tests_tag_attaches_label_to_matching_bookmark() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://example.com"])
+        .assert()
+        .success();
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["tag", "https://example.com", "rust"])
+        .assert()
+        .success()
+        .code(0)
+        .stdout(predicate::str::is_empty())
+        .stderr(predicate::str::is_empty());
+
+    let contents = fs::read_to_string(&db).expect("store file should still exist after tag");
+    let parsed: serde_json::Value = serde_json::from_str(&contents).expect("store is valid JSON");
+    let bookmarks = parsed["bookmarks"].as_array().expect("bookmarks array");
+    assert_eq!(bookmarks.len(), 1, "still exactly one bookmark");
+    assert_eq!(bookmarks[0]["url"], "https://example.com");
+    let tags = bookmarks[0]["tags"]
+        .as_array()
+        .expect("tags field should be present + an array");
+    assert_eq!(tags.len(), 1, "exactly one tag attached; got {tags:?}");
+    assert_eq!(tags[0], "rust");
+}
+
+/// AC 5 idempotence — invoking `bm tag <url> <label>` twice with the same
+/// args produces a single tag in the `tags` array, not a duplicate.
+#[test]
+fn tests_tag_is_idempotent() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://example.com"])
+        .assert()
+        .success();
+
+    for _ in 0..2 {
+        Command::cargo_bin("bm")
+            .unwrap()
+            .env("BOOKMARK_CLI_DB", &db)
+            .args(["tag", "https://example.com", "rust"])
+            .assert()
+            .success()
+            .code(0);
+    }
+
+    let contents = fs::read_to_string(&db).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&contents).unwrap();
+    let tags = parsed["bookmarks"][0]["tags"].as_array().unwrap();
+    assert_eq!(
+        tags.len(),
+        1,
+        "second invocation must not duplicate the tag; got {tags:?}"
+    );
+    assert_eq!(tags[0], "rust");
+}
+
+/// AC 6 — `bm tag` against an unknown URL exits 1 with the spec-contracted
+/// stderr AND leaves the store file byte-identical to its pre-invocation
+/// state (no rewrite).
+#[test]
+fn tests_tag_rejects_unknown_url() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://A.example"])
+        .assert()
+        .success();
+
+    let before = fs::read(&db).expect("pre-invocation store should exist");
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["tag", "https://B.example", "nonsense"])
+        .assert()
+        .failure()
+        .code(1)
+        .stderr("Error: no bookmark found with URL https://B.example.\n")
+        .stdout(predicate::str::is_empty());
+
+    let after = fs::read(&db).expect("store file should still exist");
+    assert_eq!(
+        after, before,
+        "store file must be byte-identical when tag rejects unknown URL"
+    );
+}
+
+/// AC 7 — `bm tag "" <label>` exits 1 with the empty-URL error.
+#[test]
+fn tests_tag_rejects_empty_url() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://example.com"])
+        .assert()
+        .success();
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["tag", "", "rust"])
+        .assert()
+        .failure()
+        .code(1)
+        .stderr("Error: URL cannot be empty.\n")
+        .stdout(predicate::str::is_empty());
+}
+
+/// AC 8 — `bm tag <url> ""` exits 1 with the empty-label error.
+#[test]
+fn tests_tag_rejects_empty_label() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://example.com"])
+        .assert()
+        .success();
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["tag", "https://example.com", ""])
+        .assert()
+        .failure()
+        .code(1)
+        .stderr("Error: tag label cannot be empty.\n")
+        .stdout(predicate::str::is_empty());
+}
+
+/// AC 12 — `bm tag` against a Layer-1-format file (no `tags` field on the
+/// bookmarks) migrates forward: the post-save file contains explicit `tags`
+/// on every bookmark — `["rust"]` on the tagged bookmark + `[]` on every
+/// untouched one.
+#[test]
+fn tests_tag_against_layer_1_format_file_migrates_forward() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    // Write a Layer-1-format store directly — no `tags` field per bookmark.
+    let layer1 = serde_json::json!({
+        "bookmarks": [
+            {"url": "https://A.example", "timestamp": "2026-05-21T01:00:00Z"},
+            {"url": "https://B.example", "timestamp": "2026-05-21T02:00:00Z"},
+        ]
+    });
+    fs::write(&db, serde_json::to_string_pretty(&layer1).unwrap()).unwrap();
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["tag", "https://A.example", "rust"])
+        .assert()
+        .success()
+        .code(0);
+
+    let contents = fs::read_to_string(&db).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&contents).unwrap();
+    let bookmarks = parsed["bookmarks"].as_array().unwrap();
+    assert_eq!(bookmarks.len(), 2);
+    for bm in bookmarks {
+        let url = bm["url"].as_str().unwrap();
+        let tags = bm["tags"]
+            .as_array()
+            .unwrap_or_else(|| panic!("post-save file must contain explicit tags field for {url}"));
+        match url {
+            "https://A.example" => {
+                assert_eq!(tags.len(), 1, "A should have one tag; got {tags:?}");
+                assert_eq!(tags[0], "rust");
+            }
+            "https://B.example" => {
+                assert!(
+                    tags.is_empty(),
+                    "untouched bookmark must have empty tags array; got {tags:?}"
+                );
+            }
+            other => panic!("unexpected URL {other}"),
+        }
+    }
+}
+
+/// AC 5 multi-match — `bm tag` tags ALL bookmarks whose URL matches.
+#[test]
+fn tests_tag_against_duplicate_url_tags_all_matches() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    // Add the same URL twice — append-only permits this.
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://dup.example"])
+        .assert()
+        .success();
+    thread::sleep(Duration::from_millis(1100));
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://dup.example"])
+        .assert()
+        .success();
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["tag", "https://dup.example", "rust"])
+        .assert()
+        .success()
+        .code(0);
+
+    let contents = fs::read_to_string(&db).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&contents).unwrap();
+    let bookmarks = parsed["bookmarks"].as_array().unwrap();
+    assert_eq!(bookmarks.len(), 2, "still two bookmarks");
+    for bm in bookmarks {
+        let tags = bm["tags"].as_array().unwrap();
+        assert_eq!(tags.len(), 1, "each duplicate gets tagged; got {tags:?}");
+        assert_eq!(tags[0], "rust");
+    }
+}
+
+/// AC 9 — `bm list --tag rust` returns ONLY the bookmarks tagged `rust`,
+/// in newest-first order, exits 0, stderr empty.
+#[test]
+fn tests_list_with_tag_filter_returns_matching_bookmarks() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    // A (oldest), B (middle), C (newest)
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://A.example"])
+        .assert()
+        .success();
+    thread::sleep(Duration::from_millis(1100));
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://B.example"])
+        .assert()
+        .success();
+    thread::sleep(Duration::from_millis(1100));
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://C.example"])
+        .assert()
+        .success();
+
+    // Tag A and C with `rust`, leave B untagged.
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["tag", "https://A.example", "rust"])
+        .assert()
+        .success();
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["tag", "https://C.example", "rust"])
+        .assert()
+        .success();
+
+    let output = Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["list", "--tag", "rust"])
+        .assert()
+        .success()
+        .code(0)
+        .stderr(predicate::str::is_empty())
+        .get_output()
+        .stdout
+        .clone();
+
+    let rendered = String::from_utf8(output).unwrap();
+    let lines: Vec<&str> = rendered.lines().collect();
+    assert_eq!(
+        lines.len(),
+        2,
+        "exactly two bookmarks match the filter; got {lines:?}"
+    );
+    assert!(
+        lines[0].ends_with("https://C.example"),
+        "newest match (C) should be first; got {:?}",
+        lines[0]
+    );
+    assert!(
+        lines[1].ends_with("https://A.example"),
+        "older match (A) should be second; got {:?}",
+        lines[1]
+    );
+    assert!(
+        !rendered.contains("https://B.example"),
+        "untagged B must not appear in filtered output; got {rendered:?}"
+    );
+}
+
+/// AC 9 empty-filter-match — `bm list --tag rust` against bookmarks that
+/// have no tags emits the filter empty-state line + exit 0.
+#[test]
+fn tests_list_with_tag_filter_empty_match_emits_filter_empty_state() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://A.example"])
+        .assert()
+        .success();
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://B.example"])
+        .assert()
+        .success();
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["list", "--tag", "rust"])
+        .assert()
+        .success()
+        .code(0)
+        .stdout(predicate::str::is_empty())
+        .stderr("No bookmarks match the supplied filter.\n");
+}
+
+/// AC 10 — `bm list --tag <a> --tag <b>` is OR-semantics across labels.
+#[test]
+fn tests_list_with_tag_filter_repeated_flag_is_or_semantics() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://A.example"])
+        .assert()
+        .success();
+    thread::sleep(Duration::from_millis(1100));
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://B.example"])
+        .assert()
+        .success();
+    thread::sleep(Duration::from_millis(1100));
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://C.example"])
+        .assert()
+        .success();
+
+    // A: rust ; B: go ; C: untagged.
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["tag", "https://A.example", "rust"])
+        .assert()
+        .success();
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["tag", "https://B.example", "go"])
+        .assert()
+        .success();
+
+    let output = Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["list", "--tag", "rust", "--tag", "go"])
+        .assert()
+        .success()
+        .code(0)
+        .get_output()
+        .stdout
+        .clone();
+    let rendered = String::from_utf8(output).unwrap();
+    let lines: Vec<&str> = rendered.lines().collect();
+    assert_eq!(
+        lines.len(),
+        2,
+        "OR-semantics returns A + B (but not untagged C); got {lines:?}"
+    );
+    assert!(
+        rendered.contains("https://A.example"),
+        "A (tagged rust) should appear; got {rendered:?}"
+    );
+    assert!(
+        rendered.contains("https://B.example"),
+        "B (tagged go) should appear; got {rendered:?}"
+    );
+    assert!(
+        !rendered.contains("https://C.example"),
+        "untagged C must not appear; got {rendered:?}"
+    );
+}
+
+/// DESIGN.md edge-case catalog Layer 2 addition — `bm list --tag <label>`
+/// against an absent store emits the store-empty-state line (precedence
+/// over the filter-empty-state line).
+#[test]
+fn tests_list_with_tag_filter_against_empty_store_emits_store_empty_state() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+    // Deliberately do NOT create the store file.
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["list", "--tag", "rust"])
+        .assert()
+        .success()
+        .code(0)
+        .stdout(predicate::str::is_empty())
+        .stderr("No bookmarks yet.\n");
+}
+
+/// AC 11 — `bm list --tag ""` exits 1 with the empty-label error.
+#[test]
+fn tests_list_with_empty_tag_label_rejected() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://example.com"])
+        .assert()
+        .success();
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["list", "--tag", ""])
+        .assert()
+        .failure()
+        .code(1)
+        .stderr("Error: tag label cannot be empty.\n")
+        .stdout(predicate::str::is_empty());
+}
+
+/// Closes the Layer-1-Deferred QE item — `bm list` emits timestamps that
+/// round-trip cleanly through `chrono::DateTime::parse_from_rfc3339` at
+/// byte level (not merely "looks like an RFC 3339 string by eyeball").
+#[test]
+fn tests_list_rfc3339_scripted_check() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    for i in 0..3 {
+        Command::cargo_bin("bm")
+            .unwrap()
+            .env("BOOKMARK_CLI_DB", &db)
+            .args(["add", &format!("https://item-{i}.example")])
+            .assert()
+            .success();
+        thread::sleep(Duration::from_millis(1100));
+    }
+
+    let output = Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["list"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let rendered = String::from_utf8(output).unwrap();
+    let lines: Vec<&str> = rendered.lines().collect();
+    assert_eq!(lines.len(), 3, "three bookmarks rendered; got {lines:?}");
+
+    for line in lines {
+        let (ts, _rest) = line
+            .split_once(' ')
+            .unwrap_or_else(|| panic!("line must have at least one space separator: {line:?}"));
+        chrono::DateTime::parse_from_rfc3339(ts).unwrap_or_else(|e| {
+            panic!("timestamp {ts:?} from line {line:?} did not parse as RFC 3339: {e}")
+        });
+    }
+}
