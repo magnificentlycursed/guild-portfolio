@@ -33,6 +33,12 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # master at 2026-05-04
         with:
+          # Explicit toolchain pin matching `rust-toolchain.toml`. The action
+          # only auto-discovers `rust-toolchain.toml` at repo root; this
+          # project lives in a subdirectory so the file isn't visible to the
+          # action's discovery path. Mirror the pin explicitly per the sibling
+          # `issue-tracker-cli.yml` pattern.
+          toolchain: 1.95
           components: rustfmt
 
       - name: Format check
@@ -48,6 +54,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # master at 2026-05-04
         with:
+          toolchain: 1.95
           components: clippy
 
       - name: Cache Rust build artifacts
@@ -67,6 +74,8 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # master at 2026-05-04
+        with:
+          toolchain: 1.95
 
       - name: Cache Rust build artifacts
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32  # v2
@@ -88,6 +97,8 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # master at 2026-05-04
+        with:
+          toolchain: 1.95
 
       # Closes Platform Engineer Review 1 Finding 4 (deny.toml) — gates on
       # CVEs, license violations, banned/duplicate crates, and disallowed
@@ -108,6 +119,8 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # master at 2026-05-04
+        with:
+          toolchain: 1.95
 
       # Closes Platform Engineer Review 1 Finding 5 — fast advisory-only
       # CVE check against Cargo.lock. Runs parallel to `cargo deny check`
