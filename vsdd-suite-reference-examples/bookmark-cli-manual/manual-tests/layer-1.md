@@ -5,13 +5,15 @@
 **Convention:** Review 74 manual-test split — this file is the per-layer manual-test plan; the corresponding `TODO.md` Layer 1 block points here.
 **Authoring note:** the test plan below was inline in `TODO.md` prior to PR 6 (under portfolio intent); split out per the Review 74 forward-only convention as part of bookmark-cli-manual's capstone-intent promotion. The runnable-step standard applies (per primer 1c § Manual testing checklist) — each step names the exact command, clean-state setup where required, binary lifecycle steps, and literal expected output where invariant.
 
+**Session-state preamble ([Documentation Reviewer Review 1 Finding 13](../vsdd-suite/review-log/2026-05-20-documentation-reviewer.md) Round 2 fix):** Execute these steps in a single uninterrupted shell session — Step 1 exports `BOOKMARK_CLI_DB` via `mktemp`, and Steps 2-6 depend on that export plus the working directory established by Step 0. Alternative: set `BOOKMARK_CLI_DB` to a stable absolute path (e.g., `/tmp/bookmark-cli-manual-test.json`) before Step 1 so each subsequent step is independent of the prior shell state.
+
 ---
 
 ## Step 0 — Update the installed binary
 
 ```sh
 cd vsdd-suite-reference-examples/bookmark-cli-manual
-cargo install --path . --force --quiet
+cargo install --locked --path . --force --quiet
 which bm
 ```
 
@@ -56,13 +58,20 @@ Expected stdout for `echo` (literal):
 exit: 0
 ```
 
-Expected stdout for `cat "$BOOKMARK_CLI_DB"` — a JSON document with one bookmark object. The URL is invariant; the timestamp is variable. Representative literal example:
+Expected stdout for `cat "$BOOKMARK_CLI_DB"` — a pretty-printed JSON object with one bookmark in the `bookmarks` array per [`DESIGN.md`](../DESIGN.md) § Storage format. The URL is invariant; the timestamp is variable. Representative literal example (pretty-printed multi-line shape that `serde_json::to_string_pretty` emits):
 
 ```json
-[{"url":"https://example.com","timestamp":"2026-05-20T22:15:42.371Z"}]
+{
+  "bookmarks": [
+    {
+      "url": "https://example.com",
+      "timestamp": "2026-05-20T22:15:42.371Z"
+    }
+  ]
+}
 ```
 
-Invariant parts: the document is a JSON array; the array has exactly one object; the object has fields `url` (value `"https://example.com"`) and `timestamp` (value parseable as RFC 3339 / ISO 8601 UTC).
+Invariant parts: the document is a JSON object with a `bookmarks` field whose value is an array; the array has exactly one object; the object has fields `url` (value `"https://example.com"`) and `timestamp` (value parseable as RFC 3339 / ISO 8601 UTC).
 
 ---
 
@@ -155,6 +164,10 @@ bm add https://persistence-test.example
 # Snapshot the DB content
 DBSNAPSHOT=$(cat "$BOOKMARK_CLI_DB")
 
+# Record the project directory as an absolute path before uninstall
+# (so the reinstall step does not depend on session cwd).
+PROJECT_DIR="$(pwd)"
+
 # Uninstall the binary
 cargo uninstall bookmark-cli --quiet
 
@@ -162,22 +175,16 @@ cargo uninstall bookmark-cli --quiet
 which bm 2>&1
 echo "uninstall-exit: $?"
 
-# Reinstall
-cd vsdd-suite-reference-examples/bookmark-cli-manual
-cargo install --path . --force --quiet
+# Reinstall — use the absolute path captured above
+cd "$PROJECT_DIR"
+cargo install --locked --path . --force --quiet
 
 # Verify data survives
 DBPOSTREINSTALL=$(cat "$BOOKMARK_CLI_DB")
 test "$DBSNAPSHOT" = "$DBPOSTREINSTALL" && echo "PASS: persistence" || echo "FAIL: persistence"
 ```
 
-Expected output for `which bm 2>&1` after uninstall (literal — path may differ slightly by shell):
-
-```
-bm not found
-```
-
-(Exit code 1 from `which`; the binary is genuinely gone after uninstall.)
+Expected behavior for `which bm 2>&1` after uninstall: the `which bm` command MUST exit non-zero AND MUST NOT print a path. The exact textual output is shell-dependent (bash: typically empty stdout/stderr + exit 1; zsh: may print `bm not found` + exit 1; BSD `which` on macOS: typically empty + exit 1); do not assert on it.
 
 Expected `echo "uninstall-exit: $?"` (literal):
 
@@ -192,6 +199,30 @@ PASS: persistence
 ```
 
 The DB content before and after reinstall must be byte-identical — the binary swap does not touch user data.
+
+---
+
+## Step 6 — Verify file mode 0600 on Unix
+
+Per [`DESIGN.md`](../DESIGN.md) § Storage data classification — the captured bookmarks are *confidential*-class data and the storage file is written with mode 0600 (owner read/write only) on Unix. Verify the on-disk file permissions.
+
+```sh
+# (macOS / Linux only — file-permission semantics differ on Windows and the project declares Windows untested):
+# Pick the appropriate stat invocation for the platform.
+if [ "$(uname)" = "Darwin" ]; then
+  stat -f %A "$BOOKMARK_CLI_DB"
+else
+  stat -c %a "$BOOKMARK_CLI_DB"
+fi
+```
+
+Expected stdout (literal):
+
+```
+600
+```
+
+Invariant: the storage file's mode is exactly `600` — readable and writable by the owning user and inaccessible to group or world. A divergence (e.g., `644`) is a security defect — the implementation MUST set mode 0600 at save time per the spec's confidential-class data classification.
 
 ---
 
@@ -211,7 +242,7 @@ No expected output; cleanup is best-effort.
 
 Per primer 3 § Manual testing is a second adversarial surface to IAR ([G-132](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-132)): every manual-test session closes with one of:
 
-- **Insight-reached / no findings** — all 5 steps reached expected outputs; record the session timestamp + the `Tested against:` field above + a one-line "passed clean" note. No per-domain review-log entry needed.
+- **Insight-reached / no findings** — all 6 steps reached expected outputs; record the session timestamp + the `Tested against:` field above + a one-line "passed clean" note. No per-domain review-log entry needed.
 - **Findings surfaced** — any step diverged from expected; record each divergence as a finding in the per-domain review log (the natural-pair domain — typically QE for test-discipline issues; [UX](../../../vsdd-suite/domains/role/UX-REVIEW.md) for output-quality concerns; SE for binary-behavior bugs) with `**Source:** director-raised` per the per-review-preamble standard ([G-133](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-133)), the divergence cited file:line + the expected vs. observed output, and the appropriate `**Owner:**` per Review 77 lifecycle.
 
 Sycophancy-compensation reminder: a 16-minute closure window with per-item specificity is the discipline working; a 16-minute closure with no per-item observed-vs-expected notes is the kind of finding a manager would flag in an audit (per TW Dim 11 [G-132](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-132)).

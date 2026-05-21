@@ -1,0 +1,75 @@
+# cargo-deny configuration for the `bookmark-cli` reference implementation.
+#
+# Run: `cargo deny check`
+# Install: `cargo install cargo-deny --locked`
+# Tool: https://github.com/EmbarkStudios/cargo-deny
+#
+# Sections required by the Rust supplement § Platform Engineering and the TOML
+# supplement § Security: [advisories], [licenses], [bans], [sources]. Each
+# section gates on a distinct supply-chain concern; the four together close the
+# policy surface that `cargo audit` alone leaves partial.
+#
+# Round 2 fix per Platform Engineer Review 1 Finding 4
+# (vsdd-suite/review-log/2026-05-20-platform-engineer.md) and Security Review 1
+# Finding 3.
+
+[graph]
+# All-features = true ensures the policy evaluates every feature-gated
+# dependency, not just the default-feature dependency graph. For a small CLI
+# this is the safer default; recoverable if compile time becomes a concern.
+all-features = true
+
+[output]
+feature-depth = 1
+
+# ---------------------------------------------------------------------------
+# Advisories — RustSec CVE + unmaintained-crate database.
+# https://rustsec.org/
+# ---------------------------------------------------------------------------
+[advisories]
+version = 2
+yanked = "deny"
+# Add specific RUSTSEC IDs here with rationale if an advisory needs explicit
+# allow-listing (operator decision, not a default). Empty = no exemptions.
+ignore = []
+
+# ---------------------------------------------------------------------------
+# Licenses — explicit allowlist; deny by default.
+# A dependency resolving to a license outside this list fails CI; the apprentice
+# must add it explicitly (with rationale) or replace the dependency rather than
+# silently accept a copyleft or unknown license.
+# ---------------------------------------------------------------------------
+[licenses]
+version = 2
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+    "Unicode-3.0",
+]
+confidence-threshold = 0.93
+
+# ---------------------------------------------------------------------------
+# Bans — duplicate-version policy and explicit denylist.
+# ---------------------------------------------------------------------------
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+highlight = "all"
+deny = []
+skip = []
+skip-tree = []
+
+# ---------------------------------------------------------------------------
+# Sources — restrict where dependencies may be pulled from. The DESIGN.md §
+# Constraints commitment "all from crates.io, no git deps" is mechanized here.
+# ---------------------------------------------------------------------------
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

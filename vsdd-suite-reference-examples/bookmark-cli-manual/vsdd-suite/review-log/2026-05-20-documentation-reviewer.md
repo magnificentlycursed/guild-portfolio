@@ -389,3 +389,412 @@ Proposed fix: add a preamble paragraph after the Authoring note: "Run all steps 
 **Coordination:** This round is the first [Documentation Reviewer](../../../vsdd-suite/domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) round filed against `bookmark-cli-manual`; the [Technical Writer](../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md) round filed in PR `#36` is the natural pair for validation. Several findings overlap with TW concerns — notably Finding 6 (lettering / abbreviation lookup cost — cold-reader pair to [TW Dim 12](../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md)) and Findings 3 / 4 / 5 / 10 (inline-reference clickthrough validation — cold-reader pair to [TW Dim 13](../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md)). If the TW round filed those defects from the authorial seat first, this round's findings are the cold-reader confirmation; if TW missed them, this round surfaces them and the adversarial-pair shape is the discipline working as designed.
 
 **Note on `PROT_*` Read-tool display artifacts:** While reading [`manual-tests/layer-1.md`](../../manual-tests/layer-1.md) and [`DESIGN.md`](../../DESIGN.md) with the Read tool, several Step / Section headings displayed `PROT_30`, `PROT_37`, `PROT_40`, `PROT_41`, `PROT_46` placeholder tokens in place of certain protocol-named CLI labels (e.g., the `bm add` contract heading, manual-test step titles for the happy-path / ordering / empty-state cases). `grep -rE "PROT_" bookmark-cli-manual/` returned zero matches across the project, confirming the tokens are Read-tool display sanitization, not file contents. They are NOT a finding against the docs.
+
+---
+
+## Review 2 — 2026-05-20 21:00Z
+
+**Layer:** 1
+**Tested against:** post-Round-2-fix-cycle state of `bookmark-cli-manual` (CHANGELOG v0.11.4 entry; current working tree as of 2026-05-20).
+**Round:** 2
+**Active domain set:** 11 role + 1 meta = 12 (per [DESIGN.md § Project intent](../../DESIGN.md)).
+**Scope:** Phase 3 [Adversarial Refinement](../../../../vsdd-suite/primers/3-review-session.md) Round 2 verification of [Round 1 Documentation Reviewer findings](2026-05-20-documentation-reviewer.md) (F1–F13) against the v0.11.4 doc-batch fix cycle. Independent adversarial cold-reader pass also looks for adjacent defects the fix cycle may have created or missed per the Phase 3 primer's [G-131](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) continue-trigger framing ("the Round N+1 cold pass verifies the fix held and looks for adjacent defects the fix may have created"). Read in cold-reader order: [`README.md`](../../README.md) → [`TODO.md`](../../TODO.md) → [`CHANGELOG.md`](../../CHANGELOG.md) → [`PROCESS.md`](../../PROCESS.md) → [`manual-tests/layer-1.md`](../../manual-tests/layer-1.md) → [`manual-tests/install-verification.md`](../../manual-tests/install-verification.md) → [`DESIGN.md`](../../DESIGN.md) (last per the [Documentation Reviewer](../../../../vsdd-suite/domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) discipline). Per-domain index files in [`vsdd-suite/`](..) consulted only as cited targets of links in the user-facing artifacts above. Round 1 log re-read against the current state for the regression check.
+**Lens:** Adversarial cold-reader pair to [Technical Writer](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md). The 11 Documentation Reviewer dimensions re-applied to the post-fix state: clone-and-follow fidelity (Dim 1), implicit-knowledge audit (Dim 2 — reader-built glossary), forward-reference safety (Dim 3), cross-reference resolution (Dim 4 — every `[text](path)` opened-and-confirmed), audience-fit calibration (Dim 5 — capstone reader profile), documentation rot (Dim 6 — every claim verified against current code/spec/process), recovery-from-confusion (Dim 7), manual-test plan executability (Dim 8), onboarding sequencing (Dim 9), manual-test file structure consistency (Dim 10 — Review 74 convention), inline-reference clickthrough validation (Dim 11 — every markdown link opened to verify it resolves).
+**Source:** `domain-raised` — every finding below was elicited by applying the 11 Documentation Reviewer dimensions to the post-fix-cycle user-facing artifacts in cold context. No director-raised observations interrupted this round.
+**Regression check:** Each Round 1 finding (F1–F13) was re-verified against the current state by re-locating the cited file:line and inspecting against the proposed fix in the Round 1 entry and the CHANGELOG v0.11.4 entry's claimed disposition. Outcomes recorded under § Resolved (fix held) and § Deferred (fix incomplete — proposed fix landed in some sites but not all the sites the original finding named). The CHANGELOG entry's *claim* of resolution was treated as a claim, not a fact — the verification reads the docs themselves.
+**Validator:** `technical-writer` on each finding per [Review 80](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) validator-pair convention.
+
+**Session note:** Cold-context AI session — did not author the Round 2 fix cycle. The primer's sycophancy guard applied: each Round 1 finding was re-tested by re-reading the cited file:line in the current state, not by trusting the CHANGELOG's claim that the fix landed. Several Round 1 findings the CHANGELOG claims as resolved are demonstrably *still present* in the current state — those route to § Deferred as "fix incomplete," not § Resolved. The adversarial finding-progression discipline applies: a Resolved/Resolved pair across two rounds is the MVR signal; a Resolved-claim-with-the-defect-still-present is precisely the failure mode this round exists to catch.
+
+**MVR signal:** **NOT reached.** New real findings surface in this round (R2-F1 through R2-F7 below; six fix-incomplete + one new adjacent-defect). Per the [G-131](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) continue trigger, a Round 3 is mandatory after the next fix pass lands; the Round 3 cold pass verifies the fix completion held and looks for further adjacent defects.
+
+---
+
+### Resolved
+
+**Finding 1 — `README.md` install instructions name a directory that does not exist (Dim 1, Dim 4, Dim 6)**
+
+<a id="r2-f1"></a>
+
+**Owner:** technical-writer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+[Round 1 Finding 1](2026-05-20-documentation-reviewer.md#r1-f1) raised that [`README.md`](../../README.md) directed `cd <portfolio>/bookmark-cli` (and again `cd <portfolio>/bookmark-cli` in the Test section), but no such directory exists; the actual project is at `vsdd-suite-reference-examples/bookmark-cli-manual/`. Verifying the Round 2 fix:
+
+1. [`README.md`](../../README.md):20 now reads `cd <portfolio>/vsdd-suite-reference-examples/bookmark-cli-manual` — the correct path.
+2. [`README.md`](../../README.md):41 (Test section) now reads `cd <portfolio>/vsdd-suite-reference-examples/bookmark-cli-manual` — consistent with the Install section.
+3. [`manual-tests/layer-1.md`](../../manual-tests/layer-1.md):15 uses `cd vsdd-suite-reference-examples/bookmark-cli-manual` (portfolio-relative form, consistent with the README path now). The cross-doc consistency Round 1 flagged is intact.
+
+Cold-reader clone-and-follow test passes: a reader following [`README.md`](../../README.md):16-23 verbatim arrives at the correct directory. **Resolution:** fix held; finding closed (Dim 1, Dim 4, Dim 6).
+
+---
+
+**Finding 2 — `README.md` claims "8 tests pass" (Dim 6)**
+
+<a id="r2-f2"></a>
+
+**Owner:** technical-writer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+[Round 1 Finding 2](2026-05-20-documentation-reviewer.md#r1-f2) raised the stale "8 tests pass (4 lib + 4 integration)" claim. The Round 1 proposed fix preferred the stability-friendly framing ("expect: all tests pass with no failures"); the actual fix applied lands close to that shape. Verifying:
+
+1. [`README.md`](../../README.md):42-44 now reads `# expect: all tests pass — the test suite (currently ~19 lib + integration tests at Layer 1, post-Round-2 fix cycle) covers the behavioral contracts in DESIGN.md.` The literal-count was relaxed to a behavioral invariant ("all tests pass") + a parenthesized "currently ~19" advisory. The `~` hedges any minor drift; the load-bearing claim is "all tests pass."
+2. Verified against current state: `cargo test` against the current `main` reports `11 passed + 0 passed + 10 passed + 0 passed = 21 tests pass`. The "~19" hedge is generous enough to absorb the +2 drift (Round 2 added test coverage as cited in CHANGELOG v0.11.4 § Changed — code); a cold reader running `cargo test` sees 21 pass and the README's "all tests pass — currently ~19" is consistent with that (the `~` carries the imprecision).
+
+Cold-reader clone-and-follow test passes: the reader's `cargo test` output matches the README's "all tests pass" claim. **Resolution:** fix held; finding closed (Dim 6).
+
+---
+
+**Finding 8 — `TODO.md` capstone-active-domain count and layer-gate criterion are stale (Dim 6)**
+
+<a id="r2-f8"></a>
+
+**Owner:** technical-writer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+[Round 1 Finding 8](2026-05-20-documentation-reviewer.md#r1-f8) raised the "10 active domains" count and the missing-from-layer-gate-criterion-4 Documentation Reviewer reference. Verifying:
+
+1. [`TODO.md`](../../TODO.md):5 now reads "`→ 3 IAR (Iterative Adversarial Refinement) (12 active domains)`" — count updated from 10 to 12 matching [`DESIGN.md`](../../DESIGN.md):11.
+2. [`TODO.md`](../../TODO.md):40 layer-gate criterion 4 now includes `[Documentation Reviewer](../../vsdd-suite/domains/role/DOCUMENTATION-REVIEWER-REVIEW.md)` in the capstone-extended list.
+3. The total now reconciles: 7 cores + 5 extended (Performance Engineer, Red Team, Platform Engineer, Technical Writer, Documentation Reviewer) = 12, matching the active domain set declared in DESIGN.md.
+
+Cross-doc consistency check: TODO.md count matches DESIGN.md count matches the actual active-domain set. **Resolution:** fix held; finding closed (Dim 6).
+
+---
+
+**Finding 10 — `manual-tests/install-verification.md` cross-references to `manual-tests/layer-1.md` use a relative path that doesn't resolve (Dim 4, Dim 11)**
+
+<a id="r2-f10"></a>
+
+**Owner:** technical-writer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+[Round 1 Finding 10](2026-05-20-documentation-reviewer.md#r1-f10) raised the doubled-directory `manual-tests/manual-tests/layer-1.md` defect on two sibling-link sites in install-verification.md (Step 3 prose at line 43 and Coordination list at line 63). Verifying:
+
+1. [`manual-tests/install-verification.md`](../../manual-tests/install-verification.md):43 now reads `Follow [`layer-1.md`](layer-1.md) (sibling file in this directory) end-to-end.` — sibling path resolves correctly.
+2. [`manual-tests/install-verification.md`](../../manual-tests/install-verification.md):63 now reads `**[`layer-1.md`](layer-1.md)** — the test plan the verifier executes (sibling file in this `manual-tests/` directory).` — sibling path resolves correctly.
+3. The CHANGELOG also documents companion sibling-link corrections for [`../PROCESS.md`](../../PROCESS.md) and [`../DESIGN.md`](../../DESIGN.md) references; both are present at lines 64 and 66 with `../` prefix and the visible text drops the doubled-path display in favor of the sibling-relative form.
+
+Cold-reader clickthrough test passes: every link in [`manual-tests/install-verification.md`](../../manual-tests/install-verification.md) resolves to its intended target from the file's actual on-disk location. **Resolution:** fix held; finding closed (Dim 4, Dim 11).
+
+---
+
+**Finding 11 — `manual-tests/layer-1.md` Step 5 expects "bm not found" from `which bm` after uninstall (Dim 8)**
+
+<a id="r2-f11"></a>
+
+**Owner:** technical-writer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+[Round 1 Finding 11](2026-05-20-documentation-reviewer.md#r1-f11) raised the literal-match `bm not found` expected-output defect (not what `/usr/bin/which` emits on macOS or Linux). Verifying:
+
+1. [`manual-tests/layer-1.md`](../../manual-tests/layer-1.md):187 now reads: "Expected behavior for `which bm 2>&1` after uninstall: the `which bm` command MUST exit non-zero AND MUST NOT print a path. The exact textual output is shell-dependent (bash: typically empty stdout/stderr + exit 1; zsh: may print `bm not found` + exit 1; BSD `which` on macOS: typically empty + exit 1); do not assert on it." — the Round 1 proposed-fix's invariant-based framing is adopted verbatim.
+2. The accompanying exit-code expectation at line 192 (`uninstall-exit: 1`) is the invariant; the textual output is explicitly annotated as shell-dependent.
+
+Cold-reader clone-and-follow test passes: the manual-test plan now matches the deterministic invariant (exit 1 + no path printed) rather than a shell-specific text shape. **Resolution:** fix held; finding closed (Dim 8).
+
+---
+
+**Finding 12 — `README.md` and `TODO.md` use "VSDD" / "IAR" / "MVR" without first-use expansion (Dim 2)**
+
+<a id="r2-f12"></a>
+
+**Owner:** technical-writer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+[Round 1 Finding 12](2026-05-20-documentation-reviewer.md#r1-f12) raised the absence of acronym expansion for VSDD / IAR / MVR / TDD anywhere in the project's docs. Verifying:
+
+1. [`README.md`](../../README.md):7 now reads `[VSDD (Verified Spec-Driven Development) Suite](../../vsdd-suite/README.md)` — VSDD expanded on first use.
+2. [`README.md`](../../README.md):48 expands IAR ("IAR (Iterative Adversarial Refinement)"), MVR ("MVR (maximum viable refinement)"), and TDD ("TDD (test-driven development)") on first use in the "How this was built" section.
+3. [`TODO.md`](../../TODO.md):5 reads `VSDD (Verified Spec-Driven Development) phases ... 3 IAR (Iterative Adversarial Refinement) (12 active domains)` — both VSDD and IAR expanded on first use.
+4. [`TODO.md`](../../TODO.md):40 expands MVR on first use within that file ("each domain reaches MVR (maximum viable refinement)").
+
+Cold-reader implicit-knowledge audit (Dim 2) test passes: a reader's reader-built glossary now has explicit expansions for VSDD, IAR, MVR, and TDD without leaving the project's own docs. **Resolution:** fix held; finding closed (Dim 2).
+
+---
+
+**Finding 13 — `manual-tests/layer-1.md` step boundaries silently assume a single uninterrupted shell session (Dim 1, Dim 8)**
+
+<a id="r2-f13"></a>
+
+**Owner:** technical-writer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+[Round 1 Finding 13](2026-05-20-documentation-reviewer.md#r1-f13) raised the implicit single-session assumption (Step 1's `BOOKMARK_CLI_DB` export + Step 5's relative `cd`). Verifying:
+
+1. [`manual-tests/layer-1.md`](../../manual-tests/layer-1.md):8 has a new **Session-state preamble** that names the single-uninterrupted-shell-session requirement AND offers the alternative ("set `BOOKMARK_CLI_DB` to a stable absolute path ... so each subsequent step is independent of the prior shell state"). This is the Round 1 "Better" proposed fix.
+2. [`manual-tests/layer-1.md`](../../manual-tests/layer-1.md):169 Step 5 now captures `PROJECT_DIR="$(pwd)"` before uninstall and `cd "$PROJECT_DIR"` for the reinstall — the Step 5 cwd dependency is now explicit rather than implicit.
+
+Cold-reader clone-and-follow test passes: a reader who pauses mid-test or starts a new terminal mid-test is given the explicit setup discipline up-front. **Resolution:** fix held; finding closed (Dim 1, Dim 8).
+
+---
+
+### Deferred
+
+**Finding 1 — `DESIGN.md` line 3 still uses broken `1ab-spec-development.md` primer reference (Round 1 F4 fix incomplete) (Dim 4, Dim 6, Dim 11)**
+
+<a id="r2-f1-deferred"></a>
+
+**Owner:** technical-writer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+[Round 1 Finding 4](2026-05-20-documentation-reviewer.md#r1-f4) raised that four user-facing artifacts (PROCESS.md, DESIGN.md, SOLUTION-ARCHITECT-REVIEW.md, QUALITY-ENGINEER-REVIEW.md) link to a non-existent `1ab-spec-development.md` primer; the actual primer is at `1ab-spec-crystallization.md`. The Round 2 [CHANGELOG.md](../../CHANGELOG.md):36 entry claims the fix was applied to PROCESS.md only — the other three sites are not mentioned in the doc-batch entry. Verifying:
+
+- [`PROCESS.md`](../../PROCESS.md):21 — fixed (now uses `1ab-spec-crystallization.md`).
+- [`DESIGN.md`](../../DESIGN.md):3 — **still broken**: reads `[Phase 1a+1b](../../vsdd-suite/primers/1ab-spec-development.md) contract`. The same line ALSO retains the wrong-depth `../vsdd-suite/...` paths flagged in Round 1 Finding 3 below — both defects coexist on the same line.
+- [`vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md`](../SOLUTION-ARCHITECT-REVIEW.md):21 — **still broken**: reads `Routed via [Phase 4](...) to [Phase 1a+1b](../../../vsdd-suite/primers/1ab-spec-development.md)`.
+- [`vsdd-suite/QUALITY-ENGINEER-REVIEW.md`](../QUALITY-ENGINEER-REVIEW.md):21 — **still broken**: reads `routed via [Phase 4](...) to [Phase 1a+1b](../../../vsdd-suite/primers/1ab-spec-development.md)`.
+
+Clickthrough validation (Dim 11): three of the four broken links 404 against the current `vsdd-suite/primers/` directory (`ls vsdd-suite/primers/` returns `1ab-spec-crystallization.md`, not `1ab-spec-development.md`). Cross-reference resolution (Dim 4): the three remaining sites point at a path that does not resolve. Documentation rot (Dim 6): the CHANGELOG claims the fix landed, but the docs themselves contradict the claim — that internal contradiction is its own doc-rot signal beyond the path-resolution defect.
+
+The Round 1 proposed fix prescribed a search-and-replace across all four files; the fix pass applied it to only one. A literal `grep -rn "1ab-spec-development" bookmark-cli-manual/` confirms three live sites remain.
+
+Proposed fix: search-and-replace `1ab-spec-development.md` → `1ab-spec-crystallization.md` in the three remaining files (DESIGN.md:3, SOLUTION-ARCHITECT-REVIEW.md:21, QUALITY-ENGINEER-REVIEW.md:21). Update the [CHANGELOG.md](../../CHANGELOG.md):36 doc-batch entry to name the three additional sites — the current CHANGELOG entry reads "broken primer reference 1ab-spec-development.md → 1ab-spec-crystallization.md corrected" against PROCESS.md only, which is itself a doc-rot signal because it overstates the scope of the fix.
+
+**Classification:** Deferred — Round 1 finding's fix is incomplete; Round 3 verification required once the remaining three sites are corrected (Dim 4, Dim 6, Dim 11).
+
+---
+
+**Finding 2 — `DESIGN.md` line 3 still uses wrong relative-depth `../vsdd-suite/...` paths (Round 1 F3 fix incomplete) (Dim 4, Dim 11)**
+
+<a id="r2-f2-deferred"></a>
+
+**Owner:** technical-writer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+[Round 1 Finding 3](2026-05-20-documentation-reviewer.md#r1-f3) raised that README.md and DESIGN.md line 3 used `../vsdd-suite/...` single-dot relative paths that resolve to `vsdd-suite-reference-examples/vsdd-suite/...` (which does not exist) rather than the portfolio-root `../../vsdd-suite/...` form. The Round 2 [CHANGELOG.md](../../CHANGELOG.md):32 entry claims the fix was applied to README.md (`relative-depth fix ../vsdd-suite/README.md → ../../vsdd-suite/README.md`). DESIGN.md is not mentioned in the doc-batch entry. Verifying:
+
+- [`README.md`](../../README.md):7 — fixed (uses `../../vsdd-suite/README.md`).
+- [`README.md`](../../README.md):47 (current line; was line 47 in Round 1) — fixed (uses `../../vsdd-suite/README.md`).
+- [`DESIGN.md`](../../DESIGN.md):3 — **still broken**: contains `[`../vsdd-suite/primers/1ab-spec-crystallization.md`](../vsdd-suite/primers/1ab-spec-crystallization.md)` AND `[`../vsdd-suite/README.md`](../vsdd-suite/README.md)`. Both single-`..` paths. From `vsdd-suite-reference-examples/bookmark-cli-manual/DESIGN.md`, both resolve to non-existent sibling paths.
+
+The same line also retains the broken `1ab-spec-development.md` (R2 Finding 1 Deferred above) — the two Round 1 Findings 3 and 4 share a host line and the fix pass closed neither.
+
+Clickthrough validation (Dim 11): both links on DESIGN.md:3 404 against the current portfolio layout. Cross-reference resolution (Dim 4): the cited paths don't resolve.
+
+Proposed fix: in [`DESIGN.md`](../../DESIGN.md):3, change `../vsdd-suite/primers/1ab-spec-crystallization.md` → `../../vsdd-suite/primers/1ab-spec-crystallization.md` and `../vsdd-suite/README.md` → `../../vsdd-suite/README.md`. Combine with the R2-F1-Deferred edit on the same line. Also update [CHANGELOG.md](../../CHANGELOG.md):32 to reflect that DESIGN.md was also part of the relative-depth fix — the entry currently mentions README.md only, which is incomplete against what the fix pass should have done.
+
+**Classification:** Deferred — Round 1 finding's fix is incomplete; Round 3 verification required (Dim 4, Dim 11).
+
+---
+
+**Finding 3 — Per-domain index lines still contain "Mutation Testing Mutation Testing" / "Purity Boundary Audit Purity Boundary Audit" stutters (Round 1 F7 fix incomplete) (Dim 6)**
+
+<a id="r2-f3-deferred"></a>
+
+**Owner:** technical-writer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+[Round 1 Finding 7](2026-05-20-documentation-reviewer.md#r1-f7) raised mechanical search/replace stutter artifacts from the descriptive-naming migration. The Round 2 [CHANGELOG.md](../../CHANGELOG.md):33 entry mentions the lettering migration in TODO.md but does not name the stutter cleanup. Verifying:
+
+- [`DESIGN.md`](../../DESIGN.md):15 — **still contains** `Mutation Testing (Mutation Testing via cargo-mutants)` and `property-based testing (property-based testing via proptest)` (two stutters on one line).
+- [`DESIGN.md`](../../DESIGN.md):17 — **still contains** `Purity Boundary Audit Purity Boundary Audit + Mutation Testing Mutation Testing closure` (two stutters in one phrase).
+- [`vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md`](../SOLUTION-ARCHITECT-REVIEW.md):21 — **still contains** `Phase 5 Purity Boundary Audit Purity Boundary Audit` and `Companion QE round (Mutation Testing Mutation Testing)`.
+- [`vsdd-suite/QUALITY-ENGINEER-REVIEW.md`](../QUALITY-ENGINEER-REVIEW.md):21 — **still contains** `**Phase 5 hardening:** Mutation Testing — Mutation Testing for Layer 1 via cargo-mutants` (Round 1 flagged this as borderline; given the consistent stutter pattern across the other forward-facing sites, treating it as a stutter is the consistent disposition — the [G-177](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-177) canonical preamble-tag shape is `**Phase 5 hardening:** <name> — <scope>` where `<scope>` is "for Layer 1 via cargo-mutants", NOT a re-statement of the surface name).
+- [`PROCESS.md`](../../PROCESS.md):23 — **still contains** `the Phase 5 Purity Boundary Audit Purity Boundary Audit`.
+- [`PROCESS.md`](../../PROCESS.md):39 — **still contains** `The Phase 5 Purity Boundary Audit Purity Boundary Audit produced the cross-source divergence finding`.
+
+The CHANGELOG v0.11.4 § Changed — docs § TODO.md entry mentions "retired letter-coded 'Surface A.0 / B' verbiage replaced with descriptive 'Purity Boundary Audit + Mutation Testing' Title-Case names" — but does NOT mention the stutter cleanup across DESIGN.md, the per-domain index files, or PROCESS.md. The TODO.md migration completed; the broader stutter sweep did not.
+
+Documentation rot (Dim 6) — the stutters survive across six sites that the Round 1 finding explicitly cited (DESIGN.md:15, DESIGN.md:17, SOLUTION-ARCHITECT-REVIEW.md:21, QUALITY-ENGINEER-REVIEW.md:21) plus two adjacent sites (PROCESS.md:23, PROCESS.md:39) that the fix sweep should have caught.
+
+Proposed fix: a targeted search-and-replace pass on the stutter patterns:
+- `Mutation Testing Mutation Testing` → `Mutation Testing`
+- `Purity Boundary Audit Purity Boundary Audit` → `Purity Boundary Audit`
+- `property-based testing (property-based testing via proptest)` → `property-based testing (via proptest)`
+- `Mutation Testing (Mutation Testing via cargo-mutants)` → `Mutation Testing (via cargo-mutants)`
+
+Apply across DESIGN.md, SOLUTION-ARCHITECT-REVIEW.md, QUALITY-ENGINEER-REVIEW.md, and PROCESS.md (forward-facing prose only; CHANGELOG historical narrative preserved per [G-89](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-89)).
+
+**Classification:** Deferred — Round 1 finding's fix is incomplete; Round 3 verification required (Dim 6).
+
+---
+
+**Finding 4 — `SOLUTION-ARCHITECT-REVIEW.md` companion-round link still cites "QE Review 1" with broken anchor `#review-1--2026-05-20-0245z` (Round 1 F5 fix incomplete) (Dim 4, Dim 11)**
+
+<a id="r2-f4-deferred"></a>
+
+**Owner:** technical-writer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+[Round 1 Finding 5](2026-05-20-documentation-reviewer.md#r1-f5) raised the two-defect citation in SOLUTION-ARCHITECT-REVIEW.md:21: link text says "QE Review 1" but the round is Review 2, and the anchor `#review-1--2026-05-20-0245z` does not resolve because the QE file's heading is `## Review 2 — 2026-05-20 02:45Z`. The Round 2 CHANGELOG does NOT mention this fix anywhere in the doc-batch entry. Verifying:
+
+[`vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md`](../SOLUTION-ARCHITECT-REVIEW.md):21 currently reads:
+
+> Companion QE round (Mutation Testing Mutation Testing) at [QE Review 1](2026-05-20-quality-engineer.md#review-1--2026-05-20-0245z).
+
+Both Round 1 defects still present:
+
+1. Link text "QE Review 1" — the QE file at `vsdd-suite/review-log/2026-05-20-quality-engineer.md`:9 begins with `## Review 2 — 2026-05-20 02:45Z`; there is no Review 1 heading in that file. (Review 1 lives in `2026-05-17-quality-engineer.md`.) So the link text mis-cites the round.
+2. Anchor `#review-1--2026-05-20-0245z` — the actual anchor on the target file is `#review-2--2026-05-20-0245z`. Clicking the link lands on the file but at no heading.
+
+Clickthrough validation (Dim 11) fails: the anchor does not resolve. Cross-reference resolution (Dim 4) fails: the cited round + anchor do not match the target's actual structure. This Round 1 finding is also tracked in [`vsdd-suite/FINDINGS-INDEX.md`](../FINDINGS-INDEX.md):27 as F-027 (VDD-IAR-A R1 F5) classified Resolved — but the FINDINGS-INDEX classification does not match the docs' actual state, which is itself a Dim 6 doc-rot finding registered separately as R2-F6-Deferred below.
+
+Proposed fix: change link text from `QE Review 1` to `QE Review 2`; change anchor from `#review-1--2026-05-20-0245z` to `#review-2--2026-05-20-0245z`. While editing the line, also fix the "Mutation Testing Mutation Testing" stutter per R2-F3-Deferred above.
+
+**Classification:** Deferred — Round 1 finding's fix has not landed in the docs; Round 3 verification required (Dim 4, Dim 11).
+
+---
+
+**Finding 5 — Letter-coded "Surfaces A + C + D" / "/C/D" identifiers still present in DESIGN.md and per-domain index forward-facing prose (Round 1 F6 fix incomplete) (Dim 2, Dim 6)**
+
+<a id="r2-f5-deferred"></a>
+
+**Owner:** technical-writer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+[Round 1 Finding 6](2026-05-20-documentation-reviewer.md#r1-f6) raised four sites using the retired letter-coded "Surface A.0 / B / C / D" identifiers in forward-facing prose (TODO.md:5, TODO.md:41, DESIGN.md:134 (i.e., the verification-architecture line numbered :138 in current), DESIGN.md:17). The Round 2 [CHANGELOG.md](../../CHANGELOG.md):33 entry claims the TODO.md fix landed. Verifying:
+
+- [`TODO.md`](../../TODO.md):5 — fixed: reads `5 Purity Boundary Audit + Mutation Testing hardening`.
+- [`TODO.md`](../../TODO.md):41 — fixed: reads `Phase 5 Purity Boundary Audit + Mutation Testing both at closure`.
+- [`DESIGN.md`](../../DESIGN.md):17 (Phase 6 strategy declaration) — **still contains** `property-based testing/C/D declared not-applicable` (the slash-separated letter codes survive inside the parenthetical).
+- [`DESIGN.md`](../../DESIGN.md):138 (Phase 5 hardening line in § Verification architecture) — **still contains** `per-layer Phase 5 rounds file in vsdd-suite/SOLUTION-ARCHITECT-REVIEW.md (Purity Boundary Audit / A / D) and vsdd-suite/QUALITY-ENGINEER-REVIEW.md (Mutation Testing / C)`. Letter codes `A`, `D`, `C` survive in the forward-facing § Verification architecture spec — Round 1 cited this exact line.
+- [`vsdd-suite/QUALITY-ENGINEER-REVIEW.md`](../QUALITY-ENGINEER-REVIEW.md):21 — **still contains** `Surfaces A + C + D explicitly declared deferred / not applicable per the project's Phase 5 strategy in DESIGN.md § Project intent` — current forward-facing prose, not preserved historical narrative.
+
+Implicit-knowledge audit (Dim 2): a cold reader of DESIGN.md sees "(Purity Boundary Audit / A / D)" at line 138 and "property-based testing/C/D" at line 17, and has no information in the project's own docs about what `A`, `C`, or `D` mean. Doc-rot (Dim 6): the migration the Round 1 finding cited was incomplete.
+
+Proposed fix: spell out each letter code with its descriptive name. Suggested edits:
+- DESIGN.md:17 — `property-based testing/C/D declared not-applicable` → `property-based testing, Fuzz Testing, and Proof Execution declared not-applicable`
+- DESIGN.md:138 — `(Purity Boundary Audit / A / D)` → `(Purity Boundary Audit + property-based testing + Proof Execution)`; `(Mutation Testing / C)` → `(Mutation Testing + Fuzz Testing)`.
+- QUALITY-ENGINEER-REVIEW.md:21 — `Surfaces A + C + D explicitly declared deferred / not applicable` → `property-based testing, Fuzz Testing, and Proof Execution explicitly declared deferred / not applicable`.
+
+**Classification:** Deferred — Round 1 finding's fix is incomplete; Round 3 verification required (Dim 2, Dim 6).
+
+---
+
+**Finding 6 — `vsdd-suite/FINDINGS-INDEX.md` still contains both stale cross-reference claims (Round 1 F9 fix incomplete) (Dim 4, Dim 6)**
+
+<a id="r2-f6-deferred"></a>
+
+**Owner:** technical-writer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+[Round 1 Finding 9](2026-05-20-documentation-reviewer.md#r1-f9) raised two stale claims in `vsdd-suite/FINDINGS-INDEX.md`:
+- Line 38 (current line 60): "DESIGN.md — Phase 1a contract" — should be "Phase 1a+1b contract" per the v0.6.0 / G-160 rename.
+- Line 40 (current line 62): "five others remain as scaffolded stubs" — stale since PR 6 and PR #36 customized all per-domain index files.
+
+The Round 2 CHANGELOG does NOT mention FINDINGS-INDEX.md anywhere in the doc-batch entry. Verifying:
+
+- [`vsdd-suite/FINDINGS-INDEX.md`](../FINDINGS-INDEX.md):60 — **still reads** `[`DESIGN.md`](../DESIGN.md) — Phase 1a contract`.
+- [`vsdd-suite/FINDINGS-INDEX.md`](../FINDINGS-INDEX.md):62 — **still reads** `Per-domain index files in this directory — round-level rollup per domain (QUALITY-ENGINEER-REVIEW.md and SOLUTION-ARCHITECT-REVIEW.md customized; five others remain as scaffolded stubs)`.
+
+Documentation rot (Dim 6) — both stale claims survive verbatim. Cross-reference resolution (Dim 4) — the labels mislead a cold reader (Phase 1a contract is now Phase 1a+1b contract; "five others remain as scaffolded stubs" misrepresents the current state where 12 of 12 per-domain index files are customized per Reviews 78 and 80 + PR 6 + PR #36).
+
+Adjacent rot beyond the Round 1 finding: [`vsdd-suite/FINDINGS-INDEX.md`](../FINDINGS-INDEX.md):17 reads `**Open findings only:** \`grep "| Open |"\` (currently: 4 Open ...)` — but the rows in the registry table (lines 27–53) report 5 rows with the value `Open` in the Status column (F-009, F-008, F-018, F-019, F-020) plus several with `Open` in the Status column on PE rows (F-010 through F-017). A cold reader running `grep "| Open |" vsdd-suite/FINDINGS-INDEX.md` against the current state would get materially more than 4 hits. The "currently: 4 Open" note is from the SO Round 1 close state and is now stale against the 11 PE Open rows that landed afterward.
+
+Adjacent rot beyond the Round 1 finding (continued): the registry table contains 27 finding rows (F-001 through F-027) but the CHANGELOG.md v0.11.4 entry's Scope line declares "all 80 findings filed across the 12-domain Round 1 cold-context IAR pass". The 27-row registry against the 80-finding-pass claim is its own internal-consistency defect — either the FINDINGS-INDEX is missing rows for the routed findings, or the CHANGELOG's "80 findings" framing overcounts. A cold reader cross-referencing the two cannot reconcile.
+
+Proposed fix:
+- Line 60 — change `Phase 1a contract` to `Phase 1a+1b contract`.
+- Line 62 — restate the customization status: `Per-domain index files in this directory — round-level rollup per domain (12 of 12 per-domain index files customized as of PR 6 + PR #36 + Review 80 Documentation Reviewer activation; the only-scaffold-stub state no longer applies)`.
+- Line 17 — recompute the "currently: N Open" tally against the actual registry-table contents and update.
+- Reconcile the 27-row registry against the CHANGELOG's "80 findings" claim — either backfill the missing rows or correct the CHANGELOG framing. (Out of pure doc-rot scope but flagged here because the next Doc Reviewer round will surface it if untouched.)
+
+**Classification:** Deferred — Round 1 finding's fix has not landed in the docs; Round 3 verification required (Dim 4, Dim 6).
+
+---
+
+**Finding 7 — `README.md` Layer 1 status "complete" contradicts `TODO.md` Layer 1 status "In progress" (new — adjacent defect not raised in Round 1) (Dim 1, Dim 6)**
+
+<a id="r2-f7-deferred"></a>
+
+**Owner:** technical-writer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+Cold-reader pass picks up an internal-consistency defect across README.md and TODO.md that is independently registered in [`vsdd-suite/FINDINGS-INDEX.md`](../FINDINGS-INDEX.md):45 as F-009 (SO R1 F4) — Open — but is not in the [Round 1 Doc Reviewer log](2026-05-20-documentation-reviewer.md), so this is a new Doc Reviewer Round 2 finding rather than a regression-check carryforward.
+
+[`README.md`](../../README.md):9 reads: `Current state: **Layer 1 complete** (add + list).`
+[`TODO.md`](../../TODO.md):11 reads: `**Status:** In progress ([Phase 2a](../../vsdd-suite/primers/2a-red-gate.md) → 2b in the reference-implementation session).`
+
+A cold reader landing first on README sees "Layer 1 complete." Following the README's pointer at line 9 to `DESIGN.md` does not resolve the question (DESIGN.md frames Layer 1 against the full-methodology context, not against a "complete vs. in-progress" status). Following the README's pointer at line 11 to `TODO.md` sees the explicit "In progress" — direct contradiction. The reader has no in-doc affordance to decide which source is current.
+
+Cross-reference: [`vsdd-suite/FINDINGS-INDEX.md`](../FINDINGS-INDEX.md):45 F-009 raises this from the Solution Owner lens (deliverable-vs-promise misalignment); this finding registers the same divergence from the cold-reader-of-docs lens (Dim 1 clone-and-follow + Dim 6 doc rot). The SO finding is Open per FINDINGS-INDEX.md; Round 2's doc-batch fix did not close it.
+
+Adjacent defect surfaced at the same time: [`README.md`](../../README.md):58 phase-progression-table Phase 3 row reads `Scaffolded; rounds-in-progress (this is reference-implementation work, not a real merge gate)` — but [`README.md`](../../README.md):59 Phase 4 row reads `Routed 80 findings through Phase 4 → fix cycle → Round 2 verification` — the Phase 4 row claims completion against 80 findings while the Phase 3 row claims rounds are still in progress. A reader cross-referencing the table sees an internal contradiction: how can Phase 4 routing complete 80 findings if Phase 3 rounds are still in progress?
+
+Doc-rot (Dim 6): the README's status claims at line 9 (Layer 1 complete), line 58 (Phase 3 in-progress), and line 59 (Phase 4 completed against 80 findings) are mutually inconsistent and inconsistent with TODO.md's "In progress" status. Clone-and-follow fidelity (Dim 1): a reader following the README literally has no consistent picture of where the project actually is.
+
+Proposed fix: pick a single status framing for Layer 1 and apply it consistently across README, TODO, and the README phase-progression table. The most defensible framing, given the actual state (Round 1 IAR completed and Round 2 fix-cycle landed but not all docs in sync; install-verification gate operator-pending): "Layer 1 implementation complete; Phase 3 IAR Round 1 + Round 2 fix-cycle complete; capstone closure pending operator-executed install-verification per G-155" — and reconcile TODO.md's "In progress" against the same framing (the "In progress" status is the pre-Phase-3-close state and should advance to "Phase 3 closed; capstone-gate pending Phase 6 + install-verification").
+
+**Classification:** Deferred — new finding; Round 3 verification required after the README + TODO reconciliation pass lands (Dim 1, Dim 6).
+
+---
+
+### Dismissed
+
+*(none.)*
+
+---
+
+### Hallucinated
+
+*(none — every Finding above was verified against the current project state with file:line citations and direct cross-file comparison. The sycophancy-guard pre-classification was applied: each Round 1 finding was tested against the question "does the docs-as-the-contract test still fail, or has the fix actually landed?" — every Deferred finding kept passes the test by demonstrating an observable cold-reader divergence that the proposed Round 2 fix did not close. The CHANGELOG entry's *claim* of resolution was held adversarially against the docs' *actual* current state, not deferred to.)*
+
+---
+
+### Summary
+
+**Round 1 disposition (regression check across F1–F13):**
+
+| Round 1 finding | Round 2 status |
+|---|---|
+| [R1-F1](2026-05-20-documentation-reviewer.md#r1-f1) — README install dir | [Resolved](#r2-f1) |
+| [R1-F2](2026-05-20-documentation-reviewer.md#r1-f2) — README test count | [Resolved](#r2-f2) |
+| [R1-F3](2026-05-20-documentation-reviewer.md#r1-f3) — relative-depth `../vsdd-suite/...` | **Deferred** — fix incomplete (DESIGN.md:3 remains broken); see [R2-F2-Deferred](#r2-f2-deferred) |
+| [R1-F4](2026-05-20-documentation-reviewer.md#r1-f4) — broken `1ab-spec-development.md` references | **Deferred** — fix incomplete (DESIGN.md, SOLUTION-ARCHITECT-REVIEW.md, QUALITY-ENGINEER-REVIEW.md still broken); see [R2-F1-Deferred](#r2-f1-deferred) |
+| [R1-F5](2026-05-20-documentation-reviewer.md#r1-f5) — SA per-domain index "QE Review 1" + anchor drift | **Deferred** — fix not applied; see [R2-F4-Deferred](#r2-f4-deferred) |
+| [R1-F6](2026-05-20-documentation-reviewer.md#r1-f6) — letter-coded Surface identifiers | **Deferred** — fix incomplete (TODO.md fixed; DESIGN.md and QE per-domain index forward-facing prose still letter-coded); see [R2-F5-Deferred](#r2-f5-deferred) |
+| [R1-F7](2026-05-20-documentation-reviewer.md#r1-f7) — search/replace stutters | **Deferred** — fix not applied across six sites; see [R2-F3-Deferred](#r2-f3-deferred) |
+| [R1-F8](2026-05-20-documentation-reviewer.md#r1-f8) — TODO.md active-domain count | [Resolved](#r2-f8) |
+| [R1-F9](2026-05-20-documentation-reviewer.md#r1-f9) — FINDINGS-INDEX.md stale claims | **Deferred** — fix not applied; see [R2-F6-Deferred](#r2-f6-deferred) |
+| [R1-F10](2026-05-20-documentation-reviewer.md#r1-f10) — install-verification.md doubled-path links | [Resolved](#r2-f10) |
+| [R1-F11](2026-05-20-documentation-reviewer.md#r1-f11) — `which bm` literal-match expectation | [Resolved](#r2-f11) |
+| [R1-F12](2026-05-20-documentation-reviewer.md#r1-f12) — VSDD / IAR / MVR first-use expansion | [Resolved](#r2-f12) |
+| [R1-F13](2026-05-20-documentation-reviewer.md#r1-f13) — manual-test single-session assumption | [Resolved](#r2-f13) |
+
+Resolved: 7 (F1, F2, F8, F10, F11, F12, F13). Deferred (fix-incomplete carryforwards): 6 (R2-F1-Deferred through R2-F6-Deferred map to R1-F4, R1-F3, R1-F7, R1-F5, R1-F6, R1-F9 respectively). New findings surfaced in Round 2: 1 (R2-F7-Deferred — README vs. TODO Layer 1 status contradiction; cold-reader-of-docs lens of the same divergence Solution Owner R1 F4 raises).
+
+**Source:** `domain-raised` on every finding. Owner: 13 × `technical-writer`. Validator: 13 × `technical-writer` per the Doc Reviewer ↔ TW adversarial-pair convention ([Review 77](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-77--2026-05-20-1545z), [Review 80](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z)).
+
+**Finding progression (against the [G-131](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) continue trigger):** 7 Resolved + 7 new real findings (6 fix-incomplete carryforwards + 1 new adjacent defect) → Round 3 is mandatory once the TW fix pass lands. The pattern in this round — half the Round 1 findings Resolved cleanly and half left as fix-incomplete-but-CHANGELOG-claims-resolved — is exactly the doc-rot-from-incomplete-search-and-replace pattern Round 1 Finding 7 named in a different form. The next fix pass should treat the descriptive-name migration AND the broken-primer-link replacement AND the per-domain index file customization claim as project-wide sweeps with verification (e.g., `grep -rn` searches for the offending strings should return zero forward-facing matches before claiming resolution).
+
+**MVR signal:** **NOT reached.** Per [G-131](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) continue trigger discipline, Round 3 is mandatory once the next fix pass lands. The layer cannot reach MVR for the Documentation Reviewer domain until a cold-reader pass produces only Hallucinated findings or no findings — this round produced 7 real findings, six of which are demonstrations that the Round 2 fix-cycle's CHANGELOG-stated resolutions did not fully land in the docs themselves.
+
+**Coordination:** Several findings overlap with [Technical Writer](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md) round 2 concerns by adversarial-pair construction — R2-F3-Deferred (stutters) and R2-F5-Deferred (lettering) are cold-reader pairs to [TW Dim 12](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md). R2-F1-Deferred / R2-F2-Deferred / R2-F4-Deferred / R2-F6-Deferred (broken links, broken anchors, FINDINGS-INDEX rot) are cold-reader pairs to [TW Dim 13](../../../../vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md) inline-reference clickthrough validation. R2-F7-Deferred (README vs. TODO status contradiction) overlaps with the existing Solution Owner R1 F4 finding (F-009 in FINDINGS-INDEX) — the cold-reader lens registers it as a doc-rot defect (Dim 6) while SO registers it as a deliverable-vs-promise misalignment; both views call for the same reconciliation.
+
+**Note on the CHANGELOG-vs-docs divergence pattern:** The CHANGELOG v0.11.4 entry repeatedly claims fixes have landed when grep against the docs shows they have not. This is its own doc-rot signal — a CHANGELOG that overstates the scope of changes is a forward-facing artifact whose own claims have to be verified against the codebase. The pattern recurs in:
+
+- CHANGELOG line 32 (relative-depth fix) — claims README only; DESIGN.md:3 remains broken.
+- CHANGELOG line 33 (lettering migration) — claims TODO.md only; DESIGN.md and per-domain index files retain letter codes.
+- CHANGELOG line 33 (stutter cleanup) — not mentioned at all; six sites remain.
+- CHANGELOG line 36 (primer-rename fix) — claims PROCESS.md only; three additional sites remain broken.
+
+The next fix pass should either complete the work the CHANGELOG claims has happened, OR walk back the CHANGELOG claims to match the docs' actual state. Either is acceptable; the current divergence between CHANGELOG-claim and docs-state is not.

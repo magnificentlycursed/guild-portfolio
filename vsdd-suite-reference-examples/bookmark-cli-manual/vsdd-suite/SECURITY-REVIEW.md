@@ -20,4 +20,5 @@ Read individual rounds via the links in the Reviews table below. This file is th
 
 | Review | Date | File | Scope summary |
 |---|---|---|---|
+| [Review 2](review-log/2026-05-20-security-round-2.md#review-2--2026-05-20-2100z) | 2026-05-20 21:00Z | `review-log/2026-05-20-security-round-2.md` | Phase 3 IAR Round 2 cold-pass — 7 Findings (3 Resolved verifying R1 F1+F2+F3 fixes hold + 3 Accepted risk including 1 new substantive defect R2 F4 clap-error escape bypass + 1 Hallucinated R1 F6 protection holds). MVR not reached; Round 3 mandatory after R2 F4 fix lands. |
 | [Review 1](review-log/2026-05-20-security.md#review-1--2026-05-20-1930z) | 2026-05-20 19:30Z | `review-log/2026-05-20-security.md` | Phase 3 IAR Round 1 — 6 Findings (3 Open + 2 Accepted risk + 1 Hallucinated). Open cluster: missing `display_safe` sanitization for env-var paths + file mode 0644 for confidential data (should be 0600) + no `cargo audit`/`cargo deny` config. Continue trigger fires; Round 2 mandatory. |

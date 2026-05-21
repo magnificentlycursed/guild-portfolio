@@ -124,18 +124,26 @@ repos:
         types: [text]
 
       - id: cargo-fmt-check
-        name: cargo fmt (issue-tracker-cli)
+        name: cargo fmt (per Rust-project subdirectory)
         language: system
         # `git rev-parse --show-toplevel` resolves to the repo root regardless
         # of where pre-commit was invoked from; fixes Platform Engineer
         # Review 8 Finding 8 (the prior `cd issue-tracker-cli` was relative
         # and broke if pre-commit ran from a subdir).
-        entry: bash -c 'cd "$(git rev-parse --show-toplevel)/issue-tracker-cli" && cargo fmt --check'
-        pass_filenames: false
-        files: ^issue-tracker-cli/.*\.rs$
+        #
+        # Scope extended per Platform Engineer Review 1 Finding 7 (bookmark-
+        # cli-manual) — covers both Rust-project subdirectories. The hook
+        # derives each project root from the staged `.rs` file paths
+        # (`pass_filenames: true`) and runs `cargo fmt --check` once per
+        # project whose files changed; per-project scoping avoids running
+        # the gate on projects untouched by the commit. POSIX-compatible
+        # (no `declare -A`) so it runs on macOS's bundled bash 3.2.
+        entry: bash -c 'set -eu; root="$(git rev-parse --show-toplevel)"; projects=""; for f in "$@"; do case "$f" in issue-tracker-cli/*) p="issue-tracker-cli" ;; vsdd-suite-reference-examples/bookmark-cli-manual/*) p="vsdd-suite-reference-examples/bookmark-cli-manual" ;; *) continue ;; esac; case " $projects " in *" $p "*) ;; *) projects="$projects $p" ;; esac; done; for p in $projects; do (cd "$root/$p" && cargo fmt --check); done' --
+        pass_filenames: true
+        files: ^(issue-tracker-cli|vsdd-suite-reference-examples/bookmark-cli-manual)/.*\.rs$
 
       - id: cargo-clippy-check
-        name: cargo clippy (issue-tracker-cli)
+        name: cargo clippy (per Rust-project subdirectory)
         language: system
         # Platform Engineer Review 12 Finding 3 closure: left-shift the
         # clippy gate from CI to pre-commit so a clippy regression in
@@ -144,6 +152,10 @@ repos:
         # for sub-directory invocation safety. SE Review 18 concurrence
         # recorded — SE owns src/**/*.rs and confirms blocking commits
         # on clippy warnings is the right developer-ergonomic posture.
-        entry: bash -c 'cd "$(git rev-parse --show-toplevel)/issue-tracker-cli" && cargo clippy --all-targets --locked -- -D warnings'
-        pass_filenames: false
-        files: ^issue-tracker-cli/.*\.rs$
+        #
+        # Scope extended per Platform Engineer Review 1 Finding 7 (bookmark-
+        # cli-manual) — same per-project detection shape as cargo-fmt-check
+        # above. POSIX-compatible so it runs on macOS's bundled bash 3.2.
+        entry: bash -c 'set -eu; root="$(git rev-parse --show-toplevel)"; projects=""; for f in "$@"; do case "$f" in issue-tracker-cli/*) p="issue-tracker-cli" ;; vsdd-suite-reference-examples/bookmark-cli-manual/*) p="vsdd-suite-reference-examples/bookmark-cli-manual" ;; *) continue ;; esac; case " $projects " in *" $p "*) ;; *) projects="$projects $p" ;; esac; done; for p in $projects; do (cd "$root/$p" && cargo clippy --all-targets --locked -- -D warnings); done' --
+        pass_filenames: true
+        files: ^(issue-tracker-cli|vsdd-suite-reference-examples/bookmark-cli-manual)/.*\.rs$

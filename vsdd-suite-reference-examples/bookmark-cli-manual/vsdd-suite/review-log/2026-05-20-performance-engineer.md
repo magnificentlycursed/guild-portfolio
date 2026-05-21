@@ -237,3 +237,239 @@ The trade-off rationale is therefore:
 The dominant pattern across the findings: the implementation is *correct* for the project's likely manual-entry scale (≤1K bookmarks) but the *spec* never declared that scale, so every "good enough" disposition is currently unfalsifiable. The Round 1 contribution is to make the unfalsifiability itself the headline finding (Finding 1) and route every dependent finding through it.
 
 **Coordination:** Finding 1 routes to the Solution Owner via the index at [`vsdd-suite/SOLUTION-OWNER-REVIEW.md`](../SOLUTION-OWNER-REVIEW.md) — adjudication would land as SO Review 1 (the project has no prior SO rounds filed). Findings 2 + 4 route to the Platform Engineer pair at [`vsdd-suite/PLATFORM-ENGINEER-REVIEW.md`](../PLATFORM-ENGINEER-REVIEW.md) for shift-left mechanization (benchmarking harness; release-profile tuning). Finding 3 routes to the Software Engineer pair at [`vsdd-suite/SOFTWARE-ENGINEER-REVIEW.md`](../SOFTWARE-ENGINEER-REVIEW.md) (storage refactor, conditional on Finding 1 outcome). Finding 5 routes to the Quality Engineer pair at [`vsdd-suite/QUALITY-ENGINEER-REVIEW.md`](../QUALITY-ENGINEER-REVIEW.md) (scaling-test discipline, conditional on Finding 1's budget declaration). Finding 6 closes terminally as Accepted limitation but its documentation lives in the Finding 1 DESIGN.md change. The PE Round 2 re-runs the cold pass against the post-Finding-1 spec and the post-mechanization code; the validator pair (per the PE domain prompt's Review 77 paragraph) is software-engineer for code-fix findings and platform-engineer for shift-left mechanization findings, with sanity-check as fallback for any finding without a natural cross-domain pair.
+
+---
+
+## Review 2 — 2026-05-20 21:00Z
+
+**Scope:** Layer 1 cold-context [Phase 3](../../../vsdd-suite/primers/3-review-session.md) IAR Round 2 for the Performance Engineer domain (capstone-tier activation per [`DESIGN.md`](../../DESIGN.md) § Project intent). This round verifies the Round 1 fix-cycle resolutions against the current Layer 1 artifacts and re-pressures the implementation for new findings. Artifacts read (adversarial order): [`Cargo.toml`](../../Cargo.toml) (now declares `[profile.release]`), [`src/main.rs`](../../src/main.rs), [`src/lib.rs`](../../src/lib.rs) (now uses atomic tmp-file + rename in `save`, plus `sync_all`, `symlink_metadata`, mode 0600), [`tests/bookmarks.rs`](../../tests/bookmarks.rs), [`DESIGN.md`](../../DESIGN.md) (last, per primer guidance — now contains § Performance budget at lines 163-177), and the [Round 1 log](2026-05-20-performance-engineer.md#review-1--2026-05-20-1930z) for the per-finding verification matrix.
+
+**Session note:** Cold session — Round 2 opened in a fresh context with no carryover from Round 1's authoring session. The primer's sycophancy guard applies twice in this round: once against the Round 1 reviewer's posture (do not soft-confirm Round 1's classifications without re-checking the artifacts), and once against the fix-cycle authors (do not soft-accept the Round 1 fixes without re-pressuring the *new* code paths they introduced).
+
+**Source:** `domain-raised` — Round 1 finding-verification + fresh adversarial pressure on the Round 2 fix surface (atomic-save tmp-file + rename + `sync_all` + `symlink_metadata` — all introduced since Round 1) under PE [Standard Evaluation Dimensions](../../../vsdd-suite/domains/role/PERFORMANCE-ENGINEER-REVIEW.md) (Dims 4, 5, 8, 9, 10) + [`rust.md`](../../../vsdd-suite/supplements/rust.md) § Performance Engineer (allocation patterns; debug-vs-release).
+
+**Regression check:** Round 1's findings F1–F6 are verified individually below. The atomic-save refactor that landed between Round 1 and Round 2 (per [SE Review 1 Finding 2](2026-05-20-software-engineer.md#r1-f2) and [Security Review 1 Finding 2](2026-05-20-security.md#r1-f2)) is the only structurally new code path in the perf surface; it is re-pressured under the new-finding section. The `newest_first` sort path is unchanged; the `load` path is unchanged; the `add` mutation path is unchanged. The serialize hot path (`serde_json::to_string_pretty`) is unchanged.
+
+**Scope carve-outs (unchanged from Round 1):** Dim 1 (time-to-interactive — browser apps), Dim 2 (main-thread / event-loop blocking), Dim 3 (asset optimization — browser), Dim 6 (caching / memoization in long-lived process), Dim 7 (memory growth over long sessions) remain inapplicable to a short-lived CLI process. Logged here as deliberately N/A to keep the "every dim is either evaluated or N/A" surface explicit.
+
+---
+
+### Resolved
+
+<a id="r2-f1"></a>
+**Finding 1 — Round 1 F1 (no performance budget) closed via DESIGN.md amendment (Dim 8)**
+
+**Owner:** solution-owner
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** performance-engineer
+
+[`DESIGN.md`](../../DESIGN.md) now contains a **§ Performance budget** section at lines 163-177, added per Round 2 fix-cycle adjudication of [PE Round 1 Finding 1](2026-05-20-performance-engineer.md#raised-to-so). The section declares all four components Round 1 requested:
+
+1. **Scale ceiling** named: 10,000 bookmarks ([`DESIGN.md:173`](../../DESIGN.md)). The cumulative O(n²) cost beyond that bound is explicitly named as an accepted limitation, with the storage-architecture rationale.
+2. **Per-command latency targets** named: `bm --help` / `bm --version` < 50 ms p95; `bm add` / `bm list` < 100 ms p95 at ≤ 1,000 bookmarks ([`DESIGN.md:167-171`](../../DESIGN.md) table).
+3. **Measurement methodology** declared: manual observation; [`hyperfine`](https://github.com/sharkdp/hyperfine) acceptable for sanity-check ([`DESIGN.md:169-171`](../../DESIGN.md) "Measurement" column).
+4. **Accepted limitations subsection** present: lines 173 + 175 + 177 explicitly name PE R1 F3 (cumulative O(n²)) + PE R1 F6 (pretty-print) + the Layer 1 deferrals of PE R1 F2 + PE R1 F5 with citations back to Round 1.
+
+The spec is no longer silent on performance; every dependent finding from Round 1 (F2 / F3 / F5 / F6) now has a budget to evaluate against, and the disposition shape Round 1 forecast (F2 + F5 deferred, F3 + F6 accepted-limitation) is the disposition the spec text adopted. Round 1's headline gap — "every 'fast enough' claim is unfalsifiable" — is closed: the budget *is* the falsifiable claim against which Round 2's new-finding work below pressures the implementation.
+
+**Resolution:** [`DESIGN.md`](../../DESIGN.md) § Performance budget (lines 163-177) added by [Solution Owner](../../../vsdd-suite/domains/role/SOLUTION-OWNER-REVIEW.md)-authority Round 2 fix cycle. Validator is performance-engineer (this round) per the [Review 77](../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-77--2026-05-20-1545z) validator-pair convention naming PE as the validator for budget declarations (Dim 8)
+
+<a id="r2-f4"></a>
+**Finding 4 — Round 1 F4 (`[profile.release]` absent) closed via Cargo.toml additions (Dim 3)**
+
+**Owner:** platform-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** performance-engineer
+
+[`Cargo.toml:48-53`](../../Cargo.toml) now declares an explicit `[profile.release]` block:
+
+```toml
+[profile.release]
+opt-level = 3          # cargo default — declared for clarity
+lto = "fat"            # max cross-crate inlining; slower compile, smaller + faster binary
+codegen-units = 1      # single codegen unit enables full-crate optimization
+panic = "abort"        # smaller binary; no unwinding (no catch_unwind in this crate)
+strip = "symbols"      # strip debug symbols from the release binary
+```
+
+Round 1 F4 recommended `lto = "thin"`; the fix cycle chose `lto = "fat"` instead. The choice is **acceptable** — fat LTO is the more aggressive of the two and the trade-off (slower compile / smaller + faster binary) is the right one for a `cargo install`-deployed CLI where installs are rare and runs are frequent. The supplement's named-failure-mode framing ("Performance measurements taken against debug builds are not representative") is satisfied by *any* declared block; the Round 1 finding's underlying complaint was the silent-defaults state, not the specific value of `lto`. Choosing fat-over-thin is a deliberate strengthening, not a deviation.
+
+`panic = "abort"` is consistent with bookmark-cli's lack of `catch_unwind` (verified via `grep -rE 'catch_unwind|panic::set_hook' src/` returning no matches). `strip = "symbols"` removes debug symbols from the installed binary — appropriate for a release-installable CLI. `codegen-units = 1` enables full-crate optimization. All four tuning knobs are present with one-line rationale comments per the TOML supplement § Platform Engineering "declare the chosen value and a one-line rationale" discipline (cited in [Platform Engineer Review 1 Finding 6](2026-05-20-platform-engineer.md)).
+
+**Resolution:** [`Cargo.toml:48-53`](../../Cargo.toml) added by Round 2 fix cycle (Platform Engineer-owned; cross-references [Platform Engineer Review 1 Finding 6](2026-05-20-platform-engineer.md)). The release profile is now explicit and tuned. Validator: performance-engineer this round confirms the chosen values align with the supplement's § Performance Engineer recommendation that long-lived release artifacts favor fat LTO + single codegen unit (Dim 3)
+
+---
+
+### Deferred
+
+<a id="r2-f2"></a>
+**Finding 2 — Round 1 F2 (no benchmarking infrastructure) — Deferred discipline intact (Dim 9)**
+
+**Owner:** platform-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+
+[`Cargo.toml:35-38`](../../Cargo.toml) `[dev-dependencies]` still contains only `assert_cmd`, `predicates`, `tempfile` — no `criterion`, no `divan`. There is no `benches/` directory and no `[[bench]]` entry in the manifest. The fix-cycle did not add a benchmark harness in Round 2.
+
+The deferral discipline is, however, formally absorbed into the spec. [`DESIGN.md:175`](../../DESIGN.md) explicitly declares:
+
+> **Benchmarking infrastructure:** [Layer 2+](TODO.md) work — Layer 1's surface is too small to benchmark meaningfully ([`criterion`](https://github.com/bheisler/criterion.rs) adds dependency cost without commensurate value at this scale). [Performance Engineer Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-performance-engineer.md) declared **Deferred** at the layer level; the budget above is the contract a future Layer-2 benchmarking infrastructure would assert against.
+
+This satisfies all three components of the [G-130](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-130) deferral-trigger discipline:
+
+1. **Trigger named:** Layer 2 implementation start. Layer 2 adds `tag` + `--tag` filter — non-trivial second data point per the Round 1 trigger framing.
+2. **Cost-of-deferral named:** Round 1 named it ("each additional layer lands without a baseline against which to detect regression"); the spec endorses the layer-2-is-the-natural-moment framing rather than weakening it.
+3. **Auto-Backlog clause inherited from Round 1:** the original Round 1 auto-Backlog clause (Layer 2 R2 closure without `benches/` populated → auto-Backlog) continues to apply.
+
+The deferral is therefore **disciplined**, not procrastinated. The Round 2 cold pass confirms no new evidence has emerged that would invalidate the Layer-2 trigger.
+
+**Cost-of-deferral (carrying forward from Round 1):** Each layer that lands without a `benches/` harness leaves PE Dim 10 (regression risk) unable to fire — there is no baseline against which to detect regression. The Layer-2 trigger keeps that cost bounded: the harness lands when the second feature lands.
+
+**Auto-Backlog clause:** If Layer 2 closes without `benches/` populated, the finding auto-Backlogs at Layer 2 R2 per the [G-130](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-130) auto-Backlog mechanism and re-raises as a Platform Engineer dim 38 (fresh-system install verification) coordination item.
+
+**Classification:** Deferred — Layer 2 implementation start. The Round 1 deferral discipline is intact and the spec has now formally absorbed it; no new evidence supports overriding the Layer 2 trigger. Validator at Resolved time: platform-engineer (Dim 9)
+
+<a id="r2-f5"></a>
+**Finding 5 — Round 1 F5 (zero data-scaling tests) — Deferred discipline intact (Dim 4)**
+
+**Owner:** quality-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+
+[`tests/bookmarks.rs`](../../tests/bookmarks.rs) and the `#[cfg(test)] mod tests` block in [`src/lib.rs:310-495`](../../src/lib.rs) still cap at ≤ 3 bookmarks. No `#[ignore]`-flagged scaling test has been added at 1K / 10K / 100K. The fix-cycle did not add scaling tests in Round 2.
+
+The deferral discipline is, again, formally absorbed into the spec. [`DESIGN.md:177`](../../DESIGN.md) explicitly declares:
+
+> **Data-scaling tests:** sentinel tests at the 100 / 1,000 / 10,000-bookmark cliffs land at Layer 2+ ([Performance Engineer Review 1 Finding 5](vsdd-suite/review-log/2026-05-20-performance-engineer.md) **Deferred**). At Layer 1 the existing `save_then_load_roundtrips` test exercises the 1-bookmark case; the layer's correctness is observable from there.
+
+The three deferral-discipline components are satisfied:
+
+1. **Trigger named:** Layer 2+ — the scaling tests need the bench-harness (Finding 2) to land first so that the wall-clock assertions can use a measurement substrate that matches what `cargo bench` measures.
+2. **Cost-of-deferral named:** Round 1 named it ("each layer that lands without scaling tests means each PE round files Finding 3-shaped concerns from inspection alone — unverified hypotheses about scale behavior rather than measured findings").
+3. **Auto-Backlog clause inherited from Round 1:** Layer 2 R2 closure without scaling tests → auto-Backlog as a QE Dim 4 concern.
+
+The deferral coheres with Finding 2's trigger — both findings unblock together at Layer 2 implementation start, because the bench-harness and the scaling-test substrate share the fixture-generation surface (loop pushing N entries into a temp store).
+
+**Cost-of-deferral:** As Round 1; Layer 2's `tag` operation will inherit the same N-bound shape and Round 1 F3's hypothesis will remain unverified-by-test until scaling tests exist.
+
+**Auto-Backlog clause:** If Layer 2 closes without scaling tests, the finding auto-Backlogs at Layer 2 R2 and re-raises as a Quality Engineer dim 4 (data-scaling) concern.
+
+**Classification:** Deferred — Layer 2 implementation start. Discipline intact; spec now endorses the deferral. Validator at Resolved time: quality-engineer (Dim 4)
+
+---
+
+### Accepted limitation
+
+<a id="r2-f3"></a>
+**Finding 3 — Round 1 F3 (O(n²) cumulative `save` cost on every `add`) — accepted limitation formally absorbed into spec (Dim 4)**
+
+**Owner:** solution-owner
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** performance-engineer
+
+[`src/lib.rs:130-174`](../../src/lib.rs) `BookmarkStore::save` continues to serialize the entire store and write the whole file on every call. The cumulative O(n²) cost over N sequential `bm add` invocations that Round 1 measured is unchanged at the algorithmic level. (The Round 2 atomic-save refactor changed the *write* mechanism — tmp-file + rename — but did not change the *quantity* of bytes serialized per call. See [Round 2 Finding 7](#r2-f7) below for the new finding the atomic-save mechanism introduced.)
+
+The acceptance is now formally absorbed into the spec. [`DESIGN.md:173`](../../DESIGN.md) declares:
+
+> **Scale ceiling:** 10,000 bookmarks. Beyond this the user should consider a real bookmark manager — this project's non-goals (§ Scope and non-goals) declare unsuitability for primary-use scale. The flat-JSON-rewrite-on-every-add design has cumulative O(n²) cost which makes large stores impractical; declared as **accepted limitation** at Layer 1 intent + named in [Performance Engineer Review 1 Findings 3 + 6](vsdd-suite/review-log/2026-05-20-performance-engineer.md).
+
+This is the textbook acceptance shape the PE classification universe defines (`accepted limitation`: "deliberate performance trade-off, explicitly documented with the trade-off rationale"). The trade-off rationale is named — the project is the worked example of a suite that exercises the methodology end-to-end, not a production bookmark manager; the architectural simplicity (flat JSON, full rewrite) buys teaching value at the cost of scale.
+
+The Round 1 conditional framing ("if ceiling ≥ 10K → real, needs Layer 2 storage refactor") is the alternate-history path the spec did NOT take. The spec adopted the 10K ceiling exactly — which means at the ceiling, per-`add` cost reaches ~100 KB read + parse + serialize + 100 KB write (Round 1's measured envelope). At a sub-millisecond-per-syscall budget that is ~5-20 ms per `add` at the ceiling — comfortably under the declared 100 ms p95 budget (DESIGN.md:170). The algorithm is fast enough for the declared scale; the deferral of the storage-format refactor to a hypothetical Layer-4-or-beyond is the right call.
+
+**Classification:** Accepted limitation. The cost is real (O(n²) cumulative; the per-call envelope grows linearly with N), the trade is deliberate (spec-declared 10K ceiling + simplicity rationale), and the documentation lives in [`DESIGN.md`](../../DESIGN.md) § Performance budget per the PE classification universe's documentation requirement. The Round 2 verification surface is the spec amendment itself; no code change applies (Dim 4)
+
+<a id="r2-f6"></a>
+**Finding 6 — Round 1 F6 (`to_string_pretty` at scale) — accepted limitation formally absorbed into spec (Rust supplement § Performance Engineer — allocation patterns)**
+
+**Owner:** solution-owner
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** performance-engineer
+
+[`src/lib.rs:149`](../../src/lib.rs) continues to call `serde_json::to_string_pretty(self)` rather than `serde_json::to_string(self)`. The ~2x serialize-time cost and ~1.7x on-disk size are unchanged from Round 1.
+
+The acceptance is now bound to the spec via two anchors:
+
+1. [`DESIGN.md:107-114`](../../DESIGN.md) § Storage format example *is* pretty-printed JSON — readers internalize that the on-disk format is human-readable.
+2. [`DESIGN.md:50`](../../DESIGN.md) § Non-goals names "manual JSON edit if needed" as the editing affordance — explicitly contemplates the user opening the file in a text editor, which presupposes readability.
+3. [`DESIGN.md:173`](../../DESIGN.md) § Performance budget explicitly cites PE R1 F6 as accepted alongside F3.
+
+The trade-off rationale Round 1 documented — *cost accepted: ~2x serialize cost at scale, ~1.7x on-disk size; benefit retained: human-readable storage file consistent with DESIGN.md's manual-edit affordance* — is now spec-attested rather than reviewer-asserted.
+
+Sanity check on the budget interaction: at the 10K scale ceiling, the pretty-print serialize cost adds roughly a factor of two to the per-save serialize work. Round 1 envelope: ~10K records × ~100 bytes/record = ~1 MB serialize ≈ ~1-5 ms on commodity hardware; pretty-print ~2-10 ms. Comfortably inside the 100 ms p95 budget. The trade-off is real and accepted.
+
+**Classification:** Accepted limitation. The cost is real (~2x serialize / ~1.7x file-size); the trade is deliberate (human-readable storage is named in DESIGN.md § Storage format example + § Non-goals manual-edit affordance); the spec absorbs the acceptance via PE R1 F6 citation in § Performance budget. No code change applies (Rust supplement § Performance Engineer — allocation patterns)
+
+---
+
+### Deferred
+
+<a id="r2-f7"></a>
+**Finding 7 — Round 2 atomic-save adds `sync_all` + `symlink_metadata` + `rename` syscalls per `bm add`; budget-impact unmeasured (Dim 10)**
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+
+The Round 2 fix cycle replaced the Round 1 single-call `fs::write` path with a four-step atomic-save sequence in [`src/lib.rs:130-174`](../../src/lib.rs):
+
+1. [`src/lib.rs:132`](../../src/lib.rs) — `std::fs::symlink_metadata(path)` (extra `lstat(2)` syscall per save).
+2. [`src/lib.rs:238-242`](../../src/lib.rs) — `OpenOptions::create_new(true).mode(0o600).open(tmp_path)` (open syscall on a sibling temp file).
+3. [`src/lib.rs:243-244`](../../src/lib.rs) — `write_all(bytes)` + `write_all(b"\n")` (two write syscalls; Round 1 was one).
+4. [`src/lib.rs:245`](../../src/lib.rs) — **`f.sync_all()`** — `fsync(2)` syscall.
+5. [`src/lib.rs:161`](../../src/lib.rs) — `std::fs::rename(&tmp_path, path)` (rename syscall).
+
+Total syscall count per `bm add` save grew from roughly **1 open + 1 write + 1 close** (Round 1's `fs::write`) to **1 lstat + 1 open + 2 writes + 1 fsync + 1 close + 1 rename** — a ~3-4x syscall-count increase with the **`fsync` being qualitatively new**.
+
+**Why the `fsync` is the load-bearing concern, not the syscall count:** `std::fs::write` does NOT call `fsync`; it relies on the kernel page cache and lazy writeback. The Round 2 `sync_all()` forces the kernel to flush the file's contents AND metadata to durable storage before returning. On commodity hardware fsync latencies are:
+
+- **SSD with no concurrent writes:** 0.1-1 ms — negligible.
+- **SSD on a busy host or in a sync-monitored directory:** 1-10 ms — meaningful.
+- **Spinning disk (HDD):** 5-50 ms — a significant fraction of the 100 ms p95 budget.
+- **Network-mounted filesystem (NFS, SMB, syncthing-monitored dirs, Dropbox-watched dirs):** 50-500 ms — **can exceed the 100 ms p95 budget by itself**.
+
+[`DESIGN.md:170`](../../DESIGN.md) § Performance budget declares `bm add` < 100 ms p95 at ≤ 1,000 bookmarks. The Round 1 budget calibration was performed against an `fs::write`-only path that did not fsync. The Round 2 path fsyncs, and the budget has not been re-measured. The supplement's regression-risk dim (Dim 10) names exactly this pattern: *"adding a synchronous operation in a hot code path"* — `sync_all` is a synchronous operation added to the `bm add` hot path between Round 1 and Round 2.
+
+The fsync is **not gratuitous** — it is the durability half of the atomic-save discipline [Software Engineer Review 1 Finding 2](2026-05-20-software-engineer.md#r1-f2) and [Security Review 1 Finding 2](2026-05-20-security.md#r1-f2) prescribed. Without fsync, a crash between the rename and the kernel's writeback can leave the rename's metadata committed but the file contents lost — defeating the atomic-save guarantee. The atomic-save discipline is the correct call; the unmeasured budget impact is the finding.
+
+**Verifiability:** the supplement's named tools all apply — `hyperfine 'bm add https://example.com' --warmup 3` against a 1K-entry fixture store on the project's declared reference platform (macOS / Linux on commodity 2020+ hardware per [`DESIGN.md:159`](../../DESIGN.md)) would confirm or refute the budget claim. The DESIGN.md § Performance budget already names `hyperfine` as acceptable measurement methodology; the Round 1 + Round 2 fix-cycle did not run it.
+
+**Concrete next-action shape (for the validator-pair when this finding moves to Open / Assigned):**
+
+- Run `hyperfine 'bm add https://example.com' --warmup 3 --runs 20` on a fresh-fixture 1K-entry store and confirm the median + p95 are < 100 ms on both an SSD-backed temp dir AND a non-SSD or network-backed temp dir (or document the platform constraint as part of the budget).
+- If p95 exceeds 100 ms on any common reference platform, the disposition options are: (a) loosen the budget with platform-specific notes ("< 100 ms p95 on local SSD; < 250 ms on network-mounted filesystems"); (b) tighten the implementation (skip `sync_all` if the spec re-declares durability as a lower-priority concern than the latency budget — likely the wrong call given the atomic-save rationale); (c) accept the cross-storage-class variability as an explicit budget caveat.
+- Cross-reference: [SE Review 1 Finding 2](2026-05-20-software-engineer.md#r1-f2) — that finding owns the *correctness* discipline (atomic-save guarantee); this finding owns the *cost* of that correctness.
+
+**Trigger ([G-130](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-130)):** Layer 2 implementation start OR the first manual `hyperfine` measurement against the declared budget (whichever comes first). Layer 2 is the natural moment because the bench-harness from [Round 2 Finding 2](#r2-f2) lands then and the budget assertion gains a measurement substrate; the manual-hyperfine trigger catches the case where the operator runs hyperfine pre-Layer-2 for budget-claim verification.
+
+**Cost-of-deferral:** Each `bm add` between now and the measurement is operating against an unverified p95 budget claim. The Round 2 spec amendment claims < 100 ms p95 at ≤ 1,000 bookmarks; if real-world measurement reveals 250 ms p95 on (say) a network-mounted home directory, the spec's budget claim is wrong and the worked example teaches an undermeasured budget as if it were measured. The pedagogical cost is exactly the kind of "budget without measurement" failure mode the PE domain prompt sycophancy check warns against: *"Flag any dimension where 'works in tests' is the only evidence of performance adequacy."* The spec currently declares a budget the project cannot demonstrate it meets.
+
+**Auto-Backlog clause:** If Layer 2 closes without a `hyperfine` measurement of `bm add` against the declared 100 ms p95 budget, the finding auto-Backlogs at Layer 2 R2 and re-raises as a Platform Engineer fresh-system install-verification concern (the install-verification surface is the natural place to record measured-vs-claimed budget evidence per [Platform Engineer Review 1](2026-05-20-platform-engineer.md)).
+
+**Classification:** Deferred — Layer 2 implementation start (or first hyperfine measurement, whichever comes first). The finding is real (`fsync` is a measurably new cost on the `bm add` hot path; the spec budget pre-dates the measurement) and bounded (the supplement's regression-risk dim names exactly this pattern; the resolution is one hyperfine invocation). Validator at Resolved time: platform-engineer (the install-verification surface is the natural home for measured-budget evidence) or software-engineer if the resolution requires a code change (Dim 10)
+
+---
+
+### Dismissed
+
+*(none)*
+
+---
+
+### Hallucinated
+
+*(none — Round 2 produced two `Resolved` findings (R2-F1, R2-F4) validating the Round 1 fix-cycle outputs, two `Deferred` findings (R2-F2, R2-F5) verifying the Deferred-with-named-trigger discipline is intact, two `Accepted limitation` findings (R2-F3, R2-F6) validating the spec-side acceptance, and one new `Deferred` finding (R2-F7) pressuring the Round 2 atomic-save addition. None of the seven findings was demonstrated as adversary-invented; the Round 2 atomic-save fsync addition (R2-F7) is supported by direct reading of the `src/lib.rs:130-174` code path and named explicitly in the Rust supplement's Performance Engineer dim ("synchronous operation in a hot code path"). The MVR signal is therefore **not yet reached** — Round 2 produced a new real finding (R2-F7), which fires the [G-131](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) continue-trigger and makes Round 3 mandatory after R2-F7's measurement work lands.)*
+
+---
+
+### Summary
+
+7 findings filed: **2 Resolved** (R2-F1 spec amendment for budget; R2-F4 `[profile.release]` block), **2 Deferred** (R2-F2 bench infrastructure to Layer 2; R2-F5 scaling tests to Layer 2 — both with G-130 discipline intact from Round 1), **2 Accepted limitation** (R2-F3 cumulative O(n²) cost; R2-F6 pretty-print serialization — both with spec-side acceptance now formal in DESIGN.md § Performance budget), **1 new Deferred** (R2-F7 atomic-save `sync_all` + lstat + rename syscall additions add measurable cost to the `bm add` hot path that the declared budget has not been re-measured against).
+
+**MVR signal: NOT REACHED.** Round 2 surfaced one new real finding (R2-F7) under PE Dim 10 (regression risk — *"adding a synchronous operation in a hot code path"*). Per the [G-131](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) continue-trigger discipline a single new real finding mandates Round N+1; PE Round 3 is therefore mandatory after R2-F7 measurement work lands. The Round 2 fix-cycle resolved every Round 1 finding (F1 + F4 via direct artifact change; F2 + F5 via spec-absorbed Deferred discipline; F3 + F6 via spec-absorbed accepted-limitation citations), and Round 2 itself did not produce a Hallucinated finding — the finding progression is **6 real Round 1 findings → 6 verified Round 1 resolutions + 1 new real Round 2 finding**, which is the canonical "fix cycle worked + cold pass catches the new defect the fix introduced" shape the primer's continue-trigger framing was written to handle.
+
+**Coordination:** R2-F1 routes to [`vsdd-suite/SOLUTION-OWNER-REVIEW.md`](../SOLUTION-OWNER-REVIEW.md) — the spec amendment landed via Round 2 fix cycle but the SO log has not yet recorded the adjudication as a discrete SO Round entry; the natural follow-up is a Solution Owner Round 2 entry noting the DESIGN.md § Performance budget addition. R2-F4 cross-references [Platform Engineer Review 1 Finding 6](2026-05-20-platform-engineer.md) (the Platform Engineer round owns the manifest-edit work; this round owns the PE-side validation of the chosen values). R2-F2 + R2-F5 carry the same Layer 2 trigger and same auto-Backlog clauses Round 1 established; the per-finding routing to [`vsdd-suite/PLATFORM-ENGINEER-REVIEW.md`](../PLATFORM-ENGINEER-REVIEW.md) (bench harness) and [`vsdd-suite/QUALITY-ENGINEER-REVIEW.md`](../QUALITY-ENGINEER-REVIEW.md) (scaling tests) is unchanged from Round 1. R2-F7 routes to [`vsdd-suite/SOFTWARE-ENGINEER-REVIEW.md`](../SOFTWARE-ENGINEER-REVIEW.md) (atomic-save owner; the durability/cost trade-off is the SE-owned interface) with [`vsdd-suite/PLATFORM-ENGINEER-REVIEW.md`](../PLATFORM-ENGINEER-REVIEW.md) as the validator pair (the install-verification surface is the natural home for measured-budget evidence). Round 1's anchor list (`<a id="r1-f1">` through `<a id="r1-f6">`) remains the cross-reference surface for the original findings; Round 2's anchors (`<a id="r2-f1">` through `<a id="r2-f7">`) are the cross-reference surface for the verifications + the new R2-F7 finding.

@@ -1,0 +1,121 @@
+name: CI — bookmark-cli-manual
+
+# Closes Platform Engineer Review 1 Finding 1:
+# https://github.com/magnificentlycursed/guild-portfolio/blob/main/vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-platform-engineer.md
+# Modeled on the sibling `issue-tracker-cli.yml` but split into separate jobs
+# (fmt / clippy / test / deny / audit) so a single failure isolates to one
+# job rather than collapsing the whole pipeline.
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'vsdd-suite-reference-examples/bookmark-cli-manual/**'
+      - '.github/workflows/bookmark-cli-manual.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'vsdd-suite-reference-examples/bookmark-cli-manual/**'
+      - '.github/workflows/bookmark-cli-manual.yml'
+
+defaults:
+  run:
+    working-directory: vsdd-suite-reference-examples/bookmark-cli-manual
+
+jobs:
+  fmt:
+    name: cargo fmt --check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Format check
+        run: cargo fmt --check
+
+  clippy:
+    name: cargo clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: vsdd-suite-reference-examples/bookmark-cli-manual
+
+      - name: Clippy
+        run: cargo clippy --all-targets --locked -- -D warnings
+
+  test:
+    name: cargo test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: vsdd-suite-reference-examples/bookmark-cli-manual
+
+      # `--locked` (per Platform Engineer Review 1 Finding 8): require
+      # Cargo.lock to match Cargo.toml's resolved versions so CI exercises
+      # the same dependency graph the developer shipped.
+      - name: Test
+        run: cargo test --locked
+
+  deny:
+    name: cargo deny check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      # Closes Platform Engineer Review 1 Finding 4 (deny.toml) — gates on
+      # CVEs, license violations, banned/duplicate crates, and disallowed
+      # sources simultaneously. Tool version pinned per the supply-chain
+      # discipline established at PE R8 Finding 6 on the sibling project.
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --locked --version 0.19.4
+
+      - name: cargo deny check
+        run: cargo deny --locked check
+
+  audit:
+    name: cargo audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      # Closes Platform Engineer Review 1 Finding 5 — fast advisory-only
+      # CVE check against Cargo.lock. Runs parallel to `cargo deny check`
+      # per the Rust supplement § PE (both controls are prescribed); kept
+      # as a separate job so an advisory-only failure does not mask a
+      # license/bans/sources failure from `cargo deny`.
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked --version 0.22.1
+
+      - name: Dependency audit
+        run: cargo audit

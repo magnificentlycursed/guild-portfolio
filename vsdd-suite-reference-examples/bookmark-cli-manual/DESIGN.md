@@ -57,8 +57,9 @@ The project exists as the reference implementation for the VSDD suite's worked e
 - **Input shape:** exactly one positional argument, a non-empty string.
 - **Success output (stdout):** silent. Exit 0.
 - **Success side effect:** appends a `Bookmark { url, timestamp }` record to the storage file. Creates the file if absent. Timestamp is the current UTC time in RFC 3339 format.
-- **Failure (empty URL):** stderr `Error: URL cannot be empty.` followed by newline. Exit 1. No file write.
-- **Failure (storage file unreadable / unwritable):** stderr `Error: <descriptive message>` followed by newline. Exit 2. No partial write.
+- **Failure (empty URL — both "empty string" and "no positional argument given"):** stderr `Error: URL cannot be empty.` followed by newline. Exit 1. No file write. Per [SE Review 1 Finding 1](vsdd-suite/review-log/2026-05-20-software-engineer.md#review-1--2026-05-20-1930z) (Review 82 fix-cycle): `bm add` (no positional) is treated identically to `bm add ""` — the parser intercepts clap's usage-error path and emits the spec-contracted exit code 1.
+- **Failure (storage file unreadable / unwritable):** stderr `Error: <descriptive message>` followed by newline. Exit 2. **Atomic write** — partial writes MUST NOT occur. The implementation uses a temporary file in the destination directory + atomic rename per POSIX `rename(2)` semantics. If write or rename fails, the storage file's prior state is preserved. Per [SE Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-software-engineer.md#review-1--2026-05-20-1930z) (Review 82 fix-cycle).
+- **Failure (CLI usage error other than missing/empty URL — e.g., unknown subcommand, unknown flag):** stderr clap-formatted usage message. Exit 64 (per `sysexits.h` `EX_USAGE`). Per [SE Review 1 Finding 3](vsdd-suite/review-log/2026-05-20-software-engineer.md#review-1--2026-05-20-1930z) (Review 82 fix-cycle) — disambiguates from exit 2 storage errors.
 
 ### `bm list`
 
@@ -92,11 +93,14 @@ bm --version
 
 ### Exit codes
 
-| Code | Meaning |
-|---|---|
-| 0 | Success (including empty `bm list`) |
-| 1 | User error (empty URL) |
-| 2 | Storage error (file unreadable, corrupt JSON, write failure) |
+| Code | Meaning | Source |
+|---|---|---|
+| 0 | Success (including empty `bm list`) | Application |
+| 1 | User error (empty URL — both `bm add ""` and `bm add` with no positional argument) | Application |
+| 2 | Storage error (file unreadable, corrupt JSON, write failure, parent-dir creation failure) | Application |
+| 64 | CLI usage error (`EX_USAGE` per `sysexits.h` — unknown subcommand, unknown flag, malformed invocation other than missing/empty URL) | Application (intercepts clap's default exit) |
+
+[SE Review 1 Finding 3](vsdd-suite/review-log/2026-05-20-software-engineer.md#review-1--2026-05-20-1930z) Round 2 disposition: spec extended to disambiguate "user error in URL" (exit 1) from "user error in CLI invocation shape" (exit 64). Storage error (exit 2) is unambiguous.
 
 ### Storage format (JSON file)
 
@@ -151,10 +155,47 @@ Newest-first ordering is a render concern (sort on read), not a storage concern 
 
 ## Constraints
 
-- **Rust toolchain:** 1.78+ (modern stable Rust; no unstable features).
+- **Rust toolchain:** 1.78+ (modern stable Rust; no unstable features). Pinned via [`rust-toolchain.toml`](rust-toolchain.toml) — Round 2 fix per [Platform Engineer Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-platform-engineer.md).
 - **Platform:** macOS, Linux. Windows untested.
-- **Dependencies:** all from crates.io, no git deps. `Cargo.lock` committed.
-- **Deployment:** `cargo install --path .` into `~/.cargo/bin/`. No release pipeline.
+- **Dependencies:** all from [crates.io](https://crates.io/), no git deps. `Cargo.lock` committed. Supply-chain policy enforced via [`deny.toml`](deny.toml) + `cargo deny check` in CI — Round 2 fix per [Security Review 1 Finding 3](vsdd-suite/review-log/2026-05-20-security.md) + [Platform Engineer Review 1 Finding 4](vsdd-suite/review-log/2026-05-20-platform-engineer.md).
+- **Deployment:** `cargo install --locked --path .` into `~/.cargo/bin/`. No release pipeline. `--locked` flag enforces `Cargo.lock` at install time — Round 2 fix per [Platform Engineer Review 1 Finding 8](vsdd-suite/review-log/2026-05-20-platform-engineer.md).
+
+## Performance budget ([Review 82](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z) Round 2 fix for [Performance Engineer Review 1 Finding 1](vsdd-suite/review-log/2026-05-20-performance-engineer.md))
+
+Layer 1 performance commitments:
+
+| Metric | Budget (p95) | Measurement |
+|---|---|---|
+| `bm --help` / `bm --version` startup | < 50 ms wall-clock on commodity laptop | Manual observation; [`hyperfine`](https://github.com/sharkdp/hyperfine) acceptable for sanity-check |
+| `bm add <url>` end-to-end | < 100 ms wall-clock on a store with ≤ 1,000 bookmarks | Same |
+| `bm list` end-to-end | < 100 ms wall-clock on a store with ≤ 1,000 bookmarks | Same |
+
+**Scale ceiling:** 10,000 bookmarks. Beyond this the user should consider a real bookmark manager — this project's non-goals (§ Scope and non-goals) declare unsuitability for primary-use scale. The flat-JSON-rewrite-on-every-add design has cumulative O(n²) cost which makes large stores impractical; declared as **accepted limitation** at Layer 1 intent + named in [Performance Engineer Review 1 Findings 3 + 6](vsdd-suite/review-log/2026-05-20-performance-engineer.md).
+
+**Benchmarking infrastructure:** [Layer 2+](TODO.md) work — Layer 1's surface is too small to benchmark meaningfully ([`criterion`](https://github.com/bheisler/criterion.rs) adds dependency cost without commensurate value at this scale). [Performance Engineer Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-performance-engineer.md) declared **Deferred** at the layer level; the budget above is the contract a future Layer-2 benchmarking infrastructure would assert against.
+
+**Data-scaling tests:** sentinel tests at the 100 / 1,000 / 10,000-bookmark cliffs land at Layer 2+ ([Performance Engineer Review 1 Finding 5](vsdd-suite/review-log/2026-05-20-performance-engineer.md) **Deferred**). At Layer 1 the existing `save_then_load_roundtrips` test exercises the 1-bookmark case; the layer's correctness is observable from there.
+
+## Threat model ([Review 82](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z) Round 2 fix for [Security Review 1](vsdd-suite/review-log/2026-05-20-security.md) + [Red Team Review 1](vsdd-suite/review-log/2026-05-20-red-team.md))
+
+**In-scope adversaries:**
+
+- **Co-tenant on a shared Unix host** — read access to the user's home directory hierarchy. **Mitigation:** storage file mode 0600 (read/write owner only) per the *confidential* data classification below.
+- **Adversary-controlled `$BOOKMARK_CLI_DB`** — the env var points at a writable path the user does not control (e.g., a shared `/tmp/...`, a directory with a pre-staged symlink). **Mitigations:** symlink-follow-rejection on save (the implementation checks `symlink_metadata` + refuses to write through a symlink pointing outside the parent directory); the env var is the user's own shell + the user is responsible for what they set.
+- **Adversary-supplied URL contents** — a URL captured at one terminal session is later rendered at `bm list` in another terminal session. URLs can carry terminal-escape sequences (ANSI `\x1b[...`, OSC 0/8/1337, bidi format chars U+202E + zero-width chars). **Mitigation:** `display_safe` sanitizer wraps every user-derived value before any `eprintln!` / `println!` / `Display` interpolation — escapes `is_control()` (Cc) chars + `Cf` format chars while preserving `\n` `\t` for legitimate whitespace.
+
+**Out-of-scope adversaries:**
+
+- **Same-user concurrent process** writing the storage file at the same time — the project is a single-user single-process tool per § Scope and non-goals; concurrent-write race is **accepted risk** ([Red Team Review 1 Finding 3](vsdd-suite/review-log/2026-05-20-red-team.md)).
+- **Unbounded URL length** — the spec accepts arbitrarily long URLs per the original § Edge case catalog. DoS-via-memory is acknowledged but accepted at Layer 1 ([Red Team Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-red-team.md) **Accepted risk**).
+- **TOCTOU between `path.exists()` and `read_to_string()` in `BookmarkStore::load`** — single-process foreclosure makes the race window non-exploitable ([Security Review 1 Finding 5](vsdd-suite/review-log/2026-05-20-security.md) **Accepted risk**).
+- **JSON-parser depth-bomb (deeply-nested user-controlled JSON)** — `serde_json` enforces a 128-level recursion limit by default; the attacker model does not grant write access to the store file ([Security Review 1 Finding 6](vsdd-suite/review-log/2026-05-20-security.md) **Hallucinated** — verified protection holds).
+
+## Storage data classification ([Review 82](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z) Round 2 fix for [Security Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-security.md))
+
+The captured bookmarks are **confidential**-class data — "what someone is reading is sensitive" per the [Security domain prompt](../../vsdd-suite/domains/role/SECURITY-REVIEW.md) Dim 8 information-leakage classification. The storage file is written with **mode 0600** (Unix; read/write owner only) using `std::fs::OpenOptions::new().mode(0o600)...` behind a `#[cfg(unix)]` gate. Windows is named as untested under § Constraints; Windows file-permission semantics differ from Unix and are deferred to a Windows-port layer.
+
+Encryption at rest is **not** in scope at Layer 1 — mode 0600 is the spec's floor for confidential-class data on Unix, per the Security domain prompt's proportionality discipline. A future layer (or production-intent fork) may add at-rest encryption if the spec's data-classification rises.
 
 ## Open questions
 

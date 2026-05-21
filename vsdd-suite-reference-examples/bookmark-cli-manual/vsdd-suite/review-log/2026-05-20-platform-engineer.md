@@ -341,3 +341,458 @@ Per [G-131](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) conti
 - **Finding 11** (clippy deny set) — surface to [Software Engineer review](../SOFTWARE-ENGINEER-REVIEW.md) — the crate-level `#![deny(...)]` is SE-owned per Rust supplement § SE.
 
 **Round trigger:** Per [G-131](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131), this round's 11 Open findings (each grounded in evidence; none classified Hallucinated) mandate Round 2 after the fixes land — the continue trigger fires by construction. The MVR signal for the Platform Engineer domain will be the post-fix Round that produces only Hallucinated findings or no findings.
+
+---
+
+## Review 2 — 2026-05-20 21:00Z
+
+**Scope:** Round 2 cold-context verification pass against the Round 1 fix cycle. Adversarial inputs read in declared order: [primer 3](../../../vsdd-suite/primers/3-review-session.md), [PE domain prompt](../../../vsdd-suite/domains/role/PLATFORM-ENGINEER-REVIEW.md), [Rust supplement § Platform Engineering](../../../vsdd-suite/supplements/rust.md), [TOML supplement § Platform Engineering](../../../vsdd-suite/supplements/toml.md), [suite-development.md § Governing standard + Agent-API surface](../../../vsdd-suite/suite-development/suite-development.md), and [PE Round 1](2026-05-20-platform-engineer.md#review-1--2026-05-20-1930z) (11 findings + 2 dismissed). Project artifacts re-evaluated post-fix: [`Cargo.toml`](../../Cargo.toml), [`rust-toolchain.toml`](../../rust-toolchain.toml) (new), [`deny.toml`](../../deny.toml) (new), [`manual-tests/install-verification.md`](../../manual-tests/install-verification.md), [`README.md`](../../README.md), [`manual-tests/layer-1.md`](../../manual-tests/layer-1.md), and the portfolio-root [`.github/workflows/bookmark-cli-manual.yml`](../../../../.github/workflows/bookmark-cli-manual.yml) (new) + extended [`.pre-commit-config.yaml`](../../../../.pre-commit-config.yaml). The Round 1 finding set drives this round's verification checklist; the cold pass additionally re-applies the [PE domain prompt](../../../vsdd-suite/domains/role/PLATFORM-ENGINEER-REVIEW.md) dimensions to the new artifacts to surface any adjacent defects the fix cycle may have created.
+
+**Session note:** Cold session per [primer 3](../../../vsdd-suite/primers/3-review-session.md) § Round triggers (continue) — Round 1 produced 11 real findings, so the [G-131](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) continue trigger fires by construction and a second cold pass is mandatory. Sycophancy-compensation: the second-pass risk is rubber-stamping fixes that look plausible without checking they hold in detail; this pass examined each fix artifact byte-for-byte against the Round 1 recommendation and the supplement's stated discipline, and surfaced two new adjacent defects (Findings 12 and 13) that the fix cycle introduced. Capstone intent activates PE Dim 38 (fresh-system install verification) — primary judgement-dependent dimension this round, and the dimension that the AI agent CANNOT satisfy on the project's behalf (declared explicitly under Finding 9 below).
+
+**Source:** `domain-raised` — cold adversary re-applying the [PE domain prompt](../../../vsdd-suite/domains/role/PLATFORM-ENGINEER-REVIEW.md) dimensions + [Rust](../../../vsdd-suite/supplements/rust.md) / [TOML](../../../vsdd-suite/supplements/toml.md) supplements to the post-fix project state. The two new findings (12, 13) surfaced from cold re-application of Dim 4 (Environment pinning), Dim 7 (Action/dependency pinning), and the Rust supplement § PE — Clippy lint configuration to the new artifacts; they were not director-raised.
+
+**Regression check:** Round 1 raised 11 Open findings (F1–F11) and 2 Dismissed (F12–F13). This round's verification status, finding-by-finding:
+
+- **F1** (no CI) — Resolved; [`.github/workflows/bookmark-cli-manual.yml`](../../../../.github/workflows/bookmark-cli-manual.yml) now exists with 5 separate jobs (fmt, clippy, test, deny, audit).
+- **F2** (no `rust-toolchain.toml`) — Resolved; [`rust-toolchain.toml`](../../rust-toolchain.toml) exists pinning `channel = "1.95"` + `components = ["rustfmt", "clippy"]`.
+- **F3** (Cargo.toml metadata gaps) — Resolved; [`Cargo.toml`](../../Cargo.toml) now declares `rust-version = "1.78"`, `repository = "https://github.com/magnificentlycursed/guild-portfolio"`, `readme = "README.md"`, and dual `license = "MIT OR Apache-2.0"`.
+- **F4** (no `deny.toml`) — Resolved; [`deny.toml`](../../deny.toml) exists with the four required sections (`[advisories]` / `[licenses]` / `[bans]` / `[sources]`).
+- **F5** (no `cargo audit`) — Resolved; CI `audit` job runs `cargo audit` against `Cargo.lock`.
+- **F6** (no `[profile.release]`) — Resolved; [`Cargo.toml`](../../Cargo.toml) declares the profile with explicit `opt-level` / `lto` / `codegen-units` / `panic` / `strip` settings and a rationale comment block.
+- **F7** (pre-commit hooks scope) — Resolved; [`.pre-commit-config.yaml`](../../../../.pre-commit-config.yaml) `cargo-fmt-check` + `cargo-clippy-check` hooks now cover `vsdd-suite-reference-examples/bookmark-cli-manual/` via per-project detection logic.
+- **F8** (`--locked` flag) — Resolved; all four `cargo install --path .` sites now use `--locked` ([`README.md`](../../README.md):21, [`manual-tests/layer-1.md`](../../manual-tests/layer-1.md):16, [`manual-tests/layer-1.md`](../../manual-tests/layer-1.md):180, [`manual-tests/install-verification.md`](../../manual-tests/install-verification.md):35).
+- **F9** (capstone Dim 38 install-verification gate) — Deferred (operator-blocked); see Finding 9 below — the AI agent that authored the project cannot by construction satisfy the "non-author on a fresh system" discipline, and [`manual-tests/install-verification.md`](../../manual-tests/install-verification.md) Verification records table still shows the `*(pending)*` row at line 55. The fix is procedural and gated on operator execution.
+- **F10** (no coverage measurement) — Deferred (Backlog routing held); [FINDINGS-INDEX.md](../FINDINGS-INDEX.md) row F-019 records the Deferred status routed to SO for Backlog ratification mirroring the ITC SO R14 F5 precedent; no in-tree CI coverage gate was added, and the Backlog routing is the correct disposition for a Layer-1-only ~220-LOC reference example.
+- **F11** (no crate-level clippy deny set) — Partially Resolved; [`Cargo.toml`](../../Cargo.toml) lines 62–68 add a `[lints]` table with `unsafe_code = "deny"`, `missing_docs = "deny"`, `clippy::all = "deny"`, `clippy::pedantic = "warn"`. See Finding 13 below — the resolution is incomplete relative to the Rust supplement's "standard deny set" and is presented as a full resolution; the partial-with-rationale form is acceptable per Round 1 F11's own framing but the rationale comment claims the lint set "tracks the Rust supplement § Software Engineering 'standard deny set'" which overstates the coverage.
+
+**Assumption surfacing:** Verified the [`.github/workflows/bookmark-cli-manual.yml`](../../../../.github/workflows/bookmark-cli-manual.yml) workflow uses tag-form action references (`actions/checkout@v4`, `dtolnay/rust-toolchain@stable`, `Swatinem/rust-cache@v2`) rather than the SHA-pinned form the sibling [`issue-tracker-cli.yml`](../../../../.github/workflows/issue-tracker-cli.yml) uses (lines 28–37 there are SHA-pinned with refresh-instruction comments). Verified the workflow's `dtolnay/rust-toolchain@stable` invocation does NOT pass a `toolchain:` parameter — it relies on the in-tree [`rust-toolchain.toml`](../../rust-toolchain.toml) to override `@stable` to `1.95`. Verified `cargo deny --locked check` is the correct flag order for `cargo-deny 0.19.4`. Verified the `[lints]` table in [`Cargo.toml`](../../Cargo.toml) is a cargo-1.74+ feature and is compatible with the declared `rust-version = "1.78"`.
+
+---
+
+### Resolved
+
+**Finding 1 — No CI workflow for `bookmark-cli-manual` (Dim 1, Dim 2)**
+
+<a id="r2-f1"></a>
+
+**Owner:** platform-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** software-engineer — Round 1 declared SE as the natural validator for the workflow YAML; this Round 2 cold pass confirms the workflow file is present and structurally complete; SE pairs on the YAML content correctness.
+
+[`.github/workflows/bookmark-cli-manual.yml`](../../../../.github/workflows/bookmark-cli-manual.yml) now exists at 122 lines. The workflow declares 5 separate jobs (`fmt`, `clippy`, `test`, `deny`, `audit`) rather than the single-job ITC pattern — the per-job split isolates failures to one job rather than collapsing the whole pipeline, which is a defensible deviation from the ITC precedent and arguably stronger.
+
+Path-filter scoping is correct: `paths: vsdd-suite-reference-examples/bookmark-cli-manual/** + .github/workflows/bookmark-cli-manual.yml` matches the project's source tree + the workflow file itself. `defaults: run: working-directory: vsdd-suite-reference-examples/bookmark-cli-manual` scopes every job to the project root.
+
+The `clippy` job runs `cargo clippy --all-targets --locked -- -D warnings` (line 59) — `--all-targets` ensures tests + benches are linted, `--locked` ensures the dependency graph matches `Cargo.lock`, `-D warnings` treats warnings as errors. The `test` job runs `cargo test --locked` (line 80) — `--locked` correctly enforced. The `deny` job pins `cargo-deny --locked --version 0.19.4` and runs `cargo deny --locked check`. The `audit` job pins `cargo-audit --locked --version 0.22.1` and runs `cargo audit`. Tool version pinning matches the ITC precedent.
+
+The pipeline-completeness dimension (Dim 1) is satisfied: type checking (implicit in `cargo clippy`), unit + integration tests (`cargo test`), build (implicit in `cargo test --locked`), dependency audit (`cargo audit` + `cargo deny check`), formatting (`cargo fmt --check`), linting (`cargo clippy -- -D warnings`). The gate-enforcement dimension (Dim 2) is satisfied at the workflow-defined level; branch-protection enforcement is a repository-settings concern outside the workflow file.
+
+**Resolution:** Workflow created at [`.github/workflows/bookmark-cli-manual.yml`](../../../../.github/workflows/bookmark-cli-manual.yml) with 5-job structure, `--locked` enforced on test + clippy + deny, tool versions pinned. The adjacent defect surfaced in re-application — action references are tag-form rather than SHA-pinned — is filed separately as Finding 12 below per the [G-131](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) "Round N+1 cold pass looks for adjacent defects the fix may have created" discipline. (Dim 1, Dim 2)
+
+---
+
+**Finding 2 — No `rust-toolchain.toml` despite declared MSRV (Rust supplement § PE — Toolchain pinning, TOML supplement § PE — `rust-toolchain.toml` for toolchain pinning)**
+
+<a id="r2-f2"></a>
+
+**Owner:** platform-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** software-engineer — Round 1 declared SE as the natural validator for the toolchain-pin config; this Round 2 cold pass confirms the file is present and structurally complete.
+
+[`rust-toolchain.toml`](../../rust-toolchain.toml) now exists at 17 lines with the required `[toolchain]` table:
+
+```toml
+[toolchain]
+channel = "1.95"
+components = ["rustfmt", "clippy"]
+profile = "minimal"
+```
+
+The `channel = "1.95"` is well above the MSRV declared in [`DESIGN.md`](../../DESIGN.md) § Constraints (`1.78+`) and the [`Cargo.toml`](../../Cargo.toml) `rust-version = "1.78"` declaration. The components list (`rustfmt` + `clippy`) covers the tools the CI workflow invokes. `profile = "minimal"` is the supplement-recommended default for CI determinism.
+
+The file's comment header (lines 1–11) cites both the supplement and the Round 1 finding it closes, satisfying the TOML supplement § TW "comments name the why" discipline. The pairing with `rust-version = "1.78"` in [`Cargo.toml`](../../Cargo.toml) (per Finding 3) gives the project the two-layer MSRV signal: `rust-toolchain.toml` for the contributor-and-CI default; `rust-version` for the cargo-resolver-visible MSRV that consumers see.
+
+**Resolution:** [`rust-toolchain.toml`](../../rust-toolchain.toml) created at project root with `channel = "1.95"` + `components = ["rustfmt", "clippy"]` + `profile = "minimal"`. Paired with `rust-version = "1.78"` in [`Cargo.toml`](../../Cargo.toml). (Rust supplement § PE — Toolchain pinning, TOML supplement § PE — `rust-toolchain.toml` for toolchain pinning)
+
+---
+
+**Finding 3 — `Cargo.toml` `[package]` missing canonical fields (TOML supplement § SE — `[package]` metadata completeness)**
+
+<a id="r2-f3"></a>
+
+**Owner:** platform-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** software-engineer — Cargo.toml package metadata is SE-paired per Round 1.
+
+[`Cargo.toml`](../../Cargo.toml) lines 1–18 now declare the canonical fields:
+
+- `rust-version = "1.78"` (line 10) — mechanizes the DESIGN.md MSRV
+- `readme = "README.md"` (line 12) — explicit declaration rather than relying on default discovery
+- `license = "MIT OR Apache-2.0"` (line 16) — dual-license per the Rust ecosystem convention and the ITC precedent; the license-uniformity concern raised in Round 1 F3 (routing to SO) is addressed by adopting the ITC license shape
+- `repository = "https://github.com/magnificentlycursed/guild-portfolio"` (line 17) — same value as ITC, downstream consumers can navigate
+
+The license uniformity across portfolio Rust CLIs is now consistent: both [`bookmark-cli-manual/Cargo.toml`](../../Cargo.toml) and [`issue-tracker-cli/Cargo.toml`](../../../../issue-tracker-cli/Cargo.toml) declare `MIT OR Apache-2.0`. The README.md license section ([`README.md`](../../README.md):61–63) was updated to match. The SO-routing concern from Round 1 F3 closes by adopting the consistent shape rather than by SO ratification of a deliberate divergence.
+
+The rationale-comment block (lines 5–9, 13–15) on each new field satisfies the TOML supplement § TW "comments name the why" discipline.
+
+**Resolution:** [`Cargo.toml`](../../Cargo.toml) `[package]` extended with `rust-version`, `readme`, `repository`, and the dual-license shape; [`README.md`](../../README.md) License section updated to match. License uniformity across portfolio Rust CLIs achieved without requiring SO ratification of a deliberate divergence. (TOML supplement § SE — `[package]` metadata completeness)
+
+---
+
+**Finding 4 — No `deny.toml` / no `cargo deny` configuration (Rust supplement § PE — `cargo deny`, TOML supplement § Security — cargo-deny configured)**
+
+<a id="r2-f4"></a>
+
+**Owner:** platform-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** security — supply-chain policy choice is Security's domain per Round 1's coordination routing.
+
+[`deny.toml`](../../deny.toml) now exists at 76 lines with the four required sections:
+
+- `[advisories]` (lines 29–34) — `version = 2`, `yanked = "deny"`, `ignore = []`. The RustSec advisory DB is the gate source; `yanked = "deny"` blocks yanked crates from the resolved graph.
+- `[licenses]` (lines 42–54) — `version = 2`, explicit allowlist (`MIT`, `Apache-2.0`, `Apache-2.0 WITH LLVM-exception`, `BSD-2-Clause`, `BSD-3-Clause`, `ISC`, `Unicode-DFS-2016`, `Unicode-3.0`), `confidence-threshold = 0.93`. Deny-by-default policy correctly inverted from allow-by-default.
+- `[bans]` (lines 59–65) — `multiple-versions = "warn"`, `wildcards = "deny"`, `highlight = "all"`, empty `deny` / `skip` / `skip-tree`. The `wildcards = "deny"` setting is the TOML supplement § PE — Dependency declarations control surface against the `serde = "*"` anti-pattern.
+- `[sources]` (lines 71–75) — `unknown-registry = "deny"`, `unknown-git = "deny"`, `allow-registry = ["https://github.com/rust-lang/crates.io-index"]`, `allow-git = []`. The DESIGN.md § Constraints "all from crates.io, no git deps" commitment is now mechanized.
+
+The `[graph]` (lines 16–20) `all-features = true` setting is the safer default for a small CLI — evaluates feature-gated dependencies as well as the default-feature graph.
+
+The CI `deny` job ([`.github/workflows/bookmark-cli-manual.yml`](../../../../.github/workflows/bookmark-cli-manual.yml):82–100) runs `cargo deny --locked check` against this config. The `--locked` flag is correctly placed between `deny` and `check`.
+
+**Resolution:** [`deny.toml`](../../deny.toml) created with the four required sections and the wildcards-denied / unknown-git-denied / unknown-registry-denied policy. Wired into CI via the `deny` job. The Rust supplement § PE and TOML supplement § Security floor for cargo-deny is now satisfied. (Rust supplement § PE — `cargo deny`, TOML supplement § Security — cargo-deny configured)
+
+---
+
+**Finding 5 — No `cargo audit` invocation (Dim 11, Rust supplement § PE — `cargo audit`)**
+
+<a id="r2-f5"></a>
+
+**Owner:** platform-engineer
+**Status:** validated
+**Blocked by:** *(none — Round 1 listed F1 as blocker; F1 is now Resolved.)*
+**Validator:** security — CVE-policy ownership per Round 1's coordination routing.
+
+[`.github/workflows/bookmark-cli-manual.yml`](../../../../.github/workflows/bookmark-cli-manual.yml):102–121 declares the `audit` job:
+
+```yaml
+- name: Install cargo-audit
+  run: cargo install cargo-audit --locked --version 0.22.1
+
+- name: Dependency audit
+  run: cargo audit
+```
+
+`cargo-audit` is version-pinned to `0.22.1` (matching the ITC precedent) and installed via `--locked` so the tool itself builds from a reproducible dependency graph. `cargo audit` runs against `Cargo.lock` and exits non-zero on a RUSTSEC advisory hit, failing the workflow.
+
+The `audit` job runs in parallel with the `deny` job (separate workflow jobs); the inline rationale comment (lines 112–116) names the reason: "an advisory-only failure does not mask a license/bans/sources failure from `cargo deny`." The Rust supplement § PE permits this redundancy ("both can coexist") and the per-job split makes the failure mode visible.
+
+**Resolution:** `cargo audit` wired into CI via the dedicated `audit` job, tool version pinned (`0.22.1`), runs against `Cargo.lock` per the supplement. Runs in parallel with `cargo deny check` per the supplement's allowance for both controls to coexist. (Dim 11, Rust supplement § PE — `cargo audit`)
+
+---
+
+**Finding 6 — No `[profile.release]` declarations (Rust supplement § PE, TOML supplement § PE — `[profile.release]` optimization settings, TOML supplement § PerfE — `lto` configuration tradeoff)**
+
+<a id="r2-f6"></a>
+
+**Owner:** platform-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** performance-engineer — `[profile.release]` settings are PerfE's primary platform surface per Round 1's coordination routing.
+
+[`Cargo.toml`](../../Cargo.toml) lines 48–53 declare the profile explicitly:
+
+```toml
+[profile.release]
+opt-level = 3          # cargo default — declared for clarity
+lto = "fat"            # max cross-crate inlining; slower compile, smaller + faster binary
+codegen-units = 1      # single codegen unit enables full-crate optimization
+panic = "abort"        # smaller binary; no unwinding (no catch_unwind in this crate)
+strip = "symbols"      # strip debug symbols from the release binary
+```
+
+Each setting carries a one-line rationale per the TOML supplement § PE "declare the chosen value and a one-line rationale" discipline. The choices are CLI-binary-appropriate: `lto = "fat"` is the TOML supplement § PerfE recommendation for long-lived release artifacts; `codegen-units = 1` enables full-crate optimization; `panic = "abort"` is sound because the crate uses no `catch_unwind`-based tests; `strip = "symbols"` reduces the shipped binary size.
+
+A reviewer reading [`Cargo.toml`](../../Cargo.toml) now sees the deliberate choice rather than silent inheritance — the original Round 1 finding's "silent inheritance" concern is closed by the explicit declaration + rationale block (lines 40–47 comment header).
+
+**Resolution:** `[profile.release]` declared at [`Cargo.toml`](../../Cargo.toml):48–53 with `opt-level = 3`, `lto = "fat"`, `codegen-units = 1`, `panic = "abort"`, `strip = "symbols"`, each with inline rationale. (Rust supplement § PE, TOML supplement § PE — `[profile.release]` optimization settings, TOML supplement § PerfE — `lto` configuration tradeoff)
+
+---
+
+**Finding 7 — Pre-commit `cargo-fmt-check` / `cargo-clippy-check` hooks did not cover `bookmark-cli-manual/` (Dim 9, Dim 10)**
+
+<a id="r2-f7"></a>
+
+**Owner:** platform-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check — Round 1 declared this a PE shift-left mechanization (a new pre-commit hook scope-extension the suite-adjacent surface authors to catch a recurring defect class); the meta-validator-of-last-resort pattern ([Review 77](../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-77--2026-05-20-1545z) Finding 2) routes to [Sanity Check](../../../vsdd-suite/domains/meta/SANITY-CHECK-REVIEW.md) for the cohesion-with-DESIGN.md verification.
+
+[`.pre-commit-config.yaml`](../../../../.pre-commit-config.yaml) lines 126–161 now declare both `cargo-fmt-check` and `cargo-clippy-check` hooks with extended scope. The `files:` pattern (lines 143, 161) is:
+
+```yaml
+files: ^(issue-tracker-cli|vsdd-suite-reference-examples/bookmark-cli-manual)/.*\.rs$
+```
+
+Both projects' source files trigger the hooks. The hook's bash logic (lines 141, 159) detects which project's files changed by case-matching the file paths and runs `cargo fmt --check` / `cargo clippy --all-targets --locked -- -D warnings` once per affected project. The detection logic is POSIX-compatible (no `declare -A`) — verified by the inline comment "POSIX-compatible (no `declare -A`) so it runs on macOS's bundled bash 3.2."
+
+The per-project detection design — rather than running both projects' checks unconditionally — avoids running the gate on projects untouched by the commit. This is a stronger shape than the Round 1 recommendation of "add parallel hook entries `cargo-fmt-check-bookmark` + `cargo-clippy-check-bookmark`"; the chosen fix generalizes per-project detection rather than duplicating hook entries, which addresses Round 1's parenthetical concern about linear growth as more Rust projects are added to the portfolio.
+
+The inline rationale comments (lines 134–140, 148–158) cite this Round 1 finding by ID and describe the scope-extension intent.
+
+**Resolution:** [`.pre-commit-config.yaml`](../../../../.pre-commit-config.yaml) `cargo-fmt-check` and `cargo-clippy-check` hooks extended with per-project detection. Both `issue-tracker-cli/` and `vsdd-suite-reference-examples/bookmark-cli-manual/` are covered; per-project detection avoids running the gate on untouched projects; POSIX-compatible bash so the hook runs on macOS's bundled bash 3.2. (Dim 9, Dim 10)
+
+---
+
+**Finding 8 — `cargo install --path .` invocations did not use `--locked` (Dim 3, TOML supplement § PE — Lockfile commitment, Rust supplement § PE — `Cargo.lock` commitment)**
+
+<a id="r2-f8"></a>
+
+**Owner:** platform-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** software-engineer — user-facing install command edits are SE-paired per Round 1.
+
+All four `cargo install --path .` sites cited in Round 1 now include `--locked`:
+
+- [`README.md`](../../README.md):21 — `cargo install --locked --path . --force`
+- [`manual-tests/layer-1.md`](../../manual-tests/layer-1.md):16 — `cargo install --locked --path . --force --quiet` (Step 0)
+- [`manual-tests/layer-1.md`](../../manual-tests/layer-1.md):180 — `cargo install --locked --path . --force --quiet` (Step 5 reinstall)
+- [`manual-tests/install-verification.md`](../../manual-tests/install-verification.md):35 — `cargo install --locked --path . --force --quiet` (Dim 38 install step)
+
+`grep -rn 'cargo install --path' vsdd-suite-reference-examples/bookmark-cli-manual/ README.md` returns zero matches (the unflagged form is gone). `grep -rn 'cargo install.*--locked.*--path' vsdd-suite-reference-examples/bookmark-cli-manual/` returns exactly the four sites above plus the workflow's tool-install lines (which are `cargo install <tool> --locked --version <v>`, a different shape but also `--locked` correctly applied).
+
+The `--locked` flag composes with the existing `--force` and `--quiet` flags. The reproducibility property the committed `Cargo.lock` exists to attest is now mechanically enforced at install time — a future contributor (or the operator executing the Dim 38 install verification) will install against the exact dependency graph the developer shipped, not a `cargo`-resolver-regenerated graph.
+
+The Dim 38 install-verification step (line 35) is the most load-bearing of the four — Finding 9 below depends on this fix to make the operator's eventual PASS row attest to the right build.
+
+**Resolution:** `--locked` added to all four `cargo install --path .` sites. The committed `Cargo.lock` is now authoritative at install time per Dim 3 / Rust supplement § PE / TOML supplement § PE. (Dim 3, TOML supplement § PE — Lockfile commitment, Rust supplement § PE — `Cargo.lock` commitment)
+
+---
+
+### Deferred
+
+**Finding 9 — Capstone Dim 38 install-verification gate remains operator-blocked; AI cannot satisfy (Dim 38 — Fresh-system install verification at capstone intent)**
+
+<a id="r2-f9"></a>
+
+**Owner:** platform-engineer (procedural; routing to operator for execution)
+**Status:** raised
+**Blocked by:** operator execution — the discipline's load-bearing requirement is "non-author on a fresh system" verification ([G-155](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155)); no AI session can satisfy this gate on the project's behalf.
+
+[`manual-tests/install-verification.md`](../../manual-tests/install-verification.md) Verification records table (line 53–55) still shows exactly one row, which is the scaffolding template:
+
+```
+| *(pending)* | *(non-author operator)* | *(fresh-system context)* | *(per manual-tests/layer-1.md execution)* | *(divergences, if any)* | *(PASS / FAIL)* | *(any context)* |
+```
+
+The **Outcome** column is `*(pending)*`. The file's lines 9–16 self-disclosure is explicit: "This install-verification record is AI-co-authored. AI-author cannot satisfy this gate. ... The Outcome row is satisfied by a non-author operator running the install verification on a fresh system — no AI session can mark this row PASS."
+
+The cold-pass re-application confirms the Round 1 finding holds: the dimension's binary state remains "not yet satisfied." The Round 2 verification surface is whether anything *new* could close the dim in the absence of operator execution — the answer is no. The Round 1 procedural recommendation (land Finding 8 `--locked` fix first so the verification PASS attests to the right graph) is now closed (F8 Resolved), which means the gate is fix-ready for operator execution. No further AI-executable preparation remains; the gate is purely operator-blocked.
+
+**Methodology-correct posture:** This finding is the reason the Platform Engineer domain **CANNOT reach MVR in this PR cycle without operator action**. The other 10 Round 1 findings are Resolved or Deferred-via-Backlog; this finding is operator-blocked-on-fresh-system-execution. Declaring PE at MVR while Dim 38 is unsatisfied would misrepresent the capstone-tier merge gate. The honest signal is **MVR-blocked-by-operator-gate** — Platform Engineer is at the point where every AI-executable fix has landed and only the operator's fresh-system install verification can advance the dim to PASS.
+
+The disclosure-honesty in [`manual-tests/install-verification.md`](../../manual-tests/install-verification.md):9–16 is a strength, not a weakness — the file does not pretend the dim is satisfied, and the project's own machinery names the gate as open. The Round 2 sycophancy-guard fires here: a cold-pass reviewer who classified this finding "Resolved" or "Hallucinated" on the basis of the disclosure would be substituting transparency for verification, which is the exact failure mode the [primer 3](../../../vsdd-suite/primers/3-review-session.md) sycophancy guard warns against. The dim is open; the project says so; the finding remains.
+
+**Classification:** Deferred — operator-blocked. Trigger to close: a PASS row from a non-author on a fresh system per [G-155](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155). Auto-Backlog: if no PASS row lands by the project's PR 6 + 1 (post-capstone-promotion) merge window, the dim is auto-Backlogged with the explicit "capstone gate not satisfied; reference example carries the operator-blocked disclosure as its closing-evidence record" framing. Re-raise: when the operator executes the verification, the next PE round verifies the PASS row's completeness (date, verifier identity, system context, outcome, notes) and moves the dim to Resolved. (Dim 38 — Fresh-system install verification at capstone intent)
+
+---
+
+**Finding 10 — No coverage measurement or threshold enforcement; Backlog routing held (Dim 6, Rust supplement § PE — Coverage enforcement, Rust supplement § QE — Coverage thresholds)**
+
+<a id="r2-f10"></a>
+
+**Owner:** solution-owner (routing per Round 1's coordination)
+**Status:** raised (Backlogged-pending-SO-ratification)
+**Blocked by:** *(none — the Backlog disposition is the deliberate routing; no in-tree fix is expected this round.)*
+
+[FINDINGS-INDEX.md](../FINDINGS-INDEX.md) row F-019 records this finding's Round 1 disposition: "No coverage measurement or threshold enforcement; routed to SO for Backlog ratification mirroring ITC SO R14 F5 disposition | domain-raised | Deferred | platform-engineer | quality-engineer | Open | [PE R1 F10]". The Backlog routing is held; this Round 2 cold pass verifies the routing is still the correct disposition for a Layer-1-only ~220-LOC reference example.
+
+The Round 1 framing — "`bookmark-cli-manual` is even smaller [than ITC]; Layer 1 only; 169 lines in `src/lib.rs`, ~50 lines in `src/main.rs`, 100% of public API arguably exercised through the 8 tests" — holds. The SO Backlog re-raise triggers (substantial code addition, ~1000 LOC threshold, external review) parallel the ITC SO R14 F5 precedent and remain appropriate. No CI coverage gate was added; the Backlogged status is the methodology-correct routing.
+
+The Round 2 verification is that the Backlog routing has not silently drifted to "Resolved" or "Dismissed" — the FINDINGS-INDEX row remains `Deferred ... Open`, the SO has not yet ratified, and no covering CI artifact appears in the workflow. The Backlog is held cleanly.
+
+**Classification:** Deferred (Backlog routing held). Trigger to close: SO Round 2 (or later) ratifies the Backlog with the re-raise criteria documented; OR the project crosses a re-raise threshold and a new PE round opens the finding for in-tree coverage tooling. Auto-Backlog: fired at Round 1 routing; re-confirmed at Round 2. (Dim 6, Rust supplement § PE — Coverage enforcement, Rust supplement § QE — Coverage thresholds)
+
+---
+
+**Finding 11 — Crate-level clippy lint configuration: partial resolution presented as full (Rust supplement § SE — Clippy lint configuration, Rust supplement § PE — `cargo clippy --deny warnings`)**
+
+<a id="r2-f11"></a>
+
+**Owner:** platform-engineer
+**Status:** raised (partial-resolution-with-misframed-rationale)
+**Blocked by:** *(none)*
+
+The Round 1 finding noted that the supplement permits "selective `#[allow(...)]` with comments for deviation" and that "A similar partial-with-documented-rationale closure is acceptable here." [`Cargo.toml`](../../Cargo.toml) lines 62–68 now declare a `[lints]` table:
+
+```toml
+[lints.rust]
+unsafe_code = "deny"
+missing_docs = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+```
+
+This is a partial resolution. Compare to the supplement's "standard deny set":
+
+```
+#![deny(clippy::all, clippy::pedantic, clippy::nursery, clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::missing_errors_doc, clippy::missing_panics_doc, missing_docs)]
+```
+
+The Cargo.toml lint set covers:
+- `clippy::all` (denied)
+- `missing_docs` (denied)
+- `clippy::pedantic` (downgraded to warn)
+- `unsafe_code` (denied — outside the supplement set but a sound addition)
+
+The Cargo.toml lint set is missing:
+- `clippy::nursery`
+- `clippy::unwrap_used`
+- `clippy::expect_used`
+- `clippy::panic`
+- `clippy::missing_errors_doc`
+- `clippy::missing_panics_doc`
+
+The partial form would be acceptable per the supplement's "Selective `#[allow(...)]` with a comment is acceptable" carve-out IF the rationale were honest about the partial coverage. The rationale comment (lines 55–60) instead claims:
+
+> The deny set tracks the Rust supplement § Software Engineering "standard deny set" with `pedantic` as warn to surface guidance without blocking.
+
+This framing names only the `pedantic` deviation; it does not name that six other lints from the standard deny set are absent. A reviewer reading this comment would conclude the lint set is the standard deny set minus one downgrade; the actual deviation is six lints absent. The misframing is small but the supplement's discipline is precisely about explicit documented rationale — a partial deny set with a rationale that overstates its coverage is a weaker shape than either (a) the full deny set, or (b) the partial deny set with rationale that names each absence.
+
+The unwrap/expect/panic cluster is the most consequential absence: those lints catch the exact failure modes the [Security domain](../SECURITY-REVIEW.md) and Rust supplement § Red Team flag as recurring defects in CLI Rust (panic-as-DoS, unwrap-on-user-input). For a single-binary reference example whose closing-evidence is "shows the supplement-prescribed discipline," shipping without those three lints is a meaningful gap — and the rationale comment does not acknowledge it.
+
+The ITC PE R8 Finding 4 closure (per Round 1 F11's citation) added `clippy::expect_used`, `clippy::panic`, `clippy::missing_errors_doc` with rationale-in-DECISIONS.md for the pedantic/nursery skips. The `bookmark-cli-manual` fix matches the rationale-elsewhere shape (the comment block) but misses the lints ITC explicitly added.
+
+This is a new finding (Finding 11 in Round 2 is the same dim as Round 1's F11 but the verification surfaces a fresh defect — the misframed rationale). Per the [primer 3](../../../vsdd-suite/primers/3-review-session.md) discipline, a partial closure with overstated rationale is a Round 2 finding that the fix-cycle introduced.
+
+**Classification:** Deferred — partial resolution accepted as an interim closure; the next PE round (or the SE validator pass) should either (a) extend the lint set to match the supplement's standard deny set (adding `clippy::nursery`, `clippy::unwrap_used`, `clippy::expect_used`, `clippy::panic`, `clippy::missing_errors_doc`, `clippy::missing_panics_doc`), OR (b) rewrite the rationale comment to honestly name the six absent lints and the reasoning for each absence. Option (a) is the supplement-prescribed shape; option (b) is the supplement-permitted-with-rationale shape. The current state is neither — partial coverage presented as substantial coverage. Auto-Backlog: at Layer 1 final closure, if neither (a) nor (b) lands, the partial state becomes the closing-evidence record with the misframe-disclosure noted. (Rust supplement § SE — Clippy lint configuration, Rust supplement § PE — `cargo clippy --deny warnings`)
+
+---
+
+**Finding 12 — CI workflow uses tag-form action references rather than SHA-pinned (Dim 7 — Action/dependency pinning, Dim 13 — Supply chain integrity)**
+
+<a id="r2-f12"></a>
+
+**Owner:** platform-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+
+[`.github/workflows/bookmark-cli-manual.yml`](../../../../.github/workflows/bookmark-cli-manual.yml) uses tag-form action references:
+
+- Line 31: `uses: actions/checkout@v4` (appears 5×, once per job)
+- Line 34: `uses: dtolnay/rust-toolchain@stable` (appears 5×)
+- Line 54: `uses: Swatinem/rust-cache@v2` (appears 2× — clippy + test jobs)
+
+The sibling [`.github/workflows/issue-tracker-cli.yml`](../../../../.github/workflows/issue-tracker-cli.yml) uses SHA-pinned form per the explicit rationale at its lines 24–26:
+
+```yaml
+# Actions pinned to commit SHA (Platform Engineer Review 8 Finding 1):
+# tags can be moved; SHAs cannot. Refresh with:
+#   gh api repos/<owner>/<repo>/commits/<tag> --jq '.sha'
+- name: Checkout
+  uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+- name: Install Rust toolchain
+  uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9  # master at 2026-05-04
+  with:
+    toolchain: 1.94.1
+    components: clippy, rustfmt
+
+- name: Cache Rust build artifacts
+  uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32  # v2
+```
+
+The Dim 7 prompt is explicit: "Are CI action versions pinned to avoid supply chain risk? Are they up to date?" Tag-form pinning satisfies "are they pinned" only by the weakest interpretation — tags are mutable references that the action publisher can move to a different commit, including a malicious commit. The ITC PE R8 Finding 1 closure established the SHA-pinned form as the portfolio precedent precisely because of this attack surface. The new workflow regresses to the weaker form.
+
+Additionally, `dtolnay/rust-toolchain@stable` is the moving-target form — `@stable` resolves to whatever stable Rust is currently published. The ITC workflow uses both a SHA-pin AND an explicit `toolchain: 1.94.1` parameter — two-layer pinning. The bookmark-cli-manual workflow relies on the in-tree [`rust-toolchain.toml`](../../rust-toolchain.toml) `channel = "1.95"` to override `@stable`, which works in practice but means:
+
+1. The workflow's CI behavior depends on a file 50+ lines away in a different directory.
+2. If `rust-toolchain.toml` is ever removed or its channel is changed, the workflow silently picks up whatever stable Rust is currently published with no signal in the workflow file itself.
+3. The redundant-pinning posture ITC uses is explicitly the supplement's recommendation.
+
+The Dim 13 — Supply chain integrity prompt: "Are third-party actions, base images, and dependencies pinned to verified versions? Is there a process for reviewing and updating them?" The current workflow has neither SHA pins nor an inline refresh-instruction comment for how to update them. The ITC workflow has both.
+
+**Classification:** Deferred — the fix is a mechanical edit: replace each `actions/checkout@v4` with the SHA-pinned form from `issue-tracker-cli.yml`:28; replace each `dtolnay/rust-toolchain@stable` with the SHA-pinned form from `issue-tracker-cli.yml`:31 + add an explicit `toolchain:` parameter; replace each `Swatinem/rust-cache@v2` with the SHA-pinned form from `issue-tracker-cli.yml`:37; add the inline refresh-instruction comment block. The fix is small (~10 line edits) but the supply-chain hardening is meaningful — a capstone-tier reference example with a weaker action-pinning posture than the sibling Rust CLI teaches the wrong lesson. Trigger to close: the workflow's three action references migrate to SHA-pinned form with refresh-instruction comments; the `dtolnay/rust-toolchain` invocation adds the explicit `toolchain:` parameter. Auto-Backlog: at Layer 1 final closure if the SHA-pin migration has not landed, the weaker shape becomes the closing-evidence record with the divergence-from-ITC disclosure noted. (Dim 7 — Action/dependency pinning, Dim 13 — Supply chain integrity)
+
+---
+
+**Finding 13 — `clippy::all` deny set in `[lints.clippy]` does not enforce `cargo clippy -- -D warnings` for the supplement-prescribed lints (Rust supplement § PE — `cargo clippy --deny warnings`)**
+
+<a id="r2-f13"></a>
+
+**Owner:** platform-engineer
+**Status:** raised
+**Blocked by:** [PE Review 2 Finding 11](#r2-f11) — the underlying lint-set incompleteness is the upstream finding; this one is the CI-side mechanization gap.
+
+The CI `clippy` job ([`.github/workflows/bookmark-cli-manual.yml`](../../../../.github/workflows/bookmark-cli-manual.yml):59) runs:
+
+```sh
+cargo clippy --all-targets --locked -- -D warnings
+```
+
+The `-D warnings` flag promotes any clippy warning to an error. Combined with the `[lints.clippy] all = "deny"` declaration in [`Cargo.toml`](../../Cargo.toml):67, this enforces the `clippy::all` group at fail-the-build severity in CI. So far so good.
+
+However, the supplement-prescribed deny set includes lints OUTSIDE `clippy::all`:
+
+- `clippy::pedantic` — its own lint group (warn-by-default in cargo; downgraded to warn in `[lints.clippy]` line 68)
+- `clippy::nursery` — its own lint group, not in `clippy::all`
+- `clippy::unwrap_used`, `clippy::expect_used`, `clippy::panic` — in the `clippy::restriction` group, allow-by-default in cargo, not in `clippy::all`
+- `clippy::missing_errors_doc`, `clippy::missing_panics_doc` — in `clippy::pedantic`, warn-by-default in cargo
+
+The current `[lints.clippy]` table denies `all` and warns on `pedantic`. The CI `-D warnings` flag promotes the pedantic warnings to errors (sound), but does NOT activate the restriction-group lints (`unwrap_used`, `expect_used`, `panic`) because those are allow-by-default. The CI gate would pass against an `.unwrap()` on user input — which is precisely the Rust supplement § Red Team failure mode the deny set is supposed to catch.
+
+The fix is to add the restriction-group lints to `[lints.clippy]`:
+
+```toml
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }   # or keep as "warn" with -D warnings promotion
+nursery = { level = "deny", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+missing_errors_doc = "deny"
+missing_panics_doc = "deny"
+```
+
+This finding is the CI-side mechanization gap that pairs with the lint-set incompleteness in [Finding 11](#r2-f11). Closing either one in isolation leaves the other half of the discipline open: closing F11 without the CI flag means the lints are declared but not enforced on every push; closing F13 by adding `-W <lint>` overrides on the CLI would be brittle (the manifest is the canonical source per the TOML supplement § PE "declarative over imperative" framing). The right closure adds the lints to `[lints.clippy]` (F11) AND keeps the CI `-D warnings` flag (already present) — the two together enforce the full supplement deny set.
+
+**Classification:** Deferred — blocked-by F11. The fix is the same TOML edit as F11's option (a): add the supplement's standard deny set to `[lints.clippy]`. Trigger to close: F11 lands its option (a) closure (full deny set in `[lints]`); the CI job's existing `-D warnings` flag then promotes the warnings to build-fails. Auto-Backlog: at Layer 1 final closure if F11 lands option (b) (honest partial rationale) rather than option (a) (full deny set), this finding closes by acceptance of the partial shape; if neither lands, the gap becomes the closing-evidence record. (Rust supplement § PE — `cargo clippy --deny warnings`)
+
+---
+
+### Dismissed
+
+*(none — every finding in this round is grounded in a specific file or workflow citation. The Round 1 dismissals of F12 + F13 — "no containerization / observability / IaC / IAM / DR" and "web-shaped performance dimensions not applicable to a CLI binary" — remain dismissed and are not re-litigated; the inapplicable-dimension cluster has not changed since Round 1 and the scope rationale from `DESIGN.md` § Scope and non-goals holds.)*
+
+---
+
+### Hallucinated
+
+*(none — every Resolved finding in this round is grounded in a verifiable artifact change cited file-and-line; every Deferred finding is grounded in either an operator-blocked discipline boundary [F9], a held Backlog routing [F10], a partial-fix-with-misframed-rationale [F11], a new adjacent defect surfaced by cold re-application [F12], or a CI-side mechanization gap blocked-by F11 [F13]. None of the findings can be dismissed as the cold adversary having invented a problem that does not exist.)*
+
+---
+
+### Summary
+
+8 Resolved (F1–F8) + 1 Deferred-operator-blocked (F9) + 1 Deferred-Backlog-routing-held (F10) + 1 Deferred-partial-resolution (F11) + 2 new Deferred adjacent defects (F12, F13) the fix cycle introduced. The fix cycle landed the bulk of the load-bearing platform-control gap: CI exists, `cargo audit` + `cargo deny check` gate the supply chain, `--locked` enforces `Cargo.lock` at every install site, `rust-toolchain.toml` + `rust-version` pin the toolchain, `[profile.release]` declares the build-tuning explicitly, `deny.toml` mechanizes the four supply-chain policy sections, the pre-commit hooks now cover `bookmark-cli-manual/`, and `[lints]` opens the crate-level lint configuration surface (partially). The capstone-tier platform-control floor that `issue-tracker-cli` reached at PE R8 closure is now substantially transferred to `bookmark-cli-manual`.
+
+**MVR signal:** Platform Engineer is **MVR-blocked-by-operator-gate** for this PR cycle. The Dim 38 install-verification gate ([Finding 9](#r2-f9)) is the load-bearing block — the AI agent that authored the project cannot by construction satisfy the "non-author on a fresh system" discipline ([G-155](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155)). The other 4 Deferred findings (F10 Backlog routing held; F11 partial resolution; F12 SHA-pinning regression; F13 CI mechanization gap) are AI-fixable but were not in scope for this Round 2 verification pass; they would be the next-round work. Declaring PE at MVR while F9's `*(pending)*` verification row stands would misrepresent the capstone-tier merge gate. The methodology-correct posture: **PE cannot reach MVR in this PR cycle without operator action on the install-verification gate.** When the operator executes `manual-tests/install-verification.md` Steps 1–4 on a non-author fresh system and records a PASS row, the next PE round verifies the row's completeness and PE then advances toward MVR (subject to F11/F12/F13 also being closed or accepted as documented partials).
+
+**Round trigger:** Per [G-131](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131), this round produced 8 Resolved + 2 new Deferred findings (F12, F13), each grounded in specific artifact citations — the continue trigger fires again for Round 3 once the fix cycle for F11/F12/F13 lands AND the operator executes the install-verification gate. Round 3 verifies (a) the SHA-pinning migration held, (b) the full lint-set landed or the rationale was rewritten honestly, (c) the install-verification PASS row is complete and the dim moves to Resolved. The post-Round-3 round produces only Hallucinated findings or no findings is the MVR closure signal for PE.
+
+**Coordination:**
+
+- **Finding 9** (Dim 38 install-verification) — operator-routing: the human operator executes [`manual-tests/install-verification.md`](../../manual-tests/install-verification.md) Steps 1–4 on a non-author fresh system; surface to [VDD-IAR Alignment review](../VDD-IAR-ALIGNMENT-REVIEW.md) as the meta-process check that the capstone-required gate is tracked as MVR-blocked, not silently dropped.
+- **Finding 10** (coverage Backlog) — surface to [Solution Owner review](../SOLUTION-OWNER-REVIEW.md) for Backlog ratification (the Round 1 routing is still pending SO acceptance); [Quality Engineer review](../QUALITY-ENGINEER-REVIEW.md) pairs on the public-API coverage requirement.
+- **Finding 11** (lint set partial) — surface to [Software Engineer review](../SOFTWARE-ENGINEER-REVIEW.md) — the crate-level `[lints]` table is SE-owned per Rust supplement § SE; the supplement permits the partial-with-rationale shape but the current rationale overstates coverage. SE's next round decides between option (a) full deny set or option (b) honest partial rationale.
+- **Finding 12** (SHA-pinning regression) — surface to [Software Engineer review](../SOFTWARE-ENGINEER-REVIEW.md) for the workflow-YAML edit; surface to [Security review](../SECURITY-REVIEW.md) for the supply-chain-integrity dimension that the SHA-pinning closure formally addresses.
+- **Finding 13** (CI mechanization gap) — blocked-by F11; closes when F11 lands option (a). No additional cross-domain handoff beyond F11's SE routing.
+
+(Dim 38)
