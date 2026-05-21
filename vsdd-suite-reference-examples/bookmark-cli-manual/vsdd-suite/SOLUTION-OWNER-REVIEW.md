@@ -20,4 +20,4 @@ Read individual rounds via the links in the Reviews table below. This file is th
 
 | Review | Date | File | Scope summary |
 |---|---|---|---|
-| *(no rounds filed yet — populated when the corresponding cold-session review lands in PR 7)* | | | |
+| [Review 1](review-log/2026-05-20-solution-owner.md#review-1--2026-05-20-1930z) | 2026-05-20 19:30Z | `review-log/2026-05-20-solution-owner.md` | Phase 3 IAR Round 1 — first SO round; Layer 1 only; capstone-intent compliance table built first; 4 Findings filed (2 Backlogged documentation defects + 2 Open deliverable-vs-promise concerns); 0 Resolved / 0 Dismissed / 0 Hallucinated. The compliance table closes cleanly against the binary contract; the Findings cluster around methodology-layer gate-vs-deliverable misalignment per the post-PR-6 capstone promotion. |

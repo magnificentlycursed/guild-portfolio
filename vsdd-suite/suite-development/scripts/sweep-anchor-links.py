@@ -168,8 +168,19 @@ def protect(text: str) -> Tuple[str, List[str]]:
     return text, placeholders
 
 def restore(text: str, placeholders: List[str]) -> str:
-    for i, original in enumerate(placeholders):
-        text = text.replace(f"{PLACEHOLDER_MARKER}{i}{PLACEHOLDER_END}", original)
+    # Iterate in REVERSE order: protect() runs in nested-outer order (fenced code first,
+    # then markdown links, ..., headings last). A heading line that contains an inline-code
+    # span gets masked AFTER the inline-code is masked, so the heading's placeholder
+    # ORIGINAL text contains the inline-code placeholder marker. Restoring forward
+    # (placeholder 0 first) means the inline-code restore fires while the marker is still
+    # hidden inside the masked heading, so the inline-code restore is a no-op + the
+    # inline-code marker stays embedded in the later-restored heading. Reverse order
+    # restores the heading first (so the embedded marker becomes visible) then restores
+    # the inline-code (which now finds + replaces its marker). [Review 82 Finding 1
+    # — the bug introduced by PR #37 that corrupted 3 files with literal \x00PROT_N\x00
+    # in headings.]
+    for i in range(len(placeholders) - 1, -1, -1):
+        text = text.replace(f"{PLACEHOLDER_MARKER}{i}{PLACEHOLDER_END}", placeholders[i])
     return text
 
 # ---------- per-file relative-path resolver ----------

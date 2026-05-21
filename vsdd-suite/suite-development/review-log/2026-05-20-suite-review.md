@@ -2,6 +2,117 @@
 
 ---
 
+## Review 82 — 2026-05-20 20:00Z
+
+**Scope:** Operator-directed PR [#38](https://github.com/magnificentlycursed/guild-portfolio/pull/38) — the bookmark-cli-manual capstone 6-phase IAR execution. Spawns 10 parallel cold-session adversarial review agents (one per active capstone-tier domain that didn't already have a Round 1: [Software Engineer](../../domains/role/SOFTWARE-ENGINEER-REVIEW.md), [UX](../../domains/role/UX-REVIEW.md), [Security](../../domains/role/SECURITY-REVIEW.md), [Solution Owner](../../domains/role/SOLUTION-OWNER-REVIEW.md), [Performance Engineer](../../domains/role/PERFORMANCE-ENGINEER-REVIEW.md), [Platform Engineer](../../domains/role/PLATFORM-ENGINEER-REVIEW.md), [Red Team](../../domains/role/RED-TEAM-REVIEW.md), [Technical Writer](../../domains/role/TECHNICAL-WRITER-REVIEW.md), [Documentation Reviewer](../../domains/role/DOCUMENTATION-REVIEWER-REVIEW.md), [VDD-IAR Alignment](../../domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md)). Each agent loads the [Phase 3 primer](../../primers/3-review-session.md) for adversarial framing, the domain prompt for dimensional concerns, relevant supplements ([rust.md](../../supplements/rust.md), [cli.md](../../supplements/cli.md), [markdown.md](../../supplements/markdown.md), [toml.md](../../supplements/toml.md), [json.md](../../supplements/json.md)) for language/interface-specific concerns, and the project artifacts in cold-reader order (DESIGN.md last). 80 findings filed across the 10 rounds; **none of the 10 domains reached MVR at Round 1** — every active domain has at least one substantive Open/Deferred/Raised-to-SO finding. The Phase 6 four-dimensional convergence record is therefore **deferred** rather than attested — the project is not at MVR, and Phase 6 would falsely attest convergence if filed now.
+
+**Lens:** Reference-example 6-phase execution + cold-session-discipline integrity check + bug-via-IAR-discovery (a methodology vindication). Sycophancy compensation: resisted authoring Phase 6 as an attestation when the data says deferral; resisted treating the [PR #37](https://github.com/magnificentlycursed/guild-portfolio/pull/37) NUL-byte corruption bug as a quiet bugfix instead of registering it as the primary methodology-validation moment (the IAR adversarial discipline caught a real automation defect by independent cold-session readers — that is what the suite teaches and what this PR demonstrates working).
+
+**Session note:** In-session with the operator. 10 agents spawned in parallel per the cold-session-isolation discipline ([primer 3](../../primers/3-review-session.md) § Session isolation — "one domain per session; parallel independent sessions are the gold standard"). Each agent reported back with findings count + classification breakdown. After all 10 completed, the consolidation pass (this entry + the bookmark-cli-manual project-side index updates + Phase 6 deferral declaration) ran in the main session.
+
+**Source:** director-raised — operator selected this PR per the post-PR-#37 phasing (`3, 1, 2, 4` order; item 2 = bookmark-cli-manual 6-phase execution).
+
+### Resolved
+
+**Finding 1 — PR [#37](https://github.com/magnificentlycursed/guild-portfolio/pull/37) sweep-script restore-order bug — NUL-byte corruption in 3 forward-facing files; caught by 4 independent cold-session agents (methodology vindication)**
+
+<a id="r82-f1"></a>
+
+[PR #37](https://github.com/magnificentlycursed/guild-portfolio/pull/37)'s [Phase 2 anchor-link sweep](../scripts/sweep-anchor-links.py) introduced 12 literal `\x00PROT_N\x00` NUL-wrapped placeholder markers into 3 markdown files: `vsdd-suite-reference-examples/bookmark-cli-manual/DESIGN.md` (4 NULs across 2 H3 headings), `vsdd-suite-reference-examples/bookmark-cli-manual/manual-tests/layer-1.md` (6 NULs across 3 H2 step headings), and [`vsdd-suite/primers/1c-decomposition.md`](../../primers/1c-decomposition.md) (2 NULs in a paragraph mid-sentence). Each marker replaced an inline-code span that was supposed to round-trip through the sweep's protect/restore phases.
+
+**Root cause:** the script's `protect()` masks inline code (step 4) BEFORE heading lines (step 6). For a heading like `## Step 1 — Happy path: \`bm add <url>\` captures a bookmark`, the inline-code span `` `bm add <url>` `` is masked first as placeholder `\x00PROT_30\x00` (say), then the heading line — now containing the placeholder marker — is masked as placeholder `\x00PROT_K\x00` (K > 30). The `restore()` function iterated FORWARD (`for i, original in enumerate(placeholders)`), restoring placeholder 30 first while the marker was still hidden inside the masked heading. Restore[30] was a no-op (nothing matching `\x00PROT_30\x00` in the visible text). Then restore[K] unmasked the heading WITH the placeholder marker still embedded — leaving the literal `\x00PROT_30\x00` stranded in the final output.
+
+**Methodology vindication:** 4 independent cold-session agents caught this defect during their Round 1 reviews:
+
+| Domain | Finding ID | What they reported |
+|---|---|---|
+| [UX](../../domains/role/UX-REVIEW.md) | Finding 1 (Open) | NUL-byte placeholders in manual-test step headings (`manual-tests/layer-1.md:34,93,120`) |
+| [UX](../../domains/role/UX-REVIEW.md) | Finding 2 (Raised to SO) | NUL-byte placeholders in DESIGN.md behavioral-contract headings (`DESIGN.md:55,63`) |
+| [Software Engineer](../../domains/role/SOFTWARE-ENGINEER-REVIEW.md) | (non-SE observation flagged for TW) | "placeholder-looking section identifiers PROT_30/37/40/41/46 in DESIGN.md + manual-tests/layer-1.md" |
+| [Technical Writer](../../domains/role/TECHNICAL-WRITER-REVIEW.md) | Finding 1 (Open) | Literal `\x00PROT_NN\x00` NUL-byte-wrapped sentinels in DESIGN.md + manual-tests/layer-1.md — Dim 2 + 6 + 12 + 13 simultaneously |
+| [Documentation Reviewer](../../domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) | (Session note) | Read-tool display sanitization surfaced PROT_* tokens; grep confirmed presence in source |
+
+The independent multi-domain detection is exactly what the IAR cold-session-discipline is designed to produce: a defect that escaped the authoring agent + the merge process was caught by the next adversarial pass.
+
+**Owner:** technical-writer (the [`sweep-anchor-links.py`](../scripts/sweep-anchor-links.py) is a TW-owned tooling artifact per [Review 81](#review-81--2026-05-20-1915z) Finding 1).
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check — cross-cutting integrity defect with no single role-domain pair-validator; the fix spans 3 file restorations + 1 script fix + a methodology-narrative entry in this Review. Sanity Check confirms the fix coheres with the [Review 79](#review-79--2026-05-20-1730z) anchor-link convention + the [Review 81](#review-81--2026-05-20-1915z) sweep-script design + the [Review 82](#review-82--2026-05-20-2000z) cold-session-discipline that surfaced the defect.
+
+**Resolution scope:**
+
+| Artifact | Change |
+|---|---|
+| [`vsdd-suite/suite-development/scripts/sweep-anchor-links.py`](../scripts/sweep-anchor-links.py) | `restore()` function rewritten to iterate in REVERSE order — `for i in range(len(placeholders) - 1, -1, -1)`. The fix unwinds the protect() nesting correctly: heading-level placeholders (highest indices) restore first, exposing the embedded inline-code placeholders to subsequent restore iterations. Long inline comment documents the bug + the fix + the methodology cross-reference (Review 82 Finding 1). |
+| [`vsdd-suite-reference-examples/bookmark-cli-manual/DESIGN.md`](../../../vsdd-suite-reference-examples/bookmark-cli-manual/DESIGN.md) lines 55 + 63 | `### \x00PROT_37\x00` → `### \`bm add <url>\`` ; `### \x00PROT_41\x00` → `### \`bm list\`` (restored from `main~1` pre-sweep state). |
+| [`vsdd-suite-reference-examples/bookmark-cli-manual/manual-tests/layer-1.md`](../../../vsdd-suite-reference-examples/bookmark-cli-manual/manual-tests/layer-1.md) lines 34 + 93 + 120 | Step 1 / Step 3 / Step 4 H2 headings restored: `\x00PROT_30\x00` / `\x00PROT_40\x00` / `\x00PROT_46\x00` → `` `bm add <url>` `` / `` `bm list` `` / `` `bm list` ``. |
+| [`vsdd-suite/primers/1c-decomposition.md`](../../primers/1c-decomposition.md) line 78 | `\x00PROT_9\x00` in mid-paragraph anchor-example replaced with the original ``[`manual-tests/layer-3.md#step-3-empty-title-rejected`](manual-tests/layer-3.md#step-3-empty-title-rejected)`` markdown-link form. |
+
+**Verification:** post-fix, `find . -name '*.md' | xargs python3 -c 'import sys; [print(f) for f in sys.argv[1:] if open(f,"rb").read().count(bytes([0]))>0]'` returns 0 markdown files with NUL bytes.
+
+**Why this is the headline finding of Review 82:** the suite's stated value proposition is adversarial cold-session review catching defects the authoring agent misses. The PR #37 sweep was authored + landed + merged without the corruption being caught — and would have continued to spread if subsequent sweeps had used the broken `restore()`. The 10 parallel cold-session agents launched as part of THIS PR's IAR execution caught the defect by 4 independent paths. That is the methodology working at the bar the suite teaches. Capstone-intent projects benefit from exactly this kind of cross-domain adversarial pressure; the suite's reference example demonstrates it.
+
+**Resolution:** Script bug fixed (reverse-order restore). 3 corrupted files restored from pre-sweep state. Methodology vindication narrative captured in this Finding for future reference.
+
+**Finding 2 — Bookmark-cli-manual capstone 6-phase IAR execution: 10 parallel cold-session Round 1 rounds; 80 findings; project NOT at MVR; Phase 6 four-dimensional convergence deferred**
+
+<a id="r82-f2"></a>
+
+The 10 cold-session agents authored 10 new review-log files at [`vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-{domain-slug}.md`](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/), each following the strict schema ([Review heading regex](../suite-development.md#agent-api-surface-review-80-finding-3) + required preamble fields + classification sub-sections + per-Finding `<a id="r1-fN"></a>` anchors + lifecycle fields + required closer). The aggregate findings count:
+
+| Domain | Findings | Open | Resolved | Other |
+|---|---|---|---|---|
+| [Software Engineer](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-software-engineer.md) | 5 | 4 | 0 | 1 Raised to SO |
+| [UX](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-ux.md) | 9 | 6 | 0 | 1 Raised to SO + 2 Dismissed |
+| [Security](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-security.md) | 6 | 3 | 0 | 2 Accepted risk + 1 Hallucinated |
+| [Solution Owner](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-solution-owner.md) | 4 | 2 | 0 | 2 Backlogged |
+| [Performance Engineer](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-performance-engineer.md) | 6 | 0 | 0 | 1 Raised to SO + 4 Deferred + 1 Accepted limitation |
+| [Platform Engineer](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-platform-engineer.md) | 13 | 0 | 0 | 11 Deferred + 2 Dismissed |
+| [Red Team](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-red-team.md) | 11 | 0 | 0 | 3 Accepted risk + 3 Raised to SO + 1 Dismissed + 4 Hallucinated |
+| [Technical Writer](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-technical-writer.md) | 6 | 5 | 0 | 1 Hallucinated |
+| [Documentation Reviewer](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-documentation-reviewer.md) | 13 | 13 | 0 | 0 |
+| [VDD-IAR Alignment](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-vdd-iar-alignment.md) | 7 | 0 | 5 | 2 Dismissed |
+| **Total** | **80** | **33** | **5** | **42** |
+
+**Owner:** software-engineer (per the methodology — Phase 3 findings route to SE for fix work; the orchestration is suite-development scope but the project-side fix backlog is SE-owned).
+**Status:** validated (the agent outputs are filed; the round is closed; the Round-2 verification cycle is a separate methodology step routed via [Phase 4 Feedback Integration Loop](../../primers/4-feedback-integration.md)).
+**Blocked by:** *(none)* — the Round 1 sweep is complete; Round 2 verification is a downstream phase, not a blocker to this Finding's closure.
+**Validator:** sanity-check — cross-cutting orchestration outcome with no natural cross-domain pair-validator at the meta level; Sanity Check confirms the 10 rounds + the Phase 6 deferral declaration cohere with the methodology's Round-1-doesn't-promise-MVR doctrine.
+
+#### Phase 6 four-dimensional convergence — DEFERRED
+
+[Phase 6](../../primers/6-convergence.md) attests **Spec MVR + Test MVR + Implementation MVR + Formal-verification MVR + cross-dimension consistency check**. Each dimension requires its contributing rounds to reach MVR (final round produces only Hallucinated findings, or all real findings are Resolved + verified). At Round 1 close:
+
+- **Dim 1 (Spec MVR):** [DESIGN.md](../../../vsdd-suite-reference-examples/bookmark-cli-manual/DESIGN.md) has substantive raised-to-SO findings ([SO R1 F2](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-solution-owner.md) — manual-test/spec divergence; [PE R1 F1](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-performance-engineer.md) — no performance budget; [Red Team R1 F4-F6](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-red-team.md) — terminal-escape + file-mode + symlink-follow). **Not at MVR.**
+- **Dim 2 (Test MVR):** [QE Review 2](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-quality-engineer.md) reached Mutation Testing closure at 8/8 viable mutants killed pre-Round-1 sweep; the post-Round-1 cycle introduces new test-surface concerns ([SE R1 F2](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-software-engineer.md) — atomic-save coverage gap; [PE Performance R1 F5](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-performance-engineer.md) — no data-scaling tests; multiple manual-test integrity defects). **Not at MVR.**
+- **Dim 3 (Implementation MVR):** 9 of 11 active role domains + the meta have substantive Open or Raised-to-SO findings against the implementation, the manuals, or the supporting tooling/CI. **Not at MVR.**
+- **Dim 4 (Formal-verification MVR):** Phase 5 hardening forms declared in [DESIGN.md § Phase 5 strategy](../../../vsdd-suite-reference-examples/bookmark-cli-manual/DESIGN.md) — Mutation Testing + Purity Boundary Audit executed pre-Round-1; property-based testing deferred; Fuzz Testing + Proof Execution not-applicable. The hardening-form rounds reached closure but the cross-dimension consistency check fails (Dims 1-3 not at MVR). **Cannot attest until upstream dimensions converge.**
+- **Cross-dimension consistency check:** fails by construction since Dims 1-3 are below MVR.
+
+**Phase 6 convergence record:** declared **deferred** in this Review's audit trail. The record will be authored as the FINAL VDD-IAR Alignment review round (per [DESIGN.md § Phase 6 strategy](../../../vsdd-suite-reference-examples/bookmark-cli-manual/DESIGN.md) + [G-177](../FINDINGS-INDEX.md#g-177)) when all 10 Round-1 rounds reach MVR via their respective Round-2+ cycles. This is the methodology working honestly — a Phase 6 attestation filed against a non-MVR project would be a sycophancy artifact, not a convergence record.
+
+**Resolution scope (this PR):**
+
+| Artifact | Change |
+|---|---|
+| 10 new files at `vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-{domain-slug}.md` | Round 1 cold-session output per domain. Each follows the strict schema. |
+| `vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/FINDINGS-INDEX.md` | 27 new finding rows (F-006 through F-032 partial; some rounds filed registry rows in-session via the parallel agents — SO + PE Platform + VDD-IAR Alignment; other rounds' findings remain registered only in their per-session files pending the consolidated registry-walk in Round 2). |
+| 7 per-domain index files at `vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/{DOMAIN}-REVIEW.md` | Reviews-table row added for Round 1: SE, UX, Security, PE Performance, Red Team, TW, Doc Reviewer. (SO + PE Platform + VDD-IAR Alignment per-domain indexes were updated by their respective agents in-session.) |
+| 3 corrupted files restored | DESIGN.md + manual-tests/layer-1.md + 1c-decomposition.md — Finding 1 above. |
+| [`vsdd-suite/suite-development/scripts/sweep-anchor-links.py`](../scripts/sweep-anchor-links.py) | `restore()` reverse-order fix — Finding 1 above. |
+
+**Round 2 routing (NOT part of this PR; deferred to subsequent PR cycle per [Phase 4 Feedback Integration Loop](../../primers/4-feedback-integration.md)):** the 33 Open + 33 mixed-classification (Raised to SO / Deferred / Accepted risk / Backlogged / Accepted limitation) findings need to be triaged + routed + fixed + verified in a Round-2 cold-session pass. Per [G-130](../FINDINGS-INDEX.md#g-130) Deferred discipline, the Deferred findings carry trigger conditions + auto-Backlog dates. Per the [Phase 3 primer's continue-trigger](../../primers/3-review-session.md), every domain with real findings has Round 2 mandated.
+
+**Resolution:** 10 cold-session Round 1 rounds executed; 80 findings filed; project NOT at MVR; Phase 6 four-dimensional convergence deferred (methodology-honest declaration; will be authored when Round-2+ cycles reach MVR). The Round 1 execution demonstrates the IAR adversarial discipline at the capstone bar.
+
+### Summary
+
+2 Findings Resolved in-session ([Finding 1](#r82-f1) = PR #37 sweep-script restore-order bug + 3-file corruption fix — methodology vindication; [Finding 2](#r82-f2) = bookmark-cli-manual capstone 6-phase IAR Round 1 execution — 10 parallel cold-session rounds, 80 findings, Phase 6 deferred). PR [#38](https://github.com/magnificentlycursed/guild-portfolio/pull/38) ships the 10 Round 1 outputs + the corruption fix + the script bug-fix; Round 2 verification cycles + Phase 6 attestation land in subsequent PRs. Backlog after Review 82: **1 Open ([Review 79 Finding 2 Deferred](#review-79--2026-05-20-1730z) — Green Gate / smoke tests) + 7 prior-Deferred** (the 80 bookmark-cli-manual project-side findings are tracked in that project's own [FINDINGS-INDEX](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/FINDINGS-INDEX.md); they don't roll up to the suite-side registry because they're project-scope findings against a project that uses the suite, not findings against the suite itself).
+
+**Coordination:** Round 2 routing follows the [Phase 4 Feedback Integration Loop](../../primers/4-feedback-integration.md) — each domain's Open findings route back to the appropriate VSDD phase for fix work (Phase 1a/b for spec defects; Phase 2a/b for test + implementation defects; Phase 5 for hardening-surface defects). Phase 6 four-dimensional convergence is the project-terminal gate after all Round-2+ rounds reach MVR. The bookmark-cli-crosslink reference variant (queued for a future PR per the `3, 1, 2, 4` operator phasing) will be built from genesis under the convention + benefit from this PR's Round 1 evidence about what defects to anticipate.
+
+---
+
 ## Review 81 — 2026-05-20 19:15Z
 
 **Scope:** Operator-directed Phase 2 mechanical anchor-link sweep — closes the sub-finding deferred under [Review 79](#review-79--2026-05-20-1730z) Finding 3 ("Sweep deferred to follow-up PR — Phase 2 comprehensive mechanical sweep"). Applies the [anchor-link convention](../suite-development.md#anchor-link-convention-for-cross-references-review-79-finding-3) authored in Review 79 + the per-Finding anchor convention authored in [Review 80](#review-80--2026-05-20-1830z) Finding 3 across the bulk of forward-facing suite content + reference-example project content that wasn't covered by [PR #35](https://github.com/magnificentlycursed/guild-portfolio/pull/35)'s Phase 1 high-leverage entry-point sweep.

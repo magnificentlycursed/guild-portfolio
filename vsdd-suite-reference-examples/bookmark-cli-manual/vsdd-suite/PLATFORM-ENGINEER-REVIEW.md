@@ -20,4 +20,4 @@ Read individual rounds via the links in the Reviews table below. This file is th
 
 | Review | Date | File | Scope summary |
 |---|---|---|---|
-| *(no rounds filed yet — populated when the corresponding cold-session review lands in PR 7)* | | | |
+| Review 1 | 2026-05-20 19:30Z | [2026-05-20-platform-engineer.md](review-log/2026-05-20-platform-engineer.md#review-1--2026-05-20-1930z) | First cold-context Platform Engineer pass at Layer 1 close (post-Phase 5). 11 Deferred + 2 Dismissed; no CI workflow exists; Dim 38 install-verification gate open. |

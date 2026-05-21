@@ -4,6 +4,31 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-20 20:00Z ([Review 82](suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z): bookmark-cli-manual capstone 6-phase IAR Round 1 execution — 10 parallel cold-session rounds, 80 findings, Phase 6 deferred; methodology-vindication NUL-byte corruption fix from PR [#37](https://github.com/magnificentlycursed/guild-portfolio/pull/37) — 2 Resolved; v0.11.4; PR [#38](https://github.com/magnificentlycursed/guild-portfolio/pull/38))
+
+### Fixed (suite-side — methodology vindication, [Review 82](suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z) Finding 1)
+- **[`vsdd-suite/suite-development/scripts/sweep-anchor-links.py`](suite-development/scripts/sweep-anchor-links.py)** — `restore()` reverse-order fix. Forward iteration meant inline-code placeholders (lower indices) were restored before the heading-line placeholders (higher indices) that contained them — the inline-code restore was a no-op, then the heading restore embedded the inline-code marker into the final output. Reverse iteration unwinds the nested protect()-order correctly. Long inline comment documents the bug + fix + cross-reference to this Review.
+- **3 corrupted files restored from `main~1` pre-sweep state:** [`DESIGN.md`](../vsdd-suite-reference-examples/bookmark-cli-manual/DESIGN.md) lines 55 + 63 (`### \`bm add <url>\`` + `### \`bm list\``); [`manual-tests/layer-1.md`](../vsdd-suite-reference-examples/bookmark-cli-manual/manual-tests/layer-1.md) lines 34 + 93 + 120 (Step 1 + 3 + 4 H2 headings); [`primers/1c-decomposition.md`](primers/1c-decomposition.md) line 78 (mid-paragraph markdown-link form restored).
+- **Methodology vindication:** 4 independent cold-session IAR Round 1 agents (UX, Software Engineer, Technical Writer, Documentation Reviewer) caught the corruption — exactly what the suite's adversarial-cold-session discipline is designed to produce.
+
+### Added (reference example — bookmark-cli-manual, [Review 82](suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z) Finding 2)
+- **10 new per-domain review-log files** at [`vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-{domain-slug}.md`](../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/) covering all 10 active capstone-tier domains that didn't already have a Round 1 ([Software Engineer](domains/role/SOFTWARE-ENGINEER-REVIEW.md), [UX](domains/role/UX-REVIEW.md), [Security](domains/role/SECURITY-REVIEW.md), [Solution Owner](domains/role/SOLUTION-OWNER-REVIEW.md), [Performance Engineer](domains/role/PERFORMANCE-ENGINEER-REVIEW.md), [Platform Engineer](domains/role/PLATFORM-ENGINEER-REVIEW.md), [Red Team](domains/role/RED-TEAM-REVIEW.md), [Technical Writer](domains/role/TECHNICAL-WRITER-REVIEW.md), [Documentation Reviewer](domains/role/DOCUMENTATION-REVIEWER-REVIEW.md), [VDD-IAR Alignment](domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md) meta). **80 findings total across the 10 rounds** (33 Open + 5 Resolved + 42 mixed-classification).
+- **27 new finding rows** in [`vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/FINDINGS-INDEX.md`](../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/FINDINGS-INDEX.md) (F-006 through F-032, partial; some Round 1 rounds filed their registry rows in-session via their parallel agents; full registry-walk consolidation lands in Round 2).
+
+### Changed (reference example — per-domain index files updated)
+- **10 per-domain index files** at [`vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/{DOMAIN}-REVIEW.md`](../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/) — Reviews tables updated with Round 1 rows.
+
+### Deferred
+- **[bookmark-cli-manual Phase 6 four-dimensional convergence record](../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-vdd-iar-alignment.md)** — methodology-honest deferral. Dim 1 Spec MVR, Dim 2 Test MVR, Dim 3 Implementation MVR all below MVR at Round 1 close; cross-dimension consistency check fails by construction. Phase 6 attestation against a non-MVR project would be a sycophancy artifact. Phase 6 will be authored as the FINAL VDD-IAR Alignment review round when all Round-2+ cycles reach MVR (subsequent PR).
+
+### Resolved
+- **[Review 82](suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z) Finding 1** — PR #37 sweep-script restore-order bug fixed; 3 corrupted files restored; methodology vindication captured. Full narrative: [Review 82](suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z).
+- **[Review 82](suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z) Finding 2** — bookmark-cli-manual capstone 6-phase IAR Round 1 execution (10 cold-session rounds; 80 findings; Phase 6 deferred). Full narrative: [Review 82](suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z).
+
+**Backlog after Review 82: 1 Open ([Review 79 Finding 2 Deferred](suite-development/review-log/2026-05-20-suite-review.md#review-79--2026-05-20-1730z)) + 7 prior-Deferred** (the 80 bookmark-cli-manual findings are project-scope; they don't roll up to the suite-side registry).
+
+---
+
 ## Unreleased — 2026-05-20 19:15Z ([Review 81](suite-development/review-log/2026-05-20-suite-review.md#review-81--2026-05-20-1915z): Phase 2 mechanical anchor-link sweep across 44 forward-facing files + sweep script committed as project-tracked tool — 1 Resolved; v0.11.3; PR [#37](https://github.com/magnificentlycursed/guild-portfolio/pull/37))
 
 ### Added (suite-side — Phase 2 sweep tool, [Review 81](suite-development/review-log/2026-05-20-suite-review.md#review-81--2026-05-20-1915z) Finding 1)

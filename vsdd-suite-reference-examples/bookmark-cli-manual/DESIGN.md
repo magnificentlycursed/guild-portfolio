@@ -52,7 +52,7 @@ The project exists as the reference implementation for the VSDD suite's worked e
 
 ## Behavioral contracts
 
-###  PROT_37 
+### `bm add <url>`
 
 - **Input shape:** exactly one positional argument, a non-empty string.
 - **Success output (stdout):** silent. Exit 0.
@@ -60,7 +60,7 @@ The project exists as the reference implementation for the VSDD suite's worked e
 - **Failure (empty URL):** stderr `Error: URL cannot be empty.` followed by newline. Exit 1. No file write.
 - **Failure (storage file unreadable / unwritable):** stderr `Error: <descriptive message>` followed by newline. Exit 2. No partial write.
 
-###  PROT_41 
+### `bm list`
 
 - **Input shape:** no positional arguments, no flags.
 - **Success output (stdout):** zero or more lines, one per bookmark, newest-first. Format per line: `<timestamp> <url>` (timestamp in RFC 3339; single space separator). Trailing newline after the last bookmark.
