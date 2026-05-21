@@ -89,6 +89,7 @@ DOMAIN_CLASSIFICATIONS: Dict[str, Set[str]] = {
     "platform-engineer": {"Resolved", "Deferred", "Dismissed", "Hallucinated"},
     "technical-writer": {"Resolved", "Deferred", "Dismissed", "Hallucinated"},
     "documentation-reviewer": {"Resolved", "Deferred", "Dismissed", "Hallucinated"},  # Review 80 — TW adversarial pair (cold-reader)
+    "ai-engineer": {"Resolved", "Deferred", "Dismissed", "Hallucinated"},  # Review 83 — AI-agent-usage cost/quality discipline (validator: sanity-check)
     "localization": {"Resolved", "Deferred", "Dismissed", "Accepted scope", "Hallucinated"},
     "performance-engineer": {"Resolved", "Deferred", "Dismissed", "Accepted limitation", "Hallucinated"},
     "accessibility": {"Resolved", "Deferred", "Dismissed", "Accepted deviation", "Hallucinated"},

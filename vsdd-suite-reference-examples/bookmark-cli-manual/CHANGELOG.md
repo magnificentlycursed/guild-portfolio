@@ -1,5 +1,44 @@
 # Changelog
 
+## v0.12.0 AI Engineer domain registration + first cold-session round — 2026-05-21 10:00Z ([Review 83](../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-83--2026-05-21-1000z))
+
+**Scope:** Reference example's capstone-active-domain set extended with the newly-registered [AI Engineer](../../vsdd-suite/domains/role/AI-ENGINEER-REVIEW.md) role-domain (cost-and-quality discipline for AI-agent usage in the IAR cycle). First cold-session Round 1 filed against PR [#38](https://github.com/magnificentlycursed/guild-portfolio/pull/38)'s 3-round cycle as the new domain's first audit.
+
+### Added — review-log discipline
+
+- **[`vsdd-suite/AI-ENGINEER-REVIEW.md`](vsdd-suite/AI-ENGINEER-REVIEW.md)** — new per-domain index stub at the reference example. Active domain promotes from 11 role + 1 meta = 12 → **12 role + 1 meta = 13** at capstone intent.
+- **[`vsdd-suite/review-log/2026-05-21-ai-engineer.md`](vsdd-suite/review-log/2026-05-21-ai-engineer.md)** — Round 1 cold-session review against PR #38's R1 + R2 + R3 cycle. **10 findings filed: 5 Resolved + 3 Deferred + 1 Dismissed + 1 Hallucinated**.
+
+### Changed — spec ([`DESIGN.md`](DESIGN.md))
+
+- **§ Project intent — Active domain set** — `5 extended` → `6 extended`; `11 role + 1 meta = 12 active domains` → `12 role + 1 meta = 13 active domains` (AI Engineer added with the rationale that PR [#38](https://github.com/magnificentlycursed/guild-portfolio/pull/38)'s 3-round cycle burned ~3-4M tokens + hit a daily rate-limit mid-cycle; capstone intent + sustained multi-round cycles compound cost; AI Engineer is the discipline that keeps the gold-standard achievable at scale).
+
+### Changed — docs
+
+- **[`TODO.md`](TODO.md)** — `12 active domains` → `13 active domains`; capstone-tier extended-set list extended with [AI Engineer](../../vsdd-suite/domains/role/AI-ENGINEER-REVIEW.md).
+- **[`vsdd-suite/FINDINGS-INDEX.md`](vsdd-suite/FINDINGS-INDEX.md)** — Cross-references preamble updated (`11 active role-domain indexes` → `12 active role-domain indexes (including AI Engineer)`); 10 new rows (F-028 through F-037) for the AI Engineer Round 1 findings.
+
+### Per-domain Round 1 outcomes ([Review 1](vsdd-suite/review-log/2026-05-21-ai-engineer.md#review-1--2026-05-21-1000z))
+
+| Finding | Dim | Classification | Summary |
+|---|---|---|---|
+| F1 | 7 | Resolved | Cluster-batching with adversarial-pair separation as Round 3 spawn shape is operative discipline; codified for Round 3+ at capstone scale |
+| F2 | 8 | Resolved | Phase 4 routing as Round-2+ scope-reducer is operative (R2 + R3 prompts routed prior-round findings, didn't re-scan) |
+| F3 | 11 | Resolved | Audit-trail machine-readability passes [Review 80](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3 Agent-API contract spot-check |
+| F4 | 12 | Resolved | Operator-directive correction cost: 3 mid-cycle slips codified back into the methodology so future cycles don't repeat |
+| F5 | 5 | Resolved | Rate-limit graceful-degradation discipline vindicated by Review 82 Finding 4 R2-Performance-Engineer rate-limit-hit + clean recovery |
+| F6 | 2 | Deferred | Token economy per finding NOT knowable from audit trail; methodology should add token-tally discipline → PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40) |
+| F7 | 9 | Deferred | Cold-session-budget declaration absent from DESIGN.md § Project intent; intent-tier table should add budget column → PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40) |
+| F8 | 13 | Deferred | Pre-cycle methodology check missing from primer 3; suite-side review-log doesn't open each cycle with pre-spawn declaration → PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40) |
+| F9 | 1 | Dismissed | Candidate Dim-1 session-isolation concern — dismissed on close read; Review 82 spawn evidence shows prior-round review-log loaded as adversary's claim per regression-check discipline |
+| F10 | 3 | Hallucinated | Candidate Dim-3 prompt-cache-divergence concern — failed evidence check; spawn prompts were templated against a common base |
+
+**MVR signal:** NOT REACHED at Round 1 per the [Phase 3 primer](../../vsdd-suite/primers/3-review-session.md) G-131 continue-trigger; 8 substantive findings (5 Resolved + 3 Deferred) mandate an AI Engineer Round 2 in a future cycle. The 3 Deferred findings target methodology-authoring work (suite-side, not project-side) and route to PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40) upstream-suite-remediation per the operator-queued sequencing.
+
+**Per-finding token cost (estimated for this round):** ~21k tokens/finding — well below the capstone-intent expected band floor of 100k/finding per the [AI Engineer domain prompt](../../vsdd-suite/domains/role/AI-ENGINEER-REVIEW.md) Dim 2. Read as cold-session discipline working well (efficient context-load AND substantive findings) rather than under-investment.
+
+---
+
 ## v0.11.5 Round 3 inline fix-cycle + cluster verification — 2026-05-20 22:00Z ([Review 82](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z) Finding 5)
 
 **Scope:** Round 3 of the Phase 3 IAR cycle. Inline fix batch (Round 2 carryforward fixes) + 4-cluster cold-session verification with adversarial-pair separation (engineering / security+ux / red-team+technical-writer / documentation-reviewer+solution-owner) + mid-round inline-fix sub-cycle for 7 new findings.
