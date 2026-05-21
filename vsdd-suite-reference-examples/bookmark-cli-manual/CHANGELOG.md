@@ -1,5 +1,73 @@
 # Changelog
 
+## v0.12.3 Phase 6 four-dimensional convergence ATTESTED + UX/TW/QE cluster fix-cycle from @shimmermathlabs.com install-verification thread — 2026-05-21 13:30Z ([Review 88](../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z))
+
+**Scope:** PR [#42](https://github.com/magnificentlycursed/guild-portfolio/pull/42) — Phase 6 four-dimensional convergence attestation (project-terminal at Layer 1) following [PR #41](https://github.com/magnificentlycursed/guild-portfolio/pull/41)'s closure of the Platform Engineer Dim 38 / [G-155](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155) install-verification gate. The reference-example purpose ([G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112)) is satisfied: all 6 VSDD phases demonstrated end-to-end.
+
+### Attested — Phase 6 four-dimensional convergence (project-terminal)
+
+[VDD-IAR Alignment Review 3 (project-terminal)](vsdd-suite/review-log/2026-05-20-vdd-iar-alignment.md) — all 4 dimensions attest:
+
+| Dimension | Status | Evidence |
+|---|---|---|
+| Spec MVR | ATTESTED | DESIGN.md round closure across PR #38 R2 + PR #40 + PR #42 cycles; no Open spec findings |
+| Test MVR | ATTESTED at Layer-1 scope | QE Reviews 1/2/3; Phase 5 Mutation Testing 8/8 viable kill rate; 1 Deferred-to-Layer-2 RFC 3339 check does not block Layer-1 |
+| Implementation MVR | ATTESTED | 10 of 10 active capstone-tier role-domains at MVR at Layer-1 scope |
+| Formal-verification MVR | ATTESTED | Purity Boundary Audit + Mutation Testing closure; property-based testing / Fuzz Testing / Proof Execution declared deferred-or-not-applicable with rationale |
+| Cross-dimension consistency check | ATTESTED | No contradictions across DESIGN.md / src/lib.rs / tests/ / per-domain review-logs |
+
+### Changed — UX + Technical Writer + Quality Engineer cluster cold-session fix-cycle
+
+Per operator's Bluesky Post-9 commitment in [@shimmermathlabs.com](https://bsky.app/profile/shimmermathlabs.com)'s install-verification thread, a 3-domain cluster cold-session was spawned against the post-PR-#40 state. 9 findings filed (8 Resolved inline + 1 Deferred-to-Layer-2). Full narrative in the per-session review-log files:
+
+- [UX Review 4](vsdd-suite/review-log/2026-05-21-ux.md) — F1 "literal — empty" wording rewrite at `manual-tests/layer-1.md`; F2 "Sycophancy-compensation reminder" leak deletion; F3 silent-on-success affordance routed to SO.
+- [Technical Writer Review 4](vsdd-suite/review-log/2026-05-21-technical-writer.md) — F1 `manual-tests/install-verification.md` file-inventory completion (closes Nathan Post-6 "more files than are mentioned in the doc"); F2 Sycophancy-leak deletion (companion fix); F3 README Phase 3 row rewrite to reference the post-PR-#40 canonical artifacts.
+- [Quality Engineer Review 3](vsdd-suite/review-log/2026-05-21-quality-engineer.md) — F1 expected-output wording cross-fix; F2 file-inventory closure; F3 RFC 3339 scripted-check Deferred-to-Layer-2 per primer 1c § scripted-vs-human-split discipline.
+
+### Project files changed
+
+- **[`manual-tests/layer-1.md`](manual-tests/layer-1.md)** — Step 1 + adjacent steps with the same wording shape rewritten: `(literal — empty)` parenthetical → explicit `Expected stdout — none (silent on success; the fenced block below is intentionally empty):` form, naming both the silent-on-success affordance AND the intentionally-empty fenced block as a unit. "Sycophancy-compensation reminder" line at the document's tail deleted.
+- **[`manual-tests/install-verification.md`](manual-tests/install-verification.md)** — file-inventory section rewritten with full repo file enumeration + explanatory annotations; `TW Dim 11` bare reference rewritten in plain language per new `check-suite-internal-terminology.py` hook discipline.
+- **[`README.md`](README.md)** — Phase 3 row in the Phase progression table rewritten to reference per-session review-log files canonical post-PR-#40 (per-domain index files retired in PR #40); 7-of-12 → 10-of-10-at-MVR scorecard update.
+- **[`DESIGN.md`](DESIGN.md)** — 2 bare `G-NNN` references rewritten as markdown links per new hook; 1 "cold-session discipline" suite-internal-vocabulary instance rewritten in plain language.
+
+### Upstream-suite recurrence-prevention applications (per [Review 88 Finding 3](../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z))
+
+The 3 in-thread findings Nathan surfaced were each routed to upstream-suite recurrence-prevention so future install-verification cycles on other projects don't repeat the same defects:
+
+1. **"literal — empty" wording confusion** → primer 1c § Manual testing checklist § Empty-output wording discipline (new sub-section with worked-example pattern).
+2. **File-inventory under-enumeration** → install-verification template file-inventory section (partial; template work routed forward).
+3. **"Sycophancy-compensation reminder" suite-internal-vocabulary leak** → new `vsdd-suite/hooks/check-suite-internal-terminology.py` hook wired in pre-commit; scans user-facing project artifacts for suite-internal AI-agent-discipline vocabulary.
+
+Additionally:
+4. **Scripted-vs-human-split discipline** → primer 1c § Manual testing checklist § Scripted-vs-human-split discipline (new sub-section codifying the split between manual-test-plan assertions vs automated-test-surface assertions).
+
+### MVR scorecard post-PR-#42 (project-terminal at Layer 1)
+
+| Domain | Status |
+|---|---|
+| Software Engineer | MVR (R3) |
+| Quality Engineer | MVR (R3 + Phase 5 Mutation Testing closure) |
+| UX | MVR (R4 — NEW closure via Nathan-thread fix-cycle) |
+| Security | MVR (R3) |
+| Solution Architect | MVR (R1 + Phase 5 Purity Boundary Audit closure) |
+| Solution Owner | MVR (R3) |
+| Performance Engineer | MVR at Layer-1 scope (Layer-2 fsync benchmark deferred) |
+| Platform Engineer | **MVR — NEW** (Dim 38 gate closed by PR #41) |
+| Red Team | MVR (R3) |
+| Technical Writer | MVR (R4 — NEW closure via Nathan-thread fix-cycle) |
+| Documentation Reviewer | MVR (R4 — closed in PR #40) |
+| AI Engineer | MVR (R1 + R2 F6/F7/F8 closure via PR #40) |
+| VDD-IAR Alignment | MVR (R3 — project-terminal Phase 6 attestation) |
+
+**10 of 10 active capstone-tier role-domains at MVR + the meta + 2 Phase-5-active SA/QE rounds = 13 active per [DESIGN.md § Project intent](DESIGN.md).** The reference-example IS the worked example of all 6 VSDD phases end-to-end.
+
+### Acknowledgements
+
+- [@shimmermathlabs.com](https://bsky.app/profile/shimmermathlabs.com) for the install-verification PASS row in [PR #41](https://github.com/magnificentlycursed/guild-portfolio/pull/41) + the 3 in-thread findings that motivated the fix-cycle + upstream-suite recurrence-prevention applications. The Bluesky-thread archive lives at [`../../vsdd-suite/suite-development/review-log/external-review-log/2026-05-21-shimmermathlabs.md`](../../vsdd-suite/suite-development/review-log/external-review-log/2026-05-21-shimmermathlabs.md).
+
+---
+
 ## v0.12.2 PROCESS.md three-audience-lens optimization — 2026-05-21 12:00Z ([Review 86](../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-86--2026-05-21-1200z) Finding 4)
 
 **Scope:** PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40) — operator-directed evaluation of the AI-authored PROCESS.md against review-log evidence + three-audience-lens optimization. The 3 AI-author "what was hardest" claims verified against review-log evidence (all 3 PROVEN OUT); existing stumbling points gained three-audience treatment; 3 new post-PR-#38/#39/#40 stumbling points added.
