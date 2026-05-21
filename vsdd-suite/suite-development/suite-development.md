@@ -65,7 +65,7 @@ A complete domain file contains these elements, in order:
 
 **Finding classification schemas by domain type:**
 
-- Most role domains: `resolved`, `deferred`, `dismissed`, `hallucinated`
+- Most role domains: `resolved`, `deferred`, `dismissed`, `hallucinated` (including the new [AI Engineer](../domains/role/AI-ENGINEER-REVIEW.md) role-domain registered in [Review 83](review-log/2026-05-20-suite-review.md#review-83--2026-05-21-1000z))
 - Security and Red Team: `resolved`, `accepted risk`, `dismissed`, `hallucinated` (no `deferred` — security findings are not deferred)
 - Solution Owner: `resolved`, `backlogged`, `dismissed`, `hallucinated` (plus `approved deviation`)
 - Accessibility: `resolved`, `deferred`, `dismissed`, `accepted deviation`, `hallucinated`
@@ -251,7 +251,7 @@ The suite commits to a stable agent-readable surface across the audit-trail arti
 **Validator:** <domain-slug | sanity-check | *self* with rationale>
 ```
 
-- Owner / Validator domain-slug values come from the canonical set in [`DOMAIN_CLASSIFICATIONS`](../hooks/check-project-review-discipline.py): `quality-engineer`, `software-engineer`, `ux`, `solution-architect`, `data-engineer`, `platform-engineer`, `technical-writer`, `documentation-reviewer`, `localization`, `performance-engineer`, `accessibility`, `privacy`, `security`, `red-team`, `solution-owner`, `vdd-iar-alignment`, `portfolio-assessment`, `observability`, `sanity-check`.
+- Owner / Validator domain-slug values come from the canonical set in [`DOMAIN_CLASSIFICATIONS`](../hooks/check-project-review-discipline.py): `quality-engineer`, `software-engineer`, `ux`, `solution-architect`, `data-engineer`, `platform-engineer`, `technical-writer`, `documentation-reviewer`, `ai-engineer`, `localization`, `performance-engineer`, `accessibility`, `privacy`, `security`, `red-team`, `solution-owner`, `vdd-iar-alignment`, `portfolio-assessment`, `observability`, `sanity-check`.
 - Strict self-validation policy: `*self*` requires explicit substantive rationale per [Review 77](review-log/2026-05-20-suite-review.md#review-77--2026-05-20-1545z) Finding 1; with the [Sanity Check meta domain](../domains/meta/SANITY-CHECK-REVIEW.md) registered, `sanity-check` is the preferred fallback.
 - Hook check: [`check-project-review-discipline.py`](../hooks/check-project-review-discipline.py) gates lifecycle-field requirements on 2026-05-21+.
 

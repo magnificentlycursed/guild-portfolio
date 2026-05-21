@@ -42,6 +42,7 @@ Platform Engineer and Data Engineer are **extended-with-strong-presumption**: mo
 | `role/ACCESSIBILITY-REVIEW.md` | [Accessibility](role/ACCESSIBILITY-REVIEW.md) Engineer | All browser-rendered applications and native UI applications. Not applicable to headless services or CLI tools. When active, run in addition to (not instead of) UX domain. |
 | `role/PRIVACY-REVIEW.md` | [Privacy](role/PRIVACY-REVIEW.md) Officer | Any application that collects, processes, or stores information about identifiable individuals — including single-user applications that store behavioral data. For applications with users other than the developer, full evaluation is required. |
 | `role/LOCALIZATION-REVIEW.md` | [Localization](role/LOCALIZATION-REVIEW.md) Engineer | Any user-facing application that may be used by people speaking languages other than the implementation language, or with locale-specific formatting expectations. For applications explicitly scoped to a single locale, activate to verify the scope is correctly enforced. |
+| `role/AI-ENGINEER-REVIEW.md` | [AI Engineer](role/AI-ENGINEER-REVIEW.md) | Any project whose IAR cycle uses AI agents for parallel cold-session adversarial review (the suite's gold-standard pattern) and whose intent tier sustains multi-round cycles. Surfaces cost-and-quality discipline for AI-agent usage (token economy per finding, prompt-cache discipline, session isolation, sub-agent delegation, rate-limit strategy, model selection, cluster-batching with adversarial-pair separation). Validator: `sanity-check`. Strong presumption at capstone + production intent (sustained multi-round cycles compound cost); active at portfolio when parallel cold-session is used; extended-pool opt-in at learning-exercise. Registered in [Review 83](../suite-development/review-log/2026-05-20-suite-review.md#review-83--2026-05-21-1000z). |
 
 ---
 
@@ -63,7 +64,7 @@ The "all cores plus warranted extended domains" default above is the right start
 
 The over-investment failure mode is harder to catch in-project than the under-investment one because more findings *feel* like more value — that's the framing [G-150](../suite-development/FINDINGS-INDEX.md#g-150) names and the calibration this section operationalizes.
 
-The seven core domains (SE, QE, UX, Security, SA, SO, VDD-IAR Alignment) are abbreviated "7 core" below. The extended pool draws from {PE, DE, Red Team, Performance Engineer, Technical Writer, Documentation Reviewer, Accessibility, Privacy, Localization} per the activation criteria above. Documentation Reviewer is the cold-reader pair to Technical Writer; they activate together.
+The seven core domains (SE, QE, UX, Security, SA, SO, VDD-IAR Alignment) are abbreviated "7 core" below. The extended pool draws from {PE, DE, Red Team, Performance Engineer, Technical Writer, Documentation Reviewer, AI Engineer, Accessibility, Privacy, Localization} per the activation criteria above. Documentation Reviewer is the cold-reader pair to Technical Writer; they activate together. AI Engineer activates whenever the IAR cycle uses parallel cold-session adversarial review (the gold-standard pattern at capstone + production intent).
 
 | Intent | Active core domains | Active extended domains | Stop-signal sensitivity ([G-151](../suite-development/FINDINGS-INDEX.md#g-151)) | Notes |
 |---|---|---|---|---|
