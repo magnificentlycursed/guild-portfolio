@@ -58,11 +58,38 @@ struct Cli {
 #[derive(Subcommand)]
 enum Cmd {
     /// Add a bookmark with the current UTC timestamp.
+    ///
+    /// Captures `<URL>` as a new bookmark record with the current UTC
+    /// time as the `timestamp` field. The URL must be non-empty; any
+    /// other string (including whitespace-only or arbitrarily long URLs)
+    /// is accepted — the user is responsible for what they capture.
+    /// Storage is the JSON file at `$BOOKMARK_CLI_DB` (default
+    /// `./bookmarks.json`); writes are atomic + parent-dir-fsynced on Unix.
+    ///
+    /// Exits 0 on success (stdout silent). Exits 1 with `Error: URL
+    /// cannot be empty.` if the URL is empty (also covers `bm add` with
+    /// no positional). Exits 2 on storage error. Exits 64 on other CLI
+    /// usage errors (unknown flag, etc.).
     Add {
         /// The URL to capture. Must be non-empty.
         url: String,
     },
     /// List bookmarks, newest-first. Optionally filter by tag(s).
+    ///
+    /// Without `--tag`, lists every bookmark in newest-first order, one
+    /// per line, in `<RFC3339-timestamp> <url>` format. With one or
+    /// more `--tag <label>` flags, lists only bookmarks whose `tags`
+    /// field contains AT LEAST ONE of the supplied labels — repeated
+    /// `--tag` composes with OR-semantics (a bookmark matches if it
+    /// has ANY listed tag).
+    ///
+    /// Empty store: stderr `No bookmarks yet.` + exit 0. The empty-
+    /// store empty-state takes precedence over the filter-empty-state
+    /// even when `--tag` is supplied (a user with no bookmarks gets
+    /// the more informative signal). Filter no-match: stderr
+    /// `No bookmarks match the supplied filter.` + exit 0. Empty
+    /// label (`bm list --tag ""`): stderr `Error: tag label cannot
+    /// be empty.` + exit 1.
     List {
         /// Filter to bookmarks tagged with this label. Repeatable —
         /// repeated `--tag` is OR-semantics across labels per
@@ -71,6 +98,21 @@ enum Cmd {
         tags: Vec<String>,
     },
     /// Attach a label to all bookmarks whose URL matches exactly. Idempotent.
+    ///
+    /// The URL is the identifier (not an index) — `bm tag <URL> <LABEL>`
+    /// tags every bookmark with that exact URL string (case-sensitive).
+    /// If two bookmarks share the same URL (append-only semantics
+    /// permits this), both are tagged. Idempotent: a label already
+    /// attached to a matching bookmark is not duplicated.
+    ///
+    /// On success, exits 0 with stdout silent and stderr
+    /// `Tagged N bookmark(s).` (where N is the count of matching
+    /// bookmarks; N >= 1 because zero matches is the error path).
+    /// If no bookmark has the URL: exit 1 with stderr `Error: no
+    /// bookmark found with URL <url>.` (typos surface as user-errors;
+    /// silent no-op would mask them). Empty URL or empty label:
+    /// exit 1 with the corresponding `Error: ...` message. Exits 2
+    /// on storage error.
     Tag {
         /// The URL whose matching bookmarks should be tagged. Must be non-empty.
         url: String,
@@ -257,11 +299,17 @@ fn run_tag(path: &std::path::Path, url: &str, label: &str) -> ExitCode {
         }
     };
     match store.attach_tag(url, label) {
-        Ok(_) => {
+        Ok(n) => {
             if let Err(e) = store.save(path) {
                 emit_storage_error(&e, "save");
                 return ExitCode::from(2);
             }
+            // Affordance — emit the match count to stderr so the multi-match
+            // semantic (a `bm tag` that touched 2 bookmarks because two share
+            // the same URL) is discoverable from user behavior. Stdout stays
+            // silent so pipelines (`bm tag ... | jq ...` or similar) are
+            // unaffected. Closes Layer 2 Round 1 UX F2 + SE F2.
+            eprintln!("Tagged {n} bookmark(s).");
             ExitCode::SUCCESS
         }
         Err(AttachTagError::EmptyUrl) => {

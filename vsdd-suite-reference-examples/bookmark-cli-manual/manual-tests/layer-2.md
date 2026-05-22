@@ -75,15 +75,18 @@ echo "exit: $?"
 cat "$BOOKMARK_CLI_DB"
 ```
 
-Expected stdout for `bm tag` — none (the command is silent on success; the fenced block below is intentionally empty):
+Expected stdout for `bm tag` — none (the command is silent on stdout for pipeline-script-ability; the fenced block below is intentionally empty):
 
 ```
 ```
 
-Expected stderr for `bm tag` — none (the fenced block below is intentionally empty):
+Expected stderr for `bm tag` (literal — Layer 2 Round 1 UX F2 + SE F2 affordance):
 
 ```
+Tagged 1 bookmark(s).
 ```
+
+The `Tagged N bookmark(s).` line on stderr names the match count so the multi-match semantic (covered at Step 7-equivalent multi-match scenario; tested in the integration suite at `tests_tag_against_duplicate_url_tags_all_matches`) is discoverable from user behavior. Stdout stays silent so `bm tag <url> <label> | downstream-script` sees no placeholder text.
 
 Expected stdout for `echo` (literal):
 
@@ -131,14 +134,15 @@ echo "exit: $?"
 cat "$BOOKMARK_CLI_DB"
 ```
 
-Expected stdout for `bm tag` — none (silent; the fenced block below is intentionally empty):
+Expected stdout for `bm tag` — none (silent on stdout for pipeline-script-ability; the fenced block below is intentionally empty):
 
 ```
 ```
 
-Expected stderr for `bm tag` — none (the fenced block below is intentionally empty):
+Expected stderr for `bm tag` (literal — same `Tagged N bookmark(s).` affordance as Step 2; the second invocation's idempotent no-op does NOT reduce the match count because the URL still matches the same one bookmark):
 
 ```
+Tagged 1 bookmark(s).
 ```
 
 Expected stdout for `echo` (literal):
@@ -234,13 +238,19 @@ bm list --tag rust
 echo "exit: $?"
 ```
 
+Expected stderr for `bm tag https://example.com/go go` (literal — Layer 2 Round 1 UX F2 + SE F2 affordance):
+
+```
+Tagged 1 bookmark(s).
+```
+
 Expected stdout for `bm list --tag rust` (literal up to the variable timestamp; exactly one line — only the `rust`-tagged bookmark matches):
 
 ```
 <RFC3339-timestamp-of-rust> https://example.com/rust
 ```
 
-Expected stderr — none (the fenced block below is intentionally empty):
+Expected stderr for `bm list --tag rust` — none (the fenced block below is intentionally empty; the `bm tag` stderr line above is from the preceding command, not from `bm list`):
 
 ```
 ```
@@ -377,6 +387,12 @@ Expected stdout for `--- PRE-MIGRATION ---` block (literal):
     }
   ]
 }
+```
+
+Expected stderr for `BOOKMARK_CLI_DB="$LAYER1_DB" bm tag https://layer1.example migrated` (literal — Layer 2 Round 1 UX F2 + SE F2 affordance; the Layer-1-format file had one bookmark matching the URL):
+
+```
+Tagged 1 bookmark(s).
 ```
 
 Expected stdout for `echo "tag-exit: $?"` (literal):

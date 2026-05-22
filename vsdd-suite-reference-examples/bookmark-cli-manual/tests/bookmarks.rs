@@ -534,7 +534,10 @@ fn tests_tag_attaches_label_to_matching_bookmark() {
         .success()
         .code(0)
         .stdout(predicate::str::is_empty())
-        .stderr(predicate::str::is_empty());
+        // Layer 2 Round 1 UX F2 + SE F2 — `bm tag` emits the match count
+        // to stderr on success so the multi-match semantic is discoverable
+        // from user behavior. Single match → `Tagged 1 bookmark(s).`.
+        .stderr("Tagged 1 bookmark(s).\n");
 
     let contents = fs::read_to_string(&db).expect("store file should still exist after tag");
     let parsed: serde_json::Value = serde_json::from_str(&contents).expect("store is valid JSON");
@@ -569,7 +572,12 @@ fn tests_tag_is_idempotent() {
             .args(["tag", "https://example.com", "rust"])
             .assert()
             .success()
-            .code(0);
+            .code(0)
+            // Both invocations emit `Tagged 1 bookmark(s).` — the second
+            // invocation's idempotent no-op doesn't affect the match count
+            // (the URL still matches one bookmark; the label is just not
+            // re-appended to its tags vec). Closes Layer 2 Round 1 UX F2.
+            .stderr("Tagged 1 bookmark(s).\n");
     }
 
     let contents = fs::read_to_string(&db).unwrap();
@@ -743,7 +751,12 @@ fn tests_tag_against_duplicate_url_tags_all_matches() {
         .args(["tag", "https://dup.example", "rust"])
         .assert()
         .success()
-        .code(0);
+        .code(0)
+        // Two bookmarks share the URL → `bm tag` matched both → stderr
+        // emits `Tagged 2 bookmark(s).`. The multi-match affordance from
+        // Layer 2 Round 1 UX F2 — the user sees the count so the multi-
+        // match semantic is observable from behavior.
+        .stderr("Tagged 2 bookmark(s).\n");
 
     let contents = fs::read_to_string(&db).unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&contents).unwrap();
