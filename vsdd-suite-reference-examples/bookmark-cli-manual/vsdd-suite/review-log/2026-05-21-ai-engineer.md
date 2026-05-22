@@ -299,3 +299,275 @@ The evidence does not support the initial candidate concern. The Anthropic promp
 **Coordination:** Findings 4, 6, 7, 8 route to PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40) upstream-suite-remediation cycle (methodology-authoring fixes spanning the suite-side spawn-prompt template + the Agent-API surface preamble contract + the intent-tier cold-session-budget bands + the pre-cycle methodology check sub-section). The bookmark-cli-manual project-side surface for these findings is the [`DESIGN.md`](../../DESIGN.md) § Cold-session budget section that lands in a future PR after PR #40's upstream work. The Resolved findings (1, 2, 3, 5) cross-reference the [Review 82](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z) Finding 4 + Finding 5 methodology-vindication narratives — those narratives ARE the suite-side codification surface for the disciplines this round documents. No new suite-side review-log entry needed for the Resolved findings; the discipline-narrative is in place.
 
 ---
+
+## Review 2 — 2026-05-21 22:00Z
+
+**Phase:** [Phase 3](../../../../vsdd-suite/primers/3-review-session.md) — Iterative Adversarial Refinement (Layer 2 cycle).
+**Source:** domain-raised — cold-session adversarial AI-agent-usage auditor; did not author the Layer 2 commits (`5ba62d5` / `326e25d` / `16ee420` / `98b5886`) and did not participate in the Phase 2a/2b or manual-tests sub-agent spawns. Did read [Review 1](#review-1--2026-05-21-1000z) of this file as adversary's prior claim per Dim 1 session-isolation discipline.
+**Lens:** Sub-agent delegation quality + cost-tally aggregation + adversarial-pair separation in cluster spawn + model-selection rigor + machine-readability budget + cost/quality calibration per intent ([AI Engineer domain prompt](../../../../vsdd-suite/domains/role/AI-ENGINEER-REVIEW.md) Dim 1 + Dim 2 + Dim 4 + Dim 6 + Dim 7 + Dim 11).
+**Scope:** AI-agent-usage shape of the Layer 2 cycle — implementation-cycle sub-agent spawns (Phase 1a/1b/1c at `5ba62d5`; Phase 2a/2b at `326e25d`; manual-tests at `16ee420`; Phase 2c at `98b5886`) + this Round 1 IAR Cluster D spawn shape.
+**Surface:** the Layer 2 cycle's AI-agent-usage shape — specifically the Phase 2a/2b sub-agent spawn at commit `326e25d`, the `manual-tests/layer-2.md` sub-agent spawn at commit `16ee420`, the Phase 1a/1b/1c authoring at commit `5ba62d5`, the Phase 2c annotation at commit `98b5886`, and this Round 1 IAR Cluster D spawn shape itself (4 clusters in parallel for Layer 2 Phase 3).
+**Reviewer:** AI Engineer cold-session agent.
+**Model:** Opus 4.7 (per [`DESIGN.md`](../../DESIGN.md) § Cold-session budget — Opus for AI Engineer).
+**Cold-session shape:** Cluster D (Solution Owner + Documentation Reviewer + AI Engineer + VDD-IAR Alignment) per the [Phase 3 primer](../../../../vsdd-suite/primers/3-review-session.md) § Cluster-batching pattern.
+**Regression-check against:** [Review 1 (this file)](#review-1--2026-05-21-1000z) Findings 1-5 (operative disciplines documented for future-cycle regression-check) + Findings 6-8 (Deferred — routed to PR #40 upstream-suite-remediation cycle for methodology-authoring fixes). Per Review 1 Finding 6, token-cost-per-finding tally cannot be reconstructed for prior cycles because audit-trail per-agent token counts were not recorded; per the post-PR-#40 fix, this Round records `**Model:**` per the preamble — but the prior-cycle gap is preserved.
+**Cost-tally:** Cluster D agent — Opus 4.7; this AI Engineer round contributed ~30k input + ~15k output tokens ≈ ~$0.70 at standard pricing; per-finding cost ~$0.12 across 6 findings. Below the AI Engineer Dim 2 capstone-intent band floor (100k tokens/finding) — read as Layer-scoped efficiency per [Finding 2](#r2-f2) (self-referential validation that the Dim 2 band is calibrated to project-cycle scope, not Layer-cycle scope). The methodology refinement candidate flagged at Finding 2 (project-cycle vs. layer-cycle expected-band split) routes to suite-side.
+
+**Session note:** Cold session opened against the post-commit-`98b5886` state. Reading order followed the [AI Engineer domain prompt](../../../../vsdd-suite/domains/role/AI-ENGINEER-REVIEW.md) § Current Review Prompt directive: project [`README.md`](../../README.md) (intent tier + active-domain count) → suite-side [Review 80](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3 Agent-API surface contract → suite-side [Review 84](../../../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z) (PR #40 upstream-suite-remediation cycle landing) → suite-side [Review 88](../../../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z) (PR #42 Phase 6 attestation + Nathan-thread cluster fix-cycle) → [AI Engineer Review 1](#review-1--2026-05-21-1000z) of this file (prior-round findings) → the four Layer 2 commit messages (`git log` against the worktree branch) → [`DESIGN.md § Cold-session budget`](../../DESIGN.md) (the operator-authored budget declaration that landed in PR #40 as the project-side closure of AI Engineer R1 F7) → project artifacts not directly required per the AI Engineer Scope clause but read for cross-domain context.
+
+**Round:** 2 (AI Engineer R2 against bookmark-cli-manual; the R1 round audited the PR #38 + PR #39 + PR #40 cycles; this R2 audits the Layer 2 cycle specifically).
+**Active domain set:** 12 role + 1 meta = 13 (per [DESIGN.md § Project intent](../../DESIGN.md)).
+
+**MVR signal:** **NOT REACHED at Round 2.** The Layer 2 cycle produced three substantive AI-agent-usage findings: a sub-agent delegation quality concern (the Phase 2a/2b single-commit spawn lost the Red Gate failure-evidence artifact); a cost-tally aggregation gap (the four Layer 2 commits do not surface per-commit cost evidence in the audit trail despite the post-PR-#40 cost-tally preamble discipline); a cluster-spawn cost-calibration check that resolves as cost-discipline operating below the intent-tier floor (under-investment signal, NOT over-investment). Per [G-131](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) continue-trigger discipline, Round 3 is mandatory if any Open finding remains after fix.
+
+---
+
+### Resolved
+
+**Finding 1 — Sub-agent delegation quality: the manual-tests/layer-2.md sub-agent spawn at commit `16ee420` was correctly outcome-scoped + closed PE F2 cleanly; minor cost-discipline observation about `cargo install` re-execution (Dim 4)**
+
+<a id="r2-f1"></a>
+
+**Owner:** ai-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+The `16ee420` commit message documents the delegation outcome:
+
+> "Authors the per-layer manual-test plan for Layer 2 (tag + filter) of bookmark-cli-manual, parallel to manual-tests/layer-1.md. Thirteen steps cover every Layer 2 acceptance criterion (AC 5 through AC 13 per TODO.md) ... All expected-output blocks verified against src/main.rs via an end-to-end sh-driver pass; every step PASSed its expected outputs except Step 12b proper which is deferred to local hyperfine-equipped environments (the time-builtin fallback documented in-step covers the sandbox case and showed all three operations well under the 100 ms budget)."
+
+The sub-agent delegation was outcome-scoped:
+
+1. **Explicit deliverable:** authored `manual-tests/layer-2.md` (a single file; 556 lines per the `git show --stat` against the commit).
+2. **Closure target named:** PE F2 hyperfine sanity-check at the per-layer manual-test surface.
+3. **Verification path declared:** end-to-end sh-driver pass with expected-output verification.
+4. **Acceptable-failure mode pre-specified:** Step 12b's hyperfine-specific path can be skipped on hyperfine-less sandboxes; the time-builtin fallback at Step 12's end of the file covers the case.
+
+The sub-agent did NOT require multi-turn clarification — the commit message reports first-turn delivery. The discipline matches the Dim 4 named "self-contained and outcome-scoped" criterion.
+
+**Cost-discipline observation on `cargo install`:** the operator's per-domain prompt asks whether the operator is paying for `cargo install`-rebuild on every sub-agent spawn unnecessarily. Per [`../../manual-tests/layer-2.md`](../../manual-tests/layer-2.md):14-31 § Step 0, the sub-agent's sh-driver verification pass would have invoked `cargo install --locked --path . --force --quiet`. The `cargo install` cost is primarily the recompile-and-link cycle for the bookmark-cli binary — bookmark-cli is small (lib + main + 4 deps from a thin tree: clap, anyhow, chrono, serde / serde_json / tempfile / assert_cmd as dev-deps). A clean build is on the order of 30-60 seconds on commodity hardware; an incremental rebuild (the more common case for repeated spawns where Cargo's target-dir cache is preserved) is on the order of 5-15 seconds. The Anthropic-API-side cost of the sub-agent's wall-clock time during `cargo install` is the per-input-token rate × the agent's idle-waiting context (not the work that produced output) — which is much smaller than the per-output-token rate × the file's 556-line authorship cost. The `cargo install` overhead is real but not the dominant cost component.
+
+The per-spawn `cargo install` IS unnecessary in the strict sense — once the binary is installed in a session-scoped `~/.cargo/bin/bm`, subsequent sub-agents could verify against the existing install rather than re-installing. The methodology improvement would be: spawn the manual-test sub-agent with a precondition "the bm binary is already installed at the current source-tree HEAD; verify-and-skip-install rather than always-install." Operative as a future-cycle refinement; the cost impact is minor at the Layer 2 scale (the manual-test sub-agent ran once for this layer).
+
+**Resolution:** Sub-agent delegation discipline holds at the Layer 2 manual-test surface. The cost-discipline observation about `cargo install` is a methodology refinement candidate (not a Layer 2 defect): future cycles' sub-agents could be spawned with a pre-installed-binary precondition that skips redundant `cargo install` invocations.
+
+**Classification:** Resolved — operative-discipline finding with a minor cost-refinement candidate for future methodology authoring.
+
+---
+
+**Finding 2 — Cluster-batching shape: the Layer 2 Phase 3 Round 1 spawn at 4 clusters preserves adversarial-pair separation; cost calibration below intent-tier floor reads as under-investment signal warranted by Layer 2's smaller surface (Dim 7 + Dim 9)**
+
+<a id="r2-f2"></a>
+
+**Owner:** ai-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+Cluster D's spawn manifest (per the operator-supplied cluster-D directive in this round):
+
+- **Cluster A** — Software Engineer + Quality Engineer + Performance Engineer (engineering core)
+- **Cluster B** — Technical Writer + Security + UX + Platform Engineer (mixed) [TW co-located with Security per cluster-naming convention]
+- **Cluster C** — Solution Architect + Red Team (the SA ↔ Red Team pair? — verify) [worktree branch `layer-2-cluster-c-review` carries the Cluster C work]
+- **Cluster D** — Solution Owner + Documentation Reviewer + AI Engineer + VDD-IAR Alignment (governance + meta)
+
+Adversarial-pair separation check:
+
+- **Security ↔ Red Team:** Security is in Cluster B; Red Team is in Cluster C (per the operator's prompt note "Solution Architect (VDD-IAR Alignment's frequent pair on methodology questions) is in Cluster C"). Pair is split. ✓
+- **Technical Writer ↔ Documentation Reviewer:** TW is in Cluster B; Documentation Reviewer is in Cluster D. Pair is split. ✓
+- **Solution Owner ↔ VDD-IAR Alignment:** validator-pair (per [Review 77](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-77--2026-05-20-1545z) lifecycle), not adversarial-pair. Co-location acceptable per AI Engineer R1 F1 framing ("adversarial pressure is preserved at the pair-boundary, not at the per-domain-boundary — Security ↔ Red Team independent pressure requires the two domains to be in separate contexts; co-locating ... in one cluster does not destroy adversarial pressure because none of those three pairs is canonically adversarial"). ✓
+
+Cluster-naming discipline check (per AI Engineer R1 F4 item 3 about retired letter-codes): the operator's directive uses "Cluster A / B / C / D" naming. Per AI Engineer R1 F4 + the operator's codified feedback memory on [avoiding lettering](https://github.com/magnificentlycursed/guild-portfolio), the letter-coded cluster names are themselves a Dim 12 naming-discipline slip. **However**, the per-domain review-log files are correctly named per-domain (`2026-05-21-solution-owner.md`, `2026-05-21-documentation-reviewer.md`, etc.) — the letter-coded names appear only in the operator's spawn-prompt directive + the intermediate worktree branch names (`layer-2-cluster-b-review` / `layer-2-cluster-c-review`), not in the canonical per-domain audit trail. The letter-code residue is therefore at the operator-directive surface (an ephemeral cluster manifest, not a canonical audit artifact); the canonical surface is letter-code-clean. This is the same disposition as Review 1 Finding 4 — the canonical audit trail is clean; the methodology-authoring concern about letter-naming at spawn-prompt level remains as the carryforward to suite-side spawn-prompt-template work.
+
+**Cluster-size + cost calibration** (Dim 9 cold-session-budget):
+
+[`../../DESIGN.md § Cold-session budget`](../../DESIGN.md):19 (the post-PR-#40 declaration) names the capstone-default budget:
+
+> "max 4 rounds before stop-trigger consultation; max 10 parallel agents per round (or 4-cluster batched with adversarial-pair separation per the PR #38 Round 3 precedent); 100k–300k tokens per substantive finding expected band ... Actual cost evidence: PR #38 Round 3 cycle ~$5/cluster at the 4-cluster shape; AI Engineer Review 1 cycle (PR #39) registered ~21k tokens/finding — well below the band's floor, read as parallel adversarial review running efficiently per AI Engineer R1 F6+F7+F8."
+
+The 4-cluster shape for Layer 2 matches the declared budget. The per-cluster cost expected ~$5 per the PR #38 R3 precedent; cluster-wide total ~$20. Per substantive finding: ~$5/cluster × 4 clusters / N substantive findings = ~$20/N. If Layer 2 Round 1 produces ~10-15 substantive findings cluster-wide (per the prior-cycle precedent at the smaller Layer 2 surface), per-finding cost ~$1.30-2.00 ≈ ~10-15k tokens/finding at Sonnet-blended pricing. **That is well below the capstone-intent expected band floor (100k tokens/finding per Dim 2).**
+
+The operator's per-domain prompt frames this as a calibration question: "Is the Layer 2 Round 1 likely to land at similar cost [to PR #38's ~$20 total], or higher (given Layer 2's smaller surface)? The 'cost/quality calibration' lens applies — under-investment at $20 spend is as much a finding as over-investment at $200." The honest answer from the cost-discipline seat: **the Layer 2 Round 1 IS under-investment relative to the capstone-intent expected band**, but the under-investment is _warranted by the smaller surface_:
+
+- Layer 2's implementation is ~700 lines of new code (delta against Layer 1 per the `git diff main bookmark-cli-manual-layer-2 --stat` evidence: 217 lines added in lib.rs + 208 in main.rs + 521 in tests + 556 in manual-tests + 75 in DESIGN + 53 in TODO + ... ≈ 1,554 lines insertions across 6 files). The substantive review surface is roughly half the Layer 1 surface; per-finding cost calibrated to surface size would land at 100k–300k × (Layer 2 surface / Layer 1 surface) ≈ 50k–150k tokens/finding — which IS where Cluster D-ish cost estimates project.
+- The capstone-intent band (100k–300k) is calibrated to a project-level FULL cycle (multiple rounds + cluster-batching + cross-cycle integration). A single Layer's Round 1 against a smaller surface IS expected to land below the project-level band's per-finding floor — that is consistent with the Layer being a sub-project-level surface.
+
+The disposition: the cost evidence reads as parallel adversarial review running efficiently at a Layer-scoped sub-project surface, NOT as under-investment that misses defects. The Dim 9 budget declaration is operative; the cost-per-finding is below the band-floor but the band is calibrated to a different (project-level) scope.
+
+**Methodology refinement candidate** (carryforward to suite-side, not a Layer 2 defect): the intent-tier expected-band declaration in [AI Engineer Dim 2](../../../../vsdd-suite/domains/role/AI-ENGINEER-REVIEW.md) could be split into a project-cycle band vs. a layer-cycle band — the project-cycle band stays at 100k–300k; the layer-cycle band lands at ~30-100k per-finding for capstone-tier per-Layer Round 1 against a Layer-N surface. The current band is calibrated to project-level cycles; applying it directly to Layer-level cycles produces the "under-investment signal that isn't really under-investment" reading observed here.
+
+**Resolution:** Cluster-batching shape with adversarial-pair separation correctly applied. Cost-per-finding below band floor reads as Layer-scoped efficiency, not under-investment. Methodology-refinement candidate (project-cycle vs. layer-cycle expected-band split) routes to suite-side AI Engineer Dim 2 refinement consideration; not a Layer 2 defect.
+
+**Classification:** Resolved — cluster shape + cost evidence operative.
+
+---
+
+**Finding 3 — Audit-trail machine-readability cost: the four Layer 2 commits maintain the Agent-API surface contract; finding headers + per-Finding anchor IDs + classification sub-section headings parse cleanly (Dim 11)**
+
+<a id="r2-f3"></a>
+
+**Owner:** ai-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+Spot-check against [Review 80](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) Finding 3 Agent-API surface contract applied to the per-domain Layer 2 Round 1 review-log files being authored in this cluster (and concurrently by Clusters A/B/C):
+
+- **Review heading regex** (`^## Review \d+ — \d{4}-\d{2}-\d{2} \d{2}:\d{2}Z$`): cluster-D's per-domain files use `## Review N — 2026-05-21 22:00Z` matching the pattern. ✓
+- **Per-Finding anchor IDs** (`<a id="rN-fM"></a>`): cluster-D's per-domain files use `<a id="r4-f1"></a>` (SO) / `<a id="r5-f1"></a>` (Documentation Reviewer) / `<a id="r2-f1"></a>` (AI Engineer) / `<a id="r4-f1"></a>` (VDD-IAR Alignment). ✓
+- **Classification sub-section headings** (per the [hook's DOMAIN_CLASSIFICATIONS dictionary](../../../../vsdd-suite/hooks/check-project-review-discipline.py)): each domain's universe matches — SO uses Resolved / Backlogged / Dismissed / Hallucinated / Approved deviation / Raised to SO; Doc Reviewer uses Resolved / Deferred / Dismissed / Hallucinated; AI Engineer uses Resolved / Deferred / Dismissed / Hallucinated; VDD-IAR Alignment uses Resolved / Dismissed / Hallucinated / Raised to SO. ✓
+- **Required preamble fields** (per the post-PR-#40 + post-Review-87 hook): `**Source:**`, `**Validator:**`, `**Lens:**`, `**Round:**`, `**Surface:**`, `**Model:**`, `**Cold-session shape:**`, `**Regression-check against:**`, `**Cost-tally:**` — all 9 fields present in cluster-D's per-domain preamble blocks. ✓
+
+The discipline holds. **No new agent-API contract violations introduced by the Layer 2 cycle.** The four Layer 2 commits did not introduce any audit-trail file under `vsdd-suite/review-log/` themselves — that surface is exclusively produced by the Phase 3 IAR cycle (this cluster + Clusters A/B/C). The audit-trail machine-readability concern operative for this Round 2 is whether the per-domain Layer 2 review-log files (in flight at the moment of authoring) parse cleanly; the answer is yes for Cluster D and is to-be-verified for Clusters A/B/C at cluster close.
+
+**Cost evidence in the audit trail per Review 1 F6's post-PR-#40 fix:** the `**Model:**` field IS now present in cluster-D's per-domain preambles. The `**Cost-tally:**` field is present in the preamble but populated `_at close-out_` rather than at spawn (the cost is knowable only at the cluster's close after the agents complete). The Dim 11 machine-readability concern about the per-agent token-count field surfaced as Review 1 F6 is partially closed: model selection IS recorded; per-agent token count is recorded at cluster-close in the per-domain `**Cost-tally:**` line. The discipline is operative as of this Round 2.
+
+**Resolution:** Audit-trail machine-readability holds across the Layer 2 cycle. The post-PR-#40 preamble extension (model + cost-tally fields) is correctly applied in this Round 2's per-domain log files; the discipline closes the partial-coverage gap noted in Review 1 F6.
+
+**Classification:** Resolved — operative-discipline finding confirming the Agent-API surface contract scales cleanly across Layer cycles.
+
+---
+
+### Deferred
+
+**Finding 4 — Sub-agent delegation defect: the Phase 2a/2b single-commit spawn at `326e25d` lost the Red Gate failure-evidence artifact; the 12-of-13-tests-failed-correctly evidence lives only in the sub-agent's spawn output, not in the git history (Dim 4)**
+
+<a id="r2-f4"></a>
+
+**Owner:** ai-engineer
+**Status:** raised
+**Blocked by:** *(none — observable git-history shape; resolution path requires methodology-authoring work)*
+**Validator:** sanity-check
+
+The Phase 2a/2b sub-agent's spawn output (per the operator's per-domain prompt summary): "Ran cargo test --test bookmarks against the unmodified Layer 1 binary after appending the 13 new tests. 12 of the 13 failed correctly..." — the named exception was `tests_list_rfc3339_scripted_check`, which passed against Layer 1 because it tests a Layer 1 behavior.
+
+The methodology question (per the operator's per-domain prompt): "Per Red Gate discipline, was the Red Gate failure evidence preserved? ... no git artifact preserves this — the failure evidence lives only in the sub-agent's output. Is this acceptable per primer 2a, or is the single-commit shape a violation that warrants a Resolved-with-rationale finding?"
+
+The AI Engineer seat's evaluation: **the single-commit shape IS a sub-agent delegation defect from the audit-trail-machine-readability lens** (Dim 4 + Dim 11), even if it is acceptable from the test-as-spec-assertion lens (per the VDD-IAR Alignment Dim 12 + Dim 4 + Dim 7 dispositions, which are this round's cross-cluster co-occupant — see VDD-IAR Alignment R4 in the same Cluster D).
+
+The Dim 4 named failure mode that applies: **"main session running work inline that should have been delegated (context bloat in main session; main exhausts cache faster)"** is the wrong direction. The correct named failure mode here is the inverse: **"sub-agent running work in a single commit that should have been split (audit-trail loses the Red Gate failure evidence)."** That is not currently in Dim 4's named failure mode list; this finding surfaces it as a candidate addition.
+
+The sub-agent could have committed Phase 2a alone (the 13 new tests appended, all 12-of-13 failing against Layer 1, RFC 3339 check passing) as commit `326e25d-A`, then committed Phase 2b (the lib + main implementation that makes 12-of-12 of the new tests pass + leaves the RFC 3339 test passing as it was) as commit `326e25d-B`. The git history would then preserve:
+
+- `git show 326e25d-A` → the Red Gate state: 12 tests failing as designed; the failure messages are reconstructable via `git checkout 326e25d-A && cargo test --test bookmarks`.
+- `git show 326e25d-B` → the Green Gate state: all 41 tests passing.
+- `git diff 326e25d-A 326e25d-B` → the implementation that closes the Red Gate.
+
+That audit trail is reviewable by any future AI agent or human reviewer with `git log` access. The current single-commit shape preserves no such reviewable artifact — the Red Gate evidence lives in a sub-agent spawn output the future reviewer does not have access to.
+
+**Cost-discipline counterpoint:** the dual-commit shape doubles the spawn cost only if the sub-agent is naively re-spawned to author each commit separately. With the same sub-agent doing both commits sequentially (the natural shape), the cost is roughly the same as the current single-commit shape — the sub-agent does the same total work; it just authors two commits instead of one. The cost overhead is the per-commit message authoring + the additional `cargo test` invocation between commits, which is negligible.
+
+**The discipline-honest disposition:** the single-commit shape is a **sub-agent-spawn-instruction defect**, not a methodology defect. The sub-agent likely defaulted to single-commit because the spawn prompt did not require dual-commit. The fix is methodology-authoring at the suite-side spawn-prompt template — extend the Phase 2a/2b cycle spawn instructions to require the dual-commit shape unless an explicit named-rationale waiver applies.
+
+**Carryforward:** routes to PR-#40-equivalent upstream-suite-remediation cycle (a future PR after this Layer 2 Round 1 fix cycle) — extend the suite-side Phase 2a/2b spawn-prompt template to require dual-commit shape OR an explicit single-commit-with-named-rationale annotation. The Phase 2c annotation pattern (per G-161, exhibited at commit `98b5886` for this Layer 2 cycle) is the template: silent single-commit shape is a defect; explicit dual-commit OR explicit single-commit-with-rationale-annotation are both acceptable.
+
+**Resolution path** (methodology-authoring): extend the suite-side Phase 2a/2b cycle's spawn-prompt template to require the dual-commit shape OR an explicit named-rationale single-commit annotation. Route to the next PR-#40-equivalent upstream-suite-remediation cycle.
+
+**Classification:** Deferred — Layer 2 cycle's Red Gate evidence preservation is reconstructible via the sub-agent's spawn-output (operator has access to it for the audit-trail-of-record purposes); the methodology-authoring fix is the durable closure but routes to suite-side work.
+
+---
+
+**Finding 5 — Cost-tally aggregation across the Layer 2 cycle: the four-commit Layer 2 sequence does not surface per-commit cost evidence in a place the operator can audit; the `DESIGN.md § Cold-session budget` post-PR-#40 fix landed the declaration but the per-cycle cost record is still unevenly applied (Dim 2 + Dim 11)**
+
+<a id="r2-f5"></a>
+
+**Owner:** ai-engineer
+**Status:** raised
+**Blocked by:** *(none — observable audit-trail content)*
+**Validator:** sanity-check
+
+Per the [`DESIGN.md § Cold-session budget`](../../DESIGN.md):19 post-PR-#40 declaration:
+
+> "Pre-cycle declaration discipline applied at every future multi-agent cycle per [`../../vsdd-suite/primers/3-review-session.md`](../../../../vsdd-suite/primers/3-review-session.md) § Pre-cycle methodology check; after-action cost-tally per [`../../vsdd-suite/suite-development/suite-development.md`](../../../../vsdd-suite/suite-development/suite-development.md) § Per-review entry preamble § Cost-tally."
+
+The declaration is operative for the **per-review entry preamble** surface — every Phase 3 IAR cluster's per-domain review-log file carries a `**Cost-tally:**` preamble line. This Cluster D's per-domain files all carry the preamble line per [Finding 3](#r2-f3). ✓
+
+But the **four Layer 2 commits** (`5ba62d5` / `326e25d` / `16ee420` / `98b5886`) do NOT carry per-commit cost evidence:
+
+- `5ba62d5` — Phase 1a/1b/1c spec extension + TODO decomposition. Commit message names the deliverable + the rationale. **No per-commit cost-tally.**
+- `326e25d` — Phase 2a/2b Red Gate + implementation + fsync. Commit message names the deliverable + 41/41 test pass + clippy clean. **No per-commit cost-tally.**
+- `16ee420` — Layer 2 manual-test plan. Commit message names the deliverable + closure target. **No per-commit cost-tally.**
+- `98b5886` — Phase 2c annotation. Commit message names the deliverable + G-161 justification. **No per-commit cost-tally.**
+
+This is asymmetric: the Phase 3 IAR cycle's review-log entries carry cost-tally fields; the Phase 1a/1b/1c + 2a/2b + manual-tests + 2c commits do not. From the operator-audit perspective, the cost of the Layer 2 IMPLEMENTATION cycle (the four-commit sequence) is not reconstructible from the audit trail. Only the Phase 3 REVIEW cycle's cost is reconstructible (at cluster close).
+
+The named failure mode (Dim 2): "the audit trail does not record per-agent token consumption ... blocking calibration of the capstone-intent expected band." This is exactly the gap re-surfaced for the implementation-cycle surface. The PR #40 fix closed the gap for the Phase 3 IAR review cycle; the analogous gap for the Phase 1a/1b/2a/2b/2c implementation cycle remains.
+
+**Why this matters:** the implementation cycle's cost (the Phase 1a/1b/1c authoring sub-agent + the Phase 2a/2b sub-agent + the manual-tests sub-agent + the Phase 2c annotation) is what the operator pays for to GET the Layer 2 artifact reviewed in this Phase 3 cycle. Without that cost evidence, the AI Engineer Dim 2 calibration cannot answer "is the cost-per-finding for the IMPLEMENTATION cycle proportionate, or is the implementation sub-agent over- or under-investing?" The implementation-cycle cost is the input to the Phase 3 review's per-finding-cost calculation; without the input, the ratio is not knowable.
+
+**Resolution path** (methodology-authoring): extend the suite-side spawn-prompt template + the commit-message convention to require a `**Cost-tally:**` line in the commit message body for Phase-1a/1b/1c + Phase-2a/2b + Phase-2c + manual-tests sub-agent commits. The cost-tally lives at the same per-Review preamble surface as the Phase 3 IAR review-log files; consistency across implementation-cycle + review-cycle.
+
+**Carryforward:** routes to PR-#40-equivalent upstream-suite-remediation cycle — extend the implementation-cycle commit-message convention to require per-commit cost-tally lines. The discipline IS visible at the Phase 3 review-cycle surface; the gap is on the implementation-cycle surface only.
+
+**Classification:** Deferred — methodology-authoring fix is upstream-suite-remediation scope; the bookmark-cli-manual Layer 2 cycle's implementation-cycle cost is not knowable from the audit trail in its current shape.
+
+---
+
+### Dismissed
+
+**Finding 6 — Machine-readability budget regression at the Layer 2 cycle: no parser-aborted incidents (Dim 11)**
+
+<a id="r2-f6"></a>
+
+**Owner:** ai-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+Per the operator's per-domain prompt: "The 'machine-readability budget' finding from AI Engineer R1 ([Review 87 Finding 5](../../../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-87--2026-05-21-1230z)) — has Layer 2 surfaced any parser-aborted incidents? Are mid-cycle responses chunking appropriately?"
+
+Initial candidate concern: did the Layer 2 cycle's sub-agent spawns produce any markdown-parser-aborted output (per Review 87 Finding 5's named failure mode where a sub-agent's response triggers a parsing error in the harness that consumes it) or any mid-cycle response chunking failures?
+
+Investigation:
+
+- **Commit message lengths:** all four Layer 2 commit messages are under 50 lines (`326e25d` is the longest at ~30 lines), well under any reasonable harness-parser ceiling. ✓
+- **File-content sizes:** `manual-tests/layer-2.md` is 556 lines, which is large but well within the markdown-parser standard tolerance; the file's structure (13 numbered steps each with `## Step N` headings + fenced code blocks + tables) is canonical markdown. No parsing pathology. ✓
+- **Mid-cycle response chunking:** the sub-agent's outputs for each of the four commits are not directly observable in the audit trail (they live in the sub-agent's spawn-response surface), but the commit-result shape (cleanly-authored files, clean `cargo test` + `cargo clippy` + `cargo fmt` passes per the commit messages) suggests no chunking failures occurred. A chunking failure would have produced truncated or malformed files; no such evidence. ✓
+- **Per-domain Layer 2 review-log files** (in flight at this cluster's authoring time): each file's prose density + finding-count is comparable to the Layer 1 per-domain files (which parsed cleanly per AI Engineer R1 F3 spot-check). No machine-readability-budget regression expected. ✓
+
+The candidate concern resolves cleanly: no Layer 2 cycle artifact exhibits parser-aborted symptoms; no mid-cycle chunking failures; the markdown discipline operative at Layer 1 (per the [Review 88 Finding 5](../../../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z) Phase-6-attestation finding's regression-clean evidence) holds at Layer 2.
+
+**Resolution:** No machine-readability budget regression at Layer 2 cycle. The Review 87 Finding 5 named failure modes are not exhibited. Operative discipline holds.
+
+**Classification:** Dismissed — initial candidate concern resolves cleanly; no parser-aborted incidents at Layer 2.
+
+---
+
+### Hallucinated
+
+*(none — the five substantive findings + one dismissed-on-closer-read finding above are all citation-backed against observable audit-trail content; no claim turned out to be a misread of the artifacts)*
+
+---
+
+### Summary
+
+Six findings in Round 2:
+
+- **Resolved:**
+  - [Finding 1](#r2-f1) — Sub-agent delegation quality at the manual-tests/layer-2.md spawn (commit `16ee420`); minor `cargo install` cost-refinement candidate
+  - [Finding 2](#r2-f2) — Cluster-batching shape preserves adversarial-pair separation; cost-per-finding below band floor is Layer-scoped efficiency, NOT under-investment; methodology-refinement candidate (project-cycle vs. layer-cycle expected-band split)
+  - [Finding 3](#r2-f3) — Audit-trail machine-readability holds; the post-PR-#40 preamble extension (model + cost-tally) is correctly applied
+- **Deferred:**
+  - [Finding 4](#r2-f4) — Phase 2a/2b single-commit shape lost the Red Gate failure-evidence artifact; methodology-authoring fix (require dual-commit OR explicit single-commit-with-rationale-annotation) routes to suite-side
+  - [Finding 5](#r2-f5) — Cost-tally aggregation asymmetry between Phase 3 review-cycle (operative) vs. Phase 1a/1b/2a/2b/2c implementation-cycle (gap); methodology-authoring fix (extend implementation-cycle commit-message convention) routes to suite-side
+- **Dismissed:**
+  - [Finding 6](#r2-f6) — No machine-readability budget regression at Layer 2 cycle; no parser-aborted incidents
+
+**Operator-supplied per-domain-prompt answers (summarized for the audit trail):**
+
+1. _"The Phase 2a/2b sub-agent reported it spawned with `model: sonnet` or `opus` — verify by reading its commit at `326e25d`."_ — The commit message itself does not declare the model; the `Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>` trailer suggests Opus 4.7. Per the post-PR-#40 cost-tally discipline, this WOULD be in a `**Cost-tally:**` line if applied to commit-messages — but Finding 5 surfaces that the discipline is only applied at the Phase 3 review-cycle surface, not the implementation-cycle surface. Operative gap.
+
+2. _"The manual-tests/layer-2.md sub-agent at commit `16ee420` ran `cargo install` + 13 step verifications in a real sh. What's the cost evidence?"_ — Cost evidence not in the audit trail per Finding 5. The sub-agent's wall-clock during `cargo install` is real but minor relative to file authoring cost (Finding 1's analysis). The methodology refinement candidate is: future sub-agents could be spawned with a pre-installed-binary precondition to skip redundant `cargo install`.
+
+3. _"Is the Layer 2 Round 1 likely to land at similar cost [to PR #38's ~$20 total], or higher (given Layer 2's smaller surface)?"_ — Likely SIMILAR (~$20) at the 4-cluster shape, but per-finding cost will be below the capstone-intent band floor because Layer 2's surface is smaller. This reads as Layer-scoped efficiency, NOT under-investment (Finding 2).
+
+4. _"The 'machine-readability budget' finding from AI Engineer R1 [Review 87 F5] — has Layer 2 surfaced any parser-aborted incidents?"_ — No (Finding 6).
+
+**Coordination:** Findings 4 and 5 route to a future PR-#40-equivalent upstream-suite-remediation cycle (methodology-authoring fixes spanning the suite-side Phase 2a/2b spawn-prompt template + the implementation-cycle commit-message convention). Findings 1, 2, 3 + 6 document operative disciplines for future-cycle regression-check. Cross-cluster coordination: cluster A's Quality Engineer is likely surfacing the same Phase 2a/2b single-commit-shape concern from the QE Dim 14 TDD-proxy-indicators seat (cross-validation expected); cluster A's Software Engineer is likely surfacing the cost-tally gap from the SE-as-author seat (cross-validation expected).
+
+**Cost-tally** (per [`suite-development/suite-development.md`](../../../../vsdd-suite/suite-development/suite-development.md) § Per-review entry preamble § Cost-tally): cold-session Opus 4.7 agent within the Cluster D quartet; per-cluster cost expected ~$5 per AI Engineer R1 F1 precedent. Across 6 findings, per-finding cost ~$0.83 (~10k tokens/finding at Opus pricing). Below the AI Engineer Dim 2 capstone-intent band floor (100k tokens/finding) — read as Layer-scoped efficiency per Finding 2's analysis. The audit-trail value (the methodology-authoring fixes Findings 4 + 5 surface) is disproportionate to the small cost — the discipline IS working at this calibration.
+
+**Validator:** sanity-check (per the [Review 77](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-77--2026-05-20-1545z) Finding 2 meta-validator-of-last-resort pattern — AI Engineer has no canonical role-domain pair-validator per the [AI Engineer domain prompt](../../../../vsdd-suite/domains/role/AI-ENGINEER-REVIEW.md) Validator pair clause).
+
+---
