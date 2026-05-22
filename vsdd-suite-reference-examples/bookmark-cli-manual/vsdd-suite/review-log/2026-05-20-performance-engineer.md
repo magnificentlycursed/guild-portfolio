@@ -569,3 +569,327 @@ The R2-F7 Deferred status holds the right shape: trigger named, cost-of-deferral
 - Cross-cluster: this PE round closes at MVR-blocked-by-deferred-measurement independently of the SE sub-section above (which closed at MVR-reached) and the Platform sub-section below. The cluster-batched session does not require all three domains to share a single MVR state — each domain advances independently per its own finding progression.
 
 ---
+
+## Review 4 — 2026-05-22 00:30Z
+
+**Phase:** 3 (IAR Round 1; Layer 2 Round 1 — first cold-session round on the Layer 2 artifact)
+**Source:** domain-raised (cold-session — Layer 2 read fresh; Layer 1 prior reviews — Reviews 1-3 — referenced for regression-check + closure-quality assessment)
+**Lens:** budget-vs-impl-alignment + scaling-cliff-coverage + cost-of-correctness + closure-quality-of-deferred-items
+**Scope:** Layer 2 artifact in its entirety — [`DESIGN.md`](../../DESIGN.md) § Performance budget (Layer 2 additions), [`TODO.md`](../../TODO.md) Layer 2 § Data-scaling tests, [`src/lib.rs`](../../src/lib.rs) `BookmarkStore::save` (parent-dir fsync addition) + `attach_tag` + `filter_by_tags`, [`src/main.rs`](../../src/main.rs), [`tests/bookmarks.rs`](../../tests/bookmarks.rs), [`manual-tests/layer-2.md`](../../manual-tests/layer-2.md) Step 12 hyperfine sanity-check. Commits `5ba62d5` → `326e25d` → `16ee420` → `98b5886`.
+**Reviewer:** Performance Engineer
+**Model:** Sonnet 4.6 (per [`DESIGN.md`](../../DESIGN.md) § Cold-session budget — PE runs on Sonnet 4.6 at capstone intent)
+**Session note:** Cluster A — shared with Software Engineer + UX; PE's natural pair (SE for code-fix; Platform Engineer for install-verification measurement) overlaps with the same cluster (SE) but the Platform Engineer pair is in a different cluster per adversarial-pair separation. Cold session — this PE round opened in a fresh context with no carryover from the Round 3 close; treats the Layer 2 artifact as a stranger's code.
+**Regression-check against:** [Review 1](#review-1--2026-05-20-1930z) Findings 1-6 (Layer 1 baseline; F1 spec-budget closed; F2 + F5 Deferred-to-Layer-2; F3 + F6 Accepted-limitation; F4 closed); [Review 2](#review-2--2026-05-20-2100z) (Round 2 verification + R2-F7 new finding — atomic-save fsync cost unmeasured); [Review 3](#review-3--2026-05-20-2200z) (Round 3 verification — R2-F7 Deferred-discipline-intact at Layer 1 close; MVR-blocked-by-deferred-measurement). The Layer 1 PE domain closed at MVR-blocked-by-deferred-measurement with three named deferred items: PE F2 (benchmarking infrastructure → Layer 2), PE F5 (data-scaling sentinel tests at 100/1K/10K → Layer 2), PE R2-F7 (atomic-save fsync cost unmeasured → Layer 2 or first hyperfine measurement). This Layer 2 Round 1 evaluates **closure quality** of all three deferred items + searches for new perf defects on the Layer 2 extensions.
+**Cost-tally:** placeholder per [primer 3](../../../../vsdd-suite/primers/3-review-session.md) § Pre-cycle methodology check — filled in at session-end below.
+
+**Assumption surfacing.** Layer 2 promised three perf closures: (1) [`manual-tests/layer-2.md`](../../manual-tests/layer-2.md) Step 12 hyperfine sanity-check at the 1,000-bookmark cliff (closes PE R1 F2); (2) `tests/scaling.rs` with `#[ignore]`-gated sentinels at 100/1,000/10,000-bookmark cliffs (closes PE R1 F5); (3) parent-dir fsync after `rename(2)` with measured cost < 5 ms on commodity SSD (closes the operator-queued PE fsync-benchmark item + addresses PE R2-F7). Verified the promises against the artifact:
+
+- **Promise 1 (hyperfine sanity-check at manual-tests/layer-2.md Step 12):** PRESENT at lines 442-528. Step 12a generates a 1,000-bookmark store via Python; Step 12b runs `hyperfine --warmup 3 --runs 10` against `bm list`, `bm list --tag rust`, and `bm tag https://example-500.com benchmarked`; Step 12c cleans up. **Closure quality assessment in [Finding 1](#r4-pe-f1) below.**
+- **Promise 2 (tests/scaling.rs):** **ABSENT.** `ls <project>/tests/` returns only `bookmarks.rs`. No `tests/scaling.rs`, no `#[ignore]`-gated sentinels at any cliff. **The DESIGN.md + TODO.md promise is spec-vs-impl divergence — [Finding 2](#r4-pe-f2) below.**
+- **Promise 3 (parent-dir fsync benchmark):** parent-dir fsync IS implemented at [`src/lib.rs:289-312`](../../src/lib.rs) + extracted into `fsync_directory` at [`src/lib.rs:440-445`](../../src/lib.rs). The cost claim "< 5 ms on commodity SSD" at [`DESIGN.md:232`](../../DESIGN.md) is asserted but the measurement supporting it does NOT exist in the artifact (no hyperfine run record, no CI step, no `manual-tests/layer-2.md` step measuring just the fsync overhead). **[Finding 3](#r4-pe-f3) below.**
+
+---
+
+### Deferred
+
+Findings 1-3 below carry classification **Deferred — pending Round 2 fix-cycle verification**. Each is inline-fixable in Layer 2 prior to Round 2 (or, for F2 specifically, requires the missing `tests/scaling.rs` to be authored per the spec text's existing promise); the cluster session does not self-resolve mid-round per the cold-session discipline.
+
+**Finding 1 — `manual-tests/layer-2.md` Step 12 hyperfine sanity-check is an UNDER-INVESTMENT closure of PE R1 F2: no expected-value table, no fail-criteria mechanization, no measurement record artifact (PE Dim 9, Dim 8)**
+
+<a id="r4-pe-f1"></a>
+
+**Owner:** performance-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** software-engineer
+**Severity:** Medium
+**Probability:** High
+**Lens-source:** budget-vs-impl-alignment + closure-quality-of-deferred-items
+**Dim:** PE Dim 9 (Performance testing methodology) + Dim 8 (Performance budget) — the deferred-item closure produces an unfalsifiable verification step
+
+**Evidence:** [`manual-tests/layer-2.md:442-528`](../../manual-tests/layer-2.md) Step 12 "Performance budget sanity-check". Step 12b at lines 482-501 names the hyperfine invocation:
+
+```sh
+export BOOKMARK_CLI_DB="$BENCH_DB"
+hyperfine --warmup 3 --runs 10 \
+    'bm list' \
+    'bm list --tag rust' \
+    'bm tag https://example-500.com benchmarked'
+echo "exit: $?"
+```
+
+And declares the pass criterion in prose at lines 493-499:
+
+> The pass/fail criterion is qualitative — assert that each command's mean (hyperfine does not emit p95 in its default output; mean is the proportionate proxy at small N) falls under the budget from [`DESIGN.md`](../../DESIGN.md) § Performance budget:
+>
+> | Operation | Budget (p95 per DESIGN.md) | Pass criterion (mean at N=10) |
+> |---|---|---|
+> | `bm list` (1,000-bookmark store) | < 100 ms | mean < 100 ms |
+> | `bm list --tag rust` (1,000-bookmark store) | < 100 ms | mean < 100 ms |
+> | `bm tag <url> <label>` (1,000-bookmark store) | < 100 ms | mean < 100 ms |
+
+The closure has three structural defects:
+
+1. **No measurement-record artifact.** Steps 12a-12c specify the procedure but produce no on-disk record of what the operator observed. Step 12 ends with `rm -f "$BENCH_DB"` at line 512 — the benchmark store is deleted; no `manual-tests/perf-baseline.md` or similar artifact captures "this operator on this date got mean 42 ms for `bm list`". The closure of the PE R1 F2 finding therefore depends on the operator running the step and the operator-self-attesting in prose, with no evidence captured anywhere in the project.
+2. **Pass criterion uses mean instead of p95.** The PE R1 F1 spec adoption (per [`DESIGN.md:170-171`](../../DESIGN.md)) declared the budget at **p95 wall-clock**. Step 12 substitutes mean for p95 with a parenthetical justification ("mean is the proportionate proxy at small N"). The substitution is reasonable at N=10 runs — but it breaks the spec contract: a spec written against p95 should be verified against p95. `hyperfine --export-json` produces a JSON output with min/max/mean/stddev (no native p95), and a one-liner `jq` on the output can extract the p95 from the per-run timing array; the step does not do this. The pass criterion "mean < 100 ms" against a spec budget of "p95 < 100 ms" is observably different when the distribution has a tail — which is precisely the case the durability-fsync introduces (R2-F7 named the network-mounted-FS tail explicitly).
+3. **No measurement of the fsync hot path the spec promises < 5 ms for.** Step 12 measures three commands at the user-visible CLI level. None of them isolate the parent-dir fsync cost the spec asserts. The hyperfine sanity-check is therefore the wrong instrument for closing the R2-F7 + the operator-queued fsync-benchmark item — those need either a microbenchmark of `fsync_directory` (criterion-bench or hyperfine of `bm add` against an empty store on slow vs fast filesystems) or an explicit "compare bm add latency with-vs-without fsync" pair invocation. Step 12 closes PE R1 F2 partially (the user-visible latency claim against the 1K-bookmark store) but does NOT close R2-F7 or the operator-queued fsync item the [`DESIGN.md:228-232`](../../DESIGN.md) § Durability discipline (Layer 2) text claims it closes.
+
+**Reasoning:** PE Dim 9 (Performance testing methodology) — the supplement's framing is *"How is performance measured? Synthetic benchmarks ... are the floor."* The Layer 2 closure of PE R1 F2 sits at exactly the floor: hyperfine invocation defined, pass criterion documented in prose, but no measurement record persists and the pass criterion drifted from the spec contract (mean for p95). For a capstone-intent reference implementation that is meant to teach the methodology, "the operator should run hyperfine and assert mean < 100 ms in their head" is the pedagogical equivalent of "we have tests in spirit." The Round 1 framing of PE R1 F2 included the proportionate alternative `manual-tests/perf-baseline.md` invoking hyperfine + recording the baseline for cross-version regression comparison; the Layer 2 closure took the procedure half but skipped the record half.
+
+PE Dim 8 (Performance budget) — the spec text at [`DESIGN.md:228`](../../DESIGN.md) explicitly says: *"The hyperfine sanity-check pattern is the Layer 2 contract: a documented `manual-tests/layer-2.md` step generates a 1,000-bookmark store and asserts each named-budget operation completes within the budget."* The Step 12 implementation matches the procedure but not the assertion: the spec says "asserts each named-budget operation completes within the budget" — but Step 12 generates no assertion that gates the gate. The operator who runs Step 12 and observes mean 95 ms (passing) or mean 105 ms (failing) is expected to update DESIGN.md to record the result — but the closure protocol at lines 543-548 does not name this; the closure says *"all 13 steps reached expected outputs"* without naming what "expected" means for a step whose pass criterion is a measurement.
+
+The over/under-investment framing from [G-150](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) applies: a Layer 2 closure of three deferred PE findings via a single 5-step manual-test sub-section IS under-investment if the manual-test step produces no falsifiable artifact. The disciplined alternative is at most ~50 additional lines: write a `tests/scaling.rs` with `#[ignore]`-gated `criterion`-or-hyperfine-shaped tests that assert the wall-clock budget programmatically + a `manual-tests/perf-baseline.md` template the operator fills with their measurement (parallel to [`manual-tests/install-verification.md`](../../manual-tests/install-verification.md) PASS-row template). The current Step 12 is a fraction of either option.
+
+**Classification:** Inline fix in Layer 2 OR Round 2 cold-session verification. Recommend a three-part fix:
+
+- **(a)** Add `--export-json bench-result.json` to the hyperfine invocation at Step 12b; document the post-step `jq '.results[] | {command, p95: (.times | sort)[((.times | length) * 95 / 100 | floor)]}'` extraction (or `--output` flag if `hyperfine` later supports p95 natively). Replaces the mean-as-p95-proxy with actual p95.
+- **(b)** Add a `manual-tests/perf-baseline.md` template the operator fills with the date, platform, and observed p95 per the three named operations + an aggregated PASS/FAIL row. Parallel to the install-verification.md PASS-row mechanism that closed PR #41. This is the missing measurement-record artifact.
+- **(c)** Add a separate small Step 12d (or Step 13) measuring the fsync overhead specifically: `hyperfine 'bm add https://x'` against an empty store on (1) a local SSD-backed tempdir, (2) a `tmpfs`-mounted tempdir (no real fsync cost), comparing the two — the delta is the parent-dir fsync cost. This closes the R2-F7 fsync-cost measurement gap that Step 12 does not address.
+
+**Coordinate:** [G-150](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) (over/under-investment) — this finding is the calibration signal that the Layer 2 closure of PE R1 F2 is at the under-investment edge. [G-155](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155) (install-verification record-discipline) — the `manual-tests/perf-baseline.md` proposal mirrors install-verification.md's PASS-row mechanism. Cross-domain: surface to [Platform Engineer](../PLATFORM-ENGINEER-REVIEW.md) (the per-platform measurement record is platform-engineering territory + ties to the install-verification surface).
+
+---
+
+**Finding 2 — `tests/scaling.rs` promised at DESIGN.md + TODO.md is not in the repository — PE R1 F5 is NOT closed; the Layer-gate criterion `cargo test -- --ignored (scaling)` runs against a non-existent test file (PE Dim 4, Dim 9)**
+
+<a id="r4-pe-f2"></a>
+
+**Owner:** performance-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** software-engineer
+**Severity:** High
+**Probability:** Critical
+**Lens-source:** scaling-cliff-coverage + closure-quality-of-deferred-items
+**Dim:** PE Dim 4 (Data scaling) + Dim 9 (Performance testing methodology)
+
+**Evidence:** [`DESIGN.md:230`](../../DESIGN.md) § Performance budget:
+
+> **Data-scaling tests:** Layer 2 ships sentinel integration tests at the 100 / 1,000 / 10,000-bookmark cliffs that exercise the full add → list → tag → list-filter cycle. Each cliff asserts: (a) operations complete within the budget table above; (b) the storage file round-trips without corruption; (c) the filter result set is correct against a programmatically-generated reference. The tests live in `tests/scaling.rs` and use `#[ignore]` by default so `cargo test` stays fast; CI runs them via `cargo test -- --ignored` in a separate job. This closes [Performance Engineer Review 1 Finding 5](vsdd-suite/review-log/2026-05-20-performance-engineer.md) (**Deferred-to-Layer-2**).
+
+[`TODO.md:81`](../../TODO.md) Layer 2 echoes the same promise:
+
+> **Layer 2 data-scaling tests:** `tests/scaling.rs` with `#[ignore]`-gated sentinels at 100/1,000/10,000 bookmark cliffs. Asserts the budget table in DESIGN.md § Performance budget holds against programmatically-generated stores. CI runs `cargo test -- --ignored` in a separate job so the `cargo test` default stays fast. Closes Layer-1-Deferred [Performance Engineer Review 1 Finding 5](vsdd-suite/review-log/2026-05-20-performance-engineer.md).
+
+[`TODO.md:87`](../../TODO.md) Layer 2 Layer-gate criterion 1:
+
+> 1. All Red Gate tests above pass: `cargo test --test bookmarks` + `cargo test -- --ignored` (scaling).
+
+Verifying the artifact: `ls vsdd-suite-reference-examples/bookmark-cli-manual/tests/` returns ONLY `bookmarks.rs`. There is no `scaling.rs`. The promised 100/1,000/10,000-bookmark sentinels do not exist. The `cargo test -- --ignored` invocation that the Layer-gate criterion names would run zero scaling tests (the `bookmarks.rs` file has no `#[ignore]`-gated tests; `grep -nE '#\[ignore' tests/bookmarks.rs` returns no matches; the only `#[ignore]` discussion is in the operator's reference brief, not in the file).
+
+The PE R1 F5 closure promise is **broken**. The deferred finding is named as closed by the spec text but the closing artifact is missing.
+
+**Reasoning:** PE Dim 4 (Data scaling) — Round 1's framing for F5 was: *"A test with 5 items does not validate performance with 5,000."* Layer 2 R1 closes Layer 1 with the same test capacity (≤ 3 bookmarks in the unit tests; the test suite still maxes at 3-bookmark in the integration tests outside the OR-semantics test which uses 3). The promise that Layer 2 ships sentinels at 100/1K/10K is the SPEC's own commitment in [`DESIGN.md:230`](../../DESIGN.md); the missing file is a spec-vs-impl divergence at the closure-of-deferred-item level. This is qualitatively different from PE R1 F2's under-investment closure (Finding 1 above): PE R1 F2 ships a thinner closure than promised; PE R1 F5 ships NO closure while the spec asserts the closure landed.
+
+PE Dim 9 (Performance testing methodology) — the CI integration path the spec promises (`cargo test -- --ignored` in a separate CI job) would produce silent-PASS against the missing-file state (zero ignored tests means `cargo test -- --ignored` runs zero tests and exits 0 — a passing CI check that asserts nothing). The Layer-gate criterion at [`TODO.md:87`](../../TODO.md) is therefore mechanically satisfiable by the current artifact but semantically meaningless: the criterion verifies that a non-existent test file runs without error.
+
+**The closure-of-deferred-item assertion in DESIGN.md is wrong at the artifact level.** Either (a) `tests/scaling.rs` needs to be authored to match the spec text, or (b) DESIGN.md + TODO.md need to remove or amend the "this closes PE R1 F5" claim and re-defer the finding to a Layer 2 sub-cycle or to Layer 3. The current state is the worst of both options: spec claims closure, artifact does not back the claim.
+
+This is the **most severe finding in this round** because it makes the Layer 2 spec text itself unreliable as documentation of the layer's actual closure surface — every other "closes PE R1 F-N" assertion in DESIGN.md is now suspect (the reader cannot trust spec-attested closures without grepping for the closing artifact).
+
+**Classification:** Inline fix in Layer 2 — author `tests/scaling.rs` per the spec's described shape. The recommended minimal shape (closes the spec text's contract):
+
+```rust
+//! Layer 2 data-scaling sentinel tests — close PE Review 1 Finding 5.
+//!
+//! Each test is `#[ignore]`-gated so `cargo test` stays fast; CI runs
+//! `cargo test -- --ignored` in a separate job per DESIGN.md § Performance
+//! budget § Data-scaling tests.
+
+use assert_cmd::Command;
+use std::fs;
+use tempfile::tempdir;
+
+fn gen_store(n: usize, dir: &std::path::Path) -> std::path::PathBuf {
+    let path = dir.join("bookmarks.json");
+    let mut bookmarks = String::from(r#"{"bookmarks":["#);
+    for i in 0..n {
+        if i > 0 { bookmarks.push(','); }
+        // ... programmatically generate n entries with deterministic timestamps + tags
+    }
+    bookmarks.push_str("]}");
+    fs::write(&path, bookmarks).unwrap();
+    path
+}
+
+#[ignore = "scaling test; run with --ignored"]
+#[test]
+fn list_completes_within_budget_at_100_bookmarks() {
+    let dir = tempdir().unwrap();
+    let db = gen_store(100, dir.path());
+    let start = std::time::Instant::now();
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["list"])
+        .assert()
+        .success();
+    assert!(start.elapsed().as_millis() < 100, "bm list at 100 bookmarks exceeded budget");
+}
+
+#[ignore = "scaling test; run with --ignored"]
+#[test]
+fn list_completes_within_budget_at_1000_bookmarks() { /* ... */ }
+
+#[ignore = "scaling test; run with --ignored"]
+#[test]
+fn list_completes_within_budget_at_10000_bookmarks() { /* ... */ }
+
+// Parallel tests for `bm tag` + `bm list --tag` at the same three cliffs;
+// per the spec's "full add → list → tag → list-filter cycle" wording.
+```
+
+Plus CI workflow step at `.github/workflows/bookmark-cli-manual.yml` adding a separate job that runs `cargo test --test scaling -- --ignored` (the spec promises this exists; verify it does in CI). Plus an `assert!`-shaped budget check per test (the spec promises this exists; the above code shows the shape).
+
+**Coordinate:** [G-150](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) (over/under-investment) — this is over the under-investment line: a CLAIMED closure has NO closing artifact. Cross-domain: surface to [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) (test-file authoring is QE territory; the test discipline that asserts wall-clock budgets is QE Dim 4); surface to [Platform Engineer](../PLATFORM-ENGINEER-REVIEW.md) (CI workflow update is platform-engineering territory); surface to [Solution Owner](../SOLUTION-OWNER-REVIEW.md) for the DESIGN.md correction — IF the decision is to defer further rather than to author the test file, DESIGN.md + TODO.md need to retract the closure claim. Surface to [VDD-IAR Alignment](../../../../vsdd-suite/domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md) — spec-vs-impl divergence at a closure-of-deferred-item is a methodology audit-trail concern.
+
+---
+
+**Finding 3 — Parent-dir fsync "< 5 ms on commodity SSD" cost claim at DESIGN.md:218 is ASSERTED but UNMEASURED — closure of operator-queued fsync benchmark item is structural, not empirical (PE Dim 8, Dim 10)**
+
+<a id="r4-pe-f3"></a>
+
+**Owner:** performance-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** software-engineer
+**Severity:** Medium
+**Probability:** High
+**Lens-source:** cost-of-correctness + budget-vs-impl-alignment
+**Dim:** PE Dim 8 (Performance budget) + Dim 10 (Regression risk) — extension of [R2-F7](#r2-f7)
+
+**Evidence:** [`src/lib.rs:212-224`](../../src/lib.rs) `save` docstring:
+
+> **Layer 2 durability — parent-directory fsync after rename.** Per
+> `DESIGN.md` § Performance budget "Durability discipline (Layer 2)",
+> the save fsyncs the destination file's parent directory after the
+> `rename(2)` so that the rename itself is durable across a power
+> loss — without the parent fsync, the rename may live only in the
+> kernel page cache and be lost on power-fail. **The cost is one extra
+> `fsync(2)` syscall per write (benchmarked at < 5 ms on commodity
+> SSD per the Layer 2 PE round budget).**
+
+[`DESIGN.md:232`](../../DESIGN.md):
+
+> The cost is one extra `fsync(2)` syscall per write; benchmarked at the Layer 2 Performance Engineer Round against the budget table above (**expected < 5 ms on commodity SSD**).
+
+The "< 5 ms on commodity SSD" claim is asserted in three places (lib.rs doc, DESIGN.md text, and implied by `manual-tests/layer-2.md` Step 12's budget-compliance frame). Grep across the project for `fsync.*ms|5 ms|< 5|hyperfine.*fsync` returns only the claim-statements above. No measurement artifact, no benchmark JSON output, no Phase 5 round attestation of the fsync cost. The "benchmarked at" phrasing claims past-tense measurement; no measurement record exists.
+
+The PE R2-F7 finding's central concern (R3 carried it forward at MVR-blocked-by-deferred-measurement) was: *the fsync cost on the bm add hot path is measurably new and the budget hasn't been re-measured against it*. Layer 2's closure ADDS A SPECIFIC COST CLAIM ("< 5 ms on commodity SSD") without measuring it. The closure converts an unmeasured-cost concern into an unmeasured-cost claim with a specific number, which is qualitatively worse: a reader of DESIGN.md now believes the cost has been measured at < 5 ms when it has not.
+
+**Reasoning:** PE Dim 8 (Performance budget) — the supplement's framing: *"A function documented as 'fast' with no benchmark is an assertion without evidence."* The "< 5 ms on commodity SSD" claim is now in the spec; it has no benchmark. The Layer 2 round took the R2-F7 unmeasured-cost concern (which was honestly named as unmeasured) and replaced it with a measured-sounding number that wasn't measured.
+
+PE Dim 10 (Regression risk) — the cost variability across storage classes the R2-F7 finding named (SSD: 0.1-1 ms; busy host SSD: 1-10 ms; HDD: 5-50 ms; NFS: 50-500 ms) is unchanged at Layer 2. The "< 5 ms on commodity SSD" claim is in the middle of the SSD range; on a busy host SSD or HDD it would already be wrong; on NFS/SMB it would be off by 10-100x. The spec budget at [`DESIGN.md:170-171`](../../DESIGN.md) (`bm add < 100 ms p95 at ≤ 1,000 bookmarks`) is the AGGREGATE; the fsync is one component of the aggregate. The aggregate may hold while the fsync component claim fails — and the aggregate measurement (Finding 1 above) is itself under-instrumented.
+
+The sycophancy-compensation framing applies: a warm-context reviewer would say "the 5 ms claim is well within the 100 ms aggregate budget; the order-of-magnitude headroom makes the claim safe in practice." The cold-pass push-back: the spec claim wasn't "the fsync is at most 5% of the budget"; the claim is "< 5 ms on commodity SSD," a specific empirical statement that has no measurement to back it. The PE R2-F7 finding correctly insisted on measurement before claim; the Layer 2 closure inverted the order.
+
+**Classification:** Inline fix in Layer 2 OR Round 2 cold-session verification. Three options:
+
+- **(a) Measure and record (recommended):** Run `hyperfine 'bm add https://example.com'` against an empty store on (i) a `tmpfs`-mounted tempdir (`mount -t tmpfs ...`; no real fsync cost — the `sync_all` is a no-op) AND (ii) a local SSD-backed tempdir. The delta between (i) and (ii) is the parent-dir fsync cost. Record the measurement at `manual-tests/perf-baseline.md` (per Finding 1's recommended artifact) with the date + platform + observed value. Update [`DESIGN.md:232`](../../DESIGN.md) to cite the recorded measurement instead of the asserted "< 5 ms" range.
+- **(b) Retract the claim:** Replace "benchmarked at < 5 ms on commodity SSD" with "expected to be sub-millisecond on local SSD; potentially significant on network-mounted or HDD-backed storage — measurement deferred to a future Performance Engineer round." Honest about the unmeasured state.
+- **(c) Reframe as a budget caveat:** Add to [`DESIGN.md`](../../DESIGN.md) § Performance budget a "Filesystem class caveat" subsection naming the fsync-cost-by-storage-class table from R2-F7 explicitly (SSD: ~1 ms; HDD: 5-50 ms; NFS: 50-500 ms — with citations to R2-F7's evidence). Acknowledges the variability without overclaiming.
+
+Option (a) is the most disciplined; option (b) is the most honest given the current artifact state; option (c) is the most defensive. Option (a) requires running the measurement (operator-executable per R2-F7's framing); options (b) + (c) are spec-amendment-only.
+
+**Coordinate:** Carries forward [R2-F7](#r2-f7) — Layer 1's deferred-not-blocking PE finding becomes Layer 2's spec-claim-without-evidence finding. [G-150](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) (over/under-investment) — the "< 5 ms" claim is itself an over-investment of confidence relative to the measurement basis. Cross-domain: surface to [Solution Owner](../SOLUTION-OWNER-REVIEW.md) (DESIGN.md amendment authority for options (b) + (c)); surface to [Platform Engineer](../PLATFORM-ENGINEER-REVIEW.md) (the actual measurement is platform-engineering + install-verification territory).
+
+---
+
+### Accepted limitation
+
+**Finding 4 — `attach_tag` performs Vec linear scan per matching bookmark for tag-dedup (`bm.tags.iter().any(|t| t == label)`); at high tag counts this is O(M*N) where M=tag count (PE Dim 4, Dim 5)**
+
+<a id="r4-pe-f4"></a>
+
+**Owner:** performance-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** software-engineer
+**Severity:** Low
+**Probability:** Low
+**Lens-source:** cost-of-correctness
+**Dim:** PE Dim 4 (Data scaling) + Dim 5 (N+1 and access pattern efficiency)
+
+**Evidence:** [`src/lib.rs:385-391`](../../src/lib.rs) in `attach_tag`:
+
+```rust
+for bm in &mut self.bookmarks {
+    if bm.url == url {
+        matched += 1;
+        if !bm.tags.iter().any(|t| t == label) {
+            bm.tags.push(label.to_string());
+        }
+    }
+}
+```
+
+For each matching bookmark, the dedup-check `bm.tags.iter().any(|t| t == label)` is an O(M) linear scan where M is the bookmark's tag count. For a bookmark with 10,000 tags, this is 10,000 string comparisons per `attach_tag` call. For the duplicate-URL multi-match case where N bookmarks match the URL (per the spec's "tag ALL matches" semantic at [`DESIGN.md:86`](../../DESIGN.md)), the total cost is O(N*M).
+
+The realistic scale boundary: the spec doesn't cap tag count per bookmark ([`DESIGN.md:120`](../../DESIGN.md) edge case catalog Layer 2: *"Very long tag label (10K+ chars): accepted. No length cap (parallel to URL rule)."* — names label length but is silent on tag count per bookmark). The spec also accepts duplicate URLs for unbounded N. At the realistic single-user workflow scale (bookmark count ≤ 10,000 per the scale ceiling; tags per bookmark probably ≤ 10 in real use), the O(N*M) cost is negligible — at most 100,000 string comparisons, sub-millisecond.
+
+**Reasoning:** PE Dim 4 (Data scaling) — the concern is theoretical at the declared 10K-bookmark + sub-10-tag-per-bookmark realistic scale. A `HashSet<String>` for `Bookmark.tags` would be O(1) average for the contains-check but would change the on-disk JSON shape (sets serialize as arrays in serde anyway, but the in-memory shape would diverge from the JSON shape, requiring a custom Serialize impl or a `BTreeSet` for stable JSON ordering). The cost-benefit favors the current `Vec<String>` at the spec's declared scale; the finding is filed as **accepted-risk at Layer 2 scope** with a future-Layer trigger.
+
+PE Dim 5 (N+1) — does NOT apply: the outer loop iterates the bookmarks exactly once (O(N) in N=bookmark count). The O(M) inner scan is per-matching-bookmark, not per-bookmark-checked. So it's not N+1; it's just nested-linear.
+
+The sycophancy-compensation framing: a warm-context reviewer would say "at the declared 10K-bookmark scale with realistic single-user tag counts the cost is negligible; this is not a real finding." The cold-pass push-back: the spec is silent on tag count per bookmark, the duplicate-URL semantic permits unbounded N, and the test surface caps at 3-bookmark + 2-tag. The finding is real but the realistic-scale cost is low — hence Low severity + Low probability.
+
+**Classification:** Accepted-risk at Layer 2 scope, with Layer 3 trigger. If Layer 3 (export/import) adds a path that imports a store with many tags per bookmark, the cost surface widens; the finding's trigger fires when (a) a future user reports a slow `bm tag` or (b) the scale ceiling at [`DESIGN.md:226`](../../DESIGN.md) is raised. Auto-Backlog if Layer 3 ships an `import` path without addressing the tag-count concern.
+
+**Coordinate:** No G-NNN match. Cross-domain: cross-references [Performance Engineer Review 1 Finding 3](#raised-to-so) (the analogous O(n²) cost on `bm add` — same shape: nested-linear data structure at edit time, with the larger spec-scale concern absorbed via the 10K ceiling). Surface to [Solution Architect](../SOLUTION-ARCHITECT-REVIEW.md) IF the future-Layer trigger fires (storage-shape architectural decision).
+
+---
+
+### Resolved
+
+**Closure verification — PE R1 F2 (benchmarking infrastructure → hyperfine sanity-check):** PARTIAL CLOSURE per [Finding 1](#r4-pe-f1) above — hyperfine procedure documented at `manual-tests/layer-2.md` Step 12 but the closure under-invests (no measurement-record artifact, mean-for-p95 substitution, no fsync-isolation step). PE R1 F2 remains structurally open pending [Finding 1](#r4-pe-f1) inline-fix; the named closure surface exists but is methodologically incomplete.
+
+**Closure verification — PE R1 F5 (data-scaling sentinel tests at 100/1K/10K):** NOT CLOSED per [Finding 2](#r4-pe-f2) above — the promised `tests/scaling.rs` does not exist in the repository. PE R1 F5 carries forward as Open until the test file is authored.
+
+**Closure verification — operator-queued PE fsync benchmark item:** STRUCTURAL CLOSURE (the fsync implementation lands in `BookmarkStore::save`) but EMPIRICAL CLOSURE INCOMPLETE per [Finding 3](#r4-pe-f3) above — the "< 5 ms on commodity SSD" claim is asserted without measurement. The fsync syscall is correctly implemented and gated `#[cfg(unix)]` per the spec.
+
+**Closure verification — PE R2-F7 (atomic-save fsync cost unmeasured):** CARRIED FORWARD with EXPANDED SURFACE per [Finding 3](#r4-pe-f3). Layer 1 had an unmeasured cost; Layer 2 has an unmeasured cost AND a specific cost claim ("< 5 ms") that the unmeasured cost cannot evaluate.
+
+---
+
+### Hallucinated
+
+*(none — all four findings are evidence-backed via file:line citations against the current Layer 2 artifact + grep-verified against the project tree for the absence-claims in [Finding 2](#r4-pe-f2) and [Finding 3](#r4-pe-f3); none can be dismissed as adversary-invented.)*
+
+---
+
+**Regression-check against Layer 1.** Layer 1's accepted-limitation findings (R1-F3 — cumulative O(n²) cost on `bm add`; R1-F6 — `to_string_pretty` at scale) remain accepted. The Layer 2 `attach_tag` save path inherits the same per-call full-file rewrite shape (load → mutate → save the whole `BookmarkStore`); the Layer 1 cost framing extends cleanly to Layer 2. No regression at the algorithmic layer.
+
+The release profile at [`Cargo.toml:48-53`](../../Cargo.toml) remains correctly tuned (R1-F4 closure; LTO=fat, codegen-units=1, panic=abort, strip=symbols). Layer 2 adds no new dependencies (Cargo.toml `[dependencies]` unchanged). No regression on the build-output side.
+
+The `tests/scaling.rs` absence (Finding 2) means PE R1 F5's auto-Backlog clause from Round 1 (*"If Layer 2 closes without scaling tests, the finding auto-Backlogs at Layer 2 R2 closure and re-raises as a Quality Engineer Dim 4 concern"*) fires structurally at this Round 1 — the closure is at the spec-text level only; the artifact is missing.
+
+---
+
+### Summary
+
+4 findings classified: 3 Deferred-pending-fix ([F1](#r4-pe-f1), [F2](#r4-pe-f2), [F3](#r4-pe-f3)) + 1 Accepted-limitation ([F4](#r4-pe-f4)) / 0 Resolved / 0 Raised-to-SO / 0 Dismissed / 0 Hallucinated. Severity breakdown: 0 Critical, 1 High ([F2](#r4-pe-f2) — `tests/scaling.rs` missing despite spec-claimed closure), 2 Medium ([F1](#r4-pe-f1) hyperfine sanity-check under-invests; [F3](#r4-pe-f3) fsync cost asserted without measurement), 1 Low-accepted-risk ([F4](#r4-pe-f4) — `attach_tag` tag-dedup linear scan at high tag counts).
+
+The Layer 2 PE surface ships an **uneven closure** of the three Layer-1-deferred items:
+
+1. **PE R1 F2 (benchmarking infrastructure):** structural closure with under-investment (Step 12 hyperfine).
+2. **PE R1 F5 (data-scaling sentinel tests):** spec-text-only closure with NO closing artifact — the promised file does not exist.
+3. **Operator-queued PE fsync item + PE R2-F7:** structural closure (fsync implemented) with unmeasured cost claim.
+
+The dominant pattern across the three closures: the spec text claims closure with confidence, the implementation closures are weaker than the spec claims, and one closure ([Finding 2](#r4-pe-f2)) has no implementation at all. This is the **closure-quality-of-deferred-items** failure mode at the layer boundary — Layer 2 advertises three "this closes PE R1 F-N" achievements, the cold pass finds two over-claim (#1 + #3) and one is entirely missing (#2). The pedagogical cost (per the capstone-intent reference-implementation purpose) is that a reader internalizes "the PE Layer-1-deferred items closed at Layer 2" when only one of three closed cleanly + structurally.
+
+**MVR signal:** NOT REACHED for PE at Layer 2. Per [primer 3](../../../../vsdd-suite/primers/3-review-session.md) § Round triggers [G-131](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) continue-trigger discipline, four new real findings + zero hallucinated requires a Round 2 cold pass after [F1](#r4-pe-f1) (hyperfine instrumentation upgrade), [F2](#r4-pe-f2) (`tests/scaling.rs` author + CI workflow update), [F3](#r4-pe-f3) (fsync cost measure-or-retract) inline fixes land. [F4](#r4-pe-f4) is accepted-risk and doesn't gate MVR.
+
+**Cost-of-deferral.** Each operator who runs Step 12 between now and the Finding 1 fix has no measurement record of what they observed — the budget-claim verification is uncontested and unverified. Each `cargo test -- --ignored` invocation against the current artifact returns silent-PASS against zero tests, with the missing `tests/scaling.rs` creating a confidence illusion at the CI gate. The Layer 2 install-verification gate ([Platform Engineer Dim 38 / G-155](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155)) for a future non-author user will fail to provide the scaling evidence the spec promises — Nathan-thread-shape feedback for Layer 2 may surface this gap (e.g., a future install-verifier runs Step 12, observes mean 95 ms with high variance, and has no protocol to report what to do).
+
+**Coordination:**
+- [Finding 1](#r4-pe-f1) routes to [Software Engineer](../SOFTWARE-ENGINEER-REVIEW.md) (the `--export-json` invocation update + the `manual-tests/perf-baseline.md` template) + [Platform Engineer](../PLATFORM-ENGINEER-REVIEW.md) (CI integration of the measurement record).
+- [Finding 2](#r4-pe-f2) routes to [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) (`tests/scaling.rs` authoring is QE territory) + [Platform Engineer](../PLATFORM-ENGINEER-REVIEW.md) (CI workflow step). IF the operator chooses to retract the closure claim rather than author the file, the finding also routes to [Solution Owner](../SOLUTION-OWNER-REVIEW.md) for the DESIGN.md/TODO.md correction + [VDD-IAR Alignment](../../../../vsdd-suite/domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md) (spec-vs-impl divergence is a methodology audit-trail concern).
+- [Finding 3](#r4-pe-f3) routes to [Solution Owner](../SOLUTION-OWNER-REVIEW.md) (DESIGN.md amendment per options (b) or (c)) OR [Platform Engineer](../PLATFORM-ENGINEER-REVIEW.md) (the measurement per option (a)).
+- [Finding 4](#r4-pe-f4) accepted-risk with Layer 3 trigger; no immediate coordination required. Routes to [Solution Architect](../SOLUTION-ARCHITECT-REVIEW.md) if Layer 3 import/export work raises the tag-count surface.
+
+**Cost-tally (per [primer 3](../../../../vsdd-suite/primers/3-review-session.md) § Per-review entry preamble § Cost-tally):**
+- Tokens: ~52k input + ~13k output ≈ 65k for this domain's review
+- Cost: ~$0.40-0.50 USD at Sonnet 4.6 pricing
+- Findings/100k tokens: 4 / (65k/100k) ≈ 6.15 findings per 100k tokens — well above the capstone-intent expected band of 1 finding per 100-300k tokens (per [`DESIGN.md`](../../DESIGN.md) § Cold-session budget); cluster-batched cold session is running efficiently — but the high finding density at the PE domain is itself a signal that the Layer 2 PE-deferred-item closures were thinner than the layer claimed, NOT that the cluster is running hot.
+
+---

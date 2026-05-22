@@ -686,3 +686,249 @@ The cold-pass independent dim-by-dim re-scan against the post-fix code: SE Dim 1
 - Cross-cluster: this SE round closes its MVR signal independently of the Performance and Platform sub-sections below; the three engineering-cluster domains do not gate on each other for MVR.
 
 ---
+
+## Review 4 — 2026-05-22 00:30Z
+
+**Phase:** 3 (IAR Round 1; Layer 2 Round 1 — first cold-session round on the Layer 2 artifact)
+**Source:** domain-raised (cold-session — Layer 2 read fresh; Layer 1 prior reviews referenced for regression-check only)
+**Lens:** cross-artifact-consistency + Rust-idiom-coverage + invariant-completeness + boundary-of-purity
+**Scope:** Layer 2 artifact in its entirety — [`DESIGN.md`](../../DESIGN.md), [`TODO.md`](../../TODO.md), [`src/lib.rs`](../../src/lib.rs), [`src/main.rs`](../../src/main.rs), [`tests/bookmarks.rs`](../../tests/bookmarks.rs), [`manual-tests/layer-2.md`](../../manual-tests/layer-2.md). Commits `5ba62d5` → `326e25d` → `16ee420` → `98b5886`.
+**Reviewer:** Software Engineer
+**Model:** Opus 4.7 (per [`DESIGN.md`](../../DESIGN.md) § Cold-session budget — SE runs on Opus 4.7 at capstone intent)
+**Session note:** Cluster A — shared with UX + Performance Engineer; Quality Engineer (SE's natural pair) in Cluster B per adversarial-pair separation discipline (PR #38 Round 3 precedent). Cold session — this SE round treats the Layer 2 artifact as a stranger's code; no participation in the Layer 2 build cycle; reads spec last per [primer 3](../../../../vsdd-suite/primers/3-review-session.md) cold-context discipline.
+**Regression-check against:** [Review 1](#review-1--2026-05-20-1930z) (R1-F1/F2/F3/F4/F5 Layer 1 SE findings — all closed at PR #38 Round 3); [Review 2](#review-2--2026-05-20-2100z) (R2-F6/F7 — closed); [Review 3](#review-3--2026-05-20-2200z) (R3 validation pass — MVR reached for Layer 1 SE). All Layer 1 SE findings cleanly closed; this Round 1 evaluates whether the Layer 2 extensions preserve the closed state and whether new defects arose.
+**Cost-tally:** placeholder per [primer 3](../../../../vsdd-suite/primers/3-review-session.md) § Pre-cycle methodology check — filled in at session-end below.
+
+**Assumption surfacing.** Layer 2 introduces `Bookmark.tags: Vec<String>` with `#[serde(default)]` ([`src/lib.rs:54-55`](../../src/lib.rs)) and an `AttachTagError` hand-rolled enum. Verified assumption: `#[serde(default)]` on a single field uses `Default::default()` for that field if absent — for `Vec<String>` this is `Vec::new()`, which matches the spec contract in [`DESIGN.md`](../../DESIGN.md) § Storage format "tags is optional during deserialization (Layer-1-format files... deserialize cleanly with `tags` defaulting to an empty `Vec<String>`)". Verified against [serde 1 documentation](https://serde.rs/field-attrs.html#default). Verified assumption: `clap` `ArgAction::Append` on a `Vec<String>` field collects every `--tag <label>` occurrence into the vec in argv order — verified against [clap 4 ArgAction docs](https://docs.rs/clap/4/clap/enum.ArgAction.html). The OR-semantics that `DESIGN.md` § `bm list --tag <label>` declares is implemented in `filter_by_tags` ([`src/lib.rs:409-414`](../../src/lib.rs)), not at the clap layer — clap just delivers the multi-value vec. **Flagged assumption:** the `tests_save_fsyncs_parent_directory` unit test at [`src/lib.rs:794-813`](../../src/lib.rs) does NOT in fact verify the fsync syscall fires — see [Finding 4](#r4-se-f4) below; this is acknowledged in the test's own doc comment but is structurally a finding against the Red Gate test plan's claim in [`TODO.md`](../../TODO.md) § Layer 2 Red Gate test 14.
+
+---
+
+### Deferred
+
+All four findings below carry classification **Deferred — pending Round 2 fix-cycle verification**. Each is named with the named-trigger discipline per [G-130](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-130); each is inline-fixable in Layer 2 prior to Round 2; the cluster session does not self-resolve mid-round per the cold-session discipline.
+
+**Finding 1 — `AttachTagError::NoMatch` `Display` impl drops the URL value the spec-contracted CLI error string contains (Dim 1, Dim 9)**
+
+<a id="r4-se-f1"></a>
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** quality-engineer
+**Severity:** Medium
+**Probability:** High
+**Lens-source:** cross-artifact-consistency
+**Dim:** SE Dim 1 (Correctness) + Dim 9 (Comments and self-documentation)
+
+**Evidence:** [`src/lib.rs:107-115`](../../src/lib.rs):
+
+```rust
+impl fmt::Display for AttachTagError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyUrl => f.write_str("URL cannot be empty"),
+            Self::EmptyLabel => f.write_str("tag label cannot be empty"),
+            Self::NoMatch => f.write_str("no bookmark found with the supplied URL"),
+        }
+    }
+}
+```
+
+The `NoMatch` variant's `Display` produces `"no bookmark found with the supplied URL"` — but the spec at [`DESIGN.md:82`](../../DESIGN.md) declares the user-facing message must be `"Error: no bookmark found with URL <url>."` with the URL interpolated. [`src/main.rs:277-280`](../../src/main.rs) papers over this by ignoring the `Display` impl entirely for the `NoMatch` branch:
+
+```rust
+Err(AttachTagError::NoMatch) => {
+    eprintln!("Error: no bookmark found with URL {}.", display_safe(url));
+    ExitCode::from(1)
+}
+```
+
+The CLI shell recreates the message from the URL it already has in scope. The Display impl exists but is never actually used for the user-facing rendering — it's dead code with a misleading text content that diverges from the spec's user-facing contract.
+
+**Reasoning:** This is a Dim 1 + Dim 9 hybrid finding. **Dim 1 (Correctness):** the `Display` impl is the canonical user-facing rendering for an `Error` type that implements `std::error::Error` (which `AttachTagError` does at [`src/lib.rs:117`](../../src/lib.rs)) — any future caller that converts `AttachTagError` to `anyhow::Error` via `?` or formats it via `format!("{e:#}")` will see `"no bookmark found with the supplied URL"` and lose the URL value the spec requires the user to see. The Layer 2 in-tree caller dodges this by re-creating the message, but the contract is broken at the type boundary: an `AttachTagError::NoMatch` value cannot losslessly render the spec-contracted message because the value does not carry the URL. **Dim 9 (Comments and self-documentation):** the variant doc comment at [`src/lib.rs:100-104`](../../src/lib.rs) says *"the CLI shell renders this as `Error: no bookmark found with URL <url>.`"* — naming a rendering that the variant cannot itself produce. A reader inspecting the type believes the type is the source of truth for the message; in fact `src/main.rs` is. Defense-in-depth at `AttachTagError::EmptyUrl` and `::EmptyLabel` works correctly (both `Display` produces the exact spec text minus `"Error: "` + `.`) but `NoMatch` is the asymmetric outlier.
+
+The asymmetry matters because the Rust supplement's `thiserror-vs-hand-rolled` framing (cited at [`src/lib.rs:88-89`](../../src/lib.rs) — *"Hand-rolled (no thiserror dep) because the variant set is small and the Display impl is the entire surface"*) explicitly bets the `Display` impl IS the entire surface. The bet is broken if `NoMatch` requires the caller to re-create the rendering with a value the variant doesn't carry — at that point the hand-rolled approach has all the cost of `thiserror` (no derive macros help) with none of the benefit (the type is not the source of truth).
+
+**Classification:** Inline fix in Layer 2. Two options, both small:
+
+- **Option A:** Add a `url: String` field to `NoMatch`: `NoMatch(String)`. Update the `Display` impl to interpolate: `f.write_fmt(format_args!("no bookmark found with URL {}.", url))`. Update `attach_tag` at [`src/lib.rs:394`](../../src/lib.rs) to `return Err(AttachTagError::NoMatch(url.to_string()));`. Update `src/main.rs` `run_tag` to use the variant's URL: `Err(AttachTagError::NoMatch(url)) => { eprintln!("Error: {}", display_safe(&format!("no bookmark found with URL {url}."))); ... }`. This makes the type the source of truth for the message AND lets the user-visible message flow through `display_safe` consistently with the other error paths.
+- **Option B:** Document the asymmetry explicitly in the doc comment at [`src/lib.rs:100-104`](../../src/lib.rs) — change "the CLI shell renders this as `Error: no bookmark found with URL <url>.`" to "the CLI shell renders this with the supplied URL interpolated; this variant does not carry the URL and the `Display` impl emits a URL-free placeholder ('no bookmark found with the supplied URL')." This preserves the current code shape but acknowledges the surface is split.
+
+Option A is the Rust-idiomatic shape (error types carry the values needed to render themselves); Option B is the cheap-doc shape. Recommend Option A given the spec's explicit `<url>` interpolation requirement.
+
+**Coordinate:** No G-NNN match in the suite [FINDINGS-INDEX.md](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md); novel finding at the project level. Cross-domain: surface to [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) for the test-design implication — the integration test [`tests/bookmarks.rs:589-618`](../../tests/bookmarks.rs) `tests_tag_rejects_unknown_url` asserts the CLI-shell-rendered message but never exercises `AttachTagError::NoMatch.to_string()` directly; a future caller using the library as a dev-dep would not catch the divergence via the existing test surface.
+
+---
+
+**Finding 2 — `attach_tag` return value `Result<usize, AttachTagError>` is documented as match-count but discarded at every caller and untested (Dim 4, Dim 8)**
+
+<a id="r4-se-f2"></a>
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** quality-engineer
+**Severity:** Low
+**Probability:** High
+**Lens-source:** invariant-completeness + Rust-idiom-coverage
+**Dim:** SE Dim 4 (Function and method design) + Dim 8 (Defensive coding)
+
+**Evidence:** [`src/lib.rs:356-397`](../../src/lib.rs) `attach_tag` signature returns `Result<usize, AttachTagError>` where the `usize` is documented as *"the count of bookmarks whose tags field was checked against the supplied label — i.e. the number of bookmarks whose URL matched"*. The only caller in this crate is [`src/main.rs:259-266`](../../src/main.rs):
+
+```rust
+match store.attach_tag(url, label) {
+    Ok(_) => {
+        if let Err(e) = store.save(path) {
+            ...
+```
+
+The count is `_`-discarded. No test in [`tests/bookmarks.rs`](../../tests/bookmarks.rs) or [`src/lib.rs`](../../src/lib.rs)'s `#[cfg(test)] mod tests` reads the count. The duplicate-URL test [`tests/bookmarks.rs:720-757`](../../tests/bookmarks.rs) `tests_tag_against_duplicate_url_tags_all_matches` asserts via the on-disk JSON that both bookmarks were tagged, but does not call `attach_tag` directly and inspect the returned count.
+
+**Reasoning:** Dim 4 (Function and method design) — a function's return value is the type-level contract with its callers. Returning a `usize` that no caller reads is a designed-by-accretion shape: either the count is part of the contract and a test should assert against it, or it's not part of the contract and the return should be `Result<(), AttachTagError>` (or the API should grow a separate `affected_count` accessor). Dim 8 (Defensive coding) — the asymmetry between idempotent-already-tagged matches (counted) and newly-tagged matches (also counted; "this count includes idempotent no-op matches" per the doc comment) is exactly the kind of subtlety that the type's contract should be defended via a test. Without a test, a future refactor that changes `matched += 1` to count only newly-tagged matches (a plausible "obviously correct" refactor) would silently shift the contract.
+
+The contract is also weakly named: the variable `matched` says "matched the URL" but the doc says "this count includes idempotent no-op matches" — both `matched` and the doc text agree on "URL-match count, not tag-add count." The doc is correct but the comment chain doesn't make the choice visible at the call site that could care (e.g., a future `bm tag --verbose <url> <label>` that prints "tagged N bookmarks" — the N should be URL-matches per the current contract, not tag-adds, but a reader of `run_tag` cannot see this decision).
+
+This is a Dim 4 / Dim 8 finding rather than a correctness defect because the current behavior matches the documented contract; the defect is that the contract has no test that would catch a future drift. Hallucinated-risk consideration: a reviewer could argue "discarded return values are common in Rust — `Vec::push` returns `()` and `Vec::pop` returns `Option<T>` that callers often ignore." The push-back: `attach_tag` is not in the standard library; it's the project's own contract surface, and the spec at [`DESIGN.md`](../../DESIGN.md) § `bm tag` doesn't say anything about a count. The count is reviewer-introduced metadata that the spec doesn't ask for and no test asserts on. If the count is part of the contract, name it in the spec; if it's not, drop it from the type.
+
+**Classification:** Inline fix in Layer 2 OR Round 2 cold-session verification. Two options:
+
+- **Option A (recommended):** Add a unit test in [`src/lib.rs`](../../src/lib.rs)'s `mod tests` that exercises `attach_tag` directly and asserts the count for (a) single-match, (b) duplicate-URL multi-match, (c) idempotent re-tag of an already-tagged bookmark — establishing that the count IS the URL-match count, not the new-tag-add count. This pins the contract.
+- **Option B:** Change the return type to `Result<(), AttachTagError>`, removing the unused count. Aligns the type with actual caller behavior.
+- **Option C:** Lift the count into the user-visible surface (e.g., emit `"Tagged N bookmarks."` to stderr on success) — this also bears on the UX cluster pair's silent-on-success affordance question; see UX Review 4 Finding 3 (Layer 1 round) for the related concern.
+
+Option C is the most spec-impactful but would also overlap with UX domain concerns. Recommend Option A as the minimum SE fix — the lowest-cost surface that pins the documented contract.
+
+**Coordinate:** No G-NNN match. Cross-domain: surface to [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) for the missing-test coverage; surface to [UX](../UX-REVIEW.md) Cluster A pair as a related concern (silent-success vs. count-of-matches-emitted surface).
+
+---
+
+**Finding 3 — `run_list` empty-store + `--tag` precedence is undocumented at the impl site; the spec's "edge case catalog" rule is reproduced as a comment but the reverse case is silently broken (Dim 1, Dim 8)**
+
+<a id="r4-se-f3"></a>
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** quality-engineer
+**Severity:** Low
+**Probability:** Medium
+**Lens-source:** invariant-completeness
+**Dim:** SE Dim 1 (Correctness) + Dim 8 (Defensive coding)
+
+**Evidence:** [`src/main.rs:206-213`](../../src/main.rs) `run_list`:
+
+```rust
+// Per `DESIGN.md` § Edge case catalog Layer 2: the empty-store
+// empty-state takes precedence over the filter empty-state — a user
+// with no bookmarks at all gets the more informative
+// "No bookmarks yet." even if they passed `--tag`.
+if store.bookmarks().is_empty() {
+    eprintln!("No bookmarks yet.");
+    return ExitCode::SUCCESS;
+}
+```
+
+This branch fires BEFORE the `--tag ""` empty-label validation at lines 223-226. Concrete consequence: `bm list --tag ""` against an empty store emits `"No bookmarks yet."` and exits 0, NOT `"Error: tag label cannot be empty."` and exit 1 — the empty-store-precedence rule is being applied to a CASE THE SPEC NEVER CONTEMPLATED. The spec's edge-case-catalog rule at [`DESIGN.md:118`](../../DESIGN.md) addresses the case "`bm list --tag <label>` against an empty store" — i.e., a non-empty `<label>` against an empty store, where the store-empty-state is more informative than the filter-empty-state. The case of an EMPTY `<label>` against an empty store is not in the catalog; the spec's `bm list --tag ""` invariant at [`DESIGN.md:96`](../../DESIGN.md) ("Failure (empty label — `bm list --tag ""`): stderr `Error: tag label cannot be empty.` ... Exit 1.") is unambiguous and contains no carve-out for an empty store.
+
+Verifying empirically against the Red Gate test plan: there is NO test in [`tests/bookmarks.rs`](../../tests/bookmarks.rs) that exercises `bm list --tag ""` against an empty store. The existing test `tests_list_with_empty_tag_label_rejected` at lines 961-982 pre-stages a bookmark via `bm add` before running `bm list --tag ""`. The empty-store + empty-tag case is unreached by the test surface.
+
+**Reasoning:** Dim 1 (Correctness) — the spec's `bm list --tag ""` contract says exit 1, but the implementation's branch ordering produces exit 0 against an empty store. The implementation is silently accepting an input the spec rejects. Per the SE prompt's sycophancy-check framing: *"For every function, ask: is this doing what was specified, or is it doing what was generated? Flag any function where the implementation could be correct internally but wrong with respect to the spec without any test catching it."* — this is exactly that shape. The store-empty-precedence comment at line 206 makes the implementation feel correct because the reasoning is named and cited; the precedence applies to the WRONG case.
+
+Dim 8 (Defensive coding) — the spec's contracts are layered: AC 11 (`bm list --tag ""` is exit 1) is an INPUT-INVARIANT rejection that should fire BEFORE any store-state-dependent branch. AC 9 (filter-empty-state) and the edge-case-catalog rule are OUTPUT-STATE branches that depend on a validated input. The implementation collapsed the input-validation and the output-state branches into one ordering where store-state-emptiness wins. The defensible-coding shape is: validate inputs first (the `--tag ""` rejection), then branch on state.
+
+**Classification:** Inline fix in Layer 2. Move the empty-label validation ahead of the empty-store branch:
+
+```rust
+fn run_list(path: &std::path::Path, tags: &[String]) -> ExitCode {
+    let store = match BookmarkStore::load(path) { ... };
+
+    // AC 11: empty-label rejection is an INPUT-INVARIANT check; it fires
+    // regardless of store state.
+    if !tags.is_empty() && tags.iter().any(String::is_empty) {
+        eprintln!("Error: tag label cannot be empty.");
+        return ExitCode::from(1);
+    }
+
+    // Per `DESIGN.md` § Edge case catalog Layer 2: store-empty wins over
+    // filter-empty when --tag is supplied with a non-empty label.
+    if store.bookmarks().is_empty() {
+        eprintln!("No bookmarks yet.");
+        return ExitCode::SUCCESS;
+    }
+    ...
+}
+```
+
+Plus a new Red Gate test asserting `bm list --tag ""` against an absent store still exits 1 + emits the empty-label error.
+
+**Coordinate:** No G-NNN match. Cross-domain: surface to [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) for the missing test; surface to [Solution Owner](../SOLUTION-OWNER-REVIEW.md) IF the spec actually intends store-empty to win over the empty-label-rejection (which would be a surprising precedence inversion the spec should name explicitly — current spec at [`DESIGN.md:96`](../../DESIGN.md) doesn't, so this finding is impl-vs-spec not spec-revision).
+
+---
+
+**Finding 4 — `tests_save_fsyncs_parent_directory` is named for the Red Gate test plan item but does NOT verify the fsync syscall — Red Gate discipline broken by name (Dim 11, Dim 9)**
+
+<a id="r4-se-f4"></a>
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** quality-engineer
+**Severity:** Low
+**Probability:** High
+**Lens-source:** invariant-completeness + cross-artifact-consistency
+**Dim:** SE Dim 11 (Future-self maintainability) + Dim 9 (Comments and self-documentation)
+
+**Evidence:** [`TODO.md:77`](../../TODO.md) Layer 2 Red Gate test plan declares test 14:
+
+> `tests_save_fsyncs_parent_directory` (closes operator-queued PE fsync item) — adds a bookmark, asserts the `save` codepath invoked `fsync(2)` on the parent directory FD after the `rename(2)`. Implementation strategy: extract the durable-save into a function whose effect is observable from a unit test (an injected counter or trace-line on the unix path); the integration test asserts the observable.
+
+[`src/lib.rs:776-813`](../../src/lib.rs) ships a unit test named exactly `tests_save_fsyncs_parent_directory`, but the test body and the test's own doc comment at lines 776-793 explicitly state:
+
+> *"There is no portable way for a black-box unit test to assert that fsync was actually called on the parent directory FD (the syscall has no observable side effect from userspace). Acceptable alternative: the test asserts that after a `save` of a non-trivial store the file is present on disk + the store round-trips cleanly through `load`. This is a WEAK PROXY for the durability contract..."*
+
+The test name promises the Red Gate plan item; the test body explicitly admits it's a weak proxy that does not verify the fsync syscall.
+
+**Reasoning:** Dim 11 (Future-self maintainability) — a test named `tests_save_fsyncs_parent_directory` will be grepped, cited, and trusted by future readers as evidence that the fsync is verified. The test's own admission of weak-proxy status is buried in a 17-line doc comment that someone scanning `cargo test` output (which prints test names, not doc comments) will never see. The name is doing trust-work the body does not back. Dim 9 (Comments and self-documentation) — the spec's Red Gate plan named "extract the durable-save into a function whose effect is observable from a unit test (an injected counter or trace-line on the unix path)" — i.e., the spec ALREADY named the structural shape that would make the fsync verifiable. The implementation chose not to do this and shipped a test of the wrong contract under the name that promises the right one.
+
+The Red Gate discipline at [primer 2a](../../../../vsdd-suite/primers/2a-red-gate.md) requires the test to fail against an empty function body and pass against a correct one. The current test would pass against an empty `save` body that just writes the file without fsync — the round-trip-through-load assertion does not depend on durability. The test does not satisfy Red Gate discipline; it satisfies a different (round-trip) discipline.
+
+The structurally honest fix is one of: (a) rename the test to `tests_save_roundtrip_after_atomic_rename` (acknowledging the actual contract being verified) and DELETE the Red Gate plan item OR re-plan it with a different verification strategy; (b) implement the spec-named "injected counter or trace-line on the unix path" — e.g., a `static AtomicU64` increment inside `fsync_directory` that the test reads; (c) skip the test entirely and document the gap in the test plan rather than ship a misnamed test.
+
+**Classification:** Inline fix in Layer 2. Recommend option (a) for the lowest cost: rename the test to reflect the round-trip assertion that the test actually performs, and update [`TODO.md`](../../TODO.md) Layer 2 Red Gate test 14 to acknowledge the verification gap (e.g., "fsync syscall verification deferred — no portable userspace observation surface; the round-trip-through-load assertion is the in-scope proxy and is named accordingly"). Option (b) would be more rigorous but adds production-code complexity for a defense-in-depth test; the cost is not justified at Layer 2 scope.
+
+**Coordinate:** [G-132](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-132) (manual-testing as second adversarial surface) is loosely related — the Red Gate plan promises the test does X, the test does Y, and only a careful reader catches the divergence. Cross-domain: surface to [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) for the Red Gate discipline violation (QE owns the test system per the per-domain boundary); surface to [Performance Engineer](../PERFORMANCE-ENGINEER-REVIEW.md) for the unmeasured durability cost the test was supposed to anchor (see PE Round 4 Finding 1 in this cluster).
+
+---
+
+### Hallucinated
+
+*(none — all four findings are evidence-backed via file:line citations against the current Layer 2 artifact + cross-checked against the spec; none can be dismissed as adversary-invented.)*
+
+---
+
+### Summary
+
+**Regression-check against Layer 1.** The `Bookmark` `PartialEq + Eq` derive at [`src/lib.rs:50`](../../src/lib.rs) now compares the new `tags` field as well — the operator's specific question was whether Layer 1 unit tests comparing `Bookmark` instances would fail. **Answer: no regression.** Grepped `src/lib.rs` and `tests/bookmarks.rs` for direct `Bookmark` equality (`assert_eq!.*Bookmark|bm\(` patterns) — no test uses direct `Bookmark`-instance equality; all tests use the `.url()` / `.tags()` accessors. The unit-test helper `fn bm(url, ts)` at [`src/lib.rs:594-600`](../../src/lib.rs) always constructs `Bookmark { tags: Vec::new(), ... }`, so even if a future test were to compare `Bookmark` instances directly, both sides would be empty-tagged and equality would hold by accident. The derive extension is safe.
+
+The per-subcommand helper extraction (`run_add` / `run_list` / `run_tag`) at [`src/main.rs:171-282`](../../src/main.rs) reads as the supplement's "extract-and-name" Phase 2c refactor pattern — each helper is a complete top-to-bottom subcommand contract (load → validate → mutate → save), no helper is misnamed (`run_*` is the Rust-CLI idiom for "run this subcommand"), no helper duplicates logic that should be shared (the three helpers all load the store but the load+error-emit pattern is 4 lines each — within the suite's "three similar lines is better than a premature abstraction" tolerance). The clippy `too_many_lines` floor (cited in [`TODO.md:83`](../../TODO.md)) is satisfied. No SE finding against the refactor.
+
+Layer 1's SE-resolved findings (R1-F1/F2/F3/F4/F5; R2-F6/F7) all remain closed under Layer 2: the atomic-save discipline is preserved + extended with parent-dir fsync; the missing-positional-exit-1 handling extends cleanly to `bm tag` via the LABEL-before-URL ordering at [`src/main.rs:145-157`](../../src/main.rs); the `display_safe` sanitizer is applied to the new `Error: no bookmark found with URL {url}` error at [`src/main.rs:278`](../../src/main.rs); the orphan-temp-file cleanup at [`src/lib.rs:266`](../../src/lib.rs) is unchanged. No Layer 1 regression.
+
+4 findings classified: 4 Open / 0 Resolved / 0 Deferred / 0 Hallucinated / 0 Accepted-risk. Severity breakdown: 0 Critical, 1 Medium ([F1](#r4-se-f1) — `AttachTagError::NoMatch` Display drops URL), 3 Low ([F2](#r4-se-f2) — unused `usize` return; [F3](#r4-se-f3) — empty-label/empty-store precedence inversion; [F4](#r4-se-f4) — `tests_save_fsyncs_parent_directory` misnamed).
+
+The Layer 2 SE surface is largely well-formed — the type-level contract additions (`Bookmark.tags`, `AttachTagError`, `attach_tag`, `filter_by_tags`) align with the spec, the new I/O extensions (parent-dir fsync) match the documented durability discipline, and the per-subcommand helper extraction is the Rust-idiomatic shape the Phase 2c primer prescribes. The four findings cluster around **type-contract precision** (F1 — error variant doesn't carry its rendering data; F2 — return value not used and not pinned by test; F3 — input-vs-state branch ordering inverted; F4 — test name promises more than test body delivers). All four are fixable by small inline changes; none require spec amendment.
+
+**MVR signal:** NOT REACHED for SE at Layer 2. Per [primer 3](../../../../vsdd-suite/primers/3-review-session.md) § Round triggers [G-131](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) continue-trigger discipline, four new real findings + zero hallucinated requires a Round 2 cold pass to verify the fix cycle for these findings + re-pressure for adjacent defects the fixes might introduce.
+
+**Coordination:**
+- [F1](#r4-se-f1) cross-coordinates with [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) (test gap on `Display` impl); the inline fix is SE-owned.
+- [F2](#r4-se-f2) cross-coordinates with [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) (missing direct-count test) + [UX](../UX-REVIEW.md) Cluster A pair (count-of-matches-as-success-affordance overlap with UX silent-on-success concern).
+- [F3](#r4-se-f3) cross-coordinates with [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) (missing empty-store + empty-tag test); inline fix is SE-owned.
+- [F4](#r4-se-f4) cross-coordinates with [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) (Red Gate discipline owner) + [Performance Engineer](../PERFORMANCE-ENGINEER-REVIEW.md) (the durability cost the test was meant to anchor).
+
+**Cost-tally (per [primer 3](../../../../vsdd-suite/primers/3-review-session.md) § Per-review entry preamble § Cost-tally):**
+- Tokens: ~50k input + ~14k output ≈ 64k for this domain's review
+- Cost: ~$0.80-1.00 USD at Opus 4.7 pricing
+- Findings/100k tokens: 4 / (64k/100k) ≈ 6.25 findings per 100k tokens — well above the capstone-intent expected band of 1 finding per 100-300k tokens (per [`DESIGN.md`](../../DESIGN.md) § Cold-session budget); the cluster-batched cold session is running efficiently per [AI Engineer R1 F6+F7+F8](2026-05-21-ai-engineer.md) cluster-batching discipline.
+
+---
