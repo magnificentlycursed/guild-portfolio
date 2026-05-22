@@ -18,7 +18,7 @@
 
 **Model:** Sonnet 4.6 (conceptually, per the cost-discipline routing for PE per [`DESIGN.md`](../../DESIGN.md) line 19; executed at Opus 4.7 in this session per the cluster-batched cold-session shape).
 
-**Cold-session shape:** Cluster C (SA + Red Team + PE in one cluster pass per Review 88-era cluster-batching with adversarial-pair separation — Security to cluster B, VDD-IAR Alignment to cluster D).
+**Cold-session shape:** Solution-Architect/Red-Team/Platform-Engineer cluster (SA + Red Team + PE in one cluster pass per Review 88-era cluster-batching with adversarial-pair separation — Security to cluster B, VDD-IAR Alignment to cluster D).
 
 **Regression-check against:** [PE Review 1 — 2026-05-20 19:30Z](2026-05-20-platform-engineer.md#review-1--2026-05-20-1930z) (Layer 1 R1 — 11 Open + 2 Dismissed), [PE Review 2 — 2026-05-20 21:00Z](2026-05-20-platform-engineer.md#review-2--2026-05-20-2100z) (Layer 1 R2 — 8 Resolved + 5 Deferred including F9 install-verification operator-pending), [PE Review 3 — 2026-05-20 22:00Z](2026-05-20-platform-engineer.md#review-3--2026-05-20-2200z) (Layer 1 R3 — 2 Resolved-via-fix + 1 carried-Deferred-operator-gate; closed at MVR-blocked-by-operator-gate). The operator gate closed via PR #41 (nwhitehead's Ubuntu 24.04.4 PASS row at [`manual-tests/install-verification.md:55`](../../manual-tests/install-verification.md)) — Layer 1 PE Dim 38 satisfied.
 
@@ -253,4 +253,4 @@ MVR signal: Platform Engineer reaches **MVR-blocked-by-deferred-implementation-a
 - **Finding 5** (fsync filesystem-coverage caveat + impl-vs-plan divergence) — Coordination to [Performance Engineer](../PERFORMANCE-ENGINEER-REVIEW.md) for the budget-table caveat documentation; [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) for the seam-test pursuit decision.
 - **Finding 6** (Dismissed) — no coordination; documented reasoning.
 
-**Cost-tally:** Cluster C session (SA + Red Team + PE in one cluster pass) — PE sub-section consumed an estimated ~30k–40k tokens for the cold context-load (PE R1+R2+R3 review-log ~977 lines, Layer 2 spec sections, CI workflow file, Cargo.toml, deny.toml, rust-toolchain.toml, install-verification.md, manual-tests/layer-2.md, .pre-commit-config.yaml), and per-finding evidence-gathering. Per-finding cost ≈ 6k–8k tokens; below the capstone band's 100k–300k/finding range, consistent with cluster-batching efficiency.
+**Cost-tally:** Solution-Architect/Red-Team/Platform-Engineer cluster session (SA + Red Team + PE in one cluster pass) — PE sub-section consumed an estimated ~30k–40k tokens for the cold context-load (PE R1+R2+R3 review-log ~977 lines, Layer 2 spec sections, CI workflow file, Cargo.toml, deny.toml, rust-toolchain.toml, install-verification.md, manual-tests/layer-2.md, .pre-commit-config.yaml), and per-finding evidence-gathering. Per-finding cost ≈ 6k–8k tokens; below the capstone band's 100k–300k/finding range, consistent with cluster-batching efficiency.

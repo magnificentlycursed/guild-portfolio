@@ -18,7 +18,7 @@
 
 **Model:** Opus 4.7.
 
-**Cold-session shape:** Cluster C (SA + Red Team + PE in one cluster pass per Review 88-era cluster-batching with adversarial-pair separation — Security to cluster B, VDD-IAR Alignment to cluster D).
+**Cold-session shape:** Solution-Architect/Red-Team/Platform-Engineer cluster (SA + Red Team + PE in one cluster pass per Review 88-era cluster-batching with adversarial-pair separation — Security to cluster B, VDD-IAR Alignment to cluster D).
 
 **Regression-check against:** [SA Review 1 — 2026-05-20 02:45Z](2026-05-20-solution-architect.md#review-1--2026-05-20-0245z) (Phase 5 Purity Boundary Audit for Layer 1 — established DESIGN.md § Verification architecture as the single authoritative source for the purity boundary).
 
@@ -228,4 +228,4 @@ The pattern is consistent with a Layer 2 cold pass against an implementation tha
 - **Finding 5** (storage `#[serde(default)]` downgrade hazard) — routes to [Solution Owner](../SOLUTION-OWNER-REVIEW.md) for the spec-amendment ratification.
 - **Finding 6** (Hallucinated) — no coordination; recorded for audit completeness.
 
-**Cost-tally:** Cluster C session (SA + Red Team + PE in one cluster pass) — SA sub-section consumed an estimated ~25k–30k tokens for the cold context-load + per-finding evidence-gathering (the SA R1 Layer 1 review, the DESIGN.md Layer 2 sections, the `lib.rs`/`main.rs` Layer 2 deltas, the tests/bookmarks.rs Layer 2 block, and the FINDINGS-INDEX baseline). Per-finding cost ≈ 5k–6k tokens; below the capstone band's 100k–300k/finding range, consistent with the cluster-batching efficiency [AI Engineer R1 F6+F7+F8](2026-05-21-ai-engineer.md) observed on the prior cycle.
+**Cost-tally:** Solution-Architect/Red-Team/Platform-Engineer cluster session (SA + Red Team + PE in one cluster pass) — SA sub-section consumed an estimated ~25k–30k tokens for the cold context-load + per-finding evidence-gathering (the SA R1 Layer 1 review, the DESIGN.md Layer 2 sections, the `lib.rs`/`main.rs` Layer 2 deltas, the tests/bookmarks.rs Layer 2 block, and the FINDINGS-INDEX baseline). Per-finding cost ≈ 5k–6k tokens; below the capstone band's 100k–300k/finding range, consistent with the cluster-batching efficiency [AI Engineer R1 F6+F7+F8](2026-05-21-ai-engineer.md) observed on the prior cycle.

@@ -695,7 +695,7 @@ The cold-pass independent dim-by-dim re-scan against the post-fix code: SE Dim 1
 **Scope:** Layer 2 artifact in its entirety — [`DESIGN.md`](../../DESIGN.md), [`TODO.md`](../../TODO.md), [`src/lib.rs`](../../src/lib.rs), [`src/main.rs`](../../src/main.rs), [`tests/bookmarks.rs`](../../tests/bookmarks.rs), [`manual-tests/layer-2.md`](../../manual-tests/layer-2.md). Commits `5ba62d5` → `326e25d` → `16ee420` → `98b5886`.
 **Reviewer:** Software Engineer
 **Model:** Opus 4.7 (per [`DESIGN.md`](../../DESIGN.md) § Cold-session budget — SE runs on Opus 4.7 at capstone intent)
-**Session note:** Cluster A — shared with UX + Performance Engineer; Quality Engineer (SE's natural pair) in Cluster B per adversarial-pair separation discipline (PR #38 Round 3 precedent). Cold session — this SE round treats the Layer 2 artifact as a stranger's code; no participation in the Layer 2 build cycle; reads spec last per [primer 3](../../../../vsdd-suite/primers/3-review-session.md) cold-context discipline.
+**Session note:** SE/UX/Performance-Engineer cluster — shared with UX + Performance Engineer; Quality Engineer (SE's natural pair) in QE/Security/Technical-Writer cluster per adversarial-pair separation discipline (PR #38 Round 3 precedent). Cold session — this SE round treats the Layer 2 artifact as a stranger's code; no participation in the Layer 2 build cycle; reads spec last per [primer 3](../../../../vsdd-suite/primers/3-review-session.md) cold-context discipline.
 **Regression-check against:** [Review 1](#review-1--2026-05-20-1930z) (R1-F1/F2/F3/F4/F5 Layer 1 SE findings — all closed at PR #38 Round 3); [Review 2](#review-2--2026-05-20-2100z) (R2-F6/F7 — closed); [Review 3](#review-3--2026-05-20-2200z) (R3 validation pass — MVR reached for Layer 1 SE). All Layer 1 SE findings cleanly closed; this Round 1 evaluates whether the Layer 2 extensions preserve the closed state and whether new defects arose.
 **Cost-tally:** placeholder per [primer 3](../../../../vsdd-suite/primers/3-review-session.md) § Pre-cycle methodology check — filled in at session-end below.
 
@@ -798,7 +798,7 @@ This is a Dim 4 / Dim 8 finding rather than a correctness defect because the cur
 
 Option C is the most spec-impactful but would also overlap with UX domain concerns. Recommend Option A as the minimum SE fix — the lowest-cost surface that pins the documented contract.
 
-**Coordinate:** No G-NNN match. Cross-domain: surface to [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) for the missing-test coverage; surface to [UX](../UX-REVIEW.md) Cluster A pair as a related concern (silent-success vs. count-of-matches-emitted surface).
+**Coordinate:** No G-NNN match. Cross-domain: surface to [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) for the missing-test coverage; surface to [UX](../UX-REVIEW.md) SE/UX/Performance-Engineer cluster pair as a related concern (silent-success vs. count-of-matches-emitted surface).
 
 ---
 
@@ -922,7 +922,7 @@ The Layer 2 SE surface is largely well-formed — the type-level contract additi
 
 **Coordination:**
 - [F1](#r4-se-f1) cross-coordinates with [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) (test gap on `Display` impl); the inline fix is SE-owned.
-- [F2](#r4-se-f2) cross-coordinates with [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) (missing direct-count test) + [UX](../UX-REVIEW.md) Cluster A pair (count-of-matches-as-success-affordance overlap with UX silent-on-success concern).
+- [F2](#r4-se-f2) cross-coordinates with [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) (missing direct-count test) + [UX](../UX-REVIEW.md) SE/UX/Performance-Engineer cluster pair (count-of-matches-as-success-affordance overlap with UX silent-on-success concern).
 - [F3](#r4-se-f3) cross-coordinates with [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) (missing empty-store + empty-tag test); inline fix is SE-owned.
 - [F4](#r4-se-f4) cross-coordinates with [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) (Red Gate discipline owner) + [Performance Engineer](../PERFORMANCE-ENGINEER-REVIEW.md) (the durability cost the test was meant to anchor).
 
