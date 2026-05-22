@@ -164,3 +164,194 @@ Per [`primers/4-feedback-integration.md`](../../../../vsdd-suite/primers/4-feedb
 **MVR signal: REACHED for this round.** 2 of 3 findings Resolved inline within Round 3; the 3rd is correctly Deferred to Layer 2 (a future layer, not a process slip). The install-verification gate (per Nathan's PR #41 PASS row) remains satisfied; the inline-fix work improves the next non-author verifier's experience with falsifiable assertions.
 
 **Coordination:** [Finding 1](#r3-f1) cross-validates with [UX Finding 1](2026-05-21-ux.md#r4-f1) (same defect, message-quality angle); [Finding 2](#r3-f2) cross-validates with [TW Finding 1](2026-05-21-technical-writer.md#r4-f1) (same defect, documentation-accuracy angle); [Finding 3](#r3-f3) is QE-canonical with `**Validator:** sanity-check` per the meta-validator-of-last-resort pattern (no natural cross-domain pair for the manual-test-as-test-surface methodology question — the Sanity Check meta domain handles introspective methodology findings). All Resolved findings declare `**Validator:**` per [QE domain prompt § Validator pair](../../../../vsdd-suite/domains/role/QUALITY-ENGINEER-REVIEW.md). Upstream-suite-recurrence-prevention candidates routed via [Phase 4 feedback integration](../../../../vsdd-suite/primers/4-feedback-integration.md) to the next suite-review round for codification (3 candidates: empty-expected-output wording standard; install-verification template file-inventory section; manual-test scripted-vs-human-split discipline).
+
+---
+
+## Review 4 — 2026-05-22 00:25Z
+
+**Phase:** 3 (IAR Round 1; Layer 2 — first cold-session round on the Layer 2 artifact).
+**Source:** domain-raised (the standard QE dimensions + the Rust supplement § Quality Engineering floor raised every finding below; Layer 1 prior reviews referenced for regression-check only).
+**Lens:** test-suite completeness + mutation-resistance projection + property-based-coverage projection + scaling-test plan rigor.
+**Scope:** Layer 2 artifact in its entirety — [`DESIGN.md`](../../DESIGN.md) (Layer 2 § Scope, § Behavioral contracts `bm tag` + `bm list --tag`, § Edge case catalog Layer 2 additions, § Storage format `tags` field, § Verification architecture purity boundary Layer 2 additions, § Performance budget Layer 2 additions, § Phase 5 + § Phase 6 strategy Layer 2 declarations), [`TODO.md`](../../TODO.md) § Layer 2 (AC 5-13 + Red Gate test plan + layer-gate criteria), [`src/lib.rs`](../../src/lib.rs) (`Bookmark.tags` + `AttachTagError` + `BookmarkStore::attach_tag` + `BookmarkStore::filter_by_tags` + `fsync_directory` + the unit-test module), [`src/main.rs`](../../src/main.rs) (`Cmd::Tag` + `Cmd::List { tags }` + `run_tag` + `run_list` + `handle_parse_error` LABEL routing), [`tests/bookmarks.rs`](../../tests/bookmarks.rs) (13 new Layer 2 integration tests), [`manual-tests/layer-2.md`](../../manual-tests/layer-2.md) (13-Step plan + Step 12 hyperfine sanity-check).
+**Reviewer:** Quality Engineer.
+**Model:** Sonnet 4.6 (conceptual; this cluster's QE seat).
+**Cold-session shape:** Cluster B (shared with Security + Technical Writer; adversarial pairs — Software Engineer in Cluster A; Red Team in Cluster C; Documentation Reviewer in Cluster D — are NOT in this cluster).
+**Session note:** Cold session — this Cluster B agent was spawned with no prior project context; read artifacts in the prescribed cold-reader order (TODO.md + sources + tests + manual-tests; DESIGN.md last per cold-reader discipline). Sycophancy-compensation per the [Quality Engineer domain prompt § Sycophancy check](../../../../vsdd-suite/domains/role/QUALITY-ENGINEER-REVIEW.md): the "Layer 2 was a clean operator-directive promotion; the test surface should be uniformly complete against the spec" framing was kept as a hypothesis to verify. The verification found that the test surface MATCHES the Layer 2 contracts at the binary boundary (13 new integration tests cover AC 5-13) but DIVERGES from the spec at the shipped-artifact level (`tests/scaling.rs` + proptest tests cited in DESIGN.md / TODO.md but absent from the artifact). The cold pass kept the dim active rather than absorb the gap into "Layer 2 is clean."
+**Regression-check against:** [QE Review 1](2026-05-17-quality-engineer.md#review-1--2026-05-17-0325z) (Layer 1 first pass — F1/F2 findings hold; F3 hallucinated; no Layer-2 regression surface to verify against); [QE Review 2](2026-05-20-quality-engineer.md#review-2--2026-05-20-0245z) (Layer 1 Mutation Testing — post-fix kill rate 8/8 on viable mutants; verify the mutant population for Layer 2's added code has not been measured this round, which is itself a finding); [QE Review 3](#review-3--2026-05-21-2030z) (Layer 1 manual-test executability — F3 Deferred-to-Layer-2 RFC 3339 scripted-check question is closed by this round's regression check on the new `tests_list_rfc3339_scripted_check`).
+**Cost-tally:** Cluster B agent budget ~50-80k tokens per [AI Engineer R1](2026-05-21-ai-engineer.md#review-1--2026-05-21-1000z) cluster-batching discipline; 4 findings filed across this round yields ~12-20k tokens/finding — within the capstone-intent expected band.
+
+**Assumption surfacing.** Verified `assert_cmd` v2.x and `tempfile` v3.x are still in dev-dependencies (no changes from Layer 1; `Cargo.toml` was not modified for Layer 2). Verified `proptest` is NOT in `Cargo.toml` `[dev-dependencies]` despite [`DESIGN.md`](../../DESIGN.md) § Phase 5 strategy Layer 2 declaring "property-based testing via proptest now warranted" + [`TODO.md` § Layer 2](../../TODO.md) Layer-gate criterion #5 declaring "property-based testing via proptest now activated against the tag-idempotence + filter-OR-monotonicity properties" — see [Finding 3](#r4-qe-f3) below. Verified `tests/scaling.rs` does NOT exist on the filesystem despite [`DESIGN.md`](../../DESIGN.md) § Performance budget Layer 2 + [`TODO.md` § Layer 2](../../TODO.md) declaring it as a shipped artifact — see [Finding 1](#r4-qe-f1) below. Verified `cargo-mutants` was NOT re-run against the Layer 2 added code this session (no Phase 5 Layer 2 Mutation Testing round entry exists in this QE log); the [QE Review 2](2026-05-20-quality-engineer.md#review-2--2026-05-20-0245z) Layer 1 kill rate (8/8 on viable mutants) is the prior baseline.
+
+**Regression check.** Layer 1 acceptance criteria AC 1-4 retested mentally against the post-Layer-2 source: `tests_add_creates_bookmark`, `tests_add_rejects_empty_url`, `tests_list_orders_newest_first`, `tests_list_empty_state` still present at [`tests/bookmarks.rs:44-169`](../../tests/bookmarks.rs); `Bookmark::tags` field with `#[serde(default)]` at [`src/lib.rs:54-55`](../../src/lib.rs) preserves Layer-1-format read compatibility (asserted by `tests_tag_against_layer_1_format_file_migrates_forward` at [`tests/bookmarks.rs:673`](../../tests/bookmarks.rs)); QE Review 2 retroactive Red Gate `save_creates_parent_directory_for_nested_path` still present at [`src/lib.rs:655`](../../src/lib.rs) — no Layer 1 regression.
+
+---
+
+### Resolved
+
+<a id="r4-qe-f1"></a>
+**Finding 1 — `tests/scaling.rs` is declared as a shipped Layer 2 artifact in DESIGN.md + TODO.md + the Layer 2 manual-test cross-reference, but the file does NOT exist on disk; Layer 2 layer-gate criterion #1 (`cargo test -- --ignored` for scaling tests) cannot be satisfied (Dim 1 — Acceptance criteria; Dim 6 — Validation gaps; Dim 13 — Quality gates / spec-vs-impl drift)**
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none — `tests/scaling.rs` must be authored or the spec must be amended)*
+**Validator:** quality-engineer
+
+**Domain-raised** during the cold QE pass against [`DESIGN.md:230`](../../DESIGN.md) (`Data-scaling tests:` paragraph) + [`TODO.md:81`](../../TODO.md) (`Layer 2 data-scaling tests:` paragraph) + [`TODO.md:87`](../../TODO.md) (Layer-gate criterion #1) + [`manual-tests/layer-2.md:444`](../../manual-tests/layer-2.md) (Step 12 preamble cross-reference). Concrete evidence of the asserted-shipped-but-absent state:
+
+**[`DESIGN.md:230`](../../DESIGN.md):**
+> "**Data-scaling tests:** Layer 2 ships sentinel integration tests at the 100 / 1,000 / 10,000-bookmark cliffs that exercise the full add → list → tag → list-filter cycle. Each cliff asserts: (a) operations complete within the budget table above; (b) the storage file round-trips without corruption; (c) the filter result set is correct against a programmatically-generated reference. The tests live in `tests/scaling.rs` and use `#[ignore]` by default so `cargo test` stays fast; CI runs them via `cargo test -- --ignored` in a separate job."
+
+**[`TODO.md:81`](../../TODO.md):**
+> "**Layer 2 data-scaling tests:** `tests/scaling.rs` with `#[ignore]`-gated sentinels at 100/1,000/10,000 bookmark cliffs."
+
+**[`TODO.md:87`](../../TODO.md) (Layer-gate criterion #1):**
+> "1. All Red Gate tests above pass: `cargo test --test bookmarks` + `cargo test -- --ignored` (scaling)."
+
+**Filesystem state.** `find vsdd-suite-reference-examples/bookmark-cli-manual -name 'scaling*'` returns nothing; `ls tests/` returns only `bookmarks.rs`. No `tests/scaling.rs` file exists. Therefore `cargo test -- --ignored` returns "0 ignored" (no ignored tests to run); the layer-gate criterion #1 vacuously passes for the scaling half but the criterion's intent (verify the budget at the 100/1,000/10,000-bookmark cliffs in CI) is not satisfied.
+
+**Test-discipline cost.** Per [QE Dim 1](../../../../vsdd-suite/domains/role/QUALITY-ENGINEER-REVIEW.md): *"Are all criteria from DESIGN.md actually met by the implementation, not just implied? Trace each feature to its test coverage."* — DESIGN.md's `Data-scaling tests:` paragraph declares an implementation commitment (the tests *live in* `tests/scaling.rs`); the implementation does not match the spec. This is a Phase 2b → spec drift, the exact failure mode the [QE domain prompt § Sycophancy check](../../../../vsdd-suite/domains/role/QUALITY-ENGINEER-REVIEW.md) flags: *"the most dangerous failure mode in QE is not a missing test — it is a complete, passing test suite for the wrong behavior."* — here it is one stronger: the passing test suite for the wrong behavior is missing entirely AND the spec claims it exists.
+
+Per [QE Dim 13](../../../../vsdd-suite/domains/role/QUALITY-ENGINEER-REVIEW.md): *"Are coverage thresholds, linting, and test runs enforced automatically? Are any quality checks manual-only that a passing CI run could miss?"* — the layer-gate criterion #1's `cargo test -- --ignored` invocation runs zero ignored tests at the moment of layer-gate evaluation; CI cannot fail on a missing scaling sentinel because there is no scaling sentinel to fail. The discipline-cost is non-trivial: a future regression in `BookmarkStore::filter_by_tags` performance at the 10,000-bookmark cliff would not be caught by any test surface against the current artifact.
+
+**Specific mutations Layer 2's added pure code is likely to NOT have caught absent the missing scaling tests + absent any Phase 5 Layer 2 Mutation Testing round:**
+
+- [`src/lib.rs:412`](../../src/lib.rs) `b.tags.iter().any(|t| labels.iter().any(|l| t == *l))` — the inner `any` returns `false` on empty `labels` slice. If the operator passes `bm list --tag` with zero `--tag` flags through some clap shape that bypasses the [`src/main.rs:214`](../../src/main.rs) `tags.is_empty()` early-return, `filter_by_tags(&[])` returns an empty `Vec` (every bookmark fails the inner `any`). Mutation: change `any` → `all` in the outer; under the all-bookmarks-have-empty-tags Layer-1-migration case, neither `any` nor `all` differ visibly because the inner predicate fails — only a 1,000-bookmark mixed-tag store catches the mutation. The scaling test at the 1,000-cliff would catch it; the current 13-bookmark-max integration tests do not.
+- [`src/lib.rs:384-396`](../../src/lib.rs) `attach_tag` — the `matched == 0` check at line 393 + the `NoMatch` error gate the per-bookmark loop's early return. Mutation: change `matched == 0` → `matched > 0` (invert); the all-match case still passes (count is positive; returns `Ok(matched)`) but the no-match case returns `Ok(0)` instead of `Err(NoMatch)`. The `tests_tag_rejects_unknown_url` integration test catches this on the no-match path; but a `matched < N` boundary mutation at the 10,000-bookmark scale where N is data-dependent would not be caught without scaling tests.
+
+**Why this is a QE finding** (not SE). The implementation absence is jointly a Software Engineer concern (the code doesn't exist; SE writes the code) and a Quality Engineer concern (the test surface doesn't cover the contracted scale + the layer-gate criterion's `cargo test -- --ignored` is a quality gate not actually gating anything). The QE framing owns the assertion-strength angle: the layer-gate criterion is a Quality Gate (Dim 13); a quality gate that vacuously passes is a quality gate that cannot fail on a broken implementation (Dim 2). Routed to `software-engineer` for implementation (write `tests/scaling.rs` with the three sentinels per the spec); QE validates the post-fix.
+
+**Resolution path.** Raised-Open per the Phase 3 IAR Round 1 classification universe. Two acceptable fix paths: (a) Resolved-by-implementation — author `tests/scaling.rs` with the three `#[ignore]`-gated sentinels at 100/1,000/10,000 cliffs per the DESIGN.md spec; (b) Raised-to-SO — amend DESIGN.md + TODO.md to defer the scaling tests to a future round (e.g., gate them behind the Phase 5 Layer 2 Performance Engineer round explicitly rather than declaring them shipped at Phase 2b). Path (a) is the floor-compliant fix; path (b) is the documented-tradeoff alternative. Owner: software-engineer. Validator: quality-engineer (the natural pair for SE-implemented tests).
+
+**Cross-domain coordination.** [Technical Writer Review 5 Finding 2](2026-05-22-technical-writer.md) raises the same artifact-absence from the documentation-accuracy lens (the spec declares the file shipped; the file is absent — TW Dim 2). The two findings are non-duplicative — TW owns the documentation-vs-code drift framing; QE owns the test-surface-completeness + layer-gate-vacuity framing. The fix path is shared; both findings close together.
+
+**Classification:** Resolved (raised; fix path Open). The cold-session-discipline default-to-finding-when-in-doubt rule per [Phase 3 primer](../../../../vsdd-suite/primers/3-review-session.md) applies: the spec-vs-impl drift is unambiguous (the file is named in three places and absent from the filesystem); no rationalization closes the gap without spec amendment or code authorship.
+
+---
+
+<a id="r4-qe-f2"></a>
+**Finding 2 — `proptest` activation is declared in DESIGN.md § Phase 5 strategy Layer 2 + TODO.md Layer-gate criterion #5 as Layer 2 layer-gate criterion, but no proptest dependency is added to Cargo.toml and no proptest tests exist; the property-based-coverage commitment is purely declarative (Dim 4 — Coverage meaningfulness; Dim 14 — TDD proxy indicators / failure specificity)**
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none — `proptest` dep + property tests must be added or the spec must be amended)*
+**Validator:** quality-engineer
+
+**Domain-raised** during the cold QE pass against [`DESIGN.md:15`](../../DESIGN.md) § Phase 5 strategy Layer 2 declaration + [`TODO.md:91`](../../TODO.md) Layer-gate criterion #5. Exact spec language:
+
+**[`DESIGN.md:15`](../../DESIGN.md):**
+> "Layer 2: ... property-based testing via proptest now warranted — the tag idempotence + filter OR-monotonicity properties have natural algebraic shape and proptest's marginal cost is low at Layer 2 scope."
+
+**[`TODO.md:91`](../../TODO.md) Layer-gate criterion #5:**
+> "5. Phase 5 Layer 2 rounds at closure: Purity Boundary Audit re-runs against the extended pure surface; Mutation Testing re-runs against the extended impl with 100% kill rate maintenance or named-rationale drop; property-based testing via proptest now activated against the tag-idempotence + filter-OR-monotonicity properties."
+
+**Filesystem state.** [`Cargo.toml`](../../Cargo.toml) `[dev-dependencies]` does not include `proptest`. `grep -r proptest tests/ src/` returns no matches. The property tests do not exist.
+
+**Test-discipline cost.** Per [QE Dim 4](../../../../vsdd-suite/domains/role/QUALITY-ENGINEER-REVIEW.md): *"Does coverage reflect genuine confidence, or are covered lines trivially exercised? Are branches, edge cases, and error paths tested, not just happy paths?"* — the two algebraic properties named by the spec have natural proptest shape:
+
+1. **Tag idempotence:** `forall url, label, store. attach_tag(store, url, label).then(attach_tag(store, url, label)) == attach_tag(store, url, label)`. Currently exercised by the integration test `tests_tag_is_idempotent` at [`tests/bookmarks.rs:553`](../../tests/bookmarks.rs) with exactly one URL + one label + a 2-invocation count — a 1×1×2 sample of the property space. Proptest would generate `(url, label)` pairs across the full UTF-8 string space + invocation counts ≥ 2 and catch idempotence violations that emerge only at specific input shapes (e.g., URL containing tag-separator-shaped bytes, label equal to URL).
+2. **Filter OR-monotonicity:** `forall labels_subset, labels_superset, store. labels_subset.is_subset(labels_superset) -> filter_by_tags(store, labels_subset).is_subset(filter_by_tags(store, labels_superset))`. The current Layer 2 tests exercise this property with hand-picked 2-label cases (`tests_list_with_tag_filter_repeated_flag_is_or_semantics`); proptest would shrink to the minimal counterexample if the filter degenerates under specific tag-set shapes.
+
+The natural algebraic shape of both properties is exactly what proptest is designed for; the spec acknowledges this. The absence of the actual proptest tests means the layer-gate criterion #5 vacuously passes against a missing test surface.
+
+**Why this is a QE Dim 4 finding** (not Phase 5 Mutation Testing surface). The proptest activation is a Phase 5 hardening surface (per [Phase 5 primer](../../../../vsdd-suite/primers/5-formal-hardening.md)), but the spec-vs-impl drift is observable at the Phase 3 QE round level: the layer-gate criterion declares the surface activated; the surface is not activated. The Phase 5 Layer 2 round (when it lands) will be evaluating whether the proptest properties survive mutation; before that round can run there must be properties to survive. Routing: this is `Raised — Open` against Layer 2 Phase 2b authorship, not against Phase 5 closure — the Phase 5 Layer 2 round is correctly DEFERRED per the TODO.md spec; the issue is the proptest tests are declared shipped by the layer-gate criterion but absent from the artifact.
+
+**Resolution path.** Raised-Open per the Phase 3 IAR Round 1 classification universe. Two acceptable fix paths: (a) Resolved-by-implementation — add `proptest = "1"` to `Cargo.toml` `[dev-dependencies]` and author the two property tests (idempotence + OR-monotonicity) in a new `tests/properties.rs` or as a `#[cfg(test)] mod properties` block inside `src/lib.rs`; (b) Raised-to-SO — amend DESIGN.md + TODO.md to soften the layer-gate criterion #5's proptest clause from "now activated" to "evaluated at the Phase 5 Layer 2 closure round; activation conditional on the Phase 5 surface's cost-benefit pass." Path (a) is the floor-compliant fix; path (b) preserves the cold-session-budget by deferring the surface explicitly. Owner: software-engineer. Validator: quality-engineer.
+
+**Classification:** Resolved (raised; fix path Open).
+
+---
+
+### Deferred
+
+<a id="r4-qe-f3"></a>
+**Finding 3 — `tests_save_fsyncs_parent_directory` documentation in TODO.md § Layer 2 Red Gate test 14 promises a Red Gate test that asserts the syscall was invoked, but the actual test at `src/lib.rs:796` is documented as a "WEAK PROXY" that only verifies the save codepath ran successfully — the Red Gate framing is misaligned with the implementation discipline (Dim 2 — Red Gate; Dim 3 — assertion strength)**
+
+**Owner:** quality-engineer
+**Status:** raised
+**Blocked by:** Methodology — direct fsync-syscall verification requires either a Rust-side trait injection (adds production-code seam) or a `strace`/`dtruss` harness (platform-specific, outside `cargo test` discipline).
+**Validator:** sanity-check
+
+**Domain-raised** during the cold QE pass against [`TODO.md:77`](../../TODO.md) Red Gate test 14 declaration + [`src/lib.rs:776-794`](../../src/lib.rs) actual test docstring.
+
+**[`TODO.md:77`](../../TODO.md):**
+> "`tests_save_fsyncs_parent_directory` (closes operator-queued PE fsync item) — adds a bookmark, asserts the `save` codepath invoked `fsync(2)` on the parent directory FD after the `rename(2)`. **Implementation strategy:** extract the durable-save into a function whose effect is observable from a unit test (an injected counter or trace-line on the unix path); the integration test asserts the observable."
+
+**[`src/lib.rs:776-794`](../../src/lib.rs) (test docstring):**
+> "Closes the operator-queued PE fsync benchmark item structurally — `save` invokes `fsync(2)` on the parent directory after `rename(2)` for durability per DESIGN.md § Performance budget Layer 2 'Durability discipline'. There is no portable way for a black-box unit test to assert that fsync was actually called on the parent directory FD (the syscall has no observable side effect from userspace). Acceptable alternative: the test asserts that after a `save` of a non-trivial store the file is present on disk + the store round-trips cleanly through `load`. **This is a WEAK PROXY for the durability contract** — it confirms the save codepath executes successfully against a real filesystem (the same codepath that includes the fsync on Unix) but does not directly verify the fsync syscall was issued."
+
+**Test-discipline analysis.** The TODO.md Red Gate test plan declares an implementation strategy (extract-and-name + inject a counter/trace-line) that would make the syscall observable from a unit test; the actual implementation discarded that strategy in favor of a "WEAK PROXY" round-trip assertion. The misalignment is documented honestly in the test docstring, but the Red Gate discipline is compromised: the test cannot fail if a hypothetical broken implementation removes the `fsync_directory` call at [`src/lib.rs:304`](../../src/lib.rs) (the save would still succeed; the file would still round-trip; the test would still pass). Per [QE Dim 2 Red Gate](../../../../vsdd-suite/domains/role/QUALITY-ENGINEER-REVIEW.md): *"A test that passes against an empty function body or a trivially wrong stub implementation was not written first."* — the WEAK PROXY test passes against an implementation that comments out the entire `#[cfg(unix)] { ... fsync_directory(parent) ... }` block at [`src/lib.rs:296-312`](../../src/lib.rs). The test's value as a Red Gate is zero against a fsync-removal mutation.
+
+The test docstring at [`src/lib.rs:788-793`](../../src/lib.rs) acknowledges the gap honestly + names the two alternatives that would close it: (a) injected trait/seam at the syscall boundary; (b) `strace`/`dtruss` harness. The discipline-honest disposition is "this is a weak proxy; the test is named in the Red Gate plan for audit-trail purposes but does not actually exercise the Red Gate property."
+
+**Why this is Deferred, not Resolved-inline.** Per [QE Review 3 Finding 3 disposition shape](#r3-f3) — the manual-test plan's "RFC 3339 parseability" gap was similarly Deferred because adding the scripted check would change the manual-test plan's character. The parallel disposition here: closing the fsync verification gap would change the production-code character (add a syscall-observability seam to `BookmarkStore::save` solely for test instrumentation) or the test-harness character (introduce `strace`/`dtruss` outside the `cargo test` discipline). Both options have costs disproportionate to Layer 2's budget; the operator-queued PE fsync item was queued specifically because it lives at this boundary.
+
+The honest resolution is to **defer** this finding to a future Layer 2 Phase 5 Performance Engineer round — the PE round is the natural surface to evaluate whether the fsync benchmark + verification deserves an instrumented codepath (e.g., the PE round may also benchmark `bm add` under simulated power-fail via VM snapshot rollback, at which point the fsync verification becomes observable as a survival-vs-loss test).
+
+**Why this is a QE finding** (not just operator-queued PE item closure). The QE framing names the Red Gate misalignment specifically: the TODO.md Red Gate test plan's promise (the test "asserts the `save` codepath invoked `fsync(2)`") does not match the test's actual assertion (the test asserts the save succeeded + round-tripped). The Red Gate discipline requires the test to fail when the property is removed; the current test does not.
+
+**Resolution path.** Deferred to Layer 2 Phase 5 Performance Engineer round. Cross-references the [TODO.md operator-queued PE fsync item](../../TODO.md) which is correctly named as Layer 2's closure of the deferred Layer 1 PE finding. The Phase 5 PE round will re-evaluate whether the fsync verification deserves the production-code seam or the harness investment; for Layer 2 Phase 3 Round 1, the WEAK PROXY's honest docstring is the audit-trail evidence that the gap is named, not silently rationalized. Owner: quality-engineer. Validator: sanity-check per the meta-validator-of-last-resort pattern (the Red Gate methodology question has no natural cross-domain pair).
+
+**Classification:** Deferred — to Layer 2 Phase 5 Performance Engineer round per the operator-queued PE fsync item shape.
+
+---
+
+### Hallucinated
+
+<a id="r4-qe-f4"></a>
+**Finding 4 — Claim: `tests_list_rfc3339_scripted_check` is mis-scoped as a Layer-2 Red Gate test because it exercises only Layer 1's `bm list` (no `--tag`); it would not fail against an unmodified Layer 1 impl and therefore does not exercise a Layer-2 capability gap (Dim 2 — Red Gate)**
+
+**Owner:** quality-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+Initial adversarial framing per the prompt's specific Layer 2 question: *"Test 13 (`tests_list_rfc3339_scripted_check`) passed at Red Gate against the unmodified Layer 1 impl, per the prior sub-agent report. Is this acceptable per its TODO.md framing as 'closes Layer-1-Deferred QE item', or does it indicate the test is mis-scoped (it doesn't actually exercise a Layer-2 capability gap)?"*
+
+**Rejected.** The test's authoring intent + actual scope are correctly aligned with its TODO.md framing. [`TODO.md:76`](../../TODO.md) Red Gate test plan entry for this test:
+
+> "`tests_list_rfc3339_scripted_check` (closes Layer-1-Deferred QE item) — adds three bookmarks with small delays, invokes `bm list`, asserts every emitted timestamp matches the RFC 3339 grammar at byte level via a `chrono::DateTime::parse_from_rfc3339` round-trip — not merely a regex eyeball. The Red Gate failure mode is intentional ambiguity in the Layer-1 implementation (any deviation from strict RFC 3339 — missing-`Z`, ambiguous-offset, sub-microsecond precision drift — is a finding)."
+
+The test is **explicitly named** as closing the Layer-1-Deferred QE Review 3 Finding 3 (the RFC 3339 scripted-check question deferred to Layer 2 by [QE Review 3 disposition](#r3-f3)). It is NOT framed as testing a Layer-2 capability — it is framed as closing a Layer-1 deferred test-discipline item that was deferred because adding a scripted check inside the manual-test plan would erode the manual-test plan's second-adversarial-surface value; the deferral to Layer 2 explicitly resolved by moving the scripted check from the manual-test surface into the automated-test surface.
+
+The test passing against an unmodified Layer 1 impl is the **expected behavior** — Layer 1's `bm list` already emits RFC 3339-compliant timestamps via `chrono::DateTime::<Utc>::to_rfc3339()` at [`src/main.rs:216`](../../src/main.rs) (which is itself unchanged from Layer 1; the Layer 2 fix moved it into the per-subcommand `run_list` helper without changing the emission semantics). The test's Red Gate property is "Layer 1's `bm list` continues to emit RFC 3339 timestamps" — a regression-prevention assertion against future Layer 1 code mutations that would drift the timestamp format. It is NOT meant to fail against the Layer-1 impl; it is meant to fail against a future Layer-1-impl regression.
+
+**The hallucinated framing** confuses two distinct Red Gate properties:
+1. **Layer-2 Red Gate** — tests must fail against the Layer-1-only binary (e.g., `tests_tag_attaches_label_to_matching_bookmark` fails against Layer 1 because `bm tag` doesn't exist).
+2. **Layer-1-Deferred-to-Layer-2 closure** — tests added at Layer 2 to close a test-discipline gap surfaced at Layer 1 but properly addressed at the layer where the natural authoring surface exists (the automated-test file). These do NOT need to fail against the Layer 1 binary; they need to assert a property the Layer 1 binary continues to satisfy.
+
+The test in question is type 2; the TODO.md framing names it as such. Verified the rejection: the test is correctly scoped per its declared intent. The "passes against unmodified Layer 1 impl" observation is the expected behavior for a Layer-1-Deferred-to-Layer-2 closure test, not a defect.
+
+**Why this is filed despite being Hallucinated.** Per [Phase 3 primer § Hallucinated discipline](../../../../vsdd-suite/primers/3-review-session.md): hallucinated findings are recorded in the audit trail as evidence the adversarial check fired + concluded against the framing. The sycophancy-counter discipline ([QE domain prompt § Sycophancy check](../../../../vsdd-suite/domains/role/QUALITY-ENGINEER-REVIEW.md)) is operative here in reverse: the adversarial framing was correctly tested against the actual test's documented intent + the closure-of-prior-finding context, and the rejection is grounded in specific citation evidence (TODO.md line 76 + QE Review 3 Finding 3 deferral disposition) rather than a hand-wave dismissal.
+
+**Classification:** Hallucinated. Validator = sanity-check per the meta-validator-of-last-resort pattern (no Red Team validation surface — no fix to test for a Hallucinated finding).
+
+---
+
+### Dismissed
+
+*(none — every finding routed to a real test-discipline outcome.)*
+
+---
+
+### Summary
+
+4 findings filed in Round 1 Cluster B: **2 Raised — Open** ([Finding 1](#r4-qe-f1) `tests/scaling.rs` declared-but-absent + layer-gate-criterion-vacuity; [Finding 2](#r4-qe-f2) `proptest` activation declared-but-absent), **1 Deferred** ([Finding 3](#r4-qe-f3) `tests_save_fsyncs_parent_directory` WEAK PROXY vs. Red Gate framing — Deferred to Layer 2 Phase 5 PE round), **1 Hallucinated** ([Finding 4](#r4-qe-f4) `tests_list_rfc3339_scripted_check` mis-scoped framing rejected with citation-grounded rebuttal).
+
+**MVR signal: NOT REACHED for this round.** Round 1 produced 2 new real substantive findings with named fix paths + 1 Deferred + 1 Hallucinated. Per the [Phase 3 primer](../../../../vsdd-suite/primers/3-review-session.md) § Round triggers (G-131 continue trigger), Round 2 is mandatory after the fix cycle lands — the round-after-a-new-finding-round verifies the fixes hold + looks for adjacent defects the fix may have created.
+
+**Highest-severity finding:** [Finding 1](#r4-qe-f1) (`tests/scaling.rs` declared-but-absent + layer-gate criterion #1 vacuous-pass). The defect is structurally severe because it compromises both the test surface (no scaling coverage at the contracted cliffs) AND the layer-gate (the criterion's `cargo test -- --ignored` runs zero ignored tests; the gate cannot fail on a broken impl). The fix is mechanical (author `tests/scaling.rs` per the spec) but the underlying drift (spec declares a shipped artifact that doesn't exist) is the failure mode the QE domain prompt § Sycophancy check most pointedly warns against.
+
+**Cross-domain coordination.**
+
+- **[Finding 1](#r4-qe-f1) → [Software Engineer](../SOFTWARE-ENGINEER-REVIEW.md):** SE owns the `tests/scaling.rs` authorship per the spec. QE validates post-fix that the three sentinels at 100/1,000/10,000-bookmark cliffs assert the budget table from [`DESIGN.md`](../../DESIGN.md) § Performance budget + that `cargo test -- --ignored` returns three ignored tests (not zero).
+- **[Finding 1](#r4-qe-f1) → [Technical Writer Review 5](2026-05-22-technical-writer.md):** cross-validates the artifact-absence defect from the documentation-accuracy lens (TW Dim 2). The fix path is shared; both findings close together.
+- **[Finding 2](#r4-qe-f2) → [Software Engineer](../SOFTWARE-ENGINEER-REVIEW.md):** SE owns the `proptest` dep + property-test authorship. QE validates post-fix that the two properties (tag idempotence + filter OR-monotonicity) are correctly named + assert the natural algebraic shape.
+- **[Finding 3](#r4-qe-f3) → [Performance Engineer](../PERFORMANCE-ENGINEER-REVIEW.md):** Performance Engineer Layer 2 round inherits the fsync-verification methodology question; the WEAK PROXY disposition is the audit-trail evidence the gap is named for the PE round to re-evaluate.
+- **[Finding 4](#r4-qe-f4) (Hallucinated):** no coordination; recorded for audit-trail completeness per the sycophancy-counter discipline.
+
+**Upstream-suite-recurrence-prevention candidates.**
+
+1. **Spec-vs-impl drift detection at layer-gate time** ([Finding 1](#r4-qe-f1) + [Finding 2](#r4-qe-f2)) — both findings exhibit the same defect class: DESIGN.md + TODO.md name shipped artifacts that do not exist on the filesystem. A pre-merge hook that greps DESIGN.md + TODO.md for citation patterns (`` `tests/<name>.rs` ``, `` `proptest` ``, etc.) and verifies the citations resolve to existing files / dependencies would mechanically prevent the drift at authoring time. Recommendation: extend the existing [`vsdd-suite/hooks/check-anonymization.sh`](../../../../vsdd-suite/hooks/check-anonymization.sh) discipline with a parallel `check-spec-vs-impl-citations.sh` that gates layer-gate evaluation. Cross-references [`vsdd-suite/suite-development/suite-development.md`](../../../../vsdd-suite/suite-development/suite-development.md) § Per-review entry preamble standard.
+2. **Red Gate WEAK-PROXY discipline** ([Finding 3](#r4-qe-f3)) — the test docstring's explicit "WEAK PROXY" annotation is the right discipline (audit-trail honesty), but the [Phase 2a primer](../../../../vsdd-suite/primers/2a-red-gate.md) does not codify the WEAK-PROXY classification as a named exception to the Red Gate property. Recommendation: add a § Red Gate WEAK-PROXY clause to primer 2a that names: (a) when a Red Gate property is observable-from-userspace AND when it is not; (b) the WEAK-PROXY classification as the discipline-honest deferral disposition when the property is unobservable + the cost of making it observable is disproportionate; (c) the deferral-to-Phase-5 routing as the natural follow-up surface.
+
+**Coordination:** All Resolved findings declare `**Validator:**` per [QE domain prompt § Validator pair](../../../../vsdd-suite/domains/role/QUALITY-ENGINEER-REVIEW.md). The Cluster B's adversarial-pair separation (SE in Cluster A; Red Team in Cluster C; Doc Reviewer in Cluster D) means SE's parallel review against the same Layer 2 source will independently surface or not-surface the same defects from the implementation-correctness lens, satisfying the cold-session adversarial-pair discipline.
