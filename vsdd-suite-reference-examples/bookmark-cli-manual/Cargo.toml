@@ -7,7 +7,16 @@ edition = "2021"
 # pins the toolchain every contributor uses; rust-version is the manifest-level
 # MSRV cargo-resolver-visible signal. Round 2 fix per Platform Engineer Review 1
 # Findings 2 + 3 (vsdd-suite/review-log/2026-05-20-platform-engineer.md).
-rust-version = "1.78"
+#
+# Layer 2 Round 1 PE F4 — bumped 1.78 → 1.81 because Layer 1 R3's `reason = "..."`
+# attribute syntax in the `#[allow(...)]` blocks at src/lib.rs + tests/bookmarks.rs
+# requires Rust 1.81+ (the `reason` field on `#[allow]` / `#[deny]` / `#[warn]`
+# stabilized in Rust 1.81). The declared 1.78 MSRV was inaccurate post the
+# Platform Engineer Round 2 fix; this commit aligns the declaration with the
+# actual surface. The toolchain pinned at rust-toolchain.toml (1.95) satisfies
+# the bumped MSRV; CI runs against 1.95 so the 1.81 claim is not directly
+# CI-verified — the rationale is encoded in this comment + CHANGELOG.md.
+rust-version = "1.81"
 description = "Reference implementation for the VSDD suite's worked example. Captures URLs at the terminal and recalls them later."
 readme = "README.md"
 # Dual-licensed per the Rust ecosystem convention and the portfolio precedent
