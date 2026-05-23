@@ -355,3 +355,137 @@ The test in question is type 2; the TODO.md framing names it as such. Verified t
 2. **Red Gate WEAK-PROXY discipline** ([Finding 3](#r4-qe-f3)) — the test docstring's explicit "WEAK PROXY" annotation is the right discipline (audit-trail honesty), but the [Phase 2a primer](../../../../vsdd-suite/primers/2a-red-gate.md) does not codify the WEAK-PROXY classification as a named exception to the Red Gate property. Recommendation: add a § Red Gate WEAK-PROXY clause to primer 2a that names: (a) when a Red Gate property is observable-from-userspace AND when it is not; (b) the WEAK-PROXY classification as the discipline-honest deferral disposition when the property is unobservable + the cost of making it observable is disproportionate; (c) the deferral-to-Phase-5 routing as the natural follow-up surface.
 
 **Coordination:** All Resolved findings declare `**Validator:**` per [QE domain prompt § Validator pair](../../../../vsdd-suite/domains/role/QUALITY-ENGINEER-REVIEW.md). The QE/Security/Technical-Writer cluster's adversarial-pair separation (SE in SE/UX/Performance-Engineer cluster; Red Team in Solution-Architect/Red-Team/Platform-Engineer cluster; Doc Reviewer in Solution-Owner/Documentation-Reviewer/AI-Engineer/VDD-IAR-Alignment cluster) means SE's parallel review against the same Layer 2 source will independently surface or not-surface the same defects from the implementation-correctness lens, satisfying the cold-session adversarial-pair discipline.
+
+---
+
+## Review 5 — 2026-05-22 16:45Z
+
+**Phase:** 3 (IAR Round 2; Layer 2 Round 2 verification of the Round 1 fix cycle).
+**Source:** domain-raised (Round 2 regression-verification + Phase 5 forward-look proptest case-count flag; cold-session).
+**Lens:** Round 1 finding regression-verification + adjacent-defect surface scan (new proptest activation + scaling sentinel test rigor) + Phase 5 forward-look on proptest case-count.
+**Scope:** Layer 2 post-fix artifact tip (`9d56c3f`) — the 5 fix commits since `02e6eb3` Round 1 close: `156ec53` (scaling.rs + properties.rs + Cargo.toml proptest dev-dep + CI scaling job), `d62bb1a` (README + CHANGELOG Layer-2-promotion), `002d747` (DESIGN.md spec amendments), `cdb46bc` (Tagged N stderr + expanded help text), `9d56c3f` (install-verification Layer 2 inheritance note). Read [`tests/scaling.rs`](../../tests/scaling.rs), [`tests/properties.rs`](../../tests/properties.rs), [`Cargo.toml`](../../Cargo.toml) dev-dependencies, [`tests/bookmarks.rs`](../../tests/bookmarks.rs) (unchanged — verification of regression-free), and the post-fix [`DESIGN.md`](../../DESIGN.md) + [`TODO.md`](../../TODO.md) for spec-vs-impl alignment.
+**Reviewer:** Quality Engineer.
+**Model:** Sonnet 4.6 (per the [round-prompt-stated assignment](../../../../vsdd-suite/domains/role/QUALITY-ENGINEER-REVIEW.md)).
+**Cold-session shape:** QE/Security/Technical-Writer cluster (Round 2; same composition as Round 1; adversarial-pair separation preserved — SE in SE/UX/Performance-Engineer cluster; Red Team in Solution-Architect/Red-Team/Platform-Engineer cluster; Doc Reviewer in Solution-Owner/Documentation-Reviewer/AI-Engineer/VDD-IAR-Alignment cluster).
+**Regression-check against:** [Review 4](#review-4--2026-05-22-0025z) (Round 1; this same per-domain log file). All 4 Round 1 findings re-evaluated against the post-fix state.
+**Session note:** Cold session — this QE/Security/Technical-Writer cluster agent was spawned with no prior project context for the Round 2 verification; read post-fix artifacts in the prescribed cold-reader order. Sycophancy-compensation per the [Quality Engineer domain prompt § Sycophancy check](../../../../vsdd-suite/domains/role/QUALITY-ENGINEER-REVIEW.md): the "the fix cycle landed cleanly; everything is fine" framing was kept as a hypothesis to verify rather than a default conclusion. The verification confirmed the scaling.rs + properties.rs artifacts exist on disk + pass empirically (43 default + 3 ignored scaling sentinels all PASS); the wall-clock estimate in the scaling.rs docstring is empirically too tight (24m 33s vs docstring's ~1-2 min) and is flagged for Phase 5 PE re-evaluation. No new substantive findings surfaced; MVR reached.
+**Cost-tally:** QE/Security/Technical-Writer cluster Round 2 verification budget ~25-40k tokens per [AI Engineer R1](2026-05-21-ai-engineer.md#review-1--2026-05-21-1000z) cluster-batching discipline at half the new-finding round budget; 0 new findings + 4 regression-verifications → ~6-10k tokens / verification — within the capstone-intent expected band.
+
+**Assumption surfacing.** Verified `tests/scaling.rs` exists on disk at the post-fix tip; verified `tests/properties.rs` exists; verified `Cargo.toml` `[dev-dependencies]` now contains `proptest = "1"` at [`Cargo.toml:55`](../../Cargo.toml); verified the previously declared 1.78 MSRV is now 1.81 at [`Cargo.toml:19`](../../Cargo.toml) (PE F4 disposition for the `reason = "..."` attribute requirement). Ran `cargo test` at the post-fix tip: **43 default tests pass (12 unit + 29 integration + 2 proptest); 3 ignored scaling sentinels** (matches the prompt-stated state). Ran `cargo test --release --test scaling -- --ignored` separately: all 3 sentinels PASS in 1473.21s (release profile) on the verifier's macOS-darwin commodity hardware.
+
+---
+
+### Resolved
+
+<a id="r5-qe-f1"></a>
+**Finding 1 — Round 1 F1 verification: `tests/scaling.rs` declared-but-absent → file now exists with 3 sentinels at 100/1k/10k cliffs; all 3 PASS empirically (Dim 1 — Acceptance criteria; Dim 6 — Validation gaps; Dim 13 — Quality gates / spec-vs-impl drift)**
+
+**Owner:** quality-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** software-engineer
+
+**Round 1 Status:** Raised — Open (load-bearing; layer-gate criterion #1 vacuous-pass).
+**Round 2 Status:** Resolved.
+**Evidence:** [`tests/scaling.rs:1-222`](../../tests/scaling.rs) exists post-fix `156ec53`. Three `#[ignore]`-gated sentinel tests are present at the three contracted cliffs:
+- `scaling_100_bookmarks_round_trips_and_filters_correctly` at [`tests/scaling.rs:90-127`](../../tests/scaling.rs) — 100-bookmark cliff.
+- `scaling_1000_bookmarks_round_trips_and_filters_correctly` at [`tests/scaling.rs:136-170`](../../tests/scaling.rs) — 1,000-bookmark cliff.
+- `scaling_10_000_bookmarks_round_trips_and_filters_correctly` at [`tests/scaling.rs:187-221`](../../tests/scaling.rs) — 10,000-bookmark cliff.
+
+Each sentinel exercises the full add → list → tag → list-filter cycle (per DESIGN.md spec) at its cliff. Each sentinel asserts: (a) `bm list` line count equals N; (b) one bookmark matches after a single `bm tag` invocation against the middle URL; (c) `BookmarkStore::load` recovers exactly N bookmarks (the round-trip-without-corruption assertion). The wall-clock budget assertion is NOT made in `tests/scaling.rs` — the docstring at [`tests/scaling.rs:18-21`](../../tests/scaling.rs) explicitly delegates wall-clock assertions to the `hyperfine` sanity-check at `manual-tests/layer-2.md` Step 12, citing CI-flakiness concerns. This is a defensible separation per [QE Dim 3 assertion-strength](../../../../vsdd-suite/domains/role/QUALITY-ENGINEER-REVIEW.md): correctness-at-scale is the in-CI invariant; wall-clock is the human-observed sanity-check.
+
+**Round 2 commentary.** Verified `cargo test --release --test scaling -- --ignored` runs the three sentinels: **all 3 PASS** (test result: ok. 3 passed; 0 failed; 0 ignored; finished in 1473.21s ≈ 24m 33s on the verifier's macOS-darwin commodity hardware, release profile). The 10,000-bookmark sentinel + 1,000-bookmark sentinel each ran > 60s as expected. The layer-gate criterion #1 in [`TODO.md:87`](../../TODO.md) (`cargo test --test bookmarks` + `cargo test -- --ignored` for scaling) now resolves to a non-vacuous gate: the scaling half runs three actual ignored tests that all pass against the post-fix implementation, rather than zero. The Round 1 F1 load-bearing concern (the gate cannot fail on a broken impl because there's nothing to run) is closed.
+
+**One forward-look concern (NOT a finding).** The 10,000-bookmark sentinel's docstring at [`tests/scaling.rs:181-184`](../../tests/scaling.rs) names a ~1-2 min wall-clock on commodity hardware. The actual run on this verifier's macOS-darwin hardware (release profile) measured ~24m 33s for the full three-sentinel set (the 10k sentinel + 1k sentinel were each > 60s; the 100-bookmark sentinel ran sub-second). This is roughly 10-20× the docstring's estimate. Possible interpretations: (a) the docstring estimate is from a faster (Linux + later cargo cache) commodity-hardware baseline; (b) the verifier's machine is slower than the reference benchmark; (c) the docstring should be updated to a wider range. Flag for **Phase 5 PE Layer 2 round** to either re-benchmark on a reference machine + update the docstring or re-evaluate the wall-clock budget; CI runs under `--ignored` may land in the 5-30 min range per scaling pass depending on hardware. This is acceptable for a Linux-only separate CI job per the CHANGELOG note at [`CHANGELOG.md:17`](../../CHANGELOG.md), but the docstring's "~1-2 min" estimate is empirically too tight.
+
+**Classification:** Resolved (Round 1 Raised-Open → Round 2 Resolved). (Dim 1 — Acceptance criteria; Dim 6 — Validation gaps; Dim 13 — Quality gates)
+
+---
+
+<a id="r5-qe-f2"></a>
+**Finding 2 — Round 1 F2 verification: `proptest` activation declared-but-absent → Cargo.toml dev-dep + tests/properties.rs both now exist with the two named properties (tag_idempotence + filter_or_monotonicity); 64-case override flagged for Phase 5 evaluation but defensible (Dim 4 — Coverage meaningfulness; Dim 14 — TDD proxy indicators / failure specificity)**
+
+**Owner:** quality-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** software-engineer
+
+**Round 1 Status:** Raised — Open (load-bearing; layer-gate criterion #5 vacuous-pass).
+**Round 2 Status:** Resolved.
+**Evidence:** [`Cargo.toml:55`](../../Cargo.toml) `[dev-dependencies]` now contains `proptest = "1"`. [`tests/properties.rs:1-176`](../../tests/properties.rs) exists post-fix `156ec53` with the two named property tests:
+- `tag_idempotence_property` at [`tests/properties.rs:84-108`](../../tests/properties.rs) — exercises the DESIGN.md § `bm tag` § Idempotence contract: `attach_tag(url, label)` twice produces the same state as once. Uses `prop_assume!(single_result.is_ok())` at line 95 to filter trivial-no-match cases, keeping the property focused on the substantive contract.
+- `filter_or_monotonicity_property` at [`tests/properties.rs:119-175`](../../tests/properties.rs) — exercises the DESIGN.md § `bm list --tag <label>` OR-semantics contract: `filter_by_tags(A ∪ B) = filter_by_tags(A) ∪ filter_by_tags(B)` for disjoint labels A and B. URL-set comparison (not list comparison) at [`tests/properties.rs:157-159`](../../tests/properties.rs) correctly decouples the property from `Utc::now()` newest-first ordering nondeterminism.
+
+Verified `cargo test` runs the two proptest tests at the default profile (output: `running 2 tests / ..` in the proptest binary). Both pass.
+
+**Round 2 commentary (Phase 5 forward-look on case-count).** The fix-cycle agent's `ProptestConfig { cases: 64, .. }` override at [`tests/properties.rs:73`](../../tests/properties.rs) reduces proptest's default 256 cases to 64. The docstring at lines 70-72 names the rationale: "small enough that `cargo test` stays fast (< 1s for the two properties combined) but large enough to surface non-trivial counterexamples — proptest's default of 256 is overkill for a pure-side property on a 0..=8-bookmark store with a 4-URL alphabet." The search space is small enough this is defensible — the URL strategy at [`tests/properties.rs:45`](../../tests/properties.rs) (`"https://example-[0-3]\\.com"`) yields exactly 4 URLs; the label strategy at [`tests/properties.rs:49`](../../tests/properties.rs) (`"[a-d]{1,3}"`) yields 4 + 4² + 4³ = 84 labels; the store generator (0..=8 URLs) yields a small but dense search space.
+
+The Phase 5 Layer 2 Mutation Testing round (deferred per [`TODO.md`](../../TODO.md) § Layer 2 Layer-gate criterion #5; not run this session) is the natural surface to evaluate whether 64 cases kills the same mutants 256 cases would. The case-count override may compromise mutation-resistance against subtle mutants that emerge only at higher draw counts; specifically a mutation like `t == *l` → `t.contains(*l)` in `filter_by_tags` (a substring-vs-equality boundary) is sensitive to label-overlap shapes that may not appear in 64 draws but would in 256. **NOT filed as a Round 2 finding** because: (a) the override decision is correctly documented with rationale; (b) the small alphabet makes 64 a defensible coverage choice; (c) the Phase 5 round is the canonical surface to re-evaluate. **Flag for Phase 5 PE/QE Layer 2 round** to verify mutation kill rate is maintained at 64 cases or to raise the cases back to 256 if not. Recorded here as Round 2 commentary rather than a new finding because the rationale chain is honest and the Phase 5 surface owns the evaluation.
+
+The layer-gate criterion #5 in [`TODO.md:91`](../../TODO.md) (Phase 5 Layer 2 rounds at closure including proptest activation) now resolves to a non-vacuous declaration: the property tests exist and are run by `cargo test`. Round 1 F2 closed.
+
+**Classification:** Resolved (Round 1 Raised-Open → Round 2 Resolved). (Dim 4 — Coverage meaningfulness; Dim 14 — TDD proxy indicators / failure specificity)
+
+---
+
+### Deferred
+
+<a id="r5-qe-f3"></a>
+**Finding 3 — Round 1 F3 re-verification: `tests_save_fsyncs_parent_directory` WEAK PROXY disposition stable; Phase 5 PE Layer 2 round deferral routing intact (Dim 2 — Red Gate; Dim 3 — assertion strength)**
+
+**Owner:** quality-engineer
+**Status:** raised
+**Blocked by:** Methodology — direct fsync-syscall verification requires either a Rust-side trait injection (adds production-code seam) or a `strace`/`dtruss` harness (platform-specific, outside `cargo test` discipline). Deferral routing unchanged from Round 1.
+**Validator:** sanity-check
+
+**Round 1 Status:** Deferred (to Layer 2 Phase 5 Performance Engineer round; methodology — direct fsync verification requires production-code seam or strace harness).
+**Round 2 Status:** Verified-Deferred.
+**Evidence:** The Round 1 disposition holds without change. [`src/lib.rs:776-794`](../../src/lib.rs) (the test docstring) still names the WEAK PROXY classification honestly. No fix commit attempted to close this finding; the cluster fix-cycle correctly respected the Round 1 deferral disposition. The Round 1 commit `cdb46bc` (UX affordance + help text) and `002d747` (spec amendments) did not touch the fsync-test or the production fsync seam; the methodology disposition stands.
+
+**Round 2 commentary.** Re-affirmed: the fsync verification is a Phase 5 Layer 2 PE-round concern. The disposition's audit-trail value is the explicit naming of the WEAK PROXY at the test docstring; that audit-trail signal is intact. No regression. The deferral routing has not been activated yet (Phase 5 Layer 2 PE round has not landed); the trigger is the Phase 5 closure, not Round 2.
+
+**Classification:** Deferred — to Layer 2 Phase 5 Performance Engineer round (disposition stable from Round 1). (Dim 2 — Red Gate; Dim 3 — assertion strength)
+
+---
+
+### Hallucinated
+
+<a id="r5-qe-f4"></a>
+**Finding 4 — Round 1 F4 re-verification: `tests_list_rfc3339_scripted_check` correctly scoped as Layer-1-Deferred-to-Layer-2 closure; Hallucinated disposition stable (Dim 2 — Red Gate)**
+
+**Owner:** quality-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+**Round 1 Status:** Hallucinated (the test is correctly scoped as Layer-1-Deferred-to-Layer-2 closure per its TODO.md framing).
+**Round 2 Status:** Verified-Hallucinated (no fix needed; recorded for audit-trail).
+**Evidence:** No fix commit attempted to act on this finding (correctly — Hallucinated findings have no fix path). [`tests/bookmarks.rs`](../../tests/bookmarks.rs) `tests_list_rfc3339_scripted_check` still passes against the Layer 1 + Layer 2 binary surface as designed.
+
+**Round 2 commentary.** The Round 1 sycophancy-counter discipline (recording a Hallucinated finding with citation-grounded rebuttal rather than silent dismissal) is the audit-trail artifact; no further action.
+
+**Classification:** Hallucinated (disposition stable from Round 1).
+
+---
+
+### Dismissed
+
+*(none.)*
+
+---
+
+### Summary
+
+4 Round 1 findings verified at Round 2: **2 Resolved** (F1 + F2; load-bearing fixes landed cleanly at `156ec53` — scaling sentinels at 100/1k/10k cliffs + proptest activation with two property tests on the pure surface), **1 Verified-Deferred** (F3 — Phase 5 PE Layer 2 round inherits the WEAK PROXY methodology question; disposition stable), **1 Verified-Hallucinated** (F4 — no fix path; audit-trail intact). **Zero new Round 2 findings.**
+
+**MVR signal: REACHED for this round.** All Round 1 findings reach a Round 2 terminal disposition (Resolved / Verified-Deferred / Verified-Hallucinated) and the Round 2 pass surfaced no new substantive findings against the post-fix artifact. Per [Phase 3 primer § Round triggers (G-131)](../../../../vsdd-suite/primers/3-review-session.md), the QE domain reaches MVR at this round for the Layer 2 surface. The Phase 5 Layer 2 round (Purity Boundary Audit re-run + Mutation Testing re-run + property-based testing kill-rate evaluation) remains the next natural QE-adjacent surface; that round is Phase-5-deferred per [`TODO.md` § Layer 2 Layer-gate criterion #5](../../TODO.md), not a Round-2 blocker.
+
+**Phase 5/6 blockers (forward-look from QE seat).**
+
+- **Phase 5 Layer 2 Mutation Testing:** the 64-case proptest override warrants a kill-rate evaluation against the Layer 1 baseline (8/8 viable kill rate). If a mutation survives at 64 cases that would die at 256, raise the cases; otherwise the override stands.
+- **Phase 5 Layer 2 PE round:** the WEAK PROXY fsync-test methodology question is the PE-round's natural surface; QE's Round 2 disposition is intact.
+- **Phase 6 Layer 2:** NOT APPLICABLE per [`DESIGN.md` § Project intent Phase 6 strategy for Layer 2](../../DESIGN.md) (Option 1 — capstone gates at project-terminal MVR per primer 6; Layer 1's Phase 6 attestation stands). No QE-side Phase 6 surface for Layer 2.
+
+**Cost-tally suffix:** ~6-8k tokens for this Round 2 verification + 0 new substantive findings = within the projected ~25-40k Round-2 cluster budget at half-rate (Round 2 verification is cheaper than Round 1 new-finding-generation per cold-session-discipline economics).
+
+**Coordination:** Round 1 F1 + F2 cross-validate with the parallel SE / VDD-IAR Alignment / SO Round 1 findings on the same artifact-absence defect class — all close together at `156ec53`; the shared fix is the right routing. Round 1 F3 routes to Phase 5 PE Layer 2 round (deferral intact). Round 2 adversarial-pair separation preserved: SE's parallel Round 2 in the SE/UX/Performance-Engineer cluster validates the same `tests/scaling.rs` + `tests/properties.rs` from the implementation-correctness lens; Doc Reviewer's parallel Round 2 in the Solution-Owner/Documentation-Reviewer/AI-Engineer/VDD-IAR-Alignment cluster validates the spec-vs-test-citation alignment from the documentation-completeness lens. All Round 2 verifications declare `**Validator:**` per [QE domain prompt § Validator pair](../../../../vsdd-suite/domains/role/QUALITY-ENGINEER-REVIEW.md).
