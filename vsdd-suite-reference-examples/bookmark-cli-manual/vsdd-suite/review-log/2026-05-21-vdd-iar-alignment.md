@@ -361,3 +361,317 @@ Seven findings in Round 1:
 **Validator:** solution-owner (the VDD-IAR Alignment ↔ Solution Owner validator pair per [Review 77](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-77--2026-05-20-1545z) — SO confirms the process-discipline findings don't conflict with the project's declared intent + the spec-amendment paths route through proper SO authority).
 
 ---
+
+## Review 5 — 2026-05-22 16:30Z
+
+**Phase:** [Phase 3](../../../../vsdd-suite/primers/3-review-session.md) — Iterative Adversarial Refinement (Layer 2 Round 2 verification methodology audit).
+**Source:** domain-raised — cold-session adversarial reviewer; did not author the fix commits (`156ec53` / `d62bb1a` / `002d747` / `cdb46bc` / `9d56c3f`); treats Review 4 as prior adversary's claim per cold-reader-vs-prior-round discipline.
+**Lens:** Verification of [Review 4](#review-4--2026-05-21-2200z) finding dispositions against the post-fix-cycle state + the Phase 6 NOT APPLICABLE methodology-precedent concern per the operator-supplied Round 2 prompt + Phase 5 / Phase 6 closure-blocker assessment for project-terminal Layer 2 cycle declaration.
+**Scope:** Methodology audit of the fix cycle's resolution of Round 1's process-compliance findings — the Phase 2c Red Gate evidence-preservation annotation (R4 F1), the Phase 6 NOT APPLICABLE declaration (R4 F5), the discipline-articulation robustness for the methodology-precedent concern.
+**Surface:** TODO.md:85 Red Gate annotation + DESIGN.md:17 Phase 6 strategy declaration + TODO.md:94 Layer-gate criterion #6 + the cross-cluster cross-validation against Solution Owner R5 + AI Engineer R3.
+**Reviewer:** VDD-IAR Alignment cold-session agent.
+**Model:** Opus 4.7 (per `DESIGN.md § Cold-session budget`).
+**Cold-session shape:** Solution-Owner/Documentation-Reviewer/AI-Engineer/VDD-IAR-Alignment cluster (Round 2; same composition as Round 1). SO ↔ VDD-IAR Alignment validator-pair co-located (acceptable per validator-pair-not-adversarial-pair framing).
+**Round:** 5 (VDD-IAR R5 against bookmark-cli-manual; R1-R3 covered Layer 1 with R3 being the Phase 6 four-dimensional convergence record; R4 was Layer 2 Round 1; this R5 is Layer 2 Round 2).
+**Regression-check against:** [VDD-IAR Alignment Review 4](#review-4--2026-05-21-2200z) (Layer 2 Round 1 baseline; the load-bearing F5 + the mild F1 both have project-side closure paths now) + [VDD-IAR Alignment Review 3](2026-05-20-vdd-iar-alignment.md#review-3--phase-6-four-dimensional-convergence-project-terminal--2026-05-21-1330z) (Layer 1 Phase 6 attestation — the project's terminal record per the NOT APPLICABLE disposition at Layer 2).
+**Cost-tally:** Solution-Owner/Documentation-Reviewer/AI-Engineer/VDD-IAR-Alignment cluster agent — Opus 4.7; this VDD-IAR Alignment Round 2 contributed ~28k input + ~14k output tokens ≈ ~$0.64 at standard pricing; per-finding cost ~$0.11 across 6 verification entries. Below the AI Engineer Dim 2 capstone-intent band floor consistent with [AI Engineer R3 r3-f2](2026-05-21-ai-engineer.md#r3-f2) Layer-scoped efficiency reading.
+
+**Session note:** Cold session opened against the post-commit-`9d56c3f` state. Reading order: [VDD-IAR Alignment domain prompt](../../../../vsdd-suite/domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md) → [primers 1ab → 1c → 2a → 2b → 2c → 3 → 5 → 6](../../../../vsdd-suite/primers/) → operator-supplied Round 2 per-domain prompt → [VDD-IAR Alignment Review 4](#review-4--2026-05-21-2200z) (Round 1 baseline) → `git log 02e6eb3..9d56c3f` (the 5 fix commits + their stat lines) → the post-fix state of [`TODO.md`](../../TODO.md):85 + [`TODO.md`](../../TODO.md):94 + [`DESIGN.md`](../../DESIGN.md):17 → [`README.md`](../../README.md) (the cold-reader-facing methodology-precedent surface) → [`CHANGELOG.md`](../../CHANGELOG.md) (the methodology-audit-trail surface) → [`tests/properties.rs`](../../tests/properties.rs) + [`tests/scaling.rs`](../../tests/scaling.rs) (verifying the Phase 5 surface is now activated).
+
+**MVR signal:** **REACHED at Round 2.** Both Round 1 findings with Phase 6 attestation implications have honest closure dispositions: F1 closed by TODO.md:85 Red Gate evidence-preservation annotation; F5 closed by DESIGN.md:17 NOT APPLICABLE declaration (Option 1 adopted per SO's recommendation). The methodology-precedent concern (will future capstone projects infer Phase 6 is per-project, not per-layer?) is robustly addressed by the discipline articulation across DESIGN.md + TODO.md + README.md + CHANGELOG.md. **No VDD-IAR Alignment finding BLOCKS Layer 2 from declaring closure of the project-terminal layer cycle.**
+
+---
+
+### Resolved
+
+**Finding 1 — Phase 2a/2b Red Gate evidence-preservation single-commit shape (verifies [r4-f1](#r4-f1)) (Dim 1 + Dim 3 + Dim 4)**
+
+<a id="r5-f1"></a>
+
+**Owner:** vdd-iar-alignment
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+Closure of [r4-f1](#r4-f1) — the Resolved-with-named-rationale path adopted via the TODO.md:85 annotation at fix commit `002d747`.
+
+**Evidence:**
+
+- [`TODO.md`](../../TODO.md):85 (post-`002d747`) carries the verbatim discipline-honest annotation proposed by Round 1's R4 F1 disposition path:
+  > "**Red Gate evidence-preservation annotation (Layer 2 Round 1 VDD-IAR Alignment R4 F1).** Layer 2's Phase 2a + Phase 2b landed in the SINGLE commit `326e25d`, which means the Red Gate failure evidence (12 of the 13 new tests failing correctly against the unmodified Layer 1 binary with `error: unrecognized subcommand 'tag'`) lives in the Phase 2b sub-agent's spawn-output report at commit time, NOT in git history as a separate Phase 2a-only commit. This is a methodology-audit-trail tradeoff — the convenience of a single commit at Phase 2b landing time was prioritized over the audit-trail discipline of a two-commit Phase 2a + Phase 2b shape. **For future Layer cycles** (Layer 3, future projects): the canonical shape is **two commits** — one for the Phase 2a Red Gate (failing tests committed alone; CI confirms RED) and a second for the Phase 2b implementation (the same tests pass; CI confirms GREEN). This Layer 2 annotation documents the precedent so the next cycle's operator + sub-agents know to apply the discipline; Round 1 VDD-IAR Alignment R4 F1 surfaced the gap + this paragraph is the closure."
+
+**Annotation discipline checklist (vs. the Round 1 R4 F1 proposed shape):**
+
+- ✓ Names the methodology-audit-trail tradeoff explicitly (single-commit convenience vs. dual-commit audit-trail discipline)
+- ✓ Names the sub-agent's spawn-output Red Gate failure evidence with the specific error message (`error: unrecognized subcommand 'tag'`) + the 12-of-13-failing ratio
+- ✓ Names the forward-looking discipline for future Layer cycles (canonical two-commit shape, CI confirms RED then GREEN)
+- ✓ Cites the closing finding (Round 1 VDD-IAR Alignment R4 F1)
+- ✓ The discipline-honest single-commit-with-rationale-annotation pattern consistent with the G-161 Phase 2c annotation precedent (which already lives at TODO.md:83 — the Red Gate annotation now sits adjacent to its sibling Phase 2c annotation, reinforcing the discipline-honest pattern)
+
+**Commentary:** the annotation IS the Layer 2 closure of the Red Gate evidence-preservation gap. The Phase 6 attestation implication (mild) declared at Round 1 — that Layer 2's future Phase 6 attestation Dim 4 would need this annotation as the Red Gate evidence trail — is now moot because Layer 2 Phase 6 is declared NOT APPLICABLE per Round 1 R4 F5's resolution (see [r5-f2](#r5-f2) below). The annotation's forward-looking value (telling Layer 3 + future projects about the canonical two-commit shape) IS load-bearing — it documents the methodology precedent for the next cycle's sub-agents.
+
+**Cross-cluster cross-validation:** [AI Engineer R3 r3-f4](2026-05-21-ai-engineer.md#r3-f4) confirms the project-side closure is discipline-honest; the methodology-authoring root cause (suite-side Phase 2a/2b spawn-prompt template extension) remains as the suite-side carryforward routed to a future PR-#40-equivalent.
+
+**Resolution:** Round 1 R4 F1 closed by `002d747` adding the TODO.md:85 Red Gate evidence-preservation annotation; the Resolved-with-named-rationale path proposed at Round 1 is adopted verbatim.
+
+**Classification:** Resolved — Red Gate evidence-preservation gap closed at the project-side; suite-side methodology-authoring carryforward routes to AI Engineer R3 F4.
+
+---
+
+**Finding 2 — Phase 2c annotation honesty (verifies [r4-f2](#r4-f2)) (Dim 12)**
+
+<a id="r5-f2-phase2c"></a>
+
+**Owner:** vdd-iar-alignment
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+Regression-check against [r4-f2](#r4-f2) holds.
+
+**Evidence:**
+
+- TODO.md:83 Phase 2c annotation unchanged from Round 1; the discipline-honest two-part pattern (proximate trigger + independent justification + rejected-counter-refactor) still operative.
+- G-161 closure still operative; no regression.
+
+**Commentary:** Phase 2c annotation discipline unchanged across the fix cycle; clean regression-check.
+
+**Resolution:** Regression-check against [r4-f2](#r4-f2) clean; G-161 closure operative.
+
+**Classification:** Resolved — Phase 2c annotation discipline holds at Round 2 close.
+
+---
+
+**Finding 3 — Phase 3 cluster shape (verifies [r4-f3](#r4-f3)) (Dim 6)**
+
+<a id="r5-f3-cluster"></a>
+
+**Owner:** vdd-iar-alignment
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+Regression-check against [r4-f3](#r4-f3) holds at Round 2.
+
+**Evidence:**
+
+- Round 2 cluster manifest (per cross-cluster cross-validation with the in-flight Round 2 spawn): same 4-cluster composition as Round 1 (SE/UX/Performance-Engineer + QE/Security/Technical-Writer + Solution-Architect/Red-Team/Platform-Engineer + Solution-Owner/Documentation-Reviewer/AI-Engineer/VDD-IAR-Alignment).
+- Adversarial-pair separation preserved at Round 2:
+  - Security ↔ Red Team: split ✓
+  - TW ↔ Doc Reviewer: split ✓
+- Round 2 scope-reducer discipline ([AI Engineer R1 F2](2026-05-21-ai-engineer.md#r1-f2)) applied: Round 2 spawn prompts route prior-round findings rather than re-scanning.
+- The cluster-naming discipline gap (letter-coded labels) is now AI Engineer R3's surface — see [AI Engineer R3 r3-f6](2026-05-21-ai-engineer.md#r3-f6) for the suite-level meta-finding routed to Task #56.
+
+**Commentary:** Phase 3 cluster shape canonical at Round 2; the cluster-naming-discipline carryforward is appropriately routed to the AI Engineer surface (Dim 12 operator-directive correction cost) + suite-level investigation.
+
+**Resolution:** Regression-check against [r4-f3](#r4-f3) clean; cluster shape canonical at Round 2; cluster-naming-discipline carryforward routes to AI Engineer R3 F6 + Task #56.
+
+**Classification:** Resolved — Phase 3 cluster shape canonical at Round 2 close.
+
+---
+
+**Finding 4 — Methodology-recurrence (Nathan-thread literal-empty wording) (verifies [r4-f4](#r4-f4)) (Dim 7)**
+
+<a id="r5-f4-nathan"></a>
+
+**Owner:** vdd-iar-alignment
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+Regression-check against [r4-f4](#r4-f4) holds.
+
+**Evidence:**
+
+- The fix-cycle updates to `manual-tests/layer-2.md` Steps 2 / 3 / 7 (per `cdb46bc`) modified the silent-on-success steps to include `Tagged N bookmark(s).` — the OTHER steps' "silent on success; the fenced block below is intentionally empty" framing is preserved per the Nathan-thread discipline.
+- The Nathan-thread discipline operative across the fix cycle; the fix cycle's UX/SE-affordance edit at Steps 2/3/7 does not regress the wording discipline at the remaining silent-on-success steps.
+
+**Commentary:** Methodology-recurrence discipline holds across the fix cycle. The codification in primer 1c per Review 88 Finding 3 is fulfilling its recurrence-prevention purpose.
+
+**Resolution:** Regression-check against [r4-f4](#r4-f4) clean; Nathan-thread literal-empty wording discipline preserved at Layer 2 surface across the fix cycle's stderr-affordance edits.
+
+**Classification:** Resolved — methodology-recurrence discipline holds at Round 2 close.
+
+---
+
+**Finding 5 — Phase 6 Layer 2 strategy declaration specificity, PHASE 6 ATTESTATION IMPLICATION load-bearing (verifies [r4-f5](#r4-f5)) (Dim 1 + Dim 14)**
+
+<a id="r5-f5"></a>
+
+**Owner:** vdd-iar-alignment
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** solution-owner
+
+Closure of [r4-f5](#r4-f5) — the load-bearing implication is closed by SO's adoption of Option 1: Layer 2 Phase 6 NOT APPLICABLE per the DESIGN.md:17 amendment at fix commit `002d747`.
+
+**Evidence.** DESIGN.md:17 § Phase 6 strategy now reads (verbatim):
+
+> "Layer 2 four-dimensional convergence: **NOT APPLICABLE** per [G-150](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) (over-investment guard) + [G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) (reference-implementation-purpose-already-satisfied) — bookmark-cli's reference-implementation purpose is 'exercise all six VSDD phases end-to-end as a worked example', which Layer 1's project-terminal MVR + Phase 6 attestation already demonstrate. Re-running Phase 6 for Layer 2 would teach methodology consumers that capstone artifacts require per-layer four-dimensional convergence, which is not the suite's intent — capstone gates at project-terminal MVR per primer 6, not per-layer. This disposition closes Layer 2 Round 1 VDD-IAR Alignment R4 F5 + Solution Owner R4 F2 (the cluster's own SO recommended Option 1: mark not-applicable; this declaration adopts that recommendation). Layer 2's Phase 5 strategy stands (Purity Boundary Audit re-run + Mutation Testing re-run + proptest activation); Layer 2's Phase 6 strategy is this explicit 'not applicable' declaration."
+
+**Dim 14 specificity gap check (against Round 1's specificity-gap framing):**
+
+- ✓ **G-150 + G-112 named** as the rationale (over-investment guard + reference-implementation-purpose-already-satisfied)
+- ✓ **Layer 1 attestation cited as the terminal record** (VDD-IAR Alignment Review 3)
+- ✓ **The methodology-precedent concern explicitly addressed** ("Re-running Phase 6 for Layer 2 would teach methodology consumers that capstone artifacts require per-layer four-dimensional convergence, which is not the suite's intent — capstone gates at project-terminal MVR per primer 6, not per-layer")
+- ✓ **Phase 5 vs. Phase 6 disposition split made explicit** (Phase 5 strategy stands; Phase 6 is the not-applicable declaration)
+- ✓ **Closing-finding citations** (closes R4 F5 + SO R4 F2 with Option 1 attribution)
+
+**Round 2-specific methodology-precedent concern (per the operator-supplied Round 2 prompt):**
+
+The operator's Round 2 prompt asks: "If future capstone projects look at bookmark-cli-manual as the reference example, will they see Layer 1 attested (Phase 6 done) + Layer 2 not-applicable (Phase 6 not done) and infer that Phase 6 is per-project, not per-layer? That's CORRECT per G-150 + G-112 reasoning but should be clearly documented."
+
+**Discipline-articulation robustness assessment:**
+
+The Layer 2 NOT APPLICABLE disposition is articulated at **four distinct surfaces**, each of which a future capstone-project author would consult:
+
+1. **DESIGN.md:17 § Phase 6 strategy** — the spec-level declaration with G-150 + G-112 named rationale + the explicit "capstone gates at project-terminal MVR per primer 6, not per-layer" framing. This is the authoritative methodology-precedent surface.
+
+2. **TODO.md:94 § Layer 2 Layer-gate criterion #6** — the layer-plan-level declaration cross-linking back to DESIGN.md § Project intent + restating the rationale. A reader walking the Layer-gate criteria sees the NOT APPLICABLE disposition surfaced as a discrete criterion item, not buried in narrative prose.
+
+3. **README.md:87 § Phase progression Layer 2 table § Phase 6 row** — the cold-reader-facing declaration with hyperlinks to both G-112 + G-150 + the inline rationale ("Layer 1's project-terminal Phase 6 attestation at VDD-IAR Alignment Review 3 satisfies the reference-implementation purpose [G-112] + capstone gates at project-terminal MVR per primer 6, not per-layer [G-150 over-investment guard]").
+
+4. **CHANGELOG.md [Unreleased] entry** — the audit-trail-of-record naming the Option 1 adoption ("adopted Option 1 (mark as not-applicable) per G-150 over-investment guard + G-112 reference-implementation-purpose-already-satisfied").
+
+**Methodology-precedent inference test:**
+
+A future capstone-project author landing on bookmark-cli-manual asking "is Phase 6 per-layer or per-project?" reads any one of the four surfaces above + arrives at the discipline-honest answer: **Phase 6 is per-project; capstone gates at project-terminal MVR per primer 6, not per-layer.** The named-rationale (G-150 over-investment guard + G-112 reference-implementation-purpose-already-satisfied) gives the future author the inference framework: Phase 6 attestation runs once per project when the project-terminal MVR signals; subsequent layers ARE in scope for Phase 5 (per-layer hardening: proptest + Purity Boundary Audit + Mutation Testing maintenance) but NOT for Phase 6 (project-terminal four-dimensional convergence is the project's terminal record, signed once).
+
+**Could the discipline articulation be tighter?** Marginal opportunities:
+
+- A potential primer 6 cross-reference paragraph naming the "Phase 6 is per-project, not per-layer; multi-layer projects attest Phase 6 once at project-terminal MVR" framing as a canonical convention. This would route the methodology-precedent to the primer itself, providing the authoritative cross-project surface. NOT required for Layer 2 closure; routes informally to suite-side as a future-cycle methodology-authoring carryforward.
+
+**Phase 6 attestation implication declared at Round 1: NOW CLOSED.** The load-bearing implication ("would BLOCK the future Phase 6 attestation if left unresolved") is moot because the future Phase 6 attestation is now declared NOT APPLICABLE. The methodology-precedent concern is robustly addressed.
+
+**Cross-cluster cross-validation:**
+
+- [Solution Owner R5 r5-f2](2026-05-21-solution-owner.md#r5-f2) — SO confirms Option 1 adoption + the G-150 + G-112 named rationale at the SO-authority surface.
+- [Solution Owner R5 r5-f5](2026-05-21-solution-owner.md#r5-f5) — SO documents the cost-investment proportionality; SO does NOT block Layer 2 closure.
+- [AI Engineer R3 r3-f2](2026-05-21-ai-engineer.md#r3-f2) — AI Engineer confirms cost-trending efficient; cluster-batching shape preserved.
+
+**Resolution:** Round 1 R4 F5 closed by `002d747` adopting Option 1 (DESIGN.md:17 Phase 6 NOT APPLICABLE declaration with named G-150 + G-112 rationale); methodology-precedent concern addressed at four surfaces.
+
+**Classification:** Resolved — the load-bearing Phase 6 attestation implication from Round 1 is closed by the Option 1 spec amendment; methodology-precedent concern robustly articulated; no remaining discipline gap.
+
+---
+
+**Finding 6 — G-162 strict-form Phase 5 + Phase 6 completeness (verifies [r4-f6](#r4-f6)) (Dim 1 + Dim 13 + Dim 14)**
+
+<a id="r5-f6-g162"></a>
+
+**Owner:** vdd-iar-alignment
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+Regression-check against [r4-f6](#r4-f6) holds.
+
+**Evidence:**
+
+- DESIGN.md:15 § Phase 5 strategy: still declared with `planned` + named scope (Purity Boundary Audit + Mutation Testing + proptest activation now actual at `tests/properties.rs` + Fuzz Testing + Proof Execution remain not applicable). ✓
+- DESIGN.md:17 § Phase 6 strategy: now declared with explicit NOT APPLICABLE + named G-150 + G-112 rationale + Layer-1-attestation citation. ✓
+- G-162 strict-form completeness met at Round 2 — both Phase 5 + Phase 6 strategy lines present + named-rationale-bearing.
+
+**Commentary:** G-162 completeness regression-check clean. The Phase 6 strategy line is now an explicit NOT APPLICABLE declaration (rather than a `planned` declaration), which is the discipline-honest stronger form — it eliminates the Dim 14 specificity gap that R4 F5 surfaced + provides the named rationale for the disposition.
+
+**Resolution:** Regression-check against [r4-f6](#r4-f6) clean; G-162 strict-form completeness maintained.
+
+**Classification:** Resolved — G-162 strict-form completeness holds at Round 2 close.
+
+---
+
+**Finding 7 — `tests_list_rfc3339_scripted_check` Layer-1-Deferred certification (verifies [r4-f7](#r4-f7)) (Dim 4 + Dim 12)**
+
+<a id="r5-f7-rfc3339"></a>
+
+**Owner:** vdd-iar-alignment
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+Regression-check against [r4-f7](#r4-f7) holds; the test still passes against the Layer 1 binary by design as a Layer-1-Deferred certification landing.
+
+**Evidence:**
+
+- The test at `tests/bookmarks.rs` (post-fix-cycle) is unchanged from Round 1; still framed as Layer-1-Deferred certification in TODO.md:76.
+- The Hallucinated framing from Round 1 (the test is NOT a Red Gate violation) holds.
+
+**Commentary:** No regression.
+
+**Resolution:** Regression-check against [r4-f7](#r4-f7) clean; the test still passes against Layer 1 by design as a Layer-1-Deferred certification landing.
+
+**Classification:** Resolved — Hallucinated framing from Round 1 holds; the test is operatively certifying a Layer 1 behavior whose certification was previously deferred.
+
+---
+
+**Finding 8 — Phase 5 surface now activated at the artifact level: proptest activation landed at `tests/properties.rs` (Dim 1)**
+
+<a id="r5-f8"></a>
+
+**Owner:** vdd-iar-alignment
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+The fix cycle's `156ec53` commit created `tests/properties.rs` (proptest activation) + `tests/scaling.rs` (data-scaling sentinels) + added `proptest = "1"` to Cargo.toml dev-dependencies. This advances the Phase 5 Layer 2 strategy from `planned` to `partially active`:
+
+**Phase 5 Layer 2 status at Round 2 close:**
+
+| Sub-dimension | DESIGN.md § Phase 5 declaration | Status |
+|---|---|---|
+| Purity Boundary Audit re-run (extended pure surface: `filter_by_tags` + `attach_tag`) | Layer 2 | Pending |
+| Mutation Testing re-run (extended impl) | Layer 2 | Pending |
+| Property-based testing via proptest (tag-idempotence + filter-OR-monotonicity) | Layer 2 | **NOW ACTIVE** at `tests/properties.rs` (2 proptest tests in default suite) ✓ |
+| Fuzz Testing | Layer 2 | Not applicable (no safety-critical / cryptographic / input-boundary attack surface) |
+| Proof Execution | Layer 2 | Not applicable |
+
+The proptest sub-dimension's activation IS a Phase 5 surface activation — it's not Phase 5 closure (the Purity Boundary Audit + Mutation Testing re-runs are still pending) but the highest-cost-to-author sub-dimension is now in the artifact.
+
+**Phase 6 closure-blocker check:** the Phase 6 NOT APPLICABLE declaration covers Layer 2; no Phase 6 attestation is required to declare Layer 2 closure. **Phase 5 Layer 2 closure** is a separate Layer-gate criterion (TODO.md:93 Layer-gate criterion #5) and requires the Purity Boundary Audit + Mutation Testing re-runs that are pending. The Phase 5 closure is the remaining work for Layer 2 layer-cycle terminus.
+
+**Methodology-discipline reading:** the fix cycle advanced the Phase 5 surface BEYOND what Round 1 surfaced. This is operationally healthy — the fix cycle's scope was Round 1 findings (the 12-fix subset) but the Phase 5 proptest activation went further to honor the spec commitment. The over-delivery (in scope-discipline language) is in-scope because the proptest commitment was a spec-named commitment Round 1 surfaced as an under-delivery against the spec.
+
+**Resolution:** Phase 5 surface advanced from `planned` to `partially active` via the `156ec53` `tests/properties.rs` activation; informational note for future-cycle regression-check.
+
+**Classification:** Resolved — Phase 5 surface activated at the artifact level; no methodology-discipline concern.
+
+---
+
+### Summary
+
+Round 2 verification:
+
+- **Round 1 Finding 1 verification ([r5-f1](#r5-f1))** — Resolved; TODO.md:85 Red Gate evidence-preservation annotation IS the discipline-honest closure; cross-validates with [AI Engineer R3 r3-f4](2026-05-21-ai-engineer.md#r3-f4).
+- **Round 1 Finding 2 verification ([r5-f2-phase2c](#r5-f2-phase2c))** — Resolved-and-holds; Phase 2c annotation unchanged across fix cycle.
+- **Round 1 Finding 3 verification ([r5-f3-cluster](#r5-f3-cluster))** — Resolved-and-holds at Round 2; cluster-naming-discipline gap routed to [AI Engineer R3 r3-f6](2026-05-21-ai-engineer.md#r3-f6) + Task #56.
+- **Round 1 Finding 4 verification ([r5-f4-nathan](#r5-f4-nathan))** — Resolved-and-holds; Nathan-thread wording discipline preserved across fix cycle.
+- **Round 1 Finding 5 verification ([r5-f5](#r5-f5))** — Resolved; load-bearing Phase 6 attestation implication closed by Option 1 adoption + DESIGN.md:17 NOT APPLICABLE declaration + named G-150 + G-112 rationale + methodology-precedent articulation at four surfaces.
+- **Round 1 Finding 6 verification ([r5-f6-g162](#r5-f6-g162))** — Resolved-and-holds; G-162 strict-form completeness maintained.
+- **Round 1 Finding 7 verification ([r5-f7-rfc3339](#r5-f7-rfc3339))** — Resolved-and-holds; Hallucinated framing holds.
+- **New Round 2 documented disposition ([r5-f8](#r5-f8))** — Phase 5 surface now `partially active` (proptest activation at `tests/properties.rs`); informational note.
+
+**Operator-supplied per-domain-prompt answers (summarized for the audit trail):**
+
+1. _"The Layer 2 Phase 6 = NOT APPLICABLE decision — does this introduce a methodology-precedent concern? If future capstone projects look at bookmark-cli-manual as the reference example, will they see Layer 1 attested + Layer 2 not-applicable and infer that Phase 6 is per-project, not per-layer? That's CORRECT per G-150 + G-112 reasoning but should be clearly documented."_ — **The discipline IS clearly articulated** at four surfaces (DESIGN.md:17 + TODO.md:94 + README.md:87 + CHANGELOG.md [Unreleased]). The inference test passes: a future capstone-project author lands on bookmark-cli-manual + arrives at the discipline-honest answer (Phase 6 is per-project; capstone gates at project-terminal MVR per primer 6, not per-layer). One marginal opportunity for tightening: a primer 6 cross-reference paragraph naming the "per-project, not per-layer" framing canonically — routes informally to suite-side as a future-cycle methodology-authoring carryforward. NOT required for Layer 2 closure.
+
+2. _"Read DESIGN.md § Phase 6 strategy + TODO.md § Layer-gate criterion #6 to verify the discipline is articulated."_ — **Verified.** DESIGN.md:17 carries the spec-level declaration with G-150 + G-112 named rationale + the explicit "capstone gates at project-terminal MVR per primer 6, not per-layer" framing. TODO.md:94 carries the layer-plan-level declaration cross-linking back to DESIGN.md + restating the rationale. Both surfaces are discipline-honest + load-bearing-correct.
+
+**PHASE 5 / PHASE 6 CLOSURE-BLOCKER ASSESSMENT (per operator-supplied Round 2 prompt's escalation request):**
+
+**NONE.** No VDD-IAR Alignment finding BLOCKS Layer 2 from declaring closure of the project-terminal layer cycle:
+
+- **Phase 6 Layer 2:** declared NOT APPLICABLE per G-150 + G-112; Layer 1's Phase 6 attestation at VDD-IAR Alignment Review 3 stands as the project's terminal four-dimensional convergence record. No attestation to sign at Layer 2 = no blocker.
+- **Phase 5 Layer 2:** declared `planned` at DESIGN.md:15 + `partially active` at Round 2 close (proptest activation landed; Purity Boundary Audit + Mutation Testing re-runs still pending). Phase 5 Layer 2 closure is a separate Layer-gate criterion (TODO.md:93 #5); it is the REMAINING work for Layer 2 layer-cycle terminus + does not block declaring closure of process-compliance dimensions audited by VDD-IAR Alignment.
+- **All other process-compliance dimensions (Dim 1 phase-progression, Dim 3 Red Gate discipline, Dim 4 test discipline, Dim 6 audit-trail, Dim 7 methodology recurrence, Dim 12 test-as-spec-assertion, Dim 13 cluster shape, Dim 14 dimension specificity):** clean at Round 2 close.
+
+**Coordination:**
+
+- [r5-f1](#r5-f1) cross-validates with [AI Engineer R3 r3-f4](2026-05-21-ai-engineer.md#r3-f4) (both seats agree the TODO.md:85 annotation is the discipline-honest project-side closure).
+- [r5-f5](#r5-f5) cross-validates with [Solution Owner R5 r5-f2](2026-05-21-solution-owner.md#r5-f2) (the SO ↔ VDD-IAR Alignment validator pair — both seats agree the Phase 6 NOT APPLICABLE declaration is discipline-honest + the methodology-precedent concern is robustly addressed).
+- [r5-f3-cluster](#r5-f3-cluster) routes the cluster-naming-discipline carryforward to [AI Engineer R3 r3-f6](2026-05-21-ai-engineer.md#r3-f6) + Task #56 (the AI Engineer surface owns the Dim 12 operator-directive-cost lens for this defect class).
+
+**Cost-tally:** Round 2 contributed ~$0.64 across 7 verification entries + 1 documented disposition. Below the AI Engineer Dim 2 capstone-intent band floor consistent with Layer-scoped efficiency.
+
+**Validator:** solution-owner (the VDD-IAR Alignment ↔ Solution Owner validator pair per [Review 77](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-77--2026-05-20-1545z); SO confirms the process-discipline findings don't conflict with the project's declared intent + the spec-amendment paths route through proper SO authority. SO R5 cross-validates this Round 2 disposition + reaches the same conclusion: no Layer 2 closure blocker).
+
+---

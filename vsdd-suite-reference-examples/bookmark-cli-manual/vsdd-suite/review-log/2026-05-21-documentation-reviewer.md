@@ -308,3 +308,236 @@ The cross-cluster coordination: TW in QE/Security/Technical-Writer cluster is li
 **Validator:** technical-writer (the TW ↔ Documentation Reviewer adversarial-pair validator — TW validates from authorial seat that Doc Reviewer's cold-reader findings produce closable fixes without introducing author-side blindspots). The Dismissed + Hallucinated dispositions ([Finding 5](#r5-f5) + [Finding 6](#r5-f6)) carry `**Validator:** sanity-check` per the meta-validator-of-last-resort pattern ([Review 77](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-77--2026-05-20-1545z) Finding 2).
 
 ---
+
+## Review 6 — 2026-05-22 16:30Z
+
+**Phase:** [Phase 3](../../../../vsdd-suite/primers/3-review-session.md) — Iterative Adversarial Refinement (Layer 2 Round 2 verification).
+**Source:** domain-raised — cold-session adversarial cold-reader; did not author the fix commits (`156ec53` / `d62bb1a` / `002d747` / `cdb46bc` / `9d56c3f`); treats Review 5 as prior adversary's claim per cold-reader-vs-prior-round discipline.
+**Lens:** Cold-reader friction + sweep-discipline + phase-attestation chain readability against the post-fix Layer 2 surface ([Documentation Reviewer domain prompt](../../../../vsdd-suite/domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) Dim 1 + Dim 4 + Dim 6 + Dim 11). Reads DESIGN.md LAST per cold-reader-poisoning discipline.
+**Scope:** Round 1 finding verification + a full cold-reader sweep across the Layer 2 surface (README → CHANGELOG → TODO → manual-tests/layer-2.md → install-verification.md → DESIGN.md) as a fresh stranger arriving at the project.
+**Surface:** Layer 2 documentation cross-file consistency after the fix cycle's README + CHANGELOG + manual-tests + install-verification edits.
+**Reviewer:** Documentation Reviewer cold-session agent.
+**Model:** Sonnet 4.6 (conceptually, per `DESIGN.md § Cold-session budget`; running at Opus 4.7 in this cluster-batched single-context).
+**Cold-session shape:** Solution-Owner/Documentation-Reviewer/AI-Engineer/VDD-IAR-Alignment cluster (Round 2; same composition as Round 1). TW ↔ Documentation Reviewer adversarial pair remains split (TW in QE/Security/Technical-Writer cluster).
+**Regression-check against:** [Documentation Reviewer Review 5](#review-5--2026-05-21-2200z) (Layer 2 Round 1 Doc Reviewer baseline) + [Documentation Reviewer Review 4 (2026-05-20-documentation-reviewer.md)](2026-05-20-documentation-reviewer.md#review-4--2026-05-21-1100z) (Layer 1 Doc Reviewer MVR; still the regression floor).
+**Cost-tally:** Solution-Owner/Documentation-Reviewer/AI-Engineer/VDD-IAR-Alignment cluster agent — Opus 4.7; this Documentation Reviewer Round 2 contributed ~22k input + ~11k output tokens ≈ ~$0.51 at standard pricing; per-finding cost ~$0.13 across 4 verification entries. Round-2 cost below Round-1 cost (~$0.59) per the Phase 4 routing scope-reducer discipline.
+
+**Session note:** Cold session opened against the post-commit-`9d56c3f` state. Reading order (per the operator-supplied Round 2 prompt's full cold-reader sweep request): [`README.md`](../../README.md) → [`CHANGELOG.md`](../../CHANGELOG.md) → [`TODO.md`](../../TODO.md) → [`manual-tests/layer-2.md`](../../manual-tests/layer-2.md) → [`manual-tests/install-verification.md`](../../manual-tests/install-verification.md) → grep sweeps for "Layer 2" / "scaling.rs" / "properties.rs" / "Phase 6" / "NOT APPLICABLE" across the project tree → [`DESIGN.md`](../../DESIGN.md) read LAST. Round 1 found three Deferred findings (README staleness; CHANGELOG ends at v0.12.3; phase-attestation chain readability gap) — this Round 2 verifies the fix cycle closed all three at the four Doc-Reviewer-named sites + the phase-attestation chain narrative.
+
+**MVR signal:** **REACHED at Round 2.** All three Round 1 Deferred findings closed by the fix cycle's README + CHANGELOG + cross-file consistency edits. Cold-reader sweep across the Layer 2 surface reads uniformly; phase-attestation chain reconstructible from file-level annotations without `git log` access. One Round 2 documented-clean observation about the audit-trail-of-record robustness; not a finding.
+
+---
+
+### Resolved
+
+**Finding 1 — README cold-reader landing page staleness (verifies [r5-f1](#r5-f1)) (Dim 1 + Dim 6 + Dim 9)**
+
+<a id="r6-f1"></a>
+
+**Owner:** documentation-reviewer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+Closure of [r5-f1](#r5-f1) — all 4 sites updated per `d62bb1a`.
+
+**Evidence (per-site verification):**
+
+1. **README.md:9 — Current state line.** Post-`d62bb1a` reads:
+   > "Current state: **Layer 1 project-terminal at PR #42** (add + list) + **Layer 2 active in the post-PR-#43 cycle** (tag + filter). Layer 3 (export + import) is scoped in [`DESIGN.md`](DESIGN.md) but not built — the reference-implementation purpose is satisfied by Layer 1 reaching project-terminal end-to-end + Layer 2 extending the worked example through a second iteration of the full 6-phase cycle."
+   The Layer 1 = project-terminal + Layer 2 = active framing is now load-bearing-correct. Cold reader landing on README.md leaves with the correct mental model. ✓
+
+2. **README.md ~lines 28-44 — Run example block.** Now includes Layer 2 commands (`bm tag` + `bm list --tag <label>` + repeated-flag OR-semantics demo) with explicit "(Layer 2)" annotations on lines 37-44. Help text examples match the Cmd::Tag + Cmd::List { tags } surface in `src/main.rs`. ✓
+
+3. **README.md:52 — Test counts.** Updated to "43 default tests at Layer 2, post-Round-1 fix cycle" with the 12 unit + 29 integration + 2 proptest breakdown explicitly. Matches the post-`156ec53` actual test surface verified by `cargo test`. ✓
+
+4. **README.md:76-91 — Phase progression.** A NEW Layer 2 phase progression table follows the Layer 1 table:
+   - Phase 1a → DESIGN.md Layer 2 extensions (Complete)
+   - Phase 1b → TODO.md § Layer 2 (Complete)
+   - Phase 2a → tests/bookmarks.rs Layer 2 Red Gate (Complete, with the 12-of-13-failing pre-implementation evidence noted)
+   - Phase 2b → src/lib.rs + src/main.rs Layer 2 surface (Complete)
+   - Phase 2c → TODO.md § Layer 2 § Phase 2c annotation (Complete — extract-and-name)
+   - Phase 3 → Round 1 4-cluster complete; fix cycle in progress; Round 2 pending (NOW REACHED at this Round 2)
+   - Phase 5 → Pending
+   - Phase 6 → **NOT APPLICABLE** per DESIGN.md § Project intent + G-150 + G-112
+   The Layer 1 table is also updated to reflect the project-terminal Phase 6 attestation at PR #42 + the 10-of-10 MVR scorecard. The framework "12 active domains" → "13" (post-AI Engineer) reflected. ✓
+
+**Cold-reader impact closure:** the stranger landing on README.md now correctly understands: (a) Layer 1 is terminally complete with Phase 6 attestation; (b) Layer 2 is in active development; (c) Layer 3 is scoped-not-built; (d) Phase 6 NOT APPLICABLE at Layer 2 with the named rationale. The Dim 1 clone-and-follow fidelity defect is closed.
+
+**Commentary:** the fix cycle correctly chose to ADD a second Layer 2 phase progression table rather than collapsing both layers into a single shared table — the per-layer structure preserves the audit-trail discipline at the cold-reader's primary landing surface. This is the discipline-honest path. The Doc Reviewer Round 1's three proposed edits (current-state line + phase progression table + scorecard refresh) were all applied + an additional bonus edit (the Run example extended with Layer 2 commands) closes the help-text-vs-README-narrative parity question Round 1 raised in passing.
+
+**Resolution:** Round 1 R5 F1 closed by `d62bb1a` — all 4 README sites updated.
+
+**Classification:** Resolved — README cold-reader landing page is now Layer-2-current.
+
+---
+
+**Finding 2 — CHANGELOG.md staleness (verifies [r5-f2](#r5-f2)) (Dim 6)**
+
+<a id="r6-f2"></a>
+
+**Owner:** documentation-reviewer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+Closure of [r5-f2](#r5-f2) — new `[Unreleased]` entry added per `d62bb1a`.
+
+**Evidence:**
+
+- [`CHANGELOG.md`](../../CHANGELOG.md):1 — H1 header `# Changelog` unchanged.
+- [`CHANGELOG.md`](../../CHANGELOG.md):3 — NEW H2 entry:
+  > "## [Unreleased] Layer 2 tag + filter — Phase 2 + Phase 3 Round 1 fix cycle — 2026-05-22"
+- The entry walks through:
+  - **Added — Layer 2 surface** sub-section (bm tag + bm list --tag + Bookmark.tags + attach_tag + filter_by_tags + AttachTagError + Unix fsync + manual-tests/layer-2.md + tests/scaling.rs + tests/properties.rs + AC 5-13 enumeration) — comprehensive coverage of the four Layer 2 implementation commits' deliverables ✓
+  - **Changed** sub-section (Cargo.toml MSRV 1.78 → 1.81 + proptest dev-dep + DESIGN.md amendments at Storage data classification / Threat model / Phase 5 / Phase 6 / TODO.md Layer-gate #6 + Phase 2c annotation + README + src/main.rs Tagged N affordance + help text + install-verification.md inheritance note + manual-tests/layer-2.md Step 2/3/7 stderr updates) — comprehensive coverage of the 5 fix commits' deliverables ✓
+  - **Closes Layer-1-Deferred items at Layer 2** sub-section explicitly enumerating PE R1 F2 + PE R1 F5 + QE RFC 3339 scripted check + operator-queued fsync benchmark — the cross-cycle finding-closure trace is preserved ✓
+  - **Round 1 cluster cold-session review** sub-section — names the 4-cluster shape with composition-based labels (not single-letter); ~30 findings count + 12 fix-load count; routes the residual to Round 2 ✓
+- Per [feedback_log_timestamps.md] memory: the entry uses the `2026-05-22` date (no time, which is acceptable per the [Unreleased] convention; subsequent finalized entries get the UTC Zulu timestamp at version-tag time).
+- The phase-attestation chain narrative (the 4-commit Layer 2 implementation sequence `5ba62d5 → 326e25d → 16ee420 → 98b5886`) is implicitly mapped via the per-commit fix references in the **Changed** sub-section + the entry's mention of the four-commit implementation cycle.
+
+**Cold-reader impact closure:** the stranger reading the CHANGELOG to understand the project's recent activity now sees the Layer 2 story explicitly with all deliverables enumerated. The Dim 6 documentation rot defect is closed.
+
+**Commentary:** the [Unreleased] convention is the correct shape for an in-flight cycle (Round 2 not yet closed at the time of `d62bb1a`); the entry will be promoted to a versioned tag (e.g., `v0.13.x`) at Layer 2 Phase 5 + cycle close. The CHANGELOG entry's structure mirrors the project's prior CHANGELOG entries (v0.12.3 / v0.12.2 / etc.), preserving the per-entry convention.
+
+**Resolution:** Round 1 R5 F2 closed by `d62bb1a` — CHANGELOG.md [Unreleased] entry added with comprehensive Added/Changed/Closes-Layer-1-Deferred sub-sections.
+
+**Classification:** Resolved — CHANGELOG.md no longer stale relative to Layer 2 reality.
+
+---
+
+**Finding 3 — Phase-attestation chain readability (verifies [r5-f3](#r5-f3)) (Dim 1 + Dim 3 + Dim 6)**
+
+<a id="r6-f3"></a>
+
+**Owner:** documentation-reviewer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+Closure of [r5-f3](#r5-f3) — both the README Phase progression table extension AND the CHANGELOG entry deliver the phase-map at file-level surfaces.
+
+**Evidence on file-level phase-attestation chain reconstructibility** (without `git log` access):
+
+A stranger arriving at a snapshot of the source tree (no git history) can now reconstruct the Layer 2 phase sequence as follows:
+
+1. **README.md § Phase progression Layer 2 table** (lines 76-91 post-`d62bb1a`) names each Phase with its primary artifact:
+   - Phase 1a → DESIGN.md Layer 2 extensions
+   - Phase 1b → TODO.md § Layer 2
+   - Phase 2a → tests/bookmarks.rs Layer 2 Red Gate
+   - Phase 2b → src/lib.rs + src/main.rs Layer 2 surface
+   - Phase 2c → TODO.md § Layer 2 § Phase 2c annotation
+   - Phase 3 → vsdd-suite/review-log/ Layer 2 rounds
+   - Phase 5 → Pending (Purity Boundary Audit + Mutation Testing + proptest at tests/properties.rs)
+   - Phase 6 → NOT APPLICABLE per G-150 + G-112
+
+2. **CHANGELOG.md [Unreleased]** maps the Phase decisions to specific deliverables (4 Layer 2 implementation commits + 5 fix commits, all named).
+
+3. **TODO.md § Layer 2** carries:
+   - Phase 2c annotation (line 83-84) — the original Phase 2c annotation
+   - **Red Gate evidence-preservation annotation (line 85)** — NEW per `002d747`; names the Phase 2a + Phase 2b single-commit shape + cites the 12-of-13-failing sub-agent spawn-output evidence + names "For future Layer cycles: the canonical shape is two commits" — preserves the Red Gate state for the future audit-trail-of-record (closes VDD-IAR R4 F1 at the discipline level).
+   - Layer-gate criterion #6 (line 94) — Phase 6 NOT APPLICABLE declaration cross-linked to DESIGN.md § Project intent.
+
+4. **DESIGN.md:17 § Phase 6 strategy** — the NOT APPLICABLE declaration is fully self-contained: names G-150 + G-112 + cites Layer 1 attestation at VDD-IAR Alignment Review 3 + names that capstone gates at project-terminal MVR per primer 6.
+
+5. **src/lib.rs** Layer 2 annotations (per the Round 1 Finding 3 audit at `:45`, `:72`, `:99`, etc.) still present; tests/bookmarks.rs:504-513 § Layer 2 — Phase 2a Red Gate header still present; manual-tests/layer-2.md:3 Phase 2b reference still present.
+
+**Cold-reader impact closure:** the phase-map is now reconstructible from file-level annotations alone. A snapshot-reader (no git history) lands on README → reads the Layer 2 phase progression table → discovers the deliverables per phase → follows table references to CHANGELOG / TODO / DESIGN / manual-tests / src for deeper detail. The Dim 1 + Dim 3 + Dim 6 defect is closed.
+
+**Commentary:** the TODO.md:85 Red Gate evidence-preservation annotation is particularly load-bearing — it preserves the methodology-audit-trail discipline at a file-level surface (so the discipline survives if the git history is squashed at merge time + so a cold reader knows the Red Gate evidence was verified, not silently skipped). This is the discipline-honest closure of VDD-IAR R4 F1 that Round 1 proposed and the fix cycle adopted.
+
+**Resolution:** Round 1 R5 F3 closed by file-level annotations across README + CHANGELOG + TODO + DESIGN; no `git log` access required to reconstruct the Layer 2 phase sequence.
+
+**Classification:** Resolved — phase-attestation chain reconstructible from file-level surfaces.
+
+---
+
+**Finding 4 — Manual-test plan operative-discipline (verifies [r5-f4](#r5-f4)) (Dim 8 + Dim 10)**
+
+<a id="r6-f4"></a>
+
+**Owner:** documentation-reviewer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** technical-writer
+
+Regression-check against [r5-f4](#r5-f4) holds.
+
+**Evidence (regression-check sweep):**
+
+- [`manual-tests/layer-2.md`](../../manual-tests/layer-2.md):1-9 preamble unchanged from Round 1 verification; Review 74 manual-test split convention still operative.
+- The fix-cycle updates to `manual-tests/layer-2.md` Steps 2 / 3 / 7 (per `cdb46bc`) modify the expected stderr from silent-on-success to `Tagged N bookmark(s).` — companion to the UX F2 + SE F2 affordance fix. The "silent on success; the fenced block below is intentionally empty" framing for OTHER silent-on-success steps is preserved per the Nathan-thread discipline.
+- [`manual-tests/install-verification.md`](../../manual-tests/install-verification.md):71-77 — NEW "Layer 2 inheritance note" appended per `9d56c3f` (closes PE F3 per the Round 1 PE finding's inheritance-by-strict-G-155-reading disposition). Names the operator-action item (solicit a fresh-system Layer 2 install verification post-merge).
+
+**Commentary:** Operator-action-queue continuity holds. Review 74 + Review 88 conventions still operative; new install-verification.md Layer 2 inheritance note adds a per-Layer audit-trail layer without breaking the prior Layer 1 attestation row.
+
+**Resolution:** Regression-check against [r5-f4](#r5-f4) clean; manual-test plan operative-discipline preserved.
+
+**Classification:** Resolved — operator-action-queue continuity holds at Round 2 close.
+
+---
+
+**Finding 5 — Audit-trail-of-record robustness across the Layer 2 cycle: git-log-access AND snapshot-reader access both reconstructible (Dim 4 + Dim 11)**
+
+<a id="r6-f5"></a>
+
+**Owner:** documentation-reviewer
+**Status:** validated
+**Blocked by:** *(none — observable cold-reader sweep)*
+**Validator:** sanity-check
+
+The operator-supplied per-domain prompt for Round 2 asks whether "a future audit-trail reviewer can follow Phase 1a/1b → 1c → 2a/2b → 2c → manual-tests → Round 1 → fix cycle → Round 2 from the commit history + file-level annotations."
+
+The Layer 2 cycle's audit trail at Round 2 close has the following reconstructibility properties:
+
+**From `git log` access (the operator's primary audit-trail-of-record):**
+
+- `5ba62d5` — Layer 2 Phases 1a/1b/1c (DESIGN.md spec extension + TODO.md decomposition)
+- `326e25d` — Layer 2 Phase 2a/2b (Red Gate + impl + fsync; single-commit shape preserved by TODO.md:85 annotation)
+- `16ee420` — Layer 2 manual-tests/layer-2.md
+- `98b5886` — Layer 2 Phase 2c (extract-and-name annotation)
+- `64f0310` / `7b924b1` / `01091be` / `65f2b76` — Round 1 cluster cold-session per-cluster commits (composition-based labels)
+- `02e6eb3` — Round 1 cluster label rename A/B/C/D → composition-based (the operator-flagged lettering-violation closure)
+- `156ec53` / `d62bb1a` / `002d747` / `cdb46bc` / `9d56c3f` — Round 1 fix cycle (5 commits closing the load-bearing subset of findings)
+- (Round 2 closing commit pending at the time of this review's authoring)
+
+**From file-level annotations (snapshot-reader without git history):**
+
+- README.md Phase progression Layer 2 table + Layer 1 table
+- CHANGELOG.md [Unreleased] entry walking the Layer 2 cycle
+- TODO.md § Layer 2 carrying Phase 2c annotation + Red Gate evidence-preservation annotation + Layer-gate criterion #6 NOT APPLICABLE declaration
+- DESIGN.md § Project intent Phase 5 + Phase 6 strategy lines
+- DESIGN.md § Storage data classification (Layer 2 tags field + downgrade-hazard paragraphs)
+- DESIGN.md § Threat model (Tag-injection-as-trust-signal paragraph)
+- vsdd-suite/review-log/ per-domain Layer 2 R1 + R2 files
+- src/lib.rs Layer 2 annotations + manual-tests/layer-2.md Phase 2b reference + tests/bookmarks.rs Layer 2 Red Gate section header
+
+The audit-trail-of-record is robust both with AND without git history access. The Round 1 Finding 3 partial-blocker (snapshot-reader needed `git log` to reconstruct phases) is closed: the file-level annotations carry the equivalent information.
+
+**Resolution:** the Layer 2 cycle's audit-trail-of-record is at the documentation-discipline standard the suite expects. No finding against the audit trail's completeness.
+
+**Classification:** Resolved — audit-trail-of-record robustness verified for both git-log-access AND snapshot-reader access surfaces.
+
+---
+
+### Summary
+
+Round 2 verification: all three Round 1 Deferred findings closed cleanly; the operator-action-queue continuity finding still holds; one Round 2 documented-clean observation about audit-trail robustness.
+
+- **Round 1 Finding 1 verification ([r6-f1](#r6-f1))** — Resolved; all 4 README sites updated (current-state line + Run example + test counts + Phase progression table).
+- **Round 1 Finding 2 verification ([r6-f2](#r6-f2))** — Resolved; CHANGELOG.md [Unreleased] entry added with Added/Changed/Closes-Layer-1-Deferred sub-sections.
+- **Round 1 Finding 3 verification ([r6-f3](#r6-f3))** — Resolved; phase-attestation chain reconstructible from file-level annotations (no `git log` required).
+- **Round 1 Finding 4 verification ([r6-f4](#r6-f4))** — Resolved-and-holds; manual-test plan operative-discipline still operative; new install-verification.md inheritance note adds the Layer 2 layer.
+- **New Round 2 documented observation ([r6-f5](#r6-f5))** — audit-trail-of-record robustness across git-log-access AND snapshot-reader access; no finding.
+
+**MVR signal:** **REACHED at Round 2.** All Round 1 Deferred findings closed. Cold-reader sweep across the Layer 2 surface reads uniformly; no new staleness or cross-file inconsistency surfaces.
+
+**Coordination:** cross-cluster — TW in QE/Security/Technical-Writer cluster's Round 2 should be expected to validate the same README + CHANGELOG closures from the authorial seat; cross-validation between Doc Reviewer + TW expected to agree.
+
+**Phase 5 / Phase 6 closure-blocker check:** none. Doc Reviewer seat does NOT block Layer 2 from declaring closure. The documentation discipline is robust + the audit-trail-of-record is complete.
+
+**Cost-tally:** Round 2 contributed ~$0.51 across 4 verification entries + 1 documented observation. Below the AI Engineer Dim 2 capstone-intent band floor — Layer-scoped efficiency.
+
+**Validator:** technical-writer (the TW ↔ Documentation Reviewer adversarial-pair validator; the post-fix README + CHANGELOG sweep's accuracy is verified by TW's authorial-seat Round 2 reading).
+
+---

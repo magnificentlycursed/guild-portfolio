@@ -243,3 +243,199 @@ Four findings in Round 1:
 **Validator:** vdd-iar-alignment (the SO ↔ VDD-IAR Alignment validator pair per [Review 77](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-77--2026-05-20-1545z) — VDD-IAR Alignment confirms the spec changes (the Finding 1 + Finding 2 resolution paths each route through DESIGN.md amendments) went through proper routing and don't conflict with prior intent).
 
 ---
+
+## Review 5 — 2026-05-22 16:30Z
+
+**Phase:** [Phase 3](../../../../vsdd-suite/primers/3-review-session.md) — Iterative Adversarial Refinement (Layer 2 Round 2 verification).
+**Source:** domain-raised — cold-session adversarial reviewer; did not author the fix commits (`156ec53` / `d62bb1a` / `002d747` / `cdb46bc` / `9d56c3f`) and does not inherit Round 1's framing. Treats Review 4 as prior adversary's claim per the [Phase 3 primer](../../../../vsdd-suite/primers/3-review-session.md) cold-reader-vs-prior-round discipline.
+**Lens:** Verification of [Review 4](#review-4--2026-05-21-2200z) finding dispositions against the post-fix-cycle state + the cost-investment proportionality lens for the full Layer 2 cycle (Round 1 + fix cycle + Round 2) per the operator-supplied per-domain prompt for this round.
+**Scope:** Layer 2 spec-vs-implementation compliance against the post-`9d56c3f` state; Layer 1 regression-check baseline preserved; capstone-tier intent calibration check across the full cycle cost.
+**Surface:** the four [Round 1 SO findings](#review-4--2026-05-21-2200z) (Backlogged F1 + Backlogged F2 + Resolved F3 + Resolved F4) verified against the 5 fix commits + any adjacent-defect concerns the fix may have created.
+**Reviewer:** Solution Owner cold-session agent.
+**Model:** Opus 4.7 (per [`DESIGN.md`](../../DESIGN.md) § Cold-session budget — Opus for Solution Owner).
+**Cold-session shape:** Solution-Owner/Documentation-Reviewer/AI-Engineer/VDD-IAR-Alignment cluster (Round 2; same composition as Round 1) per the [Phase 3 primer](../../../../vsdd-suite/primers/3-review-session.md) § Cluster-batching pattern. Adversarial pairs (Security ↔ Red Team; TW ↔ Documentation Reviewer) remain split per the Round 1 manifest.
+**Regression-check against:** [Solution Owner Review 4](#review-4--2026-05-21-2200z) (Layer 2 Round 1 SO baseline) + [Solution Owner Review 3 (2026-05-20-solution-owner.md)](2026-05-20-solution-owner.md#review-3--2026-05-20-2200z) (Layer 1 project-terminal SO MVR; still the regression floor).
+**Cost-tally:** Solution-Owner/Documentation-Reviewer/AI-Engineer/VDD-IAR-Alignment cluster agent — Opus 4.7; this Solution Owner Round 2 contributed ~20k input + ~9k output tokens ≈ ~$0.43 at standard pricing; per-finding cost ~$0.14 across 3 verification entries. Round-2 cost below Round-1 cost (~$0.55) per the Phase 4 routing scope-reducer discipline ([AI Engineer R1 F2](2026-05-21-ai-engineer.md#r1-f2)) — narrower scope, lower per-round token budget.
+
+**Session note:** Cold session opened against the post-commit-`9d56c3f` state. Reading order: [SO domain prompt](../../../../vsdd-suite/domains/role/SOLUTION-OWNER-REVIEW.md) → operator-supplied per-domain prompt (Round 1 finding verification list + the cost-investment proportionality concern) → [Solution Owner Review 4](#review-4--2026-05-21-2200z) (Round 1 SO findings) → `git log 02e6eb3..9d56c3f` (the 5 fix commits + their stat lines) → the post-fix state of `tests/scaling.rs` + `tests/properties.rs` + `Cargo.toml` + `DESIGN.md` § Phase 6 strategy + `TODO.md` § Layer-gate criterion #6 + the Phase 2c Red Gate annotation at `TODO.md:85` → `cargo test` invocation output (43 default tests pass + 3 scaling ignored sentinels via `--ignored`) → [`DESIGN.md`](../../DESIGN.md) read LAST per cold-reader-poisoning discipline. The Round 1 fix cycle landed 5 commits totaling ~600 + 87 + 24 + 87 + 10 = ~808 LoC across spec + tests + main.rs + manual-tests + install-verification.
+
+**MVR signal:** **REACHED at Round 2.** All four Round 1 findings have honest dispositions against the post-fix state: F1 closed by `tests/scaling.rs` authoring (Option 1 from Round 1) + closes PE F5 cleanly; F2 closed by Phase 6 NOT APPLICABLE declaration (Option 1 from Round 1 — the SO recommendation adopted); F3 + F4 still hold as Resolved with the spec post-amendment. One Round 2 cost-proportionality observation surfaces as a documented-resolved finding for future-cycle regression-check. No new under-delivery, scope-creep, or over-investment surfaces against the post-fix state.
+
+---
+
+### Resolved
+
+**Finding 1 — `tests/scaling.rs` under-delivery (verifies [r4-f1](#r4-f1)) (Dim 5)**
+
+<a id="r5-f1"></a>
+
+**Owner:** solution-owner
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** vdd-iar-alignment
+
+Closure of [r4-f1](#r4-f1) — the under-delivery is closed by `156ec53` adopting Option 1 path.
+
+**Evidence:**
+
+- `tests/scaling.rs` exists on disk at the worktree root: `ls vsdd-suite-reference-examples/bookmark-cli-manual/tests/` returns `bookmarks.rs`, `properties.rs`, `scaling.rs` (post-`156ec53`; was returning only `bookmarks.rs` at Round 1 close).
+- The file is 221 lines per `git show 156ec53 --stat` and contains three `#[ignore]`-gated sentinel functions at the 100 / 1,000 / 10,000-bookmark cliffs per the DESIGN.md:230 commitment.
+- `cargo test` against the post-`9d56c3f` worktree:
+  - Default invocation: 12 unit + 29 integration + 2 proptest = 43 tests pass; 3 ignored.
+  - `cargo test -- --ignored` (per `TODO.md:89` Layer-gate criterion #1 second clause) now has 3 actual scaling-test functions to invoke (rather than the vacuous 0-ignored pass at Round 1 close).
+- Fix commit `156ec53` co-authors `tests/properties.rs` (proptest tag-idempotence + filter-OR-monotonicity properties) + adds `proptest = "1"` to `Cargo.toml` dev-dependencies + adds a `.github/workflows/bookmark-cli-manual.yml` job spec for the `cargo test -- --ignored` scaling job — closing the PE F5 spec commitment chain end-to-end (the spec said "CI runs them via `cargo test -- --ignored` in a separate job"; the CI job spec now exists).
+- The operator-decision-required disposition from Round 1's Backlogged classification is now **Resolved** — the operator chose Option 1 (author `tests/scaling.rs`) over Option 2 (amend DESIGN.md). The choice was the spec-honest path: the DESIGN.md:230 + TODO.md:81 commitments stand as the spec contract; the implementation now matches.
+
+**Commentary:** SO scope-discipline lens — the fix path adopted is the path that PRESERVES the spec contract rather than narrowing it. The under-delivery against the spec ceased to be an under-delivery; the spec was honored at the artifact level. Dim 5 (under-delivery) closed cleanly. The choice to also author `tests/properties.rs` (a separate but related under-delivery — DESIGN.md § Phase 5 strategy named proptest activation but the file did not exist either) shows the fix cycle scoped to all known spec commitments rather than the minimal SO Round 1 finding alone — operationally healthy.
+
+**Resolution:** Round 1 R4 F1 closed by `156ec53` per Option 1 path; `tests/scaling.rs` + `tests/properties.rs` both authored; PE F5 spec commitment chain closed end-to-end including CI job.
+
+**Classification:** Resolved — Round 1 under-delivery closed cleanly via the spec-honest path (Option 1).
+
+---
+
+**Finding 2 — Phase 6 Layer 2 over-investment (verifies [r4-f2](#r4-f2)) (Dim 2 + Dim 4 + Dim 8)**
+
+<a id="r5-f2"></a>
+
+**Owner:** solution-owner
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** vdd-iar-alignment
+
+Closure of [r4-f2](#r4-f2) — the over-investment is closed by `002d747` adopting Option 1 path, the SO recommendation.
+
+**Evidence:**
+
+- [`DESIGN.md`](../../DESIGN.md):17 § Phase 6 strategy now reads (post-`002d747`):
+  > "Layer 2 four-dimensional convergence: **NOT APPLICABLE** per [G-150](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) (over-investment guard) + [G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) (reference-implementation-purpose-already-satisfied) — bookmark-cli's reference-implementation purpose is 'exercise all six VSDD phases end-to-end as a worked example', which Layer 1's project-terminal MVR + Phase 6 attestation already demonstrate. Re-running Phase 6 for Layer 2 would teach methodology consumers that capstone artifacts require per-layer four-dimensional convergence, which is not the suite's intent — capstone gates at project-terminal MVR per primer 6, not per-layer. This disposition closes Layer 2 Round 1 VDD-IAR Alignment R4 F5 + Solution Owner R4 F2 (the cluster's own SO recommended Option 1: mark not-applicable; this declaration adopts that recommendation)."
+- The G-162 strict-form requirement (both Phase 5 + Phase 6 strategy lines declared with `planned` or `not applicable` + named scope) is satisfied per `DESIGN.md:17` (Phase 6 explicit not-applicable declaration named-rationale).
+- [`TODO.md`](../../TODO.md):94 Layer-gate criterion #6 now reads (post-`002d747`):
+  > "**[Phase 6](../../vsdd-suite/primers/6-convergence.md) not applicable** per [DESIGN.md § Project intent](DESIGN.md#project-intent) Phase 6 strategy declaration ([G-150](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) over-investment guard + [G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) reference-implementation-purpose-already-satisfied). Layer 1's Phase 6 attestation at [VDD-IAR Alignment Review 3](vsdd-suite/review-log/2026-05-20-vdd-iar-alignment.md) stands as the project's terminal four-dimensional convergence record"
+- The criterion is cross-linked back to the DESIGN.md declaration (proper spec routing); the rationale (Layer 1's Phase 6 satisfies G-112) is preserved at both surfaces.
+- `git show 002d747 --stat`: DESIGN.md + TODO.md + Cargo.toml + rust-toolchain.toml modified — the bundling of the Phase 6 not-applicable amendment with other spec amendments (Security F1 + SA F5 + Red Team F6 + PE F4 + VDD-IAR R4 F1) is operationally efficient.
+
+**Commentary:** SO authority lens — the SO seat owned the decision (Dim 8 prior-review additions: the Phase 6 commitment WAS a Phase 1a/1b sub-agent addition; SO has veto authority over such additions; the veto was exercised in the form of Option 1 adoption). The closure is the spec-honest path: the methodology over-investment surfaces explicitly in DESIGN.md as a deliberate declaration with named rationale, rather than being silently elided. A future capstone reviewer reading DESIGN.md sees that the operator + SO made an informed choice; the audit trail is complete. The G-150 + G-112 framing is correctly applied — the worked-example purpose IS satisfied at Layer 1; Layer 2 is structural-demonstration only.
+
+**Methodology-precedent concern (declared, not blocking):** future capstone projects reading bookmark-cli-manual as a reference example will see Layer 1 attested (Phase 6 done) + Layer 2 not-applicable (Phase 6 not done) and may infer that Phase 6 is per-project, not per-layer. That inference IS correct per G-150 + G-112 reasoning — but the cross-cluster VDD-IAR Alignment Round 2 review (see [`2026-05-21-vdd-iar-alignment.md`](2026-05-21-vdd-iar-alignment.md) Round 2) should verify the discipline is articulated robustly enough for the cold-reader to take the right lesson. SO does not block on this — it is a documentation-discipline concern routed to VDD-IAR Alignment's seat.
+
+**Resolution:** Round 1 R4 F2 closed by `002d747` per Option 1 path; Phase 6 Layer 2 NOT APPLICABLE declaration adopted at DESIGN.md:17 with G-150 + G-112 named rationale + Layer 1 attestation cited as the project's terminal record.
+
+**Classification:** Resolved — Round 1 over-investment closed cleanly; SO authority exercised via Option 1 adoption (SO's own Round 1 recommendation).
+
+---
+
+**Finding 3 — Layer 2 AC 5-13 scope-clean (verifies [r4-f3](#r4-f3)) (Dim 2 + Dim 6 + Dim 7)**
+
+<a id="r5-f3"></a>
+
+**Owner:** solution-owner
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** vdd-iar-alignment
+
+Regression-check against [r4-f3](#r4-f3) holds; no new scope-creep introduced by the fix cycle.
+
+**Evidence:**
+
+- The 5 fix commits did NOT introduce any new behavior, abstraction, or technology beyond Layer 2's spec scope. Inspection of `git diff 02e6eb3..9d56c3f -- vsdd-suite-reference-examples/bookmark-cli-manual/src/`:
+  - `src/main.rs` — only changes (per `cdb46bc`) are: `eprintln!("Tagged {n} bookmark(s).");` affordance (UX F2 + SE F2 close) + help-text expansion in `Cmd::Tag` + `Cmd::List` doc-comments. No new clap variants, no new behavior paths. ✓
+  - `src/lib.rs` — no changes in the fix cycle (the lib surface is the Phase 2b shape; Round 1 found it scope-clean; Round 2 finds it still scope-clean). ✓
+- `tests/scaling.rs` + `tests/properties.rs` are within scope per DESIGN.md:230 + DESIGN.md § Phase 5 strategy declarations (these are the spec commitments the fix cycle CLOSED, not new spec additions).
+- The Phase 2c Red Gate annotation at `TODO.md:85` is within scope per the VDD-IAR R4 F1 resolution path (Resolved-with-named-rationale; the annotation IS the closure, not a new commitment).
+
+**Commentary:** Regression-check clean. No new scope-creep introduced by the fix cycle. The AC 5-13 surface is unchanged; the only main.rs change is the stderr affordance line which is in-scope per DESIGN.md § `bm tag` behavioral contract (the UX F2 finding cited the missing affordance as a usability gap against the multi-match-tag-all-matching-records semantic that DESIGN.md:80-88 declares; the fix adds the affordance the spec implicitly required for usability). Dim 2 + Dim 6 + Dim 7 all clean at Round 2 close.
+
+**Resolution:** Regression-check against [r4-f3](#r4-f3) clean; scope-discipline holds at Round 2 close.
+
+**Classification:** Resolved — no new scope-creep introduced by the fix cycle.
+
+---
+
+**Finding 4 — Capstone-tier intent calibration + AC 13 fsync weak-proxy (verifies [r4-f4](#r4-f4)) (Dim 5)**
+
+<a id="r5-f4"></a>
+
+**Owner:** solution-owner
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** vdd-iar-alignment
+
+Regression-check against [r4-f4](#r4-f4) holds; minor adjacent disposition update on AC 13.
+
+**Evidence:**
+
+- The AC 13 fsync test (`tests_save_fsyncs_parent_directory` at `src/lib.rs:794-813`) is unchanged in the fix cycle. The weak-proxy honesty is preserved.
+- DESIGN.md:195 § Verification architecture sentence ("every behavioral contract above is automatable via unit + integration tests") was NOT amended by the fix cycle. The Round 1 SO seat's disposition (the spec does NOT need amendment because the structural-execution-level test is automated) holds.
+- The cross-validator VDD-IAR Alignment posture at Round 1 was "minor DESIGN.md footnote naming AC 13 as a weak-proxy exception, but not a blocking concern" (per [VDD-IAR R4 Operator-supplied per-domain-prompt answer 3](2026-05-21-vdd-iar-alignment.md)). The operator did NOT adopt the footnote; this is acceptable per the VDD-IAR seat's own framing.
+
+**Commentary:** Capstone-tier intent calibration holds. The AC 13 weak-proxy disposition is unchanged. No new scope-creep or under-delivery on the fsync surface.
+
+**Resolution:** Regression-check against [r4-f4](#r4-f4) clean; the AC 13 weak-proxy posture unchanged.
+
+**Classification:** Resolved — capstone-tier calibration + AC 13 fsync weak-proxy disposition both hold at Round 2 close.
+
+---
+
+### Backlogged
+
+**Finding 5 — Cost-investment proportionality across the full Layer 2 cycle: Layer-scoped efficiency observation; methodology-refinement candidate routes to suite-side (Dim 4 + Dim 8)**
+
+<a id="r5-f5"></a>
+
+**Owner:** solution-owner
+**Status:** validated
+**Blocked by:** *(none — observable cost evidence + the cluster's own AI Engineer review surfaces the same concern)*
+**Validator:** ai-engineer
+
+The operator-supplied per-domain prompt for Round 2 asks: "With the fix cycle landing 5 commits + 4 cluster Round 1 cold-sessions + 4 cluster Round 2 cold-sessions (in progress), is this proportionate? The cluster's own AI Engineer review surfaced cost-efficiency findings."
+
+The cost evidence assembled at the time of this Round 2 close:
+
+- **Layer 2 implementation cycle** (4 commits: `5ba62d5` / `326e25d` / `16ee420` / `98b5886`) — per AI Engineer R2 F5, per-commit cost evidence is NOT in the audit trail (a methodology-authoring gap routed to suite-side). Rough estimate: ~$10-15 total for the implementation cycle (the Phase 1a/1b/1c spec extension + the Phase 2a/2b implementation + manual-tests + Phase 2c annotation).
+- **Round 1 cluster cold-sessions** (4 clusters × ~$2.25-5 per cluster per the AI Engineer R2 F2 estimate) — ~$10-20 total.
+- **Round 1 fix cycle** (5 commits: `156ec53` / `d62bb1a` / `002d747` / `cdb46bc` / `9d56c3f`) — operator-directed inline fixes; cost-tally not surfaced in commit messages (same gap as the implementation cycle). Rough estimate: ~$5-10 total.
+- **Round 2 cluster cold-sessions** (4 clusters; in progress; expected per AI Engineer R2 F2 estimate) — ~$10-15 total.
+- **Full cycle cost estimate:** ~$35-60 total across implementation + Round 1 + fix cycle + Round 2.
+
+**Calibration against capstone-intent expected band:** Layer 2's per-finding cost is below the project-cycle-calibrated band floor (100k tokens/finding) — read as Layer-scoped efficiency per [AI Engineer R2 F2](2026-05-21-ai-engineer.md#r2-f2), NOT under-investment. The methodology-refinement candidate (project-cycle vs. layer-cycle expected-band split) is the right framing — Layer-cycle cost calibrates to a smaller surface; the under-band per-finding cost is consistent with the smaller surface and does NOT indicate the review pipeline missed defects.
+
+**SO seat's adjudication on proportionality:**
+
+1. **The Layer 2 cycle's cost is proportionate** to its purpose (close three Layer-1-Deferred PE items + demonstrate VSDD applies across multiple layers in succession). The full-cycle cost (~$35-60) is well under the project-level Layer 1 cycle cost (per AI Engineer R1 F6 estimate: ~$200-400 cycle-wide). The Layer 2 cycle ran at ~15-30% of Layer 1's cost — which matches the ratio between Layer 2's smaller surface (~700 LoC delta) and Layer 1's full project surface (~4,000+ LoC including the initial commit + 3 review rounds + fix cycles).
+
+2. **The fix cycle adopted Option 1 paths** (author the missing artifacts; adopt the not-applicable Phase 6 declaration) rather than Option 2 paths (amend the spec to defer further) at both load-bearing decision points (SO R4 F1 + SO R4 F2). The Option 1 path costs more in the implementation moment but preserves the spec contract's reference-implementation purpose end-to-end. The proportionality is honest about the operator's intent — the worked-example purpose IS satisfied by the spec being honored, not by the spec being weakened.
+
+3. **The Round 2 cluster spawn** (4 parallel agents; this cluster being one of them) is itself proportionate. The Round 2 scope is narrower than Round 1 (verification of prior findings + adjacent-defect detection, not full re-scan) per the Phase 4 routing scope-reducer discipline ([AI Engineer R1 F2](2026-05-21-ai-engineer.md#r1-f2)). Lower per-round cost. The 4-cluster shape preserves adversarial-pair separation (Security ↔ Red Team; TW ↔ Doc Reviewer split per the [VDD-IAR R4 F3](2026-05-21-vdd-iar-alignment.md#r4-f3) cluster-shape verification).
+
+**Disposition:** the Layer 2 cycle's cost-investment is proportionate to its purpose. No SO scope-discipline finding against the cycle's cost. The cluster's own AI Engineer review (Round 2; see [`2026-05-21-ai-engineer.md`](2026-05-21-ai-engineer.md) Round 2) carries the detailed cost-discipline analysis from the cost-discipline seat; the SO seat acknowledges the analysis + accepts the proportionality conclusion.
+
+**Methodology-refinement candidate carried forward (not a Layer 2 defect, routed informally to suite-side):**
+
+- The audit-trail cost-evidence gap on implementation-cycle commits (AI Engineer R2 F5) + on fix-cycle commits (this round's observation) is a methodology-authoring concern. Future cycles should record per-commit cost-tally in commit message bodies, matching the per-Review preamble discipline. Routes to suite-side as the AI Engineer R2 F5 carryforward already names; not a Layer 2 closure blocker.
+
+**Classification:** Documented — the cost-proportionality concern surfaces as a documented disposition rather than a blocking finding; the operator's cost evidence is acceptable; the methodology-refinement carryforward is named for future-cycle regression-check.
+
+---
+
+### Summary
+
+Round 2 verification: all four Round 1 SO findings have honest dispositions against the post-fix state. One new Round 2 documented disposition surfaced about cost-investment proportionality.
+
+- **Round 1 Finding 1 verification ([r5-f1](#r5-f1))** — Resolved; `tests/scaling.rs` authored per Option 1; closes PE F5 chain end-to-end.
+- **Round 1 Finding 2 verification ([r5-f2](#r5-f2))** — Resolved; Phase 6 NOT APPLICABLE declaration adopted per Option 1 (SO's own Round 1 recommendation); G-150 + G-112 named rationale preserved.
+- **Round 1 Finding 3 verification ([r5-f3](#r5-f3))** — Resolved-and-holds; no new scope-creep introduced by fix cycle.
+- **Round 1 Finding 4 verification ([r5-f4](#r5-f4))** — Resolved-and-holds; AC 13 weak-proxy posture unchanged.
+- **New Round 2 disposition ([r5-f5](#r5-f5))** — Documented; cost-investment proportionality acceptable; methodology-refinement candidate (implementation-cycle cost-tally) routes to suite-side.
+
+**MVR signal:** **REACHED at Round 2.** All four Round 1 SO findings closed cleanly; no new under-delivery or scope-creep surfaces; cost-proportionality acceptable.
+
+**Coordination:** [r5-f5](#r5-f5) (cost-proportionality) cross-validates with [AI Engineer R2 Round 2](2026-05-21-ai-engineer.md) (the cluster's cost-discipline seat; the same evidence; same conclusion). [r5-f2](#r5-f2) (Phase 6 not-applicable) cross-validates with [VDD-IAR Alignment R5 Round 2](2026-05-21-vdd-iar-alignment.md) (the SO ↔ VDD-IAR validator-pair confirms the spec-amendment routing was clean).
+
+**Phase 5 / Phase 6 closure-blocker check:** none. SO seat does NOT block Layer 2 from declaring closure of the project-terminal layer cycle. The Phase 6 NOT APPLICABLE declaration at DESIGN.md:17 is the project's terminal record for the Layer 2 layer-cycle (per G-150 + G-112); Phase 5 closure remains on the Layer 2 path per TODO.md:93 (Purity Boundary Audit + Mutation Testing re-runs + proptest now active at `tests/properties.rs`). No SO blocker.
+
+**Cost-tally:** Round 2 contributed ~$0.43 across 3 verification entries + 1 new finding + 1 summary = ~$0.11 per-finding. Below the AI Engineer Dim 2 capstone-intent band floor consistent with [AI Engineer R2 F2](2026-05-21-ai-engineer.md#r2-f2) Layer-scoped efficiency reading.
+
+**Validator:** vdd-iar-alignment (the SO ↔ VDD-IAR Alignment validator pair per [Review 77](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-77--2026-05-20-1545z); VDD-IAR R5 Round 2 confirms the Phase 6 not-applicable spec-amendment routing was clean + the SO disposition matches the prior-cycle intent).
+
+---
