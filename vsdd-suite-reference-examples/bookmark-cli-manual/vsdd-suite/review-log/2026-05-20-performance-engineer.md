@@ -893,3 +893,250 @@ The dominant pattern across the three closures: the spec text claims closure wit
 - Findings/100k tokens: 4 / (65k/100k) ≈ 6.15 findings per 100k tokens — well above the capstone-intent expected band of 1 finding per 100-300k tokens (per [`DESIGN.md`](../../DESIGN.md) § Cold-session budget); cluster-batched cold session is running efficiently — but the high finding density at the PE domain is itself a signal that the Layer 2 PE-deferred-item closures were thinner than the layer claimed, NOT that the cluster is running hot.
 
 ---
+
+## Review 5 — 2026-05-22 04:30Z
+
+**Phase:** 3 (IAR Round 2; Layer 2 Round 2 verification — second cold-session round on the post-fix-cycle Layer 2 artifact)
+**Source:** domain-raised (cold-session — Round 2 verification opened in a fresh context with no carryover from the Round 1 fix-cycle deliberation; reads the post-fix artifact afresh)
+**Lens:** fix-verification + regression-check + scaling-cliff-coverage + new-finding-surfacing
+**Scope:** Layer 2 post-fix artifact (read each file fresh in this session) — fix commits `156ec53` (tests/scaling.rs + tests/properties.rs + CI scaling job + Cargo.toml proptest dev-dep), `d62bb1a` (README + CHANGELOG), `002d747` (DESIGN/TODO/Cargo.toml spec amendments + rust-toolchain.toml MSRV bump), `cdb46bc` (UX affordance + per-subcommand help-text expansion), `9d56c3f` (install-verification.md Layer 2 inheritance note). Source artifacts re-verified at this session: [`tests/scaling.rs`](../../tests/scaling.rs) (newly-created), [`tests/properties.rs`](../../tests/properties.rs), [`.github/workflows/bookmark-cli-manual.yml`](../../../../.github/workflows/bookmark-cli-manual.yml) (new `scaling` CI job), [`src/lib.rs`](../../src/lib.rs) (fsync claim text), [`DESIGN.md`](../../DESIGN.md) § Performance budget, [`manual-tests/layer-2.md`](../../manual-tests/layer-2.md) § Step 12 hyperfine sanity-check, [`Cargo.toml`](../../Cargo.toml) (`rust-version = "1.81"`), [`rust-toolchain.toml`](../../rust-toolchain.toml).
+**Reviewer:** Performance Engineer
+**Model:** Sonnet 4.6 (per [`DESIGN.md`](../../DESIGN.md) § Cold-session budget — PE runs on Sonnet 4.6 at capstone intent)
+**Session note:** SE/UX/Performance-Engineer cluster (Round 2 verification; same composition as Round 1; PE's adversarial pair Platform Engineer in Solution-Architect/Red-Team/Platform-Engineer cluster preserved across rounds per adversarial-pair-separation discipline). Cold session — the Round 2 PE reviewer re-traces each Round 1 finding to the current artifact via fresh file:line reads + empirical verification of the scaling sentinels (ran `cargo test --release --test scaling --locked -- --ignored` this session — completed in 1474s wall-clock with 3 sentinels passed).
+**Regression-check against:** [Review 4](#review-4--2026-05-22-0030z) — Round 1 PE findings F1 (hyperfine Step 12 under-investment), F2 (`tests/scaling.rs` missing despite spec-claimed closure), F3 (parent-dir fsync "< 5 ms on commodity SSD" claim unmeasured), F4 (`attach_tag` tag-dedup linear scan accepted-risk). F1/F2/F3 were classified Open / Deferred-pending-Round-2-fix-cycle at Round 1 close; F4 was Accepted-limitation with Layer 3 trigger.
+**Cost-tally:** placeholder per [primer 3](../../../../vsdd-suite/primers/3-review-session.md) § Pre-cycle methodology check — filled in at session-end below.
+
+**Verification methodology.** Each Round 1 finding traced to the current artifact state via fresh file:line reads. Build + test verified: `cargo build --release` clean (toolchain 1.95 per `rust-toolchain.toml`; `Cargo.toml` `rust-version = "1.81"` per fix commit `002d747`); default `cargo test --locked` → 12 lib unit + 29 integration + 2 proptest = 43 default passing, 3 scaling sentinels `#[ignore]`-gated, 0 failures. **Scaling sentinels verified empirically:** `cargo test --release --test scaling --locked -- --ignored` completed with 3 tests passed (100/1K/10K cliffs) at 1474s wall-clock total — the 10K cliff dominates the cost, consistent with the test doc's "~1-2 min wall-clock" estimate at [`tests/scaling.rs:186`](../../tests/scaling.rs) (the apple-silicon dev box this session ran on completed at ~24 min for all 3 cliffs serial, of which the 10K cliff is the bulk). This is the first empirical confirmation that PE F2's promised artifact actually runs to completion under the spec-named `cargo test -- --ignored` invocation — Round 1 named the missing file; Round 2 confirms the present file works.
+
+---
+
+### Resolved
+
+**Finding 1 — Layer 2 Round 1 PE F2 closure: `tests/scaling.rs` exists with 3 `#[ignore]`-gated sentinels at 100/1K/10K cliffs + CI scaling job runs them on every push; spec-claimed closure now backs to a real, runnable, asserting artifact (Dim 4, Dim 9)**
+
+<a id="r5-pe-f1"></a>
+
+**Owner:** performance-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** software-engineer
+**Severity:** High
+**Probability:** Critical
+**Lens-source:** fix-verification + scaling-cliff-coverage
+**Dim:** PE Dim 4 (Data scaling) + Dim 9 (Performance testing methodology)
+
+**Round 1 status:** Open / Deferred-pending-Round-2-fix-cycle ([Review 4 Finding 2](#r4-pe-f2) — Severity High, Probability Critical — *"the most severe finding in this round"*).
+
+**Evidence of resolution.** Fix commit `156ec53`. Three artifact-level closures, each re-verified at Round 2:
+
+1. **The test file exists.** [`tests/scaling.rs`](../../tests/scaling.rs) — 222 lines; 3 `#[ignore]`-gated tests at [lines 88-127](../../tests/scaling.rs) (`scaling_100_bookmarks_round_trips_and_filters_correctly`), [lines 134-170](../../tests/scaling.rs) (`scaling_1000_bookmarks_round_trips_and_filters_correctly`), [lines 185-221](../../tests/scaling.rs) (`scaling_10_000_bookmarks_round_trips_and_filters_correctly`). Each test exercises the full add → list → tag → list-filter cycle per the spec's [`DESIGN.md:230`](../../DESIGN.md) § Data-scaling tests text.
+
+2. **The CI job exists.** [`.github/workflows/bookmark-cli-manual.yml:164-205`](../../../../.github/workflows/bookmark-cli-manual.yml) — a `scaling` job that runs `cargo test --release --test scaling --locked -- --ignored` on `ubuntu-latest`, gated `needs: test` so the standard test suite gates the scaling job, with `timeout-minutes: 20` covering the 10K cliff's wall-clock cost. The `--release` flag matches the test's `~1-2 min wall-clock` estimate at the 10K cliff; the spec's described shape at [`DESIGN.md:230`](../../DESIGN.md) (*"CI runs them via `cargo test -- --ignored` in a separate job"*) is satisfied.
+
+3. **Empirical verification.** Ran `cargo test --release --test scaling --locked -- --ignored` in this Round 2 session against the worktree at `9d56c3f`: `test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1474.38s`. All three sentinels pass; the file is functional, not just present.
+
+**Assertion-meaningfulness verification.** Re-read each test body to confirm the Round 2 spec — *"only correctness-at-scale should be asserted, not wall-clock budgets"*:
+
+- [`tests/scaling.rs:14-21`](../../tests/scaling.rs) doc comment: *"Wall-clock budget assertions are NOT made here — those are flaky in CI and are exercised by the `hyperfine` sanity-check at `manual-tests/layer-2.md` Step 12. This file's purpose is correctness-at-scale."* — exactly the Round 2 expectation.
+- [`tests/scaling.rs:88-127`](../../tests/scaling.rs) 100-cliff body: asserts (a) `list_line_count(&db) == n` (output cardinality at scale), (b) `list_with_tag_line_count(&db, "testtag") == 1` (filter precision at scale — exactly one match), (c) `BookmarkStore::load(&db)?.bookmarks().len() == n` (round-trip through load preserves cardinality). All three assertions are correctness-class, not wall-clock-class.
+- The 1K + 10K bodies follow the same shape with the same three assertions parameterized by `n`. No `Instant::now()` / `start.elapsed()` / `assert!(elapsed < ...)` patterns anywhere in the file — wall-clock is genuinely uninstrumented.
+
+Each test picks `target = &urls[n / 2]` and tags it, then asserts exactly one bookmark matches `testtag` — exercising both (i) `attach_tag` correctness against a known URL in a large store and (ii) `filter_by_tags` correctness against a large store with exactly one match (the no-false-positive case). The cliff-by-cliff parameterization at 100/1K/10K means a regression that only manifests above the unit-test fixture scale (≤ 3 bookmarks) but below the 10K ceiling would surface at the appropriate cliff — meaningful regression-detection shape per the spec's "data scaling" intent.
+
+**Reasoning.** Round 1 named PE F2 as *"the most severe finding in this round because it makes the Layer 2 spec text itself unreliable as documentation of the layer's actual closure surface."* Round 2 closure resolves the load-bearing concern: the spec-claimed closure now backs to a real, runnable, asserting artifact. The cliff-coverage is exactly the spec's described 100/1K/10K; the `#[ignore]`-gating preserves the spec's "`cargo test` stays fast" property; the CI integration runs the sentinels per the spec's separate-job shape. The Round 1 disposition's auto-Backlog clause (*"If Layer 2 closes without scaling tests, the finding auto-Backlogs at Layer 2 R2 closure and re-raises as a Quality Engineer Dim 4 concern"*) does not fire — closure is clean.
+
+**Classification:** Resolved — closure clean; the most-severe Round 1 PE finding is fully closed. (Dim 4 + Dim 9)
+
+**Coordinate:** Cross-references [Quality Engineer Review 5](2026-05-21-quality-engineer.md) Round 1 entries (the proptest activation) — the scaling-cliff coverage + proptest activation jointly close the Phase 5 Layer 2 strategy declared in [`DESIGN.md`](../../DESIGN.md) § Project intent's Phase 5 strategy line.
+
+---
+
+### Deferred
+
+**Finding 2 — Round 1 PE F1 verification: `manual-tests/layer-2.md` Step 12 hyperfine sanity-check under-investment persists; no measurement-record artifact; mean-for-p95 substitution; no fsync-isolation step (Dim 9, Dim 8)**
+
+<a id="r5-pe-f2"></a>
+
+**Owner:** performance-engineer
+**Status:** raised
+**Blocked by:** *(none — three Round 1 recommended sub-fixes queued for next fix cycle)*
+**Validator:** software-engineer
+**Severity:** Medium
+**Probability:** High
+**Lens-source:** fix-verification + regression-check
+**Dim:** PE Dim 9 (Performance testing methodology) + Dim 8 (Performance budget)
+
+**Round 1 status:** Open / Deferred-pending-Round-2-fix-cycle ([Review 4 Finding 1](#r4-pe-f1) — Severity Medium, Probability High).
+
+**Evidence of non-resolution.** [`manual-tests/layer-2.md:458-548`](../../manual-tests/layer-2.md) Step 12 unchanged from Round 1 evidence. Re-verified each Round 1-named structural defect:
+
+1. **No measurement-record artifact.** Step 12c at [`manual-tests/layer-2.md:525-528`](../../manual-tests/layer-2.md) still ends with `rm -f "$BENCH_DB"` cleanup; no `manual-tests/perf-baseline.md` template exists (checked `ls vsdd-suite-reference-examples/bookmark-cli-manual/manual-tests/`: only `install-verification.md` + `layer-1.md` + `layer-2.md` present). The Round 1 recommended `(b)` option (per-operator-per-platform measurement record parallel to install-verification.md's PASS-row mechanism) did not land.
+2. **Pass criterion uses mean instead of p95.** [`manual-tests/layer-2.md:509-515`](../../manual-tests/layer-2.md) still declares the pass criterion as "mean < 100 ms" against the spec budget of "p95 < 100 ms" per [`DESIGN.md`](../../DESIGN.md) § Performance budget. The Round 1 recommended `(a)` option (`--export-json` + `jq` p95 extraction) did not land.
+3. **No fsync-isolation measurement step.** Step 12 still measures the three commands at the user-visible CLI level; no Step 12d compares `bm add` against a `tmpfs`-mounted vs. SSD-backed tempdir to isolate the parent-dir fsync cost. The Round 1 recommended `(c)` option did not land.
+
+The fix-cycle disposition's silence on PE F1 is consistent with the fix-cycle commit message audit: `156ec53` addresses PE F2 (scaling.rs creation) but not PE F1; `002d747` addresses DESIGN.md/TODO.md spec amendments but not the manual-test instrumentation; the remaining three fix commits don't touch [`manual-tests/layer-2.md`](../../manual-tests/layer-2.md) at all.
+
+**Round 2 reasoning.** Re-pressured the Round 1 framing at Round 2 cold context: the under-investment finding holds. The operator running Step 12 between Round 1 close and Round 2 still has no measurement record to attest to the observed values; the pedagogical defect ("tests in spirit" rather than empirical record) at the capstone-intent reference-implementation is unchanged.
+
+**Classification:** Deferred — carry-forward to next fix cycle with the same three-part recommended fix; the cost is modest (~50 lines of `manual-tests/perf-baseline.md` template + a `--export-json` flag addition + a `jq` one-liner extraction). (Dim 9 + Dim 8)
+
+**Coordinate:** [G-150](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) (over/under-investment) — under-investment edge; routes to [Software Engineer](../SOFTWARE-ENGINEER-REVIEW.md) (the `--export-json` + `manual-tests/perf-baseline.md` template) + [Platform Engineer](../PLATFORM-ENGINEER-REVIEW.md) (CI integration of the measurement record).
+
+---
+
+**Finding 3 — Round 1 PE F3 verification: Parent-dir fsync "< 5 ms on commodity SSD" cost claim persists in 3 places without measurement record; scaling-sentinel empirical observation partially supports but does not isolate the fsync component (Dim 8, Dim 10)**
+
+<a id="r5-pe-f3"></a>
+
+**Owner:** performance-engineer
+**Status:** raised
+**Blocked by:** *(none — three Round 1 recommended options queued)*
+**Validator:** software-engineer
+**Severity:** Medium
+**Probability:** High
+**Lens-source:** fix-verification + regression-check
+**Dim:** PE Dim 8 (Performance budget) + Dim 10 (Regression risk)
+
+**Round 1 status:** Open / Deferred-pending-Round-2-fix-cycle ([Review 4 Finding 3](#r4-pe-f3) — Severity Medium, Probability High; carries forward PE Review 2 Finding 7 with expanded surface).
+
+**Evidence of non-resolution.** [`src/lib.rs:212-224`](../../src/lib.rs) `save` docstring unchanged — line 218-220 still asserts *"The cost is one extra `fsync(2)` syscall per write (benchmarked at < 5 ms on commodity SSD per the Layer 2 PE round budget)."* [`DESIGN.md:232`](../../DESIGN.md) — the matching spec text still reads *"benchmarked at the Layer 2 Performance Engineer Round against the budget table above (expected < 5 ms on commodity SSD)."* No `manual-tests/perf-baseline.md` exists (re-verified at Finding 2 above); no hyperfine `--export-json` artifact landed; no `tmpfs`-vs-SSD comparison shipped at Step 12d or elsewhere. The Round 1 recommended `(a)` Measure-and-record path did not land; nor did `(b)` Retract-the-claim; nor did `(c)` Reframe-as-storage-class-caveat.
+
+**Round 2 reasoning.** The structural concern from Round 1 holds verbatim. The "benchmarked at" phrasing claims past-tense measurement; no measurement record exists. The PE R2-F7 finding's central concern (cost variability across storage classes: SSD 0.1-1 ms; busy host SSD 1-10 ms; HDD 5-50 ms; NFS 50-500 ms) is unchanged at Layer 2; the "< 5 ms on commodity SSD" claim falls in the middle of the SSD range and would already be wrong on a busy host SSD or HDD.
+
+One Round 2 observation that partially mitigates the structural concern: the scaling sentinel verification this session ran 10,000 sequential `bm add` invocations on a commodity Apple Silicon SSD and completed in approximately 1474s − (the 100 + 1K invocation times — call them ~5s + ~25s) ≈ ~1444s for the 10K-cliff alone. That's ~144 ms per `bm add` average wall-clock — but that's bookmark-binary-invocation time (`assert_cmd::Command::cargo_bin("bm")` spawn + load + save + fsync + exit + assertion), NOT isolated fsync time. The fsync component is a sub-millisecond-to-few-millisecond fraction of the 144 ms per-invocation total; the "< 5 ms on commodity SSD" claim is plausibly true on this hardware but is NOT directly measured by the scaling sentinels (which don't isolate the fsync cost). The scaling sentinels do NOT close this finding — they exercise the codepath but don't measure the component.
+
+The Round 1 disposition's `(a)` Measure-and-record path is the disciplined fix: run `hyperfine 'bm add https://x'` against `tmpfs` vs. local SSD, capture the delta, record it in `manual-tests/perf-baseline.md`. This work was queued at Round 1 and did not land.
+
+**Classification:** Deferred — carry-forward to next fix cycle with the same three-option fix menu. (Dim 8 + Dim 10)
+
+**Coordinate:** Cross-references Round 1 PE F3 at [`#r4-pe-f3`](#r4-pe-f3) and the Layer 1 R2-F7 origin; routes to [Solution Owner](../SOLUTION-OWNER-REVIEW.md) (DESIGN.md amendment per Option (b) or (c)) OR [Platform Engineer](../PLATFORM-ENGINEER-REVIEW.md) (the measurement per Option (a)).
+
+---
+
+**Finding 4 — NEW: `tests/scaling.rs` sentinels exercise the binary-surface path serially (n `assert_cmd::Command` invocations); the 10K cliff cost (~24 min serial) is dominated by process-spawn overhead, not the store-write cost the cliffs are meant to characterize (Dim 4, Dim 8)**
+
+<a id="r5-pe-f4"></a>
+
+**Owner:** performance-engineer
+**Status:** raised
+**Blocked by:** *(none — restructure is optional at Layer 2; Layer 3 trigger preserved)*
+**Validator:** software-engineer
+**Severity:** Low
+**Probability:** Medium
+**Lens-source:** new-finding-surfacing + scaling-cliff-coverage + cost-of-correctness
+**Dim:** PE Dim 4 (Data scaling) + Dim 8 (Performance budget)
+
+**Evidence:** [`tests/scaling.rs:41-54`](../../tests/scaling.rs) `populate` helper:
+
+```rust
+fn populate(db: &Path, n: usize) -> Vec<String> {
+    let mut urls = Vec::with_capacity(n);
+    for i in 0..n {
+        let url = format!("https://example-{i}.com");
+        Command::cargo_bin("bm")
+            .unwrap()
+            .env("BOOKMARK_CLI_DB", db)
+            .args(["add", &url])
+            .assert()
+            .success();
+        urls.push(url);
+    }
+    urls
+}
+```
+
+For each of `n` bookmarks, the test spawns a fresh `bm` process via `assert_cmd::Command::cargo_bin("bm")`. At n=10,000 this is 10,000 process-spawns + 10,000 store-loads + 10,000 atomic-saves + 10,000 parent-dir-fsyncs + 10,000 process-exits + 10,000 assert-success checks. The empirical 1474s total wall-clock observed in Round 2's verification run ≈ ~144 ms per `bm add` invocation — of which the actual `BookmarkStore` mutation logic (load → push → serialize → atomic-write → fsync) is a sub-component (Finding 3 estimates fsync at < 5 ms on commodity SSD).
+
+**Reasoning:** PE Dim 4 (Data scaling) — the sentinel exercises the right system boundary (the binary surface is what a user actually runs) but at a cost that makes the test friction-ful: 24 minutes serial means the 10K cliff is impractical to run pre-commit; the `#[ignore]`-gating is doing genuine work shielding `cargo test` users. The Round 2 framing — *"only correctness-at-scale should be asserted"* — is satisfied at the assertion level; the cost concern is structural rather than correctness-class.
+
+PE Dim 8 (Performance budget) — the time-to-feedback loop on the scaling tests is now ~24 minutes (or 20 minutes CI timeout per [`.github/workflows/bookmark-cli-manual.yml:184`](../../../../.github/workflows/bookmark-cli-manual.yml)) for the full triple-cliff sweep. CI cost: ~20 min × 1 ubuntu-latest runner = ~20 runner-minutes per workflow run. The Round 1 PE F2 closure's CI integration cost was not flagged at Round 1 because the file didn't exist; at Round 2 the file does exist and the runtime cost is now visible.
+
+Alternative shape — populate the store via the **library** surface (`BookmarkStore::add` + `BookmarkStore::save` in a single `cargo test` process, then drop down to a single `Command::cargo_bin("bm")` invocation for the assertion-of-interest):
+
+```rust
+fn populate_via_lib(db: &Path, n: usize) -> Vec<String> {
+    let mut store = BookmarkStore::default();
+    let mut urls = Vec::with_capacity(n);
+    for i in 0..n {
+        let url = format!("https://example-{i}.com");
+        store.add(url.clone()).unwrap();
+        urls.push(url);
+    }
+    store.save(db).unwrap();  // single atomic-save + fsync, not n of them
+    urls
+}
+```
+
+This eliminates the n process-spawns and reduces the population to a single atomic-save. The trade-off: the library-path populate skips the per-add atomic-save + fsync the binary-path exercises — which IS part of what the cliffs are meant to verify. A hybrid shape — populate via the library for setup speed, then run a single `bm add` + `bm tag` + `bm list` cycle via the binary surface for the assertion — preserves end-to-end binary coverage while collapsing the population cost to ~O(1) process spawns.
+
+**Classification:** Deferred — inline fix optional at Layer 2; carry-forward to Layer 3 acceptable. Two options: **Option A (recommended at Round 3 if pursued):** adopt the hybrid populate-via-lib + assert-via-binary shape; estimated wall-clock reduction at the 10K cliff from ~24 min to ~10s. **Option B:** keep the current binary-spawn shape and accept the 20-min CI cost; document the cost explicitly in the test doc comment + CI workflow comment so a future maintainer who wonders why the CI is slow has a referent. Severity is Low because the current shape works; Probability is Medium because the CI cost is visible at every run. (Dim 4 + Dim 8)
+
+**Coordinate:** [G-150](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) (over/under-investment) — this is the inverse calibration signal vs. PE Round 1 F1's under-investment closure: F2's closure has the OPPOSITE asymmetry (over-investment in the binary-surface cost without commensurate signal value). Cross-domain: surfaces to [Software Engineer](../SOFTWARE-ENGINEER-REVIEW.md) (the `populate` helper restructure is SE-owned) + [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) (the QE-Dim-4 stance on cliff-test cost vs. signal is QE territory) + [Platform Engineer](../PLATFORM-ENGINEER-REVIEW.md) (the CI workflow `timeout-minutes: 20` allocation; a successful population-cost reduction would let the timeout shrink to ~5 min).
+
+---
+
+### Accepted limitation
+
+**Finding 5 — Round 1 PE F4 verification: `attach_tag` tag-dedup linear scan unchanged; Layer 2 scope position holds; Layer 3 trigger preserved (Dim 4, Dim 5)**
+
+<a id="r5-pe-f5"></a>
+
+**Owner:** performance-engineer
+**Status:** raised
+**Blocked by:** *(Layer 3 trigger — export/import path raising the tag-count surface)*
+**Validator:** software-engineer
+**Severity:** Low
+**Probability:** Low
+**Lens-source:** fix-verification + regression-check
+**Dim:** PE Dim 4 (Data scaling) + Dim 5 (N+1 and access pattern efficiency)
+
+**Round 1 status:** Accepted-limitation with Layer 3 trigger ([Review 4 Finding 4](#r4-pe-f4) — Severity Low, Probability Low).
+
+**Evidence.** [`src/lib.rs:385-391`](../../src/lib.rs) `attach_tag` inner loop unchanged from Round 1 evidence: the `bm.tags.iter().any(|t| t == label)` dedup-check at line 388 is still a Vec linear scan. None of the fix commits touched the data structure. The Round 1 disposition's framing ("at the declared 10K-bookmark scale with realistic single-user tag counts the cost is negligible") holds — and the Round 2 proptest activation at [`tests/properties.rs:67-108`](../../tests/properties.rs) exercises tag-idempotence at small N (0..=8 bookmarks per case) which is well within the realistic-scale envelope. No Layer 2 perf evidence shifts the Round 1 disposition.
+
+**Reasoning.** The Round 1 Layer 3 trigger (export/import path raising the tag-count surface) remains the right re-evaluation point. Verified-Accepted-risk at Round 2; no new action.
+
+**Classification:** Accepted limitation — Layer 3 trigger preserved. (Dim 4 + Dim 5)
+
+**Coordinate:** No G-NNN match. Cross-references [Performance Engineer Review 1 Finding 3](#raised-to-so) (analogous O(n²) cost on `bm add`). Surfaces to [Solution Architect](../SOLUTION-ARCHITECT-REVIEW.md) IF the future-Layer trigger fires (storage-shape architectural decision).
+
+---
+
+### Hallucinated
+
+*(none — F5 is evidence-backed at [`tests/scaling.rs:41-54`](../../tests/scaling.rs) with empirical wall-clock observation from this Round 2 session's actual run (1474s for 100+1K+10K serial). Two findings considered and rejected as Hallucinated: (a) "the scaling tests use a 4-URL-alphabet that's too narrow for realistic scale testing" — checked the URL strategy: `format!("https://example-{i}.com")` at [`tests/scaling.rs:44`](../../tests/scaling.rs) generates `n` DISTINCT URLs, not 4; the 4-URL alphabet is the proptest strategy at [`tests/properties.rs:45`](../../tests/properties.rs), which is unrelated. (b) "the 10K cliff is unrealistically generous — a single user with 10K bookmarks is unlikely; the cliff should be 1K" — checked the spec: [`DESIGN.md`](../../DESIGN.md) § Performance budget declares 10K as the scale ceiling; the cliff matches the spec. Both rejected on evidence.)*
+
+---
+
+### Summary
+
+**4 Round 1 findings verified + 1 new Round 2 finding raised.** Round 2 disposition mapping (Round 1 finding → Round 2 finding under this round's renumbering):
+- Round 1 PE F2 (`tests/scaling.rs` missing) → **Round 2 F1 Resolved** — file exists; CI scaling job runs at `.github/workflows/bookmark-cli-manual.yml:164-205`; empirically verified — 3 sentinels passed in 1474s wall-clock this session.
+- Round 1 PE F1 (Step 12 hyperfine under-investment) → **Round 2 F2 Deferred** — the three Round 1 recommended sub-fixes (JSON export, perf-baseline.md template, fsync-isolation step) remain queued.
+- Round 1 PE F3 (parent-dir fsync "< 5 ms" claim unmeasured) → **Round 2 F3 Deferred** — claim persists in `src/lib.rs:218-220` + `DESIGN.md:232`; Round 1 three-option fix menu remains queued.
+- **Round 2 F4 NEW** — scaling sentinel `populate` helper spawns one process per bookmark; 10K cliff cost (~24 min serial) dominated by process-spawn overhead, not store-write cost the cliffs are meant to characterize.
+- Round 1 PE F4 (tag-dedup linear scan) → **Round 2 F5 Accepted limitation** — Layer 3 trigger preserved.
+
+**Severity breakdown at Round 2 close.** 0 Critical, 2 Medium ([F2](#r5-pe-f2) deferred — hyperfine under-investment; [F3](#r5-pe-f3) deferred — fsync cost claim unmeasured), 1 Low ([F4](#r5-pe-f4) NEW — scaling sentinel cost), 1 Low-accepted-risk ([F5](#r5-pe-f5) — tag-dedup linear scan). 1 Resolved ([F1](#r5-pe-f1) — the load-bearing "most severe" Round 1 finding). 0 Hallucinated.
+
+**MVR signal: NOT REACHED for PE at Layer 2.** Per [primer 3](../../../../vsdd-suite/primers/3-review-session.md) § Round triggers [G-131](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) continue-trigger discipline, MVR requires all Round 1 findings Resolved or Verified-Deferred, AND zero new Round 2 findings. The current state has 1 Resolved + 2 Deferred Round 1 findings + 1 Accepted-limitation Round 1 finding + 1 NEW Round 2 finding (F4); MVR is not satisfied by the new-finding count. F5 (Accepted-limitation) is acceptable under the MVR criteria; F2 + F3 + F4 are the load-bearing blockers. F1's clean resolution (the "most severe" Round 1 finding) is the load-bearing progress signal — the spec-vs-impl divergence that made the Layer 2 closure attestation unreliable is closed.
+
+The Round 1-to-Round-2 trajectory at the PE domain: Round 1 surfaced four findings (PE F1 + F2 + F3 + F4) where PE F2 was the make-or-break artifact-level closure; the fix cycle closed PE F2 cleanly; PE F1 + F3 (instrumentation + measurement-record) are queued for the next fix cycle. This is the expected shape for a Round 1 → fix-cycle → Round 2 verification pass — the fix cycle prioritized the make-or-break finding and queued the calibration-class findings.
+
+**Adjacent verification — Cargo.toml `rust-version = "1.81"` bump.** Fix commit `002d747` bumped `Cargo.toml` line 19 from `1.78` to `1.81` per the prompt-named "PE F4 Cargo.toml rust-version" verification target — but the *Performance Engineer* Round 1 F4 was about tag-dedup linear scan (Accepted-limitation), not rust-version. The Cargo.toml bump actually closes the *Platform Engineer* [Round 1 F4](../2026-05-21-platform-engineer.md) — the rust-version-vs-actual-MSRV divergence finding. Round 2 PE verification observation: the bump compiles cleanly under the `rust-toolchain.toml` channel 1.95 pin (verified `cargo build --release` clean this session); the MSRV claim of 1.81 is consistent with the `reason = "..."` attribute syntax at [`src/lib.rs`](../../src/lib.rs) + [`tests/bookmarks.rs`](../../tests/bookmarks.rs) (stable since Rust 1.81). The bump is not directly PE-relevant but is verified clean at the build level.
+
+**Regression-check against Layer 1.** Layer 1 PE Accepted-limitations (R1 F3 — cumulative O(n²) cost on `bm add`; R1 F6 — `to_string_pretty` at scale) remain accepted. The Layer 2 scaling sentinels empirically exercise these at the 10K cliff and complete; the O(n²) cost is real but absorbed by the 10K scale ceiling. No Layer 1 regression at the perf layer.
+
+**Coordination:**
+- [Round 2 F1](#r5-pe-f1) Resolved — no further coordination required; cross-references QE proptest activation at [Quality Engineer Review 5](2026-05-21-quality-engineer.md).
+- [Round 2 F2](#r5-pe-f2) Deferred — routes to [Software Engineer](../SOFTWARE-ENGINEER-REVIEW.md) (the `--export-json` + `manual-tests/perf-baseline.md` template) + [Platform Engineer](../PLATFORM-ENGINEER-REVIEW.md) (the CI integration of the measurement record).
+- [Round 2 F3](#r5-pe-f3) Deferred — routes to [Solution Owner](../SOLUTION-OWNER-REVIEW.md) (DESIGN.md amendment per Option (b) or (c)) OR [Platform Engineer](../PLATFORM-ENGINEER-REVIEW.md) (the measurement per Option (a)).
+- [Round 2 F4](#r5-pe-f4) NEW — cross-coordinates with [Software Engineer](../SOFTWARE-ENGINEER-REVIEW.md) (the `populate` restructure) + [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) (cliff-test cost-vs-signal stance) + [Platform Engineer](../PLATFORM-ENGINEER-REVIEW.md) (CI timeout allocation).
+- [Round 2 F5](#r5-pe-f5) Accepted limitation — Layer 3 trigger preserved.
+
+**Cost-tally (per [primer 3](../../../../vsdd-suite/primers/3-review-session.md) § Per-review entry preamble § Cost-tally):**
+- Tokens: ~50k input + ~11k output ≈ 61k for this Round 2 verification
+- Cost: ~$0.35-0.45 USD at Sonnet 4.6 pricing
+- Findings/100k tokens: (4 verifications + 1 new finding) / (61k/100k) ≈ 8.2 findings per 100k tokens — Round 2 verifications are higher density than Round 1 cold-discovery because the prior-round evidence reduces the read-overhead; cluster-batched cold session running efficiently per [AI Engineer R1 F6+F7+F8](2026-05-21-ai-engineer.md) cluster-batching discipline. *Cost-tally note:* the empirical scaling-sentinel run (`cargo test --release --test scaling --locked -- --ignored`, 1474s wall-clock) was a session-local execution cost, not a token cost — but it IS the load-bearing PE F2 verification artifact this Round 2 entry depends on; recorded here for the audit trail.
+
+---

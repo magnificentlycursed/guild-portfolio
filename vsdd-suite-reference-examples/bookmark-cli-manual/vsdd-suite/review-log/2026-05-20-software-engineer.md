@@ -932,3 +932,238 @@ The Layer 2 SE surface is largely well-formed — the type-level contract additi
 - Findings/100k tokens: 4 / (64k/100k) ≈ 6.25 findings per 100k tokens — well above the capstone-intent expected band of 1 finding per 100-300k tokens (per [`DESIGN.md`](../../DESIGN.md) § Cold-session budget); the cluster-batched cold session is running efficiently per [AI Engineer R1 F6+F7+F8](2026-05-21-ai-engineer.md) cluster-batching discipline.
 
 ---
+
+## Review 5 — 2026-05-22 04:30Z
+
+**Phase:** 3 (IAR Round 2; Layer 2 Round 2 verification — second cold-session round on the post-fix-cycle Layer 2 artifact)
+**Source:** domain-raised (cold-session — Round 2 verification opened in a fresh context with no carryover from the Round 1 fix-cycle deliberation; reads the post-fix artifact afresh)
+**Lens:** fix-verification + regression-check + new-finding-surfacing + proptest-idiomaticity
+**Scope:** Layer 2 post-fix artifact (read each file fresh in this session) — fix commits `156ec53` (tests/scaling.rs + tests/properties.rs + CI scaling job + Cargo.toml proptest dev-dep), `d62bb1a` (README + CHANGELOG), `002d747` (DESIGN/TODO/Cargo.toml spec amendments + rust-toolchain.toml), `cdb46bc` (UX affordance `Tagged N bookmark(s).` + per-subcommand help-text expansion), `9d56c3f` (install-verification.md Layer 2 inheritance note). Source files re-verified at this session: [`src/lib.rs`](../../src/lib.rs), [`src/main.rs`](../../src/main.rs), [`tests/bookmarks.rs`](../../tests/bookmarks.rs), [`tests/scaling.rs`](../../tests/scaling.rs), [`tests/properties.rs`](../../tests/properties.rs), [`Cargo.toml`](../../Cargo.toml), [`rust-toolchain.toml`](../../rust-toolchain.toml), [`DESIGN.md`](../../DESIGN.md), [`TODO.md`](../../TODO.md).
+**Reviewer:** Software Engineer
+**Model:** Opus 4.7 (per [`DESIGN.md`](../../DESIGN.md) § Cold-session budget — SE runs on Opus 4.7 at capstone intent)
+**Session note:** SE/UX/Performance-Engineer cluster (Round 2 verification; same composition as Round 1; adversarial pair Quality Engineer in QE/Security/Technical-Writer cluster preserved across rounds per adversarial-pair separation discipline). Cold session — the Round 2 reviewer treats both the post-fix Layer 2 artifact AND the Round 1 evidence-citations as stranger material; each Round 1 finding is re-traced to the current file:line state rather than trusted as already-verified.
+**Regression-check against:** [Review 4](#review-4--2026-05-22-0030z) — Round 1 SE findings F1 (`AttachTagError::NoMatch` Display drops URL), F2 (`attach_tag` unused `usize` return), F3 (`run_list` empty-store/empty-tag precedence inversion), F4 (`tests_save_fsyncs_parent_directory` misnamed). All four were classified Open / Deferred-pending-Round-2-fix-cycle at Round 1 close.
+**Cost-tally:** placeholder per [primer 3](../../../../vsdd-suite/primers/3-review-session.md) § Pre-cycle methodology check — filled in at session-end below.
+
+**Verification methodology.** Each Round 1 finding traced to the current artifact state via fresh file:line reads (no in-memory carryover from Round 1 evidence — re-grepped the actual current bytes). Build verified clean (`cargo build --release` from a clean `target/` — succeeds with no warnings against `rust-toolchain.toml` channel 1.95); default test suite verified passing (`cargo test --locked` — 12 lib unit + 29 integration + 2 proptest = 43 default passing, 3 scaling sentinels `#[ignore]`-gated, 0 failures); scaling sentinels verified runnable via `cargo test --release --test scaling --locked -- --ignored` (3 `#[ignore]`-gated tests at 100/1K/10K cliffs; see [Performance Engineer Review 5](2026-05-20-performance-engineer.md) for the matching verification — empirically completed at 1474s wall-clock this session).
+
+---
+
+### Resolved
+
+**Finding 1 — Layer 2 Round 1 SE F2 closure: `attach_tag` `usize` return value is now load-bearing at the user-facing `Tagged N bookmark(s).` stderr affordance + pinned by three integration tests (Dim 4, Dim 8)**
+
+<a id="r5-se-f1"></a>
+
+**Owner:** software-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** quality-engineer
+**Severity:** Low
+**Probability:** High
+**Lens-source:** fix-verification
+**Dim:** SE Dim 4 (Function and method design) + Dim 8 (Defensive coding)
+
+**Round 1 status:** Open / Deferred-pending-Round-2-fix-cycle ([Review 4 Finding 2](#r4-se-f2) — Severity Low, Probability High).
+
+**Evidence of resolution.** Fix commit `cdb46bc` (UX affordance + help-text completeness). [`src/main.rs:301-313`](../../src/main.rs):
+
+```rust
+match store.attach_tag(url, label) {
+    Ok(n) => {
+        if let Err(e) = store.save(path) {
+            emit_storage_error(&e, "save");
+            return ExitCode::from(2);
+        }
+        // Affordance — emit the match count to stderr so the multi-match
+        // semantic (a `bm tag` that touched 2 bookmarks because two share
+        // the same URL) is discoverable from user behavior. Stdout stays
+        // silent so pipelines (`bm tag ... | jq ...` or similar) are
+        // unaffected. Closes Layer 2 Round 1 UX F2 + SE F2.
+        eprintln!("Tagged {n} bookmark(s).");
+        ExitCode::SUCCESS
+    }
+```
+
+The Round 1 caller pattern `Ok(_) =>` (discarded count) is gone; the destructured `Ok(n) =>` consumes the previously-unused value at the user-facing affordance per Round 1 Option C ("Lift the count into the user-visible surface"). The contract is now both **type-pinned** (the caller would fail to compile if the return type became `Result<(), AttachTagError>`) and **test-pinned** at three integration tests: [`tests/bookmarks.rs:540`](../../tests/bookmarks.rs) `tests_tag_attaches_label_to_matching_bookmark` asserts `.stderr("Tagged 1 bookmark(s).\n")`; [`tests/bookmarks.rs:580`](../../tests/bookmarks.rs) `tests_tag_is_idempotent` asserts the same string twice for the idempotent re-tag; [`tests/bookmarks.rs:759`](../../tests/bookmarks.rs) `tests_tag_against_duplicate_url_tags_all_matches` asserts `.stderr("Tagged 2 bookmark(s).\n")` — exactly the test that Round 1 named as the missing-coverage gap.
+
+**Reasoning.** The Round 1 finding's secondary concern — *"the variable `matched` says 'matched the URL' but the doc says 'this count includes idempotent no-op matches'"* — is now exercised by `tests_tag_is_idempotent` at [`tests/bookmarks.rs:568-580`](../../tests/bookmarks.rs): the second invocation against the already-tagged bookmark still emits `Tagged 1 bookmark(s).` (the URL matches one bookmark; the label is a no-op append). The test comment at lines 576-579 explicitly names the contract: *"Both invocations emit `Tagged 1 bookmark(s).` — the second invocation's idempotent no-op doesn't affect the match count (the URL still matches one bookmark; the label is just not re-appended to its tags vec)."* The contract is pinned.
+
+**Classification:** Resolved — closure clean. The Round 1 Option C path landed; no carry-forward state. (Dim 4 + Dim 8)
+
+**Coordinate:** Cross-references [Review 5 (UX) Finding F2 verification](../2026-05-21-ux.md#review-6--2026-05-22-0430z) — the joint SE-F2 + UX-F2 resolution at fix commit `cdb46bc` is symmetric across the SE/UX/Performance-Engineer cluster pair.
+
+---
+
+### Deferred
+
+**Finding 2 — Round 1 SE F1 verification: `AttachTagError::NoMatch` `Display` impl still drops URL; deferral re-affirmed at Round 2 under refined cost-benefit (Dim 1, Dim 9)**
+
+<a id="r5-se-f2"></a>
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none — Layer 3 trigger preserved per the cost-benefit framing below)*
+**Validator:** quality-engineer
+**Severity:** Medium
+**Probability:** Medium
+**Lens-source:** fix-verification + cost-benefit-re-calibration
+**Dim:** SE Dim 1 (Correctness) + Dim 9 (Comments and self-documentation)
+
+**Round 1 status:** Open / Deferred-pending-Round-2-fix-cycle ([Review 4 Finding 1](#r4-se-f1) — Severity Medium, Probability High).
+
+**Evidence of non-resolution.** [`src/lib.rs:84-117`](../../src/lib.rs) — `AttachTagError` enum unchanged from Round 1 evidence; `NoMatch` is still a unit variant (no `url: String` payload) at line 104; `Display` impl at lines 107-115 still emits the URL-free placeholder `"no bookmark found with the supplied URL"` at line 112. [`src/main.rs:325-328`](../../src/main.rs) — the CLI shell still recreates the spec-contracted message from the URL it has in scope: `eprintln!("Error: no bookmark found with URL {}.", display_safe(url));`. None of the five fix commits (`156ec53`, `d62bb1a`, `002d747`, `cdb46bc`, `9d56c3f`) touched `AttachTagError`.
+
+**Round 2 reasoning.** The Round 1 disposition framed F1 with two options: **Option A** (add `url: String` to the `NoMatch` variant, idiomatic Rust shape), **Option B** (document the asymmetry in the doc comment). The fix cycle landed neither — the bare unit variant + CLI-shell-recreates-message split persists. Two facts shift the cost-benefit at Round 2:
+
+1. **The CLI is the sole caller.** Round 1 raised the concern that *"any future caller that converts `AttachTagError` to `anyhow::Error` via `?` or formats it via `format!('{e:#}')` will see 'no bookmark found with the supplied URL' and lose the URL value."* Re-grepped the current artifact for non-CLI callers of `attach_tag` outside `src/main.rs`: only [`tests/properties.rs:94-99`](../../tests/properties.rs) (the newly-landed Round 1 fix-cycle proptest activation) calls `attach_tag` outside `src/main.rs` — and it calls it via `prop_assume!(single_result.is_ok())` plus `.unwrap()`, never rendering the error. The library has no third-party-consumer surface other than the in-tree CLI and the in-tree proptest; the "future caller via `format!`" risk Round 1 named is hypothetical at the project's actual surface.
+2. **The fix cycle's separate UX affordance landed.** [`src/main.rs:312`](../../src/main.rs) `eprintln!("Tagged {n} bookmark(s).");` is the post-fix Layer 2 stderr success affordance. Combined with the CLI's bespoke `Error: no bookmark found with URL {url}.` recreation, the user-visible surface for `bm tag` is end-to-end spec-compliant — the in-type Display divergence is invisible at the user surface.
+
+The Round 1 framing's stronger point — *"the hand-rolled `AttachTagError` 'bet the Display impl IS the entire surface' per the Rust supplement framing at [`src/lib.rs:88-89`](../../src/lib.rs)"* — still holds; the type's contract is technically split. But at the Layer 2 scope with the CLI as sole consumer and the UX affordance landed, the deferral is re-affirmed with two preserved Layer 3 triggers: (a) IF a future Layer adds a non-CLI consumer (e.g., a Layer 3 export/import path that uses `attach_tag` under a different rendering layer), the finding fires; (b) IF the project ever migrates to `thiserror` (per the Rust supplement § SE error-design dim), the finding is the first concession to revisit. The Round 1 recommended fix (Option A) remains the correct Rust-idiomatic answer for that future trigger.
+
+**Classification:** Deferred — the Round 2 disposition is "the Layer 2 cost of fixing it outpaces the Layer 2 benefit," not "the Round 1 finding was wrong." (Dim 1 + Dim 9)
+
+**Coordinate:** No G-NNN match. The Layer 3 triggers are documented at the finding body above; no immediate cross-domain routing required.
+
+---
+
+**Finding 3 — Round 1 SE F3 verification: `run_list` empty-store precedence STILL fires before empty-tag-label validation; impl-vs-spec divergence at AC 11 persists (Dim 1, Dim 8)**
+
+<a id="r5-se-f3"></a>
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none — one-line fix queued for next fix cycle)*
+**Validator:** quality-engineer
+**Severity:** Low
+**Probability:** Medium
+**Lens-source:** fix-verification + regression-check
+**Dim:** SE Dim 1 (Correctness) + Dim 8 (Defensive coding)
+
+**Round 1 status:** Open / Deferred-pending-Round-2-fix-cycle ([Review 4 Finding 3](#r4-se-f3) — Severity Low, Probability Medium).
+
+**Evidence of non-resolution.** [`src/main.rs:240-279`](../../src/main.rs) `run_list` — line 252 `if store.bookmarks().is_empty()` still precedes line 265 `if tags.iter().any(String::is_empty)`. Concrete consequence holds unchanged: `bm list --tag ""` against an empty store emits `"No bookmarks yet."` and exits 0, NOT `"Error: tag label cannot be empty."` and exit 1 per [`DESIGN.md`](../../DESIGN.md) § `bm list --tag <label>` failure contract (AC 11). Re-grepped [`tests/bookmarks.rs`](../../tests/bookmarks.rs) for the empty-store + empty-tag case at Round 2 — still absent. The existing `tests_list_with_empty_tag_label_rejected` at [`tests/bookmarks.rs:961-994`](../../tests/bookmarks.rs) still pre-stages a bookmark via `bm add` before exercising `bm list --tag ""`; the empty-store + empty-tag intersection remains untested.
+
+**Round 2 reasoning.** Re-read the Round 1 framing carefully against the current spec text. The Round 1 finding cited [`DESIGN.md:118`](../../DESIGN.md) as the "edge case catalog Layer 2" rule the impl IS satisfying (store-empty wins over filter-empty when `--tag <label>` is supplied with a NON-empty label) and [`DESIGN.md:96`](../../DESIGN.md) as the contract the impl is BREAKING (`bm list --tag ""` exit 1 invariant). Re-verified at Round 2: [`DESIGN.md`](../../DESIGN.md) § `bm list --tag <label>` § Edge case catalog Layer 2 unchanged from Round 1 evidence; the impl-vs-spec divergence is unchanged. The defect is genuinely correctness-class (Dim 1) — the impl returns exit 0 against an input the spec rejects with exit 1; this is the "doing what was generated, not what was specified" shape the SE prompt's sycophancy check explicitly names. The fix is one-line (move the `tags.iter().any(String::is_empty)` validation ahead of the empty-store check per the Round 1 recommended code shape); a new Red Gate test for the empty-store + empty-tag case is two short integration-test lines.
+
+**Classification:** Deferred — carry-forward to next fix cycle; the Round 1 recommended fix remains the correct shape (move input-invariant rejection ahead of state-dependent branch). (Dim 1 + Dim 8)
+
+**Coordinate:** Cross-references the Round 1 Coordinate at [Review 4 F3](#r4-se-f3) — surfaces to [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) (missing empty-store + empty-tag test); inline fix is SE-owned.
+
+---
+
+**Finding 4 — Round 1 SE F4 verification: `tests_save_fsyncs_parent_directory` test name still promises fsync verification its body does not deliver; Red Gate discipline violation persists + downstream domain logs cite the test by name (Dim 11, Dim 9)**
+
+<a id="r5-se-f4"></a>
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none — one-line rename + TODO.md annotation queued for next fix cycle)*
+**Validator:** quality-engineer
+**Severity:** Low
+**Probability:** High
+**Lens-source:** fix-verification + regression-check
+**Dim:** SE Dim 11 (Future-self maintainability) + Dim 9 (Comments and self-documentation)
+
+**Round 1 status:** Open / Deferred-pending-Round-2-fix-cycle ([Review 4 Finding 4](#r4-se-f4) — Severity Low, Probability High).
+
+**Evidence of non-resolution.** [`src/lib.rs:776-813`](../../src/lib.rs) — the unit test name `tests_save_fsyncs_parent_directory` at line 796 unchanged; the doc comment's `"WEAK PROXY"` admission unchanged at line 784. The test body still asserts the file-presence + round-trip-through-load proxy, not the fsync syscall. The Round 1 evidence holds verbatim — the name does work the body does not back. [`TODO.md`](../../TODO.md) Layer 2 Red Gate test plan still names item 14 as the fsync-verification test without amending the verification gap; the Round 1 recommended `(a)` option (rename the test to `tests_save_roundtrip_after_atomic_rename` + update TODO.md Red Gate plan annotation) is not landed.
+
+**Round 2 reasoning.** The Round 1 finding's structural point — *"a test named `tests_save_fsyncs_parent_directory` will be grepped, cited, and trusted by future readers as evidence that the fsync is verified"* — is reinforced by the post-fix-cycle artifact state: [Quality Engineer Review 5](2026-05-21-quality-engineer.md) and [Performance Engineer Review 4](2026-05-20-performance-engineer.md) Round 1 entries cite the test by name. A future reader scanning `cargo test` output (which prints test names, not doc comments) will see the test name pass and infer the contract holds. The misnaming compounds with each downstream citation. The Round 1 recommended fix Option `(a)` — rename to `tests_save_roundtrip_after_atomic_rename` + TODO.md annotation — remains the lowest-cost shape; the spec-named Option `(b)` — implement an injected counter or trace-line on the unix path — is the more rigorous shape but adds production-code complexity for a defense-in-depth test.
+
+**Classification:** Deferred — carry-forward to next fix cycle; the rename-and-annotate fix is the recommended Layer 2 shape. (Dim 11 + Dim 9)
+
+**Coordinate:** Cross-references the Round 1 Coordinate at [Review 4 F4](#r4-se-f4) — [G-132](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-132); surfaces to [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) (Red Gate discipline owner) + [Performance Engineer](../PERFORMANCE-ENGINEER-REVIEW.md) (durability cost the test was meant to anchor).
+
+---
+
+**Finding 5 — NEW: `tests/properties.rs` `tag_idempotence_property` uses `prop_assume!(single_result.is_ok())` against `attach_tag`, narrowing the property's effective sample space without disclosing the rejection rate (Dim 1, Dim 11)**
+
+<a id="r5-se-f5"></a>
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** quality-engineer
+**Severity:** Low
+**Probability:** Medium
+**Lens-source:** new-finding-surfacing + proptest-idiomaticity
+**Dim:** SE Dim 1 (Correctness) + Dim 11 (Future-self maintainability)
+
+**Evidence:** [`tests/properties.rs:84-108`](../../tests/properties.rs) — the `tag_idempotence_property` body:
+
+```rust
+fn tag_idempotence_property(
+    store in small_store_strategy(),
+    url in small_url_strategy(),
+    label in small_label_strategy(),
+) {
+    let mut once = store.clone();
+    // If the URL doesn't match any bookmark, attach_tag returns
+    // NoMatch — property holds trivially (no state change in either
+    // run), so skip the cases where there's no match to assert against.
+    let single_result = once.attach_tag(&url, &label);
+    prop_assume!(single_result.is_ok());
+
+    let mut twice = store.clone();
+    twice.attach_tag(&url, &label).unwrap();
+    twice.attach_tag(&url, &label).unwrap();
+
+    prop_assert_eq!(
+        once.bookmarks(),
+        twice.bookmarks(),
+        ...
+    );
+}
+```
+
+The `prop_assume!` macro tells proptest to silently DROP the case when `single_result` is `Err` (i.e., the URL didn't match any bookmark in the generated store). Per the `small_url_strategy` regex `"https://example-[0-3]\\.com"` at [`tests/properties.rs:45`](../../tests/properties.rs) (4 distinct URLs) combined with a store of 0..=8 bookmarks at [`tests/properties.rs:56`](../../tests/properties.rs) where each URL is drawn from the same 4-URL alphabet, the probability that a random `url in small_url_strategy()` matches at least one bookmark in the store depends on the store's actual size: at store-size 0 the match rate is 0% (every case dropped); at store-size 8 with 4-URL alphabet the match rate approaches 100% by the birthday-bound. The expected match rate across the full case-distribution sits around 70-80% — a real but not catastrophic rejection cost.
+
+The defect: proptest does NOT report the post-`prop_assume!` effective sample size by default. A reader of `cargo test` output sees `"test result: ok. 2 passed; 0 failed"` with no signal about how many of the 64 budgeted cases per property reached the assertion vs. were `prop_assume!`-rejected. The Rust supplement's framing for property-based testing — *"the property's evidence is the count of cases the property actually exercised, not the count of cases proptest enumerated"* — is not visible in the post-fix-cycle artifact's output discipline.
+
+**Reasoning:** SE Dim 1 (Correctness) — the property's stated contract at the test's doc comment at line 77-83 is *"attach_tag twice produces the same state as attach_tag once."* The contract is unconditional in the spec ([`DESIGN.md`](../../DESIGN.md) § `bm tag` § Idempotence under repeat invocation). The `prop_assume!` narrows the test to "attach_tag twice on a URL that matches at least one bookmark produces the same state as attach_tag once" — which is a *sub-property* of the spec contract. The sub-property is the load-bearing case (the no-match path is trivial: both invocations return `Err(NoMatch)`, no state changes either way), so the narrowing IS correct in spirit. But the un-narrowed contract is *also* exercised by [`src/lib.rs`](../../src/lib.rs)'s deterministic unit tests at lines 743-768 (`tests_tag_returns_no_match_for_unknown_url`) and [`tests/bookmarks.rs:589-618`](../../tests/bookmarks.rs) (`tests_tag_rejects_unknown_url`) — so the proptest's narrowing is not creating a coverage gap, just an invisible one.
+
+Dim 11 (Future-self maintainability) — a future maintainer who narrows `small_url_strategy()` further (say, to 8 URLs for a future Layer 3 property), reducing the match rate to ~20%, may push the effective sample size below the minimum proptest budget guarantees ([`proptest_config.cases = 64`](../../tests/properties.rs) at line 73). The test would still report "ok" with a reduced effective case count and no visible warning. The Rust supplement's `prop_assume!` discipline notes recommend either (a) a `prop_assert!` over `prop_assume!` when the precondition is also part of the contract being tested, or (b) inverting the strategy to GENERATE only URLs known to match (e.g., draw the test URL from the store's actual `bookmarks().iter().map(|b| b.url()).collect::<Vec<_>>()` rather than the global 4-URL alphabet) so 100% of cases reach the assertion.
+
+**Classification:** Deferred — inline fix recommended at next fix cycle. Two options: **Option A (recommended)** — replace `url in small_url_strategy()` with a strategy that picks a URL from the populated `store`'s actual bookmark URLs via `prop_flat_map` + `prop::sample::select`; **Option B (cheaper)** — add a doc comment at lines 77-83 explicitly disclosing the case-rejection rate from the strategy choice so a future maintainer sees the narrowing. Option A is the idiomatic Rust proptest shape; Option B is the minimum-viable disclosure. (Dim 1 + Dim 11)
+
+**Coordinate:** No G-NNN match. Cross-domain: surfaces to [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) (the proptest-idiomaticity stance is QE Dim 6 territory; QE owns the test-discipline angle). Cross-references [Quality Engineer Review 5](2026-05-21-quality-engineer.md) Round 1 entries that ratified the proptest activation as the Phase 5 Layer 2 closure; the activation is correct in shape but has this narrowing concern at the assume-discipline level.
+
+---
+
+### Hallucinated
+
+*(none — F5 is evidence-backed at [`tests/properties.rs:84-108`](../../tests/properties.rs) with line-cited rejection mechanic + grep-verified rejection-rate framing against the `small_url_strategy` + `small_store_strategy` definitions. Two findings considered and rejected as Hallucinated: (a) "the `proptest = "1"` dev-dep is unpinned to a minor version, which violates the Rust supplement's `--locked`-with-tight-bounds discipline" — checked the supplement's actual stance: dev-deps follow the `version = "1"` major-bound convention because they're not consumer-visible; the bound is intentional. (b) "`#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::missing_errors_doc, clippy::missing_panics_doc, reason = "..."]` at the top of `tests/properties.rs` lines 1-10 is over-broad" — checked the supplement's `[lints.clippy]` framing at [`Cargo.toml:94-96`](../../Cargo.toml) and the precedent at [`tests/scaling.rs:1-10`](../../tests/scaling.rs) + [`tests/bookmarks.rs:1-10`](../../tests/bookmarks.rs): the integration-test-only allow blocks are the documented exception per Platform Engineer Round 2 Finding 13; the pattern is suite-conventional, not a defect.)*
+
+---
+
+### Summary
+
+**4 Round 1 findings verified + 1 new Round 2 finding raised.** Round 2 disposition mapping (Round 1 finding → Round 2 finding under this round's renumbering):
+- Round 1 SE F2 (`attach_tag` unused `usize` return) → **Round 2 F1 Resolved** — the count is now load-bearing at `Tagged N bookmark(s).` + pinned by three integration tests.
+- Round 1 SE F1 (`AttachTagError::NoMatch` Display drops URL) → **Round 2 F2 Deferred** — re-affirmed at Round 2 under refined cost-benefit (CLI is sole caller; UX affordance compensates at the user surface); Layer 3 triggers preserved.
+- Round 1 SE F3 (`run_list` empty-store precedence inversion) → **Round 2 F3 Deferred** — impl-vs-spec divergence at AC 11 persists; one-line fix queued.
+- Round 1 SE F4 (`tests_save_fsyncs_parent_directory` misnamed) → **Round 2 F4 Deferred** — Red Gate discipline violation persists; rename-and-annotate fix queued.
+- **Round 2 F5 NEW** — proptest `tag_idempotence_property` uses `prop_assume!` to drop no-match cases, narrowing the property's effective sample space without disclosing the rejection rate.
+
+**Severity breakdown at Round 2 close.** 0 Critical, 1 Medium ([F2](#r5-se-f2) — `AttachTagError::NoMatch` type-contract split, deferred), 3 Low ([F3](#r5-se-f3) deferred — impl-vs-spec precedence; [F4](#r5-se-f4) deferred — Red Gate test misnaming; [F5](#r5-se-f5) NEW — proptest assume-discipline disclosure). 1 Resolved ([F1](#r5-se-f1)). 0 Hallucinated. 0 Dismissed.
+
+**MVR signal: NOT REACHED for SE at Layer 2.** Per [primer 3](../../../../vsdd-suite/primers/3-review-session.md) § Round triggers [G-131](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) continue-trigger discipline, the MVR criteria require all Round 1 findings Resolved or Verified-Deferred, AND zero new Round 2 findings. The current state has 1 Resolved + 3 Deferred Round 1 findings (Round 2 F1 + F2 + F3 + F4) + 1 NEW Round 2 finding (F5); MVR-trigger is not satisfied by the new-finding count. F2 (Round 1 F1 deferral re-affirmed) is acceptable under the MVR criteria as Verified-Deferred; F3 + F4 + F5 are the load-bearing blockers. None are MVR-blocking for Layer 2 *shipping* (all three are Low; F3 and F4 are pre-existing impl-vs-spec / test-naming concerns that don't gate user-facing behavior; F5 is a test-discipline disclosure concern). A Round 3 SE pass after the F3 (precedence-inversion fix) + F4 (test rename + TODO.md annotation) + F5 (proptest restructure or disclosure) fixes land would close to MVR.
+
+**Regression-check against Layer 1.** All Layer 1 SE-closed findings remain closed under the Layer 2 fix cycle: the `display_safe` discipline is preserved at the new `Tagged N bookmark(s).` line (n is a `usize` integer, not user-controlled — no sanitization needed); the atomic-save discipline at `BookmarkStore::save` is unchanged; the per-subcommand helper extraction (`run_add` / `run_list` / `run_tag`) absorbed the affordance addition cleanly. No Layer 1 regression.
+
+**Round 1 fix-cycle quality assessment.** The fix cycle landed 5 of 8 SE-relevant findings (UX F1 + UX F2 + UX F3 + SE F2 via `cdb46bc`; PE F2 + QE F1 via `156ec53`; Platform Engineer F4 rust-version via `002d747`; Platform Engineer F3 install-verification via `9d56c3f`). The 3 unlanded SE Round 1 findings (SE F1 / F3 / F4) are the type-contract-precision cluster — exactly the four-finding pattern Round 1 named at the [Review 4 summary](#review-4--2026-05-22-0030z) ("type-contract precision: F1 — error variant doesn't carry its rendering data; F2 — return value not used and not pinned by test; F3 — input-vs-state branch ordering inverted; F4 — test name promises more than test body delivers"). The fix cycle correctly prioritized the user-visible defects (UX F1/F2/F3 + the SE F2 that becomes load-bearing via UX F2's Alt A); the type-contract-precision sub-cluster (SE F1 + F3 + F4) is queued for a next pass. This is a reasonable triage shape, not a fix-cycle failure — but Round 2 cannot declare MVR with the sub-cluster still open.
+
+**Coordination:**
+- [Round 2 F1](#r5-se-f1) Resolved — closed cleanly; the cross-coordinate with [Round 1 UX F2](2026-05-21-ux.md#r5-ux-f2)'s Alt A landed exactly the joint-resolution shape Round 1 named.
+- [Round 2 F2](#r5-se-f2) Deferred — no immediate coordination required; Layer 3 triggers (a) non-CLI consumer, (b) `thiserror` migration preserved at the Round 1 disposition shape.
+- [Round 2 F3](#r5-se-f3) Deferred — cross-coordinates with [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) (missing empty-store + empty-tag test); the inline fix is SE-owned.
+- [Round 2 F4](#r5-se-f4) Deferred — cross-coordinates with [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) (Red Gate discipline owner) + [Performance Engineer](../PERFORMANCE-ENGINEER-REVIEW.md) (the durability cost the test was meant to anchor; PE Round 2 verification at [Performance Engineer Review 5](2026-05-20-performance-engineer.md#review-5--2026-05-22-0430z) re-evaluates the fsync-cost-claim status independently).
+- [Round 2 F5](#r5-se-f5) NEW — routes to [Quality Engineer](../QUALITY-ENGINEER-REVIEW.md) for the proptest-discipline angle; SE-owned for the inline restructure.
+
+**Cost-tally (per [primer 3](../../../../vsdd-suite/primers/3-review-session.md) § Per-review entry preamble § Cost-tally):**
+- Tokens: ~55k input + ~10k output ≈ 65k for this Round 2 verification
+- Cost: ~$0.85-1.05 USD at Opus 4.7 pricing
+- Findings/100k tokens: (4 verifications + 1 new finding) / (65k/100k) ≈ 7.7 findings per 100k tokens — Round 2 verifications are higher density than Round 1 cold-discovery because the prior-round evidence reduces the read-overhead; cluster-batched cold session running efficiently per [AI Engineer R1 F6+F7+F8](2026-05-21-ai-engineer.md) cluster-batching discipline.
+
+---
