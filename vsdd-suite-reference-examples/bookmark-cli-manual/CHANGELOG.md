@@ -43,7 +43,7 @@
 
 ### Round 1 cluster cold-session review
 
-The 4 cold-session clusters (SE/UX/Performance-Engineer; QE/Security/Technical-Writer; Solution-Architect/Red-Team/Platform-Engineer; Solution-Owner/Documentation-Reviewer/AI-Engineer/VDD-IAR-Alignment) surfaced ~30 findings across the 13 capstone-active domains. The Round 1 inline fix cycle on this branch resolved the load-bearing subset (12 fixes); the residual subset routes to Round 2 verification or carryforward.
+The 4 cold-session clusters (SE/UX/Performance-Engineer; QE/Security/Technical-Writer; Solution-Architect/Red-Team/Platform-Engineer; Solution-Owner/Documentation-Reviewer/AI-Engineer/VDD-IAR-Alignment) surfaced ~30 findings across the 13 capstone-active domains. The Round 1 inline fix cycle on this branch applied 12 numbered fixes (Fix 1 through Fix 13 in the fix-cycle prompt with Fix 11 deferred to Round 2), resolving ~17 cross-domain finding-closures; the residual subset routes to Round 2 verification or carryforward.
 
 ---
 

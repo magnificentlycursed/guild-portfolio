@@ -245,10 +245,21 @@ fn run_list(path: &std::path::Path, tags: &[String]) -> ExitCode {
             return ExitCode::from(2);
         }
     };
+    // AC 11 / DESIGN.md § `bm list --tag <label>` failure contract: empty
+    // label is an INPUT-INVARIANT rejection that fires before any store-
+    // state-dependent branch. Per Layer 2 Round 1 SE Finding 3: previously
+    // the empty-store branch fired first, so `bm list --tag ""` against an
+    // empty store emitted "No bookmarks yet." (exit 0) instead of the spec-
+    // contracted exit-1 empty-label error. Layered as: validate inputs
+    // first, then branch on state.
+    if tags.iter().any(String::is_empty) {
+        eprintln!("Error: tag label cannot be empty.");
+        return ExitCode::from(1);
+    }
     // Per `DESIGN.md` § Edge case catalog Layer 2: the empty-store
     // empty-state takes precedence over the filter empty-state — a user
     // with no bookmarks at all gets the more informative
-    // "No bookmarks yet." even if they passed `--tag`.
+    // "No bookmarks yet." even if they passed `--tag <non-empty-label>`.
     if store.bookmarks().is_empty() {
         eprintln!("No bookmarks yet.");
         return ExitCode::SUCCESS;
@@ -258,13 +269,6 @@ fn run_list(path: &std::path::Path, tags: &[String]) -> ExitCode {
             println!("{} {}", bm.timestamp().to_rfc3339(), display_safe(bm.url()));
         }
         return ExitCode::SUCCESS;
-    }
-    // Validate every supplied label per AC 11 / DESIGN.md § `bm list
-    // --tag <label>` failure contract — `bm list --tag ""` exits 1 with
-    // the empty-label error, parallel to `bm tag`.
-    if tags.iter().any(String::is_empty) {
-        eprintln!("Error: tag label cannot be empty.");
-        return ExitCode::from(1);
     }
     let labels: Vec<&str> = tags.iter().map(String::as_str).collect();
     let matched = store.filter_by_tags(&labels);
@@ -308,8 +312,12 @@ fn run_tag(path: &std::path::Path, url: &str, label: &str) -> ExitCode {
             // semantic (a `bm tag` that touched 2 bookmarks because two share
             // the same URL) is discoverable from user behavior. Stdout stays
             // silent so pipelines (`bm tag ... | jq ...` or similar) are
-            // unaffected. Closes Layer 2 Round 1 UX F2 + SE F2.
-            eprintln!("Tagged {n} bookmark(s).");
+            // unaffected. Singular/plural conditional per Layer 2 Round 2 UX
+            // F4 — "Tagged 1 bookmark." reads naturally; "Tagged 2 bookmarks."
+            // pluralizes correctly. Closes Layer 2 Round 1 UX F2 + SE F2 +
+            // Layer 2 Round 2 UX F4.
+            let noun = if n == 1 { "bookmark" } else { "bookmarks" };
+            eprintln!("Tagged {n} {noun}.");
             ExitCode::SUCCESS
         }
         Err(AttachTagError::EmptyUrl) => {

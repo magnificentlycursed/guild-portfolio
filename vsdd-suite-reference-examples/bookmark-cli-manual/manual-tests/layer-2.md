@@ -83,10 +83,10 @@ Expected stdout for `bm tag` — none (the command is silent on stdout for pipel
 Expected stderr for `bm tag` (literal — Layer 2 Round 1 UX F2 + SE F2 affordance):
 
 ```
-Tagged 1 bookmark(s).
+Tagged 1 bookmark.
 ```
 
-The `Tagged N bookmark(s).` line on stderr names the match count so the multi-match semantic (covered at Step 7-equivalent multi-match scenario; tested in the integration suite at `tests_tag_against_duplicate_url_tags_all_matches`) is discoverable from user behavior. Stdout stays silent so `bm tag <url> <label> | downstream-script` sees no placeholder text.
+The stderr affordance names the match count so the multi-match semantic (covered at Step 7-equivalent multi-match scenario; tested in the integration suite at `tests_tag_against_duplicate_url_tags_all_matches`) is discoverable from user behavior — `Tagged 1 bookmark.` for single matches, `Tagged N bookmarks.` for N ≥ 2 (singular/plural conditional per Layer 2 Round 2 UX F4). Stdout stays silent so `bm tag <url> <label> | downstream-script` sees no placeholder text.
 
 Expected stdout for `echo` (literal):
 
@@ -139,10 +139,10 @@ Expected stdout for `bm tag` — none (silent on stdout for pipeline-script-abil
 ```
 ```
 
-Expected stderr for `bm tag` (literal — same `Tagged N bookmark(s).` affordance as Step 2; the second invocation's idempotent no-op does NOT reduce the match count because the URL still matches the same one bookmark):
+Expected stderr for `bm tag` (literal — same `Tagged 1 bookmark.` singular affordance as Step 2; the second invocation's idempotent no-op does NOT reduce the match count because the URL still matches the same one bookmark):
 
 ```
-Tagged 1 bookmark(s).
+Tagged 1 bookmark.
 ```
 
 Expected stdout for `echo` (literal):
@@ -241,7 +241,7 @@ echo "exit: $?"
 Expected stderr for `bm tag https://example.com/go go` (literal — Layer 2 Round 1 UX F2 + SE F2 affordance):
 
 ```
-Tagged 1 bookmark(s).
+Tagged 1 bookmark.
 ```
 
 Expected stdout for `bm list --tag rust` (literal up to the variable timestamp; exactly one line — only the `rust`-tagged bookmark matches):
@@ -392,7 +392,7 @@ Expected stdout for `--- PRE-MIGRATION ---` block (literal):
 Expected stderr for `BOOKMARK_CLI_DB="$LAYER1_DB" bm tag https://layer1.example migrated` (literal — Layer 2 Round 1 UX F2 + SE F2 affordance; the Layer-1-format file had one bookmark matching the URL):
 
 ```
-Tagged 1 bookmark(s).
+Tagged 1 bookmark.
 ```
 
 Expected stdout for `echo "tag-exit: $?"` (literal):

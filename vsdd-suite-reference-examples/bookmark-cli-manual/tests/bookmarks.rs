@@ -536,8 +536,9 @@ fn tests_tag_attaches_label_to_matching_bookmark() {
         .stdout(predicate::str::is_empty())
         // Layer 2 Round 1 UX F2 + SE F2 — `bm tag` emits the match count
         // to stderr on success so the multi-match semantic is discoverable
-        // from user behavior. Single match → `Tagged 1 bookmark(s).`.
-        .stderr("Tagged 1 bookmark(s).\n");
+        // from user behavior. Single match → `Tagged 1 bookmark.` (singular
+        // per Layer 2 Round 2 UX F4 singular/plural conditional).
+        .stderr("Tagged 1 bookmark.\n");
 
     let contents = fs::read_to_string(&db).expect("store file should still exist after tag");
     let parsed: serde_json::Value = serde_json::from_str(&contents).expect("store is valid JSON");
@@ -573,11 +574,12 @@ fn tests_tag_is_idempotent() {
             .assert()
             .success()
             .code(0)
-            // Both invocations emit `Tagged 1 bookmark(s).` — the second
-            // invocation's idempotent no-op doesn't affect the match count
-            // (the URL still matches one bookmark; the label is just not
-            // re-appended to its tags vec). Closes Layer 2 Round 1 UX F2.
-            .stderr("Tagged 1 bookmark(s).\n");
+            // Both invocations emit `Tagged 1 bookmark.` (singular per Layer
+            // 2 Round 2 UX F4) — the second invocation's idempotent no-op
+            // doesn't affect the match count (the URL still matches one
+            // bookmark; the label is just not re-appended to its tags vec).
+            // Closes Layer 2 Round 1 UX F2.
+            .stderr("Tagged 1 bookmark.\n");
     }
 
     let contents = fs::read_to_string(&db).unwrap();
@@ -753,10 +755,11 @@ fn tests_tag_against_duplicate_url_tags_all_matches() {
         .success()
         .code(0)
         // Two bookmarks share the URL → `bm tag` matched both → stderr
-        // emits `Tagged 2 bookmark(s).`. The multi-match affordance from
-        // Layer 2 Round 1 UX F2 — the user sees the count so the multi-
-        // match semantic is observable from behavior.
-        .stderr("Tagged 2 bookmark(s).\n");
+        // emits `Tagged 2 bookmarks.` (plural per Layer 2 Round 2 UX F4).
+        // The multi-match affordance from Layer 2 Round 1 UX F2 — the user
+        // sees the count so the multi-match semantic is observable from
+        // behavior.
+        .stderr("Tagged 2 bookmarks.\n");
 
     let contents = fs::read_to_string(&db).unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&contents).unwrap();
@@ -983,6 +986,29 @@ fn tests_list_with_empty_tag_label_rejected() {
         .assert()
         .success();
 
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["list", "--tag", ""])
+        .assert()
+        .failure()
+        .code(1)
+        .stderr("Error: tag label cannot be empty.\n")
+        .stdout(predicate::str::is_empty());
+}
+
+/// AC 11 — `bm list --tag ""` against an EMPTY store still exits 1 with
+/// the empty-label error (input-invariant rejection fires before
+/// store-state branching). Closes Layer 2 Round 1 SE Finding 3 — prior
+/// to the fix, this case emitted `No bookmarks yet.` (exit 0) because
+/// the empty-store precedence branch was evaluated before input
+/// validation.
+#[test]
+fn tests_list_with_empty_tag_label_against_empty_store_still_rejected() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    // No `bm add` here — the store file does not exist.
     Command::cargo_bin("bm")
         .unwrap()
         .env("BOOKMARK_CLI_DB", &db)
