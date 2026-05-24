@@ -526,14 +526,14 @@ The 6 surviving mutants:
 
 ---
 
-### Deferred
+### Resolved
 
 <a id="r6-qe-f1"></a>
-**Finding 1 — Layer 2 Mutation Testing kill rate is 86.4% (not 100%); named rationale documented per the Phase 5 strategy declaration (Dim 7 — mutation-resistance; Dim 14 — TDD proxy indicators)**
+**Finding 1 — Layer 2 Mutation Testing kill rate closed at 93.2% via Option A inline fix; 3 documented acceptable-survivals named per-mutant (Dim 7 — mutation-resistance; Dim 14 — TDD proxy indicators)**
 
 **Owner:** quality-engineer
-**Status:** raised
-**Blocked by:** Operator decision between Option A (close mutants #1-#3 inline via a `tags()` unit test + investigate Mutant #6 — kill rate climbs to ~93%) and Option B (accept the 86.4% rationale + defer the small fixes to a Layer 3 or operator-attention cycle).
+**Status:** validated
+**Blocked by:** *(none — Option A applied at commit c186d0b; cargo-mutants re-verified)*
 **Validator:** solution-architect
 
 **Evidence:** Per `DESIGN.md` § Project intent's Phase 5 strategy for Layer 2 ("Mutation Testing re-runs against the extended impl with the budget that the 100% kill rate is maintained or any drop has a named rationale"), the 13.6% drop from Layer 1's 100% baseline requires explicit rationale. The 6 surviving mutants split into three categories:
@@ -546,13 +546,26 @@ The 6 surviving mutants:
 
 **Disposition:** Recommend Option A — add the `tags()` accessor unit test + investigate Mutant 6 — as a small inline fix in this Layer 2 cycle to bring the kill rate to ~93% (40/44 = 90.9% closing #1-#3 alone). Mutant 4 + Mutant 5 stay as documented-acceptable-deferrals. Then Layer 2 Phase 5 closes with the named rationale: "86.4% → ~93% post-fix; deferral set is documented per-mutant with cost-vs-benefit framing." OR Option B — accept the 86.4% kill rate as the Layer 2 floor with the named rationale documented above, defer the small fixes to a Layer 3 or operator-attention cycle.
 
-**Classification:** Deferred — pending operator decision between Option A and Option B; trigger is the operator's next message in the Layer 2 cycle. (Dim 7 — mutation-resistance; Dim 14 — TDD proxy indicators)
+**Round 2 addendum (2026-05-23 04:00Z) — Option A landed at commit `c186d0b`; cargo-mutants re-verified at commit `c186d0b`:** Operator chose Option A. Two changes landed:
+
+1. **`Bookmark::tags()` accessor unit test** added at `src/lib.rs` `tests::bookmark_tags_accessor_returns_constructor_supplied_slice` — asserts the accessor returns populated and empty slices. Kills mutants #1, #2, #3 by direct invocation. (13 lib unit tests pass, was 12.)
+2. **Mutant #6 (`write_temp_file` → `Ok(())`) re-classified as cfg-shadow false-positive.** Investigation: line 464:5 lives inside the `#[cfg(not(unix))]` branch (Windows-only variant). cargo-mutants ran on macOS where the `#[cfg(unix)]` variant at line 446+ is selected and the not(unix) variant compiles out as dead code. Mutations to dead code can never be killed by tests on the test platform — known cargo-mutants behavior, not a real test-suite gap. Re-classified from "surprise survivor" to acceptable-survival.
+
+cargo-mutants 27.0.0 re-run (commit `c186d0b`, macOS): **51 mutants in 5 min — 3 missed, 41 caught, 7 unviable. Viable kill rate 41/44 = 93.2%** (up from 86.4% pre-fix; +6.8 percentage points). The 3 remaining survivors are all documented acceptable-survivals:
+
+- `AttachTagError::Display` (Layer-3-trigger per SE R1 F1)
+- `fsync_directory` no-op (WEAK PROXY annotation per Phase 2b)
+- `write_temp_file` cfg-shadow (`#[cfg(not(unix))]` dead-code on Unix platform)
+
+Phase 5 Layer 2 closes per the named-rationale criterion: 93.2% kill rate with all surviving mutants documented per-mutant with cost-vs-benefit framing.
+
+**Classification:** Resolved (Option A applied + verified; 93.2% kill rate; 3 documented acceptable-survivals). (Dim 7 — mutation-resistance; Dim 14 — TDD proxy indicators)
 
 ---
 
 ### Summary
 
-Phase 5 Layer 2 Mutation Testing re-run via cargo-mutants 27.0.0 against the post-fix Layer 2 tip surfaced a 86.4% viable kill rate (38 caught / 44 viable; 6 missed; 7 unviable) — a documented 13.6% drop from Layer 1's 100% baseline (8/8 viable). One Deferred finding documents the per-mutant disposition: 2 acceptable survivals (already-deferred contracts), 3 genuine test gaps (accessor untested; closeable in ~3 lines), 1 surprise survivor (Layer 1 helper; needs inspection). Operator chooses Option A (inline closure → ~93% kill rate) or Option B (accept 86.4% floor + defer). The companion SA Phase 5 Purity Boundary Audit at [Review 4](2026-05-22-solution-architect.md#review-4--2026-05-22-2200z) confirmed zero purity-boundary findings; the surviving mutants do not cross the boundary.
+Phase 5 Layer 2 Mutation Testing re-run via cargo-mutants 27.0.0 surfaced a 86.4% viable kill rate (38/44) initially — a documented 13.6% drop from Layer 1's 100% baseline (8/8 viable). Operator chose Option A (inline closure). Two changes landed at commit `c186d0b`: a `Bookmark::tags()` accessor unit test (kills mutants #1/#2/#3) + investigation of Mutant #6 revealed it was a cfg-shadow false-positive in the `#[cfg(not(unix))]` dead-code branch, re-classified as acceptable-survival. cargo-mutants re-verification at `c186d0b`: **41 caught / 3 missed / 7 unviable = 93.2% viable kill rate** — Phase 5 closes per the named-rationale criterion. 3 remaining survivors are all documented acceptable-survivals: `AttachTagError::Display` (Layer-3-trigger per SE R1 F1); `fsync_directory` no-op (WEAK PROXY annotation per Phase 2b); `write_temp_file` cfg-shadow (Windows-variant on Unix platform). The companion SA Phase 5 Purity Boundary Audit at [Review 4](2026-05-22-solution-architect.md#review-4--2026-05-22-2200z) confirmed zero purity-boundary findings; the surviving mutants do not cross the boundary.
 
 ---
 
