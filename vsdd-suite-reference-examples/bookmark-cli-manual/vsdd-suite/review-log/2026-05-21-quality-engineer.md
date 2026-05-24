@@ -489,3 +489,85 @@ The layer-gate criterion #5 in [`TODO.md:91`](../../TODO.md) (Phase 5 Layer 2 ro
 **Cost-tally suffix:** ~6-8k tokens for this Round 2 verification + 0 new substantive findings = within the projected ~25-40k Round-2 cluster budget at half-rate (Round 2 verification is cheaper than Round 1 new-finding-generation per cold-session-discipline economics).
 
 **Coordination:** Round 1 F1 + F2 cross-validate with the parallel SE / VDD-IAR Alignment / SO Round 1 findings on the same artifact-absence defect class — all close together at `156ec53`; the shared fix is the right routing. Round 1 F3 routes to Phase 5 PE Layer 2 round (deferral intact). Round 2 adversarial-pair separation preserved: SE's parallel Round 2 in the SE/UX/Performance-Engineer cluster validates the same `tests/scaling.rs` + `tests/properties.rs` from the implementation-correctness lens; Doc Reviewer's parallel Round 2 in the Solution-Owner/Documentation-Reviewer/AI-Engineer/VDD-IAR-Alignment cluster validates the spec-vs-test-citation alignment from the documentation-completeness lens. All Round 2 verifications declare `**Validator:**` per [QE domain prompt § Validator pair](../../../../vsdd-suite/domains/role/QUALITY-ENGINEER-REVIEW.md).
+
+---
+
+## Review 6 — 2026-05-22 22:30Z
+
+**Phase:** 5 (Mutation Testing re-run; Layer 2 hardening per [DESIGN.md](../../DESIGN.md) § Project intent's Phase 5 strategy commitment for Layer 2 — "Mutation Testing re-runs against the extended impl with the budget that the 100% kill rate is maintained or any drop has a named rationale").
+**Source:** director-raised (operator-directed inline-run of Phase 5 per the AskUserQuestion choice of "Run inline + author logs"; `cargo mutants --no-shuffle --timeout 60` tool output is the evidence base).
+**Lens:** test-suite-coverage + mutation-survival-analysis + Layer-1-baseline-regression.
+**Scope:** Layer 2 extensions to `src/lib.rs` (`Bookmark.tags` field, `Bookmark::tags()` accessor, `AttachTagError`, `BookmarkStore::attach_tag`, `BookmarkStore::filter_by_tags`, `fsync_directory`).
+**Reviewer:** Quality Engineer.
+**Model:** Opus 4.7 (`claude-opus-4-7`).
+**Cold-session shape:** N/A — inline-run from the main session. Trade-off declared per the parallel [SA Review 4](2026-05-22-solution-architect.md#review-4--2026-05-22-2200z) framing: a parallel cold-session cluster spawn would be over-investment per [G-150](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150); the mutation-testing tool produces the evidence and the analysis is the only judgment surface.
+**Regression-check against:** [Review 2](../2026-05-20-quality-engineer.md#review-2--2026-05-20-0245z) (Layer 1 Phase 5 Mutation Testing baseline — 100% kill rate on 8 viable mutants).
+**Session note:** `cargo mutants` is an empirical-evidence tool — the survival counts are not a judgment surface, only the per-mutant disposition (test-gap vs acceptable-survival vs surprise-survivor) requires reviewer analysis. Sycophancy-compensation: the natural temptation is to classify all surviving mutants as "acceptable-survival" because the implementation is by-default judged correct; the disposition table below distinguishes acceptable-survival (deliberate cost-vs-benefit deferral with prior citation) from genuine test-gap (closeable in this cycle) explicitly.
+**Cost-tally:** placeholder; filled at session-end below.
+
+---
+
+**Assumption surfacing.** `cargo mutants --no-shuffle --timeout 60` ran against the post-fix Layer 2 tip (commit `580db12`). The tool output is the empirical evidence; the per-mutant disposition below is the only reviewer-judgment surface.
+
+Final: **51 mutants tested in 5 minutes: 6 missed, 38 caught, 7 unviable.**
+
+Viable kill rate: 38 / 44 = **86.4%** — a drop from Layer 1's 100% (8/8 viable). The viable surface expanded 5.5× (8 → 44 viable mutants) because Layer 2 added ~80 LOC of new functions (`attach_tag`, `filter_by_tags`) + a new field (`Bookmark.tags`) + a new type (`AttachTagError`) + a new effectful helper (`fsync_directory`).
+
+The 6 surviving mutants:
+
+| # | Site | Mutation | Survival reason |
+|---|---|---|---|
+| 1 | `src/lib.rs:80:9` | `Bookmark::tags() -> &[String]` → `Vec::leak(Vec::new())` | No test asserts against `Bookmark::tags()` directly — tests check `bookmark.tags` via JSON serialization round-trip; the accessor is never called in tests. |
+| 2 | `src/lib.rs:80:9` | `Bookmark::tags()` → `Vec::leak(vec![String::new()])` | Same — accessor not exercised. |
+| 3 | `src/lib.rs:80:9` | `Bookmark::tags()` → `Vec::leak(vec!["xyzzy".into()])` | Same — accessor not exercised. |
+| 4 | `src/lib.rs:109:9` | `<impl fmt::Display for AttachTagError>::fmt` → `Ok(Default::default())` | The CLI shell at `src/main.rs:run_tag` paper-overs the `Display` impl by re-creating the error string per-variant — see [Round 1 SE Finding 1](2026-05-20-software-engineer.md#r4-se-f1). The variant's `Display` impl is dead code from the binary's perspective; no test invokes it. |
+| 5 | `src/lib.rs:442:5` | `fsync_directory(path) -> std::io::Result<()>` → `Ok(())` | The [Phase 2b WEAK PROXY annotation](../../src/lib.rs) on `tests_save_fsyncs_parent_directory` documented this gap — there is no portable way for a black-box test to assert that `fsync(2)` was syscalled on the parent FD. Mutation testing confirms the documented limitation: a no-op `fsync_directory` survives. |
+| 6 | `src/lib.rs:464:5` | `write_temp_file(tmp_path, bytes) -> std::io::Result<()>` → `Ok(())` | Pre-existing Layer 1 helper (not Layer 2 new code) — Layer 1's mutation testing baseline did not surface this; either the Layer 1 baseline's `cargo-mutants` version (or invocation) skipped this site, or the Layer 2 cycle's expanded test surface introduced a coverage interaction. Investigated: `write_temp_file` uses `OpenOptions::create_new(true).mode(0o600).open(...)?` which creates a zero-byte file before `write_all`. If the body returns `Ok(())` early (before `write_all`), the temp file exists at zero bytes; `rename(2)` succeeds; `save()` returns Ok; the in-memory store says "saved" but the on-disk file is zero bytes. The subsequent `load()` would read zero bytes and per [`src/lib.rs:123`](../../src/lib.rs) `contents.trim().is_empty()` returns `Self::default()` — an empty bookmark store. So any test that does `bm add` followed by `bm list` would fail (the list output would be `No bookmarks yet.` instead of the just-added URL). But cargo-mutants reports MISSED, which means at least one such test sequence does NOT exist. The most likely gap: tests that exit after a single `bm add` without subsequent `bm list` validation (since the JSON read in tests happens via `serde_json::from_str(fs::read_to_string(&db)?)`, an empty file would deserialize as `Default::default()` → `bookmarks: vec![]`, which would fail the `assert_eq!(bookmarks.len(), 1)` assertion). So mutants must be surviving via some other path — possibly that `write_temp_file` is called from a code path the tests don't exercise (the `#[cfg(not(unix))]` variant). Defer to detailed mutant inspection. |
+
+---
+
+### Deferred
+
+<a id="r6-qe-f1"></a>
+**Finding 1 — Layer 2 Mutation Testing kill rate is 86.4% (not 100%); named rationale documented per the Phase 5 strategy declaration (Dim 7 — mutation-resistance; Dim 14 — TDD proxy indicators)**
+
+**Owner:** quality-engineer
+**Status:** raised
+**Blocked by:** Operator decision between Option A (close mutants #1-#3 inline via a `tags()` unit test + investigate Mutant #6 — kill rate climbs to ~93%) and Option B (accept the 86.4% rationale + defer the small fixes to a Layer 3 or operator-attention cycle).
+**Validator:** solution-architect
+
+**Evidence:** Per `DESIGN.md` § Project intent's Phase 5 strategy for Layer 2 ("Mutation Testing re-runs against the extended impl with the budget that the 100% kill rate is maintained or any drop has a named rationale"), the 13.6% drop from Layer 1's 100% baseline requires explicit rationale. The 6 surviving mutants split into three categories:
+
+- **Acceptable survival (2 mutants):** Mutant 4 (`AttachTagError::Display`) — the CLI shell paper-overs the Display impl by design (the spec contracts the error string at the CLI surface, not at the library surface; see [Round 1 SE F1](2026-05-20-software-engineer.md#r4-se-f1) which Deferred this as a Layer-3 trigger). Mutant 5 (`fsync_directory`) — the WEAK PROXY annotation in `tests_save_fsyncs_parent_directory` documented this gap inline at Phase 2b. Both are deliberate cost-vs-benefit deferrals, not test-suite defects.
+- **Genuine test gap (3 mutants):** Mutants 1, 2, 3 — `Bookmark::tags()` accessor untested. Tests assert against the JSON post-state but never call the public `tags()` API. **Closeable**: a single unit test in `src/lib.rs#[cfg(test)] mod tests` that constructs a `Bookmark` with known tags and asserts `bm.tags() == &["expected"][..]` would kill all three mutants.
+- **Surprise survivor (1 mutant):** Mutant 6 (`write_temp_file`) — Layer 1 code (not Layer 2 new) that survived only after Layer 2 cargo-mutants invocation; the mechanism is unclear (see the table commentary). **Requires inspection.**
+
+**Reasoning:** The surviving mutants are all on accessor/display/effectful-syscall surfaces; behavioral contracts are still covered by integration tests at the binary surface. Layer 2 added 5.5× the viable mutant surface (8 → 44) while preserving 86.4% kill rate at no test-additions cost beyond the original 13 Red Gate + 14 unit tests + 2 proptest + 3 scaling sentinels. The 13.6% drop is documented per-mutant rather than aggregate, so the rationale is verifiable.
+
+**Disposition:** Recommend Option A — add the `tags()` accessor unit test + investigate Mutant 6 — as a small inline fix in this Layer 2 cycle to bring the kill rate to ~93% (40/44 = 90.9% closing #1-#3 alone). Mutant 4 + Mutant 5 stay as documented-acceptable-deferrals. Then Layer 2 Phase 5 closes with the named rationale: "86.4% → ~93% post-fix; deferral set is documented per-mutant with cost-vs-benefit framing." OR Option B — accept the 86.4% kill rate as the Layer 2 floor with the named rationale documented above, defer the small fixes to a Layer 3 or operator-attention cycle.
+
+**Classification:** Deferred — pending operator decision between Option A and Option B; trigger is the operator's next message in the Layer 2 cycle. (Dim 7 — mutation-resistance; Dim 14 — TDD proxy indicators)
+
+---
+
+### Summary
+
+Phase 5 Layer 2 Mutation Testing re-run via cargo-mutants 27.0.0 against the post-fix Layer 2 tip surfaced a 86.4% viable kill rate (38 caught / 44 viable; 6 missed; 7 unviable) — a documented 13.6% drop from Layer 1's 100% baseline (8/8 viable). One Deferred finding documents the per-mutant disposition: 2 acceptable survivals (already-deferred contracts), 3 genuine test gaps (accessor untested; closeable in ~3 lines), 1 surprise survivor (Layer 1 helper; needs inspection). Operator chooses Option A (inline closure → ~93% kill rate) or Option B (accept 86.4% floor + defer). The companion SA Phase 5 Purity Boundary Audit at [Review 4](2026-05-22-solution-architect.md#review-4--2026-05-22-2200z) confirmed zero purity-boundary findings; the surviving mutants do not cross the boundary.
+
+---
+
+**Cost-tally** (updated per the operator's 2026-05-22 directive — name plan + tool + execution method explicitly):
+
+- **AI tool:** [claude-code CLI](https://claude.com/claude-code) (orchestrator); `cargo-mutants` 27.0.0 (evidence-generating tool)
+- **Plan tier:** Claude Max (operator's personal plan)
+- **Execution method:** inline `cargo mutants` invocation in the main session; analysis + review authoring also inline
+- **Model:** Opus 4.7 for the analysis + authoring (`claude-opus-4-7`)
+- **Raw tokens (rough estimate; not measured):** ~6k–8k for the analysis + authoring (read `cargo mutants` output, classify the 6 surviving mutants, write this review entry)
+- **Tool wall-clock:** 5 min (cargo-mutants on the 51-mutant Layer 2 surface)
+- **Would-be API cost** (Opus 4.7 API tier; NOT the operator's actual cost since Max plan is subscription): ~$0.30–0.50 USD
+- **Actual cost to operator:** $0 marginal (within Max plan limits)
+- **Findings:** 1 (this Review's QE F1) — a budget-vs-result finding rather than a defect finding; the underlying defects (accessor untested, Display dead-code, fsync WEAK PROXY documented inline) are cataloged within F1's disposition.
+
+The cost-tally discipline upgrade per the operator's 2026-05-22 directive lands in [Task #56](../../../../vsdd-suite/suite-development/) (suite-level upstream remediation).
+
+**Coordination:** [SA Phase 5 Review 4](2026-05-22-solution-architect.md#review-4--2026-05-22-2200z) — Purity Boundary Audit re-ran in parallel (same session, inline) with this QE Phase 5 Round; SA found zero findings; this QE Round found 1 mutation-coverage finding (above). Together the two close Phase 5 Layer 2 per the Phase 5 strategy declaration. The operator's choice between Option A (close #1-#3 inline) vs Option B (accept the rationale + defer) is the next step.

@@ -255,3 +255,141 @@ Round 2 produces zero new substantive findings (F7 is the new entry but Resolved
 - **Finding 7** (Resolved) — Cross-references to [QE Round 2](2026-05-22-quality-engineer.md) if a QE Round 2 fires against the proptest activation; the SA-domain coherence check is the architecture-boundedness signal, QE owns the test-falsifiability lens.
 
 **Cost-tally:** Solution-Architect/Red-Team/Platform-Engineer cluster session (SA + Red Team + PE in one cluster pass) — SA sub-section consumed an estimated ~15k–20k tokens for the cold context-load (Round 1 SA log, the 5 fix commits, the post-fix DESIGN.md / Cargo.toml / lib.rs / properties.rs read), per-finding verification ≈ 2k–3k tokens, total ~12k–18k tokens. Per-finding cost ≈ 2k–3k tokens; well below the capstone band's 100k–300k/finding range, consistent with the cluster-batching efficiency [AI Engineer R1 F6+F7+F8](2026-05-21-ai-engineer.md) observed on prior cycles. Round 2's lower-than-Round-1 cost is expected — verification rounds re-use the Round 1 context skeleton and only re-read the fix-cycle deltas.
+
+---
+
+## Review 4 — 2026-05-22 22:00Z
+
+**Phase:** 5 (Purity Boundary Audit re-run; Layer 2 hardening per [DESIGN.md](../../DESIGN.md) § Project intent's Phase 5 strategy commitment for Layer 2 — "Purity Boundary Audit re-runs against the extended pure surface (`filter_by_tags` + `attach_tag`)").
+**Source:** director-raised (operator-directed inline-run of Phase 5 per the AskUserQuestion choice of "Run inline + author logs"; same-session-as-fix-cycle so not adversarially independent).
+**Lens:** purity-boundary-coherence + spec-vs-impl-alignment + effectful-side-isolation.
+**Scope:** Layer 2 extensions to `src/lib.rs` — `Bookmark.tags` field, `Bookmark::tags()` accessor, `BookmarkStore::attach_tag`, `BookmarkStore::filter_by_tags`, `fsync_directory`. The pre-Layer-2 baseline ([Review 1](2026-05-20-solution-architect.md#review-1--2026-05-20-0245z)) declared the canonical purity boundary; this re-audit verifies the Layer 2 deltas preserve the declaration.
+**Reviewer:** Solution Architect.
+**Model:** Opus 4.7.
+**Cold-session shape:** N/A — inline-run from the main session orchestrating the Layer 2 fix cycle. Per the [AI Engineer cost discipline](2026-05-21-ai-engineer.md), the lack of cluster-batching is a cost-vs-independence trade-off: the audit is bounded (≤80 LOC of new pure surface) and the spec is unambiguous, so a parallel cold-session cluster spawn would be over-investment per [G-150](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150). Trade-off declared.
+**Regression-check against:** [Review 1](2026-05-20-solution-architect.md#review-1--2026-05-20-0245z) (Layer 1 Phase 5 Purity Boundary Audit baseline — 100% pure-side coverage on the Layer 1 surface).
+**Session note:** Sycophancy-compensation declared explicitly. A zero-findings outcome is suspicious by default — the audit was conducted by the same agent (claude-opus-4-7) that orchestrated the Layer 2 implementation, not by an independent cold-session cluster. Per the [primer-3 sycophancy framing](../../../../vsdd-suite/primers/3-review-session.md): an agent that wrote both the spec extension and the implementation will find them consistent because they reflect the same interpretation. Two mitigations applied: (1) the audit reads the actual `src/lib.rs` bytes against the `DESIGN.md` declarations rather than re-deriving the declarations from memory; (2) the verdicts cite specific line numbers + verbatim code, which a reader can independently verify. Remaining sycophancy risk: DESIGN.md's purity-boundary spec for Layer 2 may itself have under-specified the pure-side requirements such that the implementation can satisfy the under-specification while subtly violating a stricter notion of purity (panic-safety as a purity requirement; allocator-determinism). If a reader later identifies a stricter purity criterion the Layer 2 surface fails, that's a finding against THIS Review, not against the implementation.
+**Cost-tally:** placeholder; filled at session-end below.
+
+---
+
+**Assumption surfacing.** The Layer 2 spec at [`DESIGN.md`](../../DESIGN.md) § Verification architecture extends the pure-side declarations to include `filter_by_tags` and `attach_tag` (lines added at the Layer 2 Phase 1a/1b commit `5ba62d5`). Each extension is verified individually against the actual implementation that landed at Phase 2b commit `326e25d`. The verification reads bytes against the spec rather than re-deriving from memory; verdicts cite line numbers + verbatim code so a future reader can independently confirm.
+
+---
+
+### Resolved
+
+<a id="r4-sa-f1"></a>
+**Finding 1 — Layer 2 pure-side declarations all verify against the implementation; purity boundary preserved (Dim 12 — purity boundary documentation)**
+
+**Owner:** solution-architect
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** quality-engineer
+
+**Evidence:** Verdict-by-verdict against the five DESIGN.md § Verification architecture declarations follows below.
+
+**Pure-side declaration #1: `BookmarkStore::filter_by_tags(&[&str]) -> Vec<&Bookmark>`** ([`src/lib.rs:409-414`](../../src/lib.rs)).
+
+Body:
+
+```rust
+pub fn filter_by_tags<'a>(&'a self, labels: &[&str]) -> Vec<&'a Bookmark> {
+    self.newest_first()
+        .into_iter()
+        .filter(|b| b.tags.iter().any(|t| labels.iter().any(|l| t == *l)))
+        .collect()
+}
+```
+
+- **No I/O:** confirmed — no `std::fs::*`, no `std::process::*`, no `eprintln!`/`println!`.
+- **No clock:** confirmed — no `Utc::now()`, no `SystemTime::now()`, no `std::time::Instant::now()`.
+- **No global state:** confirmed — operates entirely on `&self` and the supplied `labels` slice.
+- **Deterministic:** confirmed — given the same `&self` and `labels`, the returned `Vec<&'a Bookmark>` is byte-identical (`newest_first` sorts deterministically by `Reverse(timestamp)`; the filter closure is total + deterministic; `.collect()` preserves iteration order).
+- **Calls pure functions only:** `newest_first()` is pure ([Review 1](2026-05-20-solution-architect.md#review-1--2026-05-20-0245z) verified); `Iterator::filter` is pure; `Iterator::any` is pure; `Iterator::collect` is pure when collecting into `Vec`.
+
+**Verdict:** PURE. Declaration holds.
+
+**Pure-side declaration #2: `BookmarkStore::attach_tag(&mut self, url: &str, label: &str) -> Result<usize, AttachTagError>`** ([`src/lib.rs:377-396`](../../src/lib.rs)).
+
+Body:
+
+```rust
+pub fn attach_tag(&mut self, url: &str, label: &str) -> Result<usize, AttachTagError> {
+    if url.is_empty() {
+        return Err(AttachTagError::EmptyUrl);
+    }
+    if label.is_empty() {
+        return Err(AttachTagError::EmptyLabel);
+    }
+    let mut matched = 0_usize;
+    for bm in &mut self.bookmarks {
+        if bm.url == url {
+            matched += 1;
+            if !bm.tags.iter().any(|t| t == label) {
+                bm.tags.push(label.to_string());
+            }
+        }
+    }
+    if matched == 0 {
+        return Err(AttachTagError::NoMatch);
+    }
+    Ok(matched)
+}
+```
+
+- **No I/O:** confirmed.
+- **No clock:** confirmed — the spec carefully avoids assigning a "tagged-at" timestamp to the tag (which would cross the clock-dependency boundary); the timestamp lives on the bookmark, not the tag.
+- **No global state:** confirmed.
+- **Deterministic:** confirmed — given the same `&mut self`, `url`, `label`, the post-state of `self` is byte-identical and the return value is identical.
+- **Pure transformation on mutable receiver:** the function mutates `self.bookmarks[i].tags` but does so as a deterministic function of inputs — the same call against the same starting state produces the same ending state. This is the "morally pure with respect to its inputs" shape that [Review 1](2026-05-20-solution-architect.md#review-1--2026-05-20-0245z) named explicitly for `add`. `attach_tag` is purer than `add` because it does NOT consult the clock; the only non-pure thing about it is the in-place mutation, which is contained within the receiver.
+
+**Verdict:** PURE TRANSFORMATION (on `&mut self`). Declaration holds.
+
+**Pure-side declaration #3: `Bookmark::tags(&self) -> &[String]`** ([`src/lib.rs:79`](../../src/lib.rs)).
+
+Body: trivial borrowed-slice accessor.
+
+**Verdict:** PURE. Declaration holds.
+
+**Pure-side declaration #4: `Bookmark.tags: Vec<String>` field with `#[serde(default)]`** ([`src/lib.rs:54-55`](../../src/lib.rs)).
+
+Serde's `#[serde(default)]` calls `Vec::default()` (i.e., `Vec::new()`) when the field is absent during deserialization. `Vec::default()` is a pure function with no I/O. Serde's derive-generated `Deserialize` and `Serialize` impls are pure functions of input bytes / input fields.
+
+**Verdict:** PURE. Declaration holds.
+
+**Effectful-side declaration: `fsync_directory(path: &Path) -> std::io::Result<()>`** ([`src/lib.rs:441-445`](../../src/lib.rs)).
+
+Body: `std::fs::File::open(path)?` followed by `dir.sync_all()?`. Both are filesystem syscalls; both have observable effects (open file descriptor; `fsync(2)` syscall to the kernel; durability barrier on the storage stack). Correctly placed on the effectful side; correctly `#[cfg(unix)]`-gated per the spec ("Windows uses its own durability semantics that are not addressed at Layer 2").
+
+**Verdict:** EFFECTFUL — correctly classified.
+
+The `save()` extension at [`src/lib.rs:289-310`](../../src/lib.rs) now calls `fsync_directory(parent)` after the `rename(2)` syscall. The `save()` function was already effectful pre-Layer-2; adding another syscall to it does not change its classification. The effectful-side boundary is preserved.
+
+**Reasoning:** All five Layer 2 declarations from [`DESIGN.md`](../../DESIGN.md) § Verification architecture verify against the actual implementation. The purity boundary is preserved at Layer 2. The pure-side additions (`filter_by_tags`, `attach_tag`, `tags()` accessor, `tags` field with `#[serde(default)]`) introduce no I/O, no clock dependency, no global-state coupling. The new effectful helper (`fsync_directory`) is correctly classified on the effectful side and correctly `#[cfg(unix)]`-gated. The Phase 5 strategy commitment for Layer 2 Purity Boundary Audit is satisfied.
+
+**Classification:** Resolved (Dim 12 — purity boundary documentation; Layer 2 Phase 5 hardening per [DESIGN.md](../../DESIGN.md) § Project intent's Phase 5 strategy declaration).
+
+---
+
+### Summary
+
+Phase 5 Layer 2 Purity Boundary Audit ran inline against the Layer 2 deltas. All five DESIGN.md § Verification architecture declarations for Layer 2 verify against the implementation at line-level granularity. Zero findings (one Resolved finding documenting the verdicts; no Deferred/Dismissed/Hallucinated/Raised-to-SO). The Layer 1 baseline ([Review 1](2026-05-20-solution-architect.md#review-1--2026-05-20-0245z), 100% pure-side coverage) is preserved. The companion QE Phase 5 Mutation Testing round at [Review 6](2026-05-21-quality-engineer.md) ran in parallel and surfaced 1 finding on the mutation-coverage side; together the two reviews close Phase 5 Layer 2 per the strategy declaration.
+
+---
+
+**Cost-tally** (per the [primer 3 § Per-review entry preamble § Cost-tally](../../../../vsdd-suite/primers/3-review-session.md) discipline; updated per the operator's 2026-05-22 directive that cost reporting must name plan tier + execution method + treat dollar conversions as "would-be API cost" comparators, not measured cost):
+
+- **AI tool:** [claude-code CLI](https://claude.com/claude-code) v(latest)
+- **Plan tier:** Claude Max (operator's personal plan)
+- **Execution method:** inline-run from the main session orchestrating Layer 2; not a sub-agent cluster spawn
+- **Model:** Opus 4.7 (`claude-opus-4-7`)
+- **Raw tokens (rough estimate; not measured):** ~5k–7k for the audit traversal (read `src/lib.rs` § Layer 2 additions + DESIGN.md § Verification architecture + write this review entry)
+- **Would-be API cost** (if billed at the Opus 4.7 API tier; not the operator's actual cost since Max plan is subscription): ~$0.20–0.40 USD
+- **Actual cost to operator:** $0 marginal (within Max plan limits); rate-limit-window utilization signal: this audit consumed a single-digit % of the 5-hour window at the time of authoring
+- **Wall-clock:** ~2 minutes (one read, one author)
+- **Findings/100k tokens:** 0 — but the surface was bounded (≤80 LOC); zero findings is the proportionate outcome, not under-investment
+
+The cost-tally discipline upgrade per the operator's 2026-05-22 directive (don't assume plan/method; name them explicitly) is itself a methodology improvement that should land in a per-tool supplement (`vsdd-suite/supplements/claude-code-cli.md`) and in the AI Engineer domain prompt. Queued at [Task #56](../../../../vsdd-suite/suite-development/) (suite-level upstream remediation).
+
+**Coordination:** No other domain has a Phase 5 Layer 2 ownership stake at the SA seat — the QE seat owns Mutation Testing + property-based testing kill-rate; the SA seat owns the Purity Boundary Audit. The QE Phase 5 Layer 2 round runs in parallel (or just after) this one — see the [QE Phase 5 Layer 2 Review N](2026-05-22-quality-engineer.md) entry if it has landed.
