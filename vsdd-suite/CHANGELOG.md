@@ -4,6 +4,49 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-24 02:43Z (Review 91 checkpoint — cost-observability foundation: F1 + F8 + F10 + F12 codifications applied)
+
+Mid-cycle scope expansion of the Review 91 audit after operator's adversarial questions on the original cost-tally: (a) "How can we audit this? Is it provable? Be critical. Is this giving useful signal?"; (b) "Are you even able to give precise wall time and token costing?" (honest answer: **no**); (c) "The point of this is observability. Engage the Platform Engineering domain to evaluate the findings"; (d) "Think about this in terms of PE observability to do cost analysis on cloud infrastructure. Am I over provisioned? Is a high token task necessary? Can it be optimized? Is a process inefficiency impacting token cost? Is there tuning that can be done? Engage other domains like Performance Engineer etc as appropriate"; (e) "Can we audit what was read in? I want to know if the AI Engineer three audience shape standardization actually works?"
+
+### Added (suite-side codifications — checkpoint scope)
+
+- **[`vsdd-suite/primers/2a-red-gate.md`](primers/2a-red-gate.md) § Verifiable git-history check** (Review 91 Finding 1) — codifies canonical two-commit shape default (Phase 2a Red Gate committed standalone; Phase 2b implementation second; CI verifies RED → GREEN) + single-commit-deviation discipline requiring operator-acceptance pre-cycle with named rationale + Red Gate failure-evidence preservation pointer. Names the bookmark-cli-manual L1+L2 recurrence as the canonical worked example. Hook escalation path (deferred per earned-by-recurrence): pre-commit hook scanning layer-branch's first commit for `tests/` + `src/` co-modification fires on third recurrence.
+- **[`vsdd-suite/primers/3-review-session.md`](primers/3-review-session.md) § Pre-cycle methodology check `**Phase-2a-evidence-shape**` declaration field** (Review 91 Finding 1 part 2) — converts undeclared Phase 2a/2b consolidation into documented audit trail; two acceptable values (`canonical two-commit` / `single-commit deviation`); pairs with the existing AI tool / plan tier / execution method declaration from [Review 90 Finding 2](suite-development/review-log/2026-05-23-suite-review.md#review-90--2026-05-23-1200z).
+- **[`vsdd-suite/primers/3-review-session.md`](primers/3-review-session.md) § Per-field auditability tier** (Review 91 Finding 8) — codifies the three-tier classification (agent-self-verifiable / operator-verifiable / operator-confirmable) of cost-tally fields + Operator-action queue line template. Bare numbers without instrumentation source are non-compliant; `*pending operator …*` placeholders mandatory for operator-verifiable + operator-confirmable fields.
+- **[`vsdd-suite/primers/3-review-session.md`](primers/3-review-session.md) § Tuning levers** (Review 91 Finding 10) — six lever categories codified (model-tier right-sizing; prompt-cache discipline; cluster-batching shape; sub-agent scope-down; N+1 sub-agent file-reread detection — new PerfEng-Dim-5-applied-to-agents framing; cycle-stop discipline) + rolling-baseline measurement requirement named (deferred to Finding 9 infrastructure dependency) + cross-cycle dashboard surface named (Open per Finding 9).
+- **[`vsdd-suite/supplements/claude-code-cli.md`](supplements/claude-code-cli.md) § Agents cannot count their own tokens** (Review 91 Finding 8) — hard rule + per-tier enumeration of agent-observable vs operator-instrumented fields + four-step cost-tally authoring discipline (count what is countable; mark operator-verifiable `*pending operator /cost paste*`; mark operator-confirmable with declaration source; add Operator-action queue line).
+- **[`vsdd-suite/supplements/claude-code-cli.md`](supplements/claude-code-cli.md) § Wall-clock measurement pattern** (Review 91 Finding 12) — four-step Bash `date -u +%Y-%m-%dT%H:%MZ` pattern (session-start anchor; session-end anchor; elapsed; honest framing naming elapsed includes operator-discussion + idle + tool execution + agent authoring in unknown proportions). Cites the Review 91 16x discrepancy (fabricated "~45-60 min" estimate vs instrumented ~7h43m actual) as the canonical failure mode the pattern defends against.
+- **[`vsdd-suite/supplements/claude-code-cli.md`](supplements/claude-code-cli.md) § Available observability surface for agents** (Review 91 Finding 9 partial; full Shape 3 registration via `claude-code-contract.md` pending follow-up commit on this branch) — enumerates agent-observable surface (system context fields; tool call shapes + returns; file system state; git state) vs operator-instrumented (token counts; cache-hit rates; rate-limit-window utilization; plan tier; session-start clock time). Names the upstream coordination ask candidate.
+
+### Changed (suite-side)
+
+- **[`vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md`](suite-development/review-log/2026-05-23-suite-review.md) Review 91 cost-tally** rewritten honestly per Finding 8 codification — original fabricated entries (`~90-110k tokens` / `~$4-6 USD` / `~45-60 min`) replaced with honest per-field auditability flags. Agent-self-verifiable section filled with hard counts; operator-verifiable section marked `*pending operator /cost paste*` with sources named; operator-confirmable section marks plan-tier inheritance as non-session-verified; derived metric (findings/100k tokens) marked NOT COMPUTABLE without operator paste.
+- **[`vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md`](suite-development/review-log/2026-05-23-suite-review.md) Review 91 Finding 1** promoted Open → Resolved with applied-resolution paragraphs (primer 2a + primer 3 codifications cited).
+- **[`vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md`](suite-development/review-log/2026-05-23-suite-review.md) Review 91 Findings 8 / 10 / 12** added as new Resolved-with-applied-resolution finding bodies.
+- **[`vsdd-suite/suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md)** Review 91 F1 row promoted Open → Closed; 3 new forward-only rows added (`r91-f8` / `r91-f10` / `r91-f12`) with Resolved classification.
+- **[`vsdd-suite/suite-development/SUITE-DEVELOPMENT-REVIEW.md`](suite-development/SUITE-DEVELOPMENT-REVIEW.md)** Review 91 row updated with mid-cycle scope-expansion narrative + Bash-instrumented session-end anchor.
+
+### Pending — remaining Review 91 findings to address inline on this branch
+
+After this checkpoint commit, the remaining Review 91 findings resolve in follow-up commits on this branch:
+
+- **Finding 2 + Finding 4** — suite-development.md `**Supplements applied:**` (plural) preamble field codification
+- **Finding 3** — AI Engineer Dim 11 supplement-citation completeness check + project-side PE L2 R5 R6 amendment
+- **Finding 5** — primer 5 cold-session-vs-inline decision rubric
+- **Finding 9** — `vsdd-suite/claude-code-contract.md` creation (Shape 3 registration + Shape 1 JSON spec)
+- **Finding 11** — register only with earned-by-recurrence trigger (no work this PR)
+- **Finding 13** — suite-development.md § Agent-API surface cost-tally promotion (raise + resolve)
+- **Finding 14** — citation-without-verification discipline (raise + AI Engineer Dim 11 extension + hook proposal)
+- **Finding 15** — domain-effectiveness audit definition gap (raise + defer)
+- **Finding 16** — Agent-API lookup-idiom adoption (raise + suite-development.md § Common agent lookup patterns extension)
+
+Plus operator-directed expanded scope after the checkpoint commit:
+
+- **Suite-wide observability + auditability sweep** across all domains / primers / supplements (Review 92 candidate)
+- **Findings-index + review-shape ID-syntax consistency audit** (G-XX deprecated; rN-fM canonical; project-side F-XXX prefix is non-canonical and either pre-Review-80 preserved or drifted)
+
+---
+
 ## Unreleased — 2026-05-23 19:00Z (Review 91 raise — adversarial audit of bookmark-cli-manual L1+L2 against suite's own phase / primer / supplement / domain discipline)
 
 Per operator directive 2026-05-23: "Do an adversarial review of [bookmark-cli-manual] layers 1 and 2. Evaluate the use of vsdd-suite to complete these layers. Did it flow from phase to phase correctly? Were primers and supplements used when they should be? Were the domains effective? Write up your findings and recommendations as a suite review."

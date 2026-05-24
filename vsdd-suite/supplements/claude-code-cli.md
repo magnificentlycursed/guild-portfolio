@@ -146,3 +146,53 @@ When authoring a Review entry's cost-tally on claude-code CLI:
 8. **Wall-clock**: tool-run duration (cargo-mutants 5 min; cargo build 30s; cluster cold-session 10-30 min wall-clock for the slowest agent).
 
 The "would-be API cost" framing keeps the dollar figure useful as a cross-plan comparator without misrepresenting the operator's actual cost.
+
+### Agents cannot count their own tokens ([Review 91](../suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) Finding 8)
+
+**Hard rule:** the agent (this Opus 4.7 session, or any sub-agent) has NO instrument to count tokens, observe cache-hit ratio, observe rate-limit-window utilization, or compute would-be API cost. Numbers in those fields without an instrumentation source are fabricated, not estimated. Per [`primers/3-review-session.md`](../primers/3-review-session.md) § Cost-tally report shape's per-field auditability tier (Review 91 Finding 8 codification):
+
+- **Agent-self-verifiable (countable from this session's tool-call log):** AI tool, model, execution method, tool-call counts by tool name, files read with line counts, files written/edited with line counts, mechanical sweeps run (Bash invocations).
+- **Operator-verifiable (requires `/cost` paste or plan-dashboard inspection):** raw tokens, cache-hit ratio, would-be API cost, rate-limit-window utilization.
+- **Operator-confirmable (operator-declared per session, NOT inherited from prior context):** plan tier, actual marginal cost.
+
+When authoring a cost-tally inline:
+1. **Fill agent-self-verifiable fields with hard counts** — count tool calls from the conversation's tool-call log; sum file-read line counts from the Read tool returns; etc.
+2. **Mark operator-verifiable fields `*pending operator /cost paste*`** — do NOT estimate; estimates are fabrications.
+3. **Mark operator-confirmable fields with the operator's declaration source** — name the specific message or memo, not "inherited from prior context."
+4. **Add an Operator-action queue line** — "operator runs `/cost` in this session and pastes the output here as an append-only addendum, replacing the *pending operator …* placeholders with measured values."
+
+The cost-tally then becomes a **two-author artifact**: agent fills the substrate-measurable section inline; operator (or hook) fills the instrumentation-required section separately. This avoids the fabrication failure mode that Review 91 Finding 8 surfaced.
+
+### Wall-clock measurement pattern ([Review 91](../suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) Finding 15)
+
+The agent CANNOT observe elapsed wall-clock between tool calls or session-start. The agent CAN invoke `date -u` via the Bash tool at session boundaries.
+
+**Pattern:**
+
+1. **Session-start anchor** — at the start of the cycle's review-log authoring, invoke `date -u +%Y-%m-%dT%H:%MZ` via Bash. Record the output in the review's preamble as `**Session-start (Bash `date -u`):** 2026-MM-DDTHH:MMZ`.
+2. **Session-end anchor** — before authoring the cost-tally, invoke `date -u +%Y-%m-%dT%H:%MZ` again. Record as `**Session-end (Bash `date -u`):** 2026-MM-DDTHH:MMZ` in the cost-tally Wall-clock field.
+3. **Elapsed** — subtract the two anchors; record as `**Wall-clock elapsed:** HHhMMm (Bash-instrumented; agent did NOT count time between tool calls; gaps include operator-discussion intervals + idle periods + tool execution time + agent authoring time, in unknown proportions).`
+4. **Honest framing** — the elapsed figure is wall-clock elapsed time, NOT agent-active time. A 7-hour session may have 2 hours of agent-active authoring + 5 hours of operator-discussion-and-idle; the agent has no signal to decompose them. Name this limitation explicitly when the elapsed figure is reported.
+
+**Failure mode this pattern defends against:** the [Review 91 cost-tally pre-rewrite](../suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) named "Wall-clock: ~45-60 minutes (single continuous suite-audit session)" — the actual elapsed (captured post-rewrite via this pattern) was ~7h43m, a 16x discrepancy. The fabricated "feels like" estimate was 16x off from the instrumented measurement; the pattern eliminates the fabrication while keeping the agent-honest limitation visible.
+
+### Available observability surface for agents (and what's missing)
+
+Per [Review 91](../suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) Finding 9 + [`claude-code-contract.md`](../claude-code-contract.md): the claude-code CLI's current agent-observable surface is small. Enumeration:
+
+**Agent-observable now:**
+
+- System context fields (date, model, working directory, OS, shell) — read at session-start
+- Tool call shapes + return values (Read returns numbered lines; Bash returns stdout/stderr/exit) — countable per call
+- File system state (Read existing files; Bash `ls`, `wc -l`, `find`) — directly measurable
+- Git state (Bash `git log`, `git status`, `git diff`) — directly measurable
+
+**NOT agent-observable (operator-instrumented):**
+
+- Token counts (`/cost` is operator-facing slash command; not exposed to agent)
+- Prompt-cache hit/miss rates (no agent-side signal)
+- Rate-limit-window utilization (no agent-side signal)
+- Plan tier (operator-declared; not exposed via env var or CLI feature)
+- Session-start clock time (system context names date only)
+
+**Coordination ask upstream (not yet filed; legibility-only registration at [`claude-code-contract.md`](../claude-code-contract.md)):** agent-readable cost-export at session-end via tool / env var / session-log file would close most of the operator-verifiable gap. Currently no upstream commitment.

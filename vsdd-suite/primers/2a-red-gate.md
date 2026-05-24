@@ -59,6 +59,31 @@ Phase 2a is complete and ready to hand off to Phase 2b when:
 3. The Red Gate state is committed — the commit hash is the verifiable boundary between Phase 2a and Phase 2b
 4. No implementation logic has been written this session — `2b-implementation.md` runs next against the Red Gate commit
 
+## Verifiable git-history check ([Review 91](../suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) Finding 1)
+
+The Red Gate commit is verifiable only when the layer-branch's commit history preserves it as a distinct boundary. The check has two shapes:
+
+**Canonical (two-commit) shape — default:**
+
+1. **First commit on the layer-branch** is Phase 2a-only: the new failing tests + any test-harness scaffolding required to run them. CI confirms RED (the new tests fail; pre-existing tests pass).
+2. **Second commit on the layer-branch** is Phase 2b implementation: the same tests pass. CI confirms GREEN.
+3. The Phase 2c refactor (if applied) lands as a third commit (or is annotated as `no refactor required` in [TODO.md](../templates/TODO-template.md) § Layer N Phase 2c per the Phase 2c primer).
+
+The boundary commit is the audit-trail anchor: a reader looking at `git log` on the layer-branch sees Phase 2a → Phase 2b → Phase 2c as separate steps. [VDD-IAR Alignment Dim 4](../domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md) verifies this from the commit log without per-finding inspection.
+
+**Single-commit deviation — operator-acceptance required pre-cycle:**
+
+A project that combines Phase 2a + Phase 2b in one commit (the reference example pattern at [bookmark-cli-manual L1](../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-17-quality-engineer.md#review-1--2026-05-17-0325z) + [L2 commit `326e25d`](https://github.com/magnificentlycursed/guild-portfolio/blob/main/vsdd-suite-reference-examples/bookmark-cli-manual/TODO.md)) MUST document the deviation explicitly **before** the cycle begins:
+
+- In the project's [`TODO.md`](../templates/TODO-template.md) § Layer N Phase 2c (or a dedicated § Phase 2a evidence-shape annotation), state: "Single-commit Phase 2a + Phase 2b deviation accepted by operator. Rationale: [specific reason — reference-implementation context; trivial layer with no meaningful inter-phase reviewer surface; etc.]. Red Gate failure evidence preserved at [location — sub-agent spawn output; CI run URL; etc.]."
+- In the cycle's pre-cycle declaration per [`primers/3-review-session.md`](3-review-session.md) § Pre-cycle methodology check, name the deviation in the new Phase-2a-evidence-shape field (added at Review 91).
+
+The deviation is acceptable when documented pre-cycle; it is a finding when surfaced post-hoc by [VDD-IAR Alignment Dim 4](../domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md) without prior documentation.
+
+**Why this discipline is hard:** the pattern of "Phase 2a + 2b combined in single commit, then documented post-hoc when VDD-IAR Alignment surfaces it" recurred across [bookmark-cli-manual L1 (QE R1 F1)](../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-17-quality-engineer.md#review-1--2026-05-17-0325z) AND [L2 (VDD-IAR Alignment R4 F1)](../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-21-vdd-iar-alignment.md) despite the L1 PROCESS.md retrospective naming the lesson. The L2 recurrence is the same memory-feedback-insufficient pattern as [Review 90 Finding 1](../suite-development/review-log/2026-05-23-suite-review.md#review-90--2026-05-23-1200z)'s lettering-violation recurrence — codifying the rule in PROCESS.md alone does not propagate it forward to the next cycle.
+
+**Escalation path (deferred per "earned by recurrence"):** if a third recurrence happens after this Review 91 codification — on any project where the operator did NOT pre-declare the single-commit deviation — escalate to a pre-commit hook scanning the layer-branch's first commit for the `tests/` + `src/` co-modification pattern that signals undeclared Phase-2a/2b consolidation. Mechanizing this against two recurrences is over-investment; the third-recurrence trigger parallels the lettering-violation hook proposal in [Review 90 Finding 1](../suite-development/review-log/2026-05-23-suite-review.md#review-90--2026-05-23-1200z).
+
 
 ## Three-audience lens
 
