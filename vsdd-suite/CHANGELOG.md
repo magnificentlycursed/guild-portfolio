@@ -4,6 +4,28 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-23 19:00Z (Review 91 raise — adversarial audit of bookmark-cli-manual L1+L2 against suite's own phase / primer / supplement / domain discipline)
+
+Per operator directive 2026-05-23: "Do an adversarial review of [bookmark-cli-manual] layers 1 and 2. Evaluate the use of vsdd-suite to complete these layers. Did it flow from phase to phase correctly? Were primers and supplements used when they should be? Were the domains effective? Write up your findings and recommendations as a suite review."
+
+### Added (suite-side)
+
+- **Review 91 entry** at [`vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md`](suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) — post-cycle conformance audit registering **5 Open + 2 Dismissed findings** against the suite's own discipline as exercised by [bookmark-cli-manual](../vsdd-suite-reference-examples/bookmark-cli-manual/) L1 + L2. Sycophancy compensation: the reference example reached project-terminal MVR + Phase 6 attestation; findings derived from artifact-state analysis (mechanical grep sweeps + primer/supplement file existence + preamble-shape conformance) rather than narrative judgment.
+- **Reviews-table row** at [`vsdd-suite/suite-development/SUITE-DEVELOPMENT-REVIEW.md`](suite-development/SUITE-DEVELOPMENT-REVIEW.md) — Review 91 row above Review 90 with per-finding summary lines.
+- **7 forward-only registry rows** at [`vsdd-suite/suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) — `r91-f1` through `r91-f7` with anchor IDs + Owner / Validator / Status / Classification per the Review 77 schema.
+
+### Pending — Review 91 Open findings to address inline on this branch
+
+Per operator directive ("commit this then address the findings on this PR"), the 5 Open findings resolve in follow-up commits on this branch (parallel to PR #45's raise-then-resolve shape against the AI Engineer carryforward queue):
+
+- **Finding 1** — Phase 2a Red Gate commit-boundary violation recurred at L2 despite L1 QE R1 F1 acknowledgment → primer 2a hardening + primer 3 Phase-2a-evidence-shape declaration extension
+- **Finding 2** — Supplement citation discipline regressed L1→L2 → suite-development.md per-review preamble `**Supplement applied:**` field codification
+- **Finding 3** — `supplements/github-actions.md` never cited + L2 PE R5 fabricated "Security supplement § GitHub Actions" reference → AI Engineer Dim 11 supplement-citation completeness check + project-side PE L2 R5 amendment
+- **Finding 4** — `supplements/json.md` cited only by Red Team → Finding 2's preamble field extended to plural form (`**Supplements applied:**`)
+- **Finding 5** — Phase 5 inline-vs-cold-session rationale lives only in per-round session notes → primer 5 cold-session-vs-inline decision rubric
+
+---
+
 ## Unreleased — 2026-05-23 ([PR #45](https://github.com/magnificentlycursed/guild-portfolio/pull/45): AI Engineer suite-level remediation — verify-tool/plan/method-first dimension + first per-tool supplement (claude-code-cli.md) + lettering-recurrence mitigation + cost-tally plan-tier discipline + parser-aborted-heredoc Known Issue + G-135 generalization)
 
 Per operator directive 2026-05-22: "Do not assume AI tool, plan, or execution method. Determine through verifiable means or prompt the user if that's not possible. A supplemental per AI tooling may be an appropriate way to get specific. You can make one for claude-code CLI when you tackle this work."
