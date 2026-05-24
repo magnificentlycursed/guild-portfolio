@@ -4,6 +4,27 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-23 ([PR #45](https://github.com/magnificentlycursed/guild-portfolio/pull/45): AI Engineer suite-level remediation — verify-tool/plan/method-first dimension + first per-tool supplement (claude-code-cli.md) + lettering-recurrence mitigation + cost-tally plan-tier discipline + parser-aborted-heredoc Known Issue + G-135 generalization)
+
+Per operator directive 2026-05-22: "Do not assume AI tool, plan, or execution method. Determine through verifiable means or prompt the user if that's not possible. A supplemental per AI tooling may be an appropriate way to get specific. You can make one for claude-code CLI when you tackle this work."
+
+Plus operator-flagged recurrence patterns from PR [#44](https://github.com/magnificentlycursed/guild-portfolio/pull/44) (Layer 2 capstone cycle): (a) lettering-violation pattern recurred for the third+ time despite explicit feedback memory; (b) parser-aborted error on heredoc-based file writes via the Bash tool happened three times this session.
+
+### Added (suite-side)
+
+- **[`vsdd-suite/supplements/claude-code-cli.md`](supplements/claude-code-cli.md)** — first per-tool supplement (parallel to per-language `rust.md` / `python.md` / `bash.md` + per-interface `github-actions.md` / `markdown.md` / `yaml.md` / `toml.md`). Covers plan tiers (Free / Pro / Max 5x / Max 20x / API direct), 5-minute prompt-cache TTL, per-tool token costs, execution-method semantics, two Known Issues (parser-aborted heredoc; lettering recurrence in cluster-spawn prompts), canonical optimization patterns (cluster-batching + background-task interleaving + cache-warm cycle planning), cost-tally discipline (raw tokens canonical; would-be API cost comparator only).
+- **AI Engineer Dim 14 — Tool / plan / execution-method identification** at [`vsdd-suite/domains/role/AI-ENGINEER-REVIEW.md`](domains/role/AI-ENGINEER-REVIEW.md) — the gating check that surfaces which per-tool supplement applies before any cost-relevant finding is generated. Named failure modes cover the assumed-API-billing trap, assumed-Anthropic-rate-limit trap, sub-agent cost excluding orchestrator overhead, cross-tool optimization advice.
+
+### Changed (suite-side)
+
+- **[`vsdd-suite/CHANGELOG.md`](CHANGELOG.md) line 790 (G-135 entry) + [`vsdd-suite/suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) G-135 row** — trigger clause generalized from "Claude Max daily limit" specifically to "AI-tool/plan rate-limit or token-budget exhaustion event (e.g., Claude Max daily message-cap recurrence, ChatGPT Plus message-cap, Claude API token-budget hard cap, Cursor / Aider / other-CLI rate-limit)". The original Review 60 phrasing is preserved verbatim in [`vsdd-suite/suite-development/review-log/2026-05-18-suite-review.md`](suite-development/review-log/2026-05-18-suite-review.md) per G-89 forward-only narrative-preservation (that file IS historical audit-trail); the live trigger condition is forward-facing for any future operator adopting the suite. Operator flagged the assumed-tool/plan language via repeated IDE selection of the line during PR #44.
+
+### Operator-facing memory framing — stronger lettering-recurrence mitigation
+
+Per the third+ recurrence of the Cluster A/B/C/D lettering pattern despite explicit feedback memory at `feedback_avoid_lettering.md`, the memory framing was restructured to **lead with the executable rule** + **add a pre-spawn check requirement**. The rule now states: "When spawning parallel sub-agents in a cluster shape, EVERY mention of the cluster MUST use composition-based labels... ONE letter-based label anywhere in this surface is a violation." Pre-spawn check: in the message immediately preceding the parallel-`Agent` invocation, write the composition-based label for each cluster explicitly. If a fourth recurrence happens after this PR, escalation is a pre-commit hook scanning spawn-prompt-pattern files for letter-only cluster labels.
+
+---
+
 ## Unreleased — 2026-05-21 ([PR #43](https://github.com/magnificentlycursed/guild-portfolio/pull/43): consolidate the two anonymization hooks into one repo-wide suite-level hook + allowlist `bsky.app/profile/` + document Review-85 upstream-crosslink operator-action-queue deferral)
 
 ### Changed (suite-side anonymization discipline — consolidation)
