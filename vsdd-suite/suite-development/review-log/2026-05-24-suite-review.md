@@ -116,14 +116,17 @@ Validator rationale: methodology-calibration finding; validates whether the just
 
 ---
 
-### Open
+### Resolved (continued — F2/F3/F4/F5 codifications applied 2026-05-24 via operator-policy decisions)
 
 <a id="r92-f2"></a>
 **Finding 2 — 13 of 14 supplements lack the three-audience-lens section that [Review 84 Finding 4](2026-05-21-suite-review.md#review-84--2026-05-21-1100z) codified across all 28 domains + primers; the codification scope excluded supplements**
 
 **Owner:** technical-writer (governing-standard prose surface) + each supplement's owner-domain for the per-supplement extension
-**Status:** raised
-**Blocked by:** *(none — scope decision is operator-policy: cascade-codification across 13 files vs methodology amendment naming supplements as out-of-scope for three-audience lens)*
+**Status:** validated
+**Blocked by:** *(was: operator-policy decision; resolved 2026-05-24 — operator selected Hybrid path)*
+**Validator:** sanity-check
+
+Validator rationale: hybrid path classifies supplements by usage pattern (per-language broad / per-tool / per-interface narrow); cascade applied to the high-leverage 4 + amendment frames the narrow-interface 9 as inheriting from host domain. Sanity Check validates the classification table reflects actual reviewer-usage patterns + the cascade-applied supplements gained substantive three-audience-lens sections (not boilerplate).
 
 **Evidence:** Mechanical sweep across all 14 supplements:
 
@@ -139,9 +142,15 @@ Per [Review 84 Finding 4](2026-05-21-suite-review.md#review-84--2026-05-21-1100z
 
 Path (2) is the lower-cost methodology-clarity fix; path (1) is the more substantive applied-discipline propagation. The github-actions.md exemplification leans toward path (1) (the three-audience-lens IS useful at the supplement layer per the github-actions.md example).
 
-**Recommendation:** operator-decision required between path 1 (cascade) vs path 2 (methodology amendment naming supplements as inherit-from-domain). Either path is acceptable; the current state (13/14 supplements missing the section after the F4 codification claimed all-artifact coverage) is empirically inconsistent with the principle's stated scope.
+**Resolution applied (operator-policy Hybrid path; codified 2026-05-24):**
 
-**Classification:** Open (registered for tracking; operator-policy decision on path 1 vs path 2 is the gating decision; codification work is a separate PR per the no-stacked-PRs operator preference regardless of path).
+1. **Cascade-applied to 4 per-language supplements + 1 per-tool supplement** (5 files): [`rust.md`](../../supplements/rust.md), [`python.md`](../../supplements/python.md), [`javascript-typescript.md`](../../supplements/javascript-typescript.md), [`bash.md`](../../supplements/bash.md), [`claude-code-cli.md`](../../supplements/claude-code-cli.md) each gained a `## Three-audience lens` section authored against the supplement's actual reviewer-usage pattern (per-language: agent loads section matching the project; per-tool: agent's own operational discipline surface). Together with the existing [`github-actions.md`](../../supplements/github-actions.md) three-audience-lens (already present from Review 86 F1), 6 of 14 supplements now have the lens.
+2. **Methodology amendment** applied to [`suite-development.md`](../suite-development.md) § Three-audience design principle with **Three-audience-lens scope for supplements** sub-section + per-supplement classification table. Per-interface narrow supplements (8 files: cli.md, browser-app.md, css.md, html.md, json.md, markdown.md, toml.md, yaml.md) inherit the three-audience treatment from their host domain context per the methodology amendment; no per-supplement edits required for the narrow-interface class.
+3. **Per-supplement classification table** added to suite-development.md naming each supplement's class (per-language broad / per-tool / per-interface multi-domain / per-interface narrow) + the required vs inherits status.
+
+**Resolution:** 5 supplements gained three-audience-lens sections at this Review's commit + the methodology amendment codifies the narrow-interface inheritance rule. The three-audience principle's "every audit-trail artifact serves all three audiences" claim is now correctly bounded: per-language + per-tool + per-interface-multi-domain supplements serve directly; per-interface narrow supplements serve via host-domain inheritance.
+
+**Classification:** Resolved (Three-audience principle scope correctly bounded; TW Dim 11 audience-fit calibration; the cascade + amendment together close the F2 evidence-state gap).
 
 ---
 
@@ -149,8 +158,11 @@ Path (2) is the lower-cost methodology-clarity fix; path (1) is the more substan
 **Finding 3 — Pre-cycle methodology check coverage is patchy across primers (3 of 9 have it); the methodology lacks an explicit decision on which phases warrant a pre-cycle declaration vs which deliberately do not**
 
 **Owner:** ai-engineer (process-enforcement surface)
-**Status:** raised
-**Blocked by:** *(none — scope decision is operator-policy: extend pre-cycle discipline to other primers vs explicitly name the discipline as scoped to compounding-cost cycles only)*
+**Status:** validated
+**Blocked by:** *(was: operator-policy decision; resolved 2026-05-24 — operator selected Path 2 methodology amendment)*
+**Validator:** sanity-check
+
+Validator rationale: methodology-amendment finding without natural cross-domain validator-pair; Sanity Check validates the scope-to-compounding-cost framing matches the existing AI Engineer Dim 13 design intent + the earned-by-recurrence trigger preserves the option to extend if phase-specific evidence surfaces later.
 
 **Evidence:** Mechanical sweep across all 9 primers for `Pre-cycle methodology check` references:
 
@@ -164,9 +176,11 @@ Path (2) is the lower-cost methodology-clarity fix; path (1) is the more substan
 
 Path (2) matches the methodology's existing emphasis on cost-compounding cycles (per AI Engineer Dim 13's framing — "the operator + AI Engineer review-pair confirm the spawn shape against the project's intent tier + active-domain set + prior-cycle cost evidence"). Path (1) would over-extend the discipline beyond its design intent.
 
-**Recommendation:** operator-decision required. My read: path (2) is more methodology-coherent (pre-cycle declaration is for compounding-cost cycles; not all phases compound). But the empirical evidence is that primer 2a got its pre-cycle declaration via [Review 91 Finding 1](2026-05-23-suite-review.md#r91-f1) — which suggests other phases may surface similar evidence-shape needs in future cycles. Path (2) with a "extend if a phase-specific evidence-shape need surfaces" trigger is the conservative path.
+**Resolution applied (operator-policy Path 2 methodology amendment; codified 2026-05-24):** [`primers/3-review-session.md`](../../primers/3-review-session.md) § Pre-cycle methodology check § Scope of the pre-cycle discipline added — names the scope as **compounding-cost cycles only** (multi-agent IAR; Phase 5 cold-vs-inline; Phase 2a evidence-shape preservation) + explicitly names the exempt phases (1ab spec authoring; 1c decomposition; 2b implementation; 2c refactor; 4 feedback integration; 6 convergence) as single-author / event-driven / structurally-bounded with no compounding-cost calibration need. **Earned-by-recurrence extension trigger** named: if a phase-specific evidence-shape need surfaces in 2+ projects (parallel to Review 91 F1's Phase 2a-evidence-shape recurrence pattern), extend the discipline to that primer at that point.
 
-**Classification:** Open (registered for tracking; operator-policy decision pending path 1 vs path 2; the codification is a separate PR regardless).
+**Resolution:** primer 3 scope-amendment applied at this Review's commit. The 6 primers without pre-cycle methodology check (1ab, 1c, 2b, 2c, 4, 6) are now methodology-correctly exempt rather than coverage-gap-flagged. The exemption is a positive scope statement, not silence.
+
+**Classification:** Resolved (AI Engineer Dim 13 scope correctly bounded; methodology-coherent + extension-available via earned-by-recurrence trigger).
 
 ---
 
@@ -174,8 +188,11 @@ Path (2) matches the methodology's existing emphasis on cost-compounding cycles 
 **Finding 4 — Prose-only "the X supplement" pattern persists in 17 files post-[Review 91 Finding 2](2026-05-23-suite-review.md#r91-f2) codification; F2 applied to forward project-review-log entries but did not retroactively sweep the suite's own surface**
 
 **Owner:** technical-writer (governing-standard prose surface)
-**Status:** raised
+**Status:** validated
 **Blocked by:** *(none)*
+**Validator:** sanity-check
+
+Validator rationale: mechanical-sweep finding with per-mention judgment; Sanity Check validates each amended occurrence preserves substantive meaning + the intentional-skip occurrences (anti-pattern quote at AI-Engineer L62; self-references at css.md L25 + yaml.md L81; generic mention at github-actions.md L84) were correctly preserved per G-89.
 
 **Evidence:** Mechanical sweep across all 42 files for `the [A-Za-z]+ supplement` pattern:
 
@@ -192,9 +209,23 @@ Per [Review 91 Finding 2](2026-05-23-suite-review.md#r91-f2): the `**Supplements
 - **2c-refactor.md** — needs per-mention verification (not spot-checked this audit).
 - **github-actions.md** — supplement-referencing-other-supplements pattern; needs per-mention verification.
 
-**Recommendation:** the F2 codification's spirit (parseable + clickable supplement surface) applies forward-only to project review-log entries. Whether to retroactively sweep the suite's own surface is operator-policy: per [G-89](../FINDINGS-INDEX.md#g-89) forward-only narrative-preservation, the existing prose may stay as-is; per the [Review 91 Finding 18](2026-05-23-suite-review.md#r91-f18) precedent (SUITE-DEVELOPMENT-REVIEW slim-form forward-only with existing-rows preserved), the same forward-only pattern applies. **Conservative path: do not sweep**; let the pattern decay as files are touched for substantive reasons. **Active path: sweep mechanically** as a follow-up cycle.
+**Resolution applied (operator-policy Active path; codified 2026-05-24):** Mechanical sweep across the 17 files; per-instance judgment applied. **14 occurrences converted from prose-only to inline-linked markdown** — supplement file paths wrapped in `[`path`](path)` form preserving the surrounding prose. Files amended:
 
-**Classification:** Open (registered for tracking; operator-policy decision pending conservative-vs-active; the discipline is forward-only by default per G-89 unless operator chooses active sweep).
+- **10 role-domain prompts** (`DATA-ENGINEER-REVIEW.md`, `PLATFORM-ENGINEER-REVIEW.md`, `LOCALIZATION-REVIEW.md`, `QUALITY-ENGINEER-REVIEW.md`, `SECURITY-REVIEW.md`, `PERFORMANCE-ENGINEER-REVIEW.md`, `SOFTWARE-ENGINEER-REVIEW.md`, `SOLUTION-OWNER-REVIEW.md`, `TECHNICAL-WRITER-REVIEW.md`, `SOLUTION-ARCHITECT-REVIEW.md`) — `Language and interface supplement:` preamble field's referenced supplement paths converted from backtick-only to inline-linked + expanded coverage to include python.md/bash.md where applicable.
+- **AI-ENGINEER-REVIEW.md L36** — other-supplements mention converted from prose-only to inline-linked (rust.md / python.md / javascript-typescript.md / cli.md / browser-app.md); claude-code-cli.md added to the primary load list.
+- **primer 2c-refactor.md L38** — language-supplement references converted to inline-linked (rust.md / javascript-typescript.md / python.md / bash.md).
+- **bash.md L5** — Python supplement reference converted to inline-link to `python.md`.
+- **css.md L3** — `html.md` reference converted from backtick to inline-link.
+
+**3 occurrences intentionally preserved per G-89:**
+
+- **AI-ENGINEER-REVIEW.md L62** — the F14 cite-verify sub-clause QUOTES the prose-only anti-pattern as the failure-mode example; preserving the quote is intentional methodology-prose.
+- **css.md L25 + yaml.md L81** — self-references ("the CSS supplement"; "the YAML supplement" referring to THIS file); no inline-link needed.
+- **github-actions.md L84** — generic "the language supplement" (referring to whichever language supplement applies in context); not a specific supplement to link.
+
+**Resolution:** F2 codification's parseable + clickable supplement-surface discipline applied to the suite's own surface via mechanical sweep. Forward-only per G-89 was preserved for the 3 intentional-skip occurrences. The post-sweep state aligns the suite's authoring with the F2 forward-discipline.
+
+**Classification:** Resolved (TW Dim 11 audience-fit calibration; the agent grep idiom `grep '| <a id="' vsdd-suite/...md` for supplement references now returns inline-linked paths across the suite's own surface).
 
 ---
 
@@ -202,8 +233,11 @@ Per [Review 91 Finding 2](2026-05-23-suite-review.md#r91-f2): the `**Supplements
 **Finding 5 — Cost-tally per-domain implications NOT codified; the cost-tally schema concentrates in 4 files (AI-ENGINEER-REVIEW + claude-code-cli + primer 3 + github-actions) but the per-role-domain interaction with cost-tally findings is not named — e.g., what's SE / QE / PerfEng / Security expected to do with cost-tally narrative?**
 
 **Owner:** ai-engineer (methodology-prose surface)
-**Status:** raised
-**Blocked by:** *(none)*
+**Status:** validated
+**Blocked by:** *(was: operator-policy decision; resolved 2026-05-24 — operator selected Hybrid path)*
+**Validator:** sanity-check
+
+Validator rationale: scope-codification finding; Sanity Check validates the AI-Engineer-only scope matches the Review 87 F6 per-error-class owner table + the earned-by-recurrence trigger names a falsifiable extension condition (2 cycles of non-AI-Engineer findings routing substantively to cost-tally evidence).
 
 **Evidence:** Mechanical sweep for `cost.tally` across the 42-file surface:
 
@@ -219,9 +253,11 @@ Per [Review 91 Finding 13](2026-05-23-suite-review.md#r91-f13) cost-tally Agent-
 
 Path (1) keeps cost-tally tightly scoped + reduces cross-domain noise. Path (2) makes cost-observability actionable beyond AI Engineer + supports the [Review 91 Finding 10](2026-05-23-suite-review.md#r91-f10) tuning-lever catalog's cross-domain effectiveness.
 
-**Recommendation:** operator-decision pending. My read: path (1) is methodology-coherent for the immediate term — cost-tally is AI Engineer's surface; cross-domain interactions can be earned-by-recurrence (if a SO finding ever routes to cost-tally evidence, codify the path at that point). Path (2) is over-engineering relative to current evidence.
+**Resolution applied (operator-policy Hybrid path — Path 1 codification + earned-by-recurrence trigger; codified 2026-05-24):** [`suite-development.md`](../suite-development.md) § Per-review entry preamble § Cost-tally extended with **Cost-tally per-domain scope** sub-paragraph naming the AI Engineer-owned surface explicitly + **earned-by-recurrence trigger** naming the extension condition: if a non-AI-Engineer finding routes substantively to cost-tally evidence in 2 cycles within a 90-day window, escalate to methodology amendment cycle codifying cross-domain interaction shape. Currently zero recurrence per the mechanical-sweep evidence (4 files reference cost-tally; all 4 are AI-Engineer-surface artifacts).
 
-**Classification:** Open (registered for tracking; operator-policy decision pending; codification deferred regardless of path per the no-stacked-PRs preference).
+**Resolution:** suite-development.md scope-amendment + earned-by-recurrence-trigger applied at this Review's commit. Cost-tally surface stays tightly scoped to AI Engineer per Review 87 F6 per-error-class owner table; extension path is named + falsifiable.
+
+**Classification:** Resolved (cost-tally scope correctly bounded to AI-Engineer-owned surface; extension trigger named per earned-by-recurrence doctrine; no per-domain-prompt edits required this cycle).
 
 ---
 
@@ -245,7 +281,7 @@ The H2-count gap was a false signal from the initial scan. The interface-vs-lang
 
 ### Summary
 
-Suite-wide observability + auditability sweep across the 42-file methodology surface, applying the just-codified [Review 91 Finding 14](2026-05-23-suite-review.md#r91-f14) cite-verify discipline + [Finding 16](2026-05-23-suite-review.md#r91-f16) lookup-idiom adoption as the audit's own method. **7 findings filed: 2 Resolved in-cycle (F1 UX-REVIEW naming + F6 empirical-evidence-of-codification-effectiveness) + 4 Open (F2 supplements three-audience cascade-or-amend; F3 primer pre-cycle scope decision; F4 prose-only-supplement sweep operator-policy; F5 cost-tally per-domain implications operator-policy) + 1 Dismissed (F7 interface-supplement H2-count false signal).**
+Suite-wide observability + auditability sweep across the 42-file methodology surface, applying the just-codified [Review 91 Finding 14](2026-05-23-suite-review.md#r91-f14) cite-verify discipline + [Finding 16](2026-05-23-suite-review.md#r91-f16) lookup-idiom adoption as the audit's own method. **7 findings filed; all 4 originally-Open findings closed 2026-05-24 via operator-policy decisions: 6 Resolved (F1 UX-REVIEW naming + F2 supplements three-audience Hybrid + F3 primer pre-cycle Path 2 amendment + F4 prose-only supplement Active sweep + F5 cost-tally Hybrid + F6 empirical-evidence-of-codification-effectiveness) + 1 Dismissed (F7 interface-supplement H2-count false signal).**
 
 **Strong positive signal:** the suite's per-domain methodology surface is in good shape — all 19 domains have three-audience-lens; all have sycophancy check; all have Validator pair reference. The Review 91 codifications stuck (F1, F8, F10, F12, F18, F19, F20 codifications all land in their stated locations; F2, F3, F4, F5, F9, F13, F14, F15, F16 codifications all land in their stated locations per regression-check).
 
