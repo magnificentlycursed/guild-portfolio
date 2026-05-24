@@ -209,6 +209,42 @@ When (1)–(5) hold, the layer is Phase-5-MVR. Phase 6 (Four-Dimensional Converg
 
 **Forward-only:** Phase 5 ownership in the suite is new as of 2026-05-20 (Review 64 / v0.7.0; [G-55](../suite-development/FINDINGS-INDEX.md#g-55) closure). Projects whose first layer-gate close predates 2026-05-20 are not retroactively required to retro-fit Phase 5 work; they continue under the prior "skip Phase 5 unless safety-critical" framing. Capstone-intent projects whose first layer-gate close is on or after 2026-05-20 must declare Phase 5 strategy ([G-162](../suite-development/FINDINGS-INDEX.md#g-162) enforcement; not new — promoted 2026-05-19).
 
+## Cold-session-vs-inline decision rubric ([Review 91](../suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) Finding 5)
+
+Phase 3 IAR defaults to cold-session adversarial review (per [`primers/3-review-session.md`](3-review-session.md) § Session isolation). Phase 5 hardening has a different default: **inline execution is acceptable for tool-output-driven evidence with bounded judgment surface; cold-session is required only when the surface involves adversarial-framing judgment.**
+
+**Cold-session REQUIRED when the Phase 5 surface involves adversarial-framing judgment:**
+
+- **Purity Boundary Audit on a freshly-authored library** — module-doc claims must be evaluated against implementation + DESIGN.md by an adversarial reviewer who did NOT author the module-doc + implementation in the same session. Per the [bookmark-cli-manual SA Review 1 / F-004 evidence](../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-solution-architect.md) cross-source divergence finding ([G-173](../suite-development/FINDINGS-INDEX.md#g-173)): an in-session author normalizes their own divergences because each artifact looked defensible from the local position the author held when authoring it.
+- **Fuzz Testing campaign** where the corpus design itself involves adversary-modeling (what inputs an attacker would prefer; what coverage gaps to target).
+- **Proof Execution** where the property design requires adversarial pressure on what property to prove (a tautology-property is the AI Engineer Dim-2 over-investment failure mode; cold-session pressure surfaces it).
+- **First-Phase-5-run on a layer** generally — establishing the baseline kill-rate / coverage / property-set deserves cold-session pressure to surface what in-author review missed.
+
+**Inline execution ACCEPTABLE when the Phase 5 surface is tool-output-driven evidence with bounded disposition:**
+
+- **Mutation Testing re-run against an unchanged purity boundary with a documented prior baseline** — `cargo-mutants` (or `mutmut`, `stryker`, etc.) produces deterministic per-mutant evidence; the analysis surface is "classify each surviving mutant as acceptable-survival / test-gap / surprise-survivor" which is mechanical disposition against a published rubric, not adversarial framing. Cold-session cluster spawn against tool-output is over-investment per [G-150](../suite-development/FINDINGS-INDEX.md#g-150) — the tool produces the same evidence regardless of session isolation.
+- **Property-based test re-verification against a structurally-stable strategy** — re-running existing `proptest` / `fast-check` / `hypothesis` properties against a refactored implementation is empirical evidence; pass/fail is the judgment surface; no adversarial framing needed.
+- **Phase-5-trigger follow-up rounds** — closing carry-forward items per a prior cycle's named triggers (e.g., `proptest restructure`, `scaling sentinel refactor`, `fsync filesystem-coverage caveat`) is bounded scope with named acceptance criteria; inline closure with empirical verification is sufficient. Per the [bookmark-cli-manual QE Review 7 / Layer 2 PR #47 evidence](../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-21-quality-engineer.md#review-7--2026-05-23-1600z) — canonical inline-acceptable worked example.
+- **Purity Boundary Audit re-run against a layer whose pure-side declarations have not changed since the prior round's audit** — per the [bookmark-cli-manual SA Review 4 / Layer 2 PR #44 evidence](../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-22-solution-architect.md): when the pure-side surface extends incrementally (added `filter_by_tags` + `attach_tag` on top of an already-audited `newest_first` boundary), inline cross-source consistency check is sufficient if the operator can name the changed surface explicitly.
+
+**Per-round declaration REQUIRED for every Phase 5 round:**
+
+Each Phase 5 round's preamble MUST declare its cold-session-vs-inline choice + the trade-off rationale. Parallel to [`primers/3-review-session.md`](3-review-session.md) § Pre-cycle methodology check's discipline. Acceptable forms:
+
+```
+**Cold-session shape:** cold-session cluster spawn — Phase 5 surface involves adversarial-framing judgment (first-run Purity Boundary Audit on freshly-authored library; cross-source divergence pressure required).
+```
+
+OR
+
+```
+**Cold-session shape:** N/A — inline-run from the main session. Trade-off declared per the bounded-judgment-surface rubric (Mutation Testing re-run against unchanged purity boundary; cargo-mutants tool output IS the evidence; per-mutant disposition is mechanical classification not adversarial framing). Cold-session spawn would be over-investment per G-150.
+```
+
+**Why this rubric exists:** the [bookmark-cli-manual Layer 2 Phase 5 cycle](../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-21-quality-engineer.md#review-6--2026-05-22-2230z) used inline execution for three rounds (SA Review 4 Purity Boundary Audit re-run; QE Review 6 Mutation Testing re-run; QE Review 7 Phase-5-trigger follow-up) per the G-150 over-investment guard. The rationale was well-reasoned but lived only in per-round session notes; the methodology lacked a primer-level decision rubric for future cycles to inherit. [Review 91 Finding 5](../suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) named the codification gap; this sub-section closes it.
+
+**Forward-only:** the rubric applies to Phase 5 rounds authored 2026-05-24 and later; pre-2026-05-24 rounds without explicit cold-session-vs-inline declaration are preserved as authored per [G-89](../suite-development/FINDINGS-INDEX.md#g-89).
+
 
 ## Three-audience lens
 

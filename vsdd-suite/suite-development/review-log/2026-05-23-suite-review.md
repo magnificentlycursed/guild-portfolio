@@ -237,7 +237,9 @@ The five-finding codification cycle was operator-directed (Director-raised per p
 
 ---
 
-### Open
+### Resolved
+
+(Section heading amended from `### Open` to `### Resolved` at this commit — the Open section had accumulated 14 findings that became Resolved across the three commits on this branch + a fourth commit for F2/F3/F4/F5/F9/F13/F14/F15/F16 codifications; the heading was stale. F11 + F17 (the actually-Open findings) moved to a new `### Open` section below before `### Dismissed`. F2/F3/F4/F5 finding bodies amended in-place from Open to Resolved with applied-resolution paragraphs; F9 finding body authored fresh in the Resolved section.)
 
 <a id="r91-f1"></a>
 **Finding 1 — Phase 2a Red Gate commit-boundary violation recurred at Layer 2 despite Layer 1's QE R1 F1 acknowledgment; the methodology lesson is named in PROCESS.md but no hard-gate mechanism propagates it forward as a layer-gate criterion**
@@ -272,8 +274,9 @@ The five-finding codification cycle was operator-directed (Director-raised per p
 **Finding 2 — Supplement citation discipline regressed from Layer 1 → Layer 2; the suite-development.md governing standard for project-level review logs does not explicitly require domain reviewers to inline-link the supplement file path when applying a supplement's dimensions**
 
 **Owner:** technical-writer (governing-standard prose authoring surface)
-**Status:** raised
+**Status:** validated
 **Blocked by:** *(none)*
+**Validator:** sanity-check — governing-standard prose codification; no natural cross-domain pair; Sanity Check validates the preamble field shape against the bookmark-cli-manual L1→L2 regression evidence.
 
 **Evidence:** Mechanical sweep across all 29 bookmark-cli-manual per-session review-log files (`grep -cE 'supplements/'`):
 
@@ -313,9 +316,13 @@ The Layer 2 cluster cold-session reviews (2026-05-22-*) adopted a "the standard 
 - **Supplement applied:** [path with inline markdown link] § [Section name] — required when the domain prompt references a supplement; explicit opt-out (`Not applicable. [Reason].`) when language-agnostic.
 ```
 
-The field replaces the prose-only "the Rust supplement § X floor raised every finding below" template with a parseable + clickable surface. The grep-by-supplement pattern (`grep -B 3 '^\*\*Supplement applied:\*\* \[.*rust\.md' vsdd-suite/review-log/`) becomes an agent-API surface per [§ Agent-API surface](../suite-development.md#agent-api-surface-review-80-finding-3). Forward-only per [G-89](../FINDINGS-INDEX.md#g-89); existing pre-2026-05-23 review-log entries remain valid as historical records.
+The field replaces the prose-only "the Rust supplement § X floor raised every finding below" template with a parseable + clickable surface. The grep-by-supplement pattern (`grep '^\*\*Supplements applied:' vsdd-suite/review-log/`) becomes an agent-API surface per [§ Agent-API surface](../suite-development.md#agent-api-surface-review-80-finding-3) (cataloged at [Review 91 Finding 13](#r91-f13) Agent-API contract promotion). Forward-only per [G-89](../FINDINGS-INDEX.md#g-89); existing pre-2026-05-24 review-log entries remain valid as historical records.
 
-**Classification:** Open (registered for tracking; the governing-standard amendment + the corresponding companion update to [`primers/3-review-session.md`](../../primers/3-review-session.md) is a separate PR per the no-stacked-PRs operator preference).
+**Resolution applied (in-cycle codification):** [`suite-development.md` § Per-review entry preamble § Optional fields](../suite-development.md#per-review-entry-preamble-under-each--review-n--yyyy-mm-dd-hhmmz) extended with **Supplements applied** field. Field is plural (per [Finding 4](#r91-f4) reasoning — covers cross-cutting interface supplements + per-language supplements per review). Inline-linked markdown with section names. Explicit opt-out form (`not applicable — [reason]`) when supplement-citing domain runs against an inapplicable surface. Companion grep idiom added to suite-development.md § Common agent lookup patterns table.
+
+**Resolution:** suite-development.md governing-standard amendment applied at this Review's commit. Project-level review-log template + bookmark-cli-manual project will adopt the new field as part of future review-log authoring; existing entries preserved per G-89.
+
+**Classification:** Resolved (TW Dim 11 — audience-fit calibration; the agent-readable surface for supplement attribution now exists where prose-only references previously sufficed).
 
 ---
 
@@ -323,8 +330,9 @@ The field replaces the prose-only "the Rust supplement § X floor raised every f
 **Finding 3 — `vsdd-suite/supplements/github-actions.md` is never cited in any bookmark-cli-manual review-log file despite multi-round Platform Engineer review of `.github/workflows/bookmark-cli-manual.yml`; one PE Layer 2 review cites a non-existent "Security supplement § GitHub Actions" — the canonical supplement is silently bypassed**
 
 **Owner:** platform-engineer (artifact-CI surface per [Review 87 Finding 4](2026-05-21-suite-review.md#review-87--2026-05-21-1230z))
-**Status:** raised
+**Status:** validated
 **Blocked by:** *(none)*
+**Validator:** sanity-check — supplement-discovery surface finding; no natural cross-domain validator-pair for citation-accuracy.
 
 **Evidence:** Mechanical sweep (`grep -lE 'github-actions\.md|GitHub Actions supplement'` across all 29 bookmark-cli-manual review-log files): **0 matches**. The [`vsdd-suite/supplements/github-actions.md`](../../supplements/github-actions.md) supplement was authored at [Review 86 Finding 1](2026-05-21-suite-review.md#review-86--2026-05-21-1200z) (~280 lines, covering 8 role-domain perspectives including Platform Engineer PRIMARY) and immediately applied to update `.github/workflows/bookmark-cli-manual.yml` per [Review 86 Finding 3](2026-05-21-suite-review.md#review-86--2026-05-21-1200z). Despite the supplement existing + the project's CI workflow being a load-bearing artifact, no review-log entry cites the supplement.
 
@@ -334,13 +342,15 @@ The PE L1 R1 ([`2026-05-20-platform-engineer.md`](../../../vsdd-suite-reference-
 
 **Reasoning:** The github-actions.md supplement was authored chronologically AFTER the L1 PE review (Review 86 = 2026-05-21; PE L1 R1 = 2026-05-20). The L2 PE review (2026-05-22) had the supplement available but did not cite it. This is partially explained by [Finding 2](#r91-f2) above (the inline-supplement-link discipline was already eroding by L2) but is also a discrete defect: when a new supplement is authored, the discipline for retroactive application to projects-in-flight is not codified. The github-actions.md supplement was implicitly used (the CI workflow was updated in the same PR) but explicit traceability in the per-domain review log is absent.
 
-**Recommendation:**
+**Resolution applied (in-cycle codification):**
 
-1. **PE Layer 2 R5 amendment** — add a Round 3 entry to [`2026-05-22-platform-engineer.md`](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-22-platform-engineer.md) correcting the misattributed "Security supplement § GitHub Actions" reference to the canonical [`vsdd-suite/supplements/github-actions.md`](../../supplements/github-actions.md) path. Adopt the [Finding 2](#r91-f2)-recommended `**Supplement applied:**` field.
-2. **Suite-side hook proposal** (deferred per no-stacked-PRs) — when a new supplement is authored at suite-side, the operator-action queue should include a sweep over active-project review-logs that touch the supplement's domain to verify the supplement is now cited where applicable. The mechanism is the same "earned by recurrence" doctrine — currently one recurrence; codify if a second supplement-non-citation surfaces.
-3. **AI Engineer Dim 11 audit-trail-machine-readability extension** — add a "supplement-citation completeness" check to the [AI Engineer domain prompt](../../domains/role/AI-ENGINEER-REVIEW.md) Dim 11: every domain's per-session review-log entries SHOULD link the supplement file path when the domain's prompt references a supplement. Pairs with [Finding 2](#r91-f2)'s `**Supplement applied:**` preamble field.
+1. **PE Layer 2 R6 amendment** at [`bookmark-cli-manual/vsdd-suite/review-log/2026-05-22-platform-engineer.md`](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-22-platform-engineer.md#review-6--2026-05-24-0300z) — added single-finding Review 6 closing the supplement-name-misattribution + amended the Review 5 Finding 9 lint output at line 253 in-place per [G-89](../FINDINGS-INDEX.md#g-89) forward-only narrative-preservation (original prose preserved with `<!-- amended-r6 -->` marker pointing at Review 6 Finding 1 for the canonical reference). Project-side audit-trail benefit: the github-actions.md supplement is now correctly cited by name in this project's PE log.
+2. **AI Engineer Dim 11 audit-trail-machine-readability extension** at [`domains/role/AI-ENGINEER-REVIEW.md`](../../domains/role/AI-ENGINEER-REVIEW.md) — added **Supplement-citation completeness sub-clause** naming the failure mode + naming the bookmark-cli-manual PE L2 R5 fabricated-reference incident as the canonical worked example. Pairs with [Finding 2](#r91-f2)'s `**Supplements applied:**` preamble field.
+3. **Suite-side hook proposal** — deferred per "earned by recurrence" doctrine; currently one recurrence (the bookmark-cli-manual github-actions.md non-citation); codify hook when a second supplement-non-citation surfaces on another project.
 
-**Classification:** Open (registered for tracking; the project-side amendment to PE L2 R5 + the suite-side hook proposal are separate cycles per the no-stacked-PRs operator preference).
+**Resolution:** project-side amendment + suite-side AI Engineer Dim 11 extension applied at this Review's commit. The supplement-discovery surface for github-actions.md is now correct on the bookmark-cli-manual project; the methodology has discipline (AI Engineer Dim 11 sub-clause) to catch the same defect class on future projects.
+
+**Classification:** Resolved (PE Dim 14 — Least privilege at the project layer; AI Engineer Dim 11 — Audit-trail machine-readability + Supplement-citation completeness at the suite layer).
 
 ---
 
@@ -348,8 +358,9 @@ The PE L1 R1 ([`2026-05-20-platform-engineer.md`](../../../vsdd-suite-reference-
 **Finding 4 — `vsdd-suite/supplements/json.md` is cited only by Red Team (Layer 1 + Layer 2); SE, QE, SA, Security never link the supplement despite material engagement with serde JSON serialization + downgrade-compatibility hazard + storage-format extension**
 
 **Owner:** technical-writer (governing-standard prose authoring surface) + each domain reviewer for the project-side amendment
-**Status:** raised
-**Blocked by:** [Finding 2](#r91-f2) (the `**Supplement applied:**` preamble field codification is the natural enforcement surface)
+**Status:** validated
+**Blocked by:** *(was: [Finding 2](#r91-f2) — F2 codified in-cycle; this finding unblocks)*
+**Validator:** sanity-check — plural-form preamble field is mechanically defined; Sanity Check validates the form covers the JSON-supplement-as-cross-cutting-interface case the finding surfaces.
 
 **Evidence:** Mechanical sweep (`grep -lE 'supplements/json\.md|JSON supplement'` across all 29 bookmark-cli-manual review-log files): only [`2026-05-20-red-team.md`](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-20-red-team.md) + [`2026-05-21-red-team.md`](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-21-red-team.md). The project's storage format is JSON; multiple Layer 2 findings turn on serde semantics:
 
@@ -373,7 +384,11 @@ The JSON supplement at [`vsdd-suite/supplements/json.md`](../../supplements/json
 
 The plural form makes interface-supplement application explicit. A domain reviewer who genuinely has nothing to apply from JSON / Markdown / etc. provides the explicit-opt-out (`JSON not applicable — the L2 surface adds no new JSON-serialization-bearing fields`); silent omission is no longer accepted.
 
-**Classification:** Open (registered for tracking; codification blocked by [Finding 2](#r91-f2)'s parent governing-standard amendment).
+**Resolution applied:** [Finding 2](#r91-f2)'s `**Supplements applied:**` preamble field is plural by design (codified in `suite-development.md` § Per-review entry preamble § Optional fields). The plural form covers the JSON-supplement-as-cross-cutting-interface case directly + the explicit-opt-out form lets reviewers acknowledge inapplicable supplements explicitly instead of silently omitting.
+
+**Resolution:** Finding 4 was blocked by Finding 2; Finding 2's plural-form codification this commit unblocks + resolves Finding 4. Project-side adoption: future bookmark-cli-manual review-log entries cite `json.md § <section>` when serde-bearing work is in scope OR provide explicit opt-out.
+
+**Classification:** Resolved (TW Dim 11 — audience-fit calibration; the plural form is mechanically sufficient to surface cross-cutting interface supplements).
 
 ---
 
@@ -381,8 +396,9 @@ The plural form makes interface-supplement application explicit. A domain review
 **Finding 5 — Phase 5 Layer 2 hardening rounds (SA Purity Boundary Audit re-run + QE Mutation Testing re-run + QE Phase-5-trigger follow-up at PR #47) ran inline in the main session rather than as cold-session cluster spawns; the rationale (per G-150 over-investment guard) is encoded in each round's session note but the methodology decision is not codified in [`primers/5-formal-hardening.md`](../../primers/5-formal-hardening.md)**
 
 **Owner:** ai-engineer (methodology-codification surface)
-**Status:** raised
+**Status:** validated
 **Blocked by:** *(none)*
+**Validator:** sanity-check — methodology-codification finding without natural cross-domain pair; Sanity Check validates the cold-session-vs-inline rubric against the bookmark-cli-manual L2 Phase 5 cycle as canonical worked example.
 
 **Evidence:** Three Phase 5 Layer 2 rounds explicitly declare inline execution + name the trade-off:
 
@@ -402,7 +418,11 @@ The decision rule is well-reasoned: Phase 5 hardening involves tool-output as th
 
 The bookmark-cli-manual Layer 2 Phase 5 cycle becomes the canonical "inline-acceptable" worked example; cite it explicitly.
 
-**Classification:** Open (registered for tracking; the primer 5 codification is a separate PR per the no-stacked-PRs operator preference).
+**Resolution applied (in-cycle codification):** [`primers/5-formal-hardening.md`](../../primers/5-formal-hardening.md) extended with new § Cold-session-vs-inline decision rubric — names cold-session-REQUIRED cases (adversarial-framing judgment; first-Phase-5-run on a layer); inline-ACCEPTABLE cases (tool-output-driven evidence with bounded disposition; re-runs against unchanged purity boundary; Phase-5-trigger follow-up); per-round declaration REQUIRED with example forms. Cites bookmark-cli-manual L2 Phase 5 cycle (SA Review 4 + QE Review 6 + QE Review 7) as canonical inline-acceptable worked example.
+
+**Resolution:** primer 5 codification applied at this Review's commit. Future Phase 5 rounds on any project inherit the rubric; the bookmark-cli-manual L2 evidence base validates the inline-acceptable path is methodology-appropriate.
+
+**Classification:** Resolved (AI Engineer Dim 2 — Token economy per finding; Dim 13 — Pre-cycle methodology check applied at Phase 5 scope; the rubric prevents over-investment without losing cold-session pressure where it's load-bearing).
 
 ---
 
@@ -435,6 +455,43 @@ The methodology was structurally inviting fabrication. [PE Dim 27 named failure 
 **Resolution:** primer 3 + supplement codifications applied at this Review's commit; Review 91 cost-tally is the canonical worked example of the rewrite shape.
 
 **Classification:** Resolved (AI Engineer Dim 2 — Token economy per finding; Dim 14 — Tool / plan / execution-method identification).
+
+---
+
+<a id="r91-f9"></a>
+**Finding 9 — Cost-observability infrastructure gap: agent-vs-operator observability asymmetry has no codified bridge (Shape 1 inline-vs-JSON split + Shape 3 upstream coordination ask) so the cost-tally fabrication failure mode (Finding 8) has no infrastructure to defend against; methodology relies on operator-pipeline manual paste, which is Platform Engineering Dim 9 "left-shift opportunity ignored" anti-pattern**
+
+**Owner:** platform-engineer (observability infrastructure surface per [Review 87 Finding 6](2026-05-21-suite-review.md#review-87--2026-05-21-1230z) per-error-class owner table)
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check — infrastructure-codification finding; Sanity Check validates the Shape 1 JSON spec covers the agent-vs-operator field split + the Shape 3 contract registration provides a legible upstream-coordination surface even before any PR is filed.
+
+**Evidence:** Per [Platform Engineer adversarial review applied to cost-tally](#review-91--2026-05-23-1900z) (operator-directed mid-cycle review of [Finding 8](#r91-f8) infrastructure surface), the cost-tally was authored as a methodology-discipline surface but lacks the infrastructure layer:
+
+- **Agent-side instrumentation gap**: claude-code CLI exposes `/cost` to operators but NOT to agents (`/cost` is a slash command, not an agent-callable tool). Plan tier exposed via no verifiable means. Rate-limit-window utilization exposed via no agent-readable surface. Per [PE Dim 23 (metrics)](../../domains/role/PLATFORM-ENGINEER-REVIEW.md) the key metrics are instrumented but visibility is asymmetric — operators see them; agents can't.
+- **Left-shift opportunity ignored**: "operator pastes `/cost` output" per Finding 8's mitigation is exactly the manual review step that should be automated. Per [PE Dim 9](../../domains/role/PLATFORM-ENGINEER-REVIEW.md): "Which manual review steps could be automated and added to CI?" The discipline-only fix puts the burden on the operator forever; a metrics pipeline would put it on infrastructure.
+- **Cost-tally not in Agent-API surface contract** (separately registered as [Finding 13](#r91-f13)): no schema stability commitment; future agents cannot rely on cost-tally cross-cycle aggregation.
+- **No upstream coordination ask filed** against claude-code CLI for agent-readable cost-export at session-end (a tool / env var / session-log file). The gap is real; the suite-owner authority over filing upstream is operator-policy; the contract surface for documenting the ask doesn't exist.
+- **No cross-cycle dashboard** (per [PE Dim 26](../../domains/role/PLATFORM-ENGINEER-REVIEW.md)) — cost-tally entries live in markdown prose; trend analysis ("are our cycles getting cheaper?") requires manual scraping.
+
+**Reasoning:** Two parallel infrastructure surfaces close the gap:
+
+- **Shape 1 (interim, achievable in-cycle)**: inline cost-tally for agent-self-verifiable fields + sibling JSON file for operator-pipeline-filled measured fields. Path: `vsdd-suite/suite-development/cost-observability/YYYY-MM-DD-review-N.json` for suite-side reviews; parallel for project-side. JSON schema codified with explicit field-author assignments (agent-fills vs operator-fills). Provides an infrastructure surface to evolve toward; doesn't depend on upstream coordination.
+- **Shape 3 (legibility-only registration this cycle)**: a `vsdd-suite/claude-code-contract.md` documenting (a) what the suite uses from claude-code CLI today (agent-observable surface enumeration); (b) what's needed but missing (the upstream coordination asks); (c) interim workarounds the supplement codifies. Parallel to the existing [`crosslink-contract.md`](../../crosslink-contract.md) pattern. Doesn't commit the suite-owner to filing upstream; makes the gap legible + provides a stable destination for upstream-coordination cross-references.
+
+**Shape 2 (subsystem buildout)** is the long-term right answer — event-emitting cost-observability subsystem with aggregator + anomaly detector + right-sizing recommender — but is multi-month methodology shift; deferred per [Finding 11](#r91-f11) earned-by-recurrence trigger.
+
+**Resolution applied (in-cycle codification):**
+
+1. **`vsdd-suite/claude-code-contract.md` created** — first per-tool dependency contract (parallel to `crosslink-contract.md`). Documents the agent-observable surface (system context fields; tool call shapes + returns; file system state; git state) + the NOT-agent-observable surface (token counts; cache-hit ratio; would-be API cost; rate-limit-window utilization; plan tier; session-start clock time; cross-session history; CLI version) + 4 upstream coordination asks (agent-readable cost-export; plan-tier identification; session-start clock anchor; CLI version exposure) — registered for legibility, not filed.
+2. **Shape 1 JSON schema codified** in the contract file (`vsdd-suite/suite-development/cost-observability/YYYY-MM-DD-review-N.json`). Per-field author assignment (agent-fills vs operator-fills) explicit. Cross-references the Finding 8 per-field auditability tier.
+3. **Cross-reference from `supplements/claude-code-cli.md` § Available observability surface for agents** (already in place from Finding 8 codification) points at the contract file for the full enumeration + upstream coordination asks.
+4. **Shape 2 deferred** per Finding 11 with named earned-by-recurrence trigger; no event-emitting subsystem authored this cycle.
+5. **Hook for cost-tally schema enforcement** deferred — Shape 1 JSON spec is the precondition; once Shape 1 sees adoption across 2-3 cycles, codify a hook that validates inline cost-tally has paired JSON file OR explicit-opt-out (parallel to the F19 earned-by-recurrence hook pattern).
+
+**Resolution:** `claude-code-contract.md` created + Shape 1 JSON schema codified at this Review's commit. Shape 3 registration legible; Shape 2 deferred with named trigger; Shape 1 hook escalation deferred until adoption-evidence accumulates.
+
+**Classification:** Resolved (PE Dim 9 — Left-shift opportunities; Dim 22 — Logging; Dim 23 — Metrics; Dim 26 — Dashboards (Shape 1 + Shape 3 codified; Shape 2 dashboard deferred to Finding 11); the infrastructure gap that made Finding 8 a discipline-only fix is now closed at the contract level + the JSON schema provides the agent-fillable + operator-fillable split).
 
 ---
 
@@ -505,20 +562,19 @@ Per the AI Engineer prompt: agents have no clock instrument; tool calls do not r
 **Finding 13 — Cost-tally section absent from Agent-API surface contract; codified at suite-development.md but not enumerated as stable agent-readable schema**
 
 **Owner:** technical-writer (governing-standard prose surface)
-**Status:** raised
-**Blocked by:** [Finding 9](#r91-f9) — Shape 1 cost-observability infrastructure provides the schema target for promotion
+**Status:** validated
+**Blocked by:** *(was: [Finding 9](#r91-f9); F9 codified in-cycle providing the Shape 1 JSON spec; unblocked)*
+**Validator:** sanity-check — Agent-API contract promotion is a stability commitment; Sanity Check validates the schema enumeration covers all post-Finding-8 fields + the parse boundaries are unambiguous.
 
 **Evidence:** [`suite-development.md` § Agent-API surface](../suite-development.md#agent-api-surface-review-80-finding-3) (Review 80 Finding 3) enumerates the stable agent-readable surface: Review heading, preamble fields, classification sub-sections, Finding header, per-Finding anchor IDs, lifecycle fields, required closers, registry rows, common agent lookup patterns. **Cost-tally section is conspicuously absent.** Per the [Finding 8](#r91-f8) tiered schema codification + the [Finding 10](#r91-f10) tuning lever catalog, cost-tally is now a structured surface that agents must author + that future agents must query for trend analysis + anomaly detection. Without Agent-API contract promotion, the cost-tally has no stability commitment + no agent-readable schema; the per-field tier discipline can drift without breaking any stability commitment because no commitment exists.
 
 **Reasoning:** Per [Review 80 Finding 3](2026-05-20-suite-review.md#review-80--2026-05-20-1830z) the Agent-API surface "commits the suite to a stable agent-readable surface across the audit-trail artifacts. Agents authored against these invariants will not break across releases unless the methodology shift is itself documented in a Review." The cost-tally is now exactly the kind of audit-trail artifact this commitment is meant to cover. Promotion makes the schema queryable + greppable + cross-cycle-aggregatable, supporting the [Finding 10](#r91-f10) tuning-lever review surface + the [Finding 9](#r91-f9) Shape 2 subsystem-design rolling-baseline metric.
 
-**Recommendation:**
+**Resolution applied (in-cycle codification):** [`suite-development.md` § Agent-API surface](../suite-development.md#agent-api-surface-review-80-finding-3) extended with **Cost-tally schema** sub-section enumerating: the three tiers (agent-self-verifiable / operator-verifiable / operator-confirmable + derived metric); per-field placeholder forms (`*pending operator /cost paste*`); parse boundaries (`**Cost-tally:**` heading to `---` or `### Coordination` closing); cross-reference to [`claude-code-contract.md` § Cost-observability sibling JSON file](../../claude-code-contract.md) for the machine-readable counterpart. Three new grep idioms added to Common agent lookup patterns: pending-operator-tokens lookup; inline-execution-method lookup; Bash-instrumented wall-clock lookup. Stability commitment paragraph updated to name "cost-tally schema" + "new cost-tally tiers" as the formal commitment surface going forward.
 
-1. Extend `suite-development.md` § Agent-API surface with a new **Cost-tally schema** sub-section enumerating: the three tiers (agent-self-verifiable / operator-verifiable / operator-confirmable); the per-field placeholder forms (`*pending operator /cost paste*`); the grep idioms for cost-tally lookup (e.g., `grep -B 1 '^- \*\*Raw tokens' review-log/`); the parse boundaries (`**Cost-tally**` heading to `---` or `### Coordination` closing).
-2. Cross-reference from `primers/3-review-session.md` § Per-field auditability tier + `supplements/claude-code-cli.md` § Cost-tally discipline.
-3. Pair with [Finding 9](#r91-f9) Shape 1 JSON file specification — the sibling JSON file shape is the canonical machine-readable surface; the inline cost-tally is the human-readable surface; both are Agent-API contract artifacts.
+**Resolution:** suite-development.md § Agent-API surface extension applied at this Review's commit; cross-references from `primers/3-review-session.md` § Per-field auditability tier + `supplements/claude-code-cli.md` § Cost-tally discipline already exist (codified at Finding 8). Pair with `claude-code-contract.md` § Cost-observability sibling JSON file (Finding 9 codification) for the machine-readable counterpart.
 
-**Classification:** Open (registered for tracking; the suite-development.md § Agent-API surface extension is a separate PR per the no-stacked-PRs operator preference; blocked by Finding 9 Shape 1 infrastructure being designed first).
+**Classification:** Resolved (TW Dim 11 — audience-fit calibration; the agent-readable surface for cost-tally now has stability commitment matching the broader Agent-API contract).
 
 ---
 
@@ -526,8 +582,9 @@ Per the AI Engineer prompt: agents have no clock instrument; tool calls do not r
 **Finding 14 — Citation-without-verification discipline gap: agents citing dimensions (e.g., "AI Engineer Dim 11") without loading the cited domain prompt; demonstrated by Review 91 author through Finding 8's pre-rewrite cost-tally + the original F1-F7 finding bodies citing dims of domains never loaded into context**
 
 **Owner:** ai-engineer (process-enforcement surface per [Review 87 Finding 6](2026-05-21-suite-review.md#review-87--2026-05-21-1230z) per-error-class owner table)
-**Status:** raised
+**Status:** validated
 **Blocked by:** *(none)*
+**Validator:** sanity-check — discipline-codification finding; Sanity Check validates the AI Engineer Dim 11 cite-verify sub-clause against the Review 91 author's own commitment of the failure mode as canonical worked example.
 
 **Evidence:** The Review 91 author (this Opus 4.7 session) cited the following dims throughout the Review's prose without loading the cited domain prompts until after the operator's three-audience-effectiveness adversarial question (2026-05-24 ~01:00Z):
 
@@ -546,13 +603,15 @@ The same pattern likely applies pervasively across the audit-trail — many suit
 
 This is exactly the methodology-evasion failure mode the three-audience principle was authored to defend against — but the principle is prose-asserted; the enforcement is incomplete. The Review 91 author committed the failure mode while authoring the audit that surfaced the failure mode. **The methodology lacks self-defense against its own author's evasion.**
 
-**Recommendation:**
+**Resolution applied (in-cycle codification):**
 
-1. Extend [AI Engineer Dim 11 (audit-trail machine-readability)](../../domains/role/AI-ENGINEER-REVIEW.md) with a sub-clause: *"every cited dimension reference (`<Domain> Dim N`) in a suite-review entry should resolve to the cited domain prompt's actual Dim N section — author MUST have loaded the cited prompt OR explicitly cited a secondary reference (e.g., "per the dim summary in suite-development.md § X")."*
-2. Propose pre-commit hook (deferred per "earned by recurrence") that scans suite-review entries for `<Domain> Dim N` references + verifies the dim exists in the cited domain prompt. Mechanizes the discipline against author-side evasion.
-3. Document the Review 91 author's recurrence pattern in the suite's `feedback_*` memory shape parallel to the lettering-violation memory at [Review 90 Finding 1](#review-90--2026-05-23-1200z) — operator-feedback memory codifies "load the cited prompt before citing it" as a recurring author-discipline expectation.
+1. **AI Engineer Dim 11 cite-verify sub-clause** added at [`domains/role/AI-ENGINEER-REVIEW.md`](../../domains/role/AI-ENGINEER-REVIEW.md) — names the failure mode (citation-without-prompt-load) + the discipline (author MUST load prompt OR explicitly cite secondary reference with independently-verifiable accuracy) + the exact test (spot-check 3 cited `<Domain> Dim N` references per entry; verify resolution; flag mismatches) + the hook escalation path (deferred per earned-by-recurrence — pre-commit hook on third recurrence).
+2. **Review 91 author's own commitment named explicitly** as the canonical worked example in the Dim 11 sub-clause; permanent audit-trail record that the methodology's defense was authored in the same cycle that surfaced the gap.
+3. **Operator-feedback memory** — deferred; not codified this cycle. The Dim 11 sub-clause carries the discipline at the methodology-prompt level; the memory-form codification per parallel to [Review 90 Finding 1](#review-90--2026-05-23-1200z) lettering memory would parallel-codify at the operator-feedback layer, but per the no-stacked-PRs preference the memory addition can land in a follow-up cycle if the Dim 11 sub-clause proves insufficient against the next recurrence.
 
-**Classification:** Open (registered for tracking; the AI Engineer Dim 11 extension + hook proposal are separate PRs per the no-stacked-PRs operator preference).
+**Resolution:** AI Engineer Dim 11 cite-verify sub-clause applied at this Review's commit. Future suite-review authors inherit the discipline at the domain-prompt level; the hook escalation path is named + deferred per the third-recurrence trigger.
+
+**Classification:** Resolved (AI Engineer Dim 11 — Audit-trail machine-readability + cite-verify discipline; the failure mode now has explicit methodology-defense at the dim level).
 
 ---
 
@@ -560,8 +619,9 @@ This is exactly the methodology-evasion failure mode the three-audience principl
 **Finding 15 — Domain-effectiveness audit definition gap: Review 91's "domain effectiveness" assessment conflated finding-density with effectiveness; methodology lacks codification of what a rigorous domain-effectiveness audit IS**
 
 **Owner:** vdd-iar-alignment (methodology-process surface)
-**Status:** raised
+**Status:** validated
 **Blocked by:** *(none)*
+**Validator:** sanity-check — methodology-codification finding without natural cross-domain pair; Sanity Check validates the rigorous-vs-thin distinction against the Review 91 own audit's thin-form conclusion as canonical worked example.
 
 **Evidence:** Review 91's `## Summary § Domain effectiveness audit` paragraph asserted: *"All 13 capstone-active domains produced substantive findings across L1+L2. Highest-signal domains by codification-into-permanent-suite-improvements: AI Engineer (10 R1 findings → 5 codified at Review 90); Quality Engineer (cargo-mutants 100% L1 kill rate + 93.2% L2 kill rate)..."* — the assessment was derived from:
 
@@ -579,19 +639,18 @@ The audit's conclusion ("no evidence of domain over-extension or unused domains;
 
 **Reasoning:** Per [AI Engineer Dim 2 (token economy per finding)](../../domains/role/AI-ENGINEER-REVIEW.md): *"cost asymmetry across domains (one domain costs 10x another with no defect-density difference to justify the gap)"* — names ONE measure of domain effectiveness (cost-per-finding). Per [VDD-IAR Alignment Dim 5 (intent-keyed gate criteria)](../../domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md) the domain-active-set decision is itself part of methodology calibration. But the suite has no codified **domain-effectiveness audit shape** — what to read, what to grep, what to count, what to conclude. A future suite-developer asking "is the AI Engineer domain pulling its weight?" has no methodology surface to answer from.
 
-**Recommendation:**
+**Resolution applied (in-cycle codification):** [`suite-development.md` § Domain-effectiveness audit shape](../suite-development.md#domain-effectiveness-audit-shape-review-91-finding-15) added. Codifies the rigorous-vs-thin distinction:
 
-1. Author a new `suite-development.md` § Domain-effectiveness audit shape sub-section codifying:
-   - **Input artifacts**: domain prompt (`domains/role/<DOMAIN>-REVIEW.md`); per-session review-log entries citing the domain; cross-cutting registry rows
-   - **Per-dim coverage**: did findings exercise the dim's named failure modes, or did they cluster around one or two dims?
-   - **Classification ratio**: Resolved / Hallucinated / Dismissed split — over-investment signal if Hallucinated >50%; under-investment signal if Resolved <20%
-   - **Cost-per-finding**: per AI Engineer Dim 2 expected-band lookup (intent-keyed)
-   - **Cross-cycle codification rate**: how many findings from this domain became permanent suite improvements (high rate = high-leverage domain; zero rate = domain may be over-extended)
-   - **Per-finding quality assessment**: substantive defect vs methodology-observation vs noise
-2. Define the rigorous-vs-thin distinction: rigorous = each dim assessed against actual findings via full prompt-load; thin = finding-count + classification-ratio aggregate. Both are valid for different cycle scopes (suite-internal periodic vs cross-cycle calibration); the methodology should name both forms + when each applies.
-3. Apply retroactively to Review 91's `## Summary § Domain effectiveness audit` paragraph — flag as thin-form + name the rigorous-form follow-up as Open work.
+- **Rigorous form** required for methodology-decision-at-stake cycles (intent-tier promotion; domain activation/deactivation; cross-project doctrine change); inputs include full domain-prompt load + all per-session review-log entries + cross-cutting registry rows + per-cycle cost evidence; analysis axes cover per-dim coverage + classification ratio + cost-per-finding + cross-cycle codification rate + per-finding quality assessment; output is a per-domain effectiveness report with overall verdict + recommended methodology action.
+- **Thin form** acceptable for cycle-close summaries + periodic discipline checks; inputs reduce to finding count + classification ratio + cross-cycle codification recognition; output is thin-form effectiveness paragraph.
 
-**Classification:** Open (registered for tracking; the codification is a separate PR per the no-stacked-PRs operator preference; defer with named trigger: "when a third project's domain-effectiveness audit produces results inconsistent with prior cycles, escalate to rigorous-form codification").
+Worked-example table (when each applies) included in the codification — cycle-close summary → thin; activation decision → rigorous; cross-project doctrine change → rigorous against 2+ projects; etc.
+
+Review 91's own `## Summary § Domain effectiveness audit` paragraph is named as the canonical thin-form case in the codification (correct conclusion + thinly grounded). Hook escalation (deferred per "earned by recurrence"): if a third audit-cycle produces inconsistent results across cycles without context-change rationale, escalate to a methodology amendment requiring rigorous-form for activation/deactivation decisions.
+
+**Resolution:** suite-development.md § Domain-effectiveness audit shape applied at this Review's commit. Future suite-developers asking "is the X domain pulling its weight?" have an explicit methodology surface to answer from.
+
+**Classification:** Resolved (VDD-IAR Alignment Dim 5 — Intent-keyed gate criteria + AI Engineer Dim 2 — Token economy per finding; the rigorous/thin distinction makes the calibration question answerable).
 
 ---
 
@@ -599,8 +658,9 @@ The audit's conclusion ("no evidence of domain over-extension or unused domains;
 **Finding 16 — Agent-API lookup-idiom adoption gap: suite-development.md § Common agent lookup patterns catalogs awk/grep idioms but agents (Review 91 author) don't reach for them when navigating; reading-by-default is the dominant pattern despite the catalog's existence**
 
 **Owner:** technical-writer (governing-standard prose surface) + ai-engineer (lookup-discipline framing)
-**Status:** raised
+**Status:** validated
 **Blocked by:** *(none)*
+**Validator:** sanity-check — discipline-framing finding; Sanity Check validates the "Preferred lookup pattern recommendation" extension produces behavior-change pressure at the methodology-prose level (the empirical-evidence requirement for actual behavior change is Open across cycles).
 
 **Evidence:** The Review 91 author had access to `awk -F'|' '$10 ~ / Open /' vsdd-suite/suite-development/FINDINGS-INDEX.md` (catalog'd at [`suite-development.md` § Common agent lookup patterns](../suite-development.md#agent-api-surface-review-80-finding-3)) for filtering Open findings. Instead, the author used `Read` + visual parse + offset+limit to navigate FINDINGS-INDEX.md. Multiple times. The agent-API catalog documents the patterns but the agent did not reach for them.
 
@@ -608,14 +668,42 @@ The catalog's stated purpose: *"the catalog is non-exhaustive; agents may compos
 
 **Reasoning:** Documentation alone does not shift agent behavior; the agent reaches for the tools that come naturally given its training distribution. `Read` + visual parse is the natural reach for any LLM-based agent (large training-data signal for reading documents); `awk` over markdown tables is a vanishingly rare training-data pattern. The methodology assumed documentation would suffice; in practice the catalog is reference material that gets cited but not used.
 
-**Recommendation:**
+**Resolution applied (in-cycle codification):**
 
-1. Extend `suite-development.md` § Common agent lookup patterns with a **"Preferred lookup pattern recommendation"** sub-section: for each common query class (find Open findings; find findings owned by X domain; find findings validated by Y; find findings since date Z), recommend the agent-API idiom over `Read`. Frame as discipline, not just reference.
-2. Cross-reference the recommendation from each per-domain prompt's `## Current Review Prompt` § Regression check sub-clause — when doing regression-check against prior rounds, agent SHOULD use the lookup idiom rather than Read-and-visually-parse.
-3. Add to AI Engineer Dim 11 (audit-trail machine-readability) a sub-clause: agents working WITHIN the suite SHOULD reach for the catalog'd idioms; defaulting to `Read` for queries the catalog covers is itself a Dim-11 finding (the audit-trail's machine-readability is wasted if agents don't use it).
-4. Empirical evidence requirement: Open across cycles; if the next 3 suite-review cycles continue defaulting to `Read` over `awk`/`grep`, escalate the discipline-vs-default tension to its own methodology decision (perhaps: codify a hook that requires `Read` calls against indexed files be justified, with `awk`/`grep` as the default).
+1. **`suite-development.md` § Agent-API surface § Preferred lookup pattern recommendation** added — names the discipline ("agents working WITHIN the suite SHOULD reach for the catalog'd idioms before defaulting to `Read` + visual parse") + frames `Read`-as-default for catalog-covered queries as itself a Dim-11 finding + names the empirical-evidence-requirement-Open across cycles with the third-cycle escalation trigger.
+2. **Common agent lookup patterns table extended** with 3 new cost-tally-specific idioms (per-Finding-13 codification) + 1 Supplements-applied idiom (per F2+F4 codification) — provides additional surface for agents to reach for.
+3. **Empirical-evidence requirement** stays Open across cycles: if the next 3 suite-review cycles continue defaulting to `Read` over `grep`/`awk` for catalog-covered queries, escalate to a hook proposal (perhaps a soft-warn on `Read` calls against indexed files for which a catalog idiom exists).
 
-**Classification:** Open (registered for tracking; the codification + cross-references are a separate PR per the no-stacked-PRs operator preference; defer with the "earned by recurrence" trigger above).
+**Resolution:** suite-development.md § Agent-API surface § Preferred lookup pattern recommendation applied at this Review's commit. The discipline-framing is the codification; the empirical evidence of whether the discipline shifts behavior is the next-cycle test (parallel to [Review 90](#review-90--2026-05-23-1200z) lettering-violation discipline's empirical-evidence requirement).
+
+**Classification:** Resolved (AI Engineer Dim 11 — Audit-trail machine-readability + lookup-idiom adoption discipline; codification at methodology-prose level. Behavior-change verification stays Open per the earned-by-recurrence empirical-evidence requirement).
+
+---
+
+### Open
+
+<a id="r91-f11"></a>
+**Finding 11 — Cost-observability Shape 2 subsystem design (event-emitting + aggregator + anomaly detector + right-sizing recommender) is the long-term right answer to the cost-observability gap; multi-month methodology shift; deferred with named earned-by-recurrence trigger**
+
+**Owner:** solution-architect (system-design surface)
+**Status:** raised
+**Blocked by:** *(none — finding is register-only with named deferral trigger; no in-cycle work this PR)*
+
+**Evidence:** Per [Platform Engineer adversarial review](#review-91--2026-05-23-1900z) of the cost-tally infrastructure surface, three observability shapes were identified:
+
+- **Shape 1** — inline cost-tally + sibling JSON file split (the interim per-cycle observability surface; codified this cycle per [Finding 9](#r91-f9))
+- **Shape 2** — event-emitting cost-observability subsystem (cost events at well-defined boundaries: session-start, agent-spawn, agent-complete, finding-classified, cycle-close; append-only event log `vsdd-suite/suite-development/cost-events/YYYY-MM-DD.jsonl`; aggregator computes per-cycle / per-cluster / per-domain / per-model summaries; anomaly detector flags cycles 3σ above rolling-median; right-sizing recommender names per-cycle "you used Opus for X mechanical sweep; Haiku would have sufficed at adequate quality")
+- **Shape 3** — upstream coordination ask + interim wrapper (legibility-registered this cycle via `claude-code-contract.md`)
+
+Shape 2 answers the operator's full set of cost-observability questions (am I over-provisioned; is a high-token task necessary; can it be optimized; is process inefficiency impacting cost; is there tuning that can be done) with proper instrumentation; supports anomaly detection + right-sizing recommendations; closes the [PE Dim 26 (dashboards)](../../domains/role/PLATFORM-ENGINEER-REVIEW.md) gap that Shape 1 only partially addresses.
+
+**Reasoning:** Shape 2 is a multi-month methodology shift. Migration cost includes: cost-event schema design (events; boundaries; metadata); event-capture infrastructure (where do events emit from; how do they reach the log; what's the operator's role); aggregator authoring (per-cycle rollup; cross-cycle trend; anomaly detection thresholds); right-sizing recommender heuristics; templates rewritten; reference examples migrated per [G-177](../FINDINGS-INDEX.md#g-177). The substantive work is bigger than a single PR; bundling with the in-cycle cost-observability codifications (Finding 9 Shape 1) would risk losing the simpler interim work to the subsystem-design complexity.
+
+The earned-by-recurrence doctrine applies: ship Shape 1 + Shape 3 now; observe whether Shape 1 + the operator-pipeline workflow produces adequate cost-observability over 2-3 cycles; if it does, Shape 2 is over-engineering; if it doesn't, the empirical signal justifies the multi-month shift.
+
+**Named deferral trigger:** Open across cycles with the following trigger condition — if 3 cycles in a row commit cost-tally entries (post-Finding-8 + Finding-9 codifications) that **cannot answer "why was this cycle 2x median cost-per-finding"** from the inline cost-tally + sibling JSON file alone, escalate to Shape 2 subsystem buildout. The "cannot answer" criterion requires concrete operator-named queries the existing infrastructure fails to support, not just speculative ones.
+
+**Classification:** Open (registered for tracking; deferred with named earned-by-recurrence trigger above; no in-cycle work this PR).
 
 ---
 
@@ -662,6 +750,8 @@ B) **Full migration of bookmark-cli-manual** since it's the reference example + 
 **Classification:** Open (registered for tracking; codification blocked by operator policy decision A vs B above; codification is a separate PR per the no-stacked-PRs operator preference).
 
 ---
+
+### Resolved (continued — F18-F20 slop-fix codifications from the 2da6ad6 commit's raise-and-resolve pattern)
 
 <a id="r91-f18"></a>
 **Finding 18 — SUITE-DEVELOPMENT-REVIEW.md per-row prose summaries duplicate review-log entry's § Summary section content; index-vs-narrative role conflation**
@@ -797,7 +887,7 @@ The honest-disclosure shape is the methodology-correct answer for a reference ex
 
 ### Summary
 
-Post-cycle adversarial audit of bookmark-cli-manual Layer 1 + Layer 2 against the suite's own phase / primer / supplement / domain discipline. **7 findings filed: 5 Open + 2 Dismissed.**
+Post-cycle adversarial audit of bookmark-cli-manual Layer 1 + Layer 2 against the suite's own phase / primer / supplement / domain discipline, expanded mid-cycle into cost-observability + three-audience auditability + audit-trail-structure slop multi-domain review. **20 findings filed across the full cycle: 16 Resolved (F1, F2, F3, F4, F5, F8, F9, F10, F12, F13, F14, F15, F16, F18, F19, F20) + 2 Open (F11 deferred with earned-by-recurrence trigger; F17 operator-policy decision pending preserve-vs-migrate) + 2 Dismissed (F6, F7).**
 
 **Phase-to-phase flow audit:** All six VSDD phases (1a+1b spec → 1c decomposition → 2a Red Gate → 2b implementation → 2c refactor → 3 IAR → 4 routing → 5 hardening → 6 convergence) executed for Layer 1 with project-terminal MVR + Phase 6 attestation at PR #42. Layer 2 executed phases 1a+1b → 1c → 2a → 2b → 2c → 3 → 4 → 5 with Phase 6 explicitly marked NOT APPLICABLE per [G-150](../FINDINGS-INDEX.md#g-150) + [G-112](../FINDINGS-INDEX.md#g-112) (operator-decision Cluster D Solution Owner recommendation adopted). **One real methodology gap surfaced: Phase 2a Red Gate commit-boundary violation recurred at L2 despite L1's QE R1 F1 acknowledgment ([Finding 1](#r91-f1))** — same pattern as [Review 90 Finding 1](#review-90--2026-05-23-1200z)'s lettering-violation (memory-feedback-alone insufficient for cross-cycle propagation). One concern dismissed: Phase 4 routing absence is the methodology working as designed via inline `Raised to SO` + `Blocked by` + `Coordination` mechanisms ([Finding 6](#r91-f6)).
 

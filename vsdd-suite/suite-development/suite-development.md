@@ -295,6 +295,53 @@ The suite commits to a stable agent-readable surface across the audit-trail arti
 - Anchor ID `<a id="g-N"></a>` enables direct prose-to-row navigation per [Review 79](review-log/2026-05-20-suite-review.md#review-79--2026-05-20-1730z) Finding 3.
 - 8 columns total; first cell is a markdown link from the G-ID to the originating Review.
 
+**Cost-tally schema ([Review 91](review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) Finding 13 — Agent-API contract promotion).**
+
+The cost-tally section is part of the agent-readable surface for capstone+ multi-agent cycles (per § Per-review entry preamble § Cost-tally and § Cost-tally opt-in shape). Schema:
+
+```
+**Cost-tally:** (or `**Cost-tally (minimal):**` for inline single-author per § Cost-tally opt-in shape)
+
+**Agent-self-verifiable (countable from this session's tool-call log):**
+
+- **AI tool:** <link>
+- **Model:** <model-id>
+- **Execution method:** <inline | foreground sub-agent | background sub-agent | worktree-isolated cluster spawn | background Bash task>
+- **Tool calls executed:** <N>
+- **Files read:** <N> across <scope>
+- **Files written/edited:** <N> at <paths>
+- **Mechanical sweeps run:** <N> via <Bash idiom>
+- **Wall-clock anchors (Bash `date -u`):** session-start <ISO-8601 UTC> → session-end <ISO-8601 UTC>
+
+**Operator-verifiable (requires `/cost` paste or plan-dashboard inspection):**
+
+- **Raw tokens:** *pending operator `/cost` paste*
+- **Cache-hit ratio:** *pending operator `/cost` paste*
+- **Would-be API cost:** *pending operator `/cost` paste*
+- **Rate-limit-window utilization:** *pending operator-dashboard check*
+
+**Operator-confirmable (operator-declared or operator-clocked; should be re-confirmed per session):**
+
+- **Plan tier:** <plan-tier> (source: <operator declaration in session N OR memo at MEMORY.md path>)
+- **Actual cost to operator:** <$0 marginal IF on Max plan AND session did not trigger rate-limit | actual figure from operator>
+
+**Derived metric (currently unverifiable + ambiguously interpreted):**
+
+- **Findings/100k tokens:** <N findings / token estimate> = <density> OR `NOT COMPUTABLE — pending operator /cost paste`
+
+**Operator-action queue:** if cost-tally precision is load-bearing for cross-cycle calibration, operator runs `/cost` in this session and pastes the output here as an append-only addendum, replacing the *pending operator …* placeholders with measured values.
+```
+
+Parse boundaries: cost-tally section starts at `**Cost-tally:**` or `**Cost-tally (minimal):**` heading; closes at the next `---` separator OR the next `### Open` / `### Resolved` / `### Dismissed` / `### Coordination` heading. Sub-section headings (`**Agent-self-verifiable ...:**`, `**Operator-verifiable ...:**`, `**Operator-confirmable ...:**`, `**Derived metric ...:**`) use parenthetical-form not em-dash-form to avoid the finding-header regex collision per [Review 91](review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) commit `2da6ad6` fix.
+
+Grep idioms for cost-tally lookup (extends the Common agent lookup patterns table below):
+
+- All Review entries with operator-pending raw-tokens: `grep -A 2 '^\*\*Raw tokens:' vsdd-suite/suite-development/review-log/*.md | grep 'pending operator'`
+- All Review entries declaring inline execution: `grep '^- \*\*Execution method:\*\* inline' vsdd-suite/suite-development/review-log/*.md`
+- All Review entries with Bash-instrumented wall-clock: `grep '^- \*\*Wall-clock anchors' vsdd-suite/suite-development/review-log/*.md`
+
+Sibling JSON cost-observability files at `vsdd-suite/suite-development/cost-observability/YYYY-MM-DD-review-N.json` (per [`claude-code-contract.md`](../claude-code-contract.md) § Cost-observability sibling JSON file) provide the machine-readable counterpart to the inline cost-tally for operator-pipeline-filled cross-cycle aggregation. The pair (inline cost-tally + sibling JSON) is the canonical observability surface; agents authoring across releases inherit the stability commitment.
+
 **Common agent lookup patterns.**
 
 | Query | Idiom |
@@ -307,10 +354,18 @@ The suite commits to a stable agent-readable surface across the audit-trail arti
 | All Findings authored in Review N | `awk '/^## Review N /{flag=1; next} /^## Review /{flag=0} flag && /^\*\*Finding/' vsdd-suite/suite-development/review-log/*.md` |
 | Domain slug allowlist | `python3 -c "import re; print(re.findall(r'\"([a-z-]+)\":', open(\"vsdd-suite/hooks/check-project-review-discipline.py\").read()))"` |
 | Classification universe for a domain | Look up `DOMAIN_CLASSIFICATIONS["<slug>"]` in [`check-project-review-discipline.py`](../hooks/check-project-review-discipline.py) |
+| All Review entries with operator-pending raw-tokens (cost-tally fabrication-defense) | `grep -A 2 '^\*\*Raw tokens:' vsdd-suite/suite-development/review-log/*.md \| grep 'pending operator'` |
+| All Review entries declaring inline execution | `grep '^- \*\*Execution method:\*\* inline' vsdd-suite/suite-development/review-log/*.md` |
+| All Review entries with Bash-instrumented wall-clock | `grep '^- \*\*Wall-clock anchors' vsdd-suite/suite-development/review-log/*.md` |
+| All Supplements applied entries (per Review 91 F2+F4) | `grep '^\*\*Supplements applied:' vsdd-suite/suite-development/review-log/*.md` |
+
+**Preferred lookup pattern recommendation ([Review 91](review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) Finding 16).** Agents working WITHIN the suite SHOULD reach for the catalog'd `grep` / `awk` idioms above before defaulting to `Read` + visual parse. Reading-by-default for queries the catalog covers is itself a finding for [AI Engineer Dim 11 (audit-trail machine-readability cost)](../domains/role/AI-ENGINEER-REVIEW.md) — the audit-trail's machine-readability is wasted if agents don't use it. When the catalog covers the query, the agent's first reach should be the idiom; the catalog is reference material AND behavior recommendation.
+
+Empirical evidence requirement (Open across cycles): if the next 3 suite-review cycles continue defaulting to `Read` over `grep`/`awk` for catalog-covered queries, escalate the discipline-vs-default tension per the "earned by recurrence" doctrine (perhaps: codify a soft-hook that surfaces `Read` calls against indexed files for which a catalog idiom exists, with a one-line warning suggesting the idiom).
 
 The catalog is non-exhaustive; agents may compose new lookups from the documented invariants. Composing across invariants is supported (e.g., "all Resolved Findings owned by technical-writer in Reviews 75 onward" = combine the Review-section filter + Owner filter + Status filter). Invariant-breaking changes require their own methodology Review.
 
-**Stability commitment.** The fields, regex patterns, anchor-ID shapes, classification vocabulary, and lookup idioms above are stable surface. Additions (new fields, new classifications, new anchor-ID shapes) require a Review entry and an update to this section in lockstep. Deletions or backward-incompatible renames are forbidden under the suite's [G-89](FINDINGS-INDEX.md#g-89) forward-only narrative-preservation policy except as a structured methodology shift documented in a Review.
+**Stability commitment.** The fields, regex patterns, anchor-ID shapes, classification vocabulary, cost-tally schema, and lookup idioms above are stable surface. Additions (new fields, new classifications, new anchor-ID shapes, new cost-tally tiers) require a Review entry and an update to this section in lockstep. Deletions or backward-incompatible renames are forbidden under the suite's [G-89](FINDINGS-INDEX.md#g-89) forward-only narrative-preservation policy except as a structured methodology shift documented in a Review.
 
 ---
 
@@ -494,6 +549,7 @@ Within a session file, rounds are ordered newest-first (matching the index order
 - **Reference:** non-DESIGN.md authoritative source the review evaluates against (Solution Owner reviewing against the assignment brief)
 - **Regression check:** prior-review verification (any domain when a prior review for the same scope exists)
 - **Assumption surfacing:** dependency and library-API verification (Quality Engineer, per the QE prompt's G-20/G-21/G-23 obligations) — one short paragraph per review naming assumptions verified or flagged
+- **Supplements applied** ([Review 91](review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) Findings 2 + 4): required when the domain prompt references one or more supplements (per [`../supplements/`](../supplements/)) or when the review surface materially engages a language / interface / tool that has a supplement. Plural form — one entry per applied supplement; each entry inline-links the supplement file path + names the section consulted. Format: `**Supplements applied:** [\`rust.md\`](../supplements/rust.md) § Solution Architecture; [\`json.md\`](../supplements/json.md) § Storage / cross-version compatibility — applies because the L2 surface extends a serde-serialized data model with downgrade semantics.` Explicit opt-out form when a supplement-citing domain runs against a surface the supplement does not apply to: `**Supplements applied:** [\`rust.md\`](../supplements/rust.md) § Software Engineering; [\`json.md\`](../supplements/json.md) not applicable — the L3 export surface adds no new JSON-serialization-bearing fields beyond the existing storage format.` Silent omission of an applicable supplement is itself a finding for the next AI Engineer or TW round per [Review 91 Finding 3](review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) (the github-actions.md silent-non-use canonical case). Replaces the prior prose-only "the X supplement § Y floor raised every finding below" template form ([Review 91 Finding 2](review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) evidence) with a parseable + clickable surface so agent grep idioms (`grep -B 3 '^\*\*Supplements applied:\*\* \[.*rust\.md' vsdd-suite/review-log/`) work. Forward-only: applies to entries authored 2026-05-24 and later; pre-2026-05-24 entries preserved as authored per [G-89](FINDINGS-INDEX.md#g-89).
 - **Cost-tally** (capstone + production intent; multi-agent cycle-closing entries — [AI Engineer R1 F6](../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-21-ai-engineer.md)): after-action cost report closing the pre-cycle declaration authored per [`primers/3-review-session.md`](../primers/3-review-session.md) § Pre-cycle methodology check. One short paragraph naming: total agent-spawns this cycle; estimated total token consumption (Anthropic API usage as observed or estimated from per-agent context-load size × turn count); per-substantive-finding token cost (total ÷ non-Hallucinated finding count); rate-limit-hit events (none / count + retry shape); model-selection actual-vs-declared (matched / drifted with rationale). The pair (pre-cycle declaration → after-action cost report) is the AI Engineer Dim 13 pre-cycle methodology check applied at the cycle boundary; the audit-trail-stays-honest-without-it discipline is what the cost-tally field defends. Cycles exempt from the pre-cycle declaration (single-agent rounds; sub-agent delegation for non-adversarial work; learning-exercise intent) are also exempt from the cost-tally field.
 
 A reviewer who finds they need a preamble field that is not in either list should propose adding it to this standard rather than introducing it ad-hoc. Examples of fields that are **not** valid additions: `Preamble`, `Governing methodology`, `Mutation analysis method`, free-form `Test count` lines — these duplicate `Scope` or `Session note`, or belong inside individual findings or the closing summary. The ownership / validation lifecycle fields (`Owner`, `Status`, `Blocked by`, `Validator`) live in the per-finding body, NOT the entry preamble — they describe per-finding state, not per-entry state.
@@ -753,6 +809,51 @@ Per [Review 90 Finding 4](review-log/2026-05-23-suite-review.md#review-90--2026-
 The opt-in shape prevents the cost-tally section from bloating every review entry; the full schema activates where it adds calibration value; the minimal form preserves the schema's signal (what cycle, what tool, what scope) without paying full tier-tracking cost.
 
 **Forward-only:** the opt-in shape applies to entries authored 2026-05-24 and later; existing full-schema entries remain as authored.
+
+### Domain-effectiveness audit shape ([Review 91](review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) Finding 15)
+
+A **domain-effectiveness audit** evaluates whether an active domain in a project's IAR set is producing methodology-justified value or whether it's drifting into noise / over-investment / under-investment. The audit shape comes in two forms — rigorous + thin — both valid for different cycle scopes.
+
+**Rigorous form** — applies when a methodology decision is at stake (intent-tier promotion; domain activation / deactivation; cross-project doctrine change). Required inputs:
+
+1. **Domain prompt loaded into context** ([`domains/role/<DOMAIN>-REVIEW.md`](../domains/role/) or [`domains/meta/<DOMAIN>-REVIEW.md`](../domains/meta/) — not just cited from secondary references per [AI Engineer Dim 11](../domains/role/AI-ENGINEER-REVIEW.md) cite-verify discipline.
+2. **All per-session review-log entries citing the domain** read end-to-end (not just grep-counted).
+3. **Cross-cutting registry rows** ([`<project>/vsdd-suite/FINDINGS-INDEX.md`](../templates/PROJECT-FINDINGS-INDEX-template.md)) filtered by domain.
+4. **Per-cycle cost evidence** from the cost-tally / cost-observability sibling JSON files (per [Review 91 Finding 9](review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) Shape 1 infrastructure).
+
+Required analysis axes:
+
+- **Per-dim coverage:** did findings exercise the dim's named failure modes, or did they cluster around one or two dims? Map findings → dims; flag dims with zero finding-coverage (over-extension signal — the dim may not apply to this project's surface) AND flag dims with disproportionate coverage (under-extension signal — other dims may be missing coverage).
+- **Classification ratio:** Resolved / Hallucinated / Dismissed split. Over-investment signal if Hallucinated >50% (the domain is reaching for findings that don't apply); under-investment signal if Resolved <20% (the domain isn't finding actionable defects); right-fit signal when ~60-80% Resolved + ~10-30% Dismissed/Hallucinated combined.
+- **Cost-per-finding:** per [AI Engineer Dim 2](../domains/role/AI-ENGINEER-REVIEW.md) expected-band lookup (intent-keyed: learning-exercise ≤50k/finding; portfolio 50k-150k; capstone 100k-300k; production 200k-500k). Out-of-band cost is a calibration signal.
+- **Cross-cycle codification rate:** how many findings from this domain became permanent suite improvements (codified into primers / supplements / governing standards)? High rate = high-leverage domain; zero rate = domain may be over-extended at this project's scope OR the methodology is missing the surface the domain is finding.
+- **Per-finding quality assessment:** substantive defect (vs methodology-observation vs noise). Subjective but auditable: a finding that closed by adding a test or fixing a behavior is substantive; a finding that closed by adding a comment or renaming a variable is methodology-observation; a finding closed by acknowledging it doesn't apply is noise (or Hallucinated).
+
+Output: a per-domain effectiveness report with each axis assessed + an overall verdict (right-fit / over-extended / under-extended) + recommended methodology action (promote / demote / activate at lower intent tier / deactivate / retire dim N).
+
+**Thin form** — applies when assessing the IAR cycle's discipline-health across many domains (cycle-close summary; periodic check). Inputs reduced to:
+
+1. **Finding count per domain** (mechanical `grep`).
+2. **Classification ratio per domain** (`grep` on classification sub-section headings).
+3. **Cross-cycle codification recognition** (memory of which findings became suite improvements).
+
+Output: thin-form effectiveness paragraph naming each domain's finding-density + ratio + codification rate, with overall verdict at the cycle level (no per-dim coverage analysis; no per-finding quality assessment).
+
+**When each applies:**
+
+| Cycle scope | Form |
+|---|---|
+| Cycle-close summary (per layer-gate close); periodic discipline check | Thin form |
+| Domain activation / deactivation decision; intent-tier promotion | Rigorous form |
+| Cross-project doctrine change (e.g., promoting an extended-pool domain to core) | Rigorous form against 2+ projects |
+| External-feedback mining (suite contributor reviews multiple projects) | Rigorous form per project |
+| Suite-developer's own audit of methodology calibration | Rigorous form against the reference example(s) |
+
+**Rigorous-vs-thin distinction is load-bearing:** a thin-form audit producing the conclusion "all domains right-fit" without per-dim coverage analysis is acceptable for cycle-close but not for activation decisions. Per [Review 91 Finding 15](review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) the Review 91 own audit produced a thin-form conclusion ("all 13 capstone-active domains substantive; no over-extension") without loading any of the cited domain prompts — the conclusion was correct but thinly grounded. Future audits with activation-decision stakes use the rigorous form.
+
+**Forward-only:** the rigorous/thin distinction applies to audits authored 2026-05-24 and later; pre-2026-05-24 audits preserved as authored per [G-89](FINDINGS-INDEX.md#g-89).
+
+**Hook escalation (deferred per "earned by recurrence"):** if a third audit-cycle produces results inconsistent with prior cycles (a domain rated right-fit in one cycle + over-extended in the next without explicit context-change rationale), escalate to a methodology amendment requiring rigorous-form audits for any activation/deactivation decision.
 
 ### External-review-log subfolder pattern ([Review 88](review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z))
 

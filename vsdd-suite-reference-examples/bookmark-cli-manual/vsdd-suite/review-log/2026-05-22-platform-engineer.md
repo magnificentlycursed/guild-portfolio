@@ -250,7 +250,7 @@ defaults:
 
 These apply to ALL jobs in the workflow, including the new `scaling` job. Verified:
 
-- ✓ `permissions: contents: read` — the scaling job inherits the same read-only token scope; no privilege widening. Per the Security supplement § GitHub Actions, this is the correct posture for build/test workflows.
+- ✓ `permissions: contents: read` — the scaling job inherits the same read-only token scope; no privilege widening. Per [`vsdd-suite/supplements/github-actions.md`](../../../../vsdd-suite/supplements/github-actions.md), this is the correct posture for build/test workflows. <!-- amended-r6 — original prose cited a non-existent "Security supplement § GitHub Actions"; corrected to the canonical github-actions.md supplement per [Review 6 Finding 1](#r6-pe-f1) — upstream recurrence-prevention via AI Engineer Dim 11 supplement-citation completeness sub-clause -->.
 - ✓ `concurrency` — the scaling job participates in the same per-ref concurrency group; a supersession push cancels in-flight scaling runs alongside the standard test/clippy/fmt runs.
 - ✓ `defaults.run.working-directory` — the scaling job inherits the project-subdirectory cwd; `cargo test --release --test scaling --locked -- --ignored` runs against the bookmark-cli-manual project.
 
@@ -417,3 +417,63 @@ Per [G-131](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) co
 - **Finding 8 + Finding 9 + Finding 10** (affirmative-coherence on scaling job + workflow privileges + install discipline) — no coordination; documented for the audit trail.
 
 **Cost-tally:** Solution-Architect/Red-Team/Platform-Engineer cluster session (SA + Red Team + PE in one cluster pass) — PE sub-section consumed an estimated ~25k–30k tokens for the cold context-load (Round 1 PE log, the 5 fix commits, the post-fix CI workflow + Cargo.toml + rust-toolchain.toml + install-verification.md + DESIGN.md + tests/scaling.rs + tests/properties.rs read), per-finding verification ≈ 2k–3k tokens, total ~20k–28k tokens. Per-finding cost ≈ 2k–3k tokens; well below the capstone band's 100k–300k/finding range. Round 2's lower-than-Round-1 cost is expected — verification rounds re-use the Round 1 context skeleton.
+
+---
+
+## Review 6 — 2026-05-24 03:00Z
+
+**Scope:** Single-finding amendment closing the supplement-name-misattribution surfaced at the [vsdd-suite Review 91 Finding 3](../../../../vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) post-cycle conformance audit.
+
+**Session note:** Director-raised post-cycle correction. In-session inline-fix per the [vsdd-suite-side bounded-scope correction pattern](../../../../vsdd-suite/suite-development/suite-development.md). The fix is documentation accuracy + supplement-discovery surface, not a substantive PE finding against the project; cold-session would be over-investment per [G-150](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150). Sycophancy-compensation: the cite-correction is mechanical (look up the canonical supplement; replace the misattributed reference); no new substantive finding emerges from this round beyond the discovery-surface fix.
+
+**Regression check against:** [Review 5](#review-5--2026-05-22-0200z) Finding 9 — the lint output verifying workflow-level `permissions: contents: read` cited "Per the Security supplement § GitHub Actions" at line 253. No `Security supplement` exists in [`vsdd-suite/supplements/`](../../../../vsdd-suite/supplements/); no "GitHub Actions" sub-section exists in any other supplement. The canonical supplement IS [`vsdd-suite/supplements/github-actions.md`](../../../../vsdd-suite/supplements/github-actions.md) (authored at [vsdd-suite Review 86 Finding 1](../../../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-86--2026-05-21-1200z)).
+
+**Source:** director-raised (vsdd-suite Review 91 audit surfaced the supplement-name-misattribution as part of the broader [Review 91 Finding 3](../../../../vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) `github-actions.md` never-cited gap; project-side amendment is the corresponding project-side fix).
+
+---
+
+### Resolved
+
+<a id="r6-pe-f1"></a>
+**Finding 1 — Review 5 Finding 9 cited a non-existent "Security supplement § GitHub Actions" reference; canonical supplement is [`vsdd-suite/supplements/github-actions.md`](../../../../vsdd-suite/supplements/github-actions.md) (Dim 14 — Least privilege)**
+
+**Owner:** platform-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+Validator rationale: supplement-discovery surface correction; no natural cross-domain validator-pair for citation-accuracy at the project-review level.
+
+**Evidence:** [Review 5 Finding 9](#finding-9-existing-workflow-level-permissions-contents-read--concurrency--checkoutoolchain-sha-pins-correctly-inherited-by-the-new-scaling-job-no-privilege-widening-from-the-fix-dim-14) (line 253 of this file pre-amendment) cited: *"Per the Security supplement § GitHub Actions, this is the correct posture for build/test workflows."* Verified via mechanical sweep:
+
+- `ls vsdd-suite/supplements/` returns: bash.md, browser-app.md, claude-code-cli.md, cli.md, css.md, github-actions.md, html.md, javascript-typescript.md, json.md, markdown.md, python.md, rust.md, toml.md, yaml.md.
+- **No `security.md` supplement exists.** The cited supplement name is fabricated.
+- **No "GitHub Actions" sub-section in any other supplement** matches the cited reference. The closest content match is [`vsdd-suite/supplements/github-actions.md`](../../../../vsdd-suite/supplements/github-actions.md) itself, which covers the build/test workflows correctness posture in detail.
+
+The misattribution illustrates the supplement-discovery failure mode named at [vsdd-suite Review 91 Finding 3](../../../../vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z): when a new supplement is authored (github-actions.md was authored at Review 86; ~24h before this Layer 2 PE round), reviewer-discipline for retroactive citation does not exist. The reviewer fabricated a supplement-name from a mental-model of "Security domain + GitHub Actions" because the actual canonical home was not surfaced at the reviewer's reading order.
+
+**Reasoning:** The substance of Review 5 Finding 9's claim is correct — `permissions: contents: read` is the correct posture for build/test workflows. The supplement that owns the discipline statement is [`vsdd-suite/supplements/github-actions.md`](../../../../vsdd-suite/supplements/github-actions.md) (Platform Engineer PRIMARY + Security + AI Engineer + Technical Writer + ... 8 role-domain perspectives covered). The citation correction is mechanical: replace the fabricated reference with the canonical one. No PE-substantive finding changes.
+
+**Resolution:** The Review 5 Finding 9 lint output at line 253 is updated in-place per the [G-89](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-89) forward-only narrative-preservation note: original prose is preserved with an inline `<!-- amended-r6 -->` marker pointing at this Review 6 Finding 1 for the canonical reference. The amendment is purely documentation accuracy; no source code or test surface changes.
+
+Project-side audit-trail benefit (per [vsdd-suite Review 91 Finding 3](../../../../vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) recommendation 1): the `github-actions.md` supplement is now correctly cited by name in this project's PE log, surfacing the supplement's existence to any cold-context reader scanning the PE rounds for supplement-discovery context.
+
+Upstream-suite recurrence-prevention (per [vsdd-suite Review 91 Finding 3](../../../../vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) recommendation 3): the AI Engineer Dim 11 supplement-citation completeness sub-clause (codified in-cycle at the same Review 91 commit) names this misattribution as the canonical worked example; future AI Engineer rounds running against any project's PE / SA / Security / etc. log have explicit dim-coverage for catching the same defect class.
+
+**Classification:** Resolved (Dim 14 — Least privilege; the underlying control posture is unchanged; the citation correction is documentation accuracy).
+
+---
+
+### Summary
+
+1 finding filed in single-finding amendment round: 1 Resolved (Review 5 Finding 9 cite-correction; underlying control unchanged; documentation accuracy fixed). The amendment closes the project-side half of [vsdd-suite Review 91 Finding 3](../../../../vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z); the suite-side AI Engineer Dim 11 sub-clause closes the upstream-suite recurrence-prevention half.
+
+**Coordination:** none. The amendment is project-side documentation accuracy; no cross-domain routing.
+
+**Cost-tally (minimal; per [`suite-development.md` § Cost-tally opt-in shape](../../../../vsdd-suite/suite-development/suite-development.md) codified at Review 91 Finding 20):**
+
+- **AI tool / Model / Execution method:** [claude-code CLI](https://claude.com/claude-code) / claude-opus-4-7 / inline main session
+- **Date:** 2026-05-24
+- **Wall-clock anchors (Bash `date -u`):** session-start [inherited from vsdd-suite Review 91 session] → session-end captured post-Review 6 authoring
+- **Files touched:** 1 edited (this file + Review 5 Finding 9 lint output line 253 in-place amendment) + 0 created
+- **Operator-action queue:** if cost-tally precision becomes load-bearing, operator runs `/cost` for full tiered fields per [`suite-development.md` § Per-field auditability tier](../../../../vsdd-suite/suite-development/suite-development.md)
