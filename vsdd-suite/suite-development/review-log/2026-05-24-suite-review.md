@@ -300,3 +300,183 @@ Suite-wide observability + auditability sweep across the 42-file methodology sur
 **Coordination:** Routes forward to (a) operator-policy decisions on F2/F3/F4/F5 paths (each named with conservative-vs-active framing for operator choice); (b) the next 2 cycles' audit-author behavior — F6's empirical-evidence requirement advances to cycle 2 (next suite review) and cycle 3 (cycle after that); if both continue grep-first + cite-verify, the F16 discipline can be considered behavior-stable + the third-cycle-soft-hook escalation trigger can be retired; (c) future suite-wide audits that may want to apply the rigorous-form domain-effectiveness audit per [Review 91 Finding 15](2026-05-23-suite-review.md#r91-f15) — this Review 92's thin-form is appropriate for cycle-close conformance verification; a rigorous-form audit per-domain is a larger separate cycle.
 
 **Cost-tally (session-end addendum):** session-end Bash `date -u` captured at the commit-prep step below; appended to the cost-tally Wall-clock anchors line above. Operator-action queue items remain pending operator paste.
+
+---
+
+## Review 93 — 2026-05-24 23:40Z
+
+**Phase:** Suite-development methodology-hardening cycle — slop-fix codifications discovered during PR #51 + the prior Review 91 12-category slop analysis.
+
+**Source:** director-raised — operator directive 2026-05-24 ("Let's look at the other slop fixes on this PR too") + operator-policy selection across all 6 slop-fix items (CHANGELOG slimming + Resolved-continued discipline + em-dash-in-bold rule + Source: mixed schema + anchor-ID conventions + paradox-free verification discipline).
+
+**Lens:** methodology hardening — codify slop-fix disciplines surfaced from the cumulative R91 audit + R92 sweep + PR #51's own template-paradox incident. Each codification is a small focused-cycle bullet; no new discovery work this round (the slop categories were already named at R91; R93 is the closure cycle).
+
+**Scope:** [`suite-development.md`](../suite-development.md) (5 codifications — CHANGELOG slim-form + Resolved-continued discipline + No-em-dash-inside-bold-sub-headings rule + Source-mixed sub-disposition schema + Anchor-ID conventions central registry); [`supplements/github-actions.md`](../../supplements/github-actions.md) (1 codification — paradox-free verification discipline for merge-gating checklist items). Audit-trail closure: this Review 93 entry + [FINDINGS-INDEX](../FINDINGS-INDEX.md) 6 new rows + [SUITE-DEVELOPMENT-REVIEW](../SUITE-DEVELOPMENT-REVIEW.md) row + [CHANGELOG](../../CHANGELOG.md) slim-form entry (dogfooding the F1 codification this Review introduces).
+
+**Reviewer:** *(suite-development meta-review; no domain-role persona)*
+
+**Model:** Opus 4.7 (`claude-opus-4-7`)
+
+**Cold-session shape:** N/A — inline main session per [`suite-development.md` § Session isolation](../suite-development.md) default for suite reviews + per [`primers/5-formal-hardening.md` § Cold-session-vs-inline decision rubric](../../primers/5-formal-hardening.md) — this is a methodology-codification cycle (not adversarial framing); inline-author bounded scope.
+
+**Regression check against:** [Review 91](2026-05-23-suite-review.md#review-91--2026-05-23-1900z) (slop categories 1-12); [Review 92](#review-92--2026-05-24-0419z) (F2-F5 operator-policy decisions); PR #51 commits `bf25786` (R92 codifications) + `8b4efd3` (PR-template paradox fix discovered + applied).
+
+**Session note:** Inline main-session codification cycle. **Sycophancy compensation:** the natural authoring bias for a methodology-hardening cycle is to author thin codifications that pass cleanly — easier than substantive ones. The corrective framing here: each F1-F6 codification names the SPECIFIC failure mode it defends against + the canonical worked example + the operator-action when authoring + the G-89 forward-only carve-out for pre-2026-05-24 instances. Codifications without named failure modes are methodology-theatre per the operator's "what defect would ship if this discipline didn't exist?" framing.
+
+**Cite-verify discipline applied to this audit** (per [Review 91 Finding 14](2026-05-23-suite-review.md#r91-f14)): suite-development.md § Finding sections + § Per-review entry preamble + § Agent-API surface + § SUITE-DEVELOPMENT-REVIEW row slim-form convention all loaded into context before authoring the F1-F5 codifications. supplements/github-actions.md § PR template + merge-gate integration loaded before authoring F6. PR template ([`.github/PULL_REQUEST_TEMPLATE.md`](../../../.github/PULL_REQUEST_TEMPLATE.md)) loaded for the F6 canonical-worked-example reference. F14 cite-verify discipline holds across the audit.
+
+**Lookup-idiom adoption** (per [Review 91 Finding 16](2026-05-23-suite-review.md#r91-f16)): grep-pattern scans for the codification insertion points used `grep -nE "^### "` for section headers + `grep -n "<specific text>"` for exact-position location. Per F16 third-cycle-soft-hook escalation: this codification cycle IS cycle 3 (R91 → R92 → R93) of grep-first behavior; the discipline is **empirically behavior-stable**. Escalation trigger does NOT fire.
+
+**Cost-tally** (minimal form per [Review 91 Finding 20](2026-05-23-suite-review.md#r91-f20) opt-in classification — single-author methodology-codification cycle):
+
+- **AI tool / Model / Execution method:** [claude-code CLI](https://claude.com/claude-code) / `claude-opus-4-7` / inline main session
+- **Wall-clock anchors (Bash `date -u`):** session-start 2026-05-24T23:40Z → session-end captured at commit-prep step
+- **Files touched:** 2 codification files (suite-development.md + supplements/github-actions.md) + audit-trail (this Review 93 entry + FINDINGS-INDEX + SUITE-DEV-REVIEW + CHANGELOG-slim-form-dogfood = 4)
+- **Plan tier:** Claude Max (inherited from prior session per operator's prior declarations; **operator should re-confirm if plan changed**)
+- **Operator-action queue:** if cost-tally precision is load-bearing for cross-cycle calibration, operator runs `/cost` and pastes the output as append-only addendum
+
+---
+
+### Resolved
+
+<a id="r93-f1"></a>
+**Finding 1 — CHANGELOG triple-encoding (same content in review-log + CHANGELOG + SUITE-DEVELOPMENT-REVIEW row); CHANGELOG slim-form convention codified**
+
+**Owner:** technical-writer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+Validator rationale: slim-form codification parallel to F18 SUITE-DEV-REVIEW row slim-form precedent; Sanity Check validates the new shape preserves CHANGELOG's version-diff function without duplicating the review-log narrative.
+
+**Evidence:** Per [Review 91 Finding 18](2026-05-23-suite-review.md#r91-f18)'s SUITE-DEV-REVIEW slim-form analysis + the [Review 91 audit-trail-structure-slop](2026-05-23-suite-review.md#review-91--2026-05-23-1900z) categories 2 + 5 (CHANGELOG triple-encodes the same information as review-log + SUITE-DEV-REVIEW row), CHANGELOG entries have grown 30-70 lines each (PR #45 ~50; PR #48 ~120 across multiple entries; PR #50 ~40; PR #51 ~70 pre-this-Review). Each entry's Added/Changed sub-sections detail the same substantive changes the corresponding review-log entry already names. Updating one without the other creates drift.
+
+**Resolution applied:** [`suite-development.md`](../suite-development.md) § CHANGELOG slim-form convention added (immediately before the F18 SUITE-DEV-REVIEW row slim-form convention). Slim-form template + 1-3-bullet limits + forward-only G-89 carve-out + dogfooded via this Review's own CHANGELOG entry (the [PR #51 CHANGELOG entry for this codification cycle](../../CHANGELOG.md) uses the slim form). Operator-action when authoring new CHANGELOG entries: write narrative in review-log entry's § Summary; render CHANGELOG entry as short version-diff record pointing at it.
+
+**Classification:** Resolved (parallel to F18; CHANGELOG retains version-diff function; narrative source-of-truth at review-log).
+
+---
+
+<a id="r93-f2"></a>
+**Finding 2 — `### Resolved (continued — ...)` heading drift; single-section-per-classification rule codified**
+
+**Owner:** technical-writer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+Validator rationale: structural-drift finding; Sanity Check validates the single-section rule preserves the agent-API grep idiom (`grep "^### Resolved$"`) without ambiguity + the split-by-lens-cluster guidance handles large finding-count cases without proliferating classification headings.
+
+**Evidence:** [Review 91 entry](2026-05-23-suite-review.md#review-91--2026-05-23-1900z) has 2 `### Resolved` sections (original + `### Resolved (continued — F18-F20 slop-fix codifications from the 2da6ad6 commit's raise-and-resolve pattern)`). [Review 92 entry pre-codification](2026-05-24-suite-review.md#review-92--2026-05-24-0419z) had 2 `### Resolved` sections (original + `### Resolved (continued — F2/F3/F4/F5 codifications applied 2026-05-24 via operator-policy decisions)`). The "continued" form accumulates prose in the heading + makes `grep "^### Resolved$"` return zero matches for the continued sections + complicates agent-API parsing.
+
+**Resolution applied:** [`suite-development.md`](../suite-development.md) § Finding sections § Single-section-per-classification rule added — each classification heading appears once per Review entry; raise-then-resolve findings go in the same section. If finding-count exceeds F19 300-line target, split by lens-cluster into multiple Review entries (Review N.1 / N.2 / ...) rather than splitting classification sections within one entry. Pre-2026-05-24 entries with "continued"-form preserved per G-89; this Review 93 itself uses single-section-per-classification (single `### Resolved` containing all 6 findings).
+
+**Classification:** Resolved (agent-API grep idiom now unambiguous; F19 split-by-lens-cluster handles large cycles).
+
+---
+
+<a id="r93-f3"></a>
+**Finding 3 — Em-dash-in-bold sub-heading regex collision with finding-header pattern; No-em-dash-inside-bold-sub-headings rule formalized**
+
+**Owner:** technical-writer + ai-engineer (hook-discipline interaction)
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+Validator rationale: hook-regex-vs-authoring-discipline interaction finding; Sanity Check validates the authoring-discipline workaround is operator-actionable + the hook's existing regex correctly catches the underlying defect class (drift finding headers).
+
+**Evidence:** [`check-suite-review-preamble.py`](../../hooks/check-suite-review-preamble.py)'s `FINDING_HEADER_CANDIDATE` regex `^\*\*\S.+ — .+\*\*\s*$` catches any bold line with internal em-dash. 3 worked-around instances pre-codification: [Review 91 cost-tally rewrite commit](https://github.com/magnificentlycursed/guild-portfolio/commit/2da6ad6) (em-dash → semicolon in 2 sub-headings); [PE Layer 2 R6 amendment](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-22-platform-engineer.md#review-6--2026-05-24-0300z) (em-dash → semicolon in cost-tally heading); this Review 93 entry's own authoring (pre-checked all bold sub-headings for em-dashes before commit).
+
+**Resolution applied:** [`suite-development.md`](../suite-development.md) § Agent-API surface § Cost-tally schema § No-em-dash-inside-bold-sub-headings rule added (codifies the workaround; applies to ALL bold sub-headings in suite-review + project-review entries, not just cost-tally). Authoring discipline: bold sub-headings use parentheses or semicolons as the inner separator, never em-dash. Why not tighten the hook regex: the regex catches a real defect class (drift finding headers missing `Finding N` / `G-XX` prefix); tightening would mask legitimate drift.
+
+**Classification:** Resolved (authoring discipline named + canonical workarounds documented; hook regex preserved at its current defect-catching strength).
+
+---
+
+<a id="r93-f4"></a>
+**Finding 4 — `Source: mixed` sub-disposition no schema; canonical agent-greppable form codified**
+
+**Owner:** technical-writer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+Validator rationale: schema codification finding; Sanity Check validates the canonical form is mechanically parseable by `awk` split-on-`; ` + the finding-range form (`N` or `N-M`) is unambiguous.
+
+**Evidence:** [Review 91 § Per-review entry preamble § Source field](../suite-development.md) named `mixed` as a valid Source value but said the sub-disposition "requires the Source line to name the sub-disposition explicitly" without a canonical schema. Examples from pre-codification entries vary: [Review 88](2026-05-21-suite-review.md#review-88--2026-05-21-1330z) `mixed (external-feedback Findings 2+3; director-raised Findings 1+4+5+6)` (free-form prose); other entries with `mixed` use ad-hoc forms. Free-form is not agent-greppable.
+
+**Resolution applied:** [`suite-development.md`](../suite-development.md) § Per-review entry preamble § Source field § `mixed` Source sub-disposition schema added — required canonical pattern `**Source:** mixed; \`<source1>\` for finding-range \`<N>-<M>\`; \`<source2>\` for finding-range \`<P>-<Q>\``. Agent grep idiom + parse-on-`; ` semicolon-separator. Em-dash separator forbidden per the [No-em-dash-inside-bold-sub-headings rule](#r93-f3). Forward-only per G-89; pre-2026-05-24 mixed-Source entries preserved.
+
+**Classification:** Resolved (mixed-Source sub-disposition now agent-greppable; finding-range form unambiguous).
+
+---
+
+<a id="r93-f5"></a>
+**Finding 5 — Anchor-ID schemes proliferate without central registry; anchor-ID conventions sub-section codified**
+
+**Owner:** technical-writer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+Validator rationale: documentation-completeness finding; Sanity Check validates the registry covers every anchor-ID scheme currently in use (per the canonical-derivation property) + the naming-discipline rules are mechanically applied.
+
+**Evidence:** The suite uses multiple anchor-ID schemes — `rN-fM` (suite forward-only); `g-N` (suite legacy); `<domain-slug>-rN-fM` (project forward-only post-R91 F17); per-Finding `rN-fM` within per-session review-log files (domain context implicit from filename); GitHub-auto Review heading anchors; GitHub-auto H2/H3 heading anchors; manual `<a id="...">` anchors for backward-compat per heading-rename events. No central documentation; an agent grepping for a non-listed pattern has no reference for whether it's drift vs design.
+
+**Resolution applied:** [`suite-development.md`](../suite-development.md) § Agent-API surface § Anchor-ID conventions sub-section added (immediately after the § Agent-API surface intro paragraph). Table enumerates 7 schemes with form + example. Naming discipline named (lowercase + hyphens; suite-side un-qualified; project-side domain-qualified; legacy closed; GitHub-auto deterministic). Central-registry property: new schemes require amending this table. Forward-only per G-89.
+
+**Classification:** Resolved (anchor-ID schemes now have a central registry; agent grep against non-listed pattern is methodology-drift signal).
+
+---
+
+<a id="r93-f6"></a>
+**Finding 6 — PR-template paradox class (merge-gating checklist item that depends on its own merge-gate status); paradox-free verification discipline codified**
+
+**Owner:** ai-engineer (process-enforcement workflow surface per [Review 87 Finding 6](2026-05-21-suite-review.md#review-87--2026-05-21-1230z) per-error-class owner table)
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+Validator rationale: process-enforcement discipline finding; Sanity Check validates the paradox-test (`if I leave this box unchecked, what fails?`) catches the canonical case + the (1) pre-checked with explanatory parenthetical / (2) remove-from-template paths handle the failure mode.
+
+**Evidence:** PR #51 mid-cycle discovery: the template item `- [ ] All GitHub Actions checks pass on the PR's HEAD commit` was paradoxical-by-design — since `pr-checklist.yml` IS one of the GHA checks, leaving this item unchecked made `pr-checklist.yml` fail; the workflow failure blocked merge; the box could never be ticked pre-merge to let the workflow pass. Fixed at [PR #51 commit `8b4efd3`](https://github.com/magnificentlycursed/guild-portfolio/commit/8b4efd3) by renaming to `All other GitHub Actions checks pass on PR HEAD` (excluding `pr-checklist.yml` itself from scope) + pre-checking with explanatory parenthetical. The fix is mechanical; the discipline preventing future recurrence required codification.
+
+**Resolution applied:** [`supplements/github-actions.md`](../../supplements/github-actions.md) § PR template + merge-gate integration § Every merge-gating checklist item must have a non-paradoxical verification surface added. Codifies the paradox-test (`if I leave this box unchecked, what fails?`) + two acceptable paths for paradoxical-by-design items: (1) pre-checked with explanatory parenthetical naming the recursion + the substantive enforcement surface elsewhere; (2) remove from template entirely. PR #51's `All other GitHub Actions checks pass` fix is the canonical worked example.
+
+**Classification:** Resolved (paradox-free verification discipline named; pre-merge audit test specified; canonical worked example preserved).
+
+---
+
+### Summary
+
+Methodology-hardening cycle closing 6 slop-fix items surfaced during the cumulative R91 audit + R92 sweep + PR #51's own template-paradox incident. **6 findings filed, all Resolved in-cycle.** Total Review 93 entry size: target under F19 300-line limit (final size at commit-prep below).
+
+**The cycle dogfoods F1's own CHANGELOG slim-form codification** — the PR #51 CHANGELOG entry for this commit uses the new slim form. Concrete first-instance test of the codification's authoring discipline.
+
+**Cumulative slop-fix state after Review 93 (relative to Review 91's 12 categories):**
+
+| Item | Codification status |
+|---|---|
+| 1. SUITE-DEV-REVIEW row duplication | ✅ Review 91 F18 |
+| 2 + 5. CHANGELOG triple-encoding | ✅ Review 93 F1 (this Review) |
+| 3. Two-registry split (G-XXX legacy + rN-fM forward) | Preserved per G-89 (not fixable per methodology) |
+| 4. Multi-Review-per-file session-spans-midnight | Minor; preserved per G-89 (filename-convention documented at Review 69) |
+| 6. Lifecycle fields split from classification | Preserved per Review 77 schema design |
+| 7. Three-audience prose-asserted not enforced | Review 91 F14 + F16 (discipline); hooks deferred earned-by-recurrence |
+| 8. Project vs suite parallel structure drift | ✅ Review 91 F17 (PR #50 anchor-ID migration) |
+| 9. Per-Review entries grow without bound | ✅ Review 91 F19 (prose discipline; hook escalation earned-by-recurrence) |
+| 10. Cost-tally bloats every Review entry | ✅ Review 91 F20 (opt-in shape) |
+| 11. `Source: mixed` sub-disposition no schema | ✅ Review 93 F4 (this Review) |
+| 12. Anchor IDs proliferate without central registry | ✅ Review 93 F5 (this Review) |
+
+**Plus new-from-PR-#51-incident slop fixes**:
+
+| Item | Codification status |
+|---|---|
+| B. `### Resolved (continued — ...)` heading drift | ✅ Review 93 F2 (this Review) |
+| C. Em-dash-in-bold sub-heading regex collision | ✅ Review 93 F3 (this Review) |
+| F. PR-template paradox class | ✅ Review 93 F6 (this Review) |
+
+**Substantive slop-fixes from the cumulative R91 12-category list are now ALL addressed or preserved per G-89.** The methodology-hardening backlog from the audit-trail-structure work is empty going into Layer 3.
+
+**Coordination:** routes forward to (a) operator-action: merge PR #51 (which bundles this Review 93 + Review 92 codifications + PR-template paradox fix); (b) Layer 3 spec activation in bookmark-cli-manual (the only remaining Layer-3-readiness item per the checklist); (c) future suite-development cycles: the CHANGELOG slim-form + Resolved-continued + em-dash + Source-mixed + anchor-ID + paradox-free disciplines apply forward — pre-2026-05-24 instances preserved per G-89.

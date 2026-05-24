@@ -4,6 +4,27 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-24 23:40Z (Review 93 — methodology-hardening cycle; 6 slop-fix codifications)
+
+Per [Review 93 entry](suite-development/review-log/2026-05-24-suite-review.md#review-93--2026-05-24-2340z) — slim-form CHANGELOG entry dogfoods this Review's F1 codification.
+
+### Added
+
+- [`suite-development.md`](suite-development/suite-development.md) § CHANGELOG slim-form convention (Review 93 F1)
+- [`suite-development.md`](suite-development/suite-development.md) § Finding sections § Single-section-per-classification rule (Review 93 F2)
+- [`suite-development.md`](suite-development/suite-development.md) § Agent-API surface § No-em-dash-inside-bold-sub-headings rule + § Anchor-ID conventions central registry (Review 93 F3 + F5)
+- [`suite-development.md`](suite-development/suite-development.md) § Per-review entry preamble § `mixed` Source sub-disposition schema (Review 93 F4)
+- [`supplements/github-actions.md`](supplements/github-actions.md) § PR template + merge-gate integration § paradox-free verification discipline (Review 93 F6)
+
+### Changed
+
+- [`suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) — 6 new forward-only rows (r93-f1 through r93-f6)
+- [`suite-development/SUITE-DEVELOPMENT-REVIEW.md`](suite-development/SUITE-DEVELOPMENT-REVIEW.md) — Review 93 slim-form row added
+
+### Cost-tally — see [Review 93 entry](suite-development/review-log/2026-05-24-suite-review.md#review-93--2026-05-24-2340z) cost-tally section
+
+---
+
 ## Unreleased — 2026-05-24 21:12Z (Review 92 Findings 2/3/4/5 closure — supplements three-audience Hybrid cascade + primer pre-cycle Path 2 amendment + prose-only-supplement Active sweep + cost-tally Hybrid scope + earned-by-recurrence trigger)
 
 Operator-directed closure of the 4 originally-Open Review 92 findings per operator-policy decisions:

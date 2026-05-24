@@ -217,6 +217,31 @@ The four-domain coverage is the methodology's own three-audience check: TW write
 
 The suite commits to a stable agent-readable surface across the audit-trail artifacts. This section documents every machine-parseable invariant — agents authored against these invariants will not break across releases unless the methodology shift is itself documented in a Review (which updates this section in lockstep). Forward-only constraint: invariants below apply to artifacts authored on or after [Review 80](review-log/2026-05-20-suite-review.md#review-80--2026-05-20-1830z) (2026-05-20); pre-Review-80 artifacts may have looser conformance preserved per [G-89](FINDINGS-INDEX.md#g-89).
 
+**Anchor-ID conventions ([Review 93](review-log/2026-05-24-suite-review.md#review-93--2026-05-24-2340z) Finding 5 — central registry of canonical schemes).** The suite uses multiple anchor-ID schemes per the artifact type + scope. Each scheme is mechanically derivable from the artifact's identity-fields; agents authored against these schemes can construct anchors without ambiguity.
+
+| Scheme | Where used | Form | Example |
+|---|---|---|---|
+| Suite-side forward-only finding | [`suite-development/FINDINGS-INDEX.md`](FINDINGS-INDEX.md) + [`suite-development/review-log/`](review-log/) Review N Finding M entries | `<a id="rN-fM"></a>` | `<a id="r91-f17"></a>` (Review 91 Finding 17) |
+| Suite-side legacy finding (closed namespace) | [`suite-development/FINDINGS-INDEX.md`](FINDINGS-INDEX.md) § Legacy registry | `<a id="g-N"></a>` | `<a id="g-89"></a>` (G-89 forward-only narrative-preservation) |
+| Project-side forward-only finding (post-[R91 F17](review-log/2026-05-23-suite-review.md#r91-f17)) | `<project>/vsdd-suite/FINDINGS-INDEX.md` + `<project>/vsdd-suite/review-log/` per-session entries | `<a id="<domain-slug>-rN-fM"></a>` | `<a id="quality-engineer-r1-f1"></a>` (QE Round 1 Finding 1) |
+| Per-Finding anchor within a per-session review-log file | `<project>/vsdd-suite/review-log/YYYY-MM-DD-<domain>.md` Finding bodies | `<a id="rN-fM"></a>` (domain context implicit from filename slug) | `<a id="r3-f2"></a>` (Round 3 Finding 2 within the file) |
+| Review heading auto-anchor | All review-log Review N entries (suite-side + project-side) | GitHub-auto-slug: `#review-N--YYYY-MM-DD-HHMMZ` | `#review-91--2026-05-23-1900z` |
+| H2/H3/H4 section auto-anchor | All markdown files | GitHub-auto-slug: lowercase + spaces-to-hyphens + strip-most-punctuation | `#three-audience-design-principle-review-80-finding-3` |
+| Suite-development discipline-section anchor (manual) | [`suite-development.md`](suite-development.md) sub-sections explicitly anchored for backward compatibility per heading-rename events | `<a id="<slug>"></a>` immediately above the heading | `<a id="dual-audience-design-principle-review-80-finding-3"></a>` (preserved per G-89 after Review 84 rename) |
+
+**Naming discipline:**
+
+- All explicit anchor-IDs use **lowercase + hyphens** (matches GitHub auto-slug convention)
+- Suite-side forward-only finding anchors use **`rN-fM`** (no domain qualifier; suite-side findings are uniquely identified by Review + Finding combo)
+- Project-side forward-only finding anchors use **`<domain-slug>-rN-fM`** (domain qualifier required; multiple domains can have same Round + Finding numbers within a project)
+- Per-Finding anchors WITHIN a per-session review-log file use the un-qualified `rN-fM` (domain context implicit from filename slug `YYYY-MM-DD-<domain>.md`); cross-cutting registry rows use the qualified form
+- Legacy `g-N` namespace is **closed** — no new entries; preserved per G-89
+- Heading auto-anchors are NOT explicitly authored; GitHub generates them deterministically — agents construct them by slugifying the heading
+
+**Central-registry property:** all anchor-ID schemes used in the suite are documented here + no new scheme is introduced without amending this table. An agent grepping for a non-listed pattern is a methodology-drift signal worth surfacing as a finding.
+
+**Forward-only:** the registry applies to anchors authored 2026-05-24 and later. Existing anchors (legacy `g-N`; pre-Review-80 ad-hoc forms; PR #50's F17 migration which used the documented `<domain-slug>-rN-fM` form preemptively) are preserved as authored.
+
 **Review heading (per-session entry boundary).**
 
 ```
@@ -355,7 +380,15 @@ The cost-tally section is part of the agent-readable surface for capstone+ multi
 **Operator-action queue:** if cost-tally precision is load-bearing for cross-cycle calibration, operator runs `/cost` in this session and pastes the output here as an append-only addendum, replacing the *pending operator …* placeholders with measured values.
 ```
 
-Parse boundaries: cost-tally section starts at `**Cost-tally:**` or `**Cost-tally (minimal):**` heading; closes at the next `---` separator OR the next `### Open` / `### Resolved` / `### Dismissed` / `### Coordination` heading. Sub-section headings (`**Agent-self-verifiable ...:**`, `**Operator-verifiable ...:**`, `**Operator-confirmable ...:**`, `**Derived metric ...:**`) use parenthetical-form not em-dash-form to avoid the finding-header regex collision per [Review 91](review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) commit `2da6ad6` fix.
+Parse boundaries: cost-tally section starts at `**Cost-tally:**` or `**Cost-tally (minimal):**` heading; closes at the next `---` separator OR the next `### Open` / `### Resolved` / `### Dismissed` / `### Coordination` heading. Sub-section headings (`**Agent-self-verifiable ...:**`, `**Operator-verifiable ...:**`, `**Operator-confirmable ...:**`, `**Derived metric ...:**`) use parenthetical-form not em-dash-form per the No-em-dash-inside-bold-sub-headings rule below.
+
+**No-em-dash-inside-bold-sub-headings rule ([Review 93](review-log/2026-05-24-suite-review.md#review-93--2026-05-24-2340z) Finding 3 — formalization of [Review 91](review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) commit `2da6ad6` fix + [PE R6 amendment](../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-22-platform-engineer.md#review-6--2026-05-24-0300z) workaround):** any bold sub-heading inside a Review entry that contains ` — ` (space em-dash space) between the bold markers triggers the [`check-suite-review-preamble.py`](../hooks/check-suite-review-preamble.py) finding-header regex `^\*\*\S.+ — .+\*\*\s*$` (the [`FINDING_HEADER_CANDIDATE`](../hooks/check-suite-review-preamble.py) pattern). The hook flags such lines as malformed finding headers + fails the commit. **Workaround at authoring time**: bold sub-headings use **parentheses** or **semicolons** as the inner separator, never em-dash. Examples:
+
+- ✗ `**Operator-verifiable — requires /cost paste:**` — triggers the hook
+- ✓ `**Operator-verifiable (requires /cost paste):**` — clean
+- ✓ `**Operator-verifiable; requires /cost paste:**` — clean
+
+The rule applies to ALL bold sub-headings in suite-review + project-review entries, NOT just cost-tally sub-headings. Worked around 3 times pre-codification (Review 91 cost-tally rewrite; PE Layer 2 R6 amendment in bookmark-cli-manual; this Review 93 codification's own authoring). Forward-only per [G-89](FINDINGS-INDEX.md#g-89): pre-2026-05-24 bold sub-headings with em-dashes that previously slipped past the hook are preserved as authored; new authoring uses the rule. **Why not tighten the hook regex instead:** the regex catches a real defect class (drift finding headers that omit `Finding N — ` prefix); tightening to require `Finding N` or `G-XX` prefix would mask legitimate drift. The discipline-on-authoring is the right intervention surface.
 
 Grep idioms for cost-tally lookup (extends the Common agent lookup patterns table below):
 
@@ -568,7 +601,20 @@ Within a session file, rounds are ordered newest-first (matching the index order
 **Required for all domains:**
 - **Scope:** what artifacts were reviewed in this round
 - **Session note:** session-isolation status (cold session vs. in-session, with explicit acknowledgement of the quality tradeoff when in-session)
-- **Source (G-133):** how this round's findings were elicited. Valid values: `domain-raised` (the cold adversary, applying the domain's dimensions, found the finding) — the default if no Source line is present; `director-raised` (the operator running manual testing, post-MVR exploration, or any non-domain-prompt-driven adversarial pass found the finding; ITC L6 R3 SO R22 is the canonical example — director's manual execution of "delete highest-id, create" caught a spec violation 11 cold-batch IAR domain reviews missed); `regression-replay` (a prior layer's adversarial reproducer re-run against the current binary surfaced the finding); `external-feedback` (an upstream stakeholder, project consumer, or methodology author surfaced the finding through prose feedback rather than a structured review — dollspace.gay's `message-4.txt` evaluation of ITC, mined in Review 51, is the canonical example); `mixed` (Review 68 Finding 9 extension) when the round's findings span more than one of the above sources, e.g., a session opened by a director-raised question that then surfaces additional domain-raised findings via cold-context primer reload. The `mixed` value requires the Source line to name the sub-disposition explicitly (e.g., `**Source:** mixed — `domain-raised` for findings 1–3; `director-raised` for findings 4–5`). The Source field gives audit-trail granularity to the Portfolio Assessment dimensions on developer participation; a project whose findings cluster heavily in `director-raised` or `external-feedback` is a different developer-engagement profile than one whose findings cluster in `domain-raised`.
+- **Source (G-133):** how this round's findings were elicited. Valid values: `domain-raised` (the cold adversary, applying the domain's dimensions, found the finding) — the default if no Source line is present; `director-raised` (the operator running manual testing, post-MVR exploration, or any non-domain-prompt-driven adversarial pass found the finding; ITC L6 R3 SO R22 is the canonical example — director's manual execution of "delete highest-id, create" caught a spec violation 11 cold-batch IAR domain reviews missed); `regression-replay` (a prior layer's adversarial reproducer re-run against the current binary surfaced the finding); `external-feedback` (an upstream stakeholder, project consumer, or methodology author surfaced the finding through prose feedback rather than a structured review — dollspace.gay's `message-4.txt` evaluation of ITC, mined in Review 51, is the canonical example); `mixed` (Review 68 Finding 9 extension) when the round's findings span more than one of the above sources. The Source field gives audit-trail granularity to the Portfolio Assessment dimensions on developer participation; a project whose findings cluster heavily in `director-raised` or `external-feedback` is a different developer-engagement profile than one whose findings cluster in `domain-raised`.
+
+  **`mixed` Source sub-disposition schema ([Review 93](review-log/2026-05-24-suite-review.md#review-93--2026-05-24-2340z) Finding 4):** when the Source value is `mixed`, the Source line MUST name the per-finding-range sub-disposition in a canonical agent-greppable form. Required pattern:
+
+  ```
+  **Source:** mixed; `<source1>` for finding-range `<N>-<M>`; `<source2>` for finding-range `<P>-<Q>` [; `<sourceN>` for finding-range `<...>`...]
+  ```
+
+  Examples:
+
+  - `**Source:** mixed; \`domain-raised\` for finding-range 1-3; \`director-raised\` for finding-range 4-5`
+  - `**Source:** mixed; \`external-feedback\` for finding-range 1; \`domain-raised\` for finding-range 2-4`
+
+  Agent grep idiom for mixed-source attribution: `grep -A 1 '^\*\*Source:\*\* mixed' vsdd-suite/suite-development/review-log/*.md` returns each mixed-source line with the sub-disposition attribution parseable by splitting on `; `. Finding-range form is `N` (single) or `N-M` (range, inclusive). Empty / non-canonical sub-disposition forms (e.g., free-form prose; mixed without sub-disposition; em-dash separator) are non-compliant per [Review 93 Finding 4](review-log/2026-05-24-suite-review.md#review-93--2026-05-24-2340z). The canonical separator is `; ` (semicolon-space) — NOT em-dash, per the [No-em-dash-inside-bold-sub-headings rule](#agent-api-surface-review-80-finding-3) (the Source value extends inside the bold preamble field; em-dash inside it would also trigger the hook's finding-header regex). Forward-only: pre-2026-05-24 mixed-Source entries (e.g., [Review 88 Source: mixed](review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z)) preserved as authored per [G-89](FINDINGS-INDEX.md#g-89); new mixed-Source entries use the canonical form.
 
 **Optional, only when applicable to the domain:**
 - **Posture:** adversarial framing (Red Team)
@@ -609,6 +655,8 @@ Empty classification sections use a `*(none)*` placeholder so the structure is v
 ```
 
 A round that closes with no `### Open` section is a structural error — the absence of open findings is itself a state worth recording. The set of section headings should equal the domain's full classification set, with `*(none)*` used wherever empty.
+
+**Single-section-per-classification rule ([Review 93](review-log/2026-05-24-suite-review.md#review-93--2026-05-24-2340z) Finding 2):** each classification heading appears **once** per Review entry. When findings are raised + immediately resolved in-cycle (the canonical raise-then-resolve shape), they go in the SAME `### Resolved` section as other Resolved findings — not in a separate `### Resolved (continued — ...)` heading. The "continued" form (used at [Review 91 entry](review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) and pre-codification [Review 92 entry](review-log/2026-05-24-suite-review.md#review-92--2026-05-24-0419z)) is **structural drift** — accumulates prose in the heading + makes the agent-API grep idiom (`grep "^### Resolved$"`) ambiguous when multiple sections exist. Pre-2026-05-24 entries with "continued"-form sections are preserved per [G-89](FINDINGS-INDEX.md#g-89) forward-only narrative-preservation; new entries use single-section-per-classification. If a Review entry's finding-count exceeds the F19 300-line target, split by lens-cluster into multiple Review entries (Review N.1 / N.2 / ...) rather than splitting the classification sections within one entry.
 
 **Exception — Portfolio Assessment:** Portfolio Assessment groups by dimension (`### Dim N — Name`), not by classification, because each portfolio dimension produces a per-dim assessment (`Demonstrated`/`Partial`/`Absent`/`Hallucinated`) rather than a defect to fix. The classification appears at the end of each dim section and a summary table appears at the close. Portfolio also adds a file-level `**Developer participation note:**` directly under the sycophancy check, naming which dimensions require direct developer interrogation rather than artifact analysis. These exceptions are intentional and limited to Portfolio Assessment; no other domain may use dim-first organization or the participation-note field.
 
@@ -787,6 +835,32 @@ A cold-session suite review is permitted and produces stronger adversarial press
 ### Common discipline
 
 The session entry is the narrative record. The `FINDINGS-INDEX.md` row is the status indicator for gaps. The `SUITE-DEVELOPMENT-REVIEW.md` row is the index pointer for the session. Never put narrative in the registry; never omit the registry update; never omit the index row. An unindexed session is invisible to future reviewers.
+
+### CHANGELOG slim-form convention ([Review 93](review-log/2026-05-24-suite-review.md#review-93--2026-05-24-2340z) Finding 1)
+
+`vsdd-suite/CHANGELOG.md` Unreleased entries are **version-diff records**, not content surfaces. The canonical narrative for each PR lives in the suite-side review-log entry that drove the PR's substantive changes; CHANGELOG entries link to that narrative rather than duplicating it. Entries authored 2026-05-24 and later use the slim-form shape:
+
+```
+## Unreleased — YYYY-MM-DD HH:MMZ (PR #N — one-sentence scope; links to Review N entry as canonical narrative)
+
+Per [Review N entry](suite-development/review-log/YYYY-MM-DD-suite-review.md#review-N--YYYY-MM-DD-HHMMZ): one-sentence description of what this PR codified + named operator-policy decisions if any.
+
+### Added (1-3 short bullets max)
+
+- File or section name → 1-line description with link to canonical narrative
+
+### Changed (1-3 short bullets max)
+
+- File or section name → 1-line description with link to canonical narrative
+
+### Cost-tally — see [Review N entry](suite-development/review-log/YYYY-MM-DD-suite-review.md#review-N--YYYY-MM-DD-HHMMZ) cost-tally section
+```
+
+**The full prose belongs in the review-log entry, not in the CHANGELOG.** Prior entries (pre-2026-05-24 — including the multi-paragraph PR #45 / PR #48 / PR #50 / PR #51 entries) carrying 30-70-line detailed Added/Changed/Pending sub-sections are preserved per [G-89](FINDINGS-INDEX.md#g-89) forward-only narrative-preservation; new entries + amendments to existing entries use the slim-form.
+
+**Why:** parallel to [§ SUITE-DEVELOPMENT-REVIEW row slim-form convention](#suite-development-review-row-slim-form-convention-review-91-finding-18) below. CHANGELOG triple-encoded the same information that lives in the review-log entry + the SUITE-DEVELOPMENT-REVIEW row; updating one without the others created drift; the maintenance cost was operator-visible across PRs. Slim CHANGELOG entries point at the review-log entry as the single source of truth for the PR's narrative. The CHANGELOG retains its version-diff function (CI cross-version comparison; release notes; cross-cycle changelog scanning) without duplicating the narrative.
+
+**Operator action when authoring a new CHANGELOG entry:** write the full narrative in the review-log entry's body + § Summary; render the CHANGELOG entry as a short version-diff record pointing at it.
 
 ### SUITE-DEVELOPMENT-REVIEW row slim-form convention ([Review 91](review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) Finding 18)
 
