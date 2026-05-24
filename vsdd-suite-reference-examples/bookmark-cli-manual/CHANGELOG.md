@@ -1,5 +1,34 @@
 # Changelog
 
+## [Unreleased] Layer 2 Phase-5-trigger follow-up — 3 closures (proptest restructure + scaling refactor + fsync filesystem-coverage caveat) — 2026-05-23 ([PR #47](https://github.com/magnificentlycursed/guild-portfolio/pull/47))
+
+**Scope:** Close the three Phase-5-trigger carry-forward items documented in PR [#44](https://github.com/magnificentlycursed/guild-portfolio/pull/44) Layer 2 capstone cycle CHANGELOG.
+
+### Changed (tests/scaling.rs — PE R2 F4 close)
+
+- **`populate` refactored to use the library API** (`BookmarkStore::add` + single trailing `save`) instead of spawning `bm add` once per bookmark via `assert_cmd`. Prior shape at N=10,000 spent ~24 min wall-clock dominated by process-spawn overhead — the test was measuring spawn cost, not the `add` codepath at scale. The library-API path tests the actual storage-layer scale; the binary-surface integration aspect is already covered by `tests/bookmarks.rs` per-bookmark tests. **Empirical: 3 scaling sentinels (100 + 1,000 + 10,000 bookmarks) now pass in 0.85s** (was ~24 min) — ~1700× speedup. The fsync codepath is still exercised (one `save` at population-end calls `fsync_directory`). The 10K-cliff `#[ignore]` docstring updated from "~1-2 min" to "~5-15 sec post-PR-#47".
+
+### Changed (tests/properties.rs — SE R2 F5 close)
+
+- **`tag_idempotence_property` refactored to eliminate `prop_assume!` rejection.** New `store_with_matching_url_strategy()` generates the store first then picks a matching URL via `prop_flat_map`, so every generated case is a substantive match-case — no rejection-rate dependency on the 64-case budget. The prior `prop_assume!(single_result.is_ok())` filter risked silently reducing the effective case count.
+- **New companion property `tag_idempotence_property_no_match_path`** covers the NoMatch boundary explicitly. The strategy generates URLs from a disjoint alphabet (`https://unmatched-example-[0-3].com`) so attach_tag is guaranteed to return `AttachTagError::NoMatch(_)`. The split makes the full contract surface tested at the property level without rejection-rate dependency. Total proptest count: 3 (was 2; +1 new).
+
+### Changed (DESIGN.md § Performance budget — PE R1 F5 close)
+
+- **New paragraph: "Filesystem-coverage caveat"** documents the limitation of the `< 5 ms on commodity SSD` fsync budget estimate. The measurement basis is the reference-example operator's local APFS (macOS) + ext4 (Linux CI runner); cost may differ materially on NFS / CIFS (10-100× local latency), FUSE filesystems (driver-dependent), tmpfs (no-op + vacuous durability), or cross-filesystem `rename(2)` (EXDEV-fails before fsync). **Accepted limitation for the reference-example scope.** A production-intent fork targeting shared-filesystem deployments would extend the budget table per measured filesystem.
+
+### Phase 5 closure status
+
+All 3 Phase-5-trigger carry-forwards from PR #44 now closed. The Phase 5 Layer 2 strategy declared in DESIGN.md § Project intent is fully satisfied:
+
+- Purity Boundary Audit re-run: zero findings (SA Review 4 at PR #44)
+- Mutation Testing re-run: 93.2% kill rate (QE Review 6 at PR #44)
+- property-based testing via proptest: 3 properties active + no rejection-rate dependency (QE Review 7 below)
+- scaling sentinels: 3 sentinels at 100/1k/10k cliffs run in seconds (PE coverage via tests/scaling.rs)
+- fsync durability discipline: documented + caveat-accepted at the reference-example scope (DESIGN.md § Performance budget)
+
+---
+
 ## [Unreleased] Layer 2 carry-forward close — SO-routed spec amendments + small SE refinements — 2026-05-23 ([PR #46](https://github.com/magnificentlycursed/guild-portfolio/pull/46))
 
 **Scope:** Close the bounded carry-forward queue from PR [#44](https://github.com/magnificentlycursed/guild-portfolio/pull/44) Layer 2 capstone cycle. Five items addressed: 3 DESIGN.md spec amendments (SO-routed) + 1 src/lib.rs code change (SE F1) + 1 test rename (SE F4) + project CHANGELOG/TODO updates.

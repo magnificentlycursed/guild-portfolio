@@ -33,23 +33,37 @@ use bookmark_cli::BookmarkStore;
 use std::path::Path;
 use tempfile::tempdir;
 
-/// Generates `n` bookmarks by invoking `bm add` against a fresh temp store.
-/// Returns the recorded URLs so the test can pick a known URL (e.g. `n/2`)
-/// to tag. The `bm add` loop is deliberately the binary-surface path — this
-/// is the same code path the operator's real session uses, so the test
-/// exercises the full atomic-save + fsync codepath at scale.
+/// Generates `n` bookmarks via the library API (`BookmarkStore::add` +
+/// `BookmarkStore::save` once at the end). Returns the recorded URLs so the
+/// test can pick a known URL (e.g. `n/2`) to tag.
+///
+/// **PR #47 refactor (Layer 2 Phase-5-trigger PE R2 F4 close):** prior
+/// shape spawned `bm add` once per bookmark via `assert_cmd`. At N=10,000
+/// the 10,000 process spawns dominated the wall-clock (~24 min measured
+/// vs. ~1-2 min docstring estimate) — the test was measuring process-spawn
+/// overhead, not the `add` codepath at scale. The library-API path tests
+/// the actual storage-layer scale; the binary-surface integration aspect
+/// is already covered by `tests/bookmarks.rs` per-bookmark tests. With
+/// the in-process loop + single trailing `save`, 10K bookmarks complete
+/// in seconds rather than minutes.
+///
+/// The fsync codepath is still exercised — `save` calls
+/// `fsync_directory` on the parent dir on Unix per `DESIGN.md`
+/// § Performance budget § Durability discipline (Layer 2) — but it's
+/// called once at population-end, not once per bookmark. This matches the
+/// production-shape semantic: a real operator running 10K `bm add`
+/// invocations pays the per-add save + fsync cost; the SCALING SENTINEL
+/// tests the correctness-at-scale, not the per-add wall-clock-at-scale
+/// (which is dominated by process-spawn overhead anyway).
 fn populate(db: &Path, n: usize) -> Vec<String> {
+    let mut store = BookmarkStore::default();
     let mut urls = Vec::with_capacity(n);
     for i in 0..n {
         let url = format!("https://example-{i}.com");
-        Command::cargo_bin("bm")
-            .unwrap()
-            .env("BOOKMARK_CLI_DB", db)
-            .args(["add", &url])
-            .assert()
-            .success();
+        store.add(url.clone()).unwrap();
         urls.push(url);
     }
+    store.save(db).unwrap();
     urls
 }
 
@@ -183,7 +197,7 @@ fn scaling_1000_bookmarks_round_trips_and_filters_correctly() {
 /// of a minute or two on commodity hardware. This is why the sentinel
 /// is `#[ignore]`-gated by default.
 #[test]
-#[ignore = "scaling sentinel (~1-2 min wall-clock); run via `cargo test -- --ignored`"]
+#[ignore = "scaling sentinel (~5-15 sec wall-clock post-PR-#47 library-API populate); run via `cargo test -- --ignored`"]
 fn scaling_10_000_bookmarks_round_trips_and_filters_correctly() {
     let dir = tempdir().unwrap();
     let db = dir.path().join("bookmarks.json");
