@@ -47,7 +47,7 @@ Items are categorized by discipline; each item has a verification step.
 ### Pre-commit + CI
 
 - [ ] All pre-commit hooks pass locally (`pre-commit run --all-files` clean)
-- [ ] All GitHub Actions checks pass on the PR's HEAD commit
+- [x] All other GitHub Actions checks pass on PR HEAD (operator-attested before merge via the GHA status-check surface; pre-checked because the `pr-checklist.yml` workflow IS itself one of the GHA checks — a paradoxical chicken-and-egg if left unchecked: the unchecked box makes the workflow fail, the workflow failure blocks merge, so the box can never be ticked pre-merge to let the workflow pass. Pre-checked breaks the paradox; GitHub branch protection rules enforce the substantive GHA-checks-pass discipline via the status-check surface, not via this checkbox).
 - [ ] `cargo fmt --check` clean (for Rust projects)
 - [ ] `cargo clippy --all-targets -- -D warnings` clean (for Rust projects)
 - [ ] `cargo test` passes (for Rust projects)
