@@ -1,8 +1,10 @@
 # Pins the Rust toolchain every contributor and CI runner uses, so lockfile
 # resolution + clippy-warning set + rustc behavior stay reproducible across
 # environments. The channel is a recent stable that satisfies the MSRV declared
-# in DESIGN.md § Constraints (1.78+); pairs with `rust-version = "1.78"` in
-# Cargo.toml which is the cargo-resolver-visible MSRV signal for consumers.
+# in DESIGN.md § Constraints (1.81+ per Layer 2 Round 1 PE F4 — bumped from
+# 1.78 because Layer 1 R3's `reason = "..."` attribute syntax requires 1.81);
+# pairs with `rust-version = "1.81"` in Cargo.toml which is the cargo-resolver-
+# visible MSRV signal for consumers.
 #
 # Round 2 fix per Platform Engineer Review 1 Finding 2
 # (vsdd-suite/review-log/2026-05-20-platform-engineer.md).

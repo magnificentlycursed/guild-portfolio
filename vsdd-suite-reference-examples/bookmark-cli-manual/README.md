@@ -6,7 +6,7 @@ A single-user command-line tool for capturing URLs at the terminal and recalling
 
 `bookmark-cli` is the **reference implementation** for the [VSDD (Verified Spec-Driven Development) Suite](../../vsdd-suite/README.md)'s worked example — it exists to validate the suite's documented workflow end-to-end ([G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) in the suite's gap registry). It is small by design and intentionally limited in scope. A user who wants a real bookmark manager should use a browser or a dedicated tool; this is a portfolio demonstration artifact.
 
-Current state: **Layer 1 complete** (add + list). Layers 2 (tag + filter) and 3 (export + import) are scoped in [`DESIGN.md`](DESIGN.md) but not built — the reference-implementation purpose is satisfied by one layer end-to-end.
+Current state: **Layer 1 project-terminal at PR #42** (add + list) + **Layer 2 active in the post-PR-#43 cycle** (tag + filter). Layer 3 (export + import) is scoped in [`DESIGN.md`](DESIGN.md) but not built — the reference-implementation purpose is satisfied by Layer 1 reaching project-terminal end-to-end + Layer 2 extending the worked example through a second iteration of the full 6-phase cycle.
 
 ## Prerequisites
 
@@ -28,11 +28,20 @@ which bm   # expect: ~/.cargo/bin/bm
 # Set the storage path (defaults to ./bookmarks.json if unset)
 export BOOKMARK_CLI_DB=~/.bookmarks.json
 
-# Add a URL
+# Add a URL (Layer 1)
 bm add https://example.com
 
-# List all bookmarks, newest first
+# List all bookmarks, newest first (Layer 1)
 bm list
+
+# Tag a bookmark by URL (Layer 2; idempotent)
+bm tag https://example.com rust
+
+# Filter the list by tag (Layer 2)
+bm list --tag rust
+
+# Repeated --tag composes as OR (a bookmark matches if it has ANY listed tag)
+bm list --tag rust --tag go
 ```
 
 ## Test
@@ -40,14 +49,18 @@ bm list
 ```sh
 cd PORTFOLIO/vsdd-suite-reference-examples/bookmark-cli-manual
 cargo test
-# expect: all tests pass — the test suite (currently ~19 lib + integration tests at Layer 1, post-Round-2 fix cycle) covers the behavioral contracts in DESIGN.md.
+# expect: all tests pass — the default test suite (currently 12 unit + 29 integration + 2 proptest = 43 tests at Layer 2, post-Round-1 fix cycle) covers the behavioral contracts in DESIGN.md.
+# Three additional #[ignore]-gated data-scaling sentinels at the
+# 100 / 1,000 / 10,000-bookmark cliffs live at `tests/scaling.rs`. Run them
+# explicitly via `cargo test --release -- --ignored` (the CI workflow does
+# this in a separate Linux-only job to keep macOS-runner cost down).
 ```
 
 ## How this was built
 
 Built using the [VSDD (Verified Spec-Driven Development) Suite](../../vsdd-suite/README.md) — the per-phase primers and per-domain review prompts. The spec is in [`DESIGN.md`](DESIGN.md); the layer plan and manual testing checklist are in [`TODO.md`](TODO.md); the per-session review-log files are in [`vsdd-suite/review-log/`](vsdd-suite/review-log/) and the project finding registry is at [`vsdd-suite/FINDINGS-INDEX.md`](vsdd-suite/FINDINGS-INDEX.md) (scaffolded via the suite's `templates/scaffold-project.sh`). IAR (Iterative Adversarial Refinement) runs at Phase 3 per the active domain set declared in [`DESIGN.md`](DESIGN.md) § Project intent; MVR (maximum viable refinement) is the per-domain stop trigger; TDD (test-driven development) discipline applies at Phase 2a (Red Gate) → Phase 2b (implementation).
 
-Phase progression for Layer 1:
+Phase progression for Layer 1 (project-terminal at PR #42):
 
 | Phase | Artifact | Status |
 |---|---|---|
@@ -55,8 +68,29 @@ Phase progression for Layer 1:
 | 1b | [`TODO.md`](TODO.md) | Complete |
 | 2a | [`tests/bookmarks.rs`](tests/bookmarks.rs) Red Gate | Complete (4 failing tests committed before implementation) |
 | 2b | [`src/lib.rs`](src/lib.rs), [`src/main.rs`](src/main.rs) | Complete (all tests pass) |
-| 3 | per-session [`vsdd-suite/review-log/`](vsdd-suite/review-log/) files + [`vsdd-suite/FINDINGS-INDEX.md`](vsdd-suite/FINDINGS-INDEX.md) registry | Complete (7 of 12 active domains at MVR; 2 operator-gated MVR-blocked — Platform Engineer install-verification + Performance Engineer fsync benchmark deferred to Layer 2; 1 Deferred sweep-discipline carryforward routed to suite-level remediation; AI Engineer R1 closed in PR #39; Round 4 cluster — UX/TW/QE — closed in PR #42 post-Nathan-Bluesky-thread feedback) |
+| 3 | per-session [`vsdd-suite/review-log/`](vsdd-suite/review-log/) files + [`vsdd-suite/FINDINGS-INDEX.md`](vsdd-suite/FINDINGS-INDEX.md) registry | Complete (10 of 10 active capstone-tier role-domains at MVR + the VDD-IAR Alignment meta + Phase 5 SA Purity Boundary Audit + Phase 5 QE Mutation Testing rounds = 13 active per [`DESIGN.md` § Project intent](DESIGN.md#project-intent); Round 4 UX/TW/QE cluster closed in PR #42 post-Nathan-Bluesky-thread feedback) |
 | 4 | [Phase 4](../../vsdd-suite/primers/4-feedback-integration.md) routing | Routed 80 findings through Phase 4 → fix cycle → Round 2 verification ([Review 82](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z)) |
+| 5 | Phase 5 hardening | Purity Boundary Audit ([SA Review 1](vsdd-suite/review-log/2026-05-20-solution-architect.md)) + Mutation Testing ([QE Review 2](vsdd-suite/review-log/2026-05-20-quality-engineer.md), 8/8 viable kill rate). Property-based testing deferred at Layer 1 (Layer-1 purity boundary shallow); Fuzz Testing + Proof Execution not applicable. |
+| 6 | Phase 6 four-dimensional convergence attestation | [VDD-IAR Alignment Review 3 (project-terminal Layer 1)](vsdd-suite/review-log/2026-05-20-vdd-iar-alignment.md) — Spec MVR + Test MVR + Implementation MVR + Formal-verification MVR all ATTESTED at PR #42 |
+
+Phase progression for Layer 2 (active per the post-PR-#43 cycle — adds `bm tag` + `bm list --tag` + the per-bookmark `tags` field):
+
+| Phase | Artifact | Status |
+|---|---|---|
+| 1a | [`DESIGN.md`](DESIGN.md) Layer 2 extensions | Complete (AC 5–13 + § `bm tag` + § `bm list --tag` + § Storage format `tags` field + § Performance budget Layer 2 extensions) |
+| 1b | [`TODO.md` § Layer 2 — Tag and filter](TODO.md#layer-2--tag-and-filter) | Complete |
+| 2a | [`tests/bookmarks.rs`](tests/bookmarks.rs) Layer 2 Red Gate | Complete (13 + 1 = 14 new failing tests committed before implementation per the per-AC + RFC 3339 Layer-1-Deferred-closure plan; the Phase 2b sub-agent's pre-implementation spawn output recorded 12 of 13 failing with `error: unrecognized subcommand 'tag'`) |
+| 2b | [`src/lib.rs`](src/lib.rs) + [`src/main.rs`](src/main.rs) Layer 2 surface | Complete (`Bookmark.tags` field + `AttachTagError` + `attach_tag` + `filter_by_tags` + parent-dir `fsync` on Unix + `Cmd::Tag` + `Cmd::List { tags }` clap surface) |
+| 2c | [refactor (extract-and-name)](TODO.md#layer-2--tag-and-filter) | Complete — `run_add` / `run_list` / `run_tag` extracted from `main()` per [primer 2c § Scope catalog](../../vsdd-suite/primers/2c-refactor.md) |
+| 3 | per-session [`vsdd-suite/review-log/`](vsdd-suite/review-log/) Layer 2 rounds | Round 1 4-cluster parallel cold-session complete; Round 1 inline fix cycle in progress; Round 2 cold-session verification pending |
+| 5 | Phase 5 Layer 2 re-runs | Pending — Purity Boundary Audit against the extended pure surface (`filter_by_tags` + `attach_tag`); Mutation Testing against the extended impl; property-based testing via [`proptest`](https://github.com/proptest-rs/proptest) activated at [`tests/properties.rs`](tests/properties.rs) (tag-idempotence + filter-OR-monotonicity properties) |
+| 6 | Phase 6 four-dimensional convergence | **NOT APPLICABLE** at Layer 2 per [`DESIGN.md` § Project intent](DESIGN.md#project-intent) Phase 6 strategy for Layer 2 — Layer 1's project-terminal Phase 6 attestation at VDD-IAR Alignment Review 3 satisfies the reference-implementation purpose ([G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112)) + capstone gates at project-terminal MVR per primer 6, not per-layer ([G-150](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) over-investment guard) |
+
+For the Layer 2 narrative in depth, see:
+
+- [`TODO.md` § Layer 2 — Tag and filter](TODO.md#layer-2--tag-and-filter) — acceptance criteria + Red Gate test plan + Layer-gate criteria.
+- [`manual-tests/layer-2.md`](manual-tests/layer-2.md) — per-layer manual-test plan (13 steps including the `hyperfine` performance sanity-check).
+- [`DESIGN.md` § Behavioral contracts](DESIGN.md#behavioral-contracts) — the `bm tag` / `bm list --tag` contracts + the `tags` field forward-only-migration discipline.
 
 ## License
 

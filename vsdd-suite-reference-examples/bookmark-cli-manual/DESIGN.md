@@ -12,9 +12,9 @@
 
 **Declared intent (historical):** `portfolio` (Review 67 → PR 6 / Review 78). Preserved per [G-89](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-89) forward-only narrative-preservation. The existing 3 portfolio-intent reviews (QE Review 1 dated 2026-05-17; QE Review 2 + SA Review 1 dated 2026-05-20) remain valid records of how the project operated under the prior intent; PR 6's migration adds Review 77 lifecycle fields to those entries without invalidating their portfolio-era findings.
 
-**[Phase 5](../../vsdd-suite/primers/5-formal-hardening.md) strategy:** `planned — Purity Boundary Audit executed (SA Review 1, 2026-05-20) + Mutation Testing via cargo-mutants executed (QE Review 2, 2026-05-20, 100% kill rate on 8 viable mutants). property-based testing via proptest deferred — the purity boundary at Layer 1 is shallow (one pure function); property-based testing's marginal value is low. Fuzz Testing and Proof Execution not applicable — bookmark-cli has no safety-critical, cryptographic, or input-boundary attack surface that warrants the tooling.` Per-layer Phase 5 rounds file under the per-domain review logs per [G-177](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-177) closure: Purity Boundary Audit in [`vsdd-suite/review-log/2026-05-20-solution-architect.md`](vsdd-suite/review-log/2026-05-20-solution-architect.md) Review 1; Mutation Testing in [`vsdd-suite/review-log/2026-05-20-quality-engineer.md`](vsdd-suite/review-log/2026-05-20-quality-engineer.md) Review 2.
+**[Phase 5](../../vsdd-suite/primers/5-formal-hardening.md) strategy:** `planned — Layer 1: Purity Boundary Audit executed (SA Review 1, 2026-05-20) + Mutation Testing via cargo-mutants executed (QE Review 2, 2026-05-20, 100% kill rate on 8 viable mutants); property-based testing via proptest deferred (Layer-1 purity boundary shallow); Fuzz Testing and Proof Execution not applicable (no safety-critical / cryptographic / input-boundary attack surface). Layer 2: Purity Boundary Audit re-runs against the extended pure surface (filter_by_tags + attach_tag); Mutation Testing re-runs against the extended impl with the budget that the 100% kill rate is maintained or any drop has a named rationale; property-based testing via proptest now warranted — the tag idempotence + filter OR-monotonicity properties have natural algebraic shape and proptest's marginal cost is low at Layer 2 scope. Fuzz Testing + Proof Execution remain not applicable.` Per-layer Phase 5 rounds file under the per-domain review logs per [G-177](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-177) closure: Layer 1 Purity Boundary Audit in [`vsdd-suite/review-log/2026-05-20-solution-architect.md`](vsdd-suite/review-log/2026-05-20-solution-architect.md) Review 1; Layer 1 Mutation Testing in [`vsdd-suite/review-log/2026-05-20-quality-engineer.md`](vsdd-suite/review-log/2026-05-20-quality-engineer.md) Review 2; Layer 2 Phase 5 rounds will land at the same per-domain files with later dated session entries.
 
-**[Phase 6](../../vsdd-suite/primers/6-convergence.md) strategy:** `planned — four-dimensional convergence record landed as the final VDD-IAR Alignment review round titled "Review N — Phase 6 four-dimensional convergence (project-terminal)" per primer 6 + [G-177](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-177). Attests: Spec MVR (DESIGN.md round closure); Test MVR (QE Reviews 1+2 closure including the Phase 5 Mutation Testing 100% mutation-kill); Implementation MVR (every active-domain Phase 3 round at MVR per the post-PR-6 capstone IAR coverage); Formal-verification MVR (Purity Boundary Audit + Mutation Testing closure; property-based testing / Fuzz Testing / Proof Execution declared deferred or not-applicable with rationale). Cross-dimension consistency check applied at convergence time; signed closing attestation.` Per [G-162](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-162): capstone-intent declarations require both Phase 5 + Phase 6 strategy lines; both declared above.
+**[Phase 6](../../vsdd-suite/primers/6-convergence.md) strategy:** `planned — Layer 1 four-dimensional convergence record landed as the VDD-IAR Alignment Review 3 (project-terminal Layer 1) per primer 6 + [G-177](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-177); attestation lives at [vsdd-suite/review-log/2026-05-20-vdd-iar-alignment.md](vsdd-suite/review-log/2026-05-20-vdd-iar-alignment.md) Review 3 and was signed at PR #42 once Platform Engineer Dim 38 / [G-155](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155) install-verification cleared via PR #41. Layer 2 four-dimensional convergence: **NOT APPLICABLE** per [G-150](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) (over-investment guard) + [G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) (reference-implementation-purpose-already-satisfied) — bookmark-cli's reference-implementation purpose is "exercise all six VSDD phases end-to-end as a worked example", which Layer 1's project-terminal MVR + Phase 6 attestation already demonstrate. Re-running Phase 6 for Layer 2 would teach methodology consumers that capstone artifacts require per-layer four-dimensional convergence, which is not the suite's intent — capstone gates at project-terminal MVR per primer 6, not per-layer. This disposition closes Layer 2 Round 1 VDD-IAR Alignment R4 F5 + Solution Owner R4 F2 (the cluster's own SO recommended Option 1: mark not-applicable; this declaration adopts that recommendation). Layer 2's Phase 5 strategy stands (Purity Boundary Audit re-run + Mutation Testing re-run + proptest activation); Layer 2's Phase 6 strategy is this explicit "not applicable" declaration.` Per [G-162](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-162): capstone-intent declarations require both Phase 5 + Phase 6 strategy lines; both declared above for both layers (Layer 2's Phase 6 declared as the explicit not-applicable disposition per the [G-150](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) + [G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) rationale above).
 
 **Cold-session budget:** capstone default per [`../../vsdd-suite/domains/DOMAIN-INDEX.md`](../../vsdd-suite/domains/DOMAIN-INDEX.md) § Cold-session budget per intent — max 4 rounds before stop-trigger consultation; max 10 parallel agents per round (or 4-cluster batched with adversarial-pair separation per the PR [#38](https://github.com/magnificentlycursed/guild-portfolio/pull/38) Round 3 precedent); 100k–300k tokens per substantive finding expected band; [Opus 4.7](../../vsdd-suite/README.md) for Software Engineer / Security / Red Team / Solution Architect / Solution Owner / VDD-IAR Alignment / AI Engineer; [Sonnet 4.6](../../vsdd-suite/README.md) for UX / Performance Engineer / Platform Engineer / Technical Writer / Documentation Reviewer / Quality Engineer; [Haiku 4.5](../../vsdd-suite/README.md) for mechanical-sweep delegated sub-agents (anchor-link sweeps, reference rewrites, per-domain-index retirement cascades). Actual cost evidence: PR #38 Round 3 cycle ~$5/cluster at the 4-cluster shape; AI Engineer Review 1 cycle (PR [#39](https://github.com/magnificentlycursed/guild-portfolio/pull/39)) registered ~21k tokens/finding — well below the band's floor, read as parallel adversarial review running efficiently per [AI Engineer R1 F6+F7+F8](vsdd-suite/review-log/2026-05-21-ai-engineer.md). Pre-cycle declaration discipline applied at every future multi-agent cycle per [`../../vsdd-suite/primers/3-review-session.md`](../../vsdd-suite/primers/3-review-session.md) § Pre-cycle methodology check; after-action cost-tally per [`../../vsdd-suite/suite-development/suite-development.md`](../../vsdd-suite/suite-development/suite-development.md) § Per-review entry preamble § Cost-tally. Per [Review 84](../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z) (PR [#40](https://github.com/magnificentlycursed/guild-portfolio/pull/40)): cold-session-budget declarations are required at capstone + production intent.
 
@@ -35,9 +35,10 @@ The project exists as the reference implementation for the VSDD suite's worked e
 - `bm list` (no bookmarks) — print an explicit empty-state message
 - Storage in a flat JSON file at `$BOOKMARK_CLI_DB` or `./bookmarks.json`
 
-**In scope (Layer 2, deferred):**
-- `bm tag <id> <label>` — attach a label to a bookmark
-- `bm list --tag <label>` — filter by label
+**In scope (Layer 2):**
+- `bm tag <url> <label>` — attach a label to all bookmarks matching `<url>` exactly; idempotent
+- `bm list --tag <label>` — filter by label; repeated flag is OR-semantics
+- Storage format extends with a per-bookmark `tags: Vec<String>` field that defaults to empty when absent (Layer-1-format files remain readable)
 
 **In scope (Layer 3, deferred):**
 - `bm export` — emit bookmarks as JSON to stdout
@@ -65,11 +66,37 @@ The project exists as the reference implementation for the VSDD suite's worked e
 
 ### `bm list`
 
-- **Input shape:** no positional arguments, no flags.
-- **Success output (stdout):** zero or more lines, one per bookmark, newest-first. Format per line: `<timestamp> <url>` (timestamp in RFC 3339; single space separator). Trailing newline after the last bookmark.
+- **Input shape:** no positional arguments. Layer 2 adds an optional `--tag <label>` flag (may be repeated; see § `bm list --tag` below).
+- **Success output (stdout):** zero or more lines, one per bookmark, newest-first. Format per line: `<timestamp> <url>` (timestamp in RFC 3339; single space separator). Trailing newline after the last bookmark. Per-bookmark tags are NOT printed at Layer 2 — the list format remains the Layer 1 contract; tags are a filtering surface only. (A future `--show-tags` flag is out of scope for Layer 2.)
 - **Success exit:** 0.
 - **Empty-state output:** stdout silent. Stderr: `No bookmarks yet.` followed by newline. Exit 0 (empty is success, not failure).
 - **Failure (storage file unreadable / corrupt JSON):** stderr `Error: <descriptive message>` followed by newline. Exit 2. Stdout silent.
+
+### `bm tag <url> <label>` (Layer 2)
+
+- **Input shape:** exactly two positional arguments — `<url>` (non-empty string; matched against bookmark URLs exactly; case-sensitive) and `<label>` (non-empty string; whitespace permitted, parallel to the URL rule).
+- **Success output (stdout):** silent. **Stderr:** `Tagged 1 bookmark.` for a single match; `Tagged N bookmarks.` for N ≥ 2 matches (singular/plural conditional per Layer 2 Round 2 UX F4). Exit 0. The stderr affordance was added at Layer 2 Round 1 per [UX F2 + SE F2](vsdd-suite/review-log/) — silent-on-success would leave the multi-match semantic (a `bm tag` that touched 2 bookmarks because two share the same URL) undiscoverable from user behavior; routing the count to stderr (not stdout) preserves pipeline-script-ability of `bm tag` (`stdout` stays silent so `bm tag X Y | downstream` does not see a placeholder line).
+- **Success side effect:** for every bookmark in the store whose `url` field equals `<url>` exactly, appends `<label>` to that bookmark's `tags` field if not already present (idempotent). The atomic-write discipline from `bm add` applies — the destination file is written via temp file + `rename(2)`; partial writes MUST NOT occur. If the store file is absent (no bookmarks have been added yet), the command is a no-match case and behaves per the failure contract below.
+- **Failure (empty URL — both `bm tag "" <label>` and `bm tag` with the URL positional missing):** stderr `Error: URL cannot be empty.` followed by newline. Exit 1. No file write. (Same error string as `bm add` — the same input invariant.)
+- **Failure (empty label — both `bm tag <url> ""` and `bm tag <url>` with the label positional missing):** stderr `Error: tag label cannot be empty.` followed by newline. Exit 1. No file write.
+- **Failure (no bookmark matches `<url>`):** stderr `Error: no bookmark found with URL <url>.` followed by newline. Exit 1. No file write. (Typos surface as user-errors; silent no-op would mask them.)
+- **Failure (storage file unreadable / corrupt JSON):** stderr `Error: <descriptive message>` followed by newline. Exit 2.
+- **Failure (CLI usage error other than empty/missing positional — e.g., third positional, unknown flag):** stderr clap-formatted usage message. Exit 64. (Same exit-64 discipline as `bm add`.)
+
+**Multi-match semantics.** If two or more bookmarks have the same URL (append-only semantics permits duplicates), `bm tag <url> <label>` tags ALL matches in one atomic save. This is the deliberate semantic — the URL is the user's identifier, and any rendering of "tag this bookmark" against duplicate URLs is ambiguous; tagging all matches preserves invariants over `bm list --tag <label>` (a filter on `<label>` will surface every record whose URL was tagged).
+
+**Idempotence under repeat invocation.** `bm tag <url> <label>` followed by `bm tag <url> <label>` (same args, same store state) is a no-op on the second invocation — the second save still writes the file atomically but the file contents are identical. Tests assert exit 0 for both invocations and asserts the tag appears exactly once in the bookmark's `tags` field.
+
+### `bm list --tag <label>` (Layer 2)
+
+- **Input shape:** zero positional arguments + one or more `--tag <label>` flags.
+- **Success output (stdout):** the subset of bookmarks (in `bm list` newest-first ordering) whose `tags` field contains AT LEAST ONE of the supplied `<label>` values (OR-semantics across repeated flags). Format per line is identical to plain `bm list`: `<timestamp> <url>`.
+- **Success exit:** 0.
+- **Empty-state output (no bookmark matches the filter):** stdout silent. Stderr: `No bookmarks match the supplied filter.` followed by newline. Exit 0. (Distinct from plain `bm list`'s `No bookmarks yet.` — the user filtered explicitly, so the empty-state message names the filter.)
+- **Failure (empty label — `bm list --tag ""`):** stderr `Error: tag label cannot be empty.` followed by newline. Exit 1. (Same error string as `bm tag`.)
+- **Failure (storage file unreadable / corrupt JSON):** stderr `Error: <descriptive message>` followed by newline. Exit 2.
+
+**Why OR-semantics for repeated `--tag`:** AND-semantics would require boolean composition syntax that is out of scope at Layer 2 (e.g., `--tag rust AND --tag cli`). OR-semantics matches the natural shell idiom (`--tag rust --tag go` reads as "anything tagged rust OR go"). A future Layer (or Layer 3) may add AND-semantics with an explicit operator if user feedback warrants.
 
 ## Edge case catalog
 
@@ -82,6 +109,17 @@ The project exists as the reference implementation for the VSDD suite's worked e
 - **Very long URL (10K+ chars):** accepted. No length cap.
 - **URL containing newlines:** accepted. May visually break the `bm list` output, which is acceptable for this scope.
 
+**Layer 2 additions:**
+
+- **Tag against a Layer-1-format file (no `tags` field on existing bookmarks):** the missing field deserializes to an empty `Vec<String>`; `bm tag` appends; on save the file is rewritten with the field present for every bookmark (touched and untouched alike). This is the deliberate forward-only migration shape — Layer-1-format files become Layer-2-format files on first Layer-2 write.
+- **Whitespace-only label:** `bm tag <url> "   "` → currently accepted; the user is responsible. Mirrors the whitespace-only-URL rule.
+- **Duplicate-URL bookmark store (two bookmarks with identical URL):** `bm tag <url> <label>` tags both; `bm list --tag <label>` surfaces both lines (one per record). The append-only semantic permits this.
+- **Tag a bookmark twice with the same label:** idempotent — the second `bm tag` invocation is a no-op against the bookmark's `tags` field but still writes the file (the atomic-write discipline does not optimize for byte-equality).
+- **`bm list --tag <label>` against an empty store:** the empty-store empty-state (`No bookmarks yet.`) takes precedence over the no-filter-match empty-state (`No bookmarks match the supplied filter.`) — the user has no bookmarks at all, which is the more informative signal.
+- **`bm list --tag <label1> --tag <label2>` where one label has no matches:** OR-semantics means the bookmarks tagged with the OTHER label are still surfaced. No partial-match warning is emitted.
+- **Very long tag label (10K+ chars):** accepted. No length cap (parallel to URL rule).
+- **Tag label containing newlines or control characters:** stored as-is; rendered through the same `display_safe` sanitizer as URLs at the rendering boundary (Layer 2 has no tag-rendering path at the user surface — `bm list` does not print tags — but the sanitizer still applies if a future flag prints them).
+
 ## Interface definitions
 
 ### Command surface (Layer 1)
@@ -91,6 +129,13 @@ bm add <url>
 bm list
 bm --help
 bm --version
+```
+
+### Command surface (Layer 2 additions)
+
+```
+bm tag <url> <label>
+bm list --tag <label> [--tag <label>...]
 ```
 
 ### Exit codes
@@ -109,13 +154,17 @@ bm --version
 ```json
 {
   "bookmarks": [
-    {"url": "https://example.com", "timestamp": "2026-05-17T03:01:00Z"},
-    {"url": "https://example.org", "timestamp": "2026-05-17T02:55:00Z"}
+    {"url": "https://example.com", "timestamp": "2026-05-17T03:01:00Z", "tags": ["rust", "cli"]},
+    {"url": "https://example.org", "timestamp": "2026-05-17T02:55:00Z", "tags": []}
   ]
 }
 ```
 
 Newest-first ordering is a render concern (sort on read), not a storage concern (append on write).
+
+**`tags` field (Layer 2).** Optional during deserialization — Layer-1-format files (no `tags` field per bookmark) deserialize cleanly with `tags` defaulting to an empty `Vec<String>`. Always present during serialization — once any Layer 2 operation rewrites the file, every bookmark has an explicit `tags` array (possibly empty). This is the forward-only migration shape: Layer 1 files become Layer 2 files on first Layer 2 write; the reverse is not guaranteed (a Layer 1 binary reading a Layer 2 file is acceptable because `serde_json` tolerates extra fields by default, but this is not contract).
+
+Within a single bookmark, `tags` is treated as a set: duplicates are not produced by the application (idempotent `bm tag`), but the JSON shape is an array. Ordering of the array is insertion order — first `bm tag` invocation's label appears first; subsequent labels append. The spec does NOT contract on tag ordering, and tests should not assert order beyond "label X is present in the array."
 
 ## Verification architecture
 
@@ -124,6 +173,8 @@ Newest-first ordering is a render concern (sort on read), not a storage concern 
 - **Pure functions** (deterministic, no I/O, formally verifiable in principle):
   - `Bookmark` and `BookmarkStore` data types (serde derivations are pure functions of input).
   - `BookmarkStore::newest_first` (pure sort by reference; no I/O, no clock).
+  - **Layer 2:** `BookmarkStore::filter_by_tags(&[&str])` — pure OR-filter against the store's bookmarks; returns a `Vec<&Bookmark>` in newest-first order.
+  - **Layer 2:** `BookmarkStore::attach_tag(url, label)` — pure transformation when given the store, URL, and label; appends `label` to every matching bookmark's `tags` field if not already present. Returns `Result<usize, AttachTagError>` (count of bookmarks affected; error variants for empty-URL / empty-label / no-match).
 - **Effectful (deliberate I/O wrappers around pure ser/de):**
   - `BookmarkStore::load(path)` — filesystem read + `serde_json` parse. The parse step is pure; the file read makes the function effectful.
   - `BookmarkStore::save(path)` — `serde_json` serialize + filesystem write + directory creation. Same shape: serialize pure, write effectful.
@@ -157,7 +208,7 @@ Newest-first ordering is a render concern (sort on read), not a storage concern 
 
 ## Constraints
 
-- **Rust toolchain:** 1.78+ (modern stable Rust; no unstable features). Pinned via [`rust-toolchain.toml`](rust-toolchain.toml) — Round 2 fix per [Platform Engineer Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-platform-engineer.md).
+- **Rust toolchain:** 1.81+ (modern stable Rust; no unstable features). Pinned via [`rust-toolchain.toml`](rust-toolchain.toml) — Round 2 fix per [Platform Engineer Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-platform-engineer.md); MSRV bumped 1.78 → 1.81 at Layer 2 Round 1 per [Platform Engineer Review 4 Finding 4](vsdd-suite/review-log/2026-05-21-platform-engineer.md) because Layer 1 R3's `reason = "..."` attribute syntax stabilized in 1.81.
 - **Platform:** macOS, Linux. Windows untested.
 - **Dependencies:** all from [crates.io](https://crates.io/), no git deps. `Cargo.lock` committed. Supply-chain policy enforced via [`deny.toml`](deny.toml) + `cargo deny check` in CI — Round 2 fix per [Security Review 1 Finding 3](vsdd-suite/review-log/2026-05-20-security.md) + [Platform Engineer Review 1 Finding 4](vsdd-suite/review-log/2026-05-20-platform-engineer.md).
 - **Deployment:** `cargo install --locked --path .` into `~/.cargo/bin/`. No release pipeline. `--locked` flag enforces `Cargo.lock` at install time — Round 2 fix per [Platform Engineer Review 1 Finding 8](vsdd-suite/review-log/2026-05-20-platform-engineer.md).
@@ -174,9 +225,11 @@ Layer 1 performance commitments:
 
 **Scale ceiling:** 10,000 bookmarks. Beyond this the user should consider a real bookmark manager — this project's non-goals (§ Scope and non-goals) declare unsuitability for primary-use scale. The flat-JSON-rewrite-on-every-add design has cumulative O(n²) cost which makes large stores impractical; declared as **accepted limitation** at Layer 1 intent + named in [Performance Engineer Review 1 Findings 3 + 6](vsdd-suite/review-log/2026-05-20-performance-engineer.md).
 
-**Benchmarking infrastructure:** [Layer 2+](TODO.md) work — Layer 1's surface is too small to benchmark meaningfully ([`criterion`](https://github.com/bheisler/criterion.rs) adds dependency cost without commensurate value at this scale). [Performance Engineer Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-performance-engineer.md) declared **Deferred** at the layer level; the budget above is the contract a future Layer-2 benchmarking infrastructure would assert against.
+**Benchmarking infrastructure:** at Layer 2 the surface is still small but tag/filter operations enable meaningful contract assertions. The [`hyperfine`](https://github.com/sharkdp/hyperfine) sanity-check pattern is the Layer 2 contract: a documented `manual-tests/layer-2.md` step generates a 1,000-bookmark store and asserts each named-budget operation completes within the budget. The [`criterion`](https://github.com/bheisler/criterion.rs) framework remains deferred — its development-cycle cost (longer test iteration; benchmark-comparison artifacts in CI) is not justified by the project's scale at Layer 2. The hyperfine sanity-check at the layer-2 manual-test surface is the proportionate Layer 2 closure of [Performance Engineer Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-performance-engineer.md) (declared **Deferred-to-Layer-2** at Round 2; Layer 2 Phase 3 Performance Engineer Round will land the closure attestation).
 
-**Data-scaling tests:** sentinel tests at the 100 / 1,000 / 10,000-bookmark cliffs land at Layer 2+ ([Performance Engineer Review 1 Finding 5](vsdd-suite/review-log/2026-05-20-performance-engineer.md) **Deferred**). At Layer 1 the existing `save_then_load_roundtrips` test exercises the 1-bookmark case; the layer's correctness is observable from there.
+**Data-scaling tests:** Layer 2 ships sentinel integration tests at the 100 / 1,000 / 10,000-bookmark cliffs that exercise the full add → list → tag → list-filter cycle. Each cliff asserts: (a) operations complete within the budget table above; (b) the storage file round-trips without corruption; (c) the filter result set is correct against a programmatically-generated reference. The tests live in `tests/scaling.rs` and use `#[ignore]` by default so `cargo test` stays fast; CI runs them via `cargo test -- --ignored` in a separate job. This closes [Performance Engineer Review 1 Finding 5](vsdd-suite/review-log/2026-05-20-performance-engineer.md) (**Deferred-to-Layer-2**).
+
+**Durability discipline (Layer 2):** the save path uses `tempfile + rename(2)` for atomic replacement (preserves the prior file's contents on partial failure). Layer 2 adds an explicit `fsync` of the destination file's parent directory after the rename, ensuring the rename itself is durable across a power loss — without the parent `fsync`, the rename may be in the kernel page cache and lost on a power-fail. The cost is one extra `fsync(2)` syscall per write; benchmarked at the Layer 2 Performance Engineer Round against the budget table above (expected < 5 ms on commodity SSD). The fsync is gated `#[cfg(unix)]`; Windows uses its own durability semantics that are not addressed at Layer 2. This closes the operator-queued Performance Engineer fsync benchmark item (deferred from Layer 1 Round 2 via the cold-session-budget gate).
 
 ## Threat model ([Review 82](../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-82--2026-05-20-2000z) Round 2 fix for [Security Review 1](vsdd-suite/review-log/2026-05-20-security.md) + [Red Team Review 1](vsdd-suite/review-log/2026-05-20-red-team.md))
 
@@ -185,6 +238,7 @@ Layer 1 performance commitments:
 - **Co-tenant on a shared Unix host** — read access to the user's home directory hierarchy. **Mitigation:** storage file mode 0600 (read/write owner only) per the *confidential* data classification below.
 - **Adversary-controlled `$BOOKMARK_CLI_DB`** — the env var points at a writable path the user does not control (e.g., a shared `/tmp/...`, a directory with a pre-staged symlink). **Mitigations:** symlink-follow-rejection on **both** load and save (symmetric `symlink_metadata` check + rejection) per the symlink-hardening discipline; the env var is the user's own shell + the user is responsible for what they set. **Residual TOCTOU** — the load-side `symlink_metadata` check and the subsequent `read_to_string` are separate syscalls; an attacker with concurrent filesystem write access to the parent directory could swap a regular file for a symlink in the microsecond race window ([Red Team Review 1 Round 3 Finding 2](vsdd-suite/review-log/2026-05-20-red-team.md#r3-f2) **Accepted risk**). Tight fix is `OpenOptions::custom_flags(O_NOFOLLOW)` (single-syscall atomic check), which is deferred pending a `libc` dependency addition and Platform Engineer / Security re-review. The save side uses `rename(2)` which is atomic regardless.
 - **Adversary-supplied URL contents** — a URL captured at one terminal session is later rendered at `bm list` in another terminal session. URLs can carry terminal-escape sequences (ANSI `\x1b[...`, OSC 0/8/1337, bidi format chars U+202E + zero-width chars). **Mitigation:** `display_safe` sanitizer wraps every user-derived value before any `eprintln!` / `println!` / `Display` interpolation — escapes `is_control()` (Cc) chars + `Cf` format chars while preserving `\n` `\t` for legitimate whitespace.
+- **Tag-injection-as-trust-signal (Layer 2)** — an adversary with write access to the storage file (the same vector as Adversary-controlled `$BOOKMARK_CLI_DB` above) can fabricate tags like `["verified", "approved"]` on user-trusted bookmarks, creating a misleading trust-signal that the user might interpret as their own past-tagging. **Mitigation:** the file is mode-0600-restricted (only the owner can write) and the symlink-rejection discipline applies; an attacker with write access to the user's `$BOOKMARK_CLI_DB` already has more leverage than tag injection — they can also rewrite URLs, fabricate entire bookmark records, or replace the whole file. Tag-injection is documented as a **deliberate accepted risk** per the same threat-model frame that accepts URL-injection (the attacker has primary write access; downstream tag forgery is a secondary consequence, not a separable threat). Layer 2 Round 1 Red Team F6 surfaced this as a load-bearing gap; this paragraph names the attack class so future cold-readers see the risk is documented + dispositioned.
 
 **Out-of-scope adversaries:**
 
@@ -198,6 +252,10 @@ Layer 1 performance commitments:
 The captured bookmarks are **confidential**-class data — "what someone is reading is sensitive" per the [Security domain prompt](../../vsdd-suite/domains/role/SECURITY-REVIEW.md) Dim 8 information-leakage classification. The storage file is written with **mode 0600** (Unix; read/write owner only) using `std::fs::OpenOptions::new().mode(0o600)...` behind a `#[cfg(unix)]` gate. Windows is named as untested under § Constraints; Windows file-permission semantics differ from Unix and are deferred to a Windows-port layer.
 
 Encryption at rest is **not** in scope at Layer 1 — mode 0600 is the spec's floor for confidential-class data on Unix, per the Security domain prompt's proportionality discipline. A future layer (or production-intent fork) may add at-rest encryption if the spec's data-classification rises.
+
+**Layer 2 — `tags` field classification.** The per-bookmark `tags: Vec<String>` field is also **confidential**-class — what someone tags their reading with is at least as sensitive as the URLs themselves ("interests + intent" carries at least the same disclosure risk as "what URLs were captured"). The mode-0600 + symlink-rejection mitigations established for URLs apply uniformly to the `tags` field — the on-disk file is one confidential-class artifact; there is no per-field permission split. Layer 2 Round 1 Security F1 + Solution Architect F5 surfaced this as a load-bearing gap (the prior § Storage data classification text named URLs as confidential but was silent on `tags`); this paragraph closes the gap by stating the classification explicitly.
+
+**Downgrade-compatibility hazard.** The `serde` shape is asymmetric: Layer 2 binaries read Layer 1 files via the `#[serde(default)]` attribute on the `tags` field (Layer-1-format files deserialize cleanly with `tags` defaulting to empty `Vec<String>`), but a Layer 1 binary reading a Layer 2 file will silently discard the `tags` field on the next save (the Layer 1 `Bookmark` struct does not have the `tags` field; `serde_json`'s default behavior ignores unknown fields on deserialize, so the parse succeeds with no error — and on the next `bm add`'s save the file is re-serialized from the in-memory Layer 1 shape, dropping `tags` from disk). This is a **deliberate forward-only migration choice** (matches the [G-89](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-89) forward-only-narrative-preservation discipline applied at the methodology layer). **Mitigation:** the operator should not downgrade their `bm` binary; if they do, they accept the loss of tag data on next write. Layer 2 Round 1 Security F1 + Solution Architect F5 surfaced this as a load-bearing gap; this paragraph documents the deliberate-choice + accepted-risk shape so a future cold-reader knows the asymmetric `serde` behavior is intended, not a defect.
 
 ## Open questions
 

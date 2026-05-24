@@ -65,3 +65,13 @@ Each row of the table below is one verification attempt. Per [G-155](../../../vs
 - **[`../PROCESS.md`](../PROCESS.md)** — first-person retrospective; the verifier's experience could be recorded as an addendum if the verifier is willing to author a brief reflection on the install experience (cold-reader signal that complements the project's documentation audit trail).
 - **[`../vsdd-suite/review-log/`](../vsdd-suite/review-log/)** — Platform Engineer's per-session review-log files (matching `*-platform-engineer.md`) and the [`../vsdd-suite/FINDINGS-INDEX.md`](../vsdd-suite/FINDINGS-INDEX.md) project finding registry. Dim 38 (Fresh-system install verification) per the [Platform Engineer domain prompt](../../../vsdd-suite/domains/role/PLATFORM-ENGINEER-REVIEW.md) is evaluated against this file's contents.
 - **[`../DESIGN.md` § Project intent](../DESIGN.md#project-intent)** — declared capstone intent; [G-162](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-162) strategy declarations include the verification commitment.
+
+---
+
+## Layer 2 inheritance note (Layer 2 Round 1 PE F3 disposition)
+
+Per [G-155](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155) strict reading — "the project has been installed by a third party once" — Layer 2 inherits Layer 1's install-verification PASS row from PR [#41](https://github.com/magnificentlycursed/guild-portfolio/pull/41) (Nathan's 2026-05-21 Ubuntu 24.04 / rust 1.95.0 PASS). The Layer 2 cycle's MVR does NOT require a new install-verification row to ship; the project-as-a-whole has cleared the dim 38 gate once and continues to satisfy the requirement.
+
+**Operator action item (post-Layer-2 merge):** solicit a fresh-system install-verification PASS row for the Layer 2 binary in the post-merge feedback cycle — similar to the PR #41 → [Bluesky thread](https://bsky.app/profile/shimmermathlabs.com) shape that produced Nathan's verification. The Layer 2 cycle inherits the Layer 1 PASS row for shipping purposes, but a Layer-2-specific verification row strengthens the audit trail + catches any Layer 2 install-experience regressions (e.g. the `proptest` dev-dependency may add to the build time the verifier perceives; the new `manual-tests/layer-2.md` Step 12 has the `hyperfine` install prerequisite which is platform-dependent).
+
+Layer 2 Round 1 Platform Engineer F3 framed this as "Operator's call" — the disposition above adopts the inheritance-by-strict-[G-155](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155)-reading path + queues the operator-driven Layer 2 install verification as a separable post-merge feedback-loop item rather than a Layer 2 MVR blocker.

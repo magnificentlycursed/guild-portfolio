@@ -1,5 +1,89 @@
 # Changelog
 
+## [Unreleased] Layer 2 tag + filter — full cycle close (Phases 1-2c + manual-tests + Phase 3 Rounds 1+2 + inline-fix mini-cycle + Phase 5) — 2026-05-22 / 2026-05-23
+
+**Scope:** Layer 2 (`bm tag` + `bm list --tag`) Phase 2 implementation + Phase 3 IAR Round 1 4-cluster parallel cold-session review + Round 1 inline fix cycle on the `bookmark-cli-manual-layer-2` branch.
+
+### Added — Layer 2 surface
+
+- **`bm tag <url> <label>`** command: attaches a label to every bookmark whose URL matches exactly (case-sensitive); idempotent — a label already present is not re-appended. Multi-match deliberate (URL-as-identifier per [DESIGN.md § `bm tag` § Multi-match semantics](DESIGN.md#bm-tag-url-label-layer-2)); tags-all-matches in one atomic save.
+- **`bm list --tag <label>`** filter: returns the subset of bookmarks whose `tags` field contains the supplied label, in newest-first order. Repeated `--tag` composes with OR-semantics across labels per [DESIGN.md § `bm list --tag <label>` § Why OR-semantics for repeated `--tag`](DESIGN.md#bm-list---tag-label-layer-2).
+- **`Bookmark.tags: Vec<String>`** field — optional during deserialization (Layer-1-format files default to empty), always present during serialization (forward-only migration shape per [DESIGN.md § Storage format `tags` field](DESIGN.md#storage-format-json-file)).
+- **`BookmarkStore::attach_tag(&str, &str) -> Result<usize, AttachTagError>`** — pure transformation against the store; returns the count of matching bookmarks; idempotent per the spec.
+- **`BookmarkStore::filter_by_tags(&[&str]) -> Vec<&Bookmark>`** — pure OR-filter against the store; returns newest-first.
+- **`AttachTagError`** enum with `EmptyUrl` / `EmptyLabel` / `NoMatch` variants — mirrors the [DESIGN.md § `bm tag` failure contract](DESIGN.md#bm-tag-url-label-layer-2); the CLI shell maps each variant to its spec-contracted stderr.
+- **Parent-directory `fsync(2)` on Unix** after the atomic-save `rename(2)` — closes the operator-queued Performance Engineer fsync benchmark item from Layer 1 Round 2. Gated `#[cfg(unix)]`; documented in [DESIGN.md § Performance budget § Durability discipline (Layer 2)](DESIGN.md#performance-budget-review-82-round-2-fix-for-performance-engineer-review-1-finding-1).
+- **`manual-tests/layer-2.md`** — 13-step per-layer manual-test plan parallel to `manual-tests/layer-1.md`. Includes the `hyperfine` performance sanity-check at Step 12 (closes Layer-1-Deferred [Performance Engineer Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-performance-engineer.md)).
+- **`tests/scaling.rs`** — three `#[ignore]`-gated sentinel tests at the 100 / 1,000 / 10,000-bookmark cliffs; closes Layer-1-Deferred [Performance Engineer Review 1 Finding 5](vsdd-suite/review-log/2026-05-20-performance-engineer.md) at the in-CI surface. Runs via `cargo test -- --ignored` in a separate Linux-only CI job.
+- **`tests/properties.rs`** — `proptest` activation against the tag-idempotence + filter-OR-monotonicity properties on the pure `BookmarkStore` API (closes Layer 2 Round 1 VDD-IAR Alignment R4 F5 + Solution Owner R4 F2 — the DESIGN.md claim of `proptest` activation was load-bearing).
+- **Layer 2 acceptance criteria AC 5–13** at [TODO.md § Layer 2](TODO.md#layer-2--tag-and-filter) — 9 new ACs covering tag + filter happy paths, error paths, idempotence, multi-match, OR-semantics, store-empty-vs-filter-empty precedence, forward-only migration, and durability.
+
+### Changed
+
+- **`Cargo.toml`** `rust-version` 1.78 → 1.81 (Layer 2 Round 1 PE F4 — Layer 1 R3's `reason = "..."` attribute syntax in the `#[allow(...)]` blocks at `src/lib.rs` + `tests/bookmarks.rs` requires Rust 1.81+; the declared 1.78 MSRV was inaccurate).
+- **`Cargo.toml`** `[dev-dependencies]` — added `proptest = "1"` per Phase 5 Layer 2 strategy + Round 1 inline fix Fix 7.
+- **`DESIGN.md` § Storage data classification** — added paragraph explicitly classifying the `tags` field as confidential-class data alongside URLs; added "Downgrade-compatibility hazard." paragraph naming the asymmetric `serde` shape (Layer 2 binaries read Layer 1 files via `#[serde(default)]` but Layer 1 binaries reading Layer 2 files discard `tags` on next save — documented as a deliberate forward-only-migration choice). Closes Layer 2 Round 1 Security F1 + Solution Architect F5.
+- **`DESIGN.md` § Threat model** — added "Tag-injection-as-trust-signal" paragraph (Layer 2 Round 1 Red Team F6) naming the attack class where an adversary with write access to the store file fabricates tags like `["verified", "approved"]` to mislead the user; documented as accepted risk under the same mode-0600 + symlink-rejection mitigations that apply to URL-injection.
+- **`DESIGN.md` § Project intent's Phase 6 strategy for Layer 2** — adopted Option 1 (mark as not-applicable) per [G-150](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) over-investment guard + [G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) reference-implementation-purpose-already-satisfied. Layer 1's Phase 6 attestation at VDD-IAR Alignment Review 3 stands as the project's terminal four-dimensional convergence record; re-running Phase 6 for Layer 2 would teach methodology consumers that capstone artifacts require per-layer Phase 6, which is not the suite's intent (capstone gates at project-terminal MVR per primer 6). Closes Layer 2 Round 1 VDD-IAR Alignment R4 F5 + Solution Owner R4 F2 (Option 1 the cluster's own SO recommended).
+- **`DESIGN.md` § Phase 5 strategy for Layer 2** — kept the `proptest` activation declaration (Fix 7a chosen over Fix 7b).
+- **`TODO.md` § Layer 2 Layer-gate criterion #6** — annotated as not-applicable cross-linking the DESIGN.md Phase 6 strategy declaration.
+- **`TODO.md` § Layer 2 Phase 2c** — added evidence-preservation annotation naming the single-commit Phase 2a + Phase 2b shape as a deliberate trade-off (Layer 2 Round 1 VDD-IAR Alignment R4 F1); future Layer cycles should use the canonical two-commit shape so Red Gate failure evidence lives in git history rather than only in sub-agent spawn output.
+- **`README.md`** — Layer-1-only narrative promoted to Layer 2; phase progression table extended to cover Layer 2 (Phases 1a / 1b / 2a / 2b / 2c / 3 / 5 / 6); test counts updated (43 default tests post-Round-1 fix cycle); added pointers to TODO.md § Layer 2 + manual-tests/layer-2.md + DESIGN.md § Behavioral contracts Layer 2 surface. Closes Layer 2 Round 1 Technical Writer F1 + Documentation Reviewer F1.
+- **`src/main.rs`** — `Cmd::Tag` + `Cmd::List { tags }` clap surface added; `run_tag` emits `Tagged N bookmark(s).` to stderr on success per Layer 2 Round 1 UX F2 + SE F2 (silent-on-success leaves the multi-match semantic undiscoverable). Help-text doc comments for `Cmd::Tag` + `Cmd::List` expanded with the semantic rules (idempotence, OR-semantics, empty-state precedence) per Layer 2 Round 1 UX F1 + F3.
+- **`src/lib.rs`** — `Bookmark.tags` field; `AttachTagError` enum; `BookmarkStore::attach_tag` + `BookmarkStore::filter_by_tags`; `fsync_directory` helper; updated module docstring naming the Layer 2 purity boundary extensions.
+- **`manual-tests/install-verification.md`** — appended Layer 2 inheritance note (Layer 2 inherits Layer 1's Nathan PR #41 install-verification PASS row per [G-155](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155) strict reading; operator should solicit a new Layer 2 install verification in the post-merge feedback cycle).
+- **`manual-tests/layer-2.md` Steps 2 / 3 / 7** — updated expected stderr from silent-on-success to the new `Tagged N bookmark(s).` line; companion fix to the `src/main.rs` change above.
+
+### Closes Layer-1-Deferred items at Layer 2
+
+- **[Performance Engineer Review 1 Finding 2](vsdd-suite/review-log/2026-05-20-performance-engineer.md)** (benchmarking infrastructure) → `hyperfine` sanity-check at [`manual-tests/layer-2.md` Step 12](manual-tests/layer-2.md).
+- **[Performance Engineer Review 1 Finding 5](vsdd-suite/review-log/2026-05-20-performance-engineer.md)** (data-scaling tests) → [`tests/scaling.rs`](tests/scaling.rs) sentinels.
+- **Quality Engineer Layer-1-Deferred RFC 3339 scripted check** → test 13 `tests_list_rfc3339_scripted_check` in [`tests/bookmarks.rs`](tests/bookmarks.rs).
+- **Operator-queued fsync benchmark item** → parent-directory `fsync(2)` in `BookmarkStore::save` on Unix; documented in [DESIGN.md § Performance budget § Durability discipline (Layer 2)](DESIGN.md#performance-budget-review-82-round-2-fix-for-performance-engineer-review-1-finding-1).
+
+### Round 1 cluster cold-session review
+
+The 4 cold-session clusters (SE/UX/Performance-Engineer; QE/Security/Technical-Writer; Solution-Architect/Red-Team/Platform-Engineer; Solution-Owner/Documentation-Reviewer/AI-Engineer/VDD-IAR-Alignment) surfaced ~30 findings across the 13 capstone-active domains. The Round 1 inline fix cycle on this branch applied 12 numbered fixes (Fix 1 through Fix 13 in the fix-cycle prompt with Fix 11 deferred to Round 2), resolving ~17 cross-domain finding-closures; the residual subset routes to Round 2 verification or carryforward.
+
+### Round 2 cluster cold-session verification
+
+The same 4-cluster composition re-ran in parallel via worktree-isolated agents to verify the Round 1 fix-cycle closures + surface adjacent defects. **6 of 13 domains reached MVR at Round 2:** Solution Owner, Documentation Reviewer, AI Engineer (project-side), VDD-IAR Alignment, Quality Engineer, Security. **7 of 13 carry forward small refinements** (none shipping-blocking; all documented per-finding with operator-decision routing or Layer-3 / Phase-5 trigger): SE (3 R1 carry-forwards + 1 new R2 finding), UX (0 R1 carry-forwards — all Resolved — + 2 new R2 findings), Performance Engineer (2 R1 + 1 new), TW (2 R1 + 1 new), SA (1 R1 Raised-to-SO), Red Team (2 Raised-to-SO), Platform Engineer (1 R1 + 1 new DESIGN.md sync gap). 4 cluster reports unanimously: **no Phase 5 or Phase 6 closure blockers.**
+
+### Round 2 inline-fix mini-cycle
+
+Per the operator's "Inline-fix mini-cycle + Phase 5" path-forward decision, 4 small carry-forward closures landed at commit `580db12`:
+
+- **`DESIGN.md` § Constraints line 211** — Rust toolchain `1.78+` → `1.81+` (Platform-Engineer Round 2 Finding 7; sync to the `Cargo.toml` + `rust-toolchain.toml` MSRV bump that landed at `002d747`).
+- **`CHANGELOG.md` "(12 fixes)" numeric drift** — rephrased to "12 numbered fixes ... resolving ~17 cross-domain finding-closures" so the count is unambiguous (TW Round 2 Finding 6).
+- **`src/main.rs` `run_list` precedence** — empty-label rejection now fires before the empty-store precedence branch so `bm list --tag ""` against an empty store correctly exits 1 with the empty-label error (SE Round 1 Finding 3 closure). New integration test sentinel `tests_list_with_empty_tag_label_against_empty_store_still_rejected` in `tests/bookmarks.rs`.
+- **`src/main.rs` `run_tag` singular/plural** — `Tagged 1 bookmark(s).` reads awkwardly when N=1; now emits `Tagged 1 bookmark.` (singular) or `Tagged N bookmarks.` (plural per Layer 2 Round 2 UX F4). Spec contract at `DESIGN.md` § `bm tag` Success Output updated; integration tests + manual-test expected outputs updated.
+
+### Phase 5 Layer 2 hardening — closed
+
+- **SA Review 4 (Purity Boundary Audit re-run)** — zero findings; all five Layer 2 pure-side declarations (`filter_by_tags` + `attach_tag` + `tags()` accessor + `tags` field + `fsync_directory` effectful classification) verify against the implementation at line-level. Documented as 1 Resolved finding per the review-log discipline.
+- **QE Review 6 (Mutation Testing re-run via cargo-mutants 27.0.0)** — Layer 2 viable kill rate closed at **93.2%** (41/44) post-Option-A inline fix at commit `c186d0b`. Initial run surfaced 86.4% (38/44) with 6 missed; Option A landed two changes: (1) `Bookmark::tags()` accessor unit test kills mutants #1/#2/#3 by direct invocation, (2) Mutant #6 (`write_temp_file` → `Ok(())`) re-classified as cfg-shadow false-positive (the line lives inside the `#[cfg(not(unix))]` Windows-only branch, which is dead code on the macOS test platform). 3 remaining survivors are all documented acceptable-survivals: `AttachTagError::Display` (Layer-3-trigger per SE R1 F1); `fsync_directory` no-op (WEAK PROXY annotation per Phase 2b); `write_temp_file` cfg-shadow.
+
+### Phase 6 Layer 2 — NOT APPLICABLE
+
+Per [DESIGN.md § Project intent's Phase 6 strategy for Layer 2](DESIGN.md) (commit `002d747`) and [TODO.md § Layer 2 Layer-gate criterion #6](TODO.md), Layer 2's Phase 6 four-dimensional convergence record is marked **NOT APPLICABLE** under [G-150](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) (over-investment guard) + [G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) (reference-implementation-purpose-already-satisfied — bookmark-cli's reference-implementation purpose is "exercise all six VSDD phases end-to-end as a worked example", which Layer 1's project-terminal MVR + Phase 6 attestation already demonstrate). Layer 1's Phase 6 attestation at [VDD-IAR Alignment Review 3](vsdd-suite/review-log/2026-05-20-vdd-iar-alignment.md) stands as the project's terminal convergence record. Adopted from Cluster D's Solution-Owner Review 4 Finding 2 recommendation; verified by VDD-IAR Alignment Round 2 Review 5 Finding 5 closure.
+
+### Carryforwards (none shipping-blocking; all documented per-finding)
+
+- **SA R1 F2** (attach_tag/save separation rationale) — Raised-to-SO; spec amendment pending operator decision.
+- **Red Team R1 F3 + R2 F10** (Layer 3 sanitize-at-export readiness + chained-vulnerability framing) — Raised-to-SO; Layer-3-trigger.
+- **PE R1 F5** (fsync filesystem-coverage caveat) — Phase-5-PE-trigger (closed via this cycle's QE Review 6 + SA Review 4 Phase 5 closure; the caveat itself documents the residual measurement-vs-correctness boundary).
+- **TW R6 F3 + F4** (install-verification Layer 2 row + hyperfine prereq) — next-install-verification-cycle trigger; the Layer 1 PASS row from PR #41 inherits per the [`install-verification.md`](manual-tests/install-verification.md) inheritance note.
+- **SE R1 F1** (AttachTagError::NoMatch carry URL) — Layer-3-trigger.
+- **SE R1 F4** (test rename for `tests_save_fsyncs_parent_directory` honest naming) — defer.
+- **SE R2 F5** (proptest `prop_assume!` rejection-rate disclosure) — Phase-5-trigger; addressed structurally by QE Review 6 + SA Review 4.
+- **PE R2 F4** (scaling sentinel `populate` process-spawn overhead at 10K cliff) — Phase-5-trigger; documented in [`tests/scaling.rs`](tests/scaling.rs).
+
+### Operator-action queue (suite-side; not project-blocking)
+
+- **Task #56 (suite-level AI Engineer review)** — codify five upstream-suite remediation findings: (1) recurring lettering-violation pattern; (2) AI Engineer domain prompt verify-tool/plan/method dimension; (3) per-tool supplements (claude-code-cli.md first instance); (4) cost-tally plan-tier discipline gap (would-be-API-cost framing); (5) recurring parser-aborted error on heredoc-based file writes via the Bash tool (3 instances this session). Lands as a separate PR after this Layer 2 PR merges (no-stacked-PRs preference).
+
+---
+
 ## v0.12.3 Phase 6 four-dimensional convergence ATTESTED + UX/TW/QE cluster fix-cycle from @shimmermathlabs.com install-verification thread — 2026-05-21 13:30Z ([Review 88](../../vsdd-suite/suite-development/review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z))
 
 **Scope:** PR [#42](https://github.com/magnificentlycursed/guild-portfolio/pull/42) — Phase 6 four-dimensional convergence attestation (project-terminal at Layer 1) following [PR #41](https://github.com/magnificentlycursed/guild-portfolio/pull/41)'s closure of the Platform Engineer Dim 38 / [G-155](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155) install-verification gate. The reference-example purpose ([G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112)) is satisfied: all 6 VSDD phases demonstrated end-to-end.

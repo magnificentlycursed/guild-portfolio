@@ -18,9 +18,9 @@
 #![deny(unsafe_code)]
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 
-use bookmark_cli::{display_safe, BookmarkStore};
+use bookmark_cli::{display_safe, AttachTagError, BookmarkStore};
 use clap::error::ErrorKind;
-use clap::{Parser, Subcommand};
+use clap::{ArgAction, Parser, Subcommand};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -36,14 +36,17 @@ use std::process::ExitCode;
                   DESIGN.md for full behavioral contract.\n\
                   \n\
                   Examples:\n  \
-                    bm add https://example.com   # capture a URL with current UTC timestamp\n  \
-                    bm list                       # print bookmarks, newest-first\n  \
-                    bm --help                     # show this help text\n  \
-                    bm --version                  # show version\n\
+                    bm add https://example.com           # capture a URL with current UTC timestamp\n  \
+                    bm list                                # print bookmarks, newest-first\n  \
+                    bm tag https://example.com rust        # attach a label to all matching bookmarks\n  \
+                    bm list --tag rust                     # filter list by tag\n  \
+                    bm list --tag rust --tag go            # OR-semantics across repeated --tag\n  \
+                    bm --help                              # show this help text\n  \
+                    bm --version                           # show version\n\
                   \n\
                   Exit codes:\n  \
                     0   success (including empty `bm list`)\n  \
-                    1   user error (empty URL or missing positional)\n  \
+                    1   user error (empty URL, empty tag label, or unknown URL on `bm tag`)\n  \
                     2   storage error (file unreadable, corrupt JSON, write failure)\n  \
                     64  CLI usage error (unknown subcommand, unknown flag)"
 )]
@@ -55,12 +58,67 @@ struct Cli {
 #[derive(Subcommand)]
 enum Cmd {
     /// Add a bookmark with the current UTC timestamp.
+    ///
+    /// Captures `<URL>` as a new bookmark record with the current UTC
+    /// time as the `timestamp` field. The URL must be non-empty; any
+    /// other string (including whitespace-only or arbitrarily long URLs)
+    /// is accepted — the user is responsible for what they capture.
+    /// Storage is the JSON file at `$BOOKMARK_CLI_DB` (default
+    /// `./bookmarks.json`); writes are atomic + parent-dir-fsynced on Unix.
+    ///
+    /// Exits 0 on success (stdout silent). Exits 1 with `Error: URL
+    /// cannot be empty.` if the URL is empty (also covers `bm add` with
+    /// no positional). Exits 2 on storage error. Exits 64 on other CLI
+    /// usage errors (unknown flag, etc.).
     Add {
         /// The URL to capture. Must be non-empty.
         url: String,
     },
-    /// List bookmarks, newest-first.
-    List,
+    /// List bookmarks, newest-first. Optionally filter by tag(s).
+    ///
+    /// Without `--tag`, lists every bookmark in newest-first order, one
+    /// per line, in `<RFC3339-timestamp> <url>` format. With one or
+    /// more `--tag <label>` flags, lists only bookmarks whose `tags`
+    /// field contains AT LEAST ONE of the supplied labels — repeated
+    /// `--tag` composes with OR-semantics (a bookmark matches if it
+    /// has ANY listed tag).
+    ///
+    /// Empty store: stderr `No bookmarks yet.` + exit 0. The empty-
+    /// store empty-state takes precedence over the filter-empty-state
+    /// even when `--tag` is supplied (a user with no bookmarks gets
+    /// the more informative signal). Filter no-match: stderr
+    /// `No bookmarks match the supplied filter.` + exit 0. Empty
+    /// label (`bm list --tag ""`): stderr `Error: tag label cannot
+    /// be empty.` + exit 1.
+    List {
+        /// Filter to bookmarks tagged with this label. Repeatable —
+        /// repeated `--tag` is OR-semantics across labels per
+        /// `DESIGN.md` § `bm list --tag <label>`.
+        #[arg(long = "tag", action = ArgAction::Append)]
+        tags: Vec<String>,
+    },
+    /// Attach a label to all bookmarks whose URL matches exactly. Idempotent.
+    ///
+    /// The URL is the identifier (not an index) — `bm tag <URL> <LABEL>`
+    /// tags every bookmark with that exact URL string (case-sensitive).
+    /// If two bookmarks share the same URL (append-only semantics
+    /// permits this), both are tagged. Idempotent: a label already
+    /// attached to a matching bookmark is not duplicated.
+    ///
+    /// On success, exits 0 with stdout silent and stderr
+    /// `Tagged N bookmark(s).` (where N is the count of matching
+    /// bookmarks; N >= 1 because zero matches is the error path).
+    /// If no bookmark has the URL: exit 1 with stderr `Error: no
+    /// bookmark found with URL <url>.` (typos surface as user-errors;
+    /// silent no-op would mask them). Empty URL or empty label:
+    /// exit 1 with the corresponding `Error: ...` message. Exits 2
+    /// on storage error.
+    Tag {
+        /// The URL whose matching bookmarks should be tagged. Must be non-empty.
+        url: String,
+        /// The label to attach. Must be non-empty.
+        label: String,
+    },
 }
 
 fn store_path() -> PathBuf {
@@ -119,12 +177,21 @@ fn handle_parse_error(err: &clap::Error) -> ExitCode {
 
     if err.kind() == ErrorKind::MissingRequiredArgument {
         // clap names the missing argument in the error's context. The
-        // only required positional in our grammar is `<url>` on `bm add`;
-        // any MissingRequiredArgument is therefore that case in scope.
-        // We emit the spec-contracted message + exit 1.
+        // required positionals in our grammar are `<URL>` on `bm add`,
+        // `<URL>` and `<LABEL>` on `bm tag`. Per `DESIGN.md` § `bm add`
+        // and § `bm tag` failure contracts, missing-positional surfaces
+        // as the same exit-1 spec-contracted message as the empty-arg
+        // path. `<LABEL>` is checked before `<URL>` because in `bm tag
+        // <url>` (only one positional) the URL is supplied and the
+        // missing one is the label.
         let missing = err
             .get(clap::error::ContextKind::InvalidArg)
             .map(|v| format!("{v}"));
+        if matches!(missing.as_deref(), Some(m) if m.contains("<LABEL>") || m.contains("<label>") || m.contains("LABEL"))
+        {
+            eprintln!("Error: tag label cannot be empty.");
+            return ExitCode::from(1);
+        }
         if matches!(missing.as_deref(), Some(m) if m.contains("<URL>") || m.contains("<url>") || m.contains("URL"))
         {
             eprintln!("Error: URL cannot be empty.");
@@ -143,6 +210,133 @@ fn handle_parse_error(err: &clap::Error) -> ExitCode {
     ExitCode::from(64)
 }
 
+fn run_add(path: &std::path::Path, url: String) -> ExitCode {
+    if url.is_empty() {
+        eprintln!("Error: URL cannot be empty.");
+        return ExitCode::from(1);
+    }
+    let mut store = match BookmarkStore::load(path) {
+        Ok(s) => s,
+        Err(e) => {
+            emit_storage_error(&e, "load");
+            return ExitCode::from(2);
+        }
+    };
+    if let Err(e) = store.add(url) {
+        // Library invariant rejection — empty URL is the only case at
+        // present, which is also screened above; preserve the spec
+        // message for that path (no hint — this is user input, not
+        // storage).
+        eprintln!("Error: {}", display_safe(&format!("{e:#}")));
+        return ExitCode::from(1);
+    }
+    if let Err(e) = store.save(path) {
+        emit_storage_error(&e, "save");
+        return ExitCode::from(2);
+    }
+    ExitCode::SUCCESS
+}
+
+fn run_list(path: &std::path::Path, tags: &[String]) -> ExitCode {
+    let store = match BookmarkStore::load(path) {
+        Ok(s) => s,
+        Err(e) => {
+            emit_storage_error(&e, "load");
+            return ExitCode::from(2);
+        }
+    };
+    // AC 11 / DESIGN.md § `bm list --tag <label>` failure contract: empty
+    // label is an INPUT-INVARIANT rejection that fires before any store-
+    // state-dependent branch. Per Layer 2 Round 1 SE Finding 3: previously
+    // the empty-store branch fired first, so `bm list --tag ""` against an
+    // empty store emitted "No bookmarks yet." (exit 0) instead of the spec-
+    // contracted exit-1 empty-label error. Layered as: validate inputs
+    // first, then branch on state.
+    if tags.iter().any(String::is_empty) {
+        eprintln!("Error: tag label cannot be empty.");
+        return ExitCode::from(1);
+    }
+    // Per `DESIGN.md` § Edge case catalog Layer 2: the empty-store
+    // empty-state takes precedence over the filter empty-state — a user
+    // with no bookmarks at all gets the more informative
+    // "No bookmarks yet." even if they passed `--tag <non-empty-label>`.
+    if store.bookmarks().is_empty() {
+        eprintln!("No bookmarks yet.");
+        return ExitCode::SUCCESS;
+    }
+    if tags.is_empty() {
+        for bm in store.newest_first() {
+            println!("{} {}", bm.timestamp().to_rfc3339(), display_safe(bm.url()));
+        }
+        return ExitCode::SUCCESS;
+    }
+    let labels: Vec<&str> = tags.iter().map(String::as_str).collect();
+    let matched = store.filter_by_tags(&labels);
+    if matched.is_empty() {
+        eprintln!("No bookmarks match the supplied filter.");
+        return ExitCode::SUCCESS;
+    }
+    for bm in matched {
+        println!("{} {}", bm.timestamp().to_rfc3339(), display_safe(bm.url()));
+    }
+    ExitCode::SUCCESS
+}
+
+fn run_tag(path: &std::path::Path, url: &str, label: &str) -> ExitCode {
+    // Empty-arg rejection per `DESIGN.md` § `bm tag` failure contract.
+    // Both the empty-string-positional and the missing-positional cases
+    // route here (the missing-positional case is intercepted by
+    // `handle_parse_error`'s MissingRequiredArgument branch).
+    if url.is_empty() {
+        eprintln!("Error: URL cannot be empty.");
+        return ExitCode::from(1);
+    }
+    if label.is_empty() {
+        eprintln!("Error: tag label cannot be empty.");
+        return ExitCode::from(1);
+    }
+    let mut store = match BookmarkStore::load(path) {
+        Ok(s) => s,
+        Err(e) => {
+            emit_storage_error(&e, "load");
+            return ExitCode::from(2);
+        }
+    };
+    match store.attach_tag(url, label) {
+        Ok(n) => {
+            if let Err(e) = store.save(path) {
+                emit_storage_error(&e, "save");
+                return ExitCode::from(2);
+            }
+            // Affordance — emit the match count to stderr so the multi-match
+            // semantic (a `bm tag` that touched 2 bookmarks because two share
+            // the same URL) is discoverable from user behavior. Stdout stays
+            // silent so pipelines (`bm tag ... | jq ...` or similar) are
+            // unaffected. Singular/plural conditional per Layer 2 Round 2 UX
+            // F4 — "Tagged 1 bookmark." reads naturally; "Tagged 2 bookmarks."
+            // pluralizes correctly. Closes Layer 2 Round 1 UX F2 + SE F2 +
+            // Layer 2 Round 2 UX F4.
+            let noun = if n == 1 { "bookmark" } else { "bookmarks" };
+            eprintln!("Tagged {n} {noun}.");
+            ExitCode::SUCCESS
+        }
+        Err(AttachTagError::EmptyUrl) => {
+            // Defense-in-depth — pre-screened above but the library
+            // boundary asserts the same invariant.
+            eprintln!("Error: URL cannot be empty.");
+            ExitCode::from(1)
+        }
+        Err(AttachTagError::EmptyLabel) => {
+            eprintln!("Error: tag label cannot be empty.");
+            ExitCode::from(1)
+        }
+        Err(AttachTagError::NoMatch) => {
+            eprintln!("Error: no bookmark found with URL {}.", display_safe(url));
+            ExitCode::from(1)
+        }
+    }
+}
+
 fn main() -> ExitCode {
     let cli = match Cli::try_parse() {
         Ok(cli) => cli,
@@ -151,48 +345,8 @@ fn main() -> ExitCode {
     let path = store_path();
 
     match cli.command {
-        Cmd::Add { url } => {
-            if url.is_empty() {
-                eprintln!("Error: URL cannot be empty.");
-                return ExitCode::from(1);
-            }
-            let mut store = match BookmarkStore::load(&path) {
-                Ok(s) => s,
-                Err(e) => {
-                    emit_storage_error(&e, "load");
-                    return ExitCode::from(2);
-                }
-            };
-            if let Err(e) = store.add(url) {
-                // Library invariant rejection — empty URL is the only
-                // case at present, which is also screened above; preserve
-                // the spec message for that path (no hint — this is user
-                // input, not storage).
-                eprintln!("Error: {}", display_safe(&format!("{e:#}")));
-                return ExitCode::from(1);
-            }
-            if let Err(e) = store.save(&path) {
-                emit_storage_error(&e, "save");
-                return ExitCode::from(2);
-            }
-            ExitCode::SUCCESS
-        }
-        Cmd::List => {
-            let store = match BookmarkStore::load(&path) {
-                Ok(s) => s,
-                Err(e) => {
-                    emit_storage_error(&e, "load");
-                    return ExitCode::from(2);
-                }
-            };
-            if store.bookmarks().is_empty() {
-                eprintln!("No bookmarks yet.");
-                return ExitCode::SUCCESS;
-            }
-            for bm in store.newest_first() {
-                println!("{} {}", bm.timestamp().to_rfc3339(), display_safe(bm.url()));
-            }
-            ExitCode::SUCCESS
-        }
+        Cmd::Add { url } => run_add(&path, url),
+        Cmd::List { tags } => run_list(&path, &tags),
+        Cmd::Tag { url, label } => run_tag(&path, &url, &label),
     }
 }
