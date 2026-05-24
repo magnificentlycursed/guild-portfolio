@@ -599,6 +599,34 @@ mod tests {
         }
     }
 
+    /// Layer 2 Phase 5 Mutation Testing closure — kills the 3 surviving
+    /// `Bookmark::tags()` accessor mutants ([cargo-mutants 27.0.0 reported
+    /// MISSED at `src/lib.rs:80:9`](../vsdd-suite/review-log/2026-05-21-quality-engineer.md#r6-qe-f1)
+    /// for `Vec::leak(Vec::new())`, `Vec::leak(vec![String::new()])`,
+    /// `Vec::leak(vec!["xyzzy".into()])`). Asserts the accessor returns the
+    /// constructor-supplied tags slice for both populated and empty `tags`
+    /// fields.
+    #[test]
+    fn bookmark_tags_accessor_returns_constructor_supplied_slice() {
+        let ts = Utc.with_ymd_and_hms(2026, 5, 22, 0, 0, 0).unwrap();
+
+        let with_tags = Bookmark {
+            url: "https://example.com".to_string(),
+            timestamp: ts,
+            tags: vec!["rust".to_string(), "cli".to_string()],
+        };
+        let expected_tags = ["rust".to_string(), "cli".to_string()];
+        assert_eq!(with_tags.tags(), &expected_tags[..]);
+
+        let empty_tags = Bookmark {
+            url: "https://empty.example".to_string(),
+            timestamp: ts,
+            tags: Vec::new(),
+        };
+        let no_tags: &[String] = &[];
+        assert_eq!(empty_tags.tags(), no_tags);
+    }
+
     #[test]
     fn newest_first_sorts_descending_by_timestamp() {
         let t1 = Utc.with_ymd_and_hms(2026, 5, 17, 1, 0, 0).unwrap();
