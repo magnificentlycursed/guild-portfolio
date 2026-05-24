@@ -64,6 +64,36 @@ fn small_store_strategy() -> impl Strategy<Value = BookmarkStore> {
     })
 }
 
+/// Generates a `(BookmarkStore, url)` pair where `url` is GUARANTEED to
+/// match at least one bookmark in the store. Used by the tag-idempotence
+/// property to eliminate the `prop_assume!(single_result.is_ok())`
+/// rejection that the prior shape required.
+///
+/// **PR #47 refactor (Layer 2 Phase-5-trigger SE R2 F5 close):** prior
+/// shape generated `store` + `url` independently from the URL alphabet
+/// then used `prop_assume!` to filter trivial-no-match cases. The
+/// rejection rate was unmeasured and could have effectively reduced the
+/// 64-case budget to a smaller useful-case count. The new shape
+/// generates `store` first then picks `url` from the store's existing
+/// URLs via `prop_flat_map`, so every generated case is a substantive
+/// match-case for the idempotence property. Empty-store cases are
+/// handled by the separate `tag_idempotence_property_empty_store`
+/// property below (which is trivially-true but documents the boundary).
+fn store_with_matching_url_strategy() -> impl Strategy<Value = (BookmarkStore, String)> {
+    // Generate a non-empty store (1..=8 entries) then pick an existing URL.
+    prop::collection::vec(small_url_strategy(), 1..=8).prop_flat_map(|urls| {
+        let store = {
+            let mut s = BookmarkStore::default();
+            for url in &urls {
+                s.add(url.clone()).unwrap();
+            }
+            s
+        };
+        let url_index = 0..urls.len();
+        (Just(store), url_index.prop_map(move |i| urls[i].clone()))
+    })
+}
+
 proptest! {
     #![proptest_config(ProptestConfig {
         // 64 cases is small enough that `cargo test` stays fast (< 1s for the
@@ -81,18 +111,20 @@ proptest! {
     /// does NOT duplicate the label in the matching bookmark's `tags` field;
     /// the store state after the second call is byte-equal to the state
     /// after the first.
+    ///
+    /// **PR #47 refactor (SE R2 F5 close):** uses
+    /// `store_with_matching_url_strategy()` so every generated case is a
+    /// substantive match-case. No `prop_assume!` rejection. The
+    /// `tag_idempotence_property_no_match_path` property below covers the
+    /// NoMatch boundary explicitly so the full contract surface is tested
+    /// at the property level without depending on rejection-rate behavior.
     #[test]
     fn tag_idempotence_property(
-        store in small_store_strategy(),
-        url in small_url_strategy(),
+        (store, url) in store_with_matching_url_strategy(),
         label in small_label_strategy(),
     ) {
         let mut once = store.clone();
-        // If the URL doesn't match any bookmark, attach_tag returns
-        // NoMatch — property holds trivially (no state change in either
-        // run), so skip the cases where there's no match to assert against.
-        let single_result = once.attach_tag(&url, &label);
-        prop_assume!(single_result.is_ok());
+        once.attach_tag(&url, &label).unwrap();
 
         let mut twice = store.clone();
         twice.attach_tag(&url, &label).unwrap();
@@ -104,6 +136,39 @@ proptest! {
             "attach_tag twice should produce the same state as attach_tag once for (url, label) = ({:?}, {:?})",
             url,
             label
+        );
+    }
+
+    /// Tag idempotence — NoMatch boundary. The companion to
+    /// `tag_idempotence_property` that exercises the no-match path
+    /// explicitly. PR #47 / SE R2 F5 close: the prior shape merged the
+    /// match + no-match cases into one property + filtered no-match via
+    /// `prop_assume!`; the split eliminates the rejection-rate
+    /// dependency + makes the NoMatch contract explicit at the
+    /// property surface.
+    ///
+    /// Acceptance criterion: `attach_tag` against a URL that doesn't
+    /// match any bookmark in the store returns `AttachTagError::NoMatch(url)`
+    /// without mutating the store. Twice-invoked produces the same
+    /// no-mutation result.
+    #[test]
+    fn tag_idempotence_property_no_match_path(
+        store in small_store_strategy(),
+        unmatched_url in "https://unmatched-example-[0-3]\\.com".prop_map(String::from),
+        label in small_label_strategy(),
+    ) {
+        // The unmatched_url alphabet is disjoint from the store's URL
+        // alphabet (small_url_strategy emits https://example-[0-3].com;
+        // this strategy emits https://unmatched-example-[0-3].com) so
+        // every generated url is guaranteed to NOT match any bookmark
+        // in the store.
+        let mut once = store.clone();
+        let result = once.attach_tag(&unmatched_url, &label);
+        prop_assert!(matches!(result, Err(bookmark_cli::AttachTagError::NoMatch(_))));
+        prop_assert_eq!(
+            store.bookmarks(),
+            once.bookmarks(),
+            "no-match attach_tag should not mutate the store"
         );
     }
 
