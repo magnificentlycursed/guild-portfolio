@@ -35,7 +35,7 @@ Phase 2c refactor work falls into the following categories. A refactor commit ma
 3. **Reshape data flow.** A mutable accumulator becomes a fold. A multi-step pipeline becomes named intermediate values. The data shape at each step is unchanged from the test's perspective.
 4. **Surface the purity boundary.** Move pure logic out of an effectful function so it can be tested directly. The existing test suite continues to exercise the effectful entry point; new tests for the pure function are deferred to a follow-on Phase 2a if warranted.
 5. **Align with the language's idioms.** A `for` loop becomes a comprehension where idiomatic. An early-return chain replaces a deeply nested conditional. The language supplement's style notes (e.g., `supplements/rust.md` SE dimensions) name what idiomatic looks like in this language.
-6. **Apply named refactor rules from the language supplement.** If `supplements/rust.md` or `supplements/javascript-typescript.md` SE dimensions name specific refactor rules (e.g., "prefer `?` over `match` for error propagation in [Rust](https://www.rust-lang.org/)"), this is the place to apply them.
+6. **Apply named refactor rules from the language supplement.** If [`supplements/rust.md`](../supplements/rust.md) or [`supplements/javascript-typescript.md`](../supplements/javascript-typescript.md) or [`supplements/python.md`](../supplements/python.md) or [`supplements/bash.md`](../supplements/bash.md) SE dimensions name specific refactor rules (e.g., "prefer `?` over `match` for error propagation in [Rust](https://www.rust-lang.org/)"), this is the place to apply them.
 
 Out of scope for Phase 2c — defer to a later phase:
 

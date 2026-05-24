@@ -4,6 +4,78 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-24 23:40Z (Review 93 — methodology-hardening cycle; 6 slop-fix codifications)
+
+Per [Review 93 entry](suite-development/review-log/2026-05-24-suite-review.md#review-93--2026-05-24-2340z) — slim-form CHANGELOG entry dogfoods this Review's F1 codification.
+
+### Added
+
+- [`suite-development.md`](suite-development/suite-development.md) § CHANGELOG slim-form convention (Review 93 F1)
+- [`suite-development.md`](suite-development/suite-development.md) § Finding sections § Single-section-per-classification rule (Review 93 F2)
+- [`suite-development.md`](suite-development/suite-development.md) § Agent-API surface § No-em-dash-inside-bold-sub-headings rule + § Anchor-ID conventions central registry (Review 93 F3 + F5)
+- [`suite-development.md`](suite-development/suite-development.md) § Per-review entry preamble § `mixed` Source sub-disposition schema (Review 93 F4)
+- [`supplements/github-actions.md`](supplements/github-actions.md) § PR template + merge-gate integration § paradox-free verification discipline (Review 93 F6)
+
+### Changed
+
+- [`suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) — 6 new forward-only rows (r93-f1 through r93-f6)
+- [`suite-development/SUITE-DEVELOPMENT-REVIEW.md`](suite-development/SUITE-DEVELOPMENT-REVIEW.md) — Review 93 slim-form row added
+
+### Cost-tally — see [Review 93 entry](suite-development/review-log/2026-05-24-suite-review.md#review-93--2026-05-24-2340z) cost-tally section
+
+---
+
+## Unreleased — 2026-05-24 21:12Z (Review 92 Findings 2/3/4/5 closure — supplements three-audience Hybrid cascade + primer pre-cycle Path 2 amendment + prose-only-supplement Active sweep + cost-tally Hybrid scope + earned-by-recurrence trigger)
+
+Operator-directed closure of the 4 originally-Open Review 92 findings per operator-policy decisions:
+
+- **F2 Hybrid**: cascade three-audience-lens to 5 high-leverage supplements (4 per-language + 1 per-tool) + methodology amendment classifying 8 narrow-interface supplements as inheriting from host-domain context
+- **F3 Path 2 methodology amendment**: scope pre-cycle methodology check to compounding-cost cycles only + earned-by-recurrence extension trigger
+- **F4 Active path**: mechanical sweep across 14 occurrences of prose-only "the X supplement" pattern → inline-linked markdown; 3 occurrences intentionally preserved per G-89
+- **F5 Hybrid**: cost-tally scope codified as AI-Engineer-only per Review 87 F6 + earned-by-recurrence cross-domain extension trigger (2 cycles in 90-day window)
+
+### Added (suite-side codifications)
+
+- **[`vsdd-suite/suite-development/suite-development.md`](suite-development/suite-development.md) § Three-audience design principle § Three-audience-lens scope for supplements** ([Review 92 Finding 2](suite-development/review-log/2026-05-24-suite-review.md#r92-f2)) — names the per-language broad-coverage + per-tool + per-interface multi-domain supplements as requiring the lens; narrow-interface supplements inherit from host domain. Per-supplement classification table added enumerating all 14 supplements with their class + required-vs-inherits status.
+- **[`vsdd-suite/suite-development/suite-development.md`](suite-development/suite-development.md) § Per-review entry preamble § Cost-tally § Cost-tally per-domain scope** ([Review 92 Finding 5](suite-development/review-log/2026-05-24-suite-review.md#r92-f5)) — names AI-Engineer-owned scope per Review 87 F6 per-error-class owner table + earned-by-recurrence extension trigger for cross-domain interaction (2 cycles in 90-day window).
+- **[`vsdd-suite/primers/3-review-session.md`](primers/3-review-session.md) § Pre-cycle methodology check § Scope of the pre-cycle discipline** ([Review 92 Finding 3](suite-development/review-log/2026-05-24-suite-review.md#r92-f3)) — names pre-cycle declaration as scoped to compounding-cost cycles only (multi-agent IAR + Phase 5 cold-vs-inline + Phase 2a evidence-shape); names exempt phases (1ab/1c/2b/2c/4/6) explicitly + earned-by-recurrence extension trigger.
+- **`## Three-audience lens` section added to 5 supplements** ([Review 92 Finding 2](suite-development/review-log/2026-05-24-suite-review.md#r92-f2) cascade): [`vsdd-suite/supplements/rust.md`](supplements/rust.md), [`vsdd-suite/supplements/python.md`](supplements/python.md), [`vsdd-suite/supplements/javascript-typescript.md`](supplements/javascript-typescript.md), [`vsdd-suite/supplements/bash.md`](supplements/bash.md), [`vsdd-suite/supplements/claude-code-cli.md`](supplements/claude-code-cli.md). Each section names the three audiences (suite-developers / suite-users / AI-agents) + their respective lens application against the supplement's per-domain coverage.
+
+### Changed (mechanical sweep — F4 Active path)
+
+- **14 occurrences of prose-only "the X supplement" pattern converted to inline-linked markdown** across:
+  - 10 role-domain prompts (`DATA-ENGINEER-REVIEW.md`, `PLATFORM-ENGINEER-REVIEW.md`, `LOCALIZATION-REVIEW.md`, `QUALITY-ENGINEER-REVIEW.md`, `SECURITY-REVIEW.md`, `PERFORMANCE-ENGINEER-REVIEW.md`, `SOFTWARE-ENGINEER-REVIEW.md`, `SOLUTION-OWNER-REVIEW.md`, `TECHNICAL-WRITER-REVIEW.md`, `SOLUTION-ARCHITECT-REVIEW.md`) — `Language and interface supplement:` preamble field's referenced supplement paths converted from backtick-only to inline-linked + coverage expanded to include `python.md` / `bash.md` where applicable.
+  - 1 AI Engineer paragraph (`AI-ENGINEER-REVIEW.md` L36) — other-supplements mention converted to inline-linked + claude-code-cli.md added to primary load list.
+  - 1 primer (`2c-refactor.md` L38) — language-supplement references converted to inline-linked (rust/javascript-typescript/python/bash).
+  - 2 supplements (`bash.md` L5 reference to python.md; `css.md` L3 reference to html.md) — backtick-only references converted to inline-linked.
+- **3 occurrences intentionally preserved per G-89** forward-only narrative-preservation:
+  - `AI-ENGINEER-REVIEW.md` L62 — F14 cite-verify sub-clause's anti-pattern quote (intentional methodology-prose)
+  - `css.md` L25 + `yaml.md` L81 — self-references ("the CSS supplement"; "the YAML supplement" referring to THIS file)
+  - `github-actions.md` L84 — generic "the language supplement" (no specific supplement to link)
+
+### Changed (audit-trail)
+
+- **[Review 92](suite-development/review-log/2026-05-24-suite-review.md#review-92--2026-05-24-0419z) finding bodies F2/F3/F4/F5** promoted Open → Resolved (Status: validated; Validator: sanity-check) with applied-resolution paragraphs naming each operator-policy decision + codification surface.
+- **[Review 92](suite-development/review-log/2026-05-24-suite-review.md#review-92--2026-05-24-0419z) Summary tally** updated: 6 Resolved + 0 Open + 1 Dismissed (was 2 + 4 + 1).
+- **[`vsdd-suite/suite-development/SUITE-DEVELOPMENT-REVIEW.md`](suite-development/SUITE-DEVELOPMENT-REVIEW.md) Review 92 row** updated with new tally + named codifications.
+- **[`vsdd-suite/suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) r92-f2/f3/f4/f5 rows** promoted Open → Closed with Resolved classification + codification narratives.
+
+### Forward implications
+
+- Per-supplement classification table is the new canonical reference for which supplements get three-audience-lens vs which inherit
+- Primer 3 § Scope sub-section names which phases compound cost (and warrant pre-cycle declaration) vs which are exempt
+- Cost-tally surface stays AI-Engineer-only with named extension trigger if cross-domain recurrence happens
+- All 14 amended files (10 domain prompts + 1 primer + 5 supplements) now use inline-linked supplement references uniformly
+
+### Cost-tally (per F8 tiered shape; minimal classification per F20 — single-author mechanical-codification cycle)
+
+- **AI tool / Model / Execution method:** [claude-code CLI](https://claude.com/claude-code) / `claude-opus-4-7` / inline main session
+- **Wall-clock anchors (Bash `date -u`):** session-start 2026-05-24T21:12Z → session-end captured at commit-prep step
+- **Files touched:** 14 (5 supplements gained three-audience-lens; 10 role-domain prompts + 1 primer + 2 supplements amended in F4 sweep; 1 primer + 1 governing-standard amended in F3+F5 codifications) + audit-trail (3 files: Review 92 entry + FINDINGS-INDEX + SUITE-DEV-REVIEW + CHANGELOG)
+- **Operator-action queue:** if cost-tally precision is load-bearing for cross-cycle calibration, operator runs `/cost` and pastes the output as append-only addendum
+
+---
+
 ## Unreleased — 2026-05-24 (Review 91 Finding 17 closure — bookmark-cli-manual FINDINGS-INDEX F-prefix → anchor-ID full migration per operator-policy Option B)
 
 Operator-directed closure of [Review 91 Finding 17](suite-development/review-log/2026-05-23-suite-review.md#r91-f17) (FINDINGS-INDEX + review-shape multi-axis drift). Operator selected Option B (full migration) over Option A (preserve dual-scheme per G-89) per the G-177 reference-examples-stay-current obligation.
