@@ -121,9 +121,39 @@ Round 1 of the capstone-active 12-domain Phase 3 IAR produced **80 findings** ac
 
 ---
 
-## Layers 2 and 3 — deferred
+## Layer 2 — Tag and filter ([PR #44](https://github.com/magnificentlycursed/guild-portfolio/pull/44) + [PR #46](https://github.com/magnificentlycursed/guild-portfolio/pull/46) carry-forward close)
 
-`bookmark-cli-manual` is intentionally Layer-1-only per TODO.md § Layers 2 and 3 (Scoped only). Layers 2 and 3 would receive their own PROCESS.md sections at their respective layer-gate closures; the absence here is per the deferral, not an oversight.
+Layer 2 (`bm tag <url> <label>` + `bm list --tag <label>` with OR-semantics across repeated `--tag`) walked the same six-phase VSDD methodology as Layer 1, with one deliberate exception: **Phase 6 marked NOT APPLICABLE** per [G-150](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) (over-investment guard) + [G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) (reference-implementation-purpose-already-satisfied). Layer 1's Phase 6 four-dimensional convergence record stands as the project's terminal closure; re-running Phase 6 per-layer would teach methodology consumers that capstones gate at per-layer convergence, which is not the suite's intent.
+
+### The hardest single moment
+
+The recurring **lettering-violation pattern at the Round 1 cluster spawn**. Despite an explicit feedback memory at `feedback_avoid_lettering.md` written after the PR #38 Round 3 slip, the same orchestrator (claude-opus-4-7) repeated the `Cluster A / Cluster B / Cluster C / Cluster D` labels in the spawn prompts for the 4 parallel Round 1 agents. The operator caught it mid-flight: *"You lettered the clusters again. This has happened multiple times. Queue a review by the AI Engineer domain to investigate the recurring naming problem."* The substantive lesson: memory-feedback-alone is empirically insufficient to prevent recurrence when the orchestrator is under token-economy pressure (4 parallel spawn prompts means 4× the prompt-length cost; the natural bias is to shorten labels). The PR #45 mitigation restructured the memory to **lead** with the executable rule + add a **pre-spawn check** requirement; the escalation path if a fourth recurrence happens is a pre-commit hook scanning spawn-prompt-pattern files. Review-log evidence: [Task #56 Finding 1](../../vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md#review-90--2026-05-23-1200z); the rename sweep at commit `02e6eb3` consolidated 14 review-log files to composition-based labels.
+
+### The cost-tally discipline gap surfaced mid-cycle
+
+Each of the 4 Round 1 cluster sub-agents reported dollar cost figures (~$2.64, ~$2.19, etc.) as if measured. The operator's actual marginal cost on Claude Max was $0 for all of these spawns (within plan limits); the dollar figures were API-tier-pay-per-token estimates the sub-agents had silently constructed from training-data knowledge of Anthropic API pricing. The operator surfaced the gap directly: *"How do you calculate the cost estimates?"* The honest answer revealed the methodology-authoring assumption — sub-agents had been trained to default to dollar conversion because API-pricing is the canonical training-data example; the suite's primer 3 cost-tally discipline didn't require a plan-tier preamble. PR #45 codified the fix: 10-field cost-tally report shape with raw tokens as canonical + would-be-API-cost as comparator-only. Layer 2's own audit trail (this cycle) is the canonical first instance of the new shape.
+
+### The parser-aborted recurrence on heredoc-based file writes
+
+Three observed instances during the Layer 2 cycle. All three `cat <<'EOF' ... EOF` invocations through the Bash tool succeeded on disk but tripped the operator's downstream tooling parser/transport mid-response. The first instance surfaced as a Review 87 Finding 5 carry-forward from a prior cycle ("machine-readability budget" framing); the chunking-forward mitigation was insufficient — the heredoc invocation itself was the trigger, not response size. PR #45 codified the deeper mitigation: **prefer `Write` tool for new files; `Edit` tool for appending or surgical changes; reserve `cat <<EOF` for short config-file creation (≤30 lines, no embedded markdown)**. Documented as Known Issue in `vsdd-suite/supplements/claude-code-cli.md`.
+
+### Phase 6 NOT APPLICABLE — the deliberate choice
+
+Per VDD-IAR Alignment Round 1 Review 4 Finding 5 (operator-recommended via Solution Owner Round 1 Review 4 Finding 2): Layer 2's Phase 6 attestation would be over-investment given Layer 1 already attested project-terminal four-dimensional convergence. The bookmark-cli's reference-example purpose ([G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112)) is "exercise all six VSDD phases end-to-end as a worked example"; Layer 1 demonstrated that. Layer 2 demonstrates that subsequent layers don't require their own Phase 6 — capstones gate at project-terminal MVR, not per-layer convergence. The deliberate disposition is itself a methodology teaching: the right decision for a reference example may be to NOT re-run a phase that already taught its lesson. Review-log evidence: [VDD-IAR Alignment Review 4 Finding 5](vsdd-suite/review-log/2026-05-21-vdd-iar-alignment.md); [Solution Owner Review 4 Finding 2](vsdd-suite/review-log/2026-05-21-solution-owner.md); [DESIGN.md § Project intent's Phase 6 strategy declaration](DESIGN.md#project-intent).
+
+### MVR scorecard at Layer 2 close
+
+6 of 13 capstone-active domains REACHED MVR at Round 2: Quality Engineer, Security, Solution Owner, Documentation Reviewer, AI Engineer (project-side), VDD-IAR Alignment. 7 of 13 carry-forward small refinements (all documented per-finding; none shipping-blocking): SE, UX, Performance Engineer, TW, Solution Architect, Red Team, Platform Engineer. PR [#46](https://github.com/magnificentlycursed/guild-portfolio/pull/46) closes the bounded subset of those carry-forwards (3 DESIGN.md SO-routed amendments — attach_tag/save separation rationale, Layer 3 sanitize-at-export readiness, chained-vulnerability framing; SE Round 1 Finding 1 NoMatch URL carry; SE Round 1 Finding 4 test rename). The remaining carry-forwards are Phase-5-trigger or next-install-verification-cycle-trigger items; they ship as documented future work, not blocking deferrals.
+
+### Phase 5 closure quality
+
+SA Phase 5 Purity Boundary Audit re-run: zero findings; all five Layer 2 pure-side declarations verify against the implementation at line-level granularity. QE Phase 5 Mutation Testing re-run via cargo-mutants 27.0.0: viable kill rate closed at **93.2%** (41/44) post-Option-A inline fix at commit `c186d0b`. The 3 remaining survivors are all documented acceptable-survivals: `AttachTagError::Display` (Layer-3-trigger; closed at PR #46 by making the variant carry the URL); `fsync_directory` no-op (WEAK PROXY annotation per Phase 2b — Honest-naming closed at PR #46 by renaming the test function); `write_temp_file` cfg-shadow (`#[cfg(not(unix))]` dead-code on Unix platform). The named-rationale criterion from DESIGN.md § Phase 5 strategy is met.
+
+---
+
+## Layer 3 — Export and import (deferred)
+
+Layer 3 remains scoped only per TODO.md § Layer 3. The Layer 3 spec will land when the operator triggers the cycle; the Layer 2 carry-forward close at PR #46 codifies two Layer-3-readiness advisories in DESIGN.md (Red Team R1 F3 Layer 3 sanitize-at-export + the `AttachTagError::NoMatch(String)` library-level error-carrying shape for non-CLI callers).
 
 ---
 

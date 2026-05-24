@@ -98,10 +98,18 @@ pub enum AttachTagError {
     /// be empty.` and exits 1.
     EmptyLabel,
     /// No bookmark in the store has a URL matching the supplied URL
-    /// exactly (case-sensitive). Per `DESIGN.md` § `bm tag` failure
-    /// contract, the CLI shell renders this as `Error: no bookmark found
-    /// with URL <url>.` and exits 1.
-    NoMatch,
+    /// exactly (case-sensitive). The variant carries the URL string so
+    /// the `Display` impl can render the spec-contracted message
+    /// `no bookmark found with URL <url>` without the CLI shell needing
+    /// to interpolate from out-of-band scope. Per `DESIGN.md` § `bm tag`
+    /// failure contract, the CLI shell renders this as
+    /// `Error: no bookmark found with URL <url>.` and exits 1.
+    ///
+    /// Closes Layer 2 Round 1 SE Finding 1 (variant now carries the
+    /// URL value the spec-contracted message contains; library-level
+    /// callers — Layer 3 importers, future test harnesses — no longer
+    /// depend on the CLI shell to re-construct the message).
+    NoMatch(String),
 }
 
 impl fmt::Display for AttachTagError {
@@ -109,7 +117,7 @@ impl fmt::Display for AttachTagError {
         match self {
             Self::EmptyUrl => f.write_str("URL cannot be empty"),
             Self::EmptyLabel => f.write_str("tag label cannot be empty"),
-            Self::NoMatch => f.write_str("no bookmark found with the supplied URL"),
+            Self::NoMatch(url) => write!(f, "no bookmark found with URL {url}"),
         }
     }
 }
@@ -391,7 +399,7 @@ impl BookmarkStore {
             }
         }
         if matched == 0 {
-            return Err(AttachTagError::NoMatch);
+            return Err(AttachTagError::NoMatch(url.to_string()));
         }
         Ok(matched)
     }
@@ -821,7 +829,7 @@ mod tests {
     /// `TODO.md` § Layer 2 Red Gate test 14.
     #[cfg(unix)]
     #[test]
-    fn tests_save_fsyncs_parent_directory() {
+    fn tests_save_durable_path_succeeds_unix_weak_proxy_for_fsync() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("durable.json");
         let mut store = BookmarkStore::default();
