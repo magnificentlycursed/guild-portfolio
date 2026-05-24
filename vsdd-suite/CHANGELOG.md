@@ -4,6 +4,38 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-24 (Review 91 Finding 17 closure — bookmark-cli-manual FINDINGS-INDEX F-prefix → anchor-ID full migration per operator-policy Option B)
+
+Operator-directed closure of [Review 91 Finding 17](suite-development/review-log/2026-05-23-suite-review.md#r91-f17) (FINDINGS-INDEX + review-shape multi-axis drift). Operator selected Option B (full migration) over Option A (preserve dual-scheme per G-89) per the G-177 reference-examples-stay-current obligation.
+
+### Changed (suite-side)
+
+- **[`vsdd-suite/templates/PROJECT-FINDINGS-INDEX-template.md`](templates/PROJECT-FINDINGS-INDEX-template.md) § Findings registry** — ID column renamed to **Anchor-ID**; example rows use `<a id="<domain-slug>-rN-fM"></a>` form (`software-engineer-r1-f1`, `quality-engineer-r1-f2`) replacing the `F-001` / `F-002` form; inline-comment expanded with explicit anchor-scheme explanation + cross-reference to the suite-development.md governing standard.
+- **[`vsdd-suite/suite-development/suite-development.md`](suite-development/suite-development.md) § Project-level finding index § [manual] mode** — extended with explicit Anchor-ID column shape sub-paragraph naming the `<domain-slug>-rN-fM` scheme + the legacy F-XXX preservation discipline per G-89 + the agent grep idiom alignment with suite-side.
+- **[`vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md`](suite-development/review-log/2026-05-23-suite-review.md#r91-f17) Review 91 Finding 17** body promoted Open → Resolved (Status: validated; Validator: sanity-check) with applied-resolution paragraphs naming the 5-part migration + G-89 forward-only preservation of legacy F-XXX cross-references.
+- **[`vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md`](suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) Summary tally** updated: 17 Resolved + 1 Open + 2 Dismissed (was 16 + 2 + 2).
+- **[`vsdd-suite/suite-development/SUITE-DEVELOPMENT-REVIEW.md`](suite-development/SUITE-DEVELOPMENT-REVIEW.md) Review 91 row** — slim-form prose updated to reflect F17 closure + 17/1/2 tally.
+- **[`vsdd-suite/suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) r91-f17 row** — promoted Open → Closed with Resolved classification; row title body extended to name the Option B closure + migration shape.
+
+### Changed (project-side — bookmark-cli-manual reference example)
+
+- **[`vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/FINDINGS-INDEX.md`](../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/FINDINGS-INDEX.md)** — full migration applied: all 47 rows migrated from `F-001`..`F-047` to `<a id="<domain-slug>-rN-fM"></a>` anchor-IDs. ID column renamed `ID` → `Anchor-ID`. Migration-disclosure paragraph added below the existing Reading convention + Three audiences sections. Legacy F-prefix → anchor-ID compatibility table added at the top of the registry mapping each of F-001..F-047 to its post-migration anchor-ID with markdown link to the row's anchor for reader discoverability. Cross-cutting `F-018` reference inside the vdd-iar-alignment-r1-f4 row body updated to `platform-engineer-r1-f9` anchor link. Quick lookup section gained new anchor-ID grep idiom.
+- **Legacy F-XXX cross-references in [`PROCESS.md`](../vsdd-suite-reference-examples/bookmark-cli-manual/PROCESS.md), [`CHANGELOG.md`](../vsdd-suite-reference-examples/bookmark-cli-manual/CHANGELOG.md), and 4 per-session review-log files** (`2026-05-20-vdd-iar-alignment.md`, `2026-05-20-documentation-reviewer.md`, `2026-05-20-platform-engineer.md`, `2026-05-20-solution-owner.md`) — **preserved as authored** per [G-89](suite-development/FINDINGS-INDEX.md#g-89) forward-only narrative-preservation. The compatibility table at the top of the project FINDINGS-INDEX is the discoverability surface for these legacy references.
+
+### Three-audience empirical-evidence
+
+**The three-audience principle's "agent-readable identity across suite/project boundary" claim is now empirically true** post-migration: `grep '| <a id="' vsdd-suite/suite-development/FINDINGS-INDEX.md` (returns all suite-side forward-only rows) + `grep '| <a id="' vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/FINDINGS-INDEX.md` (returns all project-side rows post-migration) both return uniform `<a id="...">` shape. Agent grep idioms work identically across the boundary.
+
+### Cost-tally (per F8 tiered shape; minimal classification per F20 — mechanical migration cycle)
+
+- **AI tool / Model / Execution method:** [claude-code CLI](https://claude.com/claude-code) / `claude-opus-4-7` / inline main session
+- **Date:** 2026-05-24
+- **Wall-clock anchors (Bash `date -u`):** session-end captured at commit-prep step
+- **Files touched:** 5 written/edited (bookmark-cli-manual/vsdd-suite/FINDINGS-INDEX.md; vsdd-suite/templates/PROJECT-FINDINGS-INDEX-template.md; vsdd-suite/suite-development/suite-development.md; vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md; vsdd-suite/suite-development/SUITE-DEVELOPMENT-REVIEW.md; vsdd-suite/suite-development/FINDINGS-INDEX.md; vsdd-suite/CHANGELOG.md; vsdd-suite-reference-examples/bookmark-cli-manual/CHANGELOG.md = 8 actual files; primary migration is the 47-row rewrite in bookmark-cli-manual FINDINGS-INDEX.md)
+- **Operator-action queue:** if cost-tally precision is load-bearing for cross-cycle calibration, operator runs `/cost` and pastes the output as append-only addendum
+
+---
+
 ## Unreleased — 2026-05-24 04:19Z → 04:28Z (Review 92 — suite-wide observability + auditability sweep across 42-file methodology surface)
 
 Operator-directed Review 92 per the [Review 91 operator-action queue](suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z). First post-Review-91 cycle empirically applying the just-codified [Review 91 Finding 14](suite-development/review-log/2026-05-23-suite-review.md#r91-f14) cite-verify discipline + [Finding 16](suite-development/review-log/2026-05-23-suite-review.md#r91-f16) lookup-idiom-adoption discipline as the audit's own method.

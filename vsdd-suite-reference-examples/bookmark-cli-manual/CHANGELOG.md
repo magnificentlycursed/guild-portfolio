@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased] FINDINGS-INDEX anchor-ID migration — F-001..F-047 retired; `<domain-slug>-rN-fM` anchor-IDs adopted per suite [Review 91 Finding 17](../../vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md#r91-f17) closure (operator-policy Option B; 2026-05-24)
+
+**Scope:** Suite-side [Review 91 Finding 17](../../vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md#r91-f17) named multi-axis drift between the suite's governing standard (no F-/G- ID prefix per `suite-development.md` § Findings registry forward-only), the project-level template (used `F-XXX`), and this reference example (conformed to template with F-001..F-047). Per the G-177 reference-examples-stay-current obligation, operator selected Option B full migration over Option A preserve-dual-scheme.
+
+### Changed
+
+- **[`vsdd-suite/FINDINGS-INDEX.md`](vsdd-suite/FINDINGS-INDEX.md)** — all 47 rows migrated from `F-001`..`F-047` to `<a id="<domain-slug>-rN-fM"></a>` anchor-IDs. The anchor-ID scheme uses the row's Domain column slug + Round number + Finding number (e.g., `quality-engineer-r1-f1` for QE Round 1 Finding 1) and is unique within this file + matches the per-Finding anchor scheme `<a id="rN-fM"></a>` in each per-session review-log file at `vsdd-suite/review-log/YYYY-MM-DD-<domain-slug>.md`. ID column renamed `ID` → `Anchor-ID`. The agent grep idiom `grep '| <a id="' vsdd-suite/FINDINGS-INDEX.md` now returns all 47 rows uniformly with the suite-side `vsdd-suite/suite-development/FINDINGS-INDEX.md` grep idiom.
+- **[`vsdd-suite/FINDINGS-INDEX.md`](vsdd-suite/FINDINGS-INDEX.md) compatibility table added** — legacy F-XXX → anchor-ID mapping at the top of the file for reader discoverability of legacy F-XXX prose references in this project's other artifacts. The compatibility table is the post-migration discoverability surface per [G-89](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-89) forward-only narrative-preservation.
+- **Cross-cutting F-XXX prose references preserved** — 27 legacy F-XXX references across [`PROCESS.md`](PROCESS.md) (3), [`CHANGELOG.md`](CHANGELOG.md) (5 — including this file's existing prior CHANGELOG entries), [`vsdd-suite/review-log/2026-05-20-vdd-iar-alignment.md`](vsdd-suite/review-log/2026-05-20-vdd-iar-alignment.md) (8), [`vsdd-suite/review-log/2026-05-20-documentation-reviewer.md`](vsdd-suite/review-log/2026-05-20-documentation-reviewer.md) (8), [`vsdd-suite/review-log/2026-05-20-platform-engineer.md`](vsdd-suite/review-log/2026-05-20-platform-engineer.md) (2), [`vsdd-suite/review-log/2026-05-20-solution-owner.md`](vsdd-suite/review-log/2026-05-20-solution-owner.md) (1) — **preserved as authored** per [G-89](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-89). Readers following any F-XXX reference can locate the post-migration row via the compatibility table at the top of `vsdd-suite/FINDINGS-INDEX.md`.
+
+### Forward implications
+
+This migration is the canonical worked example for the suite-level [Review 91 Finding 17](../../vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md#r91-f17) operator-policy Option B path. Future Layer 3 findings will be added with the anchor-ID scheme directly (no F-XXX prefix). The suite template at [`vsdd-suite/templates/PROJECT-FINDINGS-INDEX-template.md`](../../vsdd-suite/templates/PROJECT-FINDINGS-INDEX-template.md) is also updated to the anchor-ID shape; future projects scaffolded from the template inherit the canonical shape from the start.
+
+---
+
 ## [Unreleased] Layer 2 Phase-5-trigger follow-up — 3 closures (proptest restructure + scaling refactor + fsync filesystem-coverage caveat) — 2026-05-23 ([PR #47](https://github.com/magnificentlycursed/guild-portfolio/pull/47))
 
 **Scope:** Close the three Phase-5-trigger carry-forward items documented in PR [#44](https://github.com/magnificentlycursed/guild-portfolio/pull/44) Layer 2 capstone cycle CHANGELOG.
