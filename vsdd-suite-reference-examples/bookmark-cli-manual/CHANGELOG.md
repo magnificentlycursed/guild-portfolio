@@ -1,5 +1,29 @@
 # Changelog
 
+## [Unreleased] Layer 2 carry-forward close — SO-routed spec amendments + small SE refinements — 2026-05-23 ([PR #46](https://github.com/magnificentlycursed/guild-portfolio/pull/46))
+
+**Scope:** Close the bounded carry-forward queue from PR [#44](https://github.com/magnificentlycursed/guild-portfolio/pull/44) Layer 2 capstone cycle. Five items addressed: 3 DESIGN.md spec amendments (SO-routed) + 1 src/lib.rs code change (SE F1) + 1 test rename (SE F4) + project CHANGELOG/TODO updates.
+
+### Added (DESIGN.md spec amendments)
+
+- **DESIGN.md § Verification architecture — `attach_tag` / `save` separation rationale** (Layer 2 Round 1 SA F2 carry-forward close): new paragraph documenting why `attach_tag` and `save` are deliberately separate calls rather than a combined `tag_and_save` helper — batched callers (Layer 3 `bm import` reading N (url, label) pairs) pay O(1) save cost; the CLI shell pays per-call save by design.
+- **DESIGN.md § Threat model — Layer 3 sanitize-at-export readiness advisory** (Layer 2 Round 1 Red Team F3 carry-forward close): new paragraph naming the Layer-3 export sanitization requirement — tag labels + URLs routed through `display_safe` at every Layer 3 export boundary that emits to a terminal-renderable surface. Documented now so Layer 3 spec authoring inherits the discipline rather than re-discovering it.
+- **DESIGN.md § Threat model — Chained-vulnerability class** (Layer 2 Round 2 Red Team F10 carry-forward close): new paragraph naming the binary-flip + downgrade-corruption chained scenario. Vectors enumerated (package-manager tampering; supply-chain compromise; PATH manipulation); dispositioned as accepted-risk under the same threat-model frame as URL-injection + tag-injection.
+
+### Changed (src + tests)
+
+- **`src/lib.rs` `AttachTagError::NoMatch` → `NoMatch(String)`** (Layer 2 Round 1 SE F1 close): variant now carries the URL string so the `Display` impl can render the spec-contracted message `"no bookmark found with URL <url>"` without the CLI shell needing to interpolate from out-of-band scope. Library-level callers (Layer 3 importers; future test harnesses) no longer depend on the CLI shell to re-construct the message. CLI shell `run_tag` updated to use the variant's `Display` impl directly (with `display_safe` wrap on the rendered string).
+- **`src/lib.rs` test rename: `tests_save_fsyncs_parent_directory` → `tests_save_durable_path_succeeds_unix_weak_proxy_for_fsync`** (Layer 2 Round 1 SE F4 close): the prior name overclaimed (the test does not directly assert the fsync syscall was issued; it is a WEAK PROXY per the test's existing docstring). The renamed function reflects what the test actually does (verifies the durable-save codepath, including parent-dir fsync on Unix, executes successfully) + the WEAK PROXY framing. `TODO.md` § Layer 2 Red Gate test plan updated to match.
+
+### Carry-forwards remaining (Phase-5-trigger or next-install-verification-cycle trigger)
+
+- **SE R2 F5** (proptest `prop_assume!` rejection-rate disclosure) — Phase-5-trigger; addressed structurally by QE Review 6 + SA Review 4 at PR #44.
+- **PE R1 F5** (fsync filesystem-coverage caveat) — Phase-5-PE-trigger; closed via this cycle's QE Review 6 + SA Review 4 Phase 5 closure.
+- **PE R2 F4** (scaling sentinel `populate` process-spawn overhead at 10K cliff) — Phase-5-trigger; documented in `tests/scaling.rs`.
+- **TW R6 F3 + F4** (install-verification Layer 2 row + hyperfine prereq) — next-install-verification-cycle trigger; Layer 1 PASS row from PR [#41](https://github.com/magnificentlycursed/guild-portfolio/pull/41) inherits per the `manual-tests/install-verification.md` inheritance note.
+
+---
+
 ## [Unreleased] Layer 2 tag + filter — full cycle close (Phases 1-2c + manual-tests + Phase 3 Rounds 1+2 + inline-fix mini-cycle + Phase 5) — 2026-05-22 / 2026-05-23
 
 **Scope:** Layer 2 (`bm tag` + `bm list --tag`) Phase 2 implementation + Phase 3 IAR Round 1 4-cluster parallel cold-session review + Round 1 inline fix cycle on the `bookmark-cli-manual-layer-2` branch.

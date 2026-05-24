@@ -330,8 +330,13 @@ fn run_tag(path: &std::path::Path, url: &str, label: &str) -> ExitCode {
             eprintln!("Error: tag label cannot be empty.");
             ExitCode::from(1)
         }
-        Err(AttachTagError::NoMatch) => {
-            eprintln!("Error: no bookmark found with URL {}.", display_safe(url));
+        Err(e @ AttachTagError::NoMatch(_)) => {
+            // The variant now carries the URL per Layer 2 carry-forward
+            // close (SE Round 1 Finding 1); use the variant's Display
+            // impl directly with `display_safe` to escape the URL
+            // before stderr. The CLI shell no longer constructs the
+            // message from out-of-band scope.
+            eprintln!("Error: {}.", display_safe(&format!("{e}")));
             ExitCode::from(1)
         }
     }
