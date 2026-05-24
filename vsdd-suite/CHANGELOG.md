@@ -4,6 +4,145 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-24 (Review 91 remaining-findings codifications: F2/F3/F4/F5/F9/F13/F14/F15/F16 Resolved in-cycle + F10 anchor restored + Review 91 section restructure + F11/F17 register Open + new `claude-code-contract.md`)
+
+Operator-directed "continue with the findings" after the Review 91 F13-F20 raise commit (2da6ad6). The remaining 10 Open findings (F2, F3, F4, F5, F9, F11, F13, F14, F15, F16, F17) split into 9 Resolved + 2 Open in-cycle:
+
+### Added (suite-side codifications)
+
+- **[`vsdd-suite/suite-development/suite-development.md`](suite-development/suite-development.md) § Per-review entry preamble § Supplements applied** (Review 91 Findings 2 + 4) — new plural-form preamble field (`**Supplements applied:**`) requiring inline-linked supplement file paths + named sections + explicit opt-out form (`not applicable — [reason]`). Replaces the prose-only "the X supplement § Y floor raised every finding below" template form; agent grep idiom (`grep '^\*\*Supplements applied:' vsdd-suite/review-log/*.md`) added to Common agent lookup patterns. Forward-only 2026-05-24+.
+- **[`vsdd-suite/primers/5-formal-hardening.md`](primers/5-formal-hardening.md) § Cold-session-vs-inline decision rubric** (Review 91 Finding 5) — codifies cold-session-REQUIRED cases (adversarial-framing judgment; Purity Boundary Audit on freshly-authored library; Fuzz Testing corpus design; Proof Execution property design; first-Phase-5-run on a layer) + inline-ACCEPTABLE cases (Mutation Testing re-run; property-based test re-verification; Phase-5-trigger follow-up; Purity Boundary Audit re-run on unchanged surface) + per-round declaration REQUIRED with example forms. Bookmark-cli-manual L2 Phase 5 cycle (SA R4 + QE R6 + QE R7) named as canonical inline-acceptable worked example.
+- **[`vsdd-suite/claude-code-contract.md`](claude-code-contract.md) created** (Review 91 Finding 9) — first per-tool dependency contract (parallel to `crosslink-contract.md`). Documents agent-observable surface (system context fields; tool call shapes + returns; file system state; git state) + NOT-agent-observable surface (token counts; cache-hit ratio; would-be API cost; rate-limit-window utilization; plan tier; session-start clock time) + 4 upstream coordination asks (agent-readable cost-export; plan-tier identification via env var; session-start clock anchor in system context; CLI version exposure) — legibility-only registration, not filed upstream. Shape 1 sibling JSON file schema codified at `vsdd-suite/suite-development/cost-observability/YYYY-MM-DD-review-N.json` with per-field author assignment (agent-fills vs operator-fills) explicit.
+- **[`vsdd-suite/suite-development/suite-development.md`](suite-development/suite-development.md) § Agent-API surface § Cost-tally schema** (Review 91 Finding 13) — promotes cost-tally section into the stable agent-readable surface contract. Enumerates the three tiers (agent-self-verifiable / operator-verifiable / operator-confirmable + derived metric); per-field placeholder forms; parse boundaries (`**Cost-tally:**` heading to `---` or `### Coordination` closing); cross-reference to `claude-code-contract.md` for sibling JSON. 3 new cost-tally grep idioms added to Common agent lookup patterns table. Stability commitment paragraph extended to name cost-tally schema as a formal commitment surface.
+- **[`vsdd-suite/suite-development/suite-development.md`](suite-development/suite-development.md) § Agent-API surface § Preferred lookup pattern recommendation** (Review 91 Finding 16) — codifies "agents working WITHIN the suite SHOULD reach for the catalog'd idioms before defaulting to Read + visual parse" + frames Read-as-default for catalog-covered queries as a Dim-11 finding + names the empirical-evidence-requirement-Open across cycles with third-cycle escalation trigger.
+- **[`vsdd-suite/suite-development/suite-development.md`](suite-development/suite-development.md) § Domain-effectiveness audit shape** (Review 91 Finding 15) — codifies rigorous vs thin distinction. Rigorous form (full prompt-load + per-dim coverage + classification ratio + cost-per-finding + cross-cycle codification rate + per-finding quality assessment) for methodology-decision-at-stake cycles (intent-tier promotion; domain activation/deactivation; cross-project doctrine change); thin form (counts + classification ratio + cross-cycle codification recognition) for cycle-close summaries + periodic discipline checks. When-each-applies table provided. Review 91's own audit named as canonical thin-form case (correct conclusion + thinly grounded).
+- **[`vsdd-suite/domains/role/AI-ENGINEER-REVIEW.md`](domains/role/AI-ENGINEER-REVIEW.md) Dim 11 — Supplement-citation completeness sub-clause** (Review 91 Finding 3) — adds rule that per-session review-log entries SHOULD inline-link supplement file paths when domain prompt references a supplement; prose-only template form non-compliant; bookmark-cli-manual PE L2 R5 fabricated "Security supplement § GitHub Actions" reference named as canonical worked example.
+- **[`vsdd-suite/domains/role/AI-ENGINEER-REVIEW.md`](domains/role/AI-ENGINEER-REVIEW.md) Dim 11 — Cite-verify discipline sub-clause** (Review 91 Finding 14) — adds rule that cited dimension references (`<Domain> Dim N`) should resolve to actual sections in cited domain prompts; author MUST load prompt OR explicitly cite secondary reference with verifiable accuracy; exact test (spot-check 3 cited refs per entry); hook escalation deferred earned-by-recurrence (third recurrence trigger). Review 91 author's own commitment of the failure mode named as canonical worked example.
+
+### Added (project-side)
+
+- **[`vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-22-platform-engineer.md`](../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-22-platform-engineer.md) Review 6** (Review 91 Finding 3 project-side) — single-finding amendment closing the supplement-name-misattribution in Review 5 Finding 9. Original prose at line 253 amended in-place per [G-89](suite-development/FINDINGS-INDEX.md#g-89) forward-only with `<!-- amended-r6 -->` marker pointing at the canonical github-actions.md supplement reference. Includes minimal-form cost-tally per the [Review 91 Finding 20](suite-development/review-log/2026-05-23-suite-review.md#r91-f20) opt-in codification.
+
+### Changed (suite-side)
+
+- **[`vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md`](suite-development/review-log/2026-05-23-suite-review.md) Review 91 entry restructured** — section heading `### Open` renamed to `### Resolved` (the 14 findings under it had become Resolved across the three commits + this commit's codifications); new `### Open` section added between Resolved and Dismissed containing F11 (deferred per earned-by-recurrence trigger) + F17 (operator-policy decision pending preserve-vs-migrate); new `### Resolved (continued — F18-F20 slop-fix codifications)` heading added before F18 to scope the slop-fix findings appropriately. F2/F3/F4/F5/F13/F14/F15/F16 bodies amended in-place from Open to Resolved with applied-resolution paragraphs. F9 + F11 finding bodies added fresh. F10 finding heading + anchor restored (was lost in the 2da6ad6 F9+F11 insertion edit).
+- **[`vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md`](suite-development/review-log/2026-05-23-suite-review.md) Summary** updated — finding tally `16 Resolved + 2 Open + 2 Dismissed` (was `7 filed: 5 Open + 2 Dismissed`).
+- **[`vsdd-suite/suite-development/SUITE-DEVELOPMENT-REVIEW.md`](suite-development/SUITE-DEVELOPMENT-REVIEW.md) Review 91 row** updated tally to match.
+- **[`vsdd-suite/suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md)** — F2/F3/F4/F5/F13/F14/F15/F16 rows promoted Open → Closed with Resolved classification; 2 new forward-only rows added (F9 Resolved; F11 Open with earned-by-recurrence trigger).
+
+### Open (deferred per operator decision or earned-by-recurrence)
+
+- **Review 91 Finding 11** — Cost-observability Shape 2 subsystem design; deferred with named trigger (3 cycles unable to answer "why was this cycle 2x median cost-per-finding" from inline + JSON alone)
+- **Review 91 Finding 17** — FINDINGS-INDEX + review-shape multi-axis drift; blocked by operator-policy decision preserve-vs-migrate F-001..F-047 in bookmark-cli-manual
+
+---
+
+## Unreleased — 2026-05-24 (Review 91 F13-F20 raise + conservative slop-fix codifications: SUITE-DEV-REVIEW slim-form + per-Review entry size discipline + cost-tally opt-in shape)
+
+Mid-cycle scope expansion after operator's directives: (a) "Also review the findings-index and review shapes at the suite and project level. Those still aren't consistent. Some use rXX-fX and others use G-XX syntax. G-XX syntax is supposed to be deprecated. Refer back to your review on the efficacy of the three-audience model"; (b) "This structure has evolved iteratively over time. Do an adversarial review of the structure. What about it is slop? How can we fix it. Tell me the conservative path and also how it can be improved by breaking compatibility and redesigning."
+
+Operator chose: "Conservative slop-fixes inline + Review 91 raise + defer everything else" — bundling the conservative-path slop-fixes (3 of 5 proposed) with the F13-F20 raise. Defers F2/F3/F4/F5/F9/F11 codifications + the suite-wide observability+auditability sweep (Review 92 candidate) + the redesign cycle.
+
+### Added (suite-side codifications — Review 91 F18+F19+F20 conservative slop-fixes)
+
+- **[`vsdd-suite/suite-development/suite-development.md`](suite-development/suite-development.md) § SUITE-DEVELOPMENT-REVIEW row slim-form convention** (Review 91 Finding 18) — codifies one-line row shape (`Review N | date | file | one-sentence lens + finding-count tally + pointer to review-log § Summary`). Forward-only: rows authored 2026-05-24+ use slim-form; pre-2026-05-24 rows preserved per G-89. Parallel to Review 84 Finding 2 per-domain-index retirement decision. Review 91's own row rewritten as canonical worked example.
+- **[`vsdd-suite/suite-development/suite-development.md`](suite-development/suite-development.md) § Per-Review entry size discipline** (Review 91 Finding 19) — codifies 300-line target + split-by-lens-cluster guidance (when findings span distinct concerns) vs summarize-aggressively guidance (when finding-count exceeds bound regardless of split). Hook escalation deferred earned-by-recurrence: if third Review entry exceeds 300 lines after this codification, escalate to pre-commit hook. Review 91 itself NOT retroactively split (canonical case the discipline defends against — ~700+ lines across 4 lens-clusters).
+- **[`vsdd-suite/suite-development/suite-development.md`](suite-development/suite-development.md) § Cost-tally opt-in shape** (Review 91 Finding 20) — codifies three tiers: full tiered REQUIRED for capstone+ multi-agent cycles; minimal OPTIONAL for inline single-author Review entries (5-line block); OMITTED acceptable for mechanical-fix reviews (already exempt from full review-log entry). Complements [Finding 8](suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) per-field auditability tier with a per-cycle opt-in tier.
+
+### Added (Review 91 raise — F13/F14/F15/F16/F17 Open)
+
+- **Review 91 Finding 13** — Cost-tally Agent-API contract promotion: schema absent from suite-development.md § Agent-API surface enumeration; recommendation: extend with new Cost-tally schema sub-section enumerating three tiers + placeholder forms + grep idioms + parse boundaries. Owner: technical-writer. Blocked by Finding 9 Shape 1 infrastructure.
+- **Review 91 Finding 14** — Citation-without-verification discipline gap: Review 91 author cited AI Engineer Dim 11/13/14 + PerfEng Dim 5/8/10 + PE Dim 9/27/36 throughout audit prose without loading the cited domain prompts until operator adversarial questions; pattern likely pervasive across audit trail; recommendation: AI Engineer Dim 11 sub-clause + hook proposal deferred earned-by-recurrence + operator-feedback memory codification. Owner: ai-engineer.
+- **Review 91 Finding 15** — Domain-effectiveness audit definition gap: Review 91's "domain effectiveness" assessment conflated finding-density with effectiveness; methodology lacks codification of what a rigorous audit IS; recommendation: codify suite-development.md § Domain-effectiveness audit shape (rigorous vs thin form). Owner: vdd-iar-alignment.
+- **Review 91 Finding 16** — Agent-API lookup-idiom adoption gap: Review 91 author had access to awk/grep idioms from `suite-development.md § Common agent lookup patterns` but defaulted to Read+visual-parse; documentation alone does not shift agent behavior; recommendation: extend catalog with "Preferred lookup pattern recommendation" + AI Engineer Dim 11 sub-clause + earned-by-recurrence escalation. Owner: technical-writer.
+- **Review 91 Finding 17** — FINDINGS-INDEX + review-shape multi-axis drift: suite governing standard says no F-/G- prefix; suite template uses F-XXX prefix; bookmark-cli-manual project conforms to template; column shapes differ (10 vs 12 cols); three-audience identity-with-suite claim empirically false; recommendation: keep 12 project columns + replace F-XXX with rN-fM anchor IDs; operator-policy decision required on preserve-vs-migrate. Owner: technical-writer.
+
+### Changed (suite-side)
+
+- **[`vsdd-suite/suite-development/SUITE-DEVELOPMENT-REVIEW.md`](suite-development/SUITE-DEVELOPMENT-REVIEW.md) Review 91 row** rewritten to slim-form per Finding 18 codification — from ~3000-word per-row prose summary to one-line entry pointing at the review-log § Summary as narrative source-of-truth.
+- **[`vsdd-suite/suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md)** — 8 new forward-only rows added (`r91-f13` through `r91-f20`); 3 Resolved (F18+F19+F20 slop-fix codifications) + 5 Open (F13-F17 awaiting codification).
+
+### Pending — remaining Review 91 findings + operator-deferred scope
+
+Per operator decision ("defer everything else"), the following resolve in follow-up PRs after this branch merges:
+
+- **Findings 2 + 4** — suite-development.md `**Supplements applied:**` (plural) preamble field codification
+- **Finding 3** — AI Engineer Dim 11 supplement-citation completeness check + project-side PE L2 R5 R6 amendment
+- **Finding 5** — primer 5 cold-session-vs-inline decision rubric
+- **Finding 9** — `vsdd-suite/claude-code-contract.md` creation (Shape 3 registration + Shape 1 JSON spec)
+- **Finding 11** — Shape 2 cost-observability subsystem design (register-only; deferred to earned-by-recurrence trigger)
+- **Finding 13-17** — codifications of the analytical + ID-syntax-drift findings raised in this PR
+- **Conservative slop-fixes 2 + 3 + 4 + 5** (CHANGELOG slimming + lookup-pattern enforcement hook + the two unaddressed items from the recommendation)
+- **Suite-wide observability + auditability sweep** across all domains / primers / supplements (Review 92 candidate; ~45 files; consider sub-agent cluster-batching per AI Engineer Dim 7)
+- **Audit-trail-structure redesign** (multi-month methodology shift; deferred with named trigger per Review 91 structure-slop adversarial review)
+
+---
+
+## Unreleased — 2026-05-24 02:43Z (Review 91 checkpoint — cost-observability foundation: F1 + F8 + F10 + F12 codifications applied)
+
+Mid-cycle scope expansion of the Review 91 audit after operator's adversarial questions on the original cost-tally: (a) "How can we audit this? Is it provable? Be critical. Is this giving useful signal?"; (b) "Are you even able to give precise wall time and token costing?" (honest answer: **no**); (c) "The point of this is observability. Engage the Platform Engineering domain to evaluate the findings"; (d) "Think about this in terms of PE observability to do cost analysis on cloud infrastructure. Am I over provisioned? Is a high token task necessary? Can it be optimized? Is a process inefficiency impacting token cost? Is there tuning that can be done? Engage other domains like Performance Engineer etc as appropriate"; (e) "Can we audit what was read in? I want to know if the AI Engineer three audience shape standardization actually works?"
+
+### Added (suite-side codifications — checkpoint scope)
+
+- **[`vsdd-suite/primers/2a-red-gate.md`](primers/2a-red-gate.md) § Verifiable git-history check** (Review 91 Finding 1) — codifies canonical two-commit shape default (Phase 2a Red Gate committed standalone; Phase 2b implementation second; CI verifies RED → GREEN) + single-commit-deviation discipline requiring operator-acceptance pre-cycle with named rationale + Red Gate failure-evidence preservation pointer. Names the bookmark-cli-manual L1+L2 recurrence as the canonical worked example. Hook escalation path (deferred per earned-by-recurrence): pre-commit hook scanning layer-branch's first commit for `tests/` + `src/` co-modification fires on third recurrence.
+- **[`vsdd-suite/primers/3-review-session.md`](primers/3-review-session.md) § Pre-cycle methodology check `**Phase-2a-evidence-shape**` declaration field** (Review 91 Finding 1 part 2) — converts undeclared Phase 2a/2b consolidation into documented audit trail; two acceptable values (`canonical two-commit` / `single-commit deviation`); pairs with the existing AI tool / plan tier / execution method declaration from [Review 90 Finding 2](suite-development/review-log/2026-05-23-suite-review.md#review-90--2026-05-23-1200z).
+- **[`vsdd-suite/primers/3-review-session.md`](primers/3-review-session.md) § Per-field auditability tier** (Review 91 Finding 8) — codifies the three-tier classification (agent-self-verifiable / operator-verifiable / operator-confirmable) of cost-tally fields + Operator-action queue line template. Bare numbers without instrumentation source are non-compliant; `*pending operator …*` placeholders mandatory for operator-verifiable + operator-confirmable fields.
+- **[`vsdd-suite/primers/3-review-session.md`](primers/3-review-session.md) § Tuning levers** (Review 91 Finding 10) — six lever categories codified (model-tier right-sizing; prompt-cache discipline; cluster-batching shape; sub-agent scope-down; N+1 sub-agent file-reread detection — new PerfEng-Dim-5-applied-to-agents framing; cycle-stop discipline) + rolling-baseline measurement requirement named (deferred to Finding 9 infrastructure dependency) + cross-cycle dashboard surface named (Open per Finding 9).
+- **[`vsdd-suite/supplements/claude-code-cli.md`](supplements/claude-code-cli.md) § Agents cannot count their own tokens** (Review 91 Finding 8) — hard rule + per-tier enumeration of agent-observable vs operator-instrumented fields + four-step cost-tally authoring discipline (count what is countable; mark operator-verifiable `*pending operator /cost paste*`; mark operator-confirmable with declaration source; add Operator-action queue line).
+- **[`vsdd-suite/supplements/claude-code-cli.md`](supplements/claude-code-cli.md) § Wall-clock measurement pattern** (Review 91 Finding 12) — four-step Bash `date -u +%Y-%m-%dT%H:%MZ` pattern (session-start anchor; session-end anchor; elapsed; honest framing naming elapsed includes operator-discussion + idle + tool execution + agent authoring in unknown proportions). Cites the Review 91 16x discrepancy (fabricated "~45-60 min" estimate vs instrumented ~7h43m actual) as the canonical failure mode the pattern defends against.
+- **[`vsdd-suite/supplements/claude-code-cli.md`](supplements/claude-code-cli.md) § Available observability surface for agents** (Review 91 Finding 9 partial; full Shape 3 registration via `claude-code-contract.md` pending follow-up commit on this branch) — enumerates agent-observable surface (system context fields; tool call shapes + returns; file system state; git state) vs operator-instrumented (token counts; cache-hit rates; rate-limit-window utilization; plan tier; session-start clock time). Names the upstream coordination ask candidate.
+
+### Changed (suite-side)
+
+- **[`vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md`](suite-development/review-log/2026-05-23-suite-review.md) Review 91 cost-tally** rewritten honestly per Finding 8 codification — original fabricated entries (`~90-110k tokens` / `~$4-6 USD` / `~45-60 min`) replaced with honest per-field auditability flags. Agent-self-verifiable section filled with hard counts; operator-verifiable section marked `*pending operator /cost paste*` with sources named; operator-confirmable section marks plan-tier inheritance as non-session-verified; derived metric (findings/100k tokens) marked NOT COMPUTABLE without operator paste.
+- **[`vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md`](suite-development/review-log/2026-05-23-suite-review.md) Review 91 Finding 1** promoted Open → Resolved with applied-resolution paragraphs (primer 2a + primer 3 codifications cited).
+- **[`vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md`](suite-development/review-log/2026-05-23-suite-review.md) Review 91 Findings 8 / 10 / 12** added as new Resolved-with-applied-resolution finding bodies.
+- **[`vsdd-suite/suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md)** Review 91 F1 row promoted Open → Closed; 3 new forward-only rows added (`r91-f8` / `r91-f10` / `r91-f12`) with Resolved classification.
+- **[`vsdd-suite/suite-development/SUITE-DEVELOPMENT-REVIEW.md`](suite-development/SUITE-DEVELOPMENT-REVIEW.md)** Review 91 row updated with mid-cycle scope-expansion narrative + Bash-instrumented session-end anchor.
+
+### Pending — remaining Review 91 findings to address inline on this branch
+
+After this checkpoint commit, the remaining Review 91 findings resolve in follow-up commits on this branch:
+
+- **Finding 2 + Finding 4** — suite-development.md `**Supplements applied:**` (plural) preamble field codification
+- **Finding 3** — AI Engineer Dim 11 supplement-citation completeness check + project-side PE L2 R5 R6 amendment
+- **Finding 5** — primer 5 cold-session-vs-inline decision rubric
+- **Finding 9** — `vsdd-suite/claude-code-contract.md` creation (Shape 3 registration + Shape 1 JSON spec)
+- **Finding 11** — register only with earned-by-recurrence trigger (no work this PR)
+- **Finding 13** — suite-development.md § Agent-API surface cost-tally promotion (raise + resolve)
+- **Finding 14** — citation-without-verification discipline (raise + AI Engineer Dim 11 extension + hook proposal)
+- **Finding 15** — domain-effectiveness audit definition gap (raise + defer)
+- **Finding 16** — Agent-API lookup-idiom adoption (raise + suite-development.md § Common agent lookup patterns extension)
+
+Plus operator-directed expanded scope after the checkpoint commit:
+
+- **Suite-wide observability + auditability sweep** across all domains / primers / supplements (Review 92 candidate)
+- **Findings-index + review-shape ID-syntax consistency audit** (G-XX deprecated; rN-fM canonical; project-side F-XXX prefix is non-canonical and either pre-Review-80 preserved or drifted)
+
+---
+
+## Unreleased — 2026-05-23 19:00Z (Review 91 raise — adversarial audit of bookmark-cli-manual L1+L2 against suite's own phase / primer / supplement / domain discipline)
+
+Per operator directive 2026-05-23: "Do an adversarial review of [bookmark-cli-manual] layers 1 and 2. Evaluate the use of vsdd-suite to complete these layers. Did it flow from phase to phase correctly? Were primers and supplements used when they should be? Were the domains effective? Write up your findings and recommendations as a suite review."
+
+### Added (suite-side)
+
+- **Review 91 entry** at [`vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md`](suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) — post-cycle conformance audit registering **5 Open + 2 Dismissed findings** against the suite's own discipline as exercised by [bookmark-cli-manual](../vsdd-suite-reference-examples/bookmark-cli-manual/) L1 + L2. Sycophancy compensation: the reference example reached project-terminal MVR + Phase 6 attestation; findings derived from artifact-state analysis (mechanical grep sweeps + primer/supplement file existence + preamble-shape conformance) rather than narrative judgment.
+- **Reviews-table row** at [`vsdd-suite/suite-development/SUITE-DEVELOPMENT-REVIEW.md`](suite-development/SUITE-DEVELOPMENT-REVIEW.md) — Review 91 row above Review 90 with per-finding summary lines.
+- **7 forward-only registry rows** at [`vsdd-suite/suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) — `r91-f1` through `r91-f7` with anchor IDs + Owner / Validator / Status / Classification per the Review 77 schema.
+
+### Pending — Review 91 Open findings to address inline on this branch
+
+Per operator directive ("commit this then address the findings on this PR"), the 5 Open findings resolve in follow-up commits on this branch (parallel to PR #45's raise-then-resolve shape against the AI Engineer carryforward queue):
+
+- **Finding 1** — Phase 2a Red Gate commit-boundary violation recurred at L2 despite L1 QE R1 F1 acknowledgment → primer 2a hardening + primer 3 Phase-2a-evidence-shape declaration extension
+- **Finding 2** — Supplement citation discipline regressed L1→L2 → suite-development.md per-review preamble `**Supplement applied:**` field codification
+- **Finding 3** — `supplements/github-actions.md` never cited + L2 PE R5 fabricated "Security supplement § GitHub Actions" reference → AI Engineer Dim 11 supplement-citation completeness check + project-side PE L2 R5 amendment
+- **Finding 4** — `supplements/json.md` cited only by Red Team → Finding 2's preamble field extended to plural form (`**Supplements applied:**`)
+- **Finding 5** — Phase 5 inline-vs-cold-session rationale lives only in per-round session notes → primer 5 cold-session-vs-inline decision rubric
+
+---
+
 ## Unreleased — 2026-05-23 ([PR #45](https://github.com/magnificentlycursed/guild-portfolio/pull/45): AI Engineer suite-level remediation — verify-tool/plan/method-first dimension + first per-tool supplement (claude-code-cli.md) + lettering-recurrence mitigation + cost-tally plan-tier discipline + parser-aborted-heredoc Known Issue + G-135 generalization)
 
 Per operator directive 2026-05-22: "Do not assume AI tool, plan, or execution method. Determine through verifiable means or prompt the user if that's not possible. A supplemental per AI tooling may be an appropriate way to get specific. You can make one for claude-code CLI when you tackle this work."
