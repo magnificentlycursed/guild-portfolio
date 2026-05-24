@@ -4,6 +4,43 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-24 04:19Z → 04:28Z (Review 92 — suite-wide observability + auditability sweep across 42-file methodology surface)
+
+Operator-directed Review 92 per the [Review 91 operator-action queue](suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z). First post-Review-91 cycle empirically applying the just-codified [Review 91 Finding 14](suite-development/review-log/2026-05-23-suite-review.md#r91-f14) cite-verify discipline + [Finding 16](suite-development/review-log/2026-05-23-suite-review.md#r91-f16) lookup-idiom-adoption discipline as the audit's own method.
+
+### Added (suite-side codifications)
+
+- **Review 92 entry** at [`vsdd-suite/suite-development/review-log/2026-05-24-suite-review.md`](suite-development/review-log/2026-05-24-suite-review.md#review-92--2026-05-24-0419z) — single-entry sweep (266 lines; under F19 300-line target). 7 findings: 2 Resolved in-cycle (F1 UX-REVIEW naming + F6 empirical-evidence-of-codification-effectiveness) + 4 Open (F2 supplements three-audience cascade-vs-amend; F3 primer pre-cycle scope-decision; F4 prose-only-supplement-sweep policy; F5 cost-tally per-domain implications) + 1 Dismissed (F7 interface-supplement H2-count false signal).
+- **Reviews-table row** at [`vsdd-suite/suite-development/SUITE-DEVELOPMENT-REVIEW.md`](suite-development/SUITE-DEVELOPMENT-REVIEW.md) — slim-form per F18 codification; positioned above Review 91.
+- **7 forward-only registry rows** at [`vsdd-suite/suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md) (`r92-f1` through `r92-f7`).
+
+### Changed (in-cycle codifications)
+
+- **[`vsdd-suite/domains/role/UX-REVIEW.md`](domains/role/UX-REVIEW.md) line 25** — `**Interface type:**` renamed to `**Language and interface supplement:**` per [Review 92 Finding 1](suite-development/review-log/2026-05-24-suite-review.md#r92-f1) governing-standard alignment. Supplement file paths inline-linked per [Review 91 Finding 2](suite-development/review-log/2026-05-23-suite-review.md#r91-f2) discipline. Inline annotation cites both Review 92 F1 + Review 91 F2 for forward-compatible audit-trail navigation. All 16 role-domain prompts now use the canonical preamble field label.
+
+### Empirical evidence (Review 92 Finding 6)
+
+- **F16 lookup-idiom-adoption empirically working:** 7 grep-pattern scans across the 42-file surface in 7 Bash invocations before any Read of an audit target file. Cycle wall-clock ~9 minutes vs Review 91's ~7h43m (~46x reduction). The audit's grep-first method IS the F16 discipline's first canonical-worked-example application.
+- **F14 cite-verify empirically working:** AI Engineer Dim 6 / 13 / 14 verified to resolve in [`AI-ENGINEER-REVIEW.md`](domains/role/AI-ENGINEER-REVIEW.md) lines 50 / 68 / 70 BEFORE citing in Review 92's preamble. The author had the option to cite from secondary references (Review 90 + Review 91 entries naming the dims) but did not.
+- **F16 named third-cycle-soft-hook escalation trigger** advances 1 of 3 (this cycle); 2 more grep-first cycles needed before the discipline can be considered behavior-stable.
+
+### Open (deferred per operator-policy decisions)
+
+- **Review 92 Finding 2** — cascade three-audience-lens across 13 supplements vs methodology amendment naming supplements as out-of-three-audience-scope
+- **Review 92 Finding 3** — extend pre-cycle methodology check across 6 remaining primers vs scope-to-compounding-cost-cycles-only methodology amendment
+- **Review 92 Finding 4** — conservative-G-89-preserve vs active-mechanical-sweep of 17 files containing prose-only "the X supplement" pattern
+- **Review 92 Finding 5** — AI-Engineer-only vs cross-cuts-domains cost-tally per-domain implications
+
+### Cost-tally (per F8 tiered shape; full tiered classification per F20 multi-lens cycle)
+
+- **AI tool / Model / Execution method:** [claude-code CLI](https://claude.com/claude-code) / `claude-opus-4-7` / inline main session (no sub-agents)
+- **Wall-clock anchors (Bash `date -u`):** session-start 2026-05-24T04:19Z → session-end 2026-05-24T04:28Z (~9 min elapsed; F12 + F16 + F20 codifications working as designed)
+- **Plan tier:** Claude Max (operator-declared in prior Review 91 session; **NOT re-confirmed for this session** — per AI Engineer Dim 14, passive inheritance is the failure mode; operator should re-confirm)
+- **Operator-verifiable fields (raw tokens; cache-hit; would-be API cost; rate-limit utilization):** *pending operator `/cost` paste*
+- **Operator-action queue:** if cost-tally precision is load-bearing for cross-cycle calibration, operator runs `/cost` and pastes the output as append-only addendum to Review 92's cost-tally
+
+---
+
 ## Unreleased — 2026-05-24 (Review 91 remaining-findings codifications: F2/F3/F4/F5/F9/F13/F14/F15/F16 Resolved in-cycle + F10 anchor restored + Review 91 section restructure + F11/F17 register Open + new `claude-code-contract.md`)
 
 Operator-directed "continue with the findings" after the Review 91 F13-F20 raise commit (2da6ad6). The remaining 10 Open findings (F2, F3, F4, F5, F9, F11, F13, F14, F15, F16, F17) split into 9 Resolved + 2 Open in-cycle:
