@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] Layer 2 tag + filter — Phase 2 + Phase 3 Round 1 fix cycle — 2026-05-22
+## [Unreleased] Layer 2 tag + filter — full cycle close (Phases 1-2c + manual-tests + Phase 3 Rounds 1+2 + inline-fix mini-cycle + Phase 5) — 2026-05-22 / 2026-05-23
 
 **Scope:** Layer 2 (`bm tag` + `bm list --tag`) Phase 2 implementation + Phase 3 IAR Round 1 4-cluster parallel cold-session review + Round 1 inline fix cycle on the `bookmark-cli-manual-layer-2` branch.
 
@@ -44,6 +44,43 @@
 ### Round 1 cluster cold-session review
 
 The 4 cold-session clusters (SE/UX/Performance-Engineer; QE/Security/Technical-Writer; Solution-Architect/Red-Team/Platform-Engineer; Solution-Owner/Documentation-Reviewer/AI-Engineer/VDD-IAR-Alignment) surfaced ~30 findings across the 13 capstone-active domains. The Round 1 inline fix cycle on this branch applied 12 numbered fixes (Fix 1 through Fix 13 in the fix-cycle prompt with Fix 11 deferred to Round 2), resolving ~17 cross-domain finding-closures; the residual subset routes to Round 2 verification or carryforward.
+
+### Round 2 cluster cold-session verification
+
+The same 4-cluster composition re-ran in parallel via worktree-isolated agents to verify the Round 1 fix-cycle closures + surface adjacent defects. **6 of 13 domains reached MVR at Round 2:** Solution Owner, Documentation Reviewer, AI Engineer (project-side), VDD-IAR Alignment, Quality Engineer, Security. **7 of 13 carry forward small refinements** (none shipping-blocking; all documented per-finding with operator-decision routing or Layer-3 / Phase-5 trigger): SE (3 R1 carry-forwards + 1 new R2 finding), UX (0 R1 carry-forwards — all Resolved — + 2 new R2 findings), Performance Engineer (2 R1 + 1 new), TW (2 R1 + 1 new), SA (1 R1 Raised-to-SO), Red Team (2 Raised-to-SO), Platform Engineer (1 R1 + 1 new DESIGN.md sync gap). 4 cluster reports unanimously: **no Phase 5 or Phase 6 closure blockers.**
+
+### Round 2 inline-fix mini-cycle
+
+Per the operator's "Inline-fix mini-cycle + Phase 5" path-forward decision, 4 small carry-forward closures landed at commit `580db12`:
+
+- **`DESIGN.md` § Constraints line 211** — Rust toolchain `1.78+` → `1.81+` (Platform-Engineer Round 2 Finding 7; sync to the `Cargo.toml` + `rust-toolchain.toml` MSRV bump that landed at `002d747`).
+- **`CHANGELOG.md` "(12 fixes)" numeric drift** — rephrased to "12 numbered fixes ... resolving ~17 cross-domain finding-closures" so the count is unambiguous (TW Round 2 Finding 6).
+- **`src/main.rs` `run_list` precedence** — empty-label rejection now fires before the empty-store precedence branch so `bm list --tag ""` against an empty store correctly exits 1 with the empty-label error (SE Round 1 Finding 3 closure). New integration test sentinel `tests_list_with_empty_tag_label_against_empty_store_still_rejected` in `tests/bookmarks.rs`.
+- **`src/main.rs` `run_tag` singular/plural** — `Tagged 1 bookmark(s).` reads awkwardly when N=1; now emits `Tagged 1 bookmark.` (singular) or `Tagged N bookmarks.` (plural per Layer 2 Round 2 UX F4). Spec contract at `DESIGN.md` § `bm tag` Success Output updated; integration tests + manual-test expected outputs updated.
+
+### Phase 5 Layer 2 hardening — closed
+
+- **SA Review 4 (Purity Boundary Audit re-run)** — zero findings; all five Layer 2 pure-side declarations (`filter_by_tags` + `attach_tag` + `tags()` accessor + `tags` field + `fsync_directory` effectful classification) verify against the implementation at line-level. Documented as 1 Resolved finding per the review-log discipline.
+- **QE Review 6 (Mutation Testing re-run via cargo-mutants 27.0.0)** — Layer 2 viable kill rate closed at **93.2%** (41/44) post-Option-A inline fix at commit `c186d0b`. Initial run surfaced 86.4% (38/44) with 6 missed; Option A landed two changes: (1) `Bookmark::tags()` accessor unit test kills mutants #1/#2/#3 by direct invocation, (2) Mutant #6 (`write_temp_file` → `Ok(())`) re-classified as cfg-shadow false-positive (the line lives inside the `#[cfg(not(unix))]` Windows-only branch, which is dead code on the macOS test platform). 3 remaining survivors are all documented acceptable-survivals: `AttachTagError::Display` (Layer-3-trigger per SE R1 F1); `fsync_directory` no-op (WEAK PROXY annotation per Phase 2b); `write_temp_file` cfg-shadow.
+
+### Phase 6 Layer 2 — NOT APPLICABLE
+
+Per [DESIGN.md § Project intent's Phase 6 strategy for Layer 2](DESIGN.md) (commit `002d747`) and [TODO.md § Layer 2 Layer-gate criterion #6](TODO.md), Layer 2's Phase 6 four-dimensional convergence record is marked **NOT APPLICABLE** under [G-150](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) (over-investment guard) + [G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) (reference-implementation-purpose-already-satisfied — bookmark-cli's reference-implementation purpose is "exercise all six VSDD phases end-to-end as a worked example", which Layer 1's project-terminal MVR + Phase 6 attestation already demonstrate). Layer 1's Phase 6 attestation at [VDD-IAR Alignment Review 3](vsdd-suite/review-log/2026-05-20-vdd-iar-alignment.md) stands as the project's terminal convergence record. Adopted from Cluster D's Solution-Owner Review 4 Finding 2 recommendation; verified by VDD-IAR Alignment Round 2 Review 5 Finding 5 closure.
+
+### Carryforwards (none shipping-blocking; all documented per-finding)
+
+- **SA R1 F2** (attach_tag/save separation rationale) — Raised-to-SO; spec amendment pending operator decision.
+- **Red Team R1 F3 + R2 F10** (Layer 3 sanitize-at-export readiness + chained-vulnerability framing) — Raised-to-SO; Layer-3-trigger.
+- **PE R1 F5** (fsync filesystem-coverage caveat) — Phase-5-PE-trigger (closed via this cycle's QE Review 6 + SA Review 4 Phase 5 closure; the caveat itself documents the residual measurement-vs-correctness boundary).
+- **TW R6 F3 + F4** (install-verification Layer 2 row + hyperfine prereq) — next-install-verification-cycle trigger; the Layer 1 PASS row from PR #41 inherits per the [`install-verification.md`](manual-tests/install-verification.md) inheritance note.
+- **SE R1 F1** (AttachTagError::NoMatch carry URL) — Layer-3-trigger.
+- **SE R1 F4** (test rename for `tests_save_fsyncs_parent_directory` honest naming) — defer.
+- **SE R2 F5** (proptest `prop_assume!` rejection-rate disclosure) — Phase-5-trigger; addressed structurally by QE Review 6 + SA Review 4.
+- **PE R2 F4** (scaling sentinel `populate` process-spawn overhead at 10K cliff) — Phase-5-trigger; documented in [`tests/scaling.rs`](tests/scaling.rs).
+
+### Operator-action queue (suite-side; not project-blocking)
+
+- **Task #56 (suite-level AI Engineer review)** — codify five upstream-suite remediation findings: (1) recurring lettering-violation pattern; (2) AI Engineer domain prompt verify-tool/plan/method dimension; (3) per-tool supplements (claude-code-cli.md first instance); (4) cost-tally plan-tier discipline gap (would-be-API-cost framing); (5) recurring parser-aborted error on heredoc-based file writes via the Bash tool (3 instances this session). Lands as a separate PR after this Layer 2 PR merges (no-stacked-PRs preference).
 
 ---
 
