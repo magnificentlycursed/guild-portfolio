@@ -27,12 +27,15 @@ Structured like [`vsdd-suite/suite-development/FINDINGS-INDEX.md`](../../vsdd-su
 
 ## Findings registry
 
-| ID | Layer | Round | Domain | Finding | Title | Source | Classification | Owner | Validator | Status | Anchor |
+| Anchor-ID | Layer | Round | Domain | Finding | Title | Source | Classification | Owner | Validator | Status | Anchor |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| F-001 | L1 | R1 | software-engineer | F1 | (example title) | domain-raised | Resolved | software-engineer | quality-engineer | Closed | [SE R1 F1](review-log/2026-06-15-software-engineer.md#review-1--2026-06-15-1400z) |
-| F-002 | L1 | R1 | quality-engineer | F2 | (example title) | domain-raised | Hallucinated | — | — | Closed | [QE R1 F2](review-log/2026-06-15-quality-engineer.md#review-1--2026-06-15-1430z) |
+| <a id="software-engineer-r1-f1"></a>software-engineer-r1-f1 | L1 | R1 | software-engineer | F1 | (example title) | domain-raised | Resolved | software-engineer | quality-engineer | Closed | [SE R1 F1](review-log/2026-06-15-software-engineer.md#review-1--2026-06-15-1400z) |
+| <a id="quality-engineer-r1-f2"></a>quality-engineer-r1-f2 | L1 | R1 | quality-engineer | F2 | (example title) | domain-raised | Hallucinated | — | — | Closed | [QE R1 F2](review-log/2026-06-15-quality-engineer.md#review-1--2026-06-15-1430z) |
 
 <!-- Delete the example rows above when this file is first populated for your project.
+
+     **Anchor-ID column** (per [Review 91 Finding 17](../suite-development/review-log/2026-05-23-suite-review.md#r91-f17) closure 2026-05-24; previously `F-XXX` ID prefix retired): rows use `<a id="<domain-slug>-rN-fM"></a><domain-slug>-rN-fM` form where the anchor scheme is `<domain-slug>-r<round>-f<finding>` (e.g., `software-engineer-r1-f1` for SE Round 1 Finding 1). The anchor-ID is unique within this file + matches the per-Finding anchor scheme in each per-session review-log file at `review-log/YYYY-MM-DD-<domain-slug>.md`. Agent grep idiom: `grep '| <a id="' vsdd-suite/FINDINGS-INDEX.md` returns every row uniformly with the suite-side FINDINGS-INDEX.md scheme. The `F-XXX` ID prefix scheme is retired per [`suite-development.md`](../suite-development/suite-development.md) § Findings registry forward-only: *"No `G-`/`F-` ID prefix — findings are identified by their originating `Review N Finding M` anchor."*
+
      Maintain newest-first ordering (latest finding at top of the table).
      Status values: Open | Closed
      Classification values per domain — see the domain prompt file's Current Review Prompt section.

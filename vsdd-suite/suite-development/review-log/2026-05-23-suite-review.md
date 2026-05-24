@@ -711,8 +711,11 @@ The earned-by-recurrence doctrine applies: ship Shape 1 + Shape 3 now; observe w
 **Finding 17 — FINDINGS-INDEX + review-shape multi-axis drift: suite governing standard, suite template, suite actual file, and project reference example all use different ID-prefix schemes + column shapes; three-audience principle's "agent-readable identity across suite/project boundary" claim is empirically false**
 
 **Owner:** technical-writer (governing-standard prose surface) + ai-engineer (Agent-API surface contract owner)
-**Status:** raised
-**Blocked by:** *(none — operator-policy decision on preserve-vs-migrate existing F-001..F-047 rows is the gating decision)*
+**Status:** validated
+**Blocked by:** *(was: operator-policy decision; resolved 2026-05-24 — operator selected Option B full migration)*
+**Validator:** sanity-check
+
+Validator rationale: ID-scheme migration is mechanical post-decision; Sanity Check validates the migration covers all 47 rows + cross-references in PROCESS.md / CHANGELOG.md / per-domain review-log files are preserved per G-89 (compatibility table at top of project FINDINGS-INDEX surfaces the legacy F-XXX → anchor-ID mapping for reader discoverability).
 
 **Evidence:** Mechanical cross-check across four authoritative sources:
 
@@ -735,19 +738,17 @@ Three patterns coexist: G-XXX (legacy suite, deprecated per Review 73, preserved
 
 (2) and (3) suggest the canonical fix isn't "make project conform to suite" but "name where the shapes legitimately diverge + reconcile what shouldn't."
 
-**Recommendation (operator-policy decision pending):**
+**Resolution applied (operator-policy Option B full migration; codified 2026-05-24):**
 
-Canonical reconciliation proposal:
-- Suite-side stays as-is (10 columns; rN-fM anchor; no ID column; Lens column)
-- Project-side canonical shape: 12 columns (Layer + Round + Domain + Finding + lifecycle fields) BUT replace the F-XXX ID column with `<a id="rN-fM"></a>` anchor IDs (Review N Finding M as the row's identity). Preserves all 12 project columns AND aligns the anchor-ID scheme so agent grep idioms work identically across the suite/project boundary.
-- Template + reference example + governing-standard prose all updated together.
+1. **Migration scheme**: `<domain-slug>-rN-fM` anchor-IDs match the per-Finding anchor scheme in each per-session review-log file (within the file, `<a id="rN-fM"></a>` form; in the cross-cutting FINDINGS-INDEX, `<a id="<domain-slug>-rN-fM"></a>` form to disambiguate across domains). The scheme satisfies the [`suite-development.md` § Findings registry forward-only](../suite-development.md) governing-standard rule "No `G-`/`F-` ID prefix" + aligns the agent grep idiom (`grep '| <a id="' <project>/vsdd-suite/FINDINGS-INDEX.md`) with the suite-side equivalent.
+2. **Project-side migration applied**: all 47 rows in [`bookmark-cli-manual/vsdd-suite/FINDINGS-INDEX.md`](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/FINDINGS-INDEX.md) migrated from `F-001..F-047` to anchor-IDs. ID column renamed `ID` → `Anchor-ID`. Compatibility table added at the top of the project FINDINGS-INDEX mapping each legacy F-XXX to its post-migration anchor-ID for reader discoverability per [G-89](../FINDINGS-INDEX.md#g-89). Cross-cutting `F-018` → `platform-engineer-r1-f9` style anchor link in the vdd-iar-alignment-r1-f4 row body updated to use the new anchor.
+3. **Template updated**: [`templates/PROJECT-FINDINGS-INDEX-template.md`](../../templates/PROJECT-FINDINGS-INDEX-template.md) renamed ID column → Anchor-ID + example rows use anchor-ID form + inline comment explains the scheme + cites the Review 91 F17 closure. Future projects scaffolded with the template inherit the canonical shape from the start.
+4. **Governing standard reaffirmed**: [`suite-development.md`](../suite-development.md) § Project-level finding index § [manual] mode extended with explicit Anchor-ID column shape sub-paragraph naming the `<domain-slug>-rN-fM` scheme + the legacy F-XXX preservation discipline.
+5. **Legacy F-XXX cross-references preserved**: 27 prose references to F-XXX across `bookmark-cli-manual/PROCESS.md`, `bookmark-cli-manual/CHANGELOG.md`, and 4 per-session review-log files stay as authored per [G-89](../FINDINGS-INDEX.md#g-89) forward-only narrative-preservation. The compatibility table at the top of the project FINDINGS-INDEX surfaces the legacy → anchor-ID mapping so a reader following any F-XXX prose reference can locate the post-migration row.
 
-**Operator-policy decision required:**
+**Resolution:** F17 full migration applied at this Review's codification commit on the `bookmark-cli-manual-findings-index-anchor-id-migration-r91-f17` branch. The three-audience principle's "agent-readable identity across suite/project boundary" claim is now empirically true: `grep '| <a id="' vsdd-suite/suite-development/FINDINGS-INDEX.md` + `grep '| <a id="' bookmark-cli-manual/vsdd-suite/FINDINGS-INDEX.md` both return all rows uniformly with the anchor-ID shape.
 
-A) **Preserve existing F-001..F-047 rows in bookmark-cli-manual as historical** (G-89 carve-out for project-side migration — pre-canonicalization rows stay; new rows use anchor scheme). Lighter migration; permanent dual-scheme in the reference example.
-B) **Full migration of bookmark-cli-manual** since it's the reference example + carries the "reference for current methodology" obligation per [G-177](../FINDINGS-INDEX.md#g-177) (reference examples migrate when methodology evolves). Heavier migration; cleaner reference example.
-
-**Classification:** Open (registered for tracking; codification blocked by operator policy decision A vs B above; codification is a separate PR per the no-stacked-PRs operator preference).
+**Classification:** Resolved (Three-audience principle empirically restored at the suite/project boundary; TW Dim 11 audience-fit calibration; G-177 reference-examples-stay-current applied via Option B full migration).
 
 ---
 
@@ -887,7 +888,7 @@ The honest-disclosure shape is the methodology-correct answer for a reference ex
 
 ### Summary
 
-Post-cycle adversarial audit of bookmark-cli-manual Layer 1 + Layer 2 against the suite's own phase / primer / supplement / domain discipline, expanded mid-cycle into cost-observability + three-audience auditability + audit-trail-structure slop multi-domain review. **20 findings filed across the full cycle: 16 Resolved (F1, F2, F3, F4, F5, F8, F9, F10, F12, F13, F14, F15, F16, F18, F19, F20) + 2 Open (F11 deferred with earned-by-recurrence trigger; F17 operator-policy decision pending preserve-vs-migrate) + 2 Dismissed (F6, F7).**
+Post-cycle adversarial audit of bookmark-cli-manual Layer 1 + Layer 2 against the suite's own phase / primer / supplement / domain discipline, expanded mid-cycle into cost-observability + three-audience auditability + audit-trail-structure slop multi-domain review. **20 findings filed across the full cycle: 17 Resolved (F1, F2, F3, F4, F5, F8, F9, F10, F12, F13, F14, F15, F16, F17 — Resolved 2026-05-24 via Option B full migration, F18, F19, F20) + 1 Open (F11 deferred with earned-by-recurrence trigger) + 2 Dismissed (F6, F7).**
 
 **Phase-to-phase flow audit:** All six VSDD phases (1a+1b spec → 1c decomposition → 2a Red Gate → 2b implementation → 2c refactor → 3 IAR → 4 routing → 5 hardening → 6 convergence) executed for Layer 1 with project-terminal MVR + Phase 6 attestation at PR #42. Layer 2 executed phases 1a+1b → 1c → 2a → 2b → 2c → 3 → 4 → 5 with Phase 6 explicitly marked NOT APPLICABLE per [G-150](../FINDINGS-INDEX.md#g-150) + [G-112](../FINDINGS-INDEX.md#g-112) (operator-decision Cluster D Solution Owner recommendation adopted). **One real methodology gap surfaced: Phase 2a Red Gate commit-boundary violation recurred at L2 despite L1's QE R1 F1 acknowledgment ([Finding 1](#r91-f1))** — same pattern as [Review 90 Finding 1](#review-90--2026-05-23-1200z)'s lettering-violation (memory-feedback-alone insufficient for cross-cycle propagation). One concern dismissed: Phase 4 routing absence is the methodology working as designed via inline `Raised to SO` + `Blocked by` + `Coordination` mechanisms ([Finding 6](#r91-f6)).
 
