@@ -14,6 +14,7 @@
 .crosslink/keys/
 .crosslink/.hub-cache/
 .crosslink/.knowledge-cache/
+.crosslink/.last-hydrated-ref
 .crosslink/.cache/
 .crosslink/init-manifest.json
 .crosslink/init-manifest.json.tmp
