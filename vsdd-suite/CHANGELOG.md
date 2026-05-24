@@ -4,6 +4,47 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## Unreleased — 2026-05-24 (Review 91 F13-F20 raise + conservative slop-fix codifications: SUITE-DEV-REVIEW slim-form + per-Review entry size discipline + cost-tally opt-in shape)
+
+Mid-cycle scope expansion after operator's directives: (a) "Also review the findings-index and review shapes at the suite and project level. Those still aren't consistent. Some use rXX-fX and others use G-XX syntax. G-XX syntax is supposed to be deprecated. Refer back to your review on the efficacy of the three-audience model"; (b) "This structure has evolved iteratively over time. Do an adversarial review of the structure. What about it is slop? How can we fix it. Tell me the conservative path and also how it can be improved by breaking compatibility and redesigning."
+
+Operator chose: "Conservative slop-fixes inline + Review 91 raise + defer everything else" — bundling the conservative-path slop-fixes (3 of 5 proposed) with the F13-F20 raise. Defers F2/F3/F4/F5/F9/F11 codifications + the suite-wide observability+auditability sweep (Review 92 candidate) + the redesign cycle.
+
+### Added (suite-side codifications — Review 91 F18+F19+F20 conservative slop-fixes)
+
+- **[`vsdd-suite/suite-development/suite-development.md`](suite-development/suite-development.md) § SUITE-DEVELOPMENT-REVIEW row slim-form convention** (Review 91 Finding 18) — codifies one-line row shape (`Review N | date | file | one-sentence lens + finding-count tally + pointer to review-log § Summary`). Forward-only: rows authored 2026-05-24+ use slim-form; pre-2026-05-24 rows preserved per G-89. Parallel to Review 84 Finding 2 per-domain-index retirement decision. Review 91's own row rewritten as canonical worked example.
+- **[`vsdd-suite/suite-development/suite-development.md`](suite-development/suite-development.md) § Per-Review entry size discipline** (Review 91 Finding 19) — codifies 300-line target + split-by-lens-cluster guidance (when findings span distinct concerns) vs summarize-aggressively guidance (when finding-count exceeds bound regardless of split). Hook escalation deferred earned-by-recurrence: if third Review entry exceeds 300 lines after this codification, escalate to pre-commit hook. Review 91 itself NOT retroactively split (canonical case the discipline defends against — ~700+ lines across 4 lens-clusters).
+- **[`vsdd-suite/suite-development/suite-development.md`](suite-development/suite-development.md) § Cost-tally opt-in shape** (Review 91 Finding 20) — codifies three tiers: full tiered REQUIRED for capstone+ multi-agent cycles; minimal OPTIONAL for inline single-author Review entries (5-line block); OMITTED acceptable for mechanical-fix reviews (already exempt from full review-log entry). Complements [Finding 8](suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) per-field auditability tier with a per-cycle opt-in tier.
+
+### Added (Review 91 raise — F13/F14/F15/F16/F17 Open)
+
+- **Review 91 Finding 13** — Cost-tally Agent-API contract promotion: schema absent from suite-development.md § Agent-API surface enumeration; recommendation: extend with new Cost-tally schema sub-section enumerating three tiers + placeholder forms + grep idioms + parse boundaries. Owner: technical-writer. Blocked by Finding 9 Shape 1 infrastructure.
+- **Review 91 Finding 14** — Citation-without-verification discipline gap: Review 91 author cited AI Engineer Dim 11/13/14 + PerfEng Dim 5/8/10 + PE Dim 9/27/36 throughout audit prose without loading the cited domain prompts until operator adversarial questions; pattern likely pervasive across audit trail; recommendation: AI Engineer Dim 11 sub-clause + hook proposal deferred earned-by-recurrence + operator-feedback memory codification. Owner: ai-engineer.
+- **Review 91 Finding 15** — Domain-effectiveness audit definition gap: Review 91's "domain effectiveness" assessment conflated finding-density with effectiveness; methodology lacks codification of what a rigorous audit IS; recommendation: codify suite-development.md § Domain-effectiveness audit shape (rigorous vs thin form). Owner: vdd-iar-alignment.
+- **Review 91 Finding 16** — Agent-API lookup-idiom adoption gap: Review 91 author had access to awk/grep idioms from `suite-development.md § Common agent lookup patterns` but defaulted to Read+visual-parse; documentation alone does not shift agent behavior; recommendation: extend catalog with "Preferred lookup pattern recommendation" + AI Engineer Dim 11 sub-clause + earned-by-recurrence escalation. Owner: technical-writer.
+- **Review 91 Finding 17** — FINDINGS-INDEX + review-shape multi-axis drift: suite governing standard says no F-/G- prefix; suite template uses F-XXX prefix; bookmark-cli-manual project conforms to template; column shapes differ (10 vs 12 cols); three-audience identity-with-suite claim empirically false; recommendation: keep 12 project columns + replace F-XXX with rN-fM anchor IDs; operator-policy decision required on preserve-vs-migrate. Owner: technical-writer.
+
+### Changed (suite-side)
+
+- **[`vsdd-suite/suite-development/SUITE-DEVELOPMENT-REVIEW.md`](suite-development/SUITE-DEVELOPMENT-REVIEW.md) Review 91 row** rewritten to slim-form per Finding 18 codification — from ~3000-word per-row prose summary to one-line entry pointing at the review-log § Summary as narrative source-of-truth.
+- **[`vsdd-suite/suite-development/FINDINGS-INDEX.md`](suite-development/FINDINGS-INDEX.md)** — 8 new forward-only rows added (`r91-f13` through `r91-f20`); 3 Resolved (F18+F19+F20 slop-fix codifications) + 5 Open (F13-F17 awaiting codification).
+
+### Pending — remaining Review 91 findings + operator-deferred scope
+
+Per operator decision ("defer everything else"), the following resolve in follow-up PRs after this branch merges:
+
+- **Findings 2 + 4** — suite-development.md `**Supplements applied:**` (plural) preamble field codification
+- **Finding 3** — AI Engineer Dim 11 supplement-citation completeness check + project-side PE L2 R5 R6 amendment
+- **Finding 5** — primer 5 cold-session-vs-inline decision rubric
+- **Finding 9** — `vsdd-suite/claude-code-contract.md` creation (Shape 3 registration + Shape 1 JSON spec)
+- **Finding 11** — Shape 2 cost-observability subsystem design (register-only; deferred to earned-by-recurrence trigger)
+- **Finding 13-17** — codifications of the analytical + ID-syntax-drift findings raised in this PR
+- **Conservative slop-fixes 2 + 3 + 4 + 5** (CHANGELOG slimming + lookup-pattern enforcement hook + the two unaddressed items from the recommendation)
+- **Suite-wide observability + auditability sweep** across all domains / primers / supplements (Review 92 candidate; ~45 files; consider sub-agent cluster-batching per AI Engineer Dim 7)
+- **Audit-trail-structure redesign** (multi-month methodology shift; deferred with named trigger per Review 91 structure-slop adversarial review)
+
+---
+
 ## Unreleased — 2026-05-24 02:43Z (Review 91 checkpoint — cost-observability foundation: F1 + F8 + F10 + F12 codifications applied)
 
 Mid-cycle scope expansion of the Review 91 audit after operator's adversarial questions on the original cost-tally: (a) "How can we audit this? Is it provable? Be critical. Is this giving useful signal?"; (b) "Are you even able to give precise wall time and token costing?" (honest answer: **no**); (c) "The point of this is observability. Engage the Platform Engineering domain to evaluate the findings"; (d) "Think about this in terms of PE observability to do cost analysis on cloud infrastructure. Am I over provisioned? Is a high token task necessary? Can it be optimized? Is a process inefficiency impacting token cost? Is there tuning that can be done? Engage other domains like Performance Engineer etc as appropriate"; (e) "Can we audit what was read in? I want to know if the AI Engineer three audience shape standardization actually works?"

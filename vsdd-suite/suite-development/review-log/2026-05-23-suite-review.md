@@ -501,6 +501,255 @@ Per the AI Engineer prompt: agents have no clock instrument; tool calls do not r
 
 ---
 
+<a id="r91-f13"></a>
+**Finding 13 — Cost-tally section absent from Agent-API surface contract; codified at suite-development.md but not enumerated as stable agent-readable schema**
+
+**Owner:** technical-writer (governing-standard prose surface)
+**Status:** raised
+**Blocked by:** [Finding 9](#r91-f9) — Shape 1 cost-observability infrastructure provides the schema target for promotion
+
+**Evidence:** [`suite-development.md` § Agent-API surface](../suite-development.md#agent-api-surface-review-80-finding-3) (Review 80 Finding 3) enumerates the stable agent-readable surface: Review heading, preamble fields, classification sub-sections, Finding header, per-Finding anchor IDs, lifecycle fields, required closers, registry rows, common agent lookup patterns. **Cost-tally section is conspicuously absent.** Per the [Finding 8](#r91-f8) tiered schema codification + the [Finding 10](#r91-f10) tuning lever catalog, cost-tally is now a structured surface that agents must author + that future agents must query for trend analysis + anomaly detection. Without Agent-API contract promotion, the cost-tally has no stability commitment + no agent-readable schema; the per-field tier discipline can drift without breaking any stability commitment because no commitment exists.
+
+**Reasoning:** Per [Review 80 Finding 3](2026-05-20-suite-review.md#review-80--2026-05-20-1830z) the Agent-API surface "commits the suite to a stable agent-readable surface across the audit-trail artifacts. Agents authored against these invariants will not break across releases unless the methodology shift is itself documented in a Review." The cost-tally is now exactly the kind of audit-trail artifact this commitment is meant to cover. Promotion makes the schema queryable + greppable + cross-cycle-aggregatable, supporting the [Finding 10](#r91-f10) tuning-lever review surface + the [Finding 9](#r91-f9) Shape 2 subsystem-design rolling-baseline metric.
+
+**Recommendation:**
+
+1. Extend `suite-development.md` § Agent-API surface with a new **Cost-tally schema** sub-section enumerating: the three tiers (agent-self-verifiable / operator-verifiable / operator-confirmable); the per-field placeholder forms (`*pending operator /cost paste*`); the grep idioms for cost-tally lookup (e.g., `grep -B 1 '^- \*\*Raw tokens' review-log/`); the parse boundaries (`**Cost-tally**` heading to `---` or `### Coordination` closing).
+2. Cross-reference from `primers/3-review-session.md` § Per-field auditability tier + `supplements/claude-code-cli.md` § Cost-tally discipline.
+3. Pair with [Finding 9](#r91-f9) Shape 1 JSON file specification — the sibling JSON file shape is the canonical machine-readable surface; the inline cost-tally is the human-readable surface; both are Agent-API contract artifacts.
+
+**Classification:** Open (registered for tracking; the suite-development.md § Agent-API surface extension is a separate PR per the no-stacked-PRs operator preference; blocked by Finding 9 Shape 1 infrastructure being designed first).
+
+---
+
+<a id="r91-f14"></a>
+**Finding 14 — Citation-without-verification discipline gap: agents citing dimensions (e.g., "AI Engineer Dim 11") without loading the cited domain prompt; demonstrated by Review 91 author through Finding 8's pre-rewrite cost-tally + the original F1-F7 finding bodies citing dims of domains never loaded into context**
+
+**Owner:** ai-engineer (process-enforcement surface per [Review 87 Finding 6](2026-05-21-suite-review.md#review-87--2026-05-21-1230z) per-error-class owner table)
+**Status:** raised
+**Blocked by:** *(none)*
+
+**Evidence:** The Review 91 author (this Opus 4.7 session) cited the following dims throughout the Review's prose without loading the cited domain prompts until after the operator's three-audience-effectiveness adversarial question (2026-05-24 ~01:00Z):
+
+- **AI Engineer Dim 11** (audit-trail machine-readability) — cited in Findings 3, 8, 12, 14; loaded only after operator adversarial question
+- **AI Engineer Dim 13** (pre-cycle methodology check) — cited in Findings 8, 9; loaded only after operator adversarial question
+- **AI Engineer Dim 14** (tool/plan/execution-method identification) — cited in cost-tally section + Findings 8, 12; loaded only after operator adversarial question
+- **Performance Engineer Dim 5** (N+1 access patterns) — cited in Finding 10 framing as "PerfEng-Dim-5-applied-to-agents"; loaded only after PE adversarial-review prompt
+- **Performance Engineer Dim 8 + Dim 10** — cited in PE adversarial-review tables; loaded after prompt
+- **PE Dim 9 + Dim 27 + Dim 36** — cited in PE adversarial-review; partially loaded
+
+Pattern: citations were made from secondary references (other documents naming the dim by number + title) rather than from the canonical domain prompt. Worked because the secondary references happened to be accurate; would have failed silently if any cited dim had been renumbered, retitled, or retired.
+
+The same pattern likely applies pervasively across the audit-trail — many suite-review entries cite dims they have not directly loaded.
+
+**Reasoning:** The methodology's hook surface (`check-suite-review-preamble.py`, etc.) validates structural conformance (preamble fields present; finding-header pattern; lifecycle fields shape) but does NOT validate that cited dims resolve to existing entities in the cited domain prompts. [Documentation Reviewer Dim 11 (cross-reference clickthrough validation)](../../domains/role/DOCUMENTATION-REVIEWER-REVIEW.md) would catch broken anchor-link cross-references at PR-review time but is not currently applied to author-side suite-review entries (Doc Reviewer is project-side; suite-side has no parallel hook).
+
+This is exactly the methodology-evasion failure mode the three-audience principle was authored to defend against — but the principle is prose-asserted; the enforcement is incomplete. The Review 91 author committed the failure mode while authoring the audit that surfaced the failure mode. **The methodology lacks self-defense against its own author's evasion.**
+
+**Recommendation:**
+
+1. Extend [AI Engineer Dim 11 (audit-trail machine-readability)](../../domains/role/AI-ENGINEER-REVIEW.md) with a sub-clause: *"every cited dimension reference (`<Domain> Dim N`) in a suite-review entry should resolve to the cited domain prompt's actual Dim N section — author MUST have loaded the cited prompt OR explicitly cited a secondary reference (e.g., "per the dim summary in suite-development.md § X")."*
+2. Propose pre-commit hook (deferred per "earned by recurrence") that scans suite-review entries for `<Domain> Dim N` references + verifies the dim exists in the cited domain prompt. Mechanizes the discipline against author-side evasion.
+3. Document the Review 91 author's recurrence pattern in the suite's `feedback_*` memory shape parallel to the lettering-violation memory at [Review 90 Finding 1](#review-90--2026-05-23-1200z) — operator-feedback memory codifies "load the cited prompt before citing it" as a recurring author-discipline expectation.
+
+**Classification:** Open (registered for tracking; the AI Engineer Dim 11 extension + hook proposal are separate PRs per the no-stacked-PRs operator preference).
+
+---
+
+<a id="r91-f15"></a>
+**Finding 15 — Domain-effectiveness audit definition gap: Review 91's "domain effectiveness" assessment conflated finding-density with effectiveness; methodology lacks codification of what a rigorous domain-effectiveness audit IS**
+
+**Owner:** vdd-iar-alignment (methodology-process surface)
+**Status:** raised
+**Blocked by:** *(none)*
+
+**Evidence:** Review 91's `## Summary § Domain effectiveness audit` paragraph asserted: *"All 13 capstone-active domains produced substantive findings across L1+L2. Highest-signal domains by codification-into-permanent-suite-improvements: AI Engineer (10 R1 findings → 5 codified at Review 90); Quality Engineer (cargo-mutants 100% L1 kill rate + 93.2% L2 kill rate)..."* — the assessment was derived from:
+
+1. Counting findings per per-session review-log file (mechanical `grep` count, not content-evaluation read)
+2. Recognizing which findings had been codified into permanent suite improvements (cross-cycle memory of PR #45 outcomes)
+3. Assuming finding-density correlates with effectiveness
+
+The Review 91 author did NOT:
+
+- Load each domain prompt to verify the surfaced findings actually exercised the prompt's dimensions
+- Cross-check the findings against the domain's classification universe (whether the findings cluster heavily in Hallucinated / Dismissed = over-investment vs Resolved = right-fit)
+- Evaluate finding *quality* (defect-detection value vs methodology-discipline value vs noise)
+
+The audit's conclusion ("no evidence of domain over-extension or unused domains; Data Engineer correctly ruled out") was correct but thinly grounded. The methodology lacks codification of what a rigorous domain-effectiveness audit IS.
+
+**Reasoning:** Per [AI Engineer Dim 2 (token economy per finding)](../../domains/role/AI-ENGINEER-REVIEW.md): *"cost asymmetry across domains (one domain costs 10x another with no defect-density difference to justify the gap)"* — names ONE measure of domain effectiveness (cost-per-finding). Per [VDD-IAR Alignment Dim 5 (intent-keyed gate criteria)](../../domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md) the domain-active-set decision is itself part of methodology calibration. But the suite has no codified **domain-effectiveness audit shape** — what to read, what to grep, what to count, what to conclude. A future suite-developer asking "is the AI Engineer domain pulling its weight?" has no methodology surface to answer from.
+
+**Recommendation:**
+
+1. Author a new `suite-development.md` § Domain-effectiveness audit shape sub-section codifying:
+   - **Input artifacts**: domain prompt (`domains/role/<DOMAIN>-REVIEW.md`); per-session review-log entries citing the domain; cross-cutting registry rows
+   - **Per-dim coverage**: did findings exercise the dim's named failure modes, or did they cluster around one or two dims?
+   - **Classification ratio**: Resolved / Hallucinated / Dismissed split — over-investment signal if Hallucinated >50%; under-investment signal if Resolved <20%
+   - **Cost-per-finding**: per AI Engineer Dim 2 expected-band lookup (intent-keyed)
+   - **Cross-cycle codification rate**: how many findings from this domain became permanent suite improvements (high rate = high-leverage domain; zero rate = domain may be over-extended)
+   - **Per-finding quality assessment**: substantive defect vs methodology-observation vs noise
+2. Define the rigorous-vs-thin distinction: rigorous = each dim assessed against actual findings via full prompt-load; thin = finding-count + classification-ratio aggregate. Both are valid for different cycle scopes (suite-internal periodic vs cross-cycle calibration); the methodology should name both forms + when each applies.
+3. Apply retroactively to Review 91's `## Summary § Domain effectiveness audit` paragraph — flag as thin-form + name the rigorous-form follow-up as Open work.
+
+**Classification:** Open (registered for tracking; the codification is a separate PR per the no-stacked-PRs operator preference; defer with named trigger: "when a third project's domain-effectiveness audit produces results inconsistent with prior cycles, escalate to rigorous-form codification").
+
+---
+
+<a id="r91-f16"></a>
+**Finding 16 — Agent-API lookup-idiom adoption gap: suite-development.md § Common agent lookup patterns catalogs awk/grep idioms but agents (Review 91 author) don't reach for them when navigating; reading-by-default is the dominant pattern despite the catalog's existence**
+
+**Owner:** technical-writer (governing-standard prose surface) + ai-engineer (lookup-discipline framing)
+**Status:** raised
+**Blocked by:** *(none)*
+
+**Evidence:** The Review 91 author had access to `awk -F'|' '$10 ~ / Open /' vsdd-suite/suite-development/FINDINGS-INDEX.md` (catalog'd at [`suite-development.md` § Common agent lookup patterns](../suite-development.md#agent-api-surface-review-80-finding-3)) for filtering Open findings. Instead, the author used `Read` + visual parse + offset+limit to navigate FINDINGS-INDEX.md. Multiple times. The agent-API catalog documents the patterns but the agent did not reach for them.
+
+The catalog's stated purpose: *"the catalog is non-exhaustive; agents may compose new lookups from the documented invariants. Composing across invariants is supported."* But composing-across-invariants requires the agent to internalize the invariants enough to compose. If the agent's default is read-and-visually-parse, the catalog is documentation-without-behavior-change.
+
+**Reasoning:** Documentation alone does not shift agent behavior; the agent reaches for the tools that come naturally given its training distribution. `Read` + visual parse is the natural reach for any LLM-based agent (large training-data signal for reading documents); `awk` over markdown tables is a vanishingly rare training-data pattern. The methodology assumed documentation would suffice; in practice the catalog is reference material that gets cited but not used.
+
+**Recommendation:**
+
+1. Extend `suite-development.md` § Common agent lookup patterns with a **"Preferred lookup pattern recommendation"** sub-section: for each common query class (find Open findings; find findings owned by X domain; find findings validated by Y; find findings since date Z), recommend the agent-API idiom over `Read`. Frame as discipline, not just reference.
+2. Cross-reference the recommendation from each per-domain prompt's `## Current Review Prompt` § Regression check sub-clause — when doing regression-check against prior rounds, agent SHOULD use the lookup idiom rather than Read-and-visually-parse.
+3. Add to AI Engineer Dim 11 (audit-trail machine-readability) a sub-clause: agents working WITHIN the suite SHOULD reach for the catalog'd idioms; defaulting to `Read` for queries the catalog covers is itself a Dim-11 finding (the audit-trail's machine-readability is wasted if agents don't use it).
+4. Empirical evidence requirement: Open across cycles; if the next 3 suite-review cycles continue defaulting to `Read` over `awk`/`grep`, escalate the discipline-vs-default tension to its own methodology decision (perhaps: codify a hook that requires `Read` calls against indexed files be justified, with `awk`/`grep` as the default).
+
+**Classification:** Open (registered for tracking; the codification + cross-references are a separate PR per the no-stacked-PRs operator preference; defer with the "earned by recurrence" trigger above).
+
+---
+
+<a id="r91-f17"></a>
+**Finding 17 — FINDINGS-INDEX + review-shape multi-axis drift: suite governing standard, suite template, suite actual file, and project reference example all use different ID-prefix schemes + column shapes; three-audience principle's "agent-readable identity across suite/project boundary" claim is empirically false**
+
+**Owner:** technical-writer (governing-standard prose surface) + ai-engineer (Agent-API surface contract owner)
+**Status:** raised
+**Blocked by:** *(none — operator-policy decision on preserve-vs-migrate existing F-001..F-047 rows is the gating decision)*
+
+**Evidence:** Mechanical cross-check across four authoritative sources:
+
+| Source | ID prefix | Column count | Has ID column | Has Layer/Round/Domain columns | Has Lens column | Anchor scheme |
+|---|---|---|---|---|---|---|
+| Suite governing standard ([`suite-development.md` § Findings registry forward-only](../suite-development.md)) | None (`No G-/F- ID prefix — findings are identified by their originating Review N Finding M anchor`) | (not specified) | No | No | (not specified) | `rN-fM` anchor |
+| Suite actual file ([`FINDINGS-INDEX.md`](../FINDINGS-INDEX.md)) | None | 10 | No | No | Yes | `<a id="rN-fM"></a>` |
+| Suite template ([`templates/PROJECT-FINDINGS-INDEX-template.md`](../../templates/PROJECT-FINDINGS-INDEX-template.md)) | **`F-XXX`** | **12** | **Yes** | **Yes** | No | None visible |
+| Project reference example ([`bookmark-cli-manual/vsdd-suite/FINDINGS-INDEX.md`](../../../vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/FINDINGS-INDEX.md)) | **`F-XXX`** | **12** | **Yes** | **Yes** | No | None visible |
+
+Three patterns coexist: G-XXX (legacy suite, deprecated per Review 73, preserved per G-89); rN-fM (current suite forward-only, governing standard); F-XXX (template + project, contradicts governing standard).
+
+**The three-audience principle's stability claim is empirically false at the suite/project boundary.** Per [Review 80 Finding 3](2026-05-20-suite-review.md#review-80--2026-05-20-1830z) + [Review 84 Finding 4](2026-05-21-suite-review.md#review-84--2026-05-21-1100z) + the template's own claim *"the column shape + lookup idioms are stable agent-API surface, identical to vsdd-suite/suite-development/FINDINGS-INDEX.md — a contributor or agent that grep'd cleanly there grep's cleanly here"* — an AI agent that runs `grep "| <a id=\"r" vsdd-suite/suite-development/FINDINGS-INDEX.md` returns Review 91 rows; the same idiom against `bookmark-cli-manual/vsdd-suite/FINDINGS-INDEX.md` returns zero (the project uses `| F-047 |` instead of the anchor-ID-row shape).
+
+**Reasoning:** Three plausible root causes, not mutually exclusive:
+
+1. **Methodology evolution outpaced template maintenance.** Suite-side moved to anchor-ID + Review-N-Finding-M-identity shape at Review 80; template + bookmark-cli-manual project pre-date the convention shift; G-89 forward-only narrative-preservation may have been mis-applied to preserve template state that's actually drift.
+2. **Project-side concerns (Layer + Round + Domain columns) are real and absent from suite-side.** Suite doesn't have layers; projects do. Suite has Lens (mode-of-this-review); projects don't have a parallel concept. The column-shape divergence on those columns isn't error — it's a real difference in what each side tracks.
+3. **The ID column serves a navigation purpose at project-scale.** Suite has finite Review-N namespace; project has 47+ findings benefiting from stable identifiers separate from Review+Finding combo. The F-XXX may be load-bearing for project-scale cross-referencing.
+
+(2) and (3) suggest the canonical fix isn't "make project conform to suite" but "name where the shapes legitimately diverge + reconcile what shouldn't."
+
+**Recommendation (operator-policy decision pending):**
+
+Canonical reconciliation proposal:
+- Suite-side stays as-is (10 columns; rN-fM anchor; no ID column; Lens column)
+- Project-side canonical shape: 12 columns (Layer + Round + Domain + Finding + lifecycle fields) BUT replace the F-XXX ID column with `<a id="rN-fM"></a>` anchor IDs (Review N Finding M as the row's identity). Preserves all 12 project columns AND aligns the anchor-ID scheme so agent grep idioms work identically across the suite/project boundary.
+- Template + reference example + governing-standard prose all updated together.
+
+**Operator-policy decision required:**
+
+A) **Preserve existing F-001..F-047 rows in bookmark-cli-manual as historical** (G-89 carve-out for project-side migration — pre-canonicalization rows stay; new rows use anchor scheme). Lighter migration; permanent dual-scheme in the reference example.
+B) **Full migration of bookmark-cli-manual** since it's the reference example + carries the "reference for current methodology" obligation per [G-177](../FINDINGS-INDEX.md#g-177) (reference examples migrate when methodology evolves). Heavier migration; cleaner reference example.
+
+**Classification:** Open (registered for tracking; codification blocked by operator policy decision A vs B above; codification is a separate PR per the no-stacked-PRs operator preference).
+
+---
+
+<a id="r91-f18"></a>
+**Finding 18 — SUITE-DEVELOPMENT-REVIEW.md per-row prose summaries duplicate review-log entry's § Summary section content; index-vs-narrative role conflation**
+
+**Owner:** technical-writer (governing-standard prose surface)
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check — slop-pattern finding parallel to the Review 84 per-domain-index-retirement decision; Sanity Check validates the slim-form codification against the canonical worked example (this Review's row itself).
+
+**Evidence:** SUITE-DEVELOPMENT-REVIEW.md Reviews-table rows from Review 84 forward carry 500-3000 word prose summaries of each review. The same content lives in the review-log entry's `### Summary` section. Examples:
+
+- Review 90 row (line 27): ~3000-word per-row prose summary covering all 5 Findings + Cost-tally + Sycophancy compensation + Backlog status.
+- Review 88 row (line 28): ~2800-word per-row prose summary covering all 6 Findings + cross-cycle context.
+- Review 87 row (line 29): ~2400-word per-row prose summary.
+- (Pattern continues across rows.)
+
+Updating one means updating the other; drift is inevitable; the maintenance cost is operator-visible across PRs. Parallel to the [Review 84 Finding 2](2026-05-21-suite-review.md#review-84--2026-05-21-1100z) per-domain-index retirement decision — the same redundancy-evaluation directive applies here: the index row is the index pointer; the review-log entry is the narrative source-of-truth.
+
+**Reasoning:** [`suite-development.md` § Common discipline](../suite-development.md#common-discipline) names the role split: *"The session entry is the narrative record. The FINDINGS-INDEX.md row is the status indicator for gaps. The SUITE-DEVELOPMENT-REVIEW.md row is the index pointer for the session. Never put narrative in the registry; never omit the registry update; never omit the index row."* The prose-summary-per-row pattern violates the "never put narrative in the registry" rule — the SUITE-DEVELOPMENT-REVIEW row IS narrative in the registry.
+
+**Resolution applied (in-cycle codification):**
+
+1. **`suite-development.md` § SUITE-DEVELOPMENT-REVIEW row slim-form convention** added — codifies the slim-form shape (one-line: `Review N | date | file | one-sentence lens + finding-count tally + pointer to review-log § Summary`). Forward-only: rows authored 2026-05-24 and later use the slim-form; pre-2026-05-24 rows preserved per [G-89](../FINDINGS-INDEX.md#g-89).
+2. **Review 91's own row** in SUITE-DEVELOPMENT-REVIEW.md rewritten to slim-form as the canonical worked example.
+3. Operator-action codified: write full narrative in review-log entry's § Summary; render the SUITE-DEVELOPMENT-REVIEW row as one-line slim-form pointing at it.
+
+**Resolution:** suite-development.md codification applied at this Review's commit + Review 91 row rewritten to slim-form.
+
+**Classification:** Resolved (TW Dim 11 — audience-fit calibration; the slim-form better serves the index audience than narrative-in-registry).
+
+---
+
+<a id="r91-f19"></a>
+**Finding 19 — Per-Review entry size discipline absent; entries grow unboundedly (Review 91 is now ~700+ lines)**
+
+**Owner:** technical-writer (governing-standard prose surface)
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check — size-discipline finding parallel to the Review 69 80KB file-split rule; Sanity Check validates the per-entry bound complements the per-file bound.
+
+**Evidence:** Review entries vary widely in size:
+
+- Older Reviews (50-100 lines): Reviews ~60-77 era; entries were tight, single-lens, 3-5 findings each.
+- Mid-era Reviews (150-250 lines): Reviews ~78-88; entries gained richer per-finding bodies + lifecycle fields + cost-tally.
+- Recent Reviews (200-400 lines): Review 90 ~190 lines; Review 88 ~250 lines.
+- Review 91 (this entry): now ~700+ lines and growing as scope expanded mid-cycle across four lens-clusters (bookmark-cli-manual audit + cost-observability + three-audience auditability + audit-trail-structure slop).
+
+No bound; no split criteria; no size hook. The 80KB file-split rule (Review 69) bounds whole-file size but not per-entry size.
+
+**Reasoning:** A reader (human or agent) scanning the review-log for a specific finding pays cognitive cost proportional to entry size. Entries past 300 lines cross a usability threshold; per-finding context becomes harder to locate; cross-cycle reading slows. Review 91 itself is the canonical case for the discipline — it should arguably have split into Review 91.1 (bookmark-cli-manual audit) + Review 91.2 (cost-observability) + Review 91.3 (three-audience auditability) + Review 91.4 (audit-trail-structure slop), each ~200 lines. Instead it's one monolithic entry that's hard to navigate.
+
+**Resolution applied (in-cycle codification):**
+
+1. **`suite-development.md` § Per-Review entry size discipline** added — codifies the 300-line target + the "split or summarize" guidance (split by lens-cluster when findings span distinct concerns; summarize per-finding to ~30 lines when finding-count exceeds the bound regardless of split).
+2. **When-to-split vs when-to-summarize guidance** named — load-bearing distinction for operator-facing discipline.
+3. **Hook escalation path** deferred per earned-by-recurrence: if a third Review entry exceeds 300 lines after this codification, escalate to a pre-commit hook flagging oversized entries.
+4. **Review 91 itself** is NOT retroactively split — preserved as authored per [G-89](../FINDINGS-INDEX.md#g-89) forward-only. The next Review's author inherits the discipline.
+
+**Resolution:** suite-development.md codification applied at this Review's commit. Review 91's own size violation documented in the finding evidence as the canonical case the discipline defends against.
+
+**Classification:** Resolved (TW Dim 11 — audience-fit calibration; entry size affects every audience's scan cost).
+
+---
+
+<a id="r91-f20"></a>
+**Finding 20 — Mandatory cost-tally bloats every Review entry; opt-in shape needed for inline single-author reviews vs full tiered shape for capstone+ multi-agent cycles**
+
+**Owner:** ai-engineer (methodology-prose surface) + technical-writer (governing-standard prose surface)
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check — methodology-codification finding that complements [Finding 8](#r91-f8)'s per-field auditability tier with a per-cycle opt-in tier; Sanity Check validates the opt-in shape preserves cost-tally signal without bloating low-scope reviews.
+
+**Evidence:** Per [Finding 8](#r91-f8)'s codification, the full tiered cost-tally section is ~25-30 lines per Review (agent-self-verifiable + operator-verifiable + operator-confirmable + derived metric + operator-action queue). Review 90 + Review 91 use the full shape because they're multi-agent or multi-lens cycles where cost-tally is load-bearing. But mechanical-fix reviews (typos; filename renames; path updates) + inline single-author reviews + low-scope analytical reviews don't need the full tier-tracking surface; the full-schema-everywhere pattern bloats audit-trail without proportional signal gain.
+
+**Reasoning:** Cost-tally signal varies by cycle type. Capstone+ multi-agent cycles (4+ agent-spawns; cluster-batching; cross-cycle calibration load) benefit from full tier-tracking. Inline single-author cycles (one operator working through one analytical lens) benefit from a minimal "what I did" block (4-5 lines) but pay the full schema's cost in inflated entry size [Finding 19](#r91-f19) territory. Mechanical-fix reviews (already exempt from full review-log entry per § Common discipline) shouldn't carry cost-tally at all.
+
+**Resolution applied (in-cycle codification):**
+
+1. **`suite-development.md` § Cost-tally opt-in shape** added — codifies the three tiers (full tiered REQUIRED for capstone+ multi-agent; minimal OPTIONAL for inline single-author; OMITTED acceptable for mechanical-fix). Minimal form template provided (5-line block with AI tool + model + execution method; date; wall-clock anchors; files touched; operator-action queue pointer).
+2. **Cross-reference from `primers/3-review-session.md`** § Pre-cycle methodology check + § Cost-tally report shape — the per-cycle declaration includes which cost-tally tier applies.
+3. **Forward-only:** opt-in shape applies to entries 2026-05-24+; existing full-schema entries preserved per [G-89](../FINDINGS-INDEX.md#g-89).
+
+**Resolution:** suite-development.md codification applied at this Review's commit; Review 91 itself uses the full tiered shape (matching its capstone-level multi-lens scope); future inline single-author reviews use the minimal form per the codification.
+
+**Classification:** Resolved (AI Engineer Dim 2 — Token economy per finding; TW Dim 11 — audience-fit calibration; cost-tally signal scaled by cycle scope).
+
+---
+
 ### Dismissed
 
 <a id="r91-f6"></a>

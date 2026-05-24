@@ -701,6 +701,59 @@ A cold-session suite review is permitted and produces stronger adversarial press
 
 The session entry is the narrative record. The `FINDINGS-INDEX.md` row is the status indicator for gaps. The `SUITE-DEVELOPMENT-REVIEW.md` row is the index pointer for the session. Never put narrative in the registry; never omit the registry update; never omit the index row. An unindexed session is invisible to future reviewers.
 
+### SUITE-DEVELOPMENT-REVIEW row slim-form convention ([Review 91](review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) Finding 18)
+
+The `SUITE-DEVELOPMENT-REVIEW.md` Reviews-table row is an **index pointer**, not a content surface. Rows authored 2026-05-24 and later use the slim-form shape:
+
+```
+| Review N | YYYY-MM-DD HH:MMZ | [file](path#anchor) | One-sentence lens + finding-count tally (`N Resolved / N Open / N Dismissed`). Operator pointer to the review-log § Summary for the full narrative. |
+```
+
+**The full prose summary belongs in the review-log entry's `### Summary` section, not in the Reviews-table row.** Prior rows (pre-2026-05-24) carrying 500-3000-word per-row prose summaries are preserved per [G-89](FINDINGS-INDEX.md#g-89) forward-only narrative-preservation; new rows + amendments to existing rows use the slim-form.
+
+**Why:** Reviews 84-90's per-row prose summaries duplicated the same content authored in the review-log entry's `### Summary` section. Updating one means updating the other; drift is inevitable; the maintenance cost is operator-visible. Parallel to the [Review 84 Finding 2 per-domain-index retirement](review-log/2026-05-21-suite-review.md#review-84--2026-05-21-1100z) — the same redundancy-evaluation directive applies here: the index row is the index pointer; the review-log entry is the narrative source-of-truth.
+
+**Operator action when authoring a new Review:** write the full narrative in the review-log entry's body + § Summary; render the SUITE-DEVELOPMENT-REVIEW row as one-line slim-form pointing at it.
+
+### Per-Review entry size discipline ([Review 91](review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) Finding 19)
+
+Per-Review entries in `review-log/YYYY-MM-DD-suite-review.md` should target **under 300 lines** including preamble + findings + summary + coordination. Entries that exceed this should split into multiple `Review N` entries (e.g., Review N.1 / N.2 / N.3) OR summarize aggressively rather than authoring every finding in full inline.
+
+**Why:** A reader (human or agent) scanning the review-log for a specific finding pays cognitive cost proportional to entry size. Entries past 300 lines cross a usability threshold; per-finding context becomes harder to locate; cross-cycle reading slows. The 80KB file-split rule (Review 69) bounds whole-file size but not per-entry size; this discipline bounds per-entry size to keep individual entries scan-fast.
+
+**When splitting is appropriate:** a single Review's findings cluster around multiple distinct concerns (e.g., Review 91 spans audit + cost-observability + three-audience-effectiveness + structure-slop — four lens-clusters). Split by lens-cluster rather than authoring 500+ lines under one Review heading. Each split inherits the Review number with `.M` suffix; cross-references resolve to the most specific anchor.
+
+**When summarizing is appropriate:** a Review with 8+ findings each warranting full body authoring exceeds the 300-line bound regardless of split. Summarize findings to ~30 lines each + link to per-finding extended-analysis files for the load-bearing ones. The `### Summary` section's role inverts: from "tally of what's above" to "navigation surface across what's elsewhere."
+
+**Hook escalation path (deferred per "earned by recurrence"):** if a third Review entry exceeds 300 lines after this codification lands, escalate to a pre-commit hook that flags oversized entries + names the operator-action queue item ("split or summarize"). Mechanizing now against one recurrence is over-investment.
+
+**Forward-only:** the bound applies to entries authored 2026-05-24 and later; existing oversized entries (pre-codification) remain as historical record per [G-89](FINDINGS-INDEX.md#g-89).
+
+### Cost-tally opt-in shape ([Review 91](review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) Finding 20)
+
+Per [Review 90 Finding 4](review-log/2026-05-23-suite-review.md#review-90--2026-05-23-1200z) the cost-tally schema requires 10 fields covering AI tool / plan tier / execution method / model / raw tokens / would-be API cost / actual cost / rate-limit utilization / wall-clock / findings per 100k tokens. Per [Review 91 Finding 8](review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) the schema is tiered by what's measurable from where (agent-self-verifiable / operator-verifiable / operator-confirmable). The full tiered schema is ~25-30 lines per Review.
+
+**Opt-in shape (Review 91 Finding 20 codification):**
+
+- **Full tiered cost-tally REQUIRED** for capstone+ intent multi-agent cycles (>4 agent-spawns per cycle); cluster-batching cycles; any cycle whose cost is load-bearing for cross-cycle calibration. Per [`primers/3-review-session.md`](../primers/3-review-session.md) § Pre-cycle methodology check.
+- **Minimal cost-tally OPTIONAL** for inline single-author Review entries (no sub-agent spawns; mechanical sweep + analysis only). Acceptable minimal form (4-5 lines):
+
+```
+**Cost-tally (minimal):**
+
+- **AI tool / Model / Execution method:** claude-code CLI / claude-opus-4-7 / inline main session
+- **Date:** 2026-05-23
+- **Wall-clock anchors (Bash `date -u`):** session-start [not captured] → session-end 2026-05-24 02:43Z
+- **Files touched:** <N> read + <M> edited (substrate-countable; not exhaustively enumerated)
+- **Operator-action queue:** if cost-tally precision becomes load-bearing, operator runs `/cost` for full tiered fields
+```
+
+- **Cost-tally OMITTED** is acceptable for trivial mechanical-fix reviews (typos; filename renames; path updates) — already exempt from full review-log entry per § Common discipline ("Mechanical fixes ... do not require a session entry but should be logged in `CHANGELOG.md`").
+
+The opt-in shape prevents the cost-tally section from bloating every review entry; the full schema activates where it adds calibration value; the minimal form preserves the schema's signal (what cycle, what tool, what scope) without paying full tier-tracking cost.
+
+**Forward-only:** the opt-in shape applies to entries authored 2026-05-24 and later; existing full-schema entries remain as authored.
+
 ### External-review-log subfolder pattern ([Review 88](review-log/2026-05-21-suite-review.md#review-88--2026-05-21-1330z))
 
 External-feedback artifacts (Bluesky thread captures; emailed prose feedback; GitHub issue narratives; methodology-author commentary; any reviewer-produced prose received from outside the suite's authoring loop) live in [`review-log/external-review-log/`](review-log/external-review-log/) rather than at the `review-log/` root. The subfolder separation prevents external prose from drifting into the per-date suite-review canonical-pattern (which expects the `YYYY-MM-DD-suite-review.md` shape + the suite-review hook's preamble discipline) and provides a stable destination for reviewer-named archive files.
