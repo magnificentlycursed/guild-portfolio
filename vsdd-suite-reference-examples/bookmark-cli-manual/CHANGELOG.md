@@ -1,5 +1,30 @@
 # Changelog
 
+## [Unreleased] Layer 3 spec activation — `bm export` + `bm import` AI-co-authored first-draft (2026-05-24 0030Z)
+
+**Scope:** Promote Layer 3 (`bm export` + `bm import`) from "deferred — scoped only" to capstone-active via AI-co-authored first-draft per operator's "I author first-draft; you edit + own" directive. This PR lands the Phase 1a+1b spec contracts + Phase 2a-prep acceptance criteria + Red Gate test plan. No code lands in this PR — the Phase 2a Red Gate commit + Phase 2b implementation commit follow as the two-commit canonical shape per the Layer 2 Red Gate evidence-preservation annotation in [TODO.md § Layer 2](TODO.md#layer-2--tag-and-filter).
+
+### Changed (DESIGN.md)
+
+- **§ Scope and non-goals: Layer 3 In-scope promoted from "deferred — scoped only" to active** with AI-co-authored-disclosure paragraph parallel to the PROCESS.md disclosure shape.
+- **§ Behavioral contracts: `bm export` (Layer 3)** new sub-section — input shape + success/empty-state/failure paths + pipeline-script-ability framing + the canonical `bm export | bm import` round-trip workflow. AI-author-flagged decisions inline for operator confirmation (`display_safe` placement; selective-copy semantic; filter-empty-state structural form).
+- **§ Behavioral contracts: `bm import` (Layer 3)** new sub-section — input shape + success/empty-state/failure paths + idempotence-on-exact-tuple-match dedup rule + storage-file write atomicity + threat-model addition for stdin-fed attacker input + input-size cap (AI-author-default 10MB + `--max-stdin-bytes <N>` operator-override). AI-author-flagged decisions inline (bare-array form acceptance; empty-stdin treatment; dedup granularity; input-size cap default).
+- **§ Edge case catalog: Layer 3 additions** — 10 new edge-case entries covering forward-only migration on import + round-trip canonical regression target + within-payload duplicate semantics + stdin-size-cap enforcement + selective-copy via `--tag`-filtered export.
+- **§ Interface definitions § Command surface (Layer 3 additions)** — new sub-section with the `bm export [--tag <label>...]` + `bm import [--max-stdin-bytes <N>]` invocation surface.
+- **§ Project intent: Phase 5 strategy extended for Layer 3** — Purity Boundary Audit re-run + Mutation Testing re-run + proptest round-trip property + cargo-fuzz harness on `bm import` (project's first fuzz target). Operator-flagged decision: cargo-fuzz vs. AFL++ vs. honggfuzz.
+- **§ Project intent: Phase 6 strategy extended for Layer 3** — explicit "NOT APPLICABLE" declaration per the same [G-150](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) + [G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) rationale as Layer 2 (capstone gates at project-terminal MVR per primer 6, not per-layer).
+
+### Changed (TODO.md)
+
+- **§ Project framing: "Layer 3 remains scoped only" line updated** to declare Layer 3 active at AI-co-authored first-draft 2026-05-24 with the operator-edits-and-owns disclosure.
+- **§ Layer 3 — Export and import** rewritten from the prior 4-line "deferred" stub to a full layer specification — Status + 15 Acceptance criteria (AC 14..AC 28) + 15 Red Gate test plan entries + Layer 3 manual testing checklist forward-reference + property-based testing extension framing + fuzz testing extension framing + Phase 2c pre-planned `run_export` / `run_import` extraction + 6 Layer-gate criteria. AI-author-flagged decisions throughout for operator confirmation.
+
+### Forward implications
+
+This is the first AI-co-authored-first-draft spec activation in the bookmark-cli-manual reference example. The disclosure shape parallels the existing [`PROCESS.md` § AI-co-authored reference-example disclosure](PROCESS.md) for the developer-voice exception under [G-156](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-156). Operator's next step is to edit the AI-author-flagged decisions inline (DESIGN.md `**AI-author note for operator:**` callouts + TODO.md `**AI-author flag:**` markers) and confirm or revise before the Phase 2a Red Gate commit. The Phase 2a + Phase 2b two-commit canonical shape per the Layer 2 Red Gate evidence-preservation annotation applies; no implementation code lands in this PR.
+
+---
+
 ## [Unreleased] FINDINGS-INDEX anchor-ID migration — F-001..F-047 retired; `<domain-slug>-rN-fM` anchor-IDs adopted per suite [Review 91 Finding 17](../../vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md#r91-f17) closure (operator-policy Option B; 2026-05-24)
 
 **Scope:** Suite-side [Review 91 Finding 17](../../vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md#r91-f17) named multi-axis drift between the suite's governing standard (no F-/G- ID prefix per `suite-development.md` § Findings registry forward-only), the project-level template (used `F-XXX`), and this reference example (conformed to template with F-001..F-047). Per the G-177 reference-examples-stay-current obligation, operator selected Option B full migration over Option A preserve-dual-scheme.
