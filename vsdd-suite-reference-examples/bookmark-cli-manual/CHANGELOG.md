@@ -1,5 +1,47 @@
 # Changelog
 
+## [Unreleased] Layer 3 spec — operator-confirmation pass on AI-co-authored first-draft (2026-05-24)
+
+**Scope:** Operator-confirmation pass on the AI-co-authored Layer 3 first-draft from the prior entry below. 6 of 8 AI-author-flagged decisions confirmed at AI-author-default; 2 operator-revised; all AI-author flag prose removed from DESIGN.md + TODO.md. **No code changes** — spec refinement only on the same `bookmark-cli-manual-layer-3-spec-activation` branch ahead of PR #52 merge.
+
+### Confirmed at AI-author-default (6)
+
+- **`bm import` idempotence dedup granularity:** exact-tuple-match on `url`+`timestamp`+`tags` (confirmed after operator reviewed the trade-off matrix against 5 realistic use cases — preserves Layer 2 multi-record semantic; algebraically clean for the proptest `import(import(X)) == import(X)` property; re-tag-then-re-pipe duplicate-row is operator-detectable via `bm list`).
+- **`bm import` stdin input-size cap default:** 10 MB matching the existing scale ceiling of 10,000 bookmarks at ~1 KB each; operator override via `--max-stdin-bytes <N>` flag.
+- **`bm import` empty-stdin treatment:** exit 1 user-error (likely missing pipe; loud failure makes the mistake visible) over no-op-success exit 0.
+- **Fuzz testing framework for `bm import`:** cargo-fuzz with libFuzzer (most-idiomatic Rust fuzzing path; CI-friendly).
+- **`bm import` input shape:** strict-only on the object-wrapped storage-format shape (`{"bookmarks":[...]}`); bare-array stdin (`[{...}]`) rejected with the schema-mismatch error.
+- **`bm export --tag <label>` filter-empty-state output:** same `{"bookmarks":[]}` shape as the store-empty case (pipeline consumers that need to distinguish the two states already know whether they supplied a filter).
+
+### Operator-revised from AI-author-default (2)
+
+- **Within-payload duplicates handling:** dedup applies BOTH against existing destination state AND within the imported payload itself (was: insert-all-as-given). Stronger safety net against malformed imports; cleanly separable from the Layer 2 multi-record duplicate-URL semantic (which preserves same-URL-different-timestamp records — only `url`+`timestamp`+`tags` byte-equality collapses).
+- **Selective-copy via `--tag`-filtered export:** stays silent as emergent behavior (was: document as supported use case). Narrower contract surface; a future Layer 4 may change import semantics in a way that affects this composition without breaking either subcommand's documented contract in isolation.
+
+### Deferred to Phase 2b implementation verification (1)
+
+- **`display_safe` placement at serialization step + JSON validity preservation:** deferred to Phase 2b implementation evidence rather than spec-level decision (the implementation must confirm `display_safe`-wrapped strings serialize as JSON-valid escape sequences so the round-trip `bm export | bm import` preserves the underlying bytes).
+
+### Changed (DESIGN.md)
+
+- § Scope and non-goals: L3 promotion paragraph softened from "AI-co-authored first-draft" disclosure to "AI-co-authored; operator owns the final contract" + operator-confirmed-decisions inline summary.
+- § Behavioral contracts: all 4 `**AI-author note for operator:**` callouts in the `bm export` (Layer 3) + `bm import` (Layer 3) sub-sections replaced with operator-confirmed prose. `display_safe` callout reframed as `**Phase 2b implementation verification:**`.
+- § Behavioral contracts: new `**Failure (stdin exceeds size cap):**` bullet in `bm import` (Layer 3) — promoted from the threat-model paragraph for surface-contract clarity.
+- § Behavioral contracts: `**Why dedup-on-exact-tuple-match**` paragraph rewritten to reflect the operator-confirmed dedup-within-payload + dedup-against-destination dual scope + the `import(import(X)) == import(X)` proptest property hook.
+- § Edge case catalog: 1 within-payload-dup entry split into 2 entries (different-timestamps preserved as multi-record; byte-equal collapse). 1 selective-copy entry reframed as emergent-behavior. 2 AI-author-callout edge entries cleaned.
+- § Interface definitions § Command surface (Layer 3 additions): header de-disclosure'd; prose updated with operator-confirmed 10 MB default cap framing.
+- § Project intent: Phase 5 + Phase 6 strategy lines: `(AI-co-authored first-draft; operator edits + owns)` softened to `(AI-co-authored; operator-owned)`. Phase 5 Layer 3 strategy extended with the `import(import(X)) == import(X)` idempotence proptest property.
+
+### Changed (TODO.md)
+
+- § Project framing: Layer 3 status line softened from "awaiting operator confirmation" to "operator-confirmed decisions applied 2026-05-24".
+- § Layer 3 header: `(AI-co-authored first-draft; operator edits + owns)` softened to `(AI-co-authored; operator-owned)`.
+- § Layer 3 Status paragraph: AI-co-authored-disclosure paragraph removed; threat-model anchor URL fragment updated to post-de-disclosure anchor.
+- § Acceptance criteria: 4 `**AI-author flag:**` callouts removed (AC 18, AC 20, AC 22, AC 27); AC content updated with operator-confirmed framing (dedup-within-payload scope for AC 20; etc.).
+- § Layer-gate criteria 4: Data Engineer L3 re-evaluation no longer flagged for operator-confirmation; declared ruled-out cleanly.
+
+---
+
 ## [Unreleased] Layer 3 spec activation — `bm export` + `bm import` AI-co-authored first-draft (2026-05-24 0030Z)
 
 **Scope:** Promote Layer 3 (`bm export` + `bm import`) from "deferred — scoped only" to capstone-active via AI-co-authored first-draft per operator's "I author first-draft; you edit + own" directive. This PR lands the Phase 1a+1b spec contracts + Phase 2a-prep acceptance criteria + Red Gate test plan. No code lands in this PR — the Phase 2a Red Gate commit + Phase 2b implementation commit follow as the two-commit canonical shape per the Layer 2 Red Gate evidence-preservation annotation in [TODO.md § Layer 2](TODO.md#layer-2--tag-and-filter).
