@@ -1,5 +1,57 @@
 # Changelog
 
+## [Unreleased] Layer 3 Phase 4 Round 1 routing — 13-domain Round 1 findings routed; fix-work-readiness signal (2026-05-25)
+
+**Scope:** Phase 4 feedback-integration routing pass for Phase 3 IAR Round 1's aggregate finding set (76 findings across 13 capstone-active domains; commit `2acc418`). Per [`vsdd-suite/primers/4-feedback-integration.md`](../../vsdd-suite/primers/4-feedback-integration.md) § [manual] First-class fallback path. 5 SO-decidable findings resolved via main-session AskUserQuestion pass before routing landed.
+
+### Added
+
+- **[`vsdd-suite/review-log/2026-05-24-phase-4-routing.md`](vsdd-suite/review-log/2026-05-24-phase-4-routing.md)** — consolidated routing document. Per-cluster routing decisions with multi-phase chains where warranted; cross-cluster sequencing matrix; layer-gate-close criteria status; Phase 4 anti-pattern audit (Phase 2b count not dominant — primer 4 primary failure mode avoided).
+
+### Operator decisions (5 substantive)
+
+1. **Cluster B `display_safe` round-trip** (4-domain convergence; highest severity) → **Path C**: switch `display_safe` from Rust-syntax `\u{HHHH}` (8-byte literal) to JSON-native `\uHHHH` (6-char escape). Multi-phase chain: Phase 2a regression test → Phase 2b impl fix → Phase 1a+1b spec amendment.
+2. **Cluster C tags dedup order-sensitivity** → **Path A**: dedup on sorted-tag-comparison. Multi-phase chain: Phase 2a regression test → Phase 2b impl fix. Storage `tags` Vec preserves insertion order (Layer 2 semantic intact); only dedup comparison is set-frame.
+3. **SO F1 `manual-tests/layer-3.md` absent** → **Author the file**. Phase 2a-equivalent artifact authoring; parallel to `manual-tests/layer-{1,2}.md` per Review 74 convention.
+4. **Cluster H tag-injection escalation at Layer 3** → **Path B**: active mitigation. `import_json` rejects records with control-char tags. Multi-phase chain: Phase 1a+1b spec amendment → Phase 2a regression test → Phase 2b impl fix with new `ImportError::TagContainsControlChars` variant.
+5. **Cluster I imported-tag confidential-data classification** → **Path A**: amend DESIGN.md § Storage data classification — imported tags inherit same classification as user-typed tags. Phase 1a+1b only.
+
+### Routing summary by phase
+
+| Phase | Findings routed | Cluster|
+|---|---|---|
+| Phase 1a+1b (spec/narrative) | ~13 | A2/A3/A4/A5/A7 (docs); B/H/I (spec amendments); F (verification arch); J (perf budget accepted-limit) |
+| Phase 1c | 0 | (no decomposition gaps surfaced) |
+| Phase 2a (new failing tests) | ~7 | B/C/H regression tests; D 3 QE coverage tests |
+| Phase 2b (implementation) | ~8 | B/C/H impl; A6 long_about; E error+clap+ordering; K ImportError variant (low priority); L doc-comment misclaim |
+| Phase 2c | 0 | (TBD at Phase 2b landing) |
+| Phase 5 | 1 (tracking) | N cargo-fuzz harness (already scheduled per DESIGN.md Phase 5 strategy) |
+| Phase 4 itself | 2 (process) | M AIE pre-cycle declaration + per-commit cost-tally carry-forward |
+| Suite-development | 1 (deferred) | O numbering convention (folds into deferred suite-hardening discussion) |
+| Terminal-no-route | ~5 | RT F2 + Sec F4 + Sec F5 + PE F1 + SA F4 (accepted-risk + accepted-limitation) |
+
+### Forward implications
+
+Phase 4 routing pass 1 closes the IAR refinement loop's routing step for Round 1. Fix work begins in subsequent commits per the routing record's cross-cluster sequencing matrix. Phase 2a regression tests land first (standalone commits per the canonical two-commit shape); Phase 2b implementations follow; Phase 1a+1b spec amendments batch alongside. Round 2 Phase 3 IAR re-runs after fix work lands to verify Round 1 fixes hold + surface residuals.
+
+Layer 3 layer-gate close criteria status: 1 of 6 met (Phase 6 NA); 5 of 6 pending Round 1 fix work + Round 2 MVR + Phase 5 dispositions.
+
+---
+
+## [Unreleased] Layer 3 Phase 3 IAR Round 1 — 13-domain capstone cold-session reviews (76 findings; 4-domain convergence on display_safe round-trip) (2026-05-24)
+
+**Scope:** Phase 3 Round 1 collection of all 13 capstone-active domain cold-session adversarial reviews against the Layer 3 implementation (commits `878d3b6` Phase 2a + `fd21900` Phase 2b + `78bd3cf` Phase 2c). Models: Opus 4.7 for SE/Sec/RT/SA/SO/VDD-IAR/AIE (7 high-judgment); Sonnet 4.6 for UX/QE/PE/PFE/TW/DR (6 structured-dimension).
+
+### Added
+
+13 per-domain review log files at `vsdd-suite/review-log/2026-05-24-<domain-slug>.md` — one per active domain. Aggregate finding tally: 76 findings; cross-domain convergence verified on the highest-severity cluster (display_safe round-trip; 4 domains independently).
+
+### Forward implications
+
+Phase 4 routing pass follows in next commit; collected operator decisions on the 5 SO-decidable findings before routing landed.
+
+---
+
 ## [Unreleased] Layer 3 Phase 2c — refactor extract-and-name annotation (no code changes) — 2026-05-24
 
 **Scope:** Phase 2c refactor annotation per `vsdd-suite/primers/2c-refactor.md` § Completion criteria #5 — the extract-and-name refactor that landed at Phase 2b commit `fd21900` is documented in [TODO.md § Layer 3 Phase 2c](TODO.md#layer-3--export-and-import-ai-co-authored-operator-owned) as the alternative to a silent-skip finding under [G-161](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-161) discipline.
