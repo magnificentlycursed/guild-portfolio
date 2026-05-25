@@ -595,6 +595,9 @@ impl BookmarkStore {
         // that `display_safe` uses for the escape-vs-passthrough decision.
         for (idx, bm) in imported.iter().enumerate() {
             for tag in &bm.tags {
+                if tag.is_empty() {
+                    return Err(ImportError::EmptyTag(idx));
+                }
                 if tag.chars().any(|c| c.is_control() || is_format_char(c)) {
                     return Err(ImportError::TagContainsControlChars(idx, tag.clone()));
                 }
@@ -692,6 +695,12 @@ pub enum ImportError {
     ///   plus the offending record index plus the `display_safe`-wrapped tag
     ///   string on the next lines, then exits 1.
     TagContainsControlChars(usize, String),
+    /// `import_json` rejected an imported record whose `tags` array contains
+    /// an empty-string tag. Round 2 RT F2 closure: cross-surface consistency
+    /// with the `bm tag ""` CLI rejection — the Layer 2 spec rule "tag label
+    /// cannot be empty" applies at the import boundary too. The variant
+    /// carries the offending record's index within the imported payload.
+    EmptyTag(usize),
 }
 
 impl fmt::Display for ImportError {
@@ -701,7 +710,12 @@ impl fmt::Display for ImportError {
             Self::SchemaMismatch(msg) => write!(f, "schema mismatch: {msg}"),
             Self::TagContainsControlChars(idx, tag) => write!(
                 f,
-                "imported bookmark tags contain disallowed control characters at record index {idx}: {tag:?}"
+                "imported bookmark tags contain disallowed control characters at record index {idx}: {}",
+                display_safe(tag)
+            ),
+            Self::EmptyTag(idx) => write!(
+                f,
+                "imported bookmark tag label cannot be empty at record index {idx}"
             ),
         }
     }
@@ -1158,5 +1172,27 @@ mod tests {
         let loaded = BookmarkStore::load(&path).unwrap();
         assert_eq!(loaded.bookmarks().len(), 1);
         assert_eq!(loaded.bookmarks()[0].url(), "https://example.com");
+    }
+
+    #[test]
+    fn import_error_tag_control_chars_display_uses_display_safe_not_debug() {
+        // Cross-surface alignment with run_import's CLI rendering path:
+        // library callers invoking `format!("{e}", e=...)` must see the
+        // same shape as CLI users — display_safe-wrapped tag, no Debug
+        // quotes. Round 2 SE F3 closure.
+        let err = ImportError::TagContainsControlChars(0, "rust\x1b[31m".to_string());
+        let rendered = format!("{err}");
+        assert!(
+            rendered.contains("\\u001b"),
+            "ESC must surface as JSON-native escape; got {rendered}"
+        );
+        assert!(
+            !rendered.contains('\x1b'),
+            "raw ESC must not survive Display rendering; got {rendered}"
+        );
+        assert!(
+            !rendered.contains('"'),
+            "Display impl must not wrap the tag in Debug-format quotes; got {rendered}"
+        );
     }
 }

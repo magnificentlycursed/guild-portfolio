@@ -1,6 +1,43 @@
 <!-- hook-bypass: this CHANGELOG preserves historical references to retired letter labels in entries dated 2026-05-19 through 2026-05-21 per G-89 forward-only narrative-preservation. New entries (2026-05-24+) use descriptive identifiers; the legacy entries are preserved as-authored. The bypass-mechanism is itself a finding for the next registry-walk review per check-no-letter-clusters.py's own rationale. -->
 # Changelog
 
+## [Unreleased] Layer 3 Round 2 substantive fixes — SE F3 Display alignment + PE F2 + SA F3 DESIGN.md + RT F2 empty-tag rejection (2026-05-25)
+
+**Scope:** Close 3 substantive Round 2 findings inline at Phase 2b. Driven by the Round 2 audit which separated substantive findings from a 10-finding hallucination cluster (queued for Round 3 verification mini-cycle on PFE+QE+SE+UX).
+
+### Changed (src/lib.rs)
+
+- **`ImportError::TagContainsControlChars`** `Display` impl rewritten to use `display_safe`-wrapped tag (was `{tag:?}` Debug formatting). Cross-surface alignment with `run_import`'s CLI rendering path — library callers and CLI users now see the same shape. **Round 2 SE F3 closure.**
+- **`ImportError::EmptyTag(usize)`** new variant — fires when an imported record's `tags` array contains an empty string. Cross-surface consistency with the `bm tag ""` CLI rejection. **Round 2 RT F2 closure** (operator decision: reject for consistency).
+- **`import_json`** tag-validation loop extended — `tag.is_empty()` check added before the control-char check; rejection fires pre-mutation per atomicity discipline.
+- **New unit test** `import_error_tag_control_chars_display_uses_display_safe_not_debug` — asserts Display impl emits JSON-native escape format + no Debug-format quotes (SE F3 regression coverage).
+
+### Changed (src/main.rs)
+
+- **`run_import`** new `Err(ImportError::EmptyTag(idx))` arm — emits `Error: imported bookmark tag label cannot be empty.` + offending record index + exit 1.
+
+### Changed (DESIGN.md)
+
+- **§ Performance budget table** extended with `bm export` (< 100 ms at ≤ 1,000 bookmarks) + `bm import` (< 200 ms at 1,000 × 1,000 relaxed per accepted-limitation) rows. **Round 2 SA F3 closure** — table now structurally consistent with `manual-tests/layer-3.md` Step 15 hyperfine harness budgets.
+- **§ Performance budget § Layer 3 dedup-complexity accepted-limit paragraph** amended with per-comparison cost refinement — `bookmark_set_eq` O(t log t) sort cost pushes the practical worst case from ~100M record-pair comparisons to ~400-500M basic operations (4-5× understated by the Round 1 annotation). Qualitative accepted-limitation rationale survives the correction. **Round 2 PE F2 closure.**
+- **§ `bm import` (Layer 3) failure contract** new `Failure (imported record contains empty-string tag — Round 2 RT F2)` bullet — cross-surface consistency with `bm tag ""` CLI rejection. **Round 2 RT F2 spec closure.**
+
+### Changed (tests/bookmarks.rs)
+
+- **New regression test** `tests_import_rejects_empty_string_tag` — asserts the new `ImportError::EmptyTag` rejection path against the CLI surface (stderr "Error: imported bookmark tag label cannot be empty." + exit 1 + no file write). **Round 2 RT F2 regression coverage.**
+
+### Test verification
+
+`cargo test`: 14 lib + 52 integration + 3 properties (+ 3 scaling ignored) all pass. New tests both GREEN.
+
+### Closure status post-this-commit
+
+Round 2 substantive findings (4 of the 5 inline-fixable): closed. Round 3 mini-cycle (PFE + QE + SE + UX cold re-spawn for hallucination verification) launched in parallel; results to be folded into Phase 4 Round 2 routing appendices.
+
+Remaining: Phase 4 Round 2 routing appendices + Phase 5 hardening (Purity Boundary Audit + Mutation Testing + proptest round-trip + cargo-fuzz harness + new export/import scaling sentinels per PE R8 F3 SO-decision).
+
+---
+
 ## [Unreleased] Layer 3 Phase 3 IAR Round 2 collection + Phase 4 Round 1 routing-record refactor + Round 2 substantive fixes (2026-05-25)
 
 **Scope:** Closes Phase 3 IAR Round 2 for the 13-domain capstone-active set (Round 1 fix-work confirmed held; Round 2 surfaced 7 substantive residuals; 1 deferred to Phase 5). Refactors the Phase 4 Round 1 routing record from a standalone-file anti-pattern into primer-4-canonical per-domain appendices in each `vsdd-suite/review-log/2026-05-24-<domain-slug>.md` (operator-directive 2026-05-25 — the consolidated file violated primer 4 § [manual] First-class fallback path; per-domain appendices restore the canonical shape). Bundles Round 2 substantive fixes for: control-char predicate scope tightening; threat-model trust-boundary documentation; `bookmark_set_eq` cost annotation precision; cross-surface escape-shape divergence resolution; empty-string-tag asymmetry; pre-cycle methodology declaration discipline. Round 2 verification verdict: MVR-eligible pending Phase 5 hardening.

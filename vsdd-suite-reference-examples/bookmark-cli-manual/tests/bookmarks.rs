@@ -1837,6 +1837,36 @@ fn tests_import_rejects_control_char_in_tags() {
     );
 }
 
+/// Round 2 RT F2 closure: cross-surface consistency — empty-string tag
+/// rejection at `bm import` matches the `bm tag ""` CLI rejection. The Layer 2
+/// spec rule "tag label cannot be empty" applies at the import boundary too;
+/// an attacker piping JSON cannot bypass the CLI-surface check.
+#[test]
+fn tests_import_rejects_empty_string_tag() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    let payload = r#"{"bookmarks":[{"url":"https://example.com","timestamp":"2026-05-25T03:00:00Z","tags":[""]}]}"#;
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import"])
+        .write_stdin(payload)
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::starts_with(
+            "Error: imported bookmark tag label cannot be empty.",
+        ))
+        .stdout(predicate::str::is_empty());
+
+    assert!(
+        !db.exists(),
+        "store must not be created on empty-tag rejection"
+    );
+}
+
 /// QE R8 F1 — within-payload byte-equal dedup edge case. DESIGN.md edge case
 /// catalog explicitly names: "bm import consuming a JSON file with bookmarks
 /// that are byte-equal within the imported payload itself: only one record is

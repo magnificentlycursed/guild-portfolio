@@ -528,6 +528,16 @@ fn run_import(path: &std::path::Path, max_stdin_bytes: usize) -> ExitCode {
             eprintln!("Offending tag: {}", display_safe(&tag));
             ExitCode::from(1)
         }
+        Err(ImportError::EmptyTag(idx)) => {
+            // Round 2 RT F2 closure: cross-surface consistency with
+            // `bm tag ""` CLI rejection. The Layer 2 spec rule "tag
+            // label cannot be empty" applies at the import boundary
+            // too — an attacker cannot inject empty-string tags via
+            // stdin to bypass the CLI-surface check.
+            eprintln!("Error: imported bookmark tag label cannot be empty.");
+            eprintln!("Offending record index: {idx}");
+            ExitCode::from(1)
+        }
     }
 }
 
