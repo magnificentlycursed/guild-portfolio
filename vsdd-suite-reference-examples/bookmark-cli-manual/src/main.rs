@@ -538,6 +538,19 @@ fn run_import(path: &std::path::Path, max_stdin_bytes: usize) -> ExitCode {
             eprintln!("Offending record index: {idx}");
             ExitCode::from(1)
         }
+        Err(ImportError::UrlContainsFormatChars(idx, url)) => {
+            // Round 2 Security F3 SO-decision: extend active mitigation
+            // from tags-only to URLs for symmetric trust-boundary
+            // enforcement. The offending URL is wrapped via display_safe
+            // so attacker-controlled bytes don't reach the operator's
+            // terminal raw.
+            eprintln!(
+                "Error: imported bookmark URL contains disallowed control or format characters."
+            );
+            eprintln!("Offending record index: {idx}");
+            eprintln!("Offending URL: {}", display_safe(&url));
+            ExitCode::from(1)
+        }
     }
 }
 

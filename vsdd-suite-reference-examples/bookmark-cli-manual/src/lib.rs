@@ -429,20 +429,23 @@ impl BookmarkStore {
     /// - **Filter:** when `filter_labels` is `Some`, only bookmarks whose
     ///   `tags` field contains at least one of the supplied labels are
     ///   emitted (OR-semantics parallel to `bm list --tag`).
-    /// - **JSON-native control-char escaping:** `serde_json`'s native string
-    ///   encoder escapes Cc-range control characters to `\uHHHH` JSON-native
-    ///   6-char form in the JSON output per RFC 8259 § 7. `display_safe` is
-    ///   NOT applied at the per-field serialization step — the architectural
-    ///   correction at Phase 2b (Round 1 routing) removed it because
-    ///   pre-escaping inside the JSON encoding path double-escapes (the
-    ///   literal-text form of `\uHHHH` becomes `\\u001b` in JSON output and
-    ///   parses back as the 6-char text, NOT the original byte).
-    ///   Byte-preservation round-trip via `bm export | bm import` holds
-    ///   structurally; the resulting JSON remains valid AND byte-preserving
-    ///   for Cc-range control chars. Curated format chars (bidi controls,
-    ///   ZWJ) survive as raw UTF-8 bytes in JSON output; downstream
-    ///   consumers apply `display_safe` at their rendering boundary (like
-    ///   `bm list` does).
+    /// - **Sanitization at the export boundary (Round 2 Security F1 SO-decision
+    ///   reversal of the Round 1 architectural correction):** every URL + tag
+    ///   field is wrapped through `display_safe` before serialization so that
+    ///   Cc-range control characters AND curated format characters (bidi
+    ///   controls U+202E, zero-width U+200B-200F, BOM U+FEFF, tag-character
+    ///   supplementary plane U+E0020-E007F) are escaped to JSON-native `\uHHHH`
+    ///   escape-sequence text in the source string. `serde_json` then encodes
+    ///   the backslash as `\\` in JSON output, so a consumer parsing the JSON
+    ///   sees the literal 6-character `\uHHHH` text — NOT the original
+    ///   attacker-controlled byte. **Trade-off accepted:** `bm export | bm import`
+    ///   is sanitization-preserving (escape-sequence text round-trips through
+    ///   JSON) NOT byte-preserving (the original Cc + curated Cf bytes are
+    ///   lost; the imported record stores the literal escape-text). This
+    ///   closes the cross-organizational-seam trust-boundary gap per Security
+    ///   R2 F1: downstream consumers parsing `bm export` output cannot be
+    ///   Trojan-Source-attacked because the curated format chars never reach
+    ///   their rendering boundary as raw bytes.
     /// - **Trailing newline:** the returned string ends with `\n` so a
     ///   shell pipe sees the canonical line-terminated stream shape.
     ///
@@ -459,40 +462,51 @@ impl BookmarkStore {
     /// single-shot CLI binary per the supplement's panic policy.
     #[must_use]
     pub fn export_json(&self, filter_labels: Option<&[&str]>) -> String {
-        // Architectural correction (Round 1 Phase 4 routing JSON-native-escape
-        // sub-decision): export emits Bookmark records as-stored, relying on
-        // serde_json's native JSON-string encoding to handle control-char
-        // escaping (serde_json emits `` etc. in JSON output for Cc-range
-        // chars natively, per RFC 8259 § 7). The byte-preservation round-trip
-        // `bm export | bm import` works structurally because a JSON parser
-        // recovers `` as the original ESC byte. `display_safe` is NOT
-        // applied at the export serialization boundary because pre-escaping
-        // would double-escape through serde_json (literal `` text →
-        // `\\u001b` in JSON output → 6-char text `` after parse, NOT
-        // the original ESC byte). `display_safe` stays at the render boundary
-        // (bm list's eprintln/println paths) where there's no JSON encoder
-        // downstream.
+        // Round 2 Security F1 SO-decision: reverse the bfc0713 architectural
+        // correction. Restore `display_safe` wrapping at the export
+        // serialization boundary so that Cc-range control characters AND
+        // curated format characters are escaped to JSON-native `\\uHHHH`
+        // escape-sequence TEXT in the source string. `serde_json` then encodes
+        // the backslash as `\\\\` in JSON output; a consumer parsing the JSON
+        // sees literal 6-char `\\uHHHH` text — NOT the original attacker-
+        // controlled byte. This closes the cross-organizational-seam
+        // trust-boundary gap (downstream consumers cannot be Trojan-Source-
+        // attacked by raw bidi / ZWJ / BOM bytes surviving export).
         //
-        // Trade-off: curated format chars (bidi controls, ZWJ, etc.) are NOT
-        // escaped by serde_json natively — they survive as raw bytes in JSON
-        // output. Pipeline consumers that print the JSON's url/tag fields
-        // naively will see those raw bytes; consumers should apply
-        // `display_safe` at their rendering boundary just as `bm list` does.
-        // The threat-model framing matches Layer 2's tag-injection accepted-
-        // risk: store the bytes as-given; defer rendering safety to output
-        // time.
-        // Local serialize-shape wrapper for the export — borrows the bookmark
-        // slice. serde_json's native encoder handles control-char escaping per
-        // the JSON-native-escape spec contract. Defined before the let bindings
-        // per clippy::items_after_statements.
+        // Trade-off accepted per the SO-decision: `bm export | bm import` is
+        // sanitization-preserving (escape-text round-trips predictably through
+        // JSON) NOT byte-preserving (the original Cc + curated Cf bytes are
+        // lost; the imported record stores the literal escape-text). The
+        // Round 1 SE F1 closure narrative claiming byte-preservation is
+        // reversed by this Round 2 decision; the canonical round-trip semantic
+        // is now sanitization-preservation.
+        //
+        // Per-bookmark transformation struct with owned `String` fields built
+        // from `display_safe`-wrapped source.
         #[derive(Serialize)]
-        struct ExportShape<'a> {
-            bookmarks: Vec<&'a Bookmark>,
+        struct ExportShape {
+            bookmarks: Vec<ExportBookmark>,
+        }
+        #[derive(Serialize)]
+        struct ExportBookmark {
+            url: String,
+            timestamp: DateTime<Utc>,
+            tags: Vec<String>,
         }
 
         let source: Vec<&Bookmark> =
             filter_labels.map_or_else(|| self.newest_first(), |labels| self.filter_by_tags(labels));
-        let store_value = ExportShape { bookmarks: source };
+        let exported: Vec<ExportBookmark> = source
+            .into_iter()
+            .map(|bm| ExportBookmark {
+                url: display_safe(&bm.url),
+                timestamp: bm.timestamp,
+                tags: bm.tags.iter().map(|t| display_safe(t)).collect(),
+            })
+            .collect();
+        let store_value = ExportShape {
+            bookmarks: exported,
+        };
         // serde_json::Value serialization never fails (no Serialize-side
         // error path for in-memory Value); the unwrap is on a pure
         // memory-allocation path that panics only on OOM.
@@ -594,6 +608,9 @@ impl BookmarkStore {
         // predicate is the same `is_control()` / `is_format_char` shape
         // that `display_safe` uses for the escape-vs-passthrough decision.
         for (idx, bm) in imported.iter().enumerate() {
+            if bm.url.chars().any(|c| c.is_control() || is_format_char(c)) {
+                return Err(ImportError::UrlContainsFormatChars(idx, bm.url.clone()));
+            }
             for tag in &bm.tags {
                 if tag.is_empty() {
                     return Err(ImportError::EmptyTag(idx));
@@ -701,6 +718,16 @@ pub enum ImportError {
     /// cannot be empty" applies at the import boundary too. The variant
     /// carries the offending record's index within the imported payload.
     EmptyTag(usize),
+    /// `import_json` rejected an imported record whose `url` field contains
+    /// a control character (Cc-range) or curated format character (bidi
+    /// controls, ZWJ, BOM, tag-character supplementary plane). Round 2
+    /// Security F3 SO-decision: extend active mitigation from tags-only
+    /// to URLs for symmetric trust-boundary enforcement at the import
+    /// boundary. Closes the asymmetric-trust-boundary gap where tags got
+    /// active rejection but URLs bypassed it. The variant carries the
+    /// offending record's index + the offending URL string for diagnostic
+    /// context (rendered via `display_safe` at the CLI surface).
+    UrlContainsFormatChars(usize, String),
 }
 
 impl fmt::Display for ImportError {
@@ -716,6 +743,11 @@ impl fmt::Display for ImportError {
             Self::EmptyTag(idx) => write!(
                 f,
                 "imported bookmark tag label cannot be empty at record index {idx}"
+            ),
+            Self::UrlContainsFormatChars(idx, url) => write!(
+                f,
+                "imported bookmark URL contains disallowed control or format characters at record index {idx}: {}",
+                display_safe(url)
             ),
         }
     }

@@ -1,6 +1,45 @@
 <!-- hook-bypass: this CHANGELOG preserves historical references to retired letter labels in entries dated 2026-05-19 through 2026-05-21 per G-89 forward-only narrative-preservation. New entries (2026-05-24+) use descriptive identifiers; the legacy entries are preserved as-authored. The bypass-mechanism is itself a finding for the next registry-walk review per check-no-letter-clusters.py's own rationale. -->
 # Changelog
 
+## [Unreleased] Layer 3 Round 2 Security SO-decisions — reverse architectural correction + extend active mitigation to URLs (2026-05-25)
+
+**Scope:** Round 2 Security findings Raised-to-SO decisions landed. Reverses the bfc0713 architectural correction (display_safe restored at export serialization boundary) AND extends active import-time mitigation from tags-only to URLs. The byte-preservation round-trip contract from Round 1 is replaced with sanitization-preservation; the Layer 3 trust-boundary structure is now symmetric (export sanitizes; import actively rejects pathological URL + tag content).
+
+### Changed (src/lib.rs)
+
+- **`export_json`** — restored `display_safe` wrapping at the per-field serialization step (`ExportShape` now carries owned `String` fields built from `display_safe(&bm.url)` + `display_safe(t)` per tag). Cc-range + curated format chars become literal `\uHHHH` escape-text in source strings before serde encoding; consumers parsing the JSON output see the literal escape-text, never the original byte. **Round 2 Security F1 SO-decision closure.**
+- **`import_json`** — extended tag-validation loop with URL-level rejection: any imported record whose URL contains `is_control()` or `is_format_char` chars rejects with new `ImportError::UrlContainsFormatChars(usize, String)` variant. Validation order: URL check BEFORE tag-empty/control checks (fail-fast on the URL field). **Round 2 Security F3 SO-decision closure.**
+- **`ImportError::UrlContainsFormatChars(usize, String)`** new variant + `Display` impl with `display_safe`-wrapped URL for diagnostic-safety.
+
+### Changed (src/main.rs)
+
+- **`run_import`** new `Err(ImportError::UrlContainsFormatChars(idx, url))` arm — emits `Error: imported bookmark URL contains disallowed control or format characters.` + offending record index + `display_safe`-wrapped URL.
+
+### Changed (DESIGN.md)
+
+- **§ `bm export` (Layer 3) Success-output** — rewritten with sanitization-preserving round-trip framing; explicitly reverses the Round 1 byte-preservation contract narrative.
+- **§ `bm import` (Layer 3) Failure contract** — new `Failure (imported record contains URL with control or curated format chars — Round 2 Security F3)` bullet; symmetric trust-boundary enforcement.
+- **§ Threat model addition for stdin-fed attacker input** — updated to include both URL + tag active rejection (Round 2 Security F3 SO-decision symmetric closure).
+- **§ Cross-organizational-seam threat (Round 2 Security F1 SO-decision)** — new paragraph naming the structural trust-boundary at Layer 3 (Trojan-Source attack class; deferred-obligation pattern; mitigation pair at export-sanitize + import-reject).
+
+### Changed (tests/bookmarks.rs)
+
+- **3 byte-preservation tests rewritten for sanitization-preservation:** `tests_export_applies_display_safe_to_pathological_url`, `tests_export_applies_display_safe_to_pathological_tag`, `tests_export_import_round_trip_preserves_pathological_bytes` now assert the literal `\uHHHH` escape-text shape (NOT original Cc + curated Cf bytes) per the Round 2 SO-decision contract change.
+- **New regression test** `tests_import_rejects_url_with_curated_format_chars` — asserts the new `UrlContainsFormatChars` rejection path against the CLI surface (U+202E RLO bidi spoof payload; stderr `Error: imported bookmark URL contains disallowed control or format characters.` + exit 1 + no file write).
+
+### Test verification
+
+`cargo test`: 14 lib + 53 integration + 3 properties (+ 3 scaling ignored) all pass. New URL-rejection test GREEN; rewritten sanitization-preservation tests GREEN.
+
+### Closure status post-this-commit
+
+Round 2 Security Raised-to-SO items closed (F1 + F3). Round 1 SE F1 closure narrative explicitly reversed (byte-preservation → sanitization-preservation).
+
+Remaining for Layer 3 layer-gate close:
+- **Phase 5 hardening** — Purity Boundary Audit re-run + Mutation Testing re-run + proptest round-trip (sanitization-preservation property + URL-rejection property) + cargo-fuzz harness on `bm import` + new `tests/scaling.rs` export/import sentinels per PE R8 F3 SO-decision
+
+---
+
 ## [Unreleased] Layer 3 Phase 4 Round 2 routing + Round 3 verification mini-cycle (2026-05-25)
 
 **Scope:** Phase 4 Round 2 routing per-domain appendices in 13 per-domain review-log files. Round 3 verification mini-cycle (PFE + QE + SE + UX cold re-spawn) confirmed the hallucination-cluster pattern: 7 of 8 verified findings = Hallucinated; 1 (SE R2 F1) = Resolved-since-snapshot (real failure at `bfc0713`, fixed at `eae5dff`). Substantive Round 2 findings (SE F3 + PE F2 + SA F3 + RT F2) closed at `e52e896`.

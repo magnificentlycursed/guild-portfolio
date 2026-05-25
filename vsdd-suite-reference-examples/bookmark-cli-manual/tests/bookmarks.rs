@@ -1264,13 +1264,11 @@ fn tests_export_applies_display_safe_to_pathological_url() {
 
     let rendered = String::from_utf8(output).unwrap();
 
-    // 1. The emitted JSON bytes must NOT contain the raw ESC byte —
-    //    serde_json's native string encoder escapes Cc-range control chars
-    //    to `\uHHHH` in the JSON output per RFC 8259 § 7. Architectural
-    //    correction sub-decision within the Round 1 Phase 4 routing
-    //    JSON-native escape design: export relies on serde_json's native
-    //    escape rather than display_safe pre-wrapping; display_safe stays
-    //    at the render boundary (bm list) only.
+    // 1. The emitted JSON bytes must NOT contain the raw ESC byte. Round 2
+    //    Security F1 SO-decision: display_safe is restored at the export
+    //    boundary, so Cc-range control chars are escaped to literal \\uHHHH
+    //    text BEFORE serde encoding; serde then encodes the backslash as \\\\
+    //    in JSON output.
     assert!(
         !rendered.contains('\u{001b}'),
         "raw ESC byte must not be emitted to stdout; got bytes containing it"
@@ -1281,15 +1279,23 @@ fn tests_export_applies_display_safe_to_pathological_url() {
         serde_json::from_str(&rendered).expect("export output must be valid JSON");
 
     // 3. The URL field, when parsed back via the JSON parser, contains the
-    //    ORIGINAL ESC byte — the byte-preservation round-trip contract per
-    //    the Round 1 Phase 4 routing decision. JSON-native `` escape
-    //    in the JSON bytes is recovered to the raw ESC byte by the JSON
-    //    parser; the round-trip `bm export | bm import` reproduces the
-    //    source bytes exactly.
+    //    LITERAL ESCAPE-TEXT, NOT the original ESC byte. Round 2 Security F1
+    //    SO-decision reverses the Round 1 byte-preservation contract:
+    //    `bm export | bm import` is now sanitization-preserving (escape-
+    //    sequence text round-trips predictably through JSON) NOT byte-
+    //    preserving (the original Cc + curated Cf bytes are lost; the
+    //    imported record stores the literal escape-text). This closes the
+    //    cross-organizational-seam trust-boundary gap by ensuring downstream
+    //    consumers parsing `bm export` output cannot be Trojan-Source-
+    //    attacked by raw bidi / control bytes.
     let url = parsed["bookmarks"][0]["url"].as_str().unwrap();
+    assert_eq!(
+        url, "https://evil.example/\\u001b[31mfrobnicate",
+        "url after JSON parse must be the literal escape-text per sanitization-preserving round-trip"
+    );
     assert!(
-        url.contains('\u{001b}'),
-        "url field after JSON parse must contain the original ESC byte (byte-preservation round-trip); got {url:?}"
+        !url.contains('\u{001b}'),
+        "url after JSON parse must NOT contain the raw ESC byte (sanitization-preserving, not byte-preserving)"
     );
 }
 
@@ -1708,11 +1714,12 @@ fn tests_export_import_round_trip() {
 // =============================================================================
 
 /// JSON-native escape design (4-domain convergence; SA F3 + SE F1 + RT F3 +
-/// Sec F1). DESIGN.md L106 contracts on byte-preservation through the
-/// `bm export | bm import` round-trip. Current impl emits `\u{HHHH}` Rust-syntax
-/// (8-byte literal); JSON parser recovers the literal text, not the original
-/// bytes. After the Phase 2b fix, `display_safe` emits `\uHHHH` JSON-native
-/// 6-char escape; JSON parser recovers the original byte.
+/// Sec F1). DESIGN.md L106 contracts on sanitization-preservation through the
+/// `bm export | bm import` round-trip (Round 2 SO-decision reversal of the
+/// Round 1 byte-preservation contract). Round 2 Security F1: `display_safe`
+/// applies at the export serialization boundary; the round-trip preserves
+/// escape-sequence TEXT (\\uHHHH literal) not the original Cc + curated Cf
+/// bytes. This closes the cross-organizational-seam Trojan-Source class.
 #[test]
 fn tests_export_import_round_trip_preserves_pathological_bytes() {
     let src_dir = tempdir().unwrap();
@@ -1753,14 +1760,20 @@ fn tests_export_import_round_trip_preserves_pathological_bytes() {
         .success()
         .stderr("Imported 1 bookmark.\n");
 
-    // The destination store must contain the SAME bytes as the source —
-    // pathological_url with the raw ESC byte + bidi format char intact.
+    // The destination store must contain the SANITIZATION-PRESERVED form:
+    // pathological bytes are replaced by their literal \\uHHHH escape-text per
+    // Round 2 Security F1 SO-decision (display_safe restored at export).
     let dst_contents: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&dst_db).unwrap()).unwrap();
     let dst_url = dst_contents["bookmarks"][0]["url"].as_str().unwrap();
+    let expected_sanitized = "https://evil.example/\\u001b[31mfrobnicate\\u200e";
     assert_eq!(
-        dst_url, pathological_url,
-        "round-trip must preserve original bytes; got {dst_url:?} vs source {pathological_url:?}. Current impl emits \\u{{HHHH}} Rust-syntax which is NOT recovered as the original byte by a JSON parser; Phase 2b fix switches to JSON-native \\uHHHH 6-char escape."
+        dst_url, expected_sanitized,
+        "round-trip must yield the sanitized escape-text form (Round 2 sanitization-preserving contract); got {dst_url:?} vs expected {expected_sanitized:?}"
+    );
+    assert!(
+        !dst_url.contains('\u{001b}') && !dst_url.contains('\u{200e}'),
+        "round-trip must NOT preserve original Cc + curated Cf bytes (sanitization-preserving, not byte-preserving)"
     );
 }
 
@@ -1834,6 +1847,38 @@ fn tests_import_rejects_control_char_in_tags() {
     assert!(
         !db.exists(),
         "store must not be created on control-char-in-tags rejection"
+    );
+}
+
+/// Round 2 Security F3 closure: extend active mitigation from tags-only to URLs.
+/// `bm import` rejects any record whose URL contains a control character or
+/// curated format character (bidi, ZWJ, BOM, tag-character supplementary plane)
+/// at import time. Closes the asymmetric-trust-boundary gap. SO-decision:
+/// consistency over byte-preservation.
+#[test]
+fn tests_import_rejects_url_with_curated_format_chars() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    // URL contains U+202E (RLO bidi spoof — Trojan-Source attack class).
+    let payload = "{\"bookmarks\":[{\"url\":\"https://evil.example/\\u202epdf.exe\",\"timestamp\":\"2026-05-25T03:00:00Z\",\"tags\":[\"rust\"]}]}";
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import"])
+        .write_stdin(payload)
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::starts_with(
+            "Error: imported bookmark URL contains disallowed control or format characters.",
+        ))
+        .stdout(predicate::str::is_empty());
+
+    assert!(
+        !db.exists(),
+        "store must not be created on URL-contains-format-chars rejection"
     );
 }
 
@@ -1932,23 +1977,27 @@ fn tests_export_applies_display_safe_to_pathological_tag() {
 
     let rendered = String::from_utf8(output).unwrap();
 
-    // The emitted JSON bytes must NOT contain the raw ESC byte — serde_json's
-    // native encoder escapes the Cc-range char to `` per RFC 8259 § 7.
+    // The emitted JSON bytes must NOT contain the raw ESC byte. Round 2
+    // Security F1 SO-decision: display_safe applies at the tag-field
+    // serialization step too; the raw ESC is escaped to literal \\u001b text.
     assert!(
         !rendered.contains('\u{001b}'),
-        "raw ESC byte must not appear in exported JSON tag element; serde_json native encode handles it"
+        "raw ESC byte must not appear in exported JSON tag element; display_safe at export handles it"
     );
 
-    // The emitted bytes must parse as valid JSON; the parsed-back tag
-    // contains the ORIGINAL ESC byte per the byte-preservation round-trip
-    // contract (architectural correction sub-decision within Round 1
-    // Phase 4 routing JSON-native escape design).
+    // The emitted bytes must parse as valid JSON. The parsed-back tag is
+    // the LITERAL ESCAPE-TEXT \\u001b, NOT the original ESC byte (Round 2
+    // sanitization-preserving round-trip contract).
     let parsed: serde_json::Value =
         serde_json::from_str(&rendered).expect("export output must be valid JSON");
     let tag = parsed["bookmarks"][0]["tags"][0].as_str().unwrap();
+    assert_eq!(
+        tag, "rust\\u001binjection",
+        "tag after JSON parse must be the literal escape-text per sanitization-preserving round-trip"
+    );
     assert!(
-        tag.contains('\u{001b}'),
-        "tag field after JSON parse must contain the original ESC byte (byte-preservation round-trip); got {tag:?}"
+        !tag.contains('\u{001b}'),
+        "tag after JSON parse must NOT contain the raw ESC byte"
     );
 }
 
