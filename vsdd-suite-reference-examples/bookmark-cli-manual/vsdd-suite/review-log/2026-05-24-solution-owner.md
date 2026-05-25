@@ -645,3 +645,54 @@ Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/prim
 
 **Disposition:** Resolved-no-finding
 **Evidence:** Status assessment: positive confirmation of Round 1 fix durability.
+
+
+---
+
+## Review 3 — 2026-05-25 09:30Z
+
+**Round:** Layer 3 layer-terminal close declaration.
+**Scope:** Solution Owner declaration that Layer 3 reaches layer-terminal close at PR #52. Verifies all 6 layer-gate criteria (TODO.md § Layer 3 § Layer-gate criteria) MET against the post-Phase-5-hardening commit state. Synthesizes the cycle outcome across SE, QE, PE, PFE, SA, RT, TW, DR, UX, VDD-IAR, AIE, Security domains + records the operator's terminal-close decision.
+**Session note:** Not a cold-session adversarial review — this is the orchestrator's status-assessment declaration in the Solution Owner voice per the per-domain review-log convention. Each layer-gate criterion is verified against a named commit + a named verification mechanism (`cargo test`, `cargo build --release`, file-existence, per-domain Round 2 Phase 4 routing appendix dispositions, etc.).
+**Source:** director-raised
+**Cost-tally:** main-session declaration; no sub-agent spawn.
+
+---
+
+### Resolved
+
+**Finding 1 — Layer 3 layer-gate criteria all MET; layer-terminal close declared (Dim 1, Dim 2)**
+
+**Owner:** solution-owner
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** vdd-iar-alignment
+
+Per [TODO.md § Layer 3 § Layer-gate criteria](../../TODO.md) at commit [`b22c44a`](../../../../../../commit/b22c44a):
+
+- **Criterion 1 (Red Gate tests pass):** ✓ 16 lib + 56 integration + 5 proptest = 77 active tests GREEN; 6 scaling sentinels ignored (run-on-demand via `cargo test -- --ignored`).
+- **Criterion 2 (`cargo build --release` no warnings):** ✓ verified at `945b97f`.
+- **Criterion 3 (`manual-tests/layer-3.md` runs clean):** ✓ authored at `795bc25` (16 steps covering AC 14–AC 28 + Round 1 + Round 2 routed closures).
+- **Criterion 4 (Phase 3 IAR 13-domain capstone-active set):** ✓ Round 1 (76 findings; 4-domain convergence on highest-severity defect) + Round 2 (re-verification; 7 substantive residuals + 1 Phase-5-deferred) + Round 3 hallucination-verification mini-cycle (4-domain re-spawn; 7/8 verified Hallucinated; 1 Resolved-since-snapshot). All 13 domains reach MVR or zero-findings disposition.
+- **Criterion 5 (Phase 5 hardening):** ✓ Purity Boundary Audit closed at `b709f73`; Mutation Testing 96.7% kill rate at `945b97f`; 5 proptest properties active; cargo-fuzz contract run 49,566,671 iterations in 60.85 min with zero crashes.
+- **Criterion 6 (Phase 6 N/A):** capstone gates at project-terminal MVR per primer 6 + Layer 1's Phase 6 attestation stands as the project's terminal four-dimensional convergence record.
+
+**Operator-decision context.** The Layer 3 cycle ran a single PR (PR #52) demonstrating all 6 VSDD phases end-to-end including two substantive scope-decisions surfaced at Round 2: (a) Security R2 F1 → reverse the Round 1 architectural correction (display_safe restored at export; contract changes from byte-preservation to sanitization-preservation); (b) Security R2 F3 → extend active import-time mitigation from tags-only to URLs (new `ImportError::UrlContainsFormatChars` variant). Both decisions close the cross-organizational-seam Trojan-Source threat class by making the `bm` boundary itself sanitization-clean.
+
+**Project-level status post-this-commit.** The project remains at capstone intent. Layer 1 project-terminal close at PR #42 stands as the terminal MVR + Phase 6 attestation. Layer 2 layer-terminal close at PR #47 + Layer 3 layer-terminal close at PR #52 are subsequent layer-extensions of the worked example; neither replaces the Layer 1 capstone attestation per the capstone gating discipline ([G-112](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) + [G-150](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150)).
+
+**Resolution:** Layer 3 layer-terminal close declared at commit `b22c44a` (2026-05-25). The PR is MVR-eligible for merge to `main` pending operator merge action.
+
+**Coordination:** *(none — layer-gate close is the SO's terminal-status declaration; cross-domain coordination for the underlying work happened across the per-domain Round 1 + Round 2 + Round 3 routing appendices already landed.)*
+
+---
+
+### Summary
+
+**Verdict:** Layer 3 layer-terminal close declared. Project remains at capstone intent; the worked example now spans 3 layers × full 6-phase cycle each + 1 cross-cycle Round 3 hallucination-verification mini-cycle (cycle-novel pattern).
+
+**Open follow-up items (NOT blocking Layer 3 close):**
+
+- Suite-hardening backlog (3 deferred items + per-hook bypass mechanism per AIE R2 F6) queued for future suite-side PR.
+- Optional Phase 5 per-domain review-log entries (SA + QE + PE + PFE) documenting the hardening results in domain voice — the work is documented in CHANGELOG slim-form + commit messages; per-domain entries would extend the audit-trail but are not required by any layer-gate criterion.
+- FINDINGS-INDEX Layer 3 backfill — substantial mechanical work; not load-bearing for the layer-gate close but improves cross-cutting findability.

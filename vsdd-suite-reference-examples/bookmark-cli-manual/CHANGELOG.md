@@ -1,6 +1,31 @@
 <!-- hook-bypass: this CHANGELOG preserves historical references to retired letter labels in entries dated 2026-05-19 through 2026-05-21 per G-89 forward-only narrative-preservation. New entries (2026-05-24+) use descriptive identifiers; the legacy entries are preserved as-authored. The bypass-mechanism is itself a finding for the next registry-walk review per check-no-letter-clusters.py's own rationale. -->
 # Changelog
 
+## [Unreleased] Layer 3 layer-terminal close prep — README + PROCESS.md + SO log layer-terminal declarations (2026-05-25)
+
+**Scope:** Post-layer-gate-close artifact updates reflecting the Layer 3 layer-terminal state at commit `b22c44a`.
+
+### Changed (README.md)
+
+- **Current-state line** updated from "Layer 3 active in PR #52" to "Layer 3 layer-terminal at PR #52" with full cycle summary (all 6 phases + Round 2 SO-decision-driven contract reversal + Phase 5 hardening metrics + layer-terminal commit reference).
+- **Test count** updated from "currently 13 unit + 45 integration + 3 proptest = 61 tests at Layer 3 Phase 2b landing" to "currently 16 unit + 56 integration + 5 proptest = 77 tests at Layer 3 layer-terminal close" with delta breakdown across Round 1 fix work + Round 2 substantive fixes + Round 2 SO-decision-driven Phase 2b rework + Phase 5 mutation-testing coverage closures.
+
+### Changed (PROCESS.md § Layer 3)
+
+- Section header updated from "(active in PR #52; AI-co-authored; operator-owned)" to "(layer-terminal at PR #52; AI-co-authored; operator-owned)".
+- Round 1 fix work paragraph updated with explicit commit references (`fdfa989` → `ba6a4a9` → `bfc0713` → `795bc25`).
+- New retrospective sections appended covering: Phase 3 IAR Round 2 (post-Round-1-fix verification + 7 substantive residuals + 2 Raised-to-SO escalations); Phase 3 IAR Round 3 hallucination-verification mini-cycle (4-domain cold re-spawn pattern; 7/8 verified Hallucinated; in-cycle suite-hardening hook landed); Round 2 SO-decisions (contract reversal narrative); Phase 5 hardening (PBA + Mutation 96.7% + proptest properties + cargo-fuzz contract run); cycle-novel methodology patterns demonstrated this layer (SO-decision-driven contract reversal, hallucination-verification mini-cycle, Mutation Testing kill-rate-budget framing, per-domain Phase 4 routing canonical shape).
+
+### Added (vsdd-suite/review-log/2026-05-24-solution-owner.md Review 3)
+
+- Solution Owner Layer 3 layer-terminal close declaration entry — per-criterion ✓ MET attestation against TODO.md § Layer 3 § Layer-gate criteria; project-level status confirmation (capstone intent unchanged; Layer 1's Phase 6 attestation remains the terminal four-dimensional convergence record); open follow-up items enumerated as NOT blocking the Layer 3 close (suite-hardening backlog; optional per-domain Phase 5 review-log entries; FINDINGS-INDEX Layer 3 backfill).
+
+### Closure status post-this-commit
+
+Layer 3 layer-terminal close prep complete. README + PROCESS.md + SO log all reflect the post-close state. PR #52 is MVR-eligible for merge to `main` pending operator merge action.
+
+---
+
 ## [Unreleased] Layer 3 layer-terminal close — cargo-fuzz ≥1-hour contract run + TODO.md layer-gate declaration (2026-05-25)
 
 **Scope:** Layer 3 reaches layer-terminal close. All 6 layer-gate criteria MET (criterion 6 N/A per Phase 6 strategy). The Layer 3 cycle is fully demonstrated end-to-end across all 6 VSDD phases.
