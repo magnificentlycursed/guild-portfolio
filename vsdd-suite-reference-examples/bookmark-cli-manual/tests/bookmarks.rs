@@ -2034,3 +2034,108 @@ fn tests_import_max_stdin_bytes_operator_override() {
         .success()
         .stderr("Imported 1 bookmark.\n");
 }
+
+/// Phase 5 mutation-testing closure — boundary test for `bytes.len() > max_stdin_bytes`
+/// at src/main.rs:461. Catches the `> → >=` mutant: input EXACTLY at the cap
+/// must be accepted (boundary inclusive).
+#[test]
+fn tests_import_size_cap_boundary_exact_length_accepted() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    // Construct a payload of exactly 132 bytes; pass --max-stdin-bytes 132.
+    // The single-bookmark schema fits in 132 bytes; exact-cap-length must pass.
+    let payload = r#"{"bookmarks":[{"url":"https://exact-cap.example/x","timestamp":"2026-05-25T03:00:00Z","tags":["rust"]}]}"#;
+    let cap = payload.len();
+    assert_eq!(cap, 104, "test fixture payload length must be stable");
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import", "--max-stdin-bytes", &cap.to_string()])
+        .write_stdin(payload)
+        .assert()
+        .success()
+        .stderr("Imported 1 bookmark.\n");
+}
+
+/// Phase 5 mutation-testing closure — exact MiB-format assertion for the size-cap
+/// error message at src/main.rs:469. Catches the `/ → %`, `/ → *`, `* → +`, `* → /`
+/// mutants on the MiB arithmetic.
+#[test]
+fn tests_import_size_cap_error_emits_exact_mib_suffix() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    // Build a payload slightly larger than 100 bytes; use --max-stdin-bytes 100.
+    // 100 bytes = 100 / (1024*1024) = 0.0000953... MiB → "0.0 MiB" with 1-decimal.
+    let payload = "x".repeat(200);
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import", "--max-stdin-bytes", "100"])
+        .write_stdin(payload)
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicates::str::contains(
+            "Error: stdin exceeded maximum byte limit of 100 bytes (0.0 MiB).",
+        ));
+
+    // Test with 1 MiB cap to verify a non-zero MiB display.
+    let payload_big = "x".repeat(2 * 1024 * 1024);
+    let one_mib = 1024 * 1024_usize;
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import", "--max-stdin-bytes", &one_mib.to_string()])
+        .write_stdin(payload_big)
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicates::str::contains(
+            "Error: stdin exceeded maximum byte limit of 1048576 bytes (1.0 MiB).",
+        ));
+}
+
+/// Phase 5 mutation-testing closure — `n > 0` save-gate at src/main.rs:498.
+/// Catches the `> → >=` mutant: zero-appended import must NOT touch the
+/// store file (no save call). Verified via mtime preservation.
+#[test]
+fn tests_import_zero_appended_does_not_touch_store_file() {
+    use std::thread::sleep;
+    use std::time::Duration;
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    // Seed the store with one bookmark.
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://seed.example"])
+        .assert()
+        .success();
+
+    let mtime_before = fs::metadata(&db).unwrap().modified().unwrap();
+
+    // Sleep briefly to ensure mtime granularity catches any new write.
+    sleep(Duration::from_millis(1100));
+
+    // Import empty-bookmarks payload — n=0 appended; save() must NOT be called.
+    let empty_payload = r#"{"bookmarks":[]}"#;
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import"])
+        .write_stdin(empty_payload)
+        .assert()
+        .success()
+        .stderr("Imported 0 bookmarks.\n");
+
+    let mtime_after = fs::metadata(&db).unwrap().modified().unwrap();
+    assert_eq!(
+        mtime_before, mtime_after,
+        "store file mtime must be unchanged after zero-appended import (n > 0 save-gate); mtime_before={mtime_before:?}, mtime_after={mtime_after:?}"
+    );
+}

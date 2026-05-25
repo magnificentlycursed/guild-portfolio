@@ -1210,6 +1210,38 @@ mod tests {
         assert_eq!(loaded.bookmarks()[0].url(), "https://example.com");
     }
 
+    /// Phase 5 mutation-testing coverage gap closure — `display_safe`'s
+    /// supplementary-plane (above U+FFFF) UTF-16 surrogate-pair encoding
+    /// path. Catches 8 mutants at src/lib.rs:866-868 that the BMP-only
+    /// tests left uncovered (the arithmetic for `cp - 0x10000`, the
+    /// high-surrogate `0xD800 + (n >> 10)`, and the low-surrogate
+    /// `0xDC00 + (n & 0x3FF)`). U+E0001 (LANGUAGE TAG) is in the curated
+    /// `is_format_char` set per src/lib.rs § `is_format_char` body.
+    #[test]
+    fn display_safe_encodes_supplementary_plane_curated_format_char_as_surrogate_pair() {
+        let out = display_safe("tag\u{E0001}end");
+        // U+E0001 → n = 0xE0001 - 0x10000 = 0xD0001
+        //   high = 0xD800 + (0xD0001 >> 10) = 0xD800 + 0x340 = 0xDB40
+        //   low  = 0xDC00 + (0xD0001 & 0x3FF) = 0xDC00 + 0x1 = 0xDC01
+        assert!(
+            out.contains("\\udb40\\udc01"),
+            "supplementary-plane codepoint U+E0001 must encode as the JSON UTF-16 surrogate pair \\udb40\\udc01; got {out}"
+        );
+        assert!(
+            !out.contains('\u{E0001}'),
+            "raw supplementary-plane char must not survive sanitization; got {out}"
+        );
+    }
+
+    /// Phase 5 mutation-testing coverage gap closure — `MAX_STDIN_BYTES_DEFAULT`
+    /// constant value. Catches 2 mutants at src/lib.rs:682 (replace * with +)
+    /// that would silently shrink the cap from 10 MiB to 2058 bytes.
+    #[test]
+    fn max_stdin_bytes_default_is_ten_mib() {
+        assert_eq!(MAX_STDIN_BYTES_DEFAULT, 10 * 1024 * 1024);
+        assert_eq!(MAX_STDIN_BYTES_DEFAULT, 10_485_760);
+    }
+
     #[test]
     fn import_error_tag_control_chars_display_uses_display_safe_not_debug() {
         // Cross-surface alignment with run_import's CLI rendering path:
