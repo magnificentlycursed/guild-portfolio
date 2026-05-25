@@ -742,3 +742,35 @@ Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/prim
 **Route:** `Phase 2b (low priority; deferred to follow-up)`
 **Gate:** ImportError::SchemaMismatch extended to optionally carry record_index; Validator: SE
 **Sequencing:** Deferred-to-follow-up-PR per G-150 over-investment guard
+
+
+---
+
+## Phase 4 routing — Round 2 (2026-05-25 07:30Z)
+
+Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/primers/4-feedback-integration.md) § [manual] First-class fallback path. SO-decisions for substantive routings captured via main-session AskUserQuestion pass on 2026-05-25 (empty-string tag rejection consistency; tests/scaling.rs Phase 5 sentinel addition; Round 3 verification mini-cycle for the hallucination cluster). Verification evidence for `Hallucinated` dispositions: Round 3 PFE + QE + SE + UX cold-session re-spawn (per-domain Review N+1 entries authored 2026-05-25).
+
+#### Finding `r2-f2` — import_json # Errors rustdoc missing TagContainsControlChars variant — VERIFY-PENDING
+
+**Disposition:** Verify-pending
+**Evidence:** Spot-check needed — rustdoc # Errors section may be missing the new variant. Low-risk omission; queued for follow-up grooming if confirmed.
+
+#### Finding `r2-f3` — Performance budget cross-source inconsistency — RESOLVED-AT-E52E896
+
+**Disposition:** Resolved-at-e52e896
+**Evidence:** DESIGN.md § Performance budget table extended with `bm export` + `bm import` rows; structurally consistent with manual-tests/layer-3.md Step 15 hyperfine budgets.
+
+#### Finding `r2-f4` — Verification architecture display_safe formal-verifiability claim — VERIFY-PENDING
+
+**Disposition:** Verify-pending
+**Evidence:** Claim about formal-verifiability scope at Layer 3 — review for accuracy in next SA round.
+
+#### Finding `r2-f5` — bookmark_set_eq free-standing vs module-method architecture — PHASE 5
+
+**Disposition:** Phase 5
+**Evidence:** Architectural refactor (relocate to BookmarkStore impl block) deferred to Phase 5 cleanup; current free-standing fn is correct + tested.
+
+#### Finding `r2-f6` — ImportError::TagContainsControlChars positional tuple vs named fields — DEFERRED-TO-FOLLOW-UP
+
+**Disposition:** Deferred-to-follow-up
+**Evidence:** Variant detail refactor (tuple → named struct fields) deferred per G-150 over-investment guard.

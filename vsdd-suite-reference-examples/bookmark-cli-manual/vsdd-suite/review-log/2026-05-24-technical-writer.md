@@ -406,3 +406,30 @@ Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/prim
 **Route:** `Phase 2b`
 **Gate:** Tag + Import doc-comments replace bookmark(s) with bare-form per singular/plural runtime output; Validator: SE
 **Sequencing:** Should land before Layer 3 gate close
+
+
+---
+
+## Phase 4 routing — Round 2 (2026-05-25 07:30Z)
+
+Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/primers/4-feedback-integration.md) § [manual] First-class fallback path. SO-decisions for substantive routings captured via main-session AskUserQuestion pass on 2026-05-25 (empty-string tag rejection consistency; tests/scaling.rs Phase 5 sentinel addition; Round 3 verification mini-cycle for the hallucination cluster). Verification evidence for `Hallucinated` dispositions: Round 3 PFE + QE + SE + UX cold-session re-spawn (per-domain Review N+1 entries authored 2026-05-25).
+
+#### Finding `r2-f1` — README Run section omits export/import + round-trip — RESOLVED-NO-FINDING
+
+**Disposition:** Resolved-no-finding
+**Evidence:** Main-session verification: README Run section already includes the three commands + the canonical round-trip per commit `795bc25` Round 1 fix-work.
+
+#### Finding `r2-f2` — bookmark(s) notation survives in Tag + Import doc-comments — RESOLVED-AT-FDFA989
+
+**Disposition:** Resolved-at-fdfa989
+**Evidence:** Round 1 Phase 4 routing TW R1 F4 closure: Tag + Import doc-comments use bare singular/plural form per runtime output.
+
+#### Finding `r2-f3` — DESIGN.md Verification architecture export_json stale display_safe wrap claim — HALLUCINATED
+
+**Disposition:** Hallucinated
+**Evidence:** Main-session verification: DESIGN.md:237 explicitly names the architectural correction (`display_safe` is NOT applied at the per-field serialization step). Round 2 claim is the inverse of the current text.
+
+#### Finding `r2-f4` — export_json rustdoc stale display_safe at serialization boundary claim — HALLUCINATED
+
+**Disposition:** Hallucinated
+**Evidence:** Main-session verification: src/lib.rs:434-480 doc-comment documents the architectural correction (serde_json's native encoder handles Cc-range escaping at serialization; `display_safe` is render-boundary only).

@@ -1,6 +1,33 @@
 <!-- hook-bypass: this CHANGELOG preserves historical references to retired letter labels in entries dated 2026-05-19 through 2026-05-21 per G-89 forward-only narrative-preservation. New entries (2026-05-24+) use descriptive identifiers; the legacy entries are preserved as-authored. The bypass-mechanism is itself a finding for the next registry-walk review per check-no-letter-clusters.py's own rationale. -->
 # Changelog
 
+## [Unreleased] Layer 3 Phase 4 Round 2 routing + Round 3 verification mini-cycle (2026-05-25)
+
+**Scope:** Phase 4 Round 2 routing per-domain appendices in 13 per-domain review-log files. Round 3 verification mini-cycle (PFE + QE + SE + UX cold re-spawn) confirmed the hallucination-cluster pattern: 7 of 8 verified findings = Hallucinated; 1 (SE R2 F1) = Resolved-since-snapshot (real failure at `bfc0713`, fixed at `eae5dff`). Substantive Round 2 findings (SE F3 + PE F2 + SA F3 + RT F2) closed at `e52e896`.
+
+### Added (per-domain Round 2 Phase 4 routing appendices)
+
+- **13 per-domain `## Phase 4 routing — Round 2` appendices** in each `vsdd-suite/review-log/2026-05-24-<domain>.md` file. Each appendix names the per-finding disposition (`Resolved-at-<commit>`, `Resolved-no-finding`, `Hallucinated`, `Phase 5`, `Deferred-to-follow-up`, `Carry-forward`, `Raised to SO`, `Verify-pending`, `Accepted-risk`, `Dismissed`) with evidence citations. Round 3 verification entries (SE Review 3, PFE Review 9, QE Review 10, UX Review 3) provide the Hallucinated-disposition evidence base.
+
+### Added (Round 3 verification mini-cycle entries)
+
+- **4 per-domain Round 3 verification entries** appended to PFE + QE + SE + UX review logs. Cold-session re-spawn with verification-anchored prompt (cargo test invocation + actual runtime output capture + source line-by-line verification). Verdicts: 7 Hallucinated + 1 Resolved-since-snapshot.
+
+### Round 2 substantive findings — Raised to SO (pending operator decision)
+
+- **Security R2 F1** — architectural correction trade-off doesn't name cross-organizational-seam attack class in threat model. SO decision pending: extend DESIGN.md threat model OR accept the trade-off as documentation discipline.
+- **Security R2 F3** — active control-char rejection covers tags only; imported URLs bypass the active mitigation. SO decision pending: extend mitigation to URLs OR accept the asymmetry (URL byte-preservation is Layer 3 spec contract).
+
+### Closure status post-this-commit
+
+Phase 4 Round 2 routing complete (13 per-domain appendices + Security Raised-to-SO items pending operator decision). Round 2 substantive fixes landed at `e52e896`. Hallucination cluster verified via Round 3 cold re-spawn.
+
+Remaining for Layer 3 layer-gate close:
+- **Security Raised-to-SO decisions** (2 items: cross-organizational-seam + URL-asymmetric mitigation)
+- **Phase 5 hardening** — Purity Boundary Audit re-run + Mutation Testing re-run + proptest round-trip + cargo-fuzz harness on `bm import` + new `tests/scaling.rs` export/import sentinels per PE R8 F3 SO-decision
+
+---
+
 ## [Unreleased] Layer 3 Round 2 substantive fixes — SE F3 Display alignment + PE F2 + SA F3 DESIGN.md + RT F2 empty-tag rejection (2026-05-25)
 
 **Scope:** Close 3 substantive Round 2 findings inline at Phase 2b. Driven by the Round 2 audit which separated substantive findings from a 10-finding hallucination cluster (queued for Round 3 verification mini-cycle on PFE+QE+SE+UX).

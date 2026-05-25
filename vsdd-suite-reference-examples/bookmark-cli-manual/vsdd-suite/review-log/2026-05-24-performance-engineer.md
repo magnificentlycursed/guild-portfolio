@@ -441,3 +441,25 @@ Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/prim
 **Route:** `Phase 2a-equivalent artifact authoring`
 **Gate:** manual-tests/layer-3.md Step 15 hyperfine block; Validator: PFE
 **Sequencing:** Blocks Layer 3 layer-gate close (criterion 3 via manual-tests authoring)
+
+
+---
+
+## Phase 4 routing — Round 2 (2026-05-25 07:30Z)
+
+Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/primers/4-feedback-integration.md) § [manual] First-class fallback path. SO-decisions for substantive routings captured via main-session AskUserQuestion pass on 2026-05-25 (empty-string tag rejection consistency; tests/scaling.rs Phase 5 sentinel addition; Round 3 verification mini-cycle for the hallucination cluster). Verification evidence for `Hallucinated` dispositions: Round 3 PFE + QE + SE + UX cold-session re-spawn (per-domain Review N+1 entries authored 2026-05-25).
+
+#### Finding `r8-f1` — Architectural correction perf impact (export_json serde-native path) — RESOLVED-NO-FINDING
+
+**Disposition:** Resolved-no-finding
+**Evidence:** Round 2 verdict: net perf improvement confirmed; no hidden cost regression. No fix-work needed.
+
+#### Finding `r8-f2` — bookmark_set_eq O(t log t) annotation 4-5× understated — RESOLVED-AT-E52E896
+
+**Disposition:** Resolved-at-e52e896
+**Evidence:** DESIGN.md § Performance budget Layer 3 dedup-complexity accepted-limit paragraph amended with per-comparison cost refinement; qualitative framing survives the 4-5× correction.
+
+#### Finding `r8-f3` — tests/scaling.rs no export/import sentinel at any cliff — PHASE 5
+
+**Disposition:** Phase 5
+**Evidence:** SO-decision: Phase 5 add #[ignore]-gated sentinel tests at 100/1K/10K for `bm export` + `bm import` (matches existing add/list/tag/filter pattern).

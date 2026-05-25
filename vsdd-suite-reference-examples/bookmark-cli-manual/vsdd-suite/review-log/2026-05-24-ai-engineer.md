@@ -618,3 +618,45 @@ Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/prim
 **Route:** `Phase 4 itself (process discipline)`
 **Gate:** Carry-forward across PRs; document operator-time commitment in TODO.md; Validator: AIE
 **Sequencing:** Process improvement; not Round 1 fix work
+
+
+---
+
+## Phase 4 routing — Round 2 (2026-05-25 07:30Z)
+
+Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/primers/4-feedback-integration.md) § [manual] First-class fallback path. SO-decisions for substantive routings captured via main-session AskUserQuestion pass on 2026-05-25 (empty-string tag rejection consistency; tests/scaling.rs Phase 5 sentinel addition; Round 3 verification mini-cycle for the hallucination cluster). Verification evidence for `Hallucinated` dispositions: Round 3 PFE + QE + SE + UX cold-session re-spawn (per-domain Review N+1 entries authored 2026-05-25).
+
+#### Finding `r2-f1` — R1 F6 pre-cycle methodology declaration: visible to sub-agent — RESOLVED-NO-FINDING
+
+**Disposition:** Resolved-no-finding
+**Evidence:** Process discipline confirmation: Round 2 launch prompt included the declaration; AIE R1 F6 closed.
+
+#### Finding `r2-f2` — Round 2 13-agent per-domain spawn preserves adversarial separation — RESOLVED-NO-FINDING
+
+**Disposition:** Resolved-no-finding
+**Evidence:** Methodology confirmation: per-domain cold-session shape preserves adversarial-pair separation by construction.
+
+#### Finding `r2-f3` — Round 2 spawn prompt frames scope as verification — RESOLVED-NO-FINDING
+
+**Disposition:** Resolved-no-finding
+**Evidence:** Methodology confirmation: scope-reducer per AIE R1 F8 applied correctly.
+
+#### Finding `r2-f4` — In-cycle suite-hardening commit scope discipline — RESOLVED-NO-FINDING
+
+**Disposition:** Resolved-no-finding
+**Evidence:** Process confirmation: in-cycle hook landing did not destabilize the cycle.
+
+#### Finding `r2-f5` — Architectural correction sub-decision (display_safe removal beyond Round 1 spec) — RESOLVED-NO-FINDING
+
+**Disposition:** Resolved-no-finding
+**Evidence:** Process confirmation: operator-authorized mid-Phase-2b architectural correction with explicit sub-decision recording.
+
+#### Finding `r2-f6` — Routing record hook-bypass marker hook-agnostic — CARRY-FORWARD-TO-SUITE-HARDENING
+
+**Disposition:** Carry-forward-to-suite-hardening
+**Evidence:** Per-hook bypass mechanism queued at task #41; AIE R2 F6 routing target for the next suite PR.
+
+#### Finding `r2-f7` — R1 F7 per-commit cost-tally gap: 4 Round 1 fix-work commits — CARRY-FORWARD
+
+**Disposition:** Carry-forward
+**Evidence:** Cost-tally gap persists; operator-time documentation in TODO.md remains the agent-self-verifiable path. Process improvement; not fix work.

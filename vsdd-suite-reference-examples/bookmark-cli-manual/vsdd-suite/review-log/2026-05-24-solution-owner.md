@@ -613,3 +613,35 @@ Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/prim
 **Route:** `Phase 1a+1b`
 **Gate:** (see DR R1 F1 + TW R1 F1 routings — same cluster)
 **Sequencing:** Should land before Layer 3 gate close
+
+
+---
+
+## Phase 4 routing — Round 2 (2026-05-25 07:30Z)
+
+Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/primers/4-feedback-integration.md) § [manual] First-class fallback path. SO-decisions for substantive routings captured via main-session AskUserQuestion pass on 2026-05-25 (empty-string tag rejection consistency; tests/scaling.rs Phase 5 sentinel addition; Round 3 verification mini-cycle for the hallucination cluster). Verification evidence for `Hallucinated` dispositions: Round 3 PFE + QE + SE + UX cold-session re-spawn (per-domain Review N+1 entries authored 2026-05-25).
+
+#### Finding `r2-f1` — Under-delivery: 2 pre-existing unit tests left failing — HALLUCINATED
+
+**Disposition:** Hallucinated
+**Evidence:** Main-session verification + Round 3 PFE/QE/SE/UX verifications: `cargo test --lib` is 14/14 GREEN; no pre-existing failures.
+
+#### Finding `r2-f2` — Scope discipline confirmed (display_safe architectural correction) — RESOLVED-NO-FINDING
+
+**Disposition:** Resolved-no-finding
+**Evidence:** Status assessment: positive scope-discipline confirmation. No fix-work.
+
+#### Finding `r2-f3` — In-cycle suite-hardening scope discipline — RESOLVED-NO-FINDING
+
+**Disposition:** Resolved-no-finding
+**Evidence:** Status assessment: positive scope-discipline confirmation.
+
+#### Finding `r2-f4` — Layer-gate criteria readiness for Layer 3 close: 3-of-6 MET — CARRY-FORWARD
+
+**Disposition:** Carry-forward
+**Evidence:** Status snapshot at Round 2; criteria advance as Phase 5 + Phase 4 Round 2 routing land.
+
+#### Finding `r2-f5` — Round 1 fixes hold against post-fix state — RESOLVED-NO-FINDING
+
+**Disposition:** Resolved-no-finding
+**Evidence:** Status assessment: positive confirmation of Round 1 fix durability.

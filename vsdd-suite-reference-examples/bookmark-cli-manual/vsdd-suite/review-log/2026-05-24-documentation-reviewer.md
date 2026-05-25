@@ -474,3 +474,30 @@ Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/prim
 **Route:** `Phase 1a+1b`
 **Gate:** 39 new rows for Round 1 routable findings using post-R91-F17 anchor-ID scheme; Validator: TW + AIE
 **Sequencing:** Should land before Layer 3 gate close
+
+
+---
+
+## Phase 4 routing — Round 2 (2026-05-25 07:30Z)
+
+Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/primers/4-feedback-integration.md) § [manual] First-class fallback path. SO-decisions for substantive routings captured via main-session AskUserQuestion pass on 2026-05-25 (empty-string tag rejection consistency; tests/scaling.rs Phase 5 sentinel addition; Round 3 verification mini-cycle for the hallucination cluster). Verification evidence for `Hallucinated` dispositions: Round 3 PFE + QE + SE + UX cold-session re-spawn (per-domain Review N+1 entries authored 2026-05-25).
+
+#### Finding `r2-f1` — README.md Run section missing bm export + bm import — RESOLVED-NO-FINDING
+
+**Disposition:** Resolved-no-finding
+**Evidence:** Main-session verification: README.md Run section already includes `bm export` + `bm import` + canonical round-trip examples post-Round-1 fix-work commit `795bc25`.
+
+#### Finding `r2-f2` — DESIGN.md Verification architecture export_json contradicts architectural correction — HALLUCINATED
+
+**Disposition:** Hallucinated
+**Evidence:** Main-session verification: DESIGN.md:237 already names the architectural correction (`display_safe` is NOT applied here; serde_json's native encoder handles Cc-range escaping). Round 2 claim is the inverse of the current text.
+
+#### Finding `r2-f3` — FINDINGS-INDEX Quick-lookup note describes Layer 1 MVR status — RESOLVED-NO-FINDING
+
+**Disposition:** Resolved-no-finding
+**Evidence:** Quick-lookup note is intentionally a stable cross-cutting registry note; Layer-progression status lives in README. No staleness in the index itself.
+
+#### Finding `r2-f4` — README current-state line claims Round 1 fix work in flight — RESOLVED-NO-FINDING
+
+**Disposition:** Resolved-no-finding
+**Evidence:** Main-session verification: README current-state line reflects post-Round-1-fix state per commit `eae5dff`.

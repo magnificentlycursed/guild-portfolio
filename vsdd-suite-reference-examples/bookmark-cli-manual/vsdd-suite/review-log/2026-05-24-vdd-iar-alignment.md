@@ -611,3 +611,45 @@ Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/prim
 **Route:** `Phase 2a-equivalent artifact authoring`
 **Gate:** (see DR R1 F3 + SO R1 F1 routings — same cluster)
 **Sequencing:** Blocks Layer 3 layer-gate close (criterion 3)
+
+
+---
+
+## Phase 4 routing — Round 2 (2026-05-25 07:30Z)
+
+Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/primers/4-feedback-integration.md) § [manual] First-class fallback path. SO-decisions for substantive routings captured via main-session AskUserQuestion pass on 2026-05-25 (empty-string tag rejection consistency; tests/scaling.rs Phase 5 sentinel addition; Round 3 verification mini-cycle for the hallucination cluster). Verification evidence for `Hallucinated` dispositions: Round 3 PFE + QE + SE + UX cold-session re-spawn (per-domain Review N+1 entries authored 2026-05-25).
+
+#### Finding `r2-f3` — Round 1 fix-work commit sequence walks Phase 2a → 2b → 2c — RESOLVED-NO-FINDING
+
+**Disposition:** Resolved-no-finding
+**Evidence:** Methodology confirmation: commit sequence `fdfa989` → `ba6a4a9` → `bfc0713` → `795bc25` walks the canonical phase shape.
+
+#### Finding `r2-f4` — Phase 2a Round 1 fix tests are behavior-assertive — RESOLVED-NO-FINDING
+
+**Disposition:** Resolved-no-finding
+**Evidence:** Methodology confirmation: regression tests assert behavior (not just exit codes).
+
+#### Finding `r2-f5` — Phase 4 routing record — RESOLVED-AT-EAE5DFF
+
+**Disposition:** Resolved-at-eae5dff
+**Evidence:** Standalone phase-4-routing.md anti-pattern refactored into per-domain appendices per primer-4-canonical at commit `eae5dff`.
+
+#### Finding `r2-f6` — In-cycle suite-hardening at commit e4b6701 — RESOLVED-NO-FINDING
+
+**Disposition:** Resolved-no-finding
+**Evidence:** Methodology confirmation: in-cycle hook landing followed primer 1ab discipline.
+
+#### Finding `r2-f1` — Round 2 launch pre-cycle methodology declaration — RESOLVED-NO-FINDING
+
+**Disposition:** Resolved-no-finding
+**Evidence:** Methodology confirmation: declaration applied per AIE R1 F6.
+
+#### Finding `r2-f2` — Architectural correction sub-decision surfaces in commit body — RESOLVED-NO-FINDING
+
+**Disposition:** Resolved-no-finding
+**Evidence:** Methodology confirmation: sub-decision recorded in `bfc0713` commit body per process-discipline.
+
+#### Finding `r2-f7` — DESIGN.md edge-case-catalog spec amendments are AC-shaped — RESOLVED-NO-FINDING
+
+**Disposition:** Resolved-no-finding
+**Evidence:** Methodology confirmation: edge-case entries follow Dim 2 (spec-shaped) form.
