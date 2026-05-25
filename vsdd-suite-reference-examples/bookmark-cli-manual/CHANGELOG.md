@@ -1,6 +1,45 @@
 <!-- hook-bypass: this CHANGELOG preserves historical references to retired letter labels in entries dated 2026-05-19 through 2026-05-21 per G-89 forward-only narrative-preservation. New entries (2026-05-24+) use descriptive identifiers; the legacy entries are preserved as-authored. The bypass-mechanism is itself a finding for the next registry-walk review per check-no-letter-clusters.py's own rationale. -->
 # Changelog
 
+## [Unreleased] Layer 3 Phase 3 IAR Round 2 collection + Phase 4 Round 1 routing-record refactor + Round 2 substantive fixes (2026-05-25)
+
+**Scope:** Closes Phase 3 IAR Round 2 for the 13-domain capstone-active set (Round 1 fix-work confirmed held; Round 2 surfaced 7 substantive residuals; 1 deferred to Phase 5). Refactors the Phase 4 Round 1 routing record from a standalone-file anti-pattern into primer-4-canonical per-domain appendices in each `vsdd-suite/review-log/2026-05-24-<domain-slug>.md` (operator-directive 2026-05-25 — the consolidated file violated primer 4 § [manual] First-class fallback path; per-domain appendices restore the canonical shape). Bundles Round 2 substantive fixes for: control-char predicate scope tightening; threat-model trust-boundary documentation; `bookmark_set_eq` cost annotation precision; cross-surface escape-shape divergence resolution; empty-string-tag asymmetry; pre-cycle methodology declaration discipline. Round 2 verification verdict: MVR-eligible pending Phase 5 hardening.
+
+### Added (Round 2 per-domain review log entries)
+
+- **13 per-domain Round 2 entries** appended to `vsdd-suite/review-log/2026-05-24-<domain>.md` files. Each entry confirms the Round 1 carry-forwards held + surfaces new residuals against the post-fix state. Canonical Round 2 scope-reducer applied per AI Engineer Dim 8 (re-verification pass; non-cold sweep). All Round 2 substantive findings routed to Phase 2b inline or Phase 5 hardening.
+
+### Added (Phase 4 Round 1 per-domain routing appendices)
+
+- **13 per-domain `## Phase 4 routing — Round 1` appendices** in each `vsdd-suite/review-log/2026-05-24-<domain>.md` file. Each appendix lists this domain's routable findings in the primer-4-canonical per-finding ROUTED block shape (`### Finding ... — ROUTED` demoted to `#### Finding ... — ROUTED` to avoid classification-heading parser collision). Cross-cluster sequencing carried inline via each Round 1 finding's `**Coordination:**` line + this CHANGELOG entry.
+
+### Removed
+
+- **`vsdd-suite/review-log/2026-05-24-phase-4-routing.md`** (397-line standalone routing record) — anti-pattern per primer 4 § [manual] First-class fallback path (which prescribes per-domain inline routing, not a consolidated cross-domain artifact). Content redistributed across 13 per-domain appendices (above). Cross-references in `CHANGELOG.md`, `PROCESS.md`, `manual-tests/layer-3.md`, `vsdd-suite/FINDINGS-INDEX.md`, and 13 per-domain review-log files swept to the "per-domain Phase 4 routing appendices in `vsdd-suite/review-log/2026-05-24-<domain-slug>.md`" framing. Historical provenance lines describing what each cold-session agent read at review time preserved as-authored per G-89 forward-only narrative-preservation.
+
+### Changed (src/lib.rs — Round 2 substantive fixes)
+
+- Round 2 fix-work for control-char predicate scope, `bookmark_set_eq` complexity annotation precision, empty-string-tag asymmetry resolution, and cross-surface escape-shape divergence — see per-domain Round 2 review entries for the per-finding rationale + verification.
+
+### Changed (src/main.rs — Round 2 substantive fixes)
+
+- Round 2 fix-work for error-message remediation polish + threat-model trust-boundary documentation — see per-domain Round 2 review entries.
+
+### Changed (DESIGN.md — Round 2 spec amendments)
+
+- Verification architecture + Performance budget + Edge case catalog refinements per Round 2 findings — see Solution Architect + Performance Engineer + Security Round 2 entries for per-finding routing.
+
+### Changed (review-log discipline)
+
+- Round 2 review entry headings canonicalized from `## Review N — Layer 3 Phase 3 IAR Round 2 — YYYY-MM-DD HH:MMZ` to `## Review N — YYYY-MM-DD HH:MMZ` form per `check-suite-review-preamble` hook's `REVIEW_HEADING` regex. The "Layer 3 Phase 3 IAR Round 2" round-identifier moved into the entry's first `**Round:**` paragraph. The hook-bypass mechanism (`<!-- hook-bypass: <rationale> -->` within first 5 lines of an entry) applied to 2 Round 2 entries (performance-engineer.md + technical-writer.md) for bold-paragraph-emphasis subsection styling that the hook's `**X — Y**` Finding-header regex mis-matches.
+
+### Closure status post-this-commit
+
+Layer 3 Round 1 + Round 2 IAR fully closed. Remaining for Layer 3 layer-gate close:
+- **Phase 5 hardening** — Purity Boundary Audit re-run + Mutation Testing re-run + proptest round-trip + cargo-fuzz harness on `bm import`. MVR-eligible verdict pending Phase 5 completion.
+
+---
+
 ## [Unreleased] Layer 3 Phase 2a-equivalent + Phase 2c follow-up — `manual-tests/layer-3.md` authoring + Phase 2c no-additional-refactor annotation (2026-05-25)
 
 **Scope:** Final two artifacts for Layer 3 Round 1 closure: the `manual-tests/layer-3.md` authoring (closes Layer-gate criterion 3) + the Phase 2c follow-up annotation for the Round 1 fix-work commit `bfc0713` (no additional refactor required; additive changes preserved the established per-subcommand-helper structure).
@@ -23,7 +62,7 @@ Layer 3 Round 1 fully closed at the spec + test + impl + manual-test surfaces. R
 
 ## [Unreleased] Layer 3 Phase 2b Round 1 — impl fixes for 4 routed substantive findings (display_safe architectural correction; sorted-tag-comparison dedup; control-char tag rejection; long_about + error remediation) — 2026-05-25
 
-**Scope:** Phase 2b commit in the Round 1 fix sequence. Turns the 3 RED Phase 2a regression tests (`878d3b6` precursor + `ba6a4a9` Phase 2a tests) GREEN by landing the impl fixes per the routing record at [`vsdd-suite/review-log/2026-05-24-phase-4-routing.md`](vsdd-suite/review-log/2026-05-24-phase-4-routing.md). Includes a Phase-2b-surfaced architectural correction sub-decision for the JSON-native escape design.
+**Scope:** Phase 2b commit in the Round 1 fix sequence. Turns the 3 RED Phase 2a regression tests (`878d3b6` precursor + `ba6a4a9` Phase 2a tests) GREEN by landing the impl fixes per the routing record at per-domain Phase 4 routing appendices in `vsdd-suite/review-log/2026-05-24-<domain-slug>.md` (per-domain Phase 4 appendices in `vsdd-suite/review-log/2026-05-24-<domain-slug>.md`). Includes a Phase-2b-surfaced architectural correction sub-decision for the JSON-native escape design.
 
 ### Changed (src/lib.rs)
 
@@ -90,7 +129,7 @@ Phase 2b implementation discovered that the Round 1 Path-C decision ("switch `di
 
 ### Added
 
-- **[`vsdd-suite/review-log/2026-05-24-phase-4-routing.md`](vsdd-suite/review-log/2026-05-24-phase-4-routing.md)** — consolidated routing document. Per-cluster routing decisions with multi-phase chains where warranted; cross-cluster sequencing matrix; layer-gate-close criteria status; Phase 4 anti-pattern audit (Phase 2b count not dominant — primer 4 primary failure mode avoided).
+- **per-domain Phase 4 routing appendices in `vsdd-suite/review-log/2026-05-24-<domain-slug>.md` (per-domain Phase 4 appendices in `vsdd-suite/review-log/2026-05-24-<domain-slug>.md`)** — consolidated routing document. Per-cluster routing decisions with multi-phase chains where warranted; cross-cluster sequencing matrix; layer-gate-close criteria status; Phase 4 anti-pattern audit (Phase 2b count not dominant — primer 4 primary failure mode avoided).
 
 ### Operator decisions (5 substantive)
 

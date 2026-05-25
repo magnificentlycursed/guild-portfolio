@@ -312,6 +312,304 @@ Seven findings in Round 1:
 
 **Phase 5 / Phase 6 closure-blocker check:** [Finding 1](#r1-f1) blocks Layer 3 layer-gate criterion #3; [Finding 2](#r1-f2) does not block layer-gate close but blocks publishable-state declaration on the README's accuracy claim. Both have spec-honest Option-1 fixes; if Round 2 finds them adopted, both close cleanly per the R5 F1 precedent.
 
-**Validator:** vdd-iar-alignment (the SO ↔ VDD-IAR Alignment validator pair per [Review 77](../../../../vsdd-suite/suite-development/review-log/2026-05-20-suite-review.md#review-77--2026-05-20-1545z) — VDD-IAR Alignment confirms the spec changes (the Finding 1 + Finding 2 resolution paths each route through TODO.md / README.md amendments) went through proper routing and don't conflict with prior intent).
+**Validator:** vdd-iar-alignment — VDD-IAR Alignment confirms the spec changes (the Finding 1 + Finding 2 resolution paths each route through TODO.md / README.md amendments) went through proper routing and don't conflict with prior intent).
 
 ---
+
+## Review 2 — 2026-05-25 04:30Z
+
+**Round:** Layer 3 Phase 3 IAR Round 2.
+**Phase:** [Phase 3](../../../../vsdd-suite/primers/3-review-session.md) — Iterative Adversarial Refinement (Layer 3 Round 2; cold-session continuation against the post-Round-1-fix state at commits `fdfa989` → `ba6a4a9` → `bfc0713` → `795bc25`).
+**Scope:** Layer 3 spec-vs-implementation compliance verification that Round 1 fixes hold + surface NEW residuals introduced by the fix-work. Round 1 closure context: 2 Backlogged (manual-tests + README) + 5 Resolved + 5 SO-decidable findings adjudicated via main-session AskUserQuestion pass at Phase 4 (per per-domain Phase 4 routing appendices (per-domain Phase 4 appendices in `vsdd-suite/review-log/2026-05-24-<domain-slug>.md`)) + 1 architectural correction sub-decision at Phase 2b landing (`display_safe` removed from `export_json`) + in-cycle suite-hardening (Review 94 meta-finding cycle + `check-no-letter-clusters.py` hook + primer 4 amendment). Layer 1 + Layer 2 + Layer 3 Round 1 regression-check baselines preserved.
+**Session note:** Cold session opened against post-`795bc25` state. Did not author any Round 1 fix-work commits, the Phase 4 routing record, the suite-side Review 94, the lettering hook, or the manual-tests/layer-3.md artifact. Reading order: [SO domain prompt](../../../../vsdd-suite/domains/role/SOLUTION-OWNER-REVIEW.md) → [Phase 3 primer](../../../../vsdd-suite/primers/3-review-session.md) → [Review 1 above](#review-1--2026-05-25-0112z) → Phase 4 routing record (per-domain Phase 4 appendices in `vsdd-suite/review-log/2026-05-24-<domain-slug>.md`) → [suite Review 94](../../../../vsdd-suite/suite-development/review-log/2026-05-24-suite-review.md#review-94--2026-05-25-0300z) → [README.md](../../README.md) + [PROCESS.md](../../PROCESS.md) + [CHANGELOG.md](../../CHANGELOG.md) post-Round-1 narrative → [TODO.md § Layer 3](../../TODO.md#layer-3--export-and-import-ai-co-authored-operator-owned) Layer-gate criteria + Phase 2c follow-up annotation → [DESIGN.md](../../DESIGN.md) Layer 3 § Behavioral contracts + § Threat model + § Storage data classification + § Verification architecture + § Performance budget read LAST per cold-reader-poisoning discipline → [`src/lib.rs`](../../src/lib.rs) (`export_json` architectural correction + `import_json` + `bookmark_set_eq` + `display_safe` JSON-native rewrite + `ImportError::TagContainsControlChars`) → [`src/main.rs`](../../src/main.rs) (`run_import` validation order + size-cap hint + `long_about`) → [`tests/bookmarks.rs`](../../tests/bookmarks.rs) (51 tests) → [`manual-tests/layer-3.md`](../../manual-tests/layer-3.md) (16 steps).
+**Source:** domain-raised — cold-session adversarial reviewer applying the SO domain's nine dimensions to the Round 1 closure surface + verifying the in-cycle scope additions stayed proportionate. The operator-supplied per-domain prompt directed re-verification of: R1 Backlogged closure (manual-tests + README); 5 SO-decidable Round 1 findings implementation-alignment; architectural-correction sub-decision scope discipline; in-cycle suite-hardening scope discipline; layer-gate criteria readiness.
+**Lens:** R1 regression-check (do the Round 1 fixes hold against the impl?); Dim 5 under-delivery (are any Round 1 routed items partially implemented?); Dim 2 + Dim 6 scope discipline (architectural correction + suite-hardening in-cycle scope); Dim 7 design fidelity (post-fix spec narrative + post-fix README narrative + CHANGELOG accuracy claim); Dim 8 prior-review-additions (the architectural correction sub-decision is a Round 1-routing-adjacent SO-decision; verify it stayed within the operator's intent); reference-example purpose alignment ([G-112](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112)) of the audit-trail-with-architectural-correction shape; layer-gate readiness across all 6 criteria.
+**Reference:** DESIGN.md is the post-fix spec contract; the Phase 4 routing record is the operator-decided routing of Round 1 findings; the 4 Round 1 fix-work commits are the implementation-of-decisions artifact this round evaluates compliance against.
+**Regression-check against:** [Review 1 above](#review-1--2026-05-25-0112z) (Layer 3 Round 1 SO MVR — 2 Backlogged + 5 Resolved) + [Solution Owner Review 5](2026-05-21-solution-owner.md#review-5--2026-05-22-1630z) (Layer 2 Round 2 SO MVR — the closure-verification precedent this round mirrors) + [Solution Owner Review 3](2026-05-20-solution-owner.md#review-3--2026-05-20-2200z) (Layer 1 project-terminal SO MVR — Layer 1 ACs 1-4 regression floor).
+
+**Compliance table** (Round 1 routed findings + 5 SO-decidable items + architectural-correction sub-decision vs. observable post-fix implementation behavior):
+
+| Routed item | Operator decision (Phase 4 record) | Post-fix evidence | Status |
+|---|---|---|---|
+| JSON-native escape design (SA+SE+RT+Sec 4-domain) | switch `display_safe` to JSON-native `\uHHHH` 6-char form; preserve byte-round-trip | `src/lib.rs:798-807` BMP-+-surrogate-pair encoder; `src/lib.rs:455-499` `export_json` delegates to serde-native (architectural correction); `tests_export_import_round_trip_preserves_pathological_bytes` GREEN | Met |
+| sorted-tag-comparison dedup (SE+RT 2-domain) | dedup on sorted-tag-comparison; storage Vec preserves insertion order | `src/lib.rs:624-636` `bookmark_set_eq` helper; `src/lib.rs:601-611` import_json uses it; DESIGN.md:133 names L132→L223 set-frame resolution; tag-reorder regression test GREEN | Met |
+| imported-tag control-char rejection (Sec F2) | active mitigation; new `ImportError` variant for control-char tag rejection | `src/lib.rs:583-589` pre-mutation predicate; `src/lib.rs:681` `TagContainsControlChars(usize, String)` variant; `src/main.rs:515-525` CLI arm with `display_safe` on tag; DESIGN.md:129 spec contract; control-char rejection test GREEN | Met |
+| imported-tag classification extension (Sec F3) | inherit same classification as user-typed tags | DESIGN.md:332 § Storage data classification new paragraph; no impl change required (spec-only) | Met |
+| SO F1 manual-tests/layer-3.md authoring | Author the file per the R1 F1 Option-1 path | `manual-tests/layer-3.md` exists; 16 steps; covers AC 14..AC 28 + Round 1 routed closures at Steps 8/9/10 + size-cap with override at Step 12 + hyperfine sanity-check at Step 15 | Met (file exists; operator-execution pending per criterion-3 hard gate) |
+| SO F2 README post-L3-state | Sub-option 1a/1c — minimal status-line + Phase-progression accuracy | README.md:9 "Layer 3 active in PR #52" + Round 1 + Phase 4 + routing-record references; in-flight framing accurate to fix-work-mid-cycle state | Met |
+| QE coverage gaps (F1+F2+F3) | Phase 2a new tests | `tests_import_dedup_within_payload_collapses_byte_equal_records`; `tests_export_applies_display_safe_to_pathological_tag` (revised assertion to byte-round-trip semantic); `tests_import_max_stdin_bytes_operator_override` — all GREEN | Met |
+| UX help-and-error-remediation (UX F2 + TW F4 + SE F4) | Phase 2b impl changes | `src/main.rs:464-468` size-cap hint with MiB + remediation; `src/main.rs:428-431` lower-bound `--max-stdin-bytes` rejection; `src/main.rs:449-455` empty-stdin-before-size-cap ordering; clap `long_about` covers Layer 3 surface | Met |
+| DESIGN.md verification-architecture refresh (SA F2) | Phase 1a+1b spec amendment | DESIGN.md:237-239 § Verification architecture pure-fn list extends to `export_json` + `import_json` + `display_safe` Layer 3 framing | Met |
+| dedup-complexity accepted-limit annotation (SA F4 + PE convergence) | Phase 1a+1b accepted-limit | DESIGN.md:298 § Performance budget Layer 3 paragraph on O(M×N) dedup-complexity accepted-limit | Met |
+| import_json doc-comment fix (SE F3) | Phase 2b — remove proptest claim until Phase 5 lands the property | `src/lib.rs:515-518` doc comment names "the proptest itself is not yet activated in `tests/properties.rs` at this Phase 2b landing" — claim removed | Met |
+| ImportError variant detail (SA F5) | Phase 2b LOW-PRIORITY deferred-to-follow-up-PR | Not landed; explicitly deferred per Phase 4 routing record line 282 (`G-150 over-investment guard`); SchemaMismatch still carries `String` only | Deferred-by-spec — not a Round 2 finding |
+| Phase 2c follow-up annotation for `bfc0713` | Phase 2c discipline | TODO.md:146 follow-up annotation paragraph documents additive-changes-preserve-helper-structure + names the architectural correction as structural-simplification | Met |
+| `display_safe` architectural correction sub-decision at Phase 2b | Operator-authorized at Phase 2b landing per CHANGELOG L24-31 narrative | DESIGN.md:106 § `bm export` rewritten to name "JSON-native escape design ... architectural correction sub-decision at Phase 2b landing"; impl at `src/lib.rs:455-499` documents the trade-off + the why; CHANGELOG L24-31 names the change | Met — see Finding 2 below for scope-discipline disposition |
+
+_Layer 1 + Layer 2 + Layer 3 Round 1 regression-check (the floor from Reviews 3 + 4 + 5 + Review 1 above):_ `cargo test --test bookmarks` runs **51/51 GREEN** (45 from Round-1-pre-fix-baseline + 6 new Phase 2a regression-or-coverage tests); `cargo test --test properties` runs **3/3 GREEN**; `cargo build --release` runs clean (0 warnings); `cargo clippy --all-targets --all-features` runs clean. Integration-test exit-code contract (0/1/2/64), atomic-save discipline, mode-0600, symlink-rejection, parent-directory fsync all preserved per spot-check of `src/lib.rs:175-323`. Layer 1 ACs 1-4 + Layer 2 ACs 5-13 + Layer 3 ACs 14-28 all hold at the integration surface. **HOWEVER:** `cargo test --lib` reveals 2 unit-test failures (see Finding 1) — Layer 1 + Layer 2 spec compliance HOLDS at the integration surface but the Round 1 `display_safe` rewrite introduced a regression at the unit-test surface that the fix-work missed.
+
+**MVR signal:** **Round 2 — NOT REACHED.** One new real finding (under-delivery against the test sweep: the `display_safe` JSON-native rewrite at `bfc0713` left 2 pre-existing Layer 1/2 unit tests asserting the old Rust-syntax escape format — `cargo test --lib` fails 2/13, AND `cargo test` (the default invocation README.md:51 promises will pass) fails). One scope-discipline observation closes cleanly (the architectural correction sub-decision stayed within operator intent + is honestly disclosed at the spec + CHANGELOG + Phase 2c follow-up annotation; SO does not find scope-creep). One scope-discipline observation closes cleanly with a documented carry-forward (the in-cycle suite-hardening — Review 94 + lettering hook + primer 4 amendment — was operator-authorized at letter-label 4th-recurrence and the load-bearing hook prevents future commits violating the discipline; SO does not find unauthorized scope-creep but flags the PR-#52 scope-blast surface for the post-merge audit). Two layer-gate criteria gaps named (criterion 1 fails on the `cargo test --lib` regression; criterion 3 operator-execution pending). Per [G-131](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) continue-trigger discipline, Round 3 is mandatory if Finding 1 opens with non-trivial fix work; an Option-2 path (declare the 2 unit tests obsolete given the JSON-native escape format is the new contract; update assertions; close in Round 2) closes the finding cleanly without escalation.
+
+---
+
+### Backlogged
+
+<a id="r2-f1"></a>
+
+**Finding 1 — Under-delivery: Round 1 `display_safe` JSON-native rewrite at `bfc0713` left 2 pre-existing unit tests asserting the old `\u{HHHH}` Rust-syntax form; `cargo test --lib` fails 2/13 + `cargo test` (the README.md:51 promised-passing invocation) fails (Dim 5 + Dim 7 design fidelity)**
+
+**Owner:** solution-owner
+**Status:** raised
+**Blocked by:** *(none — directly observable test failure)*
+**Validator:** vdd-iar-alignment
+
+The Round 1 Phase 2b fix-work at commit `bfc0713` rewrote `display_safe` from the Rust-syntax `\u{HHHH}` curly-brace form (used at Layer 1 + Layer 2) to the JSON-native `\uHHHH` 6-char form (per the JSON-native-escape-design operator decision routed at Phase 4). The fix-work updated:
+
+- the integration-test `bm_list_sanitizes_terminal_escape_in_url` per CHANGELOG.md:56 ("updated assertion to expect the JSON-native `` 6-char form (was `\u{001b}` Rust-syntax)");
+- the spec narrative at DESIGN.md:106 § `bm export` JSON-native-escape-design paragraph;
+- the impl at `src/lib.rs:798-807`.
+
+But the fix-work did NOT update the 2 pre-existing `display_safe` UNIT tests at `src/lib.rs:1042-1054` (`display_safe_escapes_ansi_escape`) + `src/lib.rs:1056-1064` (`display_safe_escapes_format_chars`), both of which still assert `out.contains("\\u{001b}")` / `out.contains("\\u{202e}")` (the old Rust-syntax form). The new JSON-native impl emits `` / `‮` (no curly braces), so the assertions fail:
+
+```
+test tests::display_safe_escapes_ansi_escape ... FAILED
+  panicked at src/lib.rs:1046:9: ESC should be escaped; got 31mred
+
+test tests::display_safe_escapes_format_chars ... FAILED
+  panicked at src/lib.rs:1060:9: RLO should be escaped; got plain‮evil
+```
+
+**Why this is SO scope-discipline, not "merely a missed test sweep":** The README.md:51 promised invocation reads `cargo test  # expect: all tests pass`. The TODO.md:150 Layer-gate criterion #1 reads "All Red Gate tests above pass: `cargo test --test bookmarks` + `cargo test -- --ignored` (scaling) + `cargo test --test properties`" — which is satisfied (51/51 + 3/3 GREEN). The criterion #1 wording does NOT mention `cargo test --lib`, so a strict reading lets the layer-gate-criterion #1 close. BUT:
+
+- The README's promise is the public-portfolio contract; a cold reader running the README's command sees 2 failing tests, not "all tests pass." This is design fidelity drift per Dim 7 + the same Dim-5 framing as Review 1 F1.
+- The unit-test invocation is the canonical Rust developer's first-pass health check (`cargo test` is the canonical command; the user must opt into `--test bookmarks` to scope away from the lib failures). A future maintainer running `cargo test` after the PR merges sees a failing project.
+- The grep-before-claim-closure discipline named in PROCESS.md:96-98 (Stumbling point 6 — "Site-specific fix declared closure") is the exact pattern the Round 1 fix-work tripped: the display_safe site update at the integration-test surface declared closure without grepping the lib unit tests for the same assertion pattern. The methodology fix landed in PR #40 + is repeated in PROCESS.md as a discipline reference; the Round 1 fix-work did not apply it.
+- The CHANGELOG.md:51 claim "**51 passed; 0 failed**" is technically correct for `cargo test --test bookmarks` but elides the `cargo test --lib` failure. CHANGELOG drift from the actual test-surface state is the same Dim 7 drift pattern Review 1 F2 surfaced for the README.
+
+**Disposition:** Two resolution paths are spec-honest, parallel to the Round 1 R1 F1 + F2 shape:
+
+1. **Update the 2 unit-test assertions** to expect the JSON-native form (`out.contains("\\u001b")` + `out.contains("\\u202e")`) consistent with the Round 1 operator decision + the integration-test update at `bm_list_sanitizes_terminal_escape_in_url`. Add a sweep step to CHANGELOG.md naming the unit-test update alongside the integration-test update. Layer-gate criterion #1 then closes cleanly at `cargo test` (default invocation), not just the scoped `--test bookmarks` invocation.
+
+2. **Update the TODO.md:150 Layer-gate criterion #1** to scope explicitly to `cargo test --test bookmarks + --test properties + --ignored` (the GREEN surfaces) AND explicitly name `cargo test --lib` as a known-failing surface pending Option-1 sweep + update README.md:51 to match. This is the spec-honest acknowledgment that the layer-gate criterion as currently written closes against a partial test surface — but it is a much weaker resolution than Option 1 because it bakes the unit-test-regression into the spec contract.
+
+Option 1 is the SO recommendation. The fix is small (2 string literals); Round 3 verification closes it cleanly per the R5 F1 precedent.
+
+**Classification:** Backlogged — Layer 3 layer-gate criterion #1 cannot close honestly without resolution (the README + CHANGELOG accuracy claim depends on `cargo test` passing, not just the scoped invocation); operator-decision-required between Option 1 (update assertions) and Option 2 (amend criterion + README). Carries forward to Round 3; if Round 3 finds Option 1 applied + `cargo test` passes, the finding closes as Resolved.
+
+---
+
+### Resolved
+
+<a id="r2-f2"></a>
+
+**Finding 2 — Scope discipline confirmed: `display_safe` architectural correction sub-decision at Phase 2b landing stayed within the JSON-native-escape-design Round 1 routing operator intent + is honestly disclosed across DESIGN.md + CHANGELOG.md + TODO.md Phase 2c annotation (Dim 2 + Dim 6 + Dim 8 prior-review-additions)**
+
+**Owner:** solution-owner
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** vdd-iar-alignment
+
+The operator-supplied per-domain prompt asks whether the architectural correction (removing `display_safe` from `export_json` and delegating to serde_json's native encoder) was within scope of the Round 1 routing operator-intent (byte-preservation) or scope-creep (a substantive spec change without dedicated AskUserQuestion).
+
+SO seat walked the audit trail: the Phase 4 routing record for the JSON-native escape design (4-domain convergence: SA+SE+RT+Sec) at [per-domain Phase 4 routing appendices:26-44` (per-domain Phase 4 appendices in `vsdd-suite/review-log/2026-05-24-<domain-slug>.md`) names the operator decision as "switch `display_safe` from Rust-syntax `\u{HHHH}` to JSON-native `\uHHHH` to preserve byte-round-trip." The operator intent stated explicitly: "Preserves both terminal-safety AND byte-round-trip." The Phase 2b implementation discovered mid-implementation that pre-escaping inside the JSON encoding path double-escapes (the literal `` text becomes `\\u001b` in JSON output and parses back as the 6-char text, NOT the original byte). The architectural correction — removing `display_safe` from `export_json` entirely + relying on serde_json's native encoder — is the only impl-path that achieves the operator's stated byte-preservation intent. The original routing's JSON-native-escape decision presumed `display_safe` would be CALLED at the export serialization step; the impl discovered that calling it there breaks the operator's stated goal.
+
+**Three audit-trail surfaces confirm the correction is in-scope, not scope-creep:**
+
+1. DESIGN.md:106 § `bm export` Success-output paragraph names the architectural correction explicitly: "**JSON-native escape design (Round 1 Phase 4 routing; SA + SE + RT + Sec 4-domain convergence + architectural correction sub-decision at Phase 2b landing):** the export path serializes `Bookmark` records via serde's native encoder; `display_safe` is NOT applied at the per-field serialization step because pre-escaping inside the JSON encoding path double-escapes..." — the spec contract now matches the impl AND names the trade-off (curated format chars survive as raw UTF-8 bytes in JSON output).
+2. CHANGELOG.md:24-31 names the architectural correction at the commit-level audit trail: "Phase-2b-surfaced architectural correction sub-decision for the JSON-native escape design ... `BookmarkStore::export_json` architectural correction: serializes `Bookmark` records via serde's native encoder; `display_safe` is NOT applied at the per-field serialization step."
+3. TODO.md:146 Phase 2c follow-up annotation names the architectural correction as "structural simplification, not a new refactor — the function got shorter + cleaner. No new helper-extraction opportunities surfaced during the Round 1 fix-work."
+
+The operator's intent (byte-preservation via JSON-native escape) is preserved; the impl-path-change (where the escape happens — at serde-native encoding boundary vs. `display_safe` pre-wrap) is a load-bearing detail that needed to be visible at the spec contract. The triple-coded audit trail (spec + changelog + Phase 2c annotation) makes the correction visible to any cold reader. The trade-off (format chars survive raw in JSON) is named alongside the correction at every surface; downstream-consumer responsibility is named explicitly.
+
+**The borderline case:** a stricter SO interpretation could classify this as scope-creep because the operator's AskUserQuestion did NOT explicitly authorize "remove `display_safe` from the export serialization step." The Phase 4 routing record presumes the JSON-native-escape decision wraps `display_safe` at the per-field step. The Phase 2b discovery that this breaks byte-round-trip is mid-implementation engineering work, not a contract-renegotiation. SO judgment: the operator's stated goal (byte-preservation) is load-bearing; the impl-path is the engineer's domain to discover the correct realization of the goal. The discovery + spec-update + CHANGELOG-disclosure pattern is exactly the Phase 2b discipline the methodology teaches.
+
+**Reference-example purpose alignment ([G-112](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112)):** the architectural-correction-mid-Phase-2b worked example IS a methodology lesson worth teaching. A capstone+ reference example that discovers a spec/impl tension mid-implementation, names it explicitly, updates the spec contract, and discloses the correction across all three audit surfaces is the methodology in action — not noise. A future cold reader sees: "the operator authorized the JSON-native-escape decision; the engineer discovered that decision's literal interpretation broke the goal; the spec was updated to name the engineer's realization-of-the-goal; the audit trail names the correction explicitly so the next engineer cycle doesn't unwind it." That's the methodology's [G-156](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-156) developer-voice discipline applied to spec/impl tensions at Phase 2b boundary.
+
+**Classification:** Resolved — the architectural correction stayed within operator intent; the audit trail is triple-coded; the trade-off is named; the worked-example teaches Phase-2b-engineering-discovery discipline cleanly. SO finds no scope-creep.
+
+---
+
+<a id="r2-f3"></a>
+
+**Finding 3 — In-cycle suite-hardening scope discipline: the Review 94 meta-finding cycle + `check-no-letter-clusters.py` hook + primer 4 amendment landed in-PR-#52-scope per operator authorization at the lettering-4th-recurrence trigger; the load-bearing hook is the proportionate immediate enforcement; the remaining deferred items are correctly carry-forward-scoped to the post-PR-#52-merge suite-hardening PR (Dim 2 + Dim 6 + Dim 8)**
+
+**Owner:** solution-owner
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** vdd-iar-alignment
+
+The operator-supplied per-domain prompt asks whether the in-cycle suite-hardening (Review 94 + lettering hook + primer 4 amendment) is acceptable scope-creep given the load-bearing nature of the hook (catches commit-time violations) or should it have been a separate PR.
+
+SO seat walked the audit trail per the suite-side [Review 94](../../../../vsdd-suite/suite-development/review-log/2026-05-24-suite-review.md#review-94--2026-05-25-0300z): the 3 deferred findings (Phase 4 bypass + phase-frequency gap + letter-label 4th-recurrence) all surfaced director-raised during PR #52's Layer 3 IAR cycle. Finding 3 (letter-label 4th-recurrence) triggered immediate in-cycle action because: (a) the recurrence count had reached 4 (PR #38 + PR #44 + Review 78 + PR #52 itself), which is the [Review 91 Finding 1](../../../../vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z)-codified earned-by-recurrence threshold for mechanical enforcement; (b) the hook is load-bearing — it catches commit-time violations going forward across all suite contributors, not just the operator's manual catch; (c) Findings 1 + 2 are correctly deferred per operator authorization ("Discussion only; defer the PR until after the IAR cycle closes" per Review 94 line 423) because they require primer/standard/template edits that constitute a separate methodology PR scope.
+
+**Scope-creep test (the SO discipline):** a scope addition is creep when (a) it expands the PR's stated mission silently OR (b) it requires methodology debate that the original PR scope did not budget for. Test against PR #52's Layer 3 mission:
+
+- Layer 3 mission = implement `bm export` + `bm import` + close 13-domain IAR Round 1 + Phase 4 routing + close Layer-gate criteria.
+- Suite-hardening addition = lettering hook + primer 4 amendment.
+
+Is the suite-hardening within scope? **Borderline.** The original PR #52 scope was project-side Layer 3 work; suite-side primer/hook edits are normally a separate PR per the [one-PR-at-a-time](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md) discipline. BUT:
+
+1. The lettering recurrence happened DURING PR #52's Phase 4 routing record authoring (literal letter-cluster labels appeared in the routing record before the corrective rename); the catch + correction + codification fired against PR #52's own artifact. This is the canonical "discovery-during-execution → in-cycle codification" pattern PROCESS.md:86-94 Stumbling point 5 names.
+2. The hook landing without the primer 4 amendment would leave the audit trail incomplete (the hook + rationale must land together so a future reader sees the hook + the methodology codification together).
+3. The hook is mechanical enforcement against commit-time letter-label patterns — it does NOT change methodology semantics, only enforces existing methodology semantics that 4 prior recurrences proved were under-enforced. Adding mechanical-enforcement-of-existing-discipline is structurally similar to fixing a defect (Dim 1 spec coverage of an under-enforced discipline), not adding a new feature (Dim 2 scope-creep).
+
+The deferred items (Phase 4 bypass + phase-frequency gap + Finding 3's follow-up co-authoring + stale-document layered defense) are correctly carry-forward-scoped — they require primer/standard/template authoring that would substantively expand PR #52 scope.
+
+**No PR-scope-blast surface:** the in-cycle suite-hardening is bounded to (a) one new hook file + (b) one primer 4 amendment + (c) `.pre-commit-config.yaml` wiring. The bulk of suite-side methodology work is correctly deferred. The PR #52 scope-shape remains "Layer 3 Round 1 closure" with one load-bearing meta-hook addition; the PR title + PROCESS.md retrospective should name the in-cycle codification explicitly so the audit trail is honest (TW + DR cluster naturally surfaces this if it isn't).
+
+**Reference-example purpose alignment ([G-112](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112)):** the in-cycle codification IS a methodology lesson worth teaching — "when a methodology recurrence reaches the earned-by-recurrence threshold mid-cycle, the load-bearing mechanical enforcement lands in-cycle to prevent the 5th recurrence; the substantive methodology authoring defers to the next cycle." A future cold reader sees the methodology applying its own [Review 91 Finding 1](../../../../vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z) earned-by-recurrence discipline against itself, which is exactly the meta-discipline the suite teaches.
+
+**Classification:** Resolved — the in-cycle suite-hardening stayed within the operator-authorized scope (lettering 4th-recurrence trigger + load-bearing mechanical enforcement + deferred substantive methodology authoring); the audit trail is correctly recorded at Review 94 + the deferred items are honestly carry-forward-scoped. SO does not find unauthorized scope-creep.
+
+---
+
+<a id="r2-f4"></a>
+
+**Finding 4 — Layer-gate criteria readiness for Layer 3 close: 3-of-6 criteria MET; 1 criterion BLOCKED by Finding 1; 1 criterion has known-operator-execution-pending status; 1 criterion is declared-not-applicable (Dim 5 layer-gate readiness)**
+
+**Owner:** solution-owner
+**Status:** validated
+**Blocked by:** *(none — synthesis of the cross-criterion state)*
+**Validator:** vdd-iar-alignment
+
+The operator-supplied per-domain prompt asks for the layer-gate-criteria-status readout to close Layer 3.
+
+Per TODO.md:148-155 § Layer 3 Layer-gate criteria, applied against post-`795bc25` state + Round 2 work:
+
+| # | Criterion | Status |
+|---|---|---|
+| 1 | All Red Gate tests pass: `cargo test --test bookmarks` + `--ignored` + `--test properties` | **PARTIALLY MET — see Finding 1.** 51/51 `--test bookmarks` GREEN; 3/3 `--test properties` GREEN; `--ignored` scaling tests not re-run in this session (Layer 2 baseline preserved); **BUT `cargo test --lib` fails 2/13** AND `cargo test` (the README.md:51 default-invocation contract) fails. The criterion as literally worded ("`cargo test --test bookmarks`") closes; the README + cold-reader contract does not. |
+| 2 | `cargo build --release` succeeds with no warnings | **MET.** Verified in-session: clean build, 0 warnings, 23.75s. |
+| 3 | `manual-tests/layer-3.md` runs clean | **PARTIALLY MET.** File authored (16 steps; covers all ACs + Round 1 routed closures). Operator-execution of the 16 steps is the closure trigger; SO cold-session cannot execute the manual tests (Step 0 requires `cargo install --force` which mutates the operator's installed binary). Operator-execution pending. |
+| 4 | Phase 3 IAR 13-domain MVR | **PENDING this Round 2 closing cycle.** Round 2 SO seat (this entry) is one of 13 parallel cold-session reviews; MVR determination requires the cross-domain finding-progression read at cycle close. |
+| 5 | Phase 5 dispositions | **NOT YET REACHED.** Phase 5 cycle queued after Round 2 MVR per the TODO.md routing. The cargo-fuzz harness at `fuzz/fuzz_targets/import_stdin.rs` is named at TODO.md:142; not yet authored. |
+| 6 | Phase 6 NA | **MET.** Declared not-applicable per DESIGN.md:17 + TODO.md:155 + the R4 F2 precedent. The Layer 1 project-terminal Phase 6 attestation stands. |
+
+**Layer 3 cannot close at this Round 2 closure** without:
+- Finding 1 resolution (criterion 1 honesty);
+- Operator-execution of `manual-tests/layer-3.md` (criterion 3);
+- Round 2 reaching MVR + Round 3 if Finding 1 opens with non-trivial fix work (criterion 4);
+- Phase 5 cycle (criterion 5).
+
+**No criteria are unreachable** — all 5 gating criteria have spec-honest closure paths. The layer-gate is on a recoverable progression.
+
+**Classification:** Resolved — the layer-gate-criteria status is documented honestly; the gap-to-close is named at each criterion; no criterion is silently failing or silently dispositioned.
+
+---
+
+<a id="r2-f5"></a>
+
+**Finding 5 — Round 1 fixes for the 7 Resolved + Backlogged findings hold against the post-fix state (regression-check pass) (Dim 5 + Dim 7)**
+
+**Owner:** solution-owner
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** vdd-iar-alignment
+
+Per [Review 1 above](#review-1--2026-05-25-0112z), Round 1 produced 7 findings (2 Backlogged + 5 Resolved). Regression-check against the post-fix state:
+
+| Round 1 finding | Status this Round | Evidence |
+|---|---|---|
+| [R1 F1](#r1-f1) — `manual-tests/layer-3.md` absent (Backlogged Option-1 choice) | Closed | `manual-tests/layer-3.md` exists (572 lines; 16 steps) — see compliance-table SO F1 row |
+| [R1 F2](#r1-f2) — README.md:9 stale "Layer 3 not built" (Backlogged Option-1 choice) | Closed | README.md:9 reflects post-Layer-3 state; phase-progression-table includes Layer 3 cycle status — see compliance-table SO F2 row |
+| [R1 F3](#r1-f3) — 8 operator-confirmed decisions preserved at DESIGN.md + TODO.md (Resolved) | Holds | All 8 decisions still visible at the spec contract; no silent revisions or drops in the Round 1 fix-work commits |
+| [R1 F4](#r1-f4) — Layer 3 ACs 14-28 match scope-and-non-goals (Resolved) | Holds | ACs 14-28 unchanged; the architectural correction at Phase 2b does NOT add ACs; the 6 new Phase 2a regression-and-coverage tests close routed findings without expanding spec surface |
+| [R1 F5](#r1-f5) — capstone intent calibration holds; no production-intent trigger fires (Resolved) | Holds | The active control-char rejection (Round 1 routed mitigation) does NOT escalate to production-intent strict hardening; the impl mirrors the Layer 2 tag-injection accepted-risk framing extended to the new stdin attack surface; capstone-tier proportionality maintained |
+| [R1 F6](#r1-f6) — Phase 5 + Phase 6 strategy declarations correctly calibrated (Resolved) | Holds | DESIGN.md:15 + :17 lines unchanged; both Phase 5 + Phase 6 lines for Layer 3 still satisfy [G-162](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-162) strict-form requirement |
+| [R1 F7](#r1-f7) — AI-co-authored disclosure shape preserves clarity + spec-contract authority (Resolved) | Holds | DESIGN.md:47 disclosure paragraph unchanged; operator-ownership declaration still in force; CHANGELOG + PROCESS.md narrative consistent with the disclosure shape |
+
+**No regression** against Round 1's Resolved findings. The 2 Backlogged findings closed cleanly per the operator-authorized Option-1 paths. The audit trail from Round 1 → Phase 4 routing → Round 1 fix-work → Round 2 verification is intact.
+
+**Classification:** Resolved — all 7 Round 1 findings hold against the post-fix state.
+
+---
+
+### Hallucinated
+
+*(none — the 5 findings above are concrete and citation-backed; no SO-dim concerns that turned out to be spec-misread emerged in this round)*
+
+---
+
+### Approved deviation
+
+*(none — no pre-approved DESIGN.md deviations apply at this round)*
+
+---
+
+### Dismissed
+
+*(none — every Layer 3 Round 2 spec commitment was either Met, Resolved (Findings 2-5), or Backlogged (Finding 1); no dismissable concerns)*
+
+---
+
+### Raised to SO
+
+*(none — this IS the SO round; cross-domain findings that would route to SO are filed against their originating domain's log)*
+
+---
+
+### Summary
+
+Five findings in Round 2:
+
+- **Backlogged (operator-decision-required, blocks Layer 3 layer-gate criterion 1 honesty):**
+  - [Finding 1](#r2-f1) — Round 1 `display_safe` JSON-native rewrite at `bfc0713` left 2 pre-existing unit tests asserting the old `\u{HHHH}` Rust-syntax form; `cargo test --lib` fails 2/13 + `cargo test` (the README.md:51 default-invocation contract) fails. Two resolution paths (update assertions to JSON-native form OR amend criterion + README to scope the layer-gate explicitly to the GREEN test surfaces).
+- **Resolved:**
+  - [Finding 2](#r2-f2) — `display_safe` architectural correction sub-decision at Phase 2b landing stayed within operator intent (byte-preservation goal preserved; impl-path-change is engineer-discovery, not contract-renegotiation); audit trail is triple-coded across DESIGN.md + CHANGELOG.md + TODO.md Phase 2c annotation; reference-example purpose extends honestly (Dim 2 + Dim 6 + Dim 8).
+  - [Finding 3](#r2-f3) — In-cycle suite-hardening (Review 94 + lettering hook + primer 4 amendment) stayed within operator-authorized scope (lettering 4th-recurrence trigger + load-bearing mechanical enforcement + deferred substantive methodology authoring); no unauthorized scope-creep (Dim 2 + Dim 6 + Dim 8).
+  - [Finding 4](#r2-f4) — Layer-gate criteria readiness: 3-of-6 MET (criteria 2 + 3-partially + 6) + 1 BLOCKED by Finding 1 (criterion 1) + 1 PENDING-this-cycle-close (criterion 4) + 1 NOT-YET-REACHED (criterion 5); no criterion silently failing (Dim 5).
+  - [Finding 5](#r2-f5) — All 7 Round 1 findings hold against the post-fix state; no regression introduced by the Round 1 fix-work commits at the spec or audit-trail surfaces (Dim 5 + Dim 7).
+
+**Operator-supplied per-domain prompt answers (summarized for the audit trail):**
+
+1. _"R1 Backlogged closure verification — does manual-tests/layer-3.md satisfy the criterion-3 gate? does the README update accurately reflect post-L3 state?"_ — File exists + 16 steps cover all ACs + Round 1 routed closures + hyperfine sanity-check per [Finding 4](#r2-f4) criterion 3 row; operator-execution pending. README is accurate to post-Layer-3-mid-cycle state per [Finding 5](#r2-f5) R1 F2 row.
+2. _"5 SO-decidable Round 1 findings — implementation alignment"_ — All 5 implemented per operator decision; no misimplementations; no partial implementations. See compliance table rows for JSON-native escape design + sorted-tag-comparison dedup + manual-tests authoring + control-char rejection + classification extension.
+3. _"Architectural correction sub-decision — scope discipline"_ — Within scope of the Round 1 routing decision per [Finding 2](#r2-f2); operator's stated goal (byte-preservation) is preserved; the impl-path-change is engineer-discovery + correctly disclosed at three surfaces.
+4. _"In-cycle suite-hardening — scope discipline"_ — Acceptable scope per [Finding 3](#r2-f3); the load-bearing mechanical-enforcement-of-existing-discipline justifies in-cycle landing; deferred substantive methodology authoring is correctly carry-forward-scoped.
+5. _"Layer-gate criteria readiness — readiness to close Layer 3"_ — Per [Finding 4](#r2-f4): criteria 2 + 6 MET cleanly; criterion 1 PARTIALLY MET (blocked by [Finding 1](#r2-f1)); criterion 3 PARTIALLY MET (file authored; operator-execution pending); criterion 4 PENDING this Round 2 cycle close; criterion 5 NOT YET REACHED (Phase 5 cycle queued).
+6. _"Reference-example purpose alignment — does the Round 1 + Round 2 cycle teach the methodology cleanly to a future reader?"_ — Yes. The architectural-correction-at-Phase-2b worked example + the in-cycle-suite-hardening-at-recurrence-threshold worked example both teach load-bearing methodology disciplines; the audit-trail-noise concern resolves favorably because the triple-coded disclosure pattern makes the corrections honest, not chaotic. [G-112](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) preserved.
+
+**Coordination:** [Finding 1](#r2-f1) routes naturally to SE for the unit-test assertion update (2-line fix) + QE for the test-discipline-sweep-completeness validation. [Finding 2-5](#r2-f2) document the spec-clean + scope-clean + audit-trail-clean state for the Layer-3-close-readiness + future-cycle regression-check baseline.
+
+**Phase 5 / Phase 6 closure-blocker check:** [Finding 1](#r2-f1) blocks Layer 3 layer-gate criterion #1 honesty + the README/CHANGELOG accuracy claim. The fix is small (2 string literals); if Round 3 finds Option 1 applied, the finding closes cleanly per the R5 F1 precedent. Phase 5 still ahead per criterion #5.
+
+**Cost-tally** (per AIE F7 carry-forward; agent-self-verifiable tier only per [Review 91 F8](../../../../vsdd-suite/suite-development/review-log/2026-05-23-suite-review.md#review-91--2026-05-23-1900z)):
+
+- **AI tool / Model / Execution method:** [claude-code CLI](https://claude.com/claude-code) / `claude-opus-4-7` / cold sub-agent spawn (cold-context for the SO Round 2 seat)
+- **Wall-clock anchors (Bash `date -u`):** session-start observed at 2026-05-25T03:07Z; session-end at commit-prep step (main session commits)
+- **Tool-call counts by tool name (agent-self-verifiable):** Bash invocations ~14 (git log + ls + wc + cargo test [3] + cargo build [1] + cargo clippy [1] + date + grep [3] + file listings); Read invocations ~13 (SO domain prompt; primer 3; SO Review 1; Phase 4 routing; DESIGN.md [2 ranges]; TODO.md; README.md; manual-tests/layer-3.md; src/lib.rs [3 ranges]; src/main.rs [2 ranges]; PROCESS.md; suite Review 94); Edit invocations 1 (this entry append)
+- **Files read (with approximate line counts):** SOLUTION-OWNER-REVIEW.md (60); 3-review-session.md (241); 2026-05-24-solution-owner.md Review 1 (~318); per-domain Phase 4 routing appendices (398); DESIGN.md (336 across 2 ranges); TODO.md (155); README.md (97); manual-tests/layer-3.md (572); src/lib.rs (~950 across 3 ranges); src/main.rs (~370 across 2 ranges); PROCESS.md (~100); 2026-05-24-suite-review.md Review 94 (~90)
+- **Files written/edited (with line counts from Edit):** this Review 2 entry (~270 lines appended to 2026-05-24-solution-owner.md)
+- **Mechanical sweeps run:** `cargo test --test bookmarks` (51 passed); `cargo test --test properties` (3 passed); `cargo test --lib` (11 passed, 2 failed — surfaced [Finding 1](#r2-f1)); `cargo test` (default; 2 failures); `cargo build --release` (clean); `cargo clippy --all-targets --all-features` (clean); `git log --oneline -30` (commit-sequence verification); `wc -l` on 9 key files
+- **Plan tier:** *pending operator confirmation per session (do NOT inherit silently from prior context)*
+- **Raw tokens:** *pending operator `/cost` paste*
+- **Would-be API cost:** *pending operator `/cost` paste*
+- **Actual cost to operator:** *pending operator declaration*
+- **Rate-limit-window utilization:** *pending operator `/cost` paste*
+- **Findings/100k tokens:** *NOT COMPUTABLE — pending operator `/cost` paste*
+
+**Operator-action queue:** if cost-tally precision is load-bearing for cross-cycle calibration, operator runs `/cost` in this session and pastes the output here as an append-only addendum, replacing the *pending operator …* placeholders with measured values.
+
+**Validator:** vdd-iar-alignment — VDD-IAR Alignment confirms the [Finding 1](#r2-f1) resolution path (unit-test assertion update OR layer-gate criterion amendment) routes through the spec/test surface correctly + doesn't conflict with prior intent; [Findings 2 + 3 + 4 + 5](#r2-f2) document spec-clean + scope-clean + layer-gate-readiness state for the cross-cycle regression-check baseline).
+
+---
+
+---
+
+## Phase 4 routing — Round 1 (2026-05-25 02:00Z)
+
+Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/primers/4-feedback-integration.md) § [manual] First-class fallback path. SO-decisions captured via main-session AskUserQuestion pass on 2026-05-25 across the cross-domain finding clusters. This appendix lists this domain's routable findings in the primer-4-canonical per-finding shape; cross-domain coordination signals live in each Round 1 finding's `**Coordination:**` line. Cross-cluster sequencing matrix lives in the commit message + the CHANGELOG slim-form entry that recorded this Phase 4 pass (refactored from a prior consolidated routing record per operator directive 2026-05-25 — the consolidated file was an anti-pattern; primer-4-canonical is per-domain appendices).
+
+#### Finding `r1-f1` — manual-tests/layer-3.md absent despite TODO.md:138 spec commitment — ROUTED
+
+**Cluster:** manual-tests/layer-3.md authoring
+**Route:** `Phase 2a-equivalent artifact authoring`
+**Gate:** (see DR R1 F3 routing — same cluster; operator decided: author the file)
+**Sequencing:** Blocks Layer 3 layer-gate close (criterion 3)
+
+#### Finding `r1-f2` — README:9 still says Layer 3 scoped but not built against post-Phase-2b state — ROUTED
+
+**Cluster:** README post-Layer-3 update
+**Route:** `Phase 1a+1b`
+**Gate:** (see DR R1 F1 + TW R1 F1 routings — same cluster)
+**Sequencing:** Should land before Layer 3 gate close

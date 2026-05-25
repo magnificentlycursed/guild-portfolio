@@ -209,3 +209,188 @@ Two hallucinated findings rejected with evidence:
 **Cross-domain coordination signals.** All three Deferred findings route to `software-engineer` for fix + `quality-engineer` as validator. R8 F1 coordinates with AC 20 (idempotency) — the DESIGN.md edge case entry is explicitly named, so an SE Round 2 fix should cite both the edge-case catalog entry and AC 20. R8 F2 coordinates with AC 18 — the tag-element `display_safe` path is in the spec but unexercised; any display_safe mutation-testing pass (Phase 5) would catch this post-fix. R8 F3 coordinates with AC 27 — the `--max-stdin-bytes` argument parsing is already correct; only a test is missing.
 
 **Coordination:** R8 F1+F2+F3 → SE (fix-owner) + QE (validator); R8 F2 secondary coordination → Phase 5 mutation-testing (display_safe-on-tags would be a surviving mutant absent the new test).
+
+---
+
+## Review 9 — 2026-05-25 04:30Z
+
+**Round:** Layer 3 Phase 3 IAR Round 2.
+**Scope:** Layer 3 Phase 3 IAR Round 2 for the Quality Engineer domain. Round 2 scope per AI Engineer Dim 8 scope-reducer: verify Round 1 fixes hold + surface new residuals from the fix-work. Round 1 fix-work commits: `fdfa989` (Phase 1a+1b) → `ba6a4a9` (Phase 2a — 6 new tests: 3 RED for substantive defects + 3 GREEN closing R8 F1+F2+F3 coverage gaps) → `bfc0713` (Phase 2b — impl fixes; turns the 3 RED tests GREEN) → `795bc25` (manual-tests/layer-3.md + Phase 2c follow-up annotation).
+
+**Session note:** Cold session — adversarial reading order: `vsdd-suite/review-log/2026-05-24-quality-engineer.md` (R8 Round 1, 3 Deferred + 2 Hallucinated), per-domain Phase 4 routing appendices in `vsdd-suite/review-log/2026-05-24-<domain-slug>.md` (Phase 4 routing record; SO decisions; multi-phase chain shapes), `src/lib.rs` (post-bfc0713: `display_safe` JSON-native rewrite, `bookmark_set_eq`, `TagContainsControlChars` variant, `import_json` sorted-tag-comparison dedup, control-char rejection loop), `src/main.rs` (post-bfc0713: `run_import` validation order, lower-bound check, size-cap error, TagContainsControlChars arm), `tests/bookmarks.rs` (all 6 new tests at lines 1701–1957), `manual-tests/layer-3.md` (new artifact at `795bc25`), `tests/properties.rs` (Phase 5 readiness check). **Supplements applied:** Rust supplement § Quality Engineering (unit tests in lib.rs; integration tests invoke the binary; mutation-testing-equivalent coverage checks).
+
+**Source:** `domain-raised` — cold adversarial QE pass applying Quality Engineer Standard Evaluation Dimensions (Dims 1–14) + Rust supplement § Quality Engineering against the Round 1 fix-work surface.
+
+**Round 1 regression check.** R8 F1 (within-payload byte-equal dedup): `tests_import_dedup_collapses_within_payload_byte_equal_records` present at lines 1847–1874; asserts `Imported 1 bookmark.` + store contains exactly one copy. Correctly closes the edge case. Passes GREEN. R8 F2 (AC 18 tag-element `display_safe`): `tests_export_applies_display_safe_to_pathological_tag` present at lines 1880–1923. **However, the test's assertion is now semantically shifted by the Phase 2b architectural correction — see R9 F1 below.** R8 F3 (AC 27 `--max-stdin-bytes` override): `tests_import_max_stdin_bytes_operator_override` present at lines 1928–1957; exercises both a cap-50-bytes rejection and a cap-500-bytes acceptance. Correctly closes the operator-override gap. Passes GREEN.
+
+**Assumption surfacing.** The Phase 2b architectural correction changed the export serialization strategy: `display_safe` is NO LONGER called at the `export_json` per-field level; serde_json's native encoder handles Cc-range escape. The commit message documents the premise: pre-escaping inside the JSON encoding path double-escapes. This is a correct technical analysis — `display_safe`'s new JSON-native `\uHHHH` output, if applied before serde_json serialization, would produce `\\uHHHH` (literal backslash-u in the JSON string value) instead of the JSON escape `\uHHHH`. The architectural correction is valid. However it produces two secondary effects examined below.
+
+**Cost-tally:**
+
+- **AI tool:** [claude-code CLI](https://claude.com/claude-code)
+- **Plan tier:** Claude Max (operator's personal plan)
+- **Execution method:** cold-session cluster agent
+- **Model:** claude-sonnet-4-6
+- **Findings:** 1 Defect + 1 Deferred + 1 Hallucinated
+
+---
+
+### Deferred
+
+<a id="r9-f1"></a>
+**Finding 1 — `display_safe` unit tests in `lib.rs` assert the old Rust-syntax `\u{HHHH}` escape form; `display_safe` now emits JSON-native ``; the two unit tests are FAILING (Dim 3 — Test suite green gate; Dim 2 — Test falsifiability)**
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** quality-engineer
+
+**Domain-raised** during the cold QE adversarial pass — verified by running `cargo test --lib`.
+
+**Observed failure.** `cargo test --lib` reports 2 failing tests:
+
+```
+test tests::display_safe_escapes_ansi_escape ... FAILED
+test tests::display_safe_escapes_format_chars ... FAILED
+test result: FAILED. 11 passed; 2 failed
+```
+
+`cargo test --test bookmarks` (integration tests) and `cargo test --test properties` (proptest): all passing. The failure is isolated to the unit tests in `src/lib.rs`.
+
+**Root cause.** The Phase 2b commit `bfc0713` changed `display_safe` from Rust-syntax `\u{HHHH}` (curly-brace form, 8-byte literal) to JSON-native `\uHHHH` (4 hex digits, no curly braces, 6 chars) via `write!(out, "\\u{cp:04x}")`. The same commit updated integration test assertions at `tests/bookmarks.rs` (line 365: `contains("\\u001b")`; `bfc0713` commit message explicitly names these). However, the two unit tests inside `src/lib.rs`'s `#[cfg(test)] mod tests` block were **not updated** and still check for the old form:
+
+- `display_safe_escapes_ansi_escape` (line 1047): `out.contains("\\u{001b}")` — expects `\u{001b}` (Rust-syntax curly-brace) but `display_safe` now emits `` (JSON-native).
+- `display_safe_escapes_format_chars` (line 1061): `out.contains("\\u{202e}")` — expects `\u{202e}` but `display_safe` now emits `‮`.
+
+**Impact.** `cargo test` (full suite) fails. The Phase 2b commit message claims "51 passed; 0 failed" for `cargo test --test bookmarks` which is true for integration tests; the unit test failures were not surfaced in the commit-message verification step (the `--test bookmarks` flag runs only the integration-test binary, not the lib crate's unit tests). The layer-gate criterion "all tests pass" (criterion 1) is not satisfied in the current HEAD state.
+
+**Fix.** Update the two assertions in `src/lib.rs` to check for the JSON-native form:
+
+- `display_safe_escapes_ansi_escape`: change `out.contains("\\u{001b}")` to `out.contains("\\u001b")` and update the assertion message string accordingly.
+- `display_safe_escapes_format_chars`: change `out.contains("\\u{202e}")` to `out.contains("\\u202e")` and update the assertion message string accordingly.
+
+The doc-comment for `display_safe` at line 760–761 of `src/lib.rs` also still says `\u{HHHH}` in its prose description — a secondary doc-inconsistency that should be corrected in the same commit.
+
+**Falsifiability note.** These unit tests now provide mutation-testing-equivalent coverage for the correct JSON-native escape format — after the fix, a mutation reverting `display_safe` to Rust-syntax output would be caught. Before the fix, the tests actively assert the WRONG format and are failing; no new coverage surface is gained until the assertions are corrected.
+
+**Classification:** Defect — two failing unit tests from a missed assertion update in the Phase 2b commit. Fix is a 2-line assertion change in `src/lib.rs` + doc-comment prose update. (Dim 3 — Test suite green gate; Dim 2 — Test falsifiability)
+
+---
+
+### Deferred
+
+<a id="r9-f2"></a>
+**Finding 2 — `manual-tests/layer-3.md` Step 9 expected output for `Offending tag:` is incorrect: shows `rustinjection` (raw ESC stripped) rather than `rustinjection` (JSON-native escaped form that `display_safe` now emits); the manual-test expected output will mislead a human executor (Dim 1 — Acceptance criteria; Dim 9 — Documentation accuracy)**
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** quality-engineer
+
+**Domain-raised** during the cold QE adversarial pass comparing `run_import`'s `TagContainsControlChars` arm in `src/main.rs` against the expected output block in `manual-tests/layer-3.md` Step 9.
+
+**Spec language.** `DESIGN.md` § `bm import` (Layer 3) failure contract for `TagContainsControlChars`: the CLI shell renders the offending tag through `display_safe` before stderr. `src/main.rs` line 523: `eprintln!("Offending tag: {}", display_safe(&tag))`.
+
+**The gap.** `manual-tests/layer-3.md` Step 9 expected output (lines 248–249):
+
+```
+Offending record index: 0
+Offending tag: rustinjection
+```
+
+The payload tag is `"rustinjection"` (ESC U+001B inside). After `display_safe`, the ESC is escaped to `` (JSON-native 6-char escape), so the actual emitted line is:
+
+```
+Offending tag: rustinjection
+```
+
+The expected output in the manual-test plan shows `rustinjection` — the ESC byte silently absent, as if it were stripped rather than escaped. This is incorrect: `display_safe` escapes Cc-range chars to `\uHHHH`; it does not strip them. A human running Step 9 who observes the actual output `rustinjection` against an expected `rustinjection` would incorrectly classify the step as a failure, or be confused about whether the implementation is behaving correctly.
+
+**Falsifiability.** This is a documentation error, not a code defect. The implementation is correct (`display_safe` produces ``, not a stripped character). The manual-test plan is the artifact that is wrong. The automated tests do NOT exercise the exact `Offending tag:` string — `tests_import_rejects_control_char_in_tags` asserts `starts_with("Error: imported bookmark tags contain disallowed control characters.")` which is the first line; the `Offending tag:` line is not asserted by any integration test. An automated regression would not catch this.
+
+**Why deferred.** The fix is a one-line change to the expected-output block in `manual-tests/layer-3.md` Step 9. Per IAR discipline, fix is owned by SE; deferred to the same commit that addresses R9 F1 (the `lib.rs` unit-test assertion update). The two fixes are companion corrections to the same Phase 2b `display_safe` escape-format change.
+
+**Classification:** Deferred — manual-test expected output for `Offending tag:` line is wrong; one-line fix in `manual-tests/layer-3.md`. (Dim 1 — Acceptance criteria; Dim 9 — Documentation accuracy)
+
+---
+
+### Hallucinated
+
+<a id="r9-f3"></a>
+**Finding 3 — Claim: `bookmark_set_eq` has unexercised mutation-surviving paths in the tag-length short-circuit branch**
+
+**Owner:** quality-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+**Adversarial framing.** The new `bookmark_set_eq` helper has a tag-length short-circuit at lines 628–630: `if a.tags.len() != b.tags.len() { return false; }`. Mutation: remove this early return. Without the short-circuit, the `a_tags.sort(); b_tags.sort(); a_tags == b_tags` path at lines 631–635 would return `false` anyway for different-length tag vecs (since `Vec<String>` equality checks length first). So removing the length short-circuit cannot produce a false-positive match. Does this constitute a surviving mutant?
+
+**Rejected.** Cargo-mutants-equivalent analysis: removing the `len() != len()` check does not change the function's observable boolean output for any input. The final `a_tags == b_tags` check subsumes the length check — two sorted Vecs of unequal length can never compare as equal. The mutation would be "equivalent" (same observable behavior at all inputs). Equivalent mutants are not falsifiable by tests — that is correct behavior, not a coverage gap. The short-circuit exists as a performance optimization (avoids two `.clone()` + two `.sort()` calls when tag-counts differ), not as a behavioral condition. A mutation-testing run via cargo-mutants would report this as MISSED but it would be an equivalent mutant, not a substantive coverage gap. The QE domain's mutation-testing discipline (Rust supplement § Quality Engineering) acknowledges equivalent mutants as acceptable if documented; the short-circuit is a trivial optimization with no independent behavioral contract.
+
+**Secondary check — url/timestamp branch at line 625.** The `if a.url != b.url || a.timestamp != b.timestamp { return false; }` early return. Mutation: remove the url check (or the timestamp check) and return `true` unconditionally. This mutation WOULD cause `tests_import_dedup_treats_tags_as_set_under_reorder` to fail because the test confirms that a same-(url, timestamp, reordered-tags) pair IS dedup'd — a mutation that strips the url check and returns true for everything would trivially pass that test (still dedups). But the existing AC 20 test `tests_import_is_idempotent_on_exact_tuple_match` uses different-URL payloads in a two-invocation pattern... actually revisiting: `tests_import_dedup_treats_tags_as_set_under_reorder` uses the same URL on both invocations, so a mutation that returns `true` for all inputs would STILL pass (both invocations are same-URL). The AC 28 round-trip test uses 3 distinct URLs via `bm add`; after export + import, the destination dedup check only fires when a URL already exists in the destination. On a fresh destination store, no dedup fires at all. So a mutation returning `true` from `bookmark_set_eq` would cause all new records to be dropped on import (since every record would appear to already exist in the growing Vec). This would break `tests_import_appends_valid_payload_to_existing_store` (AC 19 — expects `Imported 1 bookmark.`) and `tests_export_import_round_trip` (expects `Imported 3 bookmarks.\n`). The url/timestamp checks DO have covering tests.
+
+**Classification:** Hallucinated — `bookmark_set_eq` tag-length short-circuit is an equivalent mutant (no observable behavioral difference from removal); url/timestamp branch is covered by AC 19 + AC 28 tests. No new coverage gap. (Dim 2 — Test falsifiability)
+
+---
+
+#### Phase 5 proptest readiness check
+
+**`import_json` doc-comment (SE F3 routing closure).** Post-`bfc0713`, the `import_json` doc-comment at `src/lib.rs` lines 513–519 now names `import(import(X)) == import(X)` as a Phase 5 proptest target: "The `import(import(X)) == import(X)` idempotence property is a Phase 5 proptest target (per `DESIGN.md` § Project intent Phase 5 strategy for Layer 3); the proptest itself is not yet activated in `tests/properties.rs` at this Phase 2b landing." This is an accurate, forward-pointing claim. The doc-comment no longer misclaims the property is already in `tests/properties.rs`.
+
+**Phase 5 infrastructure readiness.** `tests/properties.rs` currently has the `proptest!` macro, `ProptestConfig`, `small_store_strategy`, and `small_url_strategy` helpers from Layer 2. Adding the `import(import(X)) == import(X)` property requires: (a) a strategy that generates a `BookmarkStore` + a valid import payload; (b) a way to call `import_json` twice on the same store. The `import_json` method takes `&mut self` + a `&str` payload — both compatible with a proptest property. The infrastructure is ready: the Phase 5 author needs to add a `valid_import_payload_strategy()` alongside the existing strategies, and the property body is a short 5-line proptest. No new dependencies or framework changes are required.
+
+**Round-trip property readiness.** The `export_json` + `import_json` round-trip property `parse(serialize(X)) == X` requires generating a `BookmarkStore` state and asserting that `export_json` → parse → `import_json` into a fresh store reproduces the source state. Since `export_json` no longer applies `display_safe` at serialization (architectural correction), the byte-preservation invariant is now structurally cleaner for the property — the JSON emitted by `export_json` is a direct serde serialization of the `Bookmark` structs, and `import_json` uses serde deserialization. The round-trip is serde-symmetric. However, the Phase 5 property author must be careful: `export_json` applies newest-first ordering, while the destination store (after `import_json`) is in import-append order. The property must compare on sorted tuples (parallel to the AC 28 integration test extraction helper at line 1670) rather than raw Vec equality.
+
+**Overall Phase 5 readiness verdict:** Ready. No infrastructure or API changes needed. The doc-comment accurately states the property is a Phase 5 target; the existing proptest framework in `tests/properties.rs` is sufficient to activate it.
+
+---
+
+### Summary
+
+Layer 3 Phase 3 IAR Round 2 for the Quality Engineer domain. Round 1 regression check: R8 F1 (within-payload dedup) and R8 F3 (--max-stdin-bytes override) are cleanly verified and GREEN. R8 F2 (AC 18 tag-element display_safe) is present but its assertion was semantically shifted by the Phase 2b architectural correction — the test now verifies the byte-preservation round-trip contract (tag contains original ESC byte after JSON parse) rather than the pre-escape contract.
+
+One defect surfaced from the fix-work:
+
+- **R9 F1** (Defect): `display_safe` unit tests in `src/lib.rs` assert old Rust-syntax `\u{001b}` form; function now emits JSON-native ``; `cargo test --lib` reports 2 failing tests. Two-line assertion update + doc-comment correction. Layer-gate criterion 1 (all tests pass) is NOT met at HEAD.
+
+One deferred finding:
+
+- **R9 F2** (Deferred): `manual-tests/layer-3.md` Step 9 expected output for `Offending tag:` line shows `rustinjection` (ESC stripped) rather than `rustinjection` (ESC escaped via `display_safe`). One-line documentation correction.
+
+One hallucinated finding rejected with evidence:
+
+- **R9 F3** (Hallucinated): `bookmark_set_eq` tag-length short-circuit — equivalent mutant, no observable behavioral difference. url/timestamp branch covered by AC 19 + AC 28 tests.
+
+Phase 5 proptest infrastructure verified ready: no API or framework changes needed to activate `import(import(X)) == import(X)` or the round-trip property.
+
+**Cross-domain coordination signals.** R9 F1 → SE (fix-owner) + QE (validator); the unit-test assertion update is a mandatory prerequisite for layer-gate criterion 1 close. R9 F2 → SE (fix-owner) + Technical Writer (secondary validator for manual-test documentation accuracy); companion fix to R9 F1 in the same commit. Phase 5 readiness → Phase 5 launch (proptest properties for `import_json` idempotence + round-trip can be activated against the current `tests/properties.rs` framework without further prep work).
+
+**Coordination:** R9 F1 + R9 F2 → SE (fix) + QE (validator); Phase 5 proptest readiness signal → Phase 5 launch session (no blocking items).
+
+---
+
+## Phase 4 routing — Round 1 (2026-05-25 02:00Z)
+
+Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/primers/4-feedback-integration.md) § [manual] First-class fallback path. SO-decisions captured via main-session AskUserQuestion pass on 2026-05-25 across the cross-domain finding clusters. This appendix lists this domain's routable findings in the primer-4-canonical per-finding shape; cross-domain coordination signals live in each Round 1 finding's `**Coordination:**` line. Cross-cluster sequencing matrix lives in the commit message + the CHANGELOG slim-form entry that recorded this Phase 4 pass (refactored from a prior consolidated routing record per operator directive 2026-05-25 — the consolidated file was an anti-pattern; primer-4-canonical is per-domain appendices).
+
+#### Finding `r8-f1` — Within-payload byte-equal dedup edge case is unexercised by tests — ROUTED
+
+**Cluster:** QE test-coverage gaps
+**Route:** `Phase 2a`
+**Gate:** New test exercising within-payload byte-equal dedup; Validator: QE
+**Sequencing:** Should land before Layer 3 gate close
+
+#### Finding `r8-f2` — AC 18 tag-element display_safe path untested — only URL path covered — ROUTED
+
+**Cluster:** QE test-coverage gaps
+**Route:** `Phase 2a`
+**Gate:** New test exercising tag-element display_safe with pathological tag; Validator: QE
+**Sequencing:** Should land before Layer 3 gate close
+
+#### Finding `r8-f3` — AC 27 --max-stdin-bytes operator override unexercised — ROUTED
+
+**Cluster:** QE test-coverage gaps
+**Route:** `Phase 2a`
+**Gate:** New test exercising the override flag with smaller + larger cap; Validator: QE
+**Sequencing:** Should land before Layer 3 gate close

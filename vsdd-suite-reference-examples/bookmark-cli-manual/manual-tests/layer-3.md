@@ -1,7 +1,7 @@
 # Manual Testing — Layer 3: Export and Import
 
 **Layer:** [`TODO.md` § Layer 3 — Export and import](../TODO.md#layer-3--export-and-import-ai-co-authored-operator-owned)
-**Tested against:** Layer 3 [Phase 2b](../../../vsdd-suite/primers/2b-implementation.md) implementation committed (extends Layer 2 with `bm export` + `bm import` + JSON-native escape design + sorted-tag-comparison dedup + active control-char tag rejection); [Phase 3](../../../vsdd-suite/primers/3-review-session.md) Round 1 closed + Phase 4 routed (`vsdd-suite/review-log/2026-05-24-phase-4-routing.md`); [Phase 5](../../../vsdd-suite/primers/5-formal-hardening.md) re-runs pending per `TODO.md` § Layer 3 Layer-gate criteria.
+**Tested against:** Layer 3 [Phase 2b](../../../vsdd-suite/primers/2b-implementation.md) implementation committed (extends Layer 2 with `bm export` + `bm import` + JSON-native escape design + sorted-tag-comparison dedup + active control-char tag rejection); [Phase 3](../../../vsdd-suite/primers/3-review-session.md) Round 1 closed + Phase 4 routed (per-domain Phase 4 routing appendices in `vsdd-suite/review-log/2026-05-24-<domain-slug>.md`); [Phase 5](../../../vsdd-suite/primers/5-formal-hardening.md) re-runs pending per `TODO.md` § Layer 3 Layer-gate criteria.
 **Convention:** Review 74 manual-test split — this file is the per-layer manual-test plan; the corresponding `TODO.md` Layer 3 block points here. Parallel to [`manual-tests/layer-1.md`](layer-1.md) + [`manual-tests/layer-2.md`](layer-2.md).
 **Authoring note:** The test plan below exercises every Layer 3 acceptance criterion (AC 14 through AC 28 per `TODO.md`) at the binary surface PLUS the Round 1 Phase 4 routed Path-of-implementation closures (byte-preservation round-trip; sorted-tag-comparison dedup; active control-char tag rejection). The runnable-step standard applies (per primer 1c § Manual testing checklist) — each step names the exact command, clean-state setup where required, and literal expected output where invariant.
 
@@ -191,7 +191,7 @@ unset IDEMP_DB
 
 ## Step 8 — `bm import` sorted-tag-comparison dedup (Round 1 Phase 4 routed)
 
-Closes the [Software Engineer R1 F2 + Red Team R1 F1 sorted-tag-comparison dedup](../vsdd-suite/review-log/2026-05-24-phase-4-routing.md) routing decision. Same `(url, timestamp)` but tags in different orders MUST collapse to one record (treats `tags` as a set during dedup; storage `Vec<String>` still preserves insertion order at the record level).
+Closes the Software Engineer R1 F2 + Red Team R1 F1 sorted-tag-comparison dedup (per-domain Phase 4 appendices in `vsdd-suite/review-log/2026-05-24-<domain-slug>.md`) routing decision. Same `(url, timestamp)` but tags in different orders MUST collapse to one record (treats `tags` as a set during dedup; storage `Vec<String>` still preserves insertion order at the record level).
 
 ```sh
 TAGORDER_DB="$(mktemp -d)/tagorder.json"
@@ -224,7 +224,7 @@ Expected final stdout: `bookmarks: 1`. The pre-Round-1 impl used `Vec<String>` e
 
 ## Step 9 — `bm import` active control-char tag rejection (Round 1 Phase 4 routed)
 
-Closes the [Security R1 F2 imported-tag control-char rejection](../vsdd-suite/review-log/2026-05-24-phase-4-routing.md) routing decision (active mitigation). The Layer 2 tag-injection accepted-risk was conditioned on attacker write-access; Layer 3 stdin-attacker doesn't need write-access, so the active mitigation closes the gap.
+Closes the Security R1 F2 imported-tag control-char rejection (per-domain Phase 4 appendices in `vsdd-suite/review-log/2026-05-24-<domain-slug>.md`) routing decision (active mitigation). The Layer 2 tag-injection accepted-risk was conditioned on attacker write-access; Layer 3 stdin-attacker doesn't need write-access, so the active mitigation closes the gap.
 
 ```sh
 CCHAR_DB="$(mktemp -d)/cchar.json"
@@ -246,7 +246,7 @@ Expected (literal):
 ```
 Error: imported bookmark tags contain disallowed control characters.
 Offending record index: 0
-Offending tag: rustinjection
+Offending tag: rust\u001binjection
 exit: 1
 (store correctly absent)
 ```
@@ -257,7 +257,7 @@ The offending tag is rendered through `display_safe` before reaching stderr so t
 
 ## Step 10 — `bm export | bm import` byte-preservation round-trip (AC 28; Round 1 Phase 4 routed)
 
-Closes the [4-domain convergence on JSON-native escape design](../vsdd-suite/review-log/2026-05-24-phase-4-routing.md) (SA + SE + RT + Sec Round 1). The round-trip MUST preserve original bytes — pathological control bytes survive as their original byte values, NOT as 8-character ASCII literals.
+Closes the 4-domain convergence on JSON-native escape design (per-domain Phase 4 appendices in `vsdd-suite/review-log/2026-05-24-<domain-slug>.md`) (SA + SE + RT + Sec Round 1). The round-trip MUST preserve original bytes — pathological control bytes survive as their original byte values, NOT as 8-character ASCII literals.
 
 ```sh
 SRC_DB="$(mktemp -d)/src.json"
@@ -534,7 +534,7 @@ Expected output: `hyperfine` emits its own formatted report. Pass/fail criterion
 | `bm export --tag rust` (1,000-bookmark store) | < 100 ms | mean < 100 ms |
 | `bm import` (10K dedup-against-existing-state at 1,000 × 1,000) | < 200 ms (relaxed per dedup-complexity accepted-limit) | mean < 200 ms |
 
-The `bm import` budget is intentionally looser per the [Layer 3 dedup-complexity accepted-limit annotation](../DESIGN.md#performance-budget-) — the O(M × N) sorted-tag-comparison dedup at 1,000 × 1,000 is ~10^6 comparisons + JSON re-parse + atomic write; 200 ms is the documented acceptable envelope.
+The `bm import` budget is intentionally looser per the Layer 3 dedup-complexity accepted-limit annotation in [`DESIGN.md`](../DESIGN.md) § Performance budget — the O(M × N) sorted-tag-comparison dedup at 1,000 × 1,000 is ~10^6 comparisons + JSON re-parse + atomic write; 200 ms is the documented acceptable envelope. **Cross-source consistency note (Round 2 SA F3 routing target):** the DESIGN.md § Performance budget table currently publishes a single 100 ms cliff that strictly applies to `bm list` / `bm add` at ≤ 1,000 bookmarks; the 200 ms relaxation for `bm import` is documented in DESIGN.md § Performance budget § Layer 3 dedup-complexity-accepted-limit paragraph but NOT in the budget table itself. Spec amendment pending to publish the per-subcommand budget table at DESIGN.md spec level so this manual-test budget is structurally consistent.
 
 ### Step 15c — Cleanup the benchmark store
 

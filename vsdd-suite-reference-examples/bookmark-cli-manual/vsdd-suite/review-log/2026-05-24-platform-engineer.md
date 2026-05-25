@@ -274,3 +274,366 @@ Per [G-131](../../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-131) co
 - **Files read:** [`PLATFORM-ENGINEER-REVIEW.md`](../../../../vsdd-suite/domains/role/PLATFORM-ENGINEER-REVIEW.md), [`3-review-session.md`](../../../../vsdd-suite/primers/3-review-session.md), [`suite-development.md`](../../../../vsdd-suite/suite-development/suite-development.md), [`rust.md`](../../../../vsdd-suite/supplements/rust.md), [`github-actions.md`](../../../../vsdd-suite/supplements/github-actions.md), [`DESIGN.md`](../../DESIGN.md), [`src/lib.rs`](../../src/lib.rs), [`src/main.rs`](../../src/main.rs), [`tests/bookmarks.rs`](../../tests/bookmarks.rs), [`Cargo.toml`](../../Cargo.toml), [`rust-toolchain.toml`](../../rust-toolchain.toml), [`deny.toml`](../../deny.toml), [`TODO.md`](../../TODO.md), [`.github/workflows/bookmark-cli-manual.yml`](../../../../.github/workflows/bookmark-cli-manual.yml), [`manual-tests/install-verification.md`](../../manual-tests/install-verification.md), [`2026-05-22-platform-engineer.md`](2026-05-22-platform-engineer.md) (Reviews 5 + 6), [`2026-05-21-platform-engineer.md`](2026-05-21-platform-engineer.md) (Review 4) — 17 files
 - **Files written:** 1 (this file)
 - **Operator-action queue:** if cost-tally precision becomes load-bearing, operator runs `/cost` for full tiered fields per [`suite-development.md`](../../../../vsdd-suite/suite-development/suite-development.md) § Per-field auditability tier
+
+---
+
+## Review 8 — 2026-05-25 04:30Z
+
+**Round:** Layer 3 Phase 3 IAR Round 2.
+**Phase:** Phase 3 IAR Round 2 — Layer 3 cold-session adversarial review against the Round 1 fix-work commits (`fdfa989` → `ba6a4a9` → `bfc0713` → `795bc25`).
+
+**Source:** `domain-raised` — cold adversary applying PE Standard Evaluation Dimensions (Dims 1/3/4/7/9/11/38) against the post-fix Layer 3 surface. Round 2 scope-reducer per AI Engineer Dim 8: verify Round 1 fixes hold + surface NEW platform/install/CI residuals introduced by the fix-work.
+
+**Scope:** Round 1 fix-work commits `fdfa989` (Phase 1a+1b spec + narrative amendments) + `ba6a4a9` (Phase 2a — 6 new regression + coverage tests) + `bfc0713` (Phase 2b — impl fixes: `display_safe` JSON-native escape + `bookmark_set_eq` sorted-tag dedup + `ImportError::TagContainsControlChars` + `run_import` ordering + `long_about` update) + `795bc25` (Phase 2c — `manual-tests/layer-3.md` + TODO annotation). Regression-check of PE R7 findings (3 Deferred + 7 Resolved).
+
+**Lens:** Dim 1 (CI pipeline — do the 6 new tests + new impl land in CI cleanly? Do any unit tests break?); Dim 3 (deterministic install — no new deps?); Dim 4 (MSRV validity for new code); Dim 7 (SHA-pinned actions unchanged?); Dim 9 (left-shift — `manual-tests/layer-3.md` operator-runnability; R7 F2 carry-forward); Dim 11 (supply-chain — `deny.toml` unchanged?); Dim 38 (fresh-system install — Layer 3 inheritance note adequate?).
+
+**Reviewer:** platform-engineer (cold session — no in-conversation context from the Round 1 fix-work authoring; no investment in the fix-work's success).
+
+**Model:** claude-sonnet-4-6 (cold-session adversarial sub-agent per Phase 3 IAR multi-agent cluster dispatch shape).
+
+**Regression-check against:** PE R7 Deferred F1 (manual-tests/layer-3.md absent), F2 (cargo-fuzz harness not yet authored), F3 (install-verification.md no Layer 3 note); PE R7 Resolved F4–F10 baseline; [PE R5 F5](2026-05-22-platform-engineer.md#r5-f5) (fsync carry-forward).
+
+**Supplements applied:** [`rust.md`](../../../../vsdd-suite/supplements/rust.md) § Platform Engineering (cargo test unit-test coverage; unit-test assertion accuracy); [`github-actions.md`](../../../../vsdd-suite/supplements/github-actions.md) (SHA-pinning; privilege posture — unchanged from R7 baseline).
+
+**Session note:** Cold context — this reviewer did not author the Round 1 fix-work commits. Sycophancy-compensation per PE domain prompt § Sycophancy check: the PE-domain failure mode is rationalizing inapplicability. The critical finding below (stale unit test assertions) was surfaced by direct textual comparison between `src/lib.rs` lines 1047 + 1061 (test assertion strings) and `src/lib.rs` line 800 (format macro output). The comparison is reproducible by any reader independently.
+
+**Cost-tally placeholder:** see Summary.
+
+---
+
+#### Round 1 closure verification
+
+**R7 F1 — `manual-tests/layer-3.md` absent:** CLOSED at `795bc25`. File present at [`manual-tests/layer-3.md`](../../manual-tests/layer-3.md); 16 steps; parallel structure to `layer-1.md` + `layer-2.md`; covers AC 14–AC 28 + Round 1 Phase 4 routed closures (Steps 8/9/10 for sorted-tag dedup + control-char rejection + byte-preservation round-trip). Layer-gate criterion 3 is now satisfiable. See R8 F1 below for a Step 9 operator-runnability defect surfaced in Round 2.
+
+**R7 F3 — `install-verification.md` no Layer 3 inheritance note:** CLOSED at `fdfa989`. Layer 3 inheritance note present at [`manual-tests/install-verification.md`](../../manual-tests/install-verification.md) lines 79–85 — cites G-155 strict-reading disposition, confirms Layer 1 PASS row carry-forward for the install-mechanism gate, names `bm export` + `bm import` as the expanded behavioral surface, queues post-merge operator action for a Layer-3-specific behavioral verification. Note follows the Layer 2 inheritance note shape exactly (parallel prose + parallel operator action item). Adequate.
+
+**R7 F2 — cargo-fuzz harness not yet authored:** Still open + Phase 5 tracked. The `fuzz/` directory does not exist at the project root (confirmed by `ls` at project root). This is correct — Phase 5 has not run; the harness is scheduled per `DESIGN.md` § Phase 5 strategy Layer 3. The DESIGN.md Phase 5 plan for Layer 3 still accurately describes `cargo-fuzz with libFuzzer` on the `import_stdin.rs` fuzz target. No regression in the open carry-forward disposition.
+
+---
+
+### Deferred
+
+<a id="r8-f1"></a>
+
+**Finding 1 — `manual-tests/layer-3.md` Step 9 expected output carries spurious double-quotes around the offending tag (Dim 9 / operator-runnability)**
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none — documentation discipline)*
+**Validator:** quality-engineer
+
+Step 9 of [`manual-tests/layer-3.md`](../../manual-tests/layer-3.md) exercises the active control-char tag rejection path (imported-tag-control-char-rejection decision, Security F2 Round 1 routing). The step's "Expected (literal)" block at line 249 shows:
+
+```
+Offending tag: "rustinjection"
+```
+
+— with surrounding double-quotes around the tag string.
+
+**Evidence:** The actual `run_import` error path in [`src/main.rs`](../../src/main.rs) lines 520–528 handles `ImportError::TagContainsControlChars(idx, tag)` by calling:
+
+```rust
+eprintln!("Offending tag: {}", display_safe(&tag));
+```
+
+`display_safe` applied to `rust\u{001b}injection` (the ESC-bearing tag string from the `TagContainsControlChars` variant) emits `rustinjection` — a bare string without surrounding double-quotes (Display format, not Debug format). The surrounding double-quotes in the expected output would require `{tag:?}` (Debug formatting) or explicit `format!("\"{}\"", ...)`, neither of which is present in the implementation.
+
+The `ImportError::Display` impl at `src/lib.rs` lines 686–694 DOES use `{tag:?}` (which adds quotes), but that Display impl is used for the `anyhow`-chain rendering path, not for the `run_import` direct-render path. The CLI shell deconstructs the `TagContainsControlChars` variant and renders each field independently, bypassing the `Display` impl.
+
+**Impact:** An operator running Step 9 will observe output WITHOUT surrounding double-quotes on the `Offending tag:` line. The literal-match check at the operator's terminal will diverge from the expected output block. This converts Step 9 from a runnable PASS/FAIL step into an ambiguous one — the operator sees different text than the expected block shows, cannot determine whether the behavioral contract is being violated or just the expected output is wrong, and cannot record a clean PASS.
+
+**Trigger to close:** Update [`manual-tests/layer-3.md`](../../manual-tests/layer-3.md) Step 9 expected output block — change:
+```
+Offending tag: "rustinjection"
+```
+to:
+```
+Offending tag: rustinjection
+```
+(no surrounding double-quotes). Alternatively, if the surrounding quotes are the intended UX (for disambiguating the tag boundary from the surrounding text), update `src/main.rs` `run_import` to use `eprintln!("Offending tag: {:?}", display_safe(&tag))` — but this is a spec-change, not a doc-fix, and would require DESIGN.md amendment + QE validation.
+
+**Classification:** Deferred — documentation / operator-runnability gap, Dim 9 (left-shift / manual-gate completeness)
+
+---
+
+### Resolved
+
+<a id="r8-f2"></a>
+
+**Finding 2 — `src/lib.rs` unit tests `display_safe_escapes_ansi_escape` + `display_safe_escapes_format_chars` assert pre-Round-1 escape format; CI breakage risk (Dim 1)**
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none — observable by running `cargo test --locked`)*
+**Validator:** quality-engineer
+
+**Evidence:** `src/lib.rs` lines 1042–1063 contain two unit tests that assert the pre-Round-1 Rust-syntax `\u{HHHH}` escape form:
+
+- `display_safe_escapes_ansi_escape` (line 1047): `assert!(out.contains("\\u{001b}"), ...)` — expects the string `\u{001b}` (8 chars with curly braces).
+- `display_safe_escapes_format_chars` (line 1061): `assert!(out.contains("\\u{202e}"), ...)` — expects the string `\u{202e}` (8 chars with curly braces).
+
+The `display_safe` implementation was changed at `bfc0713` (Phase 2b) from Rust-syntax `\u{HHHH}` to JSON-native `\uHHHH`. The change is at `src/lib.rs` line 800:
+
+```rust
+write!(out, "\\u{cp:04x}")
+```
+
+In Rust's format macro, `\\u` = literal `\u` and `{cp:04x}` = the value of `cp` formatted as lowercase hex with minimum 4 digits. For ESC (cp = 0x001B): output = `` (6 chars, NO curly braces). For RLO (cp = 0x202E): output = `‮` (6 chars, NO curly braces).
+
+The unit tests assert the OLD form `\u{001b}` / `\u{202e}` (8 chars, WITH curly braces). The function emits the NEW form `` / `‮` (6 chars, WITHOUT curly braces). The `contains` assertions fail.
+
+**Disposition note:** The commit message for `bfc0713` states "51/51 tests GREEN; 0 clippy warnings". That count refers to the 51 integration tests in `tests/bookmarks.rs` — confirmed by `grep -c "#\\[test\\]" tests/bookmarks.rs = 51`. The `src/lib.rs` unit tests (13 total) are a separate count not captured by the "51/51" claim. The integration test `tests_export_applies_display_safe_to_pathological_url` at `tests/bookmarks.rs` line 365 correctly asserts the NEW form (`rendered.contains("\\u001b")`), confirming the Phase 2b fix landed correctly at the binary surface. The unit tests in `src/lib.rs` were simply not updated.
+
+**Impact:** `cargo test --locked` (the CI `test` job) runs ALL test targets — `tests/bookmarks.rs`, `tests/properties.rs`, `tests/scaling.rs`, AND `src/lib.rs` unit tests (via `#[cfg(test)]`). Both stale unit tests will fail under the current CI command. This is a CI-breaking regression introduced by `bfc0713`.
+
+**Classification:** Raised — CI breakage, Dim 1 (CI pipeline completeness / test accuracy). This finding is filed as Resolved-pending-fix rather than Deferred because it has a clear one-line fix (update the two `contains` assertions in `src/lib.rs` to use the new JSON-native form) and blocks CI.
+
+**Trigger to close:** Update `src/lib.rs` unit tests:
+
+```rust
+// display_safe_escapes_ansi_escape (line 1047):
+out.contains("\\u001b")     // was: out.contains("\\u{001b}")
+
+// display_safe_escapes_format_chars (line 1061):
+out.contains("\\u202e")     // was: out.contains("\\u{202e}")
+```
+
+Validator: QE confirms `cargo test --locked` passes after the fix.
+
+---
+
+<a id="r8-f3"></a>
+
+**Finding 3 — R7 F1 closure (`manual-tests/layer-3.md`) confirmed; 16 steps are operator-runnable top-to-bottom modulo F1 above (Dim 9)**
+
+**Owner:** platform-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** quality-engineer
+
+**Evidence:** [`manual-tests/layer-3.md`](../../manual-tests/layer-3.md) (authored at `795bc25`) presents 16 steps with the following runability properties verified by inspection:
+
+- **Step 0:** `cargo install --locked --path . --force --quiet && bm --version` — correct install-refresh + version-check pattern matching Layer 1/2 Step 0.
+- **Step 1:** fixture seeding via `bm add` + `bm tag` + `$BOOKMARK_CLI_DB=$(mktemp -d)/bookmarks.json` — carries the session-state-preamble note; single-session dependency is named explicitly.
+- **Step 15 (hyperfine):** hyperfine prerequisite named with install alternatives (`brew`/`apt`/`cargo install`); `time` builtin fallback explicitly cross-referenced to `layer-2.md` Step 12 fallback — an operator on a constrained environment is not blocked.
+- **Steps 8/9/10 (Round 1 fix verification):** exercises sorted-tag dedup, control-char rejection, byte-preservation round-trip — commands are self-contained per-step with mktemp isolation + unset cleanup. Step 10 uses `python3` (presumed available; same cross-platform assumption as layer-2.md's `python3 -c` usage).
+- **Step 14 (atomicity hash check):** `shasum -a 256` with `sha256sum` Linux fallback note — adequate platform portability.
+- **Step 16 (cleanup):** `rm -rf "$(dirname "$BOOKMARK_CLI_DB")"` — correct pattern.
+
+R7 F1 is confirmed closed. The Step 9 discrepancy (R8 F1 above) is the only operator-runnability defect identified. Steps 1–8, 10–16 are clean.
+
+**Classification:** Resolved (R7 F1 closure confirmation, Dim 9 — left-shift / manual-gate completeness)
+
+---
+
+<a id="r8-f4"></a>
+
+**Finding 4 — R7 F3 closure (`install-verification.md` Layer 3 note) confirmed adequate; post-merge Layer-3-specific verification row solicitation queued (Dim 38)**
+
+**Owner:** platform-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+**Evidence:** [`manual-tests/install-verification.md`](../../manual-tests/install-verification.md) lines 79–85 (authored at `fdfa989`) add the Layer 3 inheritance note per the R7 F3 trigger:
+
+1. Cites G-155 strict-reading — "the project has been installed by a third party once" — under the same inheritance shape as Layer 2.
+2. Confirms Layer 1 PASS row (Nathan, Ubuntu 24.04 / rust 1.95.0, 2026-05-21) carries forward for the `cargo install --locked --path .` install-mechanism gate.
+3. Names the expanded behavioral surface (`bm export` + `bm import`) as unverified by the existing PASS row, routing behavioral verification to `manual-tests/layer-3.md` explicitly.
+4. Queues post-merge operator action parallel to the Layer 2 inheritance note (Bluesky thread solicitation shape).
+
+**Layer 3-specific PASS row assessment:** The note correctly does NOT solicit a Layer 3-specific PASS row as a Phase 3 MVR blocker — the strict G-155 reading is that the install-mechanism gate is satisfied once and carries forward. Soliciting a new PASS row is the operator's post-merge feedback-loop item, not a gate. This is consistent with Layer 2's disposition and appropriate for the project's capstone-intent scope.
+
+**Dim 38 adequacy:** A cold-context auditor reading `install-verification.md` now sees: Layer 1 PASS row → Layer 2 inheritance note → Layer 3 inheritance note, with each layer's expanded surface named explicitly. The chain is complete. R7 F3 is confirmed closed.
+
+**Classification:** Resolved (R7 F3 closure confirmation, Dim 38 — fresh-system install verification)
+
+---
+
+<a id="r8-f5"></a>
+
+**Finding 5 — Round 1 fix-work adds no runtime dependencies; `deny.toml` + `audit` CI job supply-chain policy unchanged (Dim 11)**
+
+**Owner:** platform-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** security
+
+**Evidence:** The four fix-work commits (`fdfa989` + `ba6a4a9` + `bfc0713` + `795bc25`) add no entries to `[dependencies]` in [`Cargo.toml`](../../Cargo.toml). The runtime dependency set remains: `clap`, `serde`, `serde_json`, `chrono`, `anyhow` — unchanged from the Layer 3 Phase 2b baseline (`fd21900`). New code in `bfc0713`: `bookmark_set_eq` uses only `Vec::clone()` + `Vec::sort()` + `PartialEq` — standard library; zero new deps. `ImportError::TagContainsControlChars` uses `fmt::Display` + `std::error::Error` — standard library; zero new deps. `display_safe` change uses `write!` macro with `{:04x}` format spec — standard library. The [`deny.toml`](../../deny.toml) four-section supply-chain policy is unmodified in all four fix-work commits. The CI `deny` job (`cargo deny --locked check`) and `audit` job (`cargo audit`) run against the unchanged dependency tree.
+
+**Classification:** Resolved (Dim 11 — supply-chain security)
+
+---
+
+<a id="r8-f6"></a>
+
+**Finding 6 — MSRV 1.81 valid for all Round 1 fix-work new code; toolchain 1.95 satisfies the MSRV floor (Dim 4)**
+
+**Owner:** platform-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** software-engineer
+
+**Evidence:** `bfc0713` introduces:
+
+- `bookmark_set_eq`: `Vec::clone()` (stable since 1.0), `Vec::sort()` (stable since 1.0), `Vec::eq()` via `PartialEq` (stable since 1.0). No 1.82+ features.
+- `ImportError::TagContainsControlChars(usize, String)`: enum variant with two fields; `fmt::Display` impl with `write!`; `std::error::Error` impl — all stable since 1.0.
+- `display_safe` `write!(out, "\\u{cp:04x}")` format change: named argument `{cp:04x}` in `write!` macro — named format arguments in macros stabilized in Rust 1.58. Well within the 1.81 floor.
+- `run_import` `max_stdin_bytes == 0` guard + `u64::try_from(max_stdin_bytes).unwrap_or(u64::MAX).saturating_add(1)`: `u64::try_from` (stable since 1.34); `saturating_add` (stable since 1.0); `unwrap_or` (stable since 1.0).
+- `#[allow(clippy::cast_precision_loss, reason = "...")]` annotation at `src/main.rs` line 460: `reason` attribute on `#[allow]` stable since 1.81 (same as the existing `export_json` allow annotation).
+
+All fix-work additions are within the 1.81 MSRV floor. `rust-toolchain.toml` channel = `"1.95"` is unchanged.
+
+**Classification:** Resolved (Dim 4 — MSRV / environment pinning)
+
+---
+
+<a id="r8-f7"></a>
+
+**Finding 7 — Release profile compatibility: new fix-work code paths are `panic = "abort"` compatible; no new panic paths introduced (Dim 4)**
+
+**Owner:** platform-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** software-engineer
+
+**Evidence:** `[profile.release]` in `Cargo.toml` is unchanged (`panic = "abort"`, `lto = "fat"`, `codegen-units = 1`, `strip = "symbols"`). Fix-work new code:
+
+- `bookmark_set_eq`: pure comparison function, no `unwrap`/`expect`/`panic`. Returns `bool`. Zero panic paths.
+- `ImportError::TagContainsControlChars`: `Display` impl uses `write!` which is infallible on `String`; `error::Error` impl is a blanket impl. Zero panic paths.
+- `display_safe` BMP branch `write!(out, "\\u{cp:04x}")`: `write!` on `String` is infallible (no heap allocation failure observable here without OOM); the `let _ = ...` discard handles the `Result`. Zero new observable panic paths beyond the existing OOM bound accepted at R7 F8.
+- `display_safe` surrogate-pair branch: arithmetic on `u32` values; `write!` on `String`. Zero panic paths.
+- `run_import` `max_stdin_bytes == 0` guard: early return, no panic.
+- `#[allow(clippy::cast_precision_loss)]` on `max_stdin_bytes as f64`: the cast is well-defined (usize → f64 precision loss is documented + annotated); no UB; no panic.
+
+**Classification:** Resolved (Dim 4 — release profile compatibility)
+
+---
+
+<a id="r8-f8"></a>
+
+**Finding 8 — Workflow privilege posture, SHA-pinned actions, and CI job decomposition unchanged from R7 baseline (Dim 7)**
+
+**Owner:** platform-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** sanity-check
+
+**Evidence:** The four fix-work commits do not modify [`.github/workflows/bookmark-cli-manual.yml`](../../../../.github/workflows/bookmark-cli-manual.yml). The workflow file at HEAD is byte-identical to the R7 baseline: `permissions: contents: read` at the workflow level; 6 jobs (fmt / clippy / test / deny / audit / scaling); SHA-pinned actions — `actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5` (v4), `dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9` (master at 2026-05-04), `Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32` (v2) — unchanged. No privilege widening from Round 1 fix-work.
+
+**Note:** The CI `test` job runs `cargo test --locked` which auto-discovers ALL `#[cfg(test)]` unit tests in `src/lib.rs` in addition to `tests/*.rs` integration tests. This means the two stale unit tests identified at R8 F2 will cause CI failures on the current commit. The CI coverage for fix-work is correct in design; the failure is in the stale test content, not in the CI configuration.
+
+**Classification:** Resolved (Dim 7 — action/dependency pinning; CI privilege posture)
+
+---
+
+<a id="r8-f9"></a>
+
+**Finding 9 — `manual-tests/layer-3.md` hyperfine + `time` builtin fallback: operator-runnability on hyperfine-absent environments confirmed (Dim 9)**
+
+**Owner:** platform-engineer
+**Status:** validated
+**Blocked by:** *(none)*
+**Validator:** quality-engineer
+
+**Evidence:** [`manual-tests/layer-3.md`](../../manual-tests/layer-3.md) Step 15 (`bm export` + `bm import` performance sanity-check) names the hyperfine prerequisite at line 485 with install alternatives: `brew install hyperfine` / `apt install hyperfine` / `cargo install hyperfine --locked`. The fallback section at "Fallback: `time` builtin (no-hyperfine environments)" cross-references [`layer-2.md`](layer-2.md) Step 12 explicitly — the same fallback shape established at Layer 2. An operator on a CI-constrained or minimal-image environment can use the POSIX `time` builtin for a coarser single-run budget check. The hyperfine step is advisory (budget-table values are pass criterion, not binary exit code) so the fallback degrades gracefully.
+
+**Classification:** Resolved (Dim 9 — left-shift / operator-runnability at Step 15)
+
+---
+
+<a id="r8-f10"></a>
+
+**Finding 10 — PFE R7 F2 (cargo-fuzz harness) carry-forward status: Phase 5 plan in DESIGN.md accurate; no Phase 5 work has landed (Dim 1 / Dim 9)**
+
+**Owner:** platform-engineer
+**Status:** raised
+**Blocked by:** Phase 5 post-IAR (by VSDD methodology design)
+**Validator:** quality-engineer
+
+**Evidence:** The `fuzz/` directory does not exist at the project root (confirmed by `ls` at project root). `DESIGN.md` § Phase 5 strategy Layer 3 text is unchanged from R7's reading — still describes `cargo-fuzz with libFuzzer` on the `import_stdin.rs` fuzz target as the Phase 5 hardening for the `bm import` stdin attack surface. The Phase 4 routing record at per-domain Phase 4 routing appendices in `vsdd-suite/review-log/2026-05-24-<domain-slug>.md` (per-domain Phase 4 appendices in `vsdd-suite/review-log/2026-05-24-<domain-slug>.md`) § Phase-5 cargo-fuzz harness tracking routes R7 F2 explicitly to Phase 5 with "not Round 1 fix work" disposition. The Round 1 fix-work commits (`fdfa989` → `795bc25`) do not add any `fuzz/` content. No change in the open carry-forward disposition.
+
+**No Phase 5 pre-work concern:** The `run_import` stdin-read path (`src/main.rs` lines 438–477) now includes the `max_stdin_bytes == 0` guard + empty-before-size ordering from `bfc0713`. Both are compile-time-observable and will benefit the future fuzz harness (a fuzz harness that exercises `run_import` will exercise these new guards). The fuzz attack surface is accurately described by the current DESIGN.md Phase 5 plan.
+
+**Classification:** Open carry-forward (R7 F2 unchanged disposition) — Phase 5 post-IAR, Dim 1 / Dim 9
+
+---
+
+### Dismissed
+
+*(none)*
+
+---
+
+### Hallucinated
+
+*(none — every Resolved finding is grounded in specific file:line citations from direct read of the post-fix artifact tree. R8 F2 (stale unit tests) was derived by textual comparison between `src/lib.rs` line 800 (format macro emitting ``) and lines 1047 + 1061 (test assertions checking for `\u{001b}` with curly braces) — not by inference. The comparison was confirmed by checking `tests/bookmarks.rs` line 365 which correctly uses the new form `"\\u001b"`, establishing that the format change was intentional and the unit tests were simply not updated.)*
+
+---
+
+### Summary
+
+2 Deferred findings + 8 Resolved (affirmative-coherence + closure-confirmation) findings:
+
+- **Finding 1** (`manual-tests/layer-3.md` Step 9 expected output has spurious double-quotes on `Offending tag:` line) — **Deferred**; one-line doc fix. Trigger: remove surrounding quotes from the expected output block, or add `{:?}` to the CLI render path + amend DESIGN.md.
+- **Finding 2** (two stale unit tests in `src/lib.rs` assert pre-Round-1 `\u{HHHH}` escape form; CI will fail) — **Raised** as a substantive CI-breakage finding. Two-line fix: update `out.contains("\\u{001b}")` → `out.contains("\\u001b")` and `out.contains("\\u{202e}")` → `out.contains("\\u202e")` in `src/lib.rs` lines 1047 + 1061. Validator: QE.
+- **Finding 3** (R7 F1 `manual-tests/layer-3.md` closure confirmed; 15 of 16 steps operator-runnable; Step 9 defect is F1 above) — **Resolved** affirmative-coherence + closure confirmation.
+- **Finding 4** (R7 F3 `install-verification.md` Layer 3 note adequate; Layer-3-specific PASS row solicitation correctly queued post-merge) — **Resolved** affirmative-coherence + closure confirmation.
+- **Finding 5** (no new runtime deps in fix-work; `deny.toml` + `audit` CI unchanged) — **Resolved** affirmative-coherence.
+- **Finding 6** (MSRV 1.81 valid for all fix-work new code) — **Resolved** affirmative-coherence.
+- **Finding 7** (release profile `panic = "abort"` compatible with new code; no new panic paths) — **Resolved** affirmative-coherence.
+- **Finding 8** (workflow SHA-pins + privilege posture unchanged; CI job decomposition unchanged; CI `test` job will surface R8 F2's stale unit tests on next run) — **Resolved** with note.
+- **Finding 9** (hyperfine + `time` builtin fallback operator-runnability confirmed at Step 15) — **Resolved** affirmative-coherence.
+- **Finding 10** (R7 F2 cargo-fuzz carry-forward: Phase 5 plan in DESIGN.md accurate; Phase 5 not yet run) — **Open carry-forward** (unchanged from R7 disposition).
+
+**MVR signal:** Platform Engineer is **at-MVR for Round 2 with one blocking fix required**. Finding 2 (stale unit tests) is a CI-breaking defect — `cargo test --locked` will fail on the two stale `display_safe` unit tests in `src/lib.rs`. This blocks the PE CI gate (Dim 1). Finding 1 (Step 9 expected output) is a documentation-quality gap that degrades operator-runnability at Step 9 but does not block the CI gate. Finding 10 is carry-forward-open (Phase 5 not yet run) and does not block Phase 3 IAR Round 2 closure per methodology.
+
+**Round 1 regression-check verdict:** R7 F1 (manual-tests/layer-3.md) and R7 F3 (install-verification.md) are confirmed closed cleanly. R7 F2 (cargo-fuzz) is confirmed still-open-as-expected. R7 Resolved F4–F10 are confirmed unregressed by fix-work (no new deps, no new CI jobs needed for 6 new integration tests, MSRV intact, SHA-pins unchanged, release profile intact). The fix-work introduces ONE new defect: stale unit tests (R8 F2) that CI will catch on the next run.
+
+**Carry-forward status update:**
+
+- [PE R5 F5](2026-05-22-platform-engineer.md#r5-f5) (fsync filesystem-coverage caveat) — unchanged; no new fsync evidence in Round 1 fix-work; still routes to Performance Engineer.
+- [R7 F2](2026-05-24-platform-engineer.md#r7-f2) (cargo-fuzz harness) — unchanged; Phase 5 not yet run; carry-forward to Phase 5 per disposition.
+
+**Coordination:**
+
+- **Finding 2** — routes to software-engineer for two-line unit-test fix in `src/lib.rs` lines 1047 + 1061; quality-engineer for `cargo test --locked` pass verification.
+- **Finding 1** — routes to software-engineer or documentation-reviewer for Step 9 expected-output correction in `manual-tests/layer-3.md`.
+- **Findings 3–9** — no coordination; documented for audit trail.
+- **Finding 10** — Phase 5 executor; no Phase 3 coordination needed.
+
+**Cost-tally:**
+
+- **AI tool / Model / Execution method:** [claude-code CLI](https://claude.com/claude-code) / claude-sonnet-4-6 / cold-session sub-agent (Phase 3 IAR Round 2 cluster dispatch)
+- **Date:** 2026-05-24
+- **Files read:** [`2026-05-24-platform-engineer.md`](2026-05-24-platform-engineer.md) (Review 7 — this file), per-domain Phase 4 routing appendices (per-domain Phase 4 appendices in `vsdd-suite/review-log/2026-05-24-<domain-slug>.md`), [`manual-tests/layer-3.md`](../../manual-tests/layer-3.md), [`manual-tests/install-verification.md`](../../manual-tests/install-verification.md), [`src/lib.rs`](../../src/lib.rs), [`src/main.rs`](../../src/main.rs), [`tests/bookmarks.rs`](../../tests/bookmarks.rs) (lines 345–373 + 1717–1957), [`Cargo.toml`](../../Cargo.toml), [`rust-toolchain.toml`](../../rust-toolchain.toml), [`deny.toml`](../../deny.toml), [`.github/workflows/bookmark-cli-manual.yml`](../../../../.github/workflows/bookmark-cli-manual.yml) — 11 files
+- **Files written:** 1 (this file, Review 8 appended)
+- **Operator-action queue:** if cost-tally precision becomes load-bearing, operator runs `/cost` for full tiered fields per suite-development.md § Per-field auditability tier
+
+---
+
+## Phase 4 routing — Round 1 (2026-05-25 02:00Z)
+
+Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/primers/4-feedback-integration.md) § [manual] First-class fallback path. SO-decisions captured via main-session AskUserQuestion pass on 2026-05-25 across the cross-domain finding clusters. This appendix lists this domain's routable findings in the primer-4-canonical per-finding shape; cross-domain coordination signals live in each Round 1 finding's `**Coordination:**` line. Cross-cluster sequencing matrix lives in the commit message + the CHANGELOG slim-form entry that recorded this Phase 4 pass (refactored from a prior consolidated routing record per operator directive 2026-05-25 — the consolidated file was an anti-pattern; primer-4-canonical is per-domain appendices).
+
+#### Finding `r7-f1` — manual-tests/layer-3.md absent — Layer-gate criterion 3 cannot close — ROUTED
+
+**Cluster:** manual-tests/layer-3.md authoring
+**Route:** `Phase 2a-equivalent artifact authoring`
+**Gate:** (see DR R1 F3 routing — same cluster)
+**Sequencing:** Blocks Layer 3 layer-gate close (criterion 3)
+
+#### Finding `r7-f2` — fuzz/fuzz_targets/import_stdin.rs not yet authored — ROUTED
+
+**Cluster:** Phase-5 cargo-fuzz harness tracking
+**Route:** `Phase 5 (already scheduled per DESIGN.md Phase 5 strategy Layer 3)`
+**Gate:** fuzz/fuzz_targets/import_stdin.rs at Phase 5; cargo-fuzz harness runs for at least 1 CPU-hour with no findings; Validator: PFE
+**Sequencing:** Phase 5 work; not Round 1 fix work
+
+#### Finding `r7-f3` — install-verification.md has no Layer 3 G-155 inheritance note — ROUTED
+
+**Cluster:** install-verification.md Layer 3 inheritance note
+**Route:** `Phase 1a+1b`
+**Gate:** Layer 3 inheritance note added parallel to Layer 2 precedent; Validator: PFE
+**Sequencing:** Should land before Layer 3 gate close

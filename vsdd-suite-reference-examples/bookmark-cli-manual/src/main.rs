@@ -114,7 +114,7 @@ enum Cmd {
     /// attached to a matching bookmark is not duplicated.
     ///
     /// On success, exits 0 with stdout silent and stderr
-    /// `Tagged N bookmark(s).` (where N is the count of matching
+    /// `Tagged N bookmark or bookmarks (singular for N=1, plural otherwise per Layer 2 R2 UX F4).` (where N is the count of matching
     /// bookmarks; N >= 1 because zero matches is the error path).
     /// If no bookmark has the URL: exit 1 with stderr `Error: no
     /// bookmark found with URL <url>.` (typos surface as user-errors;
@@ -139,9 +139,14 @@ enum Cmd {
     /// shape + exit 0. Empty label (`bm export --tag ""`): exit 1 with
     /// `Error: tag label cannot be empty.`
     ///
-    /// `display_safe` wraps URL + tag-label strings at the serialization
-    /// boundary so the emitted JSON is escape-clean for downstream
-    /// pipeline-renderable surfaces (terminals, log aggregators).
+    /// Cc-range control characters in URL + tag-label strings are escaped
+    /// by `serde_json`'s native JSON-string encoding to `\uHHHH` per RFC 8259
+    /// § 7 (architectural correction at Phase 2b: `display_safe` is NOT
+    /// applied at the serialization boundary because pre-escaping would
+    /// double-escape through `serde_json`). Curated format chars (bidi
+    /// controls, ZWJ) survive as raw UTF-8 in JSON output; downstream
+    /// consumers that render the parsed JSON should apply `display_safe`
+    /// at their rendering boundary just as `bm list` does.
     Export {
         /// Filter exported bookmarks to those tagged with this label.
         /// Repeatable; repeated `--tag` composes with OR-semantics.
@@ -155,7 +160,7 @@ enum Cmd {
     /// existing store. Dedup-on-exact-tuple-match (`url`+`timestamp`+`tags`)
     /// runs both against existing destination state AND within the
     /// imported payload — byte-equal records collapse to one appended
-    /// record. Emits `Imported N bookmark(s).` to stderr (singular for
+    /// record. Emits `Imported N bookmark or bookmarks (singular for N=1, plural otherwise per Layer 2 R2 UX F4).` to stderr (singular for
     /// N=1, plural otherwise). All imported bookmarks land in one atomic
     /// save; partial imports are forbidden (any validation failure
     /// rejects the entire payload).

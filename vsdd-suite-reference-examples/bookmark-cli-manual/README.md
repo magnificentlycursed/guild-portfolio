@@ -6,7 +6,7 @@ A single-user command-line tool for capturing URLs at the terminal and recalling
 
 `bookmark-cli` is the **reference implementation** for the [VSDD (Verified Spec-Driven Development) Suite](../../vsdd-suite/README.md)'s worked example — it exists to validate the suite's documented workflow end-to-end ([G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) in the suite's gap registry). It is small by design and intentionally limited in scope. A user who wants a real bookmark manager should use a browser or a dedicated tool; this is a portfolio demonstration artifact.
 
-Current state: **Layer 1 project-terminal at PR #42** (add + list) + **Layer 2 layer-terminal at PR #47** (tag + filter) + **Layer 3 active in PR #52** (export + import). Layer 3 is Phase-2-complete (Phase 2a Red Gate `878d3b6` + Phase 2b implementation `fd21900` + Phase 2c annotation `78bd3cf`); Phase 3 IAR Round 1 closed at commit `2acc418` with 76 findings across 13 capstone-active domains; Phase 4 routing pass landed at commit `e233ad8`; Round 1 fix work is in flight per the [`vsdd-suite/review-log/2026-05-24-phase-4-routing.md`](vsdd-suite/review-log/2026-05-24-phase-4-routing.md) routing record. Layer 3 cycle iterates Round 2 IAR after fix work lands.
+Current state: **Layer 1 project-terminal at PR #42** (add + list) + **Layer 2 layer-terminal at PR #47** (tag + filter) + **Layer 3 active in PR #52** (export + import). Layer 3 is Phase-2-complete (Phase 2a Red Gate `878d3b6` + Phase 2b implementation `fd21900` + Phase 2c annotation `78bd3cf`); Phase 3 IAR Round 1 closed at commit `2acc418` with 76 findings across 13 capstone-active domains; Phase 4 routing pass landed at commit `e233ad8`; Round 1 fix work landed across commits `fdfa989` (Phase 1a+1b spec/narrative) + `ba6a4a9` (Phase 2a regression tests) + `bfc0713` (Phase 2b impl fixes) + `795bc25` (manual-tests/layer-3.md + Phase 2c follow-up); Round 2 IAR closed at the post-Round-1 state to verify fixes hold + surface residuals. Phase 5 hardening + Layer 3 layer-gate close pending.
 
 ## Prerequisites
 
@@ -42,6 +42,18 @@ bm list --tag rust
 
 # Repeated --tag composes as OR (a bookmark matches if it has ANY listed tag)
 bm list --tag rust --tag go
+
+# Emit bookmarks as JSON to stdout (Layer 3)
+bm export
+
+# Emit OR-filtered subset (Layer 3)
+bm export --tag rust
+
+# Import bookmarks from stdin (Layer 3)
+bm import < backup.json
+
+# Canonical round-trip: backup + cross-machine sync (Layer 3)
+bm export | bm import
 ```
 
 ## Test

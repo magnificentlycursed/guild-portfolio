@@ -429,13 +429,20 @@ impl BookmarkStore {
     /// - **Filter:** when `filter_labels` is `Some`, only bookmarks whose
     ///   `tags` field contains at least one of the supplied labels are
     ///   emitted (OR-semantics parallel to `bm list --tag`).
-    /// - **`display_safe` at the serialization boundary:** URL strings +
-    ///   tag-label strings route through `display_safe` BEFORE serialization
-    ///   so control characters / terminal-escape sequences do not reach
-    ///   downstream pipeline-renderable surfaces (terminals, log
-    ///   aggregators, web renders). The JSON structural delimiters are
-    ///   unaffected. The wrapping happens at the per-field level; the
-    ///   resulting JSON remains valid AND parseable by `import_json`.
+    /// - **JSON-native control-char escaping:** `serde_json`'s native string
+    ///   encoder escapes Cc-range control characters to `\uHHHH` JSON-native
+    ///   6-char form in the JSON output per RFC 8259 § 7. `display_safe` is
+    ///   NOT applied at the per-field serialization step — the architectural
+    ///   correction at Phase 2b (Round 1 routing) removed it because
+    ///   pre-escaping inside the JSON encoding path double-escapes (the
+    ///   literal-text form of `\uHHHH` becomes `\\u001b` in JSON output and
+    ///   parses back as the 6-char text, NOT the original byte).
+    ///   Byte-preservation round-trip via `bm export | bm import` holds
+    ///   structurally; the resulting JSON remains valid AND byte-preserving
+    ///   for Cc-range control chars. Curated format chars (bidi controls,
+    ///   ZWJ) survive as raw UTF-8 bytes in JSON output; downstream
+    ///   consumers apply `display_safe` at their rendering boundary (like
+    ///   `bm list` does).
     /// - **Trailing newline:** the returned string ends with `\n` so a
     ///   shell pipe sees the canonical line-terminated stream shape.
     ///
@@ -526,7 +533,8 @@ impl BookmarkStore {
     ///
     /// Returns the count of records actually appended (zero counts dedup'd
     /// records). Used by the CLI shell to render the
-    /// `Imported N bookmark(s).` count to stderr.
+    /// `Imported N bookmark` / `Imported N bookmarks` count to stderr
+    /// (singular for N=1, plural otherwise per Layer 2 R2 UX F4 precedent).
     ///
     /// # Errors
     ///
@@ -535,6 +543,11 @@ impl BookmarkStore {
     ///   match the storage-format object-wrapped shape, OR if any
     ///   per-bookmark record fails schema validation (missing required
     ///   `url`/`timestamp` field, wrong field type, empty `url`).
+    /// - `ImportError::TagContainsControlChars(record_index, tag)` if any
+    ///   imported record's `tags` array contains a control character or
+    ///   curated format character (per Round 1 Phase 4 routing
+    ///   imported-tag-control-char-rejection decision; closes the Layer 3
+    ///   stdin-fed-attacker tag-injection vector).
     pub fn import_json(&mut self, payload: &str) -> Result<usize, ImportError> {
         let value: serde_json::Value =
             serde_json::from_str(payload).map_err(|e| ImportError::InvalidJson(e.to_string()))?;
@@ -1041,11 +1054,14 @@ mod tests {
 
     #[test]
     fn display_safe_escapes_ansi_escape() {
-        // ESC = U+001B
+        // ESC = U+001B. Post-Round-1 (commit `bfc0713`): display_safe emits
+        // JSON-native `\uHHHH` 6-char escape rather than the pre-Round-1
+        // Rust-syntax `\u{HHHH}` curly-brace form. See DESIGN.md § bm export
+        // (Layer 3) § JSON-native escape design.
         let out = display_safe("\x1b[31mred");
         assert!(
-            out.contains("\\u{001b}"),
-            "ESC should be escaped; got {out}"
+            out.contains("\\u001b"),
+            "ESC should be escaped as JSON-native \\u001b; got {out}"
         );
         assert!(
             !out.contains('\x1b'),
@@ -1056,10 +1072,11 @@ mod tests {
     #[test]
     fn display_safe_escapes_format_chars() {
         // RLO = U+202E (right-to-left override) is a classic bidi spoof.
+        // Post-Round-1: JSON-native `\uHHHH` 6-char escape format.
         let out = display_safe("plain\u{202e}evil");
         assert!(
-            out.contains("\\u{202e}"),
-            "RLO should be escaped; got {out}"
+            out.contains("\\u202e"),
+            "RLO should be escaped as JSON-native \\u202e; got {out}"
         );
     }
 

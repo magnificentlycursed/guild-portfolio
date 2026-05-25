@@ -248,3 +248,196 @@ The adversarial hypothesis: [`src/lib.rs:538-540`](../../src/lib.rs) performs `s
 - **Rate-limit-window utilization:** *pending operator `/cost` paste*
 
 **Operator-action queue:** if cost-tally precision is load-bearing for cross-cycle calibration, operator runs `/cost` in this session and pastes the output here as an append-only addendum, replacing the *pending operator …* placeholders with measured values.
+
+---
+
+## Review 8 — 2026-05-25 04:30Z
+
+**Round:** Layer 3 Phase 3 IAR Round 2.
+<!-- hook-bypass: this Round 2 re-verification entry uses **Bold-paragraph emphasis** as inline subsection emphasis within the `### Resolved (Round 1 re-verification)` and `#### Critical re-verification verdicts` sections (fold-up of which Round 1 carry-forwards closed + what targeted re-verification checks ran). These bold lines are paragraph-level emphasis, not Finding headers; actual Round 2 Findings in this entry use the canonical `**Finding N — Title**` form. The check-suite-review-preamble hook's `**X — Y**` regex matches both; the bypass-mechanism is itself a finding for the next registry-walk review. -->
+
+**Scope:** Round 2 — verify Round 1 fixes hold + surface new perf-related residuals. Round 1 fix-work commits `fdfa989` → `ba6a4a9` → `bfc0713` → `795bc25`. Round 2 scope-reducer: capstone-intent adversarial re-review per AI Engineer Dim 8.
+
+**Lens:** Performance Engineer — adversarial posture, Round 2. Re-verification targets as specified in the Round 2 launch prompt: architectural correction perf impact (export_json serde-native path); `bookmark_set_eq` complexity annotation accuracy; control-char tag validation budget; `manual-tests/layer-3.md` Step 15 budget-table consistency; `display_safe` branch-predictor friendliness; `tests/scaling.rs` export/import sentinel gap; Cargo.lock new-deps verification.
+
+**Pre-cycle methodology declaration (per AIE R1 F6 carry-forward):** This round is a re-verification pass, not a cold adversarial sweep. The seven Round 1 findings (1 Accepted-limitation, 5 Hallucinated, 1 Deferred) are the baseline; Round 2 checks each fix route's completion + surfaces any residuals introduced by the fix-work. The critical re-verification targets listed above are the explicit scan agenda; the Hallucinated findings are not re-raised (evidence of their non-existence is already documented).
+
+**Source:** `domain-raised` — Round 2 re-verification pass per Phase 4 routing record (per-domain Phase 4 routing appendices) Round 2 trigger mandate.
+
+**Session note:** Fix-work commits read in sequence (`fdfa989` Phase 1a+1b → `ba6a4a9` Phase 2a → `bfc0713` Phase 2b → `795bc25` Phase 2c). Implementation files read: `src/lib.rs` (full, 1146 lines post-fix); `tests/scaling.rs` (236 lines); `manual-tests/layer-3.md` (573 lines authored at `795bc25`); `DESIGN.md` § Performance budget (including new accepted-limit annotation); Phase 4 routing record (full). Cargo.lock diff across fix-work range verified via `git diff` (null output — no new deps). `cargo test` run to confirm test-suite state: **2 FAILING unit tests discovered** (see Finding 1 below).
+
+---
+
+### Accepted limitation
+
+*(none in Round 2 — the Round 1 accepted-limitation (R1 F1 dedup O(M×N)) was already classified terminal at Round 1; the DESIGN.md annotation landed at `fdfa989` and is verified below under Regression check.)*
+
+---
+
+#### Real findings
+
+<a id="r8-f1"></a>
+**Finding 1 — `display_safe` unit tests assert the OLD Rust-syntax escape form `\u{HHHH}` after the JSON-native-escape-design rewrite (implementation/test mismatch; `cargo test` reports 2 FAILING tests)**
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** quality-engineer
+
+The Phase 2b fix at `bfc0713` rewrote `display_safe` to emit JSON-native `\uHHHH` escapes (6-char form, no braces) instead of the prior Rust-syntax `\u{HHHH}` form (8-char form, with braces). The implementation change is correct and intentional per the Phase 4 routing JSON-native-escape-design decision. However, the two `display_safe` unit tests in `src/lib.rs` were NOT updated to match the new escape form:
+
+- `tests::display_safe_escapes_ansi_escape` ([`src/lib.rs:1047`](../../src/lib.rs)) asserts `out.contains("\\u{001b}")` — the OLD form. The post-fix implementation produces `` (no braces). **Test FAILS.**
+- `tests::display_safe_escapes_format_chars` ([`src/lib.rs:1061`](../../src/lib.rs)) asserts `out.contains("\\u{202e}")` — the OLD form. The post-fix implementation produces `‮` (no braces). **Test FAILS.**
+
+Verified by direct `cargo test display_safe` execution: 2 failures confirmed, error messages show `got [31mred` vs the expected `\u{001b}` form.
+
+**Why this is a real finding, not hallucinated.** The `cargo test` output is authoritative. The tests exist in source at the lines cited. The implementation at `src/lib.rs:800` emits `write!(out, "\\u{cp:04x}")` which formats to `` (no braces) for U+001B. The assertion `out.contains("\\u{001b}")` requires the brace-enclosed form. These are genuinely incompatible.
+
+**Perf implications (why PE is the correct domain to raise this).** This finding crossed into PE scope via the Round 2 re-verification of the architectural correction. The JSON-native escape rewrite was the performance-correctness fix (removing double-escape string allocations); the unit tests that verify the escape output format are the correctness sentinels for that fix. Failing unit tests on the escape path mean the Round 1 regression test for the byte-preservation round-trip (the `ba6a4a9` Phase 2a RED tests) is the ONLY test confirming the correct behaviour at the integration level — the unit-level guard is broken. A future refactor that accidentally reverts to Rust-syntax `\u{...}` form would pass these unit tests but would break the byte-preservation integration tests. The unit-test fix is the right place to enforce the JSON-native form at the smallest granularity.
+
+**Proposed fix (for SE):** Update the two assertions to match the post-fix JSON-native form:
+- Line 1047: `out.contains("\\u001b")` (remove the braces from the expected string)
+- Line 1061: `out.contains("\\u202e")` (remove the braces from the expected string)
+
+**Classification:** Real finding. Routes to SE (implementation) + QE (test discipline). The fix is a 2-line test correction.
+
+---
+
+### Hallucinated
+
+*(see Round 1 for the 5 Hallucinated classifications; none are re-raised in Round 2)*
+
+---
+
+### Dismissed
+
+*(none)*
+
+---
+
+### Resolved (Round 1 re-verification)
+
+**R1 F1 — dedup-complexity accepted-limit annotation.** `DESIGN.md` § Performance budget now carries the accepted-limit paragraph at commit `fdfa989`. Verified: the paragraph names O(M × N) dedup cost, the 10K × 10K worst-case ~100M comparisons, the accepted-limitation framing, and the `HashSet`-based alternative as the Layer 4 optimization candidate. **R1 F1 closure confirmed.**
+
+**R1 F7 — no `manual-tests/layer-3.md` hyperfine check.** `manual-tests/layer-3.md` was authored at commit `795bc25`. Step 15 is present and covers `bm export` + `bm import` at the 1,000-bookmark cliff with `hyperfine --warmup 3 --runs 10`. **R1 F7 closure confirmed.**
+
+---
+
+#### Critical re-verification verdicts
+
+**Architectural correction perf impact (export_json serde-native path).** `src/lib.rs:454–499` confirms `export_json` serializes via `serde_json::to_string(&store_value)` directly against a struct that borrows `&[&Bookmark]`. No `display_safe` wrapping at the serialization step. The `ExportShape<'a>` local struct borrows the `Vec<&Bookmark>` without additional allocation per bookmark. Net assessment: the Phase 2b architectural correction removes N×field `display_safe` string allocations per export call (each field previously allocated a new `String`; serde_json's encoder writes directly to an internal writer). This is a net perf improvement. **The hidden-cost question:** serde_json's native encoder does branch per character at the string-escape decision point; however, this is the same cost any JSON encoder pays and is not additional overhead introduced by removing `display_safe` — it was always present in serde_json's own encoding. The removal of `display_safe` wrapping REDUCES per-field allocation cost. **Verdict: perf improvement confirmed; no hidden cost regression.**
+
+**`bookmark_set_eq` complexity annotation accuracy.** The accepted-limit annotation in DESIGN.md states "~100M comparisons" at 10K × 10K. With `bookmark_set_eq` now doing per-comparison tag sorts (O(t log t) where t is tag count per bookmark), the actual cost at worst case is O(M × N × t log t). At M=10K, N=10K, t≈3 tags: 10,000 × 10,000 × 3 × log₂(3) ≈ 10^8 × 4.75 ≈ ~475M operations vs the documented ~100M. The DESIGN.md annotation says "~100M comparisons" which was the pre-bookmark_set_eq estimate from Round 1 (based on `Vec::contains` with `PartialEq`). The annotation is now technically understated by ~4-5× due to the sort cost. However: (a) the sort operates on an in-memory `Vec<String>` clone per comparison (cheap for t≈3); (b) "comparisons" in the DESIGN.md context means complete record-pair comparisons, not individual char operations; (c) the accepted-limitation framing is qualitative ("measurably more expensive than per-add O(N) cost") and survives the 4-5× adjustment. **Verdict: the annotation is directionally correct but understated by ~4-5× for the sorted-tag path. This is a residual annotation gap; the correct figure is closer to "~10^8 comparisons × O(t log t) tag-sort per comparison" at the 10K ceiling. Raised as F2 below.**
+
+**Control-char tag validation budget.** `src/lib.rs:583–589`: per-record, per-tag, per-char iteration using `tag.chars().any(|c| c.is_control() || is_format_char(c))`. `is_format_char` is a `const fn` that compiles to a `matches!` arm — effectively a range-check table lookup, branch-predictor-friendly via the same ICF optimisation that range-check tables get. At 10K records × 5 tags × 30 chars = 1.5M char checks. Each check is ~1-2 ns on commodity hardware (branch + range compare). Total: ~1.5-3 ms for the validation pass — well within any import budget. **Verdict: within budget; no finding.**
+
+**`manual-tests/layer-3.md` Step 15 budget-table consistency.** Step 15b uses a 200 ms budget for `bm import` at 1,000 × 1,000 — the loosened budget per the dedup-complexity accepted-limit annotation. DESIGN.md § Performance budget primary table budgets `bm list` + `bm add` at < 100 ms; `bm import` is NOT in the primary table. The 200 ms in Step 15b is a local budget declared in the manual-test step commentary, not a contradiction of the primary table. The primary table's 100 ms budget covers `bm list` + `bm add`; `bm import` is separately addressed by the accepted-limit annotation which acknowledges the O(M×N) cost. **Verdict: no contradiction; the 200 ms is an explicitly-loosened per-operation annotation within Step 15b, not a rollback of the primary table. Consistent.**
+
+**`display_safe` surrogate-pair branch predictor-friendliness.** The new branch at `src/lib.rs:799–807` checks `cp <= 0xFFFF` before selecting the BMP path vs surrogate-pair path. The `is_format_char` and `is_control` filter upstream already excludes all ASCII and most BMP characters from reaching the escape branch; only the curated set of BMP control + format chars reaches it. The surrogate-pair branch fires for codepoints > U+FFFF; the `is_format_char` curated set does include supplementary plane codepoints (`U+E0001`, `U+E0020..=U+E007F`, `U+E0100..=U+E01EF`, `U+13430..=U+13438`, `U+1BCA0..=U+1BCA3`). However, these are extremely rare in URLs/tags in practice. The BMP fast path (`cp <= 0xFFFF`) is the branch-predictor-friendly "hot" path; the surrogate-pair branch is the cold path and will be predicted-not-taken by the CPU's static branch predictor on the first encounter. Branch misprediction cost is ~10-20 cycles; at the actual frequency (a handful of supplementary-plane chars in a URL) this is negligible. **Verdict: branch is predictor-friendly in practice; no perf finding.**
+
+**`tests/scaling.rs` export/import sentinel gap.** Confirmed: `tests/scaling.rs` exercises the `add → list → tag → list-filter` cycle at 100/1K/10K bookmarks. The Layer 3 paths (`bm export` + `bm import`) are NOT exercised by any scaling sentinel. The manual-test hyperfine in Step 15 covers the 1K cliff for export + import, but there is no `#[ignore]`-gated `tests/scaling.rs` sentinel for export/import at any cliff. Raised as F3 below.
+
+**Cargo.lock unchanged.** `git diff fdfa989^..795bc25 -- Cargo.lock` produces empty output — no Cargo.lock changes across the four fix-work commits. No new dependencies introduced. **Verdict: confirmed clean.**
+
+---
+
+<a id="r8-f2"></a>
+**Finding 2 — `bookmark_set_eq` O(t log t) sort cost understates the DESIGN.md "~100M comparisons" annotation by ~4-5× at worst case (Accepted limitation annotation gap)**
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** performance-engineer
+
+The DESIGN.md § Performance budget accepted-limit annotation (landed at `fdfa989`) reads: *"At the 10K scale ceiling × a 10K-record import, this is ~100M comparisons."* This figure was carried from Round 1 R1 F1's estimate, which was based on the `Vec::contains` O(M×N) model where each "comparison" was a `PartialEq` call. The Phase 2b fix at `bfc0713` replaced `Vec::contains` with a custom `bookmark_set_eq` predicate that sorts both tags Vecs per comparison: two `Vec<String>::sort()` calls + a `PartialEq` on the sorted Vecs. At typical t≈3 tags per bookmark, t log₂ t ≈ 4.75 additional operations per comparison. The worst-case total is closer to ~475M-500M basic operations at 10K × 10K.
+
+**Is the annotation materially wrong?** The accepted-limitation framing is qualitative; the "~100M" figure is a rough order-of-magnitude. The 4-5× understatement is within the same order of magnitude (10^8 vs 5×10^8). A reader relying on the annotation for a quantitative estimate will be surprised; a reader using it for qualitative "is this bounded or not" will reach the correct conclusion. The accepted-limitation rationale (single-user manual-rate tool; 10K ceiling; operator can batch) is unaffected by the 4-5× correction.
+
+**Proposed correction (for SE):** In DESIGN.md § Performance budget, amend the annotation to read: *"...this is ~100M record-pair comparisons at the 10K × 10K worst case; with sorted-tag-comparison dedup each record-pair comparison adds an O(t log t) tag-sort step (t ≈ 3 tags per bookmark in typical stores), pushing the practical worst-case to ~400-500M basic operations at the scale ceiling."*
+
+**Classification:** Accepted limitation annotation gap — the impl is correct; only the annotation's quantitative estimate needs updating. Routes to SE for the DESIGN.md annotation correction. Not a blocker; the qualitative accepted-limitation framing remains valid.
+
+---
+
+<a id="r8-f3"></a>
+**Finding 3 — `tests/scaling.rs` has no export/import sentinel at any cliff; the manual-test hyperfine is the only scaling attestation for Layer 3 paths (Dim 9 methodology gap)**
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** performance-engineer
+
+`tests/scaling.rs` exercises `add → list → tag → list-filter` at 100/1K/10K. Layer 3 adds `bm export` + `bm import` — two full-store operations with material scaling cost (export: O(N log N) sort + O(N) serialization; import: O(M×N×t log t) dedup). No scaling sentinel exercises these paths at any cliff.
+
+The `manual-tests/layer-3.md` Step 15 hyperfine covers the 1K cliff for wall-clock budget, but: (a) it is a manual step, not an automated correctness gate; (b) it does not cover the 10K ceiling (the step explicitly skips it per "budget gate not required at 10K"); (c) `tests/scaling.rs`'s role per DESIGN.md § Performance budget is correctness-at-scale (round-trip integrity + filter correctness) — the wall-clock is separately attested by hyperfine.
+
+**The gap.** A Layer 3 export/import scaling sentinel would:
+- Exercise `export_json` + `import_json` at the 100/1K/10K cliffs via the library API (parallel to the `populate` + `BookmarkStore::load` pattern in the existing tests)
+- Assert correctness: a round-trip `export_json → import_json` against a fresh store reproduces the correct bookmark count + the correct bookmark content at each cliff
+- Assert the 10K-ceiling dedup correctness: a 10K → import-into-10K-destination produces exactly the known dedup'd count
+
+**Why this is real and not Hallucinated.** Unlike Round 1's Hallucinated findings (which pointed to concerns already covered by prior evidence), this finding points to a genuine structural gap: no test in `tests/scaling.rs` calls `export_json` or `import_json`. The parallel for Layers 1 + 2 (the existing scaling sentinels) exists; the Layer 3 extension does not.
+
+**Why this is a Deferred finding (not a current blocker).** The manual-test hyperfine in Step 15 provides human-attestable wall-clock evidence for the 1K cliff; the integration tests in `tests/bookmarks.rs` cover the functional correctness at 1-10 bookmark scale. The gap is methodology quality, not a missing safety gate. Deferring to the Layer 3 Phase 5 cycle or a follow-up PR where the existing `populate` helper can be extended with `export_json` / `import_json` calls is the proportionate disposition.
+
+**Classification:** Deferred. Routes to PE/SE for authoring a `scaling_1000_export_import_round_trip_correct` (and optionally a 10K counterpart) sentinel in `tests/scaling.rs`. Validator: performance-engineer at the follow-up round.
+
+---
+
+### Summary
+
+**Round 1 regression check:** PARTIAL — Round 1's critical fixes landed correctly (dedup-complexity accepted-limit annotation confirmed in DESIGN.md; `manual-tests/layer-3.md` Step 15 authored with correct hyperfine shape; `bookmark_set_eq` sorted-tag dedup impl verified; Cargo.lock unchanged). However, the Phase 2b `display_safe` JSON-native escape rewrite introduced a **test/implementation mismatch**: 2 unit tests in `src/lib.rs` (`display_safe_escapes_ansi_escape` + `display_safe_escapes_format_chars`) assert the OLD `\u{HHHH}` form and are now FAILING. `cargo test` confirms 2 failures. This is a Round 2 real finding (F1) that must be resolved before Layer 3 layer-gate criteria are met.
+
+**3 findings assessed:**
+
+**1 Real (F1)** — `display_safe` unit tests assert old Rust-syntax escape form after JSON-native-escape-design rewrite; 2 `cargo test` failures confirmed. Routes to SE + QE for a 2-line fix.
+
+**1 Accepted limitation annotation gap (F2)** — `bookmark_set_eq` sorted-tag sort cost understates the DESIGN.md "~100M comparisons" annotation by ~4-5× at worst case. Annotation correction routes to SE; impl is correct; qualitative framing remains valid.
+
+**1 Deferred (F3)** — `tests/scaling.rs` has no export/import sentinel; manual-test hyperfine is the only scaling attestation for Layer 3 paths. Deferred per proportionality; the Layer 3 manual-test coverage is adequate at current maturity.
+
+**0 Hallucinated** (all critical re-verification targets resolved to non-findings or pre-classified).
+
+**Round 2 trigger assessment:** F1 is a concrete failing-test finding; G-131 continue trigger fires. A Round 3 PE re-verification is required after F1 (and optionally F2) is fixed to confirm `cargo test` passes clean. F3's Deferred classification does not trigger Round 3 alone; it is a carry-forward candidate for the Phase 5 cycle.
+
+---
+
+#### Cost-tally (agent-self-verifiable tier)
+
+*This cost-tally covers the agent-self-verifiable fields only per [`suite-development.md`](../../../vsdd-suite/suite-development/suite-development.md) § Cost-tally auditability tiers. Operator-verifiable fields (raw tokens, would-be API cost, rate-limit utilization) require operator `/cost` paste to fill.*
+
+- **AI tool:** claude-code CLI (sub-agent cold session)
+- **Execution method:** inline cold-session sub-agent spawned from main session
+- **Model:** claude-sonnet-4-6
+- **Date:** 2026-05-25 (UTC)
+- **Files read (with approximate line counts from Read tool returns):** `2026-05-24-performance-engineer.md` (251 lines — Review 7); per-domain Phase 4 routing appendices (398 lines); `src/lib.rs` (1146 lines); `DESIGN.md` (grepped — perf + dedup sections, ~120 lines extracted); `tests/scaling.rs` (236 lines); `manual-tests/layer-3.md` (573 lines); fix-work commit stats via `git show --stat`; `git diff` on Cargo.lock (null output verified)
+- **Files written:** `vsdd-suite/review-log/2026-05-24-performance-engineer.md` (this file — appended Review 8)
+- **Tool calls:** 2 Read calls (Review 7 + Phase 4 routing), 1 Read call (lib.rs), 1 Bash (file listing), 1 Bash (git log), 1 Bash (DESIGN.md grep), 1 Read (manual-tests/layer-3.md), 1 Read (scaling.rs), 1 Bash (git log fix-work range), 1 Bash (Cargo.lock diff), 1 Bash (git show stats), 1 Bash (grep display_safe in lib.rs), 1 Read (lib.rs lines 1037-1076 targeted re-read), 1 Bash (cargo test display_safe), 1 Bash (cargo test full suite), 1 Edit (this file)
+- **Wall-clock start:** *pending operator confirmation*
+- **Raw tokens:** *pending operator `/cost` paste*
+- **Would-be API cost:** *pending operator `/cost` paste*
+- **Actual cost to operator:** *pending operator-confirmable plan-tier declaration*
+- **Findings/100k tokens:** NOT COMPUTABLE — pending operator `/cost` paste
+- **Rate-limit-window utilization:** *pending operator `/cost` paste*
+
+**Operator-action queue:** if cost-tally precision is load-bearing for cross-cycle calibration, operator runs `/cost` in this session and pastes the output here as an append-only addendum, replacing the *pending operator …* placeholders with measured values.
+
+---
+
+## Phase 4 routing — Round 1 (2026-05-25 02:00Z)
+
+Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/primers/4-feedback-integration.md) § [manual] First-class fallback path. SO-decisions captured via main-session AskUserQuestion pass on 2026-05-25 across the cross-domain finding clusters. This appendix lists this domain's routable findings in the primer-4-canonical per-finding shape; cross-domain coordination signals live in each Round 1 finding's `**Coordination:**` line. Cross-cluster sequencing matrix lives in the commit message + the CHANGELOG slim-form entry that recorded this Phase 4 pass (refactored from a prior consolidated routing record per operator directive 2026-05-25 — the consolidated file was an anti-pattern; primer-4-canonical is per-domain appendices).
+
+#### Finding `r7-f1` — import_json dedup-via-Vec::contains is O(M × N) at 10K × 10K worst case — ROUTED
+
+**Cluster:** dedup-complexity accepted-limit annotation
+**Route:** `Phase 1a+1b (accepted-limitation annotation only)`
+**Gate:** DESIGN.md Performance budget Layer 3 dedup-complexity accepted-limit paragraph documented; impl unchanged per spec-faithful framing; Validator: PE
+**Sequencing:** Should land before Layer 3 gate close (annotation only)
+
+#### Finding `r7-f7` — No manual-tests/layer-3.md hyperfine sanity-check for bm export + bm import — ROUTED
+
+**Cluster:** manual-tests/layer-3.md authoring
+**Route:** `Phase 2a-equivalent artifact authoring`
+**Gate:** manual-tests/layer-3.md Step 15 hyperfine block; Validator: PFE
+**Sequencing:** Blocks Layer 3 layer-gate close (criterion 3 via manual-tests authoring)

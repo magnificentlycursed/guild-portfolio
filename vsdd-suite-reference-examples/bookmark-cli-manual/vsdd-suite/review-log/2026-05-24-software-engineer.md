@@ -227,3 +227,293 @@ Per the [Phase 3 primer](../../../../vsdd-suite/primers/3-review-session.md) § 
 - [Finding 4](#r1-f4) (empty-stdin vs size-cap ordering) coordinates with [UX](../../../../vsdd-suite/domains/role/UX-REVIEW.md) — the error-message-attribution ambiguity is a UX-adjacent concern; UX may wish to validate the fix against the "error message reads accurately" floor. The spec-tightening half (Path 2 — `--max-stdin-bytes` lower-bound validation) would route to [Solution Owner](../../../../vsdd-suite/domains/role/SOLUTION-OWNER-REVIEW.md) for the AC 27 amendment; the inline-fix half (Path 1 — reorder the checks) is purely SE-owned.
 
 ---
+
+## Review 2 — 2026-05-25 04:30Z
+
+**Round:** Layer 3 Phase 3 IAR Round 2.
+**Scope:** Cold-context [Software Engineer](../../../../vsdd-suite/domains/role/SOFTWARE-ENGINEER-REVIEW.md) Phase 3 IAR Round 2 against [bookmark-cli-manual](../../README.md) Layer 3 post-fix state. Tested against the Round 1 fix-work commit sequence: `fdfa989` (Phase 1a+1b spec amendments + narrative updates), `ba6a4a9` (Phase 2a — 6 new regression+coverage tests), `bfc0713` (Phase 2b — `display_safe` JSON-native rewrite + architectural correction removing `display_safe` from `export_json`; `bookmark_set_eq` sorted-tag dedup; `TagContainsControlChars` ImportError variant; `run_import` empty-stdin-before-cap reorder + `--max-stdin-bytes 0` rejection; clap `long_about` extension; storage-error-remediation hint), `795bc25` (Phase 2a-equivalent `manual-tests/layer-3.md` authoring + Phase 2c annotation). Required reading: own [Round 1 review log](#review-1--2026-05-24-2100z) (4 Deferred findings; all routed + addressed); Phase 4 routing record (per-domain Phase 4 appendices in `vsdd-suite/review-log/2026-05-24-<domain-slug>.md`) (13-domain consolidated routing decisions); post-fix [`src/lib.rs`](../../src/lib.rs) + [`src/main.rs`](../../src/main.rs); post-fix [`tests/bookmarks.rs`](../../tests/bookmarks.rs) (15 prior + 6 new = 21 Layer 3 integration tests); [`DESIGN.md`](../../DESIGN.md) post-amendment sections (§ Behavioral contracts § `bm export` (Layer 3) JSON-native-escape design paragraph L106; § `bm import` (Layer 3) failure bullets + sorted-tag-comparison framing L129/L133; § Threat model addition L131; § Edge case catalog L161-L170; § Performance budget L298 dedup accepted-limit); [`manual-tests/layer-3.md`](../../manual-tests/layer-3.md). Mechanical regression check: `cargo test --test bookmarks` (51 passed; 0 failed) + `cargo test --lib` (**11 passed; 2 FAILED** — see [Finding 1](#r2-f1)) + `cargo clippy --all-targets -- -D warnings` (clean).
+
+**Layer:** 3
+**Round:** 2
+**Active domain set:** 11 role + 2 meta = 13 (capstone intent per [DESIGN.md § Project intent](../../DESIGN.md))
+**Lens:** Round 2 scope per the AIE Dim 8 scope-reducer — (a) regression-check that Round 1's four Deferred fixes hold (display_safe architectural correction byte-preservation; sorted-tag-comparison dedup; control-char tag rejection; empty-stdin-before-size-cap reorder + `--max-stdin-bytes 0` validation), AND (b) surface NEW residuals introduced by the fix-work. Round 1's four findings + Round 1's closure routing record are required reading; this round does NOT re-elicit Round 1 findings. Standard SE dimensions applied with continued sycophancy emphasis on Dim 1 (Correctness) + Dim 8 (Defensive coding) per the SE-prompt directive. Dim 12 test-seam attack-surface mechanically re-checked (`grep -E 'INTERNAL_|TEST_|_FORCE_|_BYPASS_|_SEAM|cfg\(any\(test|cfg\(debug_assertions|debug_assert!'` against `src/`) — Round 1's findings did not introduce new seams; the only `#[cfg(test)]` block remains the `mod tests` at [`src/lib.rs:882`](../../src/lib.rs). Documentation dimensions (13–17) defer to TW per the SE prompt's deferral rule (TW activated at capstone intent); Performance dimensions (18–22) defer to PE per the same rule.
+
+**Session note:** Cold session. Reviewer did not author the Round 1 fix-work commits; the reading order followed the Phase 3 primer's cold-context discipline applied to a Round 2 cycle (primer → domain prompt → Rust supplement → governing standard → Round 1 review log + Phase 4 routing record → post-fix implementation + tests + DESIGN.md amendments → manual-tests artifact). The fix-work landed within the past 24 hours; the Round 2 cycle is the natural Round-N+1 G-131 continue trigger from Round 1's 4-finding production. The mechanical regression check above was run in-session against the working tree at `bookmark-cli-manual-layer-3-spec-activation` branch on PR #52.
+
+**Source:** `domain-raised` — every finding below was elicited by applying the SE dimensions cold against the post-fix Layer 3 state. The R2 F1 finding surfaced from the mechanical `cargo test --lib` regression check (which is itself an SE Dim 1 + Dim 12-adjacent discipline applied at session-open); the R2 F2 + R2 F3 findings surfaced from cold reading of the new code at [`src/lib.rs:624-636`](../../src/lib.rs) `bookmark_set_eq` and [`src/main.rs:515-525`](../../src/main.rs) `TagContainsControlChars` rendering path respectively.
+
+**Supplements applied:** [`rust.md`](../../../../vsdd-suite/supplements/rust.md) § Software Engineering — `.unwrap()` discipline (verified `#[allow(clippy::unwrap_used, reason=...)]` annotation at [`src/lib.rs:492-495`](../../src/lib.rs) carries explicit OOM-only rationale; no new bare unwrap surfaces in fix-work code paths); `?` propagation discipline (verified `import_json`'s `?`-via-`map_err` shape preserves the `ImportError` variant boundary); error-type hierarchy (verified the new `TagContainsControlChars(usize, String)` variant carries Display + Error impls per the existing `AttachTagError` precedent at [`src/lib.rs:115-125`](../../src/lib.rs)); Clippy lint floor (no relaxation in the post-fix `[lints.clippy]` table).
+
+**Assumption surfacing:** New Layer-3-Round-1-fix-load-bearing external-API assumptions: **(a)** `serde_json` natively escapes Cc-range control characters (U+0000–U+001F) to JSON-native `\uHHHH` form per RFC 8259 § 7 — load-bearing for the architectural-correction sub-decision at [`src/lib.rs:454-499`](../../src/lib.rs) (export_json relies on serde_json's encoder, not display_safe pre-wrap). Verified against [serde_json 1.0 source](https://docs.rs/serde_json/1/serde_json/) `format_escaped_str_contents`. **(b)** `serde_json`'s default encoder does NOT escape curated format chars (U+200E LRM, U+202E RLO, etc.) — load-bearing for the DESIGN.md L106 trade-off paragraph naming "curated format chars survive as raw UTF-8 bytes in JSON output." Verified by inspection: `format_escaped_str_contents` switches only on Cc-range + ASCII-quote/backslash, passing all other UTF-8 through unchanged. **(c)** `String::cmp` on `Vec<String>::sort()` is byte-wise lexicographic — load-bearing for [`bookmark_set_eq`](../../src/lib.rs)'s set-equality semantics. Two Unicode-equivalent but byte-distinct tags (e.g., `"e\u{0301}"` combining-acute vs `"é"` precomposed-acute) sort to different positions and compare unequal, so the sorted-tag-comparison dedup does NOT collapse Unicode-equivalent tag arrays. The spec does not contract on Unicode normalization, so this is consistent with the spec but is a residual semantic surface (NOT raised as an SE finding — Sec/RT-territory if reachable as an attack vector).
+
+---
+
+### Resolved
+
+**Finding 1 — `display_safe`'s 2 unit tests (`display_safe_escapes_ansi_escape`, `display_safe_escapes_format_chars`) still assert the OLD Rust-syntax `\u{HHHH}` escape format; `cargo test --lib` now FAILS post-Round-1-fix; the Phase 2b implementation rewrite was not paired with the unit-test update that the new shape required (Dim 1, Dim 9, Dim 14)**
+
+<a id="r2-f1"></a>
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** quality-engineer
+
+Round 1's Phase 4 routing JSON-native-escape decision rewrote `display_safe`'s escape format from Rust-syntax `\u{HHHH}` (8-byte literal) to JSON-native `\uHHHH` (6-char escape). The rewrite landed at [`src/lib.rs:798-807`](../../src/lib.rs) — verified the implementation emits `write!(out, "\\u{cp:04x}")` for BMP codepoints + a surrogate-pair branch for supplementary plane.
+
+The two pre-existing unit tests at [`src/lib.rs:1042-1064`](../../src/lib.rs) still assert the OLD shape:
+
+```rust
+fn display_safe_escapes_ansi_escape() {
+    let out = display_safe("\x1b31mred");
+    assert!(out.contains("\\u{001b}"), ...);  // OLD Rust-syntax expectation
+    ...
+}
+
+fn display_safe_escapes_format_chars() {
+    let out = display_safe("plain\u{202e}evil");
+    assert!(out.contains("\\u{202e}"), ...);  // OLD Rust-syntax expectation
+}
+```
+
+Concrete failure (reproducible in-session):
+
+```
+running 13 tests
+...
+test tests::display_safe_escapes_ansi_escape ... FAILED
+test tests::display_safe_escapes_format_chars ... FAILED
+...
+thread 'tests::display_safe_escapes_ansi_escape' panicked at src/lib.rs:1046:9:
+ESC should be escaped; got plainevil  (post-fix output is , not \u{001b})
+...
+test result: FAILED. 11 passed; 2 failed; 0 ignored
+```
+
+**Why this is the canonical sycophancy-check failure.** The Phase 4 routing record at [per-domain Phase 4 routing appendices (per-domain Phase 4 appendices in `vsdd-suite/review-log/2026-05-24-<domain-slug>.md`) § JSON-native escape design names the regression-test gate as "regression test commits in standalone Phase 2a commit (RED against current Rust-syntax impl)" — and the Phase 2a commit `ba6a4a9` did add the new round-trip integration test ([`tests/bookmarks.rs:1717`](../../tests/bookmarks.rs) `tests_export_import_round_trip_preserves_pathological_bytes`). But Phase 2b's implementation rewrite at `bfc0713` did NOT update the *existing* unit tests that asserted on the old shape; those tests now fail. The implementation change was orthogonal to the integration test (the integration test asserts a different invariant — byte-preservation through the binary surface — and passes because it does not look at `display_safe`'s output directly). The unit tests test a different surface (`display_safe`'s output string format directly) and were left asserting the now-deleted shape.
+
+**Impact severity.** `cargo test` (the default `cargo test` with no `--test` flag, which runs *all* test binaries including `--lib`) now exits non-zero. CI gates that run `cargo test` will fail. The Layer 3 layer-gate close criterion 1 ("All Red Gate tests pass" per the Phase 4 routing record at the cross-cluster sequencing matrix) is NOT met against the actual `cargo test` invocation — only against `cargo test --test bookmarks` (which scopes to the integration test binary alone and skips `--lib`). The Round 1 closure verification implicitly used the integration-test-only scope; the broader regression check this Round 2 cycle ran caught the gap.
+
+**Why this surfaces as Dim 1 + Dim 9 + Dim 14 (not just Dim 12 test-discipline).** Dim 1: the production `display_safe` is correct under the new spec (JSON-native escape per the DESIGN.md L106 amendment); the test is what's wrong. Dim 9 (self-documentation): the panic message `"ESC should be escaped; got plainevil"` reads as if the production behavior is broken when it's actually correct; a future maintainer reading the panic could mis-attribute the bug. Dim 14 (documentation accuracy — applies despite TW deferral because this is *inline source-code documentation*, not user-facing docs): the test docstring + assertion message describe the pre-fix shape, mis-naming current behavior.
+
+**The defensible fix.** Two test edits, mechanical:
+
+1. [`src/lib.rs:1047`](../../src/lib.rs): change `out.contains("\\u{001b}")` → `out.contains("\\u001b")` (remove the braces). Update the panic message to name the JSON-native shape.
+2. [`src/lib.rs:1061`](../../src/lib.rs): change `out.contains("\\u{202e}")` → `out.contains("\\u202e")`. Update panic message.
+
+A defensive third edit would add a *new* unit test that asserts the negation: `assert!(!out.contains("\\u{"), "Rust-syntax escape must NOT appear post-Round-1 fix")` — prevents the regression of someone reverting `display_safe` to the old shape without updating the integration test.
+
+**Classification:** Resolved — the finding was elicited by the mechanical regression-check this Round 2 cycle ran at session-open, surfaced a real `cargo test --lib` failure, and the fix is a 2-line test rewrite that the Round 1 fix-work was supposed to include but omitted. The classification is Resolved (not Deferred) because the gap is closeable in this Round 2 fix-cycle as a trivial follow-up edit + the regression is observable today. **Validator:** quality-engineer.
+
+---
+
+### Deferred
+
+**Finding 2 — `bookmark_set_eq` clones both tag-`Vec`s + sorts them on every dedup comparison even when the tag-arrays are already-equal in insertion order (the predominant post-export-import case); the missing fast-path multiplies the DESIGN.md L298 dedup accepted-limit by a tag-clone-and-sort factor that the accepted-limit paragraph does not name (Dim 1, Dim 6, Dim 11)**
+
+<a id="r2-f2"></a>
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** quality-engineer
+
+Round 1's Phase 4 routing sorted-tag-comparison-dedup decision introduced the helper at [`src/lib.rs:624-636`](../../src/lib.rs):
+
+```rust
+fn bookmark_set_eq(a: &Bookmark, b: &Bookmark) -> bool {
+    if a.url != b.url || a.timestamp != b.timestamp {
+        return false;
+    }
+    if a.tags.len() != b.tags.len() {
+        return false;
+    }
+    let mut a_tags = a.tags.clone();
+    let mut b_tags = b.tags.clone();
+    a_tags.sort();
+    b_tags.sort();
+    a_tags == b_tags
+}
+```
+
+The function is called in the [`src/lib.rs:602-611`](../../src/lib.rs) dedup loop:
+
+```rust
+for new_bm in imported {
+    if !self.bookmarks.iter().any(|existing| bookmark_set_eq(existing, &new_bm)) {
+        ...
+    }
+}
+```
+
+i.e. once per imported record × once per existing destination record. Per the [DESIGN.md § Performance budget L298 accepted-limit paragraph](../../DESIGN.md), this is O(M × N) at the 10K × 10K worst case. The accepted-limit framing says "~100M comparisons" but does NOT account for the per-comparison cost.
+
+**What the per-comparison cost actually is.** When `url == url && timestamp == timestamp && tags.len() == tags.len()`, the function:
+
+1. Allocates `Vec<String>::with_capacity(M)` × 2 (heap alloc).
+2. Deep-clones `M` `String`s × 2 (allocating + copying tag-content bytes).
+3. Sorts both Vecs via byte-wise `String::cmp` — O(M log M) × 2.
+4. Compares element-wise via `Vec<String>::PartialEq` — O(M).
+
+This pays for every comparison, including the common case `a.tags == b.tags` (insertion-order equal — which is the predominant case after `bm export | bm import` because export preserves storage order, which is the original insertion order). Adding the fast-path:
+
+```rust
+if a.tags == b.tags { return true; }
+```
+
+between the length check and the clone-and-sort block would short-circuit the entire clone/sort/compare for the predominant case. The slow path then only fires for the genuinely-reordered case (e.g., the manually-`jq`-reordered import case the Round 1 routing decision specifically named).
+
+**Why this is Dim 1 + Dim 6 (not just Dim 18+ performance).** Dim 1 (correctness): the function is correct as-implemented but its per-comparison cost amplification is mathematically incompatible with the DESIGN.md L298 accepted-limit framing. The accepted-limit says "the simplest correct realization of the sorted-tag-comparison set-frame dedup rule" — but "simplest correct" + "accepts the O(M×N) cost without naming the per-comparison amplification" is a sycophancy-check failure on the part of the documentation: the spec accepted the wrong cost figure. Dim 6 (complexity): the absence of the equal-already fast-path is a complexity issue — `if a.tags == b.tags { return true; }` is one line and a strict optimization. Dim 11 (future-self maintainability): a future SE reading the dedup loop + the L298 accepted-limit paragraph will not realize that the actual cost is O(M × N × T log T) where T is the tag-count per record; the spec teaches the wrong cost model.
+
+**Why this is Deferred (not Resolved).** The defensible fix has two viable shapes:
+
+1. **Add the equal-already fast-path** to `bookmark_set_eq` (1-line edit). Closes the predominant-case amplification; does not change the worst-case bound. Defensible immediately.
+2. **Replace the `Vec<T>::contains` linear-scan + per-comparison clone+sort** with a `HashSet<(String, DateTime<Utc>, BTreeSet<String>)>` of existing destination keys, built once before the loop, looked up in O(1). Closes both correctness-amplification AND the O(M×N) accepted-limit at the cost of a one-time O(N) preallocation. This is the shape Round 1 SE F2 already named as "Path (2)" — was not the operator's chosen path per the Phase 4 routing record. The PE Phase 4 routing record acknowledges the O(N×M) accepted-limit; the per-comparison amplification was not surfaced in Round 1 because the implementation did not exist yet at routing time.
+
+Path (1) is the immediate fix; Path (2) is the principled fix. Either closes the per-comparison amplification gap. Coordination with PE is appropriate (this is a hot-path concern PE may wish to own as a Layer-3-cycle Performance Budget update); the SE-owned half is the fast-path edit + the DESIGN.md L298 accepted-limit paragraph amendment naming the per-comparison cost.
+
+**Classification:** Deferred — carried to the Layer 3 Round 2 fix cycle. The fix is local + self-contained; the spec amendment is a one-paragraph update to DESIGN.md L298. The trigger is Layer 3 Round 2 fix cycle; auto-Backlog if Layer 3 closes without resolution. Coordinates with PE per the cross-cluster sequencing matrix (PE Round 2 may wish to fold this into the dedup accepted-limit refinement).
+
+---
+
+**Finding 3 — `ImportError::TagContainsControlChars`'s `Display` impl uses `{tag:?}` Debug-formatting; the CLI shell at [`src/main.rs:523`](../../src/main.rs) bypasses the Display impl via direct `display_safe(&tag)` wrap — so library callers using `format!("{err}")` or the `std::error::Error` Display surface get Debug-escaped output (Rust source-syntax `"..."` quotes + Rust-syntax escape), while CLI callers get JSON-native-escaped output (no quotes; `\uHHHH` shape). Two-surface inconsistency introduced by the new variant (Dim 1, Dim 5, Dim 10)**
+
+<a id="r2-f3"></a>
+
+**Owner:** software-engineer
+**Status:** raised
+**Blocked by:** *(none)*
+**Validator:** quality-engineer
+
+Round 1's Phase 4 routing imported-tag-control-char-rejection decision introduced the new `ImportError::TagContainsControlChars(usize, String)` variant at [`src/lib.rs:681`](../../src/lib.rs). The Display impl at [`src/lib.rs:689-692`](../../src/lib.rs):
+
+```rust
+Self::TagContainsControlChars(idx, tag) => write!(
+    f,
+    "imported bookmark tags contain disallowed control characters at record index {idx}: {tag:?}"
+),
+```
+
+The `{tag:?}` form (Debug formatting) renders a `String` containing a raw ESC byte as the literal text `"\u{1b}injection"` — Rust source-syntax escape, with quotes. The CLI shell at [`src/main.rs:515-525`](../../src/main.rs) does NOT call the Display impl; instead it pattern-matches the variant + renders via:
+
+```rust
+Err(ImportError::TagContainsControlChars(idx, tag)) => {
+    eprintln!("Error: imported bookmark tags contain disallowed control characters.");
+    eprintln!("Offending record index: {idx}");
+    eprintln!("Offending tag: {}", display_safe(&tag));
+    ExitCode::from(1)
+}
+```
+
+— wrapping the tag via `display_safe`, which emits the JSON-native `\uHHHH` shape (no quotes; no `\u{...}` braces).
+
+**The two-surface divergence.** A library caller that uses the standard error surface — `format!("{err}")` or `err.to_string()` or the `std::error::Error::source` chain that propagates Display — sees Debug-escaped output: `imported bookmark tags contain disallowed control characters at record index 0: "rust\u{1b}injection"`. A CLI caller via the pattern-match path sees: `Error: ... Offending tag: rustinjection`. The same underlying error has two different operator-visible escape conventions depending on which surface renders it. A future Layer 4 library-as-dep caller (the spec opens the door for this per the [`src/lib.rs:2-23`](../../src/lib.rs) module-doc framing of `lib.rs` as a stable public surface) would inherit the Debug-escaped Display impl — which does NOT match the JSON-native escape contract the rest of the Layer 3 surface is now standardized on.
+
+**Why this is Dim 1 + Dim 5 + Dim 10 (not just Dim 9 cosmetic).** Dim 1 (correctness): the spec contract for the new error is at [`DESIGN.md` § `bm import` (Layer 3) L129](../../DESIGN.md) "the offending tag-string (escaped via `display_safe` so attacker-controlled bytes don't reach the operator's terminal raw)." The spec specifies `display_safe`-shape escape. The library Display impl does NOT use `display_safe`; it uses `Debug` (which IS escape-safe in the sense that no raw control byte reaches the terminal, but uses a different escape shape than the spec contracts). The library surface diverges from the spec; the CLI shell happens to be correct because it bypasses the divergent surface. Dim 5 (duplication): the escape logic is encoded twice — once in the Display impl (via Debug-format), once in the CLI shell (via display_safe). Two places to fix the same bug if the escape shape changes again. Dim 10 (consistency): the other two `ImportError` variants (`InvalidJson(String)` + `SchemaMismatch(String)`) use `{msg}` plain-format in Display — they have no control-char concerns because their `String` payloads come from `serde_json` parse errors (already ASCII-safe). Only the new variant carries attacker-controlled content; only the new variant has the divergent Display behavior.
+
+**The defensible fix.** Two viable shapes:
+
+1. **Make the Display impl use `display_safe(tag)`** instead of `{tag:?}`:
+   ```rust
+   Self::TagContainsControlChars(idx, tag) => write!(
+       f,
+       "imported bookmark tags contain disallowed control characters at record index {idx}: {}",
+       display_safe(tag)
+   ),
+   ```
+   Then simplify the CLI shell to render via `eprintln!("Error: {err}")` — same shape as the other variants. Single-surface escape; one place to maintain.
+
+2. **Document the two-surface divergence as deliberate** in a doc comment on the variant, naming "Display surface uses Debug-escape for library-call-site grep-friendliness; CLI surface uses display_safe per the spec contract." This preserves the current divergence but makes it visible to future readers. Weaker than (1); does not close the spec-vs-library-Display gap.
+
+Path (1) is the spec-faithful answer + matches the existing `AttachTagError::NoMatch` precedent at [`src/lib.rs:120`](../../src/lib.rs) where the variant's `String` payload (a user-supplied URL) is rendered via plain `{url}` in Display + then `display_safe`-wrapped at the CLI shell. The precedent leaves the Display surface raw (no escape) and the CLI does the wrap — which is also internally consistent. But the new variant's payload is *known-attacker-controlled* at the type level (the variant only exists because the tag contains a disallowed char); the appropriate spec-contracted shape is to escape at the type boundary. Path (1) is the principled answer.
+
+**Classification:** Deferred — carried to the Layer 3 Round 2 fix cycle. The fix is local + self-contained (~3-line Display-impl rewrite + a CLI-shell simplification). The trigger is Layer 3 Round 2 fix cycle; auto-Backlog if Layer 3 closes without resolution. Coordination with Security (the active-mitigation framing's operator-rendering contract) + UX (error-message rendering shape) — both should validate the fix preserves their domains' contracts.
+
+---
+
+### Raised to SO
+
+*(none)*
+
+---
+
+### Dismissed
+
+*(none)*
+
+---
+
+### Hallucinated
+
+*(none — every finding above cites a specific file:line + a specific spec or behavior the implementation diverges from. The R2 F1 finding is reproducible in-session by `cargo test --lib` against the current Phase 2b commit `bfc0713`; the R2 F2 + R2 F3 findings are reproducible by cold reading of the new code added at `bfc0713`.)*
+
+---
+
+### Summary
+
+3 findings raised in-session — 1 Resolved-class ([Finding 1](#r2-f1) stale display_safe unit tests; mechanical 2-line test edit closes immediately + matches a Round-2-fix-cycle Resolved disposition), 2 Deferred-class ([Finding 2](#r2-f2) `bookmark_set_eq` per-comparison clone+sort amplification missing fast-path; [Finding 3](#r2-f3) `ImportError::TagContainsControlChars` Display-vs-CLI escape-shape divergence). All 3 are NEW findings from Round 1's fix-work — none re-elicit a Round 1 finding (verified by cross-referencing each finding's surface against the Round 1 finding-set: F1 stale-test concerns a test surface that existed pre-Round-1 + was missed by Round 1's fix-set; F2 + F3 concern new code added by `bfc0713` that did not exist at Round 1's read-time).
+
+**Round 1 regression-check verdict (per the AIE Dim 8 scope-reducer):** Round 1's four Deferred findings verified to hold post-fix:
+
+- **R1 F1 (display_safe round-trip):** PASSED — the architectural-correction sub-decision removing `display_safe` from `export_json` + the JSON-native `\uHHHH` rewrite in `display_safe` itself produces byte-preserving round-trip. Verified by [`tests/bookmarks.rs:1717`](../../tests/bookmarks.rs) `tests_export_import_round_trip_preserves_pathological_bytes` (pathological URL with raw ESC + LRM bidi format char) passes; the DESIGN.md L106 + L131 + L161 amendments name the trade-off (Cc-range chars round-trip via serde_json native; curated format chars survive as raw UTF-8 bytes in JSON output as accepted-risk parallel to Layer 2 tag-injection).
+- **R1 F2 (sorted-tag-comparison dedup):** PASSED — the new `bookmark_set_eq` at [`src/lib.rs:624`](../../src/lib.rs) compares on (url, timestamp, sorted(tags)); the integration test [`tests/bookmarks.rs:1772`](../../tests/bookmarks.rs) `tests_import_dedup_treats_tags_as_set_under_reorder` exercises the `["rust","go"]` vs `["go","rust"]` case + asserts second import dedup'd to zero appended. Correctness verified; the per-comparison cost amplification is the new [R2 F2](#r2-f2).
+- **R1 F3 (doc-comment misclaim):** PASSED — the [`src/lib.rs:514-518`](../../src/lib.rs) doc-comment now reads "is a Phase 5 proptest target ... the proptest itself is not yet activated in `tests/properties.rs` at this Phase 2b landing" — no longer claims the property exists; names the deferred state explicitly.
+- **R1 F4 (empty-stdin vs size-cap ordering + `--max-stdin-bytes 0` lower-bound):** PASSED — [`src/main.rs:428-431`](../../src/main.rs) rejects `--max-stdin-bytes 0` upfront with `Error: --max-stdin-bytes must be at least 1.`; [`src/main.rs:452-455`](../../src/main.rs) empty-stdin check now precedes the [`src/main.rs:456-470`](../../src/main.rs) size-cap check. Both fixes verified by code reading + (for the `--max-stdin-bytes 0` upfront rejection) by `cargo test --test bookmarks` passing (the existing tests do not exercise `--max-stdin-bytes 0` but the size-cap-flag-override test passes).
+
+Aggregate verdict: **Round 1 fixes PASSED — 4-of-4 closures hold.** The 3 new findings above are residuals introduced by the fix-work, not regressions of the Round 1 closures. Per the [Phase 3 primer](../../../../vsdd-suite/primers/3-review-session.md) § Round triggers G-131: this round produced 3 new real findings — SE Round 3 against Layer 3 is the natural continue-trigger after Round 2 closures land + the fix-cycle absorbs the 3 findings.
+
+**Cost-tally (minimal; per [`suite-development.md`](../../../../vsdd-suite/suite-development/suite-development.md) § Cost-tally opt-in shape):**
+
+- **AI tool:** claude-code CLI (per session context)
+- **Execution method:** sub-agent (cold-session spawn from main-session orchestrator; Round 2 IAR per-domain cycle)
+- **Model:** claude-opus-4-7 (per session-start system context)
+- **Wall-clock anchor:** session-start 2026-05-25 03:04Z (per `date -u` in-session); session-end 2026-05-25 04:30Z (per the Review 2 header line)
+- **Files touched count:** 1 (this file — append-only)
+- **Files read count:** 9 substantive (own Round 1 review log; Phase 4 routing record; SE domain prompt; Phase 3 primer; SE supplement / rust.md per grep; suite-development.md per grep; post-fix `src/lib.rs`; post-fix `src/main.rs`; post-fix `tests/bookmarks.rs` slice; `manual-tests/layer-3.md` slice; `DESIGN.md` grep)
+- **Mechanical sweeps:** 3 Bash invocations (`cargo test --no-run`; `cargo test --test bookmarks`; `cargo test --lib`; `cargo clippy --all-targets -- -D warnings`; 4 keyword greps against `tests/bookmarks.rs` + `src/lib.rs` + `DESIGN.md` + `properties.rs`)
+- **Plan tier:** *pending operator confirmation in main session — declared as `Claude Max` in main-session per the AIE F7 carry-forward; sub-agent inherits but does not re-confirm*
+- **Raw tokens / Would-be API cost / Rate-limit utilization / Findings per 100k tokens:** *pending operator `/cost` paste in main session*
+
+**Operator-action queue:** if cost-tally precision is load-bearing for cross-cycle calibration, operator runs `/cost` in the main session at cycle-close and pastes the aggregated values here as an append-only addendum, replacing the *pending operator …* placeholders with measured values.
+
+**Coordination:**
+
+- [Finding 1](#r2-f1) (stale display_safe unit tests) coordinates with [QUALITY-ENGINEER-REVIEW.md](../QUALITY-ENGINEER-REVIEW.md) — the test-discipline gap is the SE-internal mirror of QE's test-system ownership; QE may wish to fold a CI-gate addition (e.g., `cargo test` not `cargo test --test bookmarks` in the Layer-3-close criterion) into the QE Round 2 finding-set. Also coordinates with [VDD-IAR Alignment](../../../../vsdd-suite/domains/role/VDD-IAR-ALIGNMENT-REVIEW.md) — the "Layer 3 close criterion 1: All Red Gate tests pass" verification used the wrong-scoped invocation; VDD-IAR may wish to flag the scope-of-`cargo test` ambiguity.
+- [Finding 2](#r2-f2) (`bookmark_set_eq` per-comparison amplification) coordinates with [Performance Engineer](../../../../vsdd-suite/domains/role/PERFORMANCE-ENGINEER-REVIEW.md) — the DESIGN.md L298 accepted-limit paragraph is PE-owned territory; the per-comparison cost amplification is a Performance Budget refinement that PE Round 2 should fold in. Also coordinates with [Solution Owner](../../../../vsdd-suite/domains/role/SOLUTION-OWNER-REVIEW.md) — the accepted-limit paragraph amendment is a DESIGN.md change that requires SO authority per the SE prompt's DESIGN.md change-authority deferral rule.
+- [Finding 3](#r2-f3) (`TagContainsControlChars` Display-vs-CLI escape divergence) coordinates with [Security](../../../../vsdd-suite/domains/role/SECURITY-REVIEW.md) — the active-mitigation framing's operator-rendering contract is Security-owned; Security Round 2 should validate the Display-impl rewrite preserves the threat-model contract. Also coordinates with [UX](../../../../vsdd-suite/domains/role/UX-REVIEW.md) — the error-message rendering shape is UX-adjacent (operator-visible string shape); UX Round 2 may wish to validate the simplified CLI shell path against the "error message reads consistently across surfaces" floor.
+
+---
+
+---
+
+## Phase 4 routing — Round 1 (2026-05-25 02:00Z)
+
+Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/primers/4-feedback-integration.md) § [manual] First-class fallback path. SO-decisions captured via main-session AskUserQuestion pass on 2026-05-25 across the cross-domain finding clusters. This appendix lists this domain's routable findings in the primer-4-canonical per-finding shape; cross-domain coordination signals live in each Round 1 finding's `**Coordination:**` line. Cross-cluster sequencing matrix lives in the commit message + the CHANGELOG slim-form entry that recorded this Phase 4 pass (refactored from a prior consolidated routing record per operator directive 2026-05-25 — the consolidated file was an anti-pattern; primer-4-canonical is per-domain appendices).
+
+#### Finding `r1-f1` — display_safe Rust-syntax breaks bm export | bm import byte-preservation round-trip — ROUTED
+
+**Cluster:** JSON-native escape design
+**Route:** `Phase 2a → Phase 2b → Phase 1a+1b`
+**Gate:** Regression test RED then GREEN; display_safe rewrite; DESIGN.md amendment; Validator: SE + Security + RT
+**Sequencing:** Blocks Layer 3 layer-gate close
+
+#### Finding `r1-f2` — import_json dedup uses Vec<String> element-wise equality on tags; contradicts DESIGN.md tags-as-set — ROUTED
+
+**Cluster:** sorted-tag-comparison dedup
+**Route:** `Phase 2a → Phase 2b`
+**Gate:** Regression test for tag-reorder dedup RED then GREEN after sorted-comparison fix; DESIGN.md edge-case entry updated; Validator: QE + Security
+**Sequencing:** Blocks Layer 3 layer-gate close
+
+#### Finding `r1-f3` — import_json doc-comment cites non-existent tests/properties.rs round-trip property — ROUTED
+
+**Cluster:** import_json doc-comment fix
+**Route:** `Phase 2b`
+**Gate:** Doc-comment removes proptest claim OR Phase 5 adds the property; Validator: QE
+**Sequencing:** Should land before Layer 3 gate close
+
+#### Finding `r1-f4` — run_import checks size-cap before empty-stdin; --max-stdin-bytes 0 + empty stdin mis-attributes — ROUTED
+
+**Cluster:** UX help-and-error-remediation
+**Route:** `Phase 2b`
+**Gate:** Validation order: empty-stdin BEFORE size-cap; lower-bound validation rejects --max-stdin-bytes 0; Validator: UX + SE
+**Sequencing:** Should land before Layer 3 gate close
