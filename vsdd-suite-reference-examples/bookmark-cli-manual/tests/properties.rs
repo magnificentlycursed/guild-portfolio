@@ -238,4 +238,64 @@ proptest! {
             tag_b
         );
     }
+
+    /// Phase 5 Layer 3 — sanitization-preserving round-trip property.
+    /// For any sanitization-clean storage-state X (URL + tag fields contain
+    /// no Cc / curated Cf chars), `parse(serialize(X)) == X` holds modulo
+    /// dedup. Per Round 2 Security F1 SO-decision, storage-states with raw
+    /// Cc / Cf bytes are NOT round-trippable (export-side `display_safe`
+    /// rewrites those bytes to escape-text); the property is conditioned on
+    /// sanitization-cleanness, which the strategies above guarantee by
+    /// generating only ASCII-alphanumeric URLs + labels.
+    #[test]
+    fn export_import_round_trip_sanitization_preserving(
+        store in small_store_strategy()
+    ) {
+        let exported = store.export_json(None);
+        let mut imported = BookmarkStore::default();
+        let _count = imported.import_json(&exported)
+            .expect("sanitization-clean store must round-trip cleanly");
+        // Property: the imported store equals the source store's deduplicated
+        // (url, timestamp, sorted-tags) tuple set (dedup at import collapses
+        // any source-side same-tuple records — small_url_strategy + same-
+        // millisecond Utc::now() can produce such tuples). The set-form is
+        // what the spec contracts on.
+        let to_tuple_set = |bookmarks: &[bookmark_cli::Bookmark]| -> HashSet<(String, String, Vec<String>)> {
+            bookmarks.iter()
+                .map(|b| {
+                    let mut tags: Vec<String> = b.tags().to_vec();
+                    tags.sort();
+                    (b.url().to_string(), b.timestamp().to_rfc3339(), tags)
+                })
+                .collect()
+        };
+        let src_set = to_tuple_set(store.bookmarks());
+        let dst_set = to_tuple_set(imported.bookmarks());
+        prop_assert_eq!(
+            src_set,
+            dst_set,
+            "round-trip must preserve the (url, timestamp, sorted-tags) tuple set"
+        );
+    }
+
+    /// Phase 5 Layer 3 — import idempotence property. Per DESIGN.md § bm
+    /// import dedup rule: `import(import(X)) == import(X)` — re-importing
+    /// the same payload yields zero new appends per the
+    /// (url, timestamp, sorted-tags) exact-tuple-match dedup.
+    #[test]
+    fn import_idempotence_under_repeat_invocation(
+        store in small_store_strategy()
+    ) {
+        let payload = store.export_json(None);
+        let mut dst = BookmarkStore::default();
+        let count_first = dst.import_json(&payload).unwrap();
+        let count_second = dst.import_json(&payload).unwrap();
+        prop_assert_eq!(
+            count_second,
+            0,
+            "second import must dedup to zero appends; got {} after first import landed {}",
+            count_second,
+            count_first
+        );
+    }
 }

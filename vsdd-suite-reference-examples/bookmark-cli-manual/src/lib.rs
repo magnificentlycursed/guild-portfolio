@@ -3,7 +3,11 @@
 //! See `DESIGN.md` § Verification architecture for the authoritative
 //! purity boundary. In summary (per the Review 67 / B2 reconciliation):
 //!
-//! - **Pure:** `Bookmark` + `BookmarkStore` data types; `BookmarkStore::newest_first`.
+//! - **Pure:** `Bookmark` + `BookmarkStore` data types; `BookmarkStore::newest_first`;
+//!   Layer 2: `BookmarkStore::filter_by_tags`, `BookmarkStore::attach_tag`;
+//!   Layer 3: `BookmarkStore::export_json`, `BookmarkStore::import_json`,
+//!   `display_safe` (Round 2 SO-decision: applied at both render boundary AND
+//!   export serialization boundary), `is_format_char`.
 //! - **Effectful (deliberate I/O wrappers):** `BookmarkStore::load`
 //!   (filesystem read + parse), `BookmarkStore::save` (filesystem write +
 //!   serialize). These wrap pure JSON ser/de with file I/O — the wrapping
@@ -420,7 +424,340 @@ impl BookmarkStore {
             .filter(|b| b.tags.iter().any(|t| labels.iter().any(|l| t == *l)))
             .collect()
     }
+
+    /// Serializes the store as compact JSON in the storage-format
+    /// object-wrapped shape (`{"bookmarks":[...]}`) suitable for piping
+    /// to stdout per `DESIGN.md` § `bm export` (Layer 3).
+    ///
+    /// - **Ordering:** newest-first per the `bm list` invariant.
+    /// - **Filter:** when `filter_labels` is `Some`, only bookmarks whose
+    ///   `tags` field contains at least one of the supplied labels are
+    ///   emitted (OR-semantics parallel to `bm list --tag`).
+    /// - **Sanitization at the export boundary (Round 2 Security F1 SO-decision
+    ///   reversal of the Round 1 architectural correction):** every URL + tag
+    ///   field is wrapped through `display_safe` before serialization so that
+    ///   Cc-range control characters AND curated format characters (bidi
+    ///   controls U+202E, zero-width U+200B-200F, BOM U+FEFF, tag-character
+    ///   supplementary plane U+E0020-E007F) are escaped to JSON-native `\uHHHH`
+    ///   escape-sequence text in the source string. `serde_json` then encodes
+    ///   the backslash as `\\` in JSON output, so a consumer parsing the JSON
+    ///   sees the literal 6-character `\uHHHH` text — NOT the original
+    ///   attacker-controlled byte. **Trade-off accepted:** `bm export | bm import`
+    ///   is sanitization-preserving (escape-sequence text round-trips through
+    ///   JSON) NOT byte-preserving (the original Cc + curated Cf bytes are
+    ///   lost; the imported record stores the literal escape-text). This
+    ///   closes the cross-organizational-seam trust-boundary gap per Security
+    ///   R2 F1: downstream consumers parsing `bm export` output cannot be
+    ///   Trojan-Source-attacked because the curated format chars never reach
+    ///   their rendering boundary as raw bytes.
+    /// - **Trailing newline:** the returned string ends with `\n` so a
+    ///   shell pipe sees the canonical line-terminated stream shape.
+    ///
+    /// Pure transformation against the store — no I/O, no clock, no
+    /// mutation. Per `DESIGN.md` § Verification architecture, `export_json`
+    /// lives on the pure side of the purity boundary.
+    ///
+    /// # Panics
+    ///
+    /// Panics on memory-allocation failure during JSON serialization of
+    /// the in-memory `serde_json::Value` — `serde_json::to_string` for an
+    /// in-memory `Value` has no Serialize-side error path; the only failure
+    /// mode is OOM during string allocation, which is acceptable for a
+    /// single-shot CLI binary per the supplement's panic policy.
+    #[must_use]
+    pub fn export_json(&self, filter_labels: Option<&[&str]>) -> String {
+        // Round 2 Security F1 SO-decision: reverse the bfc0713 architectural
+        // correction. Restore `display_safe` wrapping at the export
+        // serialization boundary so that Cc-range control characters AND
+        // curated format characters are escaped to JSON-native `\\uHHHH`
+        // escape-sequence TEXT in the source string. `serde_json` then encodes
+        // the backslash as `\\\\` in JSON output; a consumer parsing the JSON
+        // sees literal 6-char `\\uHHHH` text — NOT the original attacker-
+        // controlled byte. This closes the cross-organizational-seam
+        // trust-boundary gap (downstream consumers cannot be Trojan-Source-
+        // attacked by raw bidi / ZWJ / BOM bytes surviving export).
+        //
+        // Trade-off accepted per the SO-decision: `bm export | bm import` is
+        // sanitization-preserving (escape-text round-trips predictably through
+        // JSON) NOT byte-preserving (the original Cc + curated Cf bytes are
+        // lost; the imported record stores the literal escape-text). The
+        // Round 1 SE F1 closure narrative claiming byte-preservation is
+        // reversed by this Round 2 decision; the canonical round-trip semantic
+        // is now sanitization-preservation.
+        //
+        // Per-bookmark transformation struct with owned `String` fields built
+        // from `display_safe`-wrapped source.
+        #[derive(Serialize)]
+        struct ExportShape {
+            bookmarks: Vec<ExportBookmark>,
+        }
+        #[derive(Serialize)]
+        struct ExportBookmark {
+            url: String,
+            timestamp: DateTime<Utc>,
+            tags: Vec<String>,
+        }
+
+        let source: Vec<&Bookmark> =
+            filter_labels.map_or_else(|| self.newest_first(), |labels| self.filter_by_tags(labels));
+        let exported: Vec<ExportBookmark> = source
+            .into_iter()
+            .map(|bm| ExportBookmark {
+                url: display_safe(&bm.url),
+                timestamp: bm.timestamp,
+                tags: bm.tags.iter().map(|t| display_safe(t)).collect(),
+            })
+            .collect();
+        let store_value = ExportShape {
+            bookmarks: exported,
+        };
+        // serde_json::Value serialization never fails (no Serialize-side
+        // error path for in-memory Value); the unwrap is on a pure
+        // memory-allocation path that panics only on OOM.
+        #[allow(
+            clippy::unwrap_used,
+            reason = "Value::to_string never fails for in-memory Value; only OOM panics here, which is acceptable for a single-shot CLI binary"
+        )]
+        let mut s = serde_json::to_string(&store_value).unwrap();
+        s.push('\n');
+        s
+    }
+
+    /// Parses `payload` as a storage-format JSON object, validates the
+    /// schema, and appends the imported bookmarks to the store with
+    /// dedup-on-exact-tuple-match semantics per `DESIGN.md` § `bm import`
+    /// (Layer 3).
+    ///
+    /// **Dedup scope.** Dedup runs BOTH against existing destination
+    /// state AND within the imported payload itself — a record is
+    /// appended only if no record with the same (`url`, `timestamp`,
+    /// sorted `tags`) tuple already exists in `self.bookmarks` (which
+    /// includes records appended earlier in this same call). Per Round 1
+    /// Phase 4 routing sorted-tag-comparison-dedup decision (SE F2 + RT
+    /// F1 2-domain convergence): tag-order differences do not make
+    /// records distinct for dedup purposes; storage `Vec<String>` still
+    /// preserves insertion order at the record level. The
+    /// `import(import(X)) == import(X)` idempotence property is a Phase
+    /// 5 proptest target (per `DESIGN.md` § Project intent Phase 5
+    /// strategy for Layer 3); the proptest itself is not yet activated
+    /// in `tests/properties.rs` at this Phase 2b landing.
+    ///
+    /// **Atomicity.** All validation happens before any mutation to
+    /// `self.bookmarks`. If any record fails the schema or the
+    /// non-empty-URL invariant, the entire import fails + the store is
+    /// preserved unmodified. Per `DESIGN.md` § `bm import` (Layer 3)
+    /// "All imported bookmarks land in one atomic save — partial imports
+    /// MUST NOT occur".
+    ///
+    /// Returns the count of records actually appended (zero counts dedup'd
+    /// records). Used by the CLI shell to render the
+    /// `Imported N bookmark` / `Imported N bookmarks` count to stderr
+    /// (singular for N=1, plural otherwise per Layer 2 R2 UX F4 precedent).
+    ///
+    /// # Errors
+    ///
+    /// - `ImportError::InvalidJson` if `payload` is not valid JSON.
+    /// - `ImportError::SchemaMismatch` if the JSON parses but does not
+    ///   match the storage-format object-wrapped shape, OR if any
+    ///   per-bookmark record fails schema validation (missing required
+    ///   `url`/`timestamp` field, wrong field type, empty `url`).
+    /// - `ImportError::TagContainsControlChars(record_index, tag)` if any
+    ///   imported record's `tags` array contains a control character or
+    ///   curated format character (per Round 1 Phase 4 routing
+    ///   imported-tag-control-char-rejection decision; closes the Layer 3
+    ///   stdin-fed-attacker tag-injection vector).
+    pub fn import_json(&mut self, payload: &str) -> Result<usize, ImportError> {
+        let value: serde_json::Value =
+            serde_json::from_str(payload).map_err(|e| ImportError::InvalidJson(e.to_string()))?;
+
+        // Top-level schema validation — must be an object with a
+        // `bookmarks` field that is an array. Strict-only on the
+        // object-wrapped shape (bare-array stdin rejected here) per
+        // `DESIGN.md` § `bm import` (Layer 3) input-shape contract.
+        let bookmarks_value = value.get("bookmarks").ok_or_else(|| {
+            ImportError::SchemaMismatch("missing required field `bookmarks`".to_owned())
+        })?;
+        if !bookmarks_value.is_array() {
+            return Err(ImportError::SchemaMismatch(
+                "field `bookmarks` must be an array".to_owned(),
+            ));
+        }
+
+        // Per-record schema validation via serde_json::from_value. Any
+        // record missing `url`/`timestamp` or with a wrong field type
+        // surfaces here as a parse error. Errors here are pre-mutation
+        // — `self.bookmarks` is untouched until validation completes.
+        let imported: Vec<Bookmark> =
+            serde_json::from_value(bookmarks_value.clone()).map_err(|e| {
+                ImportError::SchemaMismatch(format!("bookmark record validation failed: {e}"))
+            })?;
+
+        // Library-level non-empty-URL invariant (mirrors `add`'s check).
+        for bm in &imported {
+            if bm.url.is_empty() {
+                return Err(ImportError::SchemaMismatch(
+                    "bookmark `url` field cannot be empty".to_owned(),
+                ));
+            }
+        }
+
+        // Active control-char rejection on imported tags per Round 1 Phase
+        // 4 routing imported-tag-control-char-rejection decision (Security
+        // F2 active-mitigation path). Layer 2's tag-injection accepted-risk
+        // was conditioned on attacker write-access; Layer 3 stdin-attacker
+        // doesn't need write-access, so tag-injection is reachable via
+        // lower-leverage attack. The mitigation: reject any imported record
+        // whose tags contain control / format characters at import time.
+        // The check fires pre-mutation per the atomicity discipline. The
+        // predicate is the same `is_control()` / `is_format_char` shape
+        // that `display_safe` uses for the escape-vs-passthrough decision.
+        for (idx, bm) in imported.iter().enumerate() {
+            if bm.url.chars().any(|c| c.is_control() || is_format_char(c)) {
+                return Err(ImportError::UrlContainsFormatChars(idx, bm.url.clone()));
+            }
+            for tag in &bm.tags {
+                if tag.is_empty() {
+                    return Err(ImportError::EmptyTag(idx));
+                }
+                if tag.chars().any(|c| c.is_control() || is_format_char(c)) {
+                    return Err(ImportError::TagContainsControlChars(idx, tag.clone()));
+                }
+            }
+        }
+
+        // Dedup-on-sorted-tag-comparison per Round 1 Phase 4 routing
+        // sorted-tag-comparison-dedup decision (SE F2 + RT F1 2-domain
+        // convergence; resolves DESIGN.md L132-vs-L223 internal tension
+        // toward the L223 set-frame). Comparison key: (url, timestamp,
+        // sorted(tags)). Storage Vec preserves insertion order; only the
+        // dedup comparison normalizes via sort. Appending only when
+        // `self.bookmarks` does not already contain a set-equal record
+        // automatically dedups against BOTH existing destination state
+        // AND within the imported payload (each push immediately joins
+        // the destination state for subsequent set-eq checks).
+        let mut appended = 0_usize;
+        for new_bm in imported {
+            if !self
+                .bookmarks
+                .iter()
+                .any(|existing| bookmark_set_eq(existing, &new_bm))
+            {
+                self.bookmarks.push(new_bm);
+                appended += 1;
+            }
+        }
+        Ok(appended)
+    }
 }
+
+/// Sorted-tag-comparison bookmark equality for Layer 3 `import_json` dedup.
+///
+/// Compares records on (`url`, `timestamp`, sorted `tags`) per Round 1
+/// Phase 4 routing sorted-tag-comparison-dedup decision. Resolves
+/// `DESIGN.md` L132 (byte-equal frame) vs L223 (set-frame) internal
+/// tension toward the L223 set-frame. Tag-order differences do not make
+/// records distinct for dedup purposes; storage `Vec<String>` still
+/// preserves insertion order at the record level.
+fn bookmark_set_eq(a: &Bookmark, b: &Bookmark) -> bool {
+    if a.url != b.url || a.timestamp != b.timestamp {
+        return false;
+    }
+    if a.tags.len() != b.tags.len() {
+        return false;
+    }
+    let mut a_tags = a.tags.clone();
+    let mut b_tags = b.tags.clone();
+    a_tags.sort();
+    b_tags.sort();
+    a_tags == b_tags
+}
+
+/// Default cap on the `bm import` stdin byte count.
+///
+/// Matches the project's existing scale ceiling of 10,000 bookmarks at
+/// ~1 KB each per `DESIGN.md` § Performance budget. The CLI shell uses
+/// this as the default for the `--max-stdin-bytes` flag; operators with
+/// legitimately-larger imports override at invocation time. Per
+/// `DESIGN.md` § Threat model addition for stdin-fed attacker input.
+pub const MAX_STDIN_BYTES_DEFAULT: usize = 10 * 1024 * 1024;
+
+/// Error variants surfaced by `BookmarkStore::import_json`.
+///
+/// Mirrors the `DESIGN.md` § `bm import` (Layer 3) failure contract — the
+/// CLI shell maps each variant to the spec-contracted stderr message + exit
+/// code. The detail strings carry the underlying parse/validation diagnostic
+/// for operator visibility.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ImportError {
+    /// The supplied payload is not valid JSON. The carried string is the
+    /// underlying `serde_json` parse-error message. Per `DESIGN.md`
+    /// § `bm import` (Layer 3) failure contract, the CLI shell renders
+    /// this as `Error: stdin is not valid JSON.` + the detail on the
+    /// next line + exits 1.
+    InvalidJson(String),
+    /// The payload is valid JSON but does not match the storage-format
+    /// object-wrapped schema, OR a per-bookmark record failed validation.
+    /// The carried string is the offending-field detail. Per `DESIGN.md`
+    /// § `bm import` (Layer 3) failure contract, the CLI shell renders
+    /// this as `Error: stdin JSON does not match storage-format schema;
+    /// expected {"bookmarks": [...]}.` + the detail on the next line + exits 1.
+    SchemaMismatch(String),
+    /// An imported record's `tags` array contains a control character or
+    /// curated format character. Per Round 1 Phase 4 routing imported-tag-
+    /// control-char-rejection decision (Security F2 active-mitigation): the
+    /// active-mitigation closes the Layer 3 stdin-fed-attacker tag-injection
+    /// vector that Layer 2's accepted-risk did not cover (Layer 2's accepted-
+    /// risk was conditioned on attacker write-access; Layer 3 stdin-attacker
+    /// doesn't need it). The variant carries the offending record's index
+    /// (within the imported payload) + the offending tag string for
+    /// diagnostic context. Per `DESIGN.md` § `bm import` (Layer 3) failure
+    /// contract, the CLI shell renders this as
+    /// `Error: imported bookmark tags contain disallowed control characters.`
+    ///   plus the offending record index plus the `display_safe`-wrapped tag
+    ///   string on the next lines, then exits 1.
+    TagContainsControlChars(usize, String),
+    /// `import_json` rejected an imported record whose `tags` array contains
+    /// an empty-string tag. Round 2 RT F2 closure: cross-surface consistency
+    /// with the `bm tag ""` CLI rejection — the Layer 2 spec rule "tag label
+    /// cannot be empty" applies at the import boundary too. The variant
+    /// carries the offending record's index within the imported payload.
+    EmptyTag(usize),
+    /// `import_json` rejected an imported record whose `url` field contains
+    /// a control character (Cc-range) or curated format character (bidi
+    /// controls, ZWJ, BOM, tag-character supplementary plane). Round 2
+    /// Security F3 SO-decision: extend active mitigation from tags-only
+    /// to URLs for symmetric trust-boundary enforcement at the import
+    /// boundary. Closes the asymmetric-trust-boundary gap where tags got
+    /// active rejection but URLs bypassed it. The variant carries the
+    /// offending record's index + the offending URL string for diagnostic
+    /// context (rendered via `display_safe` at the CLI surface).
+    UrlContainsFormatChars(usize, String),
+}
+
+impl fmt::Display for ImportError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidJson(msg) => write!(f, "stdin is not valid JSON: {msg}"),
+            Self::SchemaMismatch(msg) => write!(f, "schema mismatch: {msg}"),
+            Self::TagContainsControlChars(idx, tag) => write!(
+                f,
+                "imported bookmark tags contain disallowed control characters at record index {idx}: {}",
+                display_safe(tag)
+            ),
+            Self::EmptyTag(idx) => write!(
+                f,
+                "imported bookmark tag label cannot be empty at record index {idx}"
+            ),
+            Self::UrlContainsFormatChars(idx, url) => write!(
+                f,
+                "imported bookmark URL contains disallowed control or format characters at record index {idx}: {}",
+                display_safe(url)
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ImportError {}
 
 /// Produces a sibling temp path next to `path`. Uniqueness is sufficient
 /// for the single-user, single-process scope declared in `DESIGN.md`
@@ -506,10 +843,31 @@ pub fn display_safe(s: &str) -> String {
             continue;
         }
         if c.is_control() || is_format_char(c) {
-            // \u{HHHH} — 4-hex-digit minimum, more digits for higher codepoints.
-            // write! into a String only fails on allocation panic, not on
-            // formatting; the result is safe to discard.
-            let _ = write!(out, "\\u{{{:04x}}}", c as u32);
+            // JSON-native `\uHHHH` 6-character escape per Round 1 Phase 4
+            // routing JSON-native escape design decision (was Rust-syntax
+            // `\u{HHHH}` 8-byte literal pre-Round-1). The JSON-native form
+            // is recovered byte-for-byte by a standard JSON parser, so the
+            // round-trip `bm export | bm import` IS byte-preserving — see
+            // DESIGN.md § `bm export` (Layer 3) JSON-native-escape-design
+            // paragraph for the spec contract.
+            //
+            // For BMP codepoints (≤ U+FFFF) the form is `\uHHHH` directly.
+            // For Supplementary Plane codepoints (> U+FFFF), JSON requires
+            // UTF-16 surrogate-pair encoding (`\uD8xx\uDCxx`). The current
+            // `is_control()` + `is_format_char` curated set targets BMP
+            // codepoints exclusively, so the surrogate-pair branch is
+            // defensive — it activates only if a future codepoint addition
+            // pushes beyond U+FFFF.
+            let cp = c as u32;
+            let _ = if cp <= 0xFFFF {
+                write!(out, "\\u{cp:04x}")
+            } else {
+                // Compute UTF-16 surrogate pair per RFC 8259 § 7.
+                let n = cp - 0x10000;
+                let high = 0xD800 + (n >> 10);
+                let low = 0xDC00 + (n & 0x3FF);
+                write!(out, "\\u{high:04x}\\u{low:04x}")
+            };
         } else {
             out.push(c);
         }
@@ -746,11 +1104,14 @@ mod tests {
 
     #[test]
     fn display_safe_escapes_ansi_escape() {
-        // ESC = U+001B
+        // ESC = U+001B. Post-Round-1 (commit `bfc0713`): display_safe emits
+        // JSON-native `\uHHHH` 6-char escape rather than the pre-Round-1
+        // Rust-syntax `\u{HHHH}` curly-brace form. See DESIGN.md § bm export
+        // (Layer 3) § JSON-native escape design.
         let out = display_safe("\x1b[31mred");
         assert!(
-            out.contains("\\u{001b}"),
-            "ESC should be escaped; got {out}"
+            out.contains("\\u001b"),
+            "ESC should be escaped as JSON-native \\u001b; got {out}"
         );
         assert!(
             !out.contains('\x1b'),
@@ -761,10 +1122,11 @@ mod tests {
     #[test]
     fn display_safe_escapes_format_chars() {
         // RLO = U+202E (right-to-left override) is a classic bidi spoof.
+        // Post-Round-1: JSON-native `\uHHHH` 6-char escape format.
         let out = display_safe("plain\u{202e}evil");
         assert!(
-            out.contains("\\u{202e}"),
-            "RLO should be escaped; got {out}"
+            out.contains("\\u202e"),
+            "RLO should be escaped as JSON-native \\u202e; got {out}"
         );
     }
 
@@ -846,5 +1208,59 @@ mod tests {
         let loaded = BookmarkStore::load(&path).unwrap();
         assert_eq!(loaded.bookmarks().len(), 1);
         assert_eq!(loaded.bookmarks()[0].url(), "https://example.com");
+    }
+
+    /// Phase 5 mutation-testing coverage gap closure — `display_safe`'s
+    /// supplementary-plane (above U+FFFF) UTF-16 surrogate-pair encoding
+    /// path. Catches 8 mutants at src/lib.rs:866-868 that the BMP-only
+    /// tests left uncovered (the arithmetic for `cp - 0x10000`, the
+    /// high-surrogate `0xD800 + (n >> 10)`, and the low-surrogate
+    /// `0xDC00 + (n & 0x3FF)`). U+E0001 (LANGUAGE TAG) is in the curated
+    /// `is_format_char` set per src/lib.rs § `is_format_char` body.
+    #[test]
+    fn display_safe_encodes_supplementary_plane_curated_format_char_as_surrogate_pair() {
+        let out = display_safe("tag\u{E0001}end");
+        // U+E0001 → n = 0xE0001 - 0x10000 = 0xD0001
+        //   high = 0xD800 + (0xD0001 >> 10) = 0xD800 + 0x340 = 0xDB40
+        //   low  = 0xDC00 + (0xD0001 & 0x3FF) = 0xDC00 + 0x1 = 0xDC01
+        assert!(
+            out.contains("\\udb40\\udc01"),
+            "supplementary-plane codepoint U+E0001 must encode as the JSON UTF-16 surrogate pair \\udb40\\udc01; got {out}"
+        );
+        assert!(
+            !out.contains('\u{E0001}'),
+            "raw supplementary-plane char must not survive sanitization; got {out}"
+        );
+    }
+
+    /// Phase 5 mutation-testing coverage gap closure — `MAX_STDIN_BYTES_DEFAULT`
+    /// constant value. Catches 2 mutants at src/lib.rs:682 (replace * with +)
+    /// that would silently shrink the cap from 10 MiB to 2058 bytes.
+    #[test]
+    fn max_stdin_bytes_default_is_ten_mib() {
+        assert_eq!(MAX_STDIN_BYTES_DEFAULT, 10 * 1024 * 1024);
+        assert_eq!(MAX_STDIN_BYTES_DEFAULT, 10_485_760);
+    }
+
+    #[test]
+    fn import_error_tag_control_chars_display_uses_display_safe_not_debug() {
+        // Cross-surface alignment with run_import's CLI rendering path:
+        // library callers invoking `format!("{e}", e=...)` must see the
+        // same shape as CLI users — display_safe-wrapped tag, no Debug
+        // quotes. Round 2 SE F3 closure.
+        let err = ImportError::TagContainsControlChars(0, "rust\x1b[31m".to_string());
+        let rendered = format!("{err}");
+        assert!(
+            rendered.contains("\\u001b"),
+            "ESC must surface as JSON-native escape; got {rendered}"
+        );
+        assert!(
+            !rendered.contains('\x1b'),
+            "raw ESC must not survive Display rendering; got {rendered}"
+        );
+        assert!(
+            !rendered.contains('"'),
+            "Display impl must not wrap the tag in Debug-format quotes; got {rendered}"
+        );
     }
 }

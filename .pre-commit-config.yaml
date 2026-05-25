@@ -81,6 +81,29 @@ repos:
         # suite-review-preamble pattern.
         exclude: ^vsdd-suite/suite-development/review-log/external-review-log/
 
+      - id: check-no-letter-clusters
+        name: check no letter-only labels (Cluster A/B/C, Surface A/B, Path A/B, Option A/B) in audit-trail or user-facing prose (VSDD suite Review 94 hook)
+        language: python
+        # Per `vsdd-suite/hooks/check-no-letter-clusters.py` docstring + Review
+        # 94 Finding 3 (`vsdd-suite/suite-development/review-log/2026-05-24-suite-review.md#r94-f3`):
+        # 4th recurrence of the letter-label anti-pattern across PR #38 / PR #44
+        # / Review 78 / PR #52. Memory-discipline + TW Dim 12 + AIE Dim 7 catch
+        # the pattern at Round 2 review — too late for post-Round-1 artifacts.
+        # This hook closes the gap at commit-time (seconds after the offending
+        # write). Patterns: `Cluster [A-Z]`, `Surface [A-Z](?:\.\d)?`,
+        # `Path [A-Z]`, `Option [A-Z]`. Bypass via `<!-- hook-bypass: ... -->`
+        # in the first 5 lines (G-89 forward-only narrative-preservation for
+        # audit-trail files preserves historical references).
+        entry: vsdd-suite/hooks/check-no-letter-clusters.py
+        pass_filenames: true
+        # Scope: user-facing project artifacts (DESIGN/README/TODO/PROCESS/
+        # manual-tests/INSTALL-VERIFICATION); project audit-trail (CHANGELOG,
+        # vsdd-suite/**); suite-side prose (vsdd-suite/**). Generic code paths
+        # excluded (where Surface/Path may be legit identifiers).
+        files: ^(.*\.md)$
+        exclude: ^(node_modules/|target/|\.git/)
+        require_serial: false
+
       - id: check-suite-internal-terminology
         name: check suite-internal-terminology containment in user-facing project artifacts (VSDD suite Review 88 hook)
         language: python

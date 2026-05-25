@@ -1,3 +1,4 @@
+<!-- hook-bypass: Review 94 (added 2026-05-25) documents the letter-label recurrence anti-pattern; quoting the offending labels (operator dialogue + the literal cluster letters used in the Phase 4 routing record + AIE Dim 7's existing prose) is load-bearing context for the audit-trail discussion. Per G-89 forward-only narrative preservation. Future Review 95+ entries in this file SHOULD NOT use letter labels in non-quote prose — the bypass-mechanism is intentionally a finding for the next registry-walk review per check-no-letter-clusters.py's own rationale, so any future entry that adds letter labels needs its own justification. -->
 # Suite review log — 2026-05-24
 
 Per-session suite-development review entries land here. Per the [`SUITE-DEVELOPMENT-REVIEW.md`](../SUITE-DEVELOPMENT-REVIEW.md) Reviews table, this file is the canonical home for Reviews dated 2026-05-24.
@@ -354,6 +355,175 @@ Validator rationale: slim-form codification parallel to F18 SUITE-DEV-REVIEW row
 **Resolution applied:** [`suite-development.md`](../suite-development.md) § CHANGELOG slim-form convention added (immediately before the F18 SUITE-DEV-REVIEW row slim-form convention). Slim-form template + 1-3-bullet limits + forward-only G-89 carve-out + dogfooded via this Review's own CHANGELOG entry (the [PR #51 CHANGELOG entry for this codification cycle](../../CHANGELOG.md) uses the slim form). Operator-action when authoring new CHANGELOG entries: write narrative in review-log entry's § Summary; render CHANGELOG entry as short version-diff record pointing at it.
 
 **Classification:** Resolved (parallel to F18; CHANGELOG retains version-diff function; narrative source-of-truth at review-log).
+
+---
+
+## Review 94 — 2026-05-25 03:00Z
+
+**Phase:** Suite-development meta-discoverability + enforcement-timing analysis surfaced during PR #52 Layer 3 IAR Round 1 + Phase 4 routing. Three discrete suite-side gaps documented for future-hardening-cycle action; one partially-resolved in-cycle (the recurring letter-label anti-pattern, where the gap warranted immediate mechanical enforcement at PR #52 scope).
+
+**Source:** director-raised — operator surfaced all three findings during PR #52 sub-tasks: (a) Phase 4 bypass when planning the Layer 3 IAR cycle ("In this screenshot phases 2a, 2b, 2c, 3, and 5 have tasks but not 4. Why not?"); (b) phase-frequency gap when discussing upstream guidance ("let's also check the upstream whitepaper for guidance on how often phases should run"); (c) letter-label recurrence ("Recurrence of the lettering problem. How am I going to know what Cluster C means when I read the logs a month from now?") + follow-up enforcement question ("Is there a stronger method of enforcing this? It's happened several times") + the meta-question about domain coverage ("Do any of my domains guard against or catch this?").
+
+**Lens:** suite-development meta-review — the three findings are all about **when** suite-side disciplines catch a defect, not **whether** they catch it. Phase 4 was undiscoverable at task-planning time because no Layer-gate-criterion enumerated it; phase frequency is correct in scattered primers but no consolidated frequency matrix exists for new-reader discoverability; letter-label catch lives in TW Dim 12 + AIE Dim 7 but fires at Round 2 — too late for post-Round-1 artifacts (like the Phase 4 routing record where the cluster letters were created).
+
+**Scope:** Analysis-only entry capturing the 3 findings + the in-cycle partial-resolution of Finding 3 (lettering hook + primer 4 rule landing on PR #52 per operator authorization). Full suite-side artifact edits (primer/template/hook changes for Findings 1 + 2; methodology updates for Finding 3's future-revisit scope) deferred to the post-PR-#52-merge suite-hardening PR.
+
+**Reviewer:** *(suite-development meta-review; no domain-role persona)*
+
+**Model:** Opus 4.7 (`claude-opus-4-7`)
+
+**Cold-session shape:** N/A — inline main session during the PR #52 IAR cycle. Operator co-authored the framing through 4 explicit directives quoted above; the meta-finding shape (when-not-whether) emerged through main-session dialogue rather than cold-session adversarial pressure.
+
+**Regression check against:** [Review 78 Finding 4](2026-05-20-suite-review.md#review-78--2026-05-20-1645z) (the original "lettering / abbreviation lookup cost" codification that established TW Dim 12); [AIE F-XXX in `AI-ENGINEER-REVIEW.md` Dim 7](../../domains/role/AI-ENGINEER-REVIEW.md) (cluster-batching letter-coded-filename failure mode); the prior 3 recurrences of letter-label slip across PR #38 / PR #44 / Review 78 itself — this is the 4th recurrence and the first to trigger mechanical-hook enforcement.
+
+**Session note:** **Sycophancy compensation:** the natural authoring bias for a self-meta-review is to inflate the discipline's existing coverage ("TW Dim 12 already catches this; methodology is correctly calibrated"). The corrective framing here: the methodology IS correctly calibrated (the domain prompts name the failure mode) BUT the catch-timing is too late for the operator-visible cost (4 recurrences cost operator-time to flag + audit-trail noise before Round 2 fires). The substantive finding is the timing-gap, not the absence of coverage.
+
+**Cite-verify discipline applied to this audit** (per [Review 91 Finding 14](2026-05-23-suite-review.md#r91-f14)): TW Dim 12 prose loaded from `vsdd-suite/domains/role/TECHNICAL-WRITER-REVIEW.md` line 57; DR Dim 2 prose from `vsdd-suite/domains/role/DOCUMENTATION-REVIEWER-REVIEW.md` line 38; AIE Dim 7 prose from `vsdd-suite/domains/role/AI-ENGINEER-REVIEW.md` line 52; primer 4 § [manual] First-class fallback path from `vsdd-suite/primers/4-feedback-integration.md`; primer 5 + primer 6 frequency-statement quotes verified by grep; suite-development.md § Layer-gate close criteria verified by grep at line 514; VSDD whitepaper WebFetch (https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00) for the silence-on-frequency confirmation.
+
+**Lookup-idiom adoption** (per [Review 91 Finding 16](2026-05-23-suite-review.md#r91-f16)): grep-first behavior held across the audit — every claim about TW/DR/AIE coverage verified against the live domain-prompt text before authoring the finding; primer phrasings located via `grep -n "per layer\|per-layer\|once per"` before quoting; the analysis surfaced the silent-whitepaper observation by direct WebFetch query rather than memory-recall.
+
+**Cost-tally** (minimal form per [Review 91 Finding 20](2026-05-23-suite-review.md#r91-f20) opt-in classification — main-session meta-review interspersed with the in-progress PR #52 work):
+
+- **AI tool / Model / Execution method:** [claude-code CLI](https://claude.com/claude-code) / `claude-opus-4-7` / inline main session
+- **Wall-clock anchors (Bash `date -u`):** session-start 2026-05-25T01:00Z (when operator surfaced the Phase 4 bypass) → session-end captured at commit-prep step (later in the same conversation)
+- **Files touched (this entry):** 1 suite-side review-log file (this Review 94 entry); 2 in-PR-#52 artifacts authored as the partial-resolution of Finding 3 (`vsdd-suite/hooks/check-no-letter-clusters.py` + the pending primer 4 § Routing output rule amendment + `.pre-commit-config.yaml` wiring); future-revisit-scope items (Finding 1 spec change + Finding 2 PHASE-FREQUENCY.md authoring + Finding 3 follow-up co-authoring + stale-document layered defense) deferred to the post-PR-#52-merge suite-hardening PR.
+- **Plan tier:** Claude Max (inherited from prior PR #52 session; operator re-confirm if changed).
+- **Operator-action queue:** if cost-tally precision is load-bearing, operator runs `/cost` and pastes; otherwise the agent-self-verifiable tier per [Review 91 Finding 8](2026-05-23-suite-review.md#r91-f8) suffices for this entry's auditability.
+
+---
+
+### Deferred
+
+<a id="r94-f1"></a>
+**Finding 1 — Phase 4 routing bypass: project-side Layer-gate close criteria don't enumerate Phase 4, allowing an AI agent planning a layer cycle to skip the routing pass entirely (Dim 10 + primer 4 § Anti-patterns)**
+
+**Owner:** suite-developer
+**Status:** raised
+**Blocked by:** *(none)*
+
+**Domain-raised** during PR #52 Layer 3 cycle when operator flagged the omission of Phase 4 from the task list ("Why not?") after I had laid out task slots for Phases 2a, 2b, 2c, 3, and 5 without Phase 4.
+
+**Defect class.** Primer 4 IS clear that Phase 4 follows every Phase 3 round + that routing is per-round, not per-layer. But the Layer-gate-criteria checklist that I generated my task plan from did NOT enumerate Phase 4. Specifically:
+
+- `vsdd-suite/suite-development/suite-development.md` § Layer-gate close criteria (line 514, "PROCESS.md retrospective discipline") lists 7 criteria; Phase 4 routing is not one of them. Criterion 3 says "every finding is in a terminal state" but doesn't say "and every finding has a recorded route."
+- `vsdd-suite-reference-examples/bookmark-cli-manual/TODO.md` § Layer 3 layer-gate criteria lists 6 criteria; Phase 4 is also not one of them.
+- The check-suite-review-preamble hook validates per-review entries but doesn't require a "Phase 4 routing scheduled" closing field on the terminal-round Phase 3 review.
+
+So an AI agent (the failure case: my main session) planning a layer cycle from the Layer-gate criteria list skips Phase 4 because it's invisible at gate-criterion-checking time. The catch happens only when the operator notices the task-list omission directly, which is a fragile catch-mechanism.
+
+**Proposed fix (deferred to post-PR-#52-merge suite-hardening PR):**
+1. Add criterion to `suite-development.md` § Layer-gate close criteria: "**Every Phase 3 round has a Phase 4 routing record.** Routing is per-round, not per-layer. A layer that closes IAR at Round N must have N routing records per primer 4 § Routing output. Hook-enforced via check-suite-review-preamble closing-field validation."
+2. Add the same criterion to `templates/TODO-template.md` per-layer block.
+3. Update `vsdd-suite-reference-examples/bookmark-cli-manual/TODO.md` § Layer 3 layer-gate criteria to include Phase 4 routing (the worked-example template other projects copy from).
+4. Add to primer 3 § Round closing a mandatory `**Phase 4 routing:** <date> | <file>` closing-field that the check-suite-review-preamble hook validates.
+5. Update VDD-IAR Alignment dim 10 prose to require "Phase 4 routing record exists per round" rather than the looser "Phase 4 routing applied".
+
+**Worked example for the codification cycle:** the PR #52 Layer 3 cycle ran Phase 4 routing only after operator flagged the omission; the cycle's actual Phase 4 record (`vsdd-suite-reference-examples/bookmark-cli-manual/vsdd-suite/review-log/2026-05-24-phase-4-routing.md`) demonstrates the canonical shape that the future amendment can cite as the model.
+
+**Classification:** Deferred — operator authorization (option "Discussion only; defer the PR until after the IAR cycle closes" 2026-05-25) defers the actual primer/standard/template edits to the post-PR-#52-merge suite-hardening PR. This entry is the audit-trail record so the next session picks up the work.
+
+---
+
+<a id="r94-f2"></a>
+**Finding 2 — VSDD phase frequency guidance gap: upstream whitepaper is silent + suite primers carry frequency conventions in scattered prose without a consolidated matrix (Dim 1 + Dim 2)**
+
+**Owner:** suite-developer
+**Status:** raised
+**Blocked by:** *(none)*
+
+**Director-raised** when operator asked ("more guidance on phase 1, 4, 5, and 6. Is it every layer? Once per shipped feature?") during the Phase 4 routing discussion.
+
+**Defect class.** WebFetch of the VSDD whitepaper (https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00) confirms upstream silence on phase frequency: *"The framework is prescriptive about what to do but silent on when to repeat it... The whitepaper lacks: scope boundaries for each phase run, triggering conditions, nesting guidance."* Comments section reportedly acknowledges scalability gaps; practitioners infer frequency empirically.
+
+The suite's de-facto conventions exist but are scattered across primer text + suite-development.md without a single source of truth:
+
+| Phase | De-facto suite frequency (synthesized via grep) | Source citation in suite |
+|---|---|---|
+| 1a+1b Spec | Once per project + re-runs when Phase 4 routes findings back to 1a+1b | Primer 4 routing table line 29 |
+| 1c Decomposition | Once per project + re-runs when Phase 4 routes to 1c | Primer 4 routing table line 32 |
+| 2a/2b/2c | Per layer | Primer 2b line 5; primer 2c line 90; primer 1c line 17 |
+| 3 IAR | Per layer × N rounds until MVR | Primer 3 § Round triggers (G-131 continue + G-151 stop) |
+| 4 Routing | **Per Phase 3 round** (the IAR refinement loop) | Primer 4 line 5; primer 4 line 124 |
+| 5 Hardening | Per layer (with per-surface conditionals) | Primer 5 line 40; primer 5 line 110 |
+| 6 Convergence | Once per project at terminal close (+ once per re-open) | Primer 6 line 9; README line 310 |
+
+A new contributor reading the primers cannot find this matrix in one place — they have to assemble it from per-primer prose. A primer-1c reader doesn't see the "per layer" pattern stated at the same authoritative level as primer 6's "once per project" statement.
+
+**Proposed fix (deferred):**
+1. Add `vsdd-suite/PHASE-FREQUENCY.md` (or a consolidated § in README.md): the matrix above as authoritative reference with whitepaper-vs-suite source-of-truth attribution.
+2. Add a § Frequency one-liner to each primer's preamble (e.g., primer 4: "**Frequency:** per Phase 3 round (every round; the IAR refinement loop continues until MVR)").
+3. Cross-reference Phase frequency matrix from each Layer-gate-criterion entry.
+4. File an "upstream coordination ask" to the whitepaper authors per the [`claude-code-contract.md`](../../claude-code-contract.md) Shape 3 upstream-coordination convention — the suite's matrix is a contribution candidate back to the whitepaper.
+5. Document the gap + suite's interim conventions in `COMPATIBILITY.md` as a forward-only deviation.
+
+**Classification:** Deferred — same operator-policy decision as Finding 1 (defer the artifact edits to the post-PR-#52-merge suite-hardening PR). This entry is the durable audit-trail capture.
+
+---
+
+### Partially-resolved
+
+<a id="r94-f3"></a>
+**Finding 3 — Letter-label recurrence is at 4 cycles; TW Dim 12 + DR Dim 2 + AIE Dim 7 catch-timing fires at Round 2 IAR review — too late for post-Round-1 artifacts created during Phase 4 routing or methodology-amendment work (Dim 11 + meta-discipline timing)**
+
+**Owner:** suite-developer
+**Status:** fix-landed (in-cycle hook + primer 4 rule on PR #52); future-revisit scope captured below as `**Future revisit:**` for the post-merge suite-hardening PR
+**Blocked by:** *(none)*
+**Validator:** technical-writer (validates the hook's pattern coverage matches the TW Dim 12 detector-pattern enumeration)
+
+**Director-raised** when operator flagged the 4th recurrence during PR #52 Phase 4 routing ("How am I going to know what Cluster C means when I read the logs a month from now? Do not use this sort of shorthand") + asked the stronger-enforcement question ("Is there a stronger method of enforcing this? It's happened several times") + asked the domain-coverage meta-question ("Do any of my domains guard against or catch this?").
+
+**Defect class.** I created cluster letters (`Cluster A` through `Cluster O`) during the Phase 4 routing pass to summarize 32 routable findings into 15 thematic groups, and the letters propagated into DESIGN.md spec amendments + CHANGELOG slim-form entries + the Phase 4 routing record itself as section headers. Operator-visible cost: opaque audit trail; cross-reference lookup-cost; the same anti-pattern that Review 78 already named + that TW Dim 12 explicitly detects.
+
+**Methodology coverage analysis** (verified via grep against domain prompts):
+
+| Domain | Dimension | Catch shape | Catch timing |
+|---|---|---|---|
+| Technical Writer | Dim 12 (Review 78 Finding 4) | Canonical detector pattern: `grep for capital-letter labels next to methodology concept words (Surface [A-D], Phase [0-9][a-z], Mode [A-Z], Form [A-Z], etc.)` | Round 2+ IAR review — fires when TW re-reads post-Round-1 artifacts |
+| Documentation Reviewer | Dim 2 (Implicit-knowledge audit) | Catches abbreviations + jargon without first-use expansion | Round 2+ IAR review — cold-reader-discovery pass |
+| AI Engineer | Dim 7 (Cluster-batching with adversarial-pair separation) | Named failure mode: `cluster files preserved with letter-coded names (Cluster A/B/C/D) post-execution (TW Dim 12 naming-discipline slip per the codified feedback memory on avoiding lettering)` | Round 2+ IAR review — fires when AIE re-reads the post-Round-1 cluster-batching artifacts |
+
+**Timing gap.** All three domains correctly cover the failure mode + would have flagged `Cluster B/C/H` in DESIGN.md / the Phase 4 routing record AT ROUND 2. But the Round 1 reviews ran BEFORE I created the cluster letters (the letters appeared during Phase 4 routing, which runs AFTER Phase 3 Round 1 completes). The earliest catch the methodology offers for post-Round-1-created artifacts is Round 2 — minutes-to-days later, after the operator has read the audit trail with the opaque labels in it. This is the 4th-recurrence pattern: the methodology IS correctly calibrated; the catch happens too late for the operator-visible cost.
+
+**In-cycle partial resolution (PR #52 scope per operator authorization):**
+
+1. **New hook `vsdd-suite/hooks/check-no-letter-clusters.py`** — mechanical enforcement at commit-time (seconds after I write the offending label). Patterns: `\bCluster [A-Z]\b`, `\bSurface [A-Z](?:\.\d)?\b`, `\bPath [A-Z]\b`, `\bOption [A-Z]\b`. Scope: user-facing project artifacts + project audit-trail + suite-side prose. `<!-- hook-bypass: <rationale> -->` first-5-lines escape valve preserves G-89 historical narrative.
+2. **Primer 4 § Routing output rule** — descriptive cluster identifier; never letter labels. Cross-references TW Dim 12 + AIE Dim 7 + the new hook.
+3. **Memory `feedback_avoid_lettering.md` updated** with the 4th-recurrence narrative + the expanded "ANY thematic grouping subject to same anti-pattern" framing (previously scoped only to spawn-prompts + cluster-agent filenames; now expanded to any working-session shorthand that risks artifact-leakage).
+
+**Layered defense post-PR-#52 (the hook is the load-bearing tier):**
+
+| Mechanism | Catch timing | Failure-tolerance |
+|---|---|---|
+| Memory (`feedback_avoid_lettering.md`) | Pre-action (relies on me reading) | Has failed 4 times |
+| **Pre-commit hook `check-no-letter-clusters.py`** (PR #52) | Commit time (seconds after write) | Mechanical; no operator-time cost |
+| TW Dim 12 (existing) | Round 2 IAR review (minutes-to-days) | Catches escape-valve abuse — TW reviews flagged hook-bypass rationales as findings for the next registry-walk review |
+| DR Dim 2 (existing) | Round 2 IAR review | Same |
+| AIE Dim 7 (existing) | Round 2 IAR review | Same |
+| Primer 4 § Routing output rule (PR #52) | Pre-action methodology-authoring | Reinforces TW Dim 12 at the routing-record-authoring boundary |
+
+**Future revisit (post-merge suite-hardening PR; captured per operator's "When we revisit this..." directive 2026-05-25):**
+
+The PR #52 hook + primer 4 rule fix the lettering-recurrence specifically. The operator surfaced TWO larger meta-investigations the same finding suggests:
+
+(a) **Co-authoring evaluation for shape+content enforcement domains.** TW (lookup-cost discipline), DR (implicit-knowledge audit), AIE (cluster-discipline), Documentation Reviewer (cold-reader-discovery), and other domains with shape+content roles currently REVIEW artifacts post-hoc. Evaluate the impact of having them CO-AUTHOR reviews + documentation in real-time, rather than only reviewing them at Round 2. Open questions: does co-authoring catch the slip earlier than the hook? Does it cost too much operator-time to be worth the catch-time-shift? Are there specific artifact classes (Phase 4 routing records; suite-side primer amendments; CHANGELOG entries) where co-authoring is high-leverage vs. low-leverage? Specific design candidate: a "shape-co-author" sub-agent spawned mid-authoring on artifacts above N lines to flag lettering / abbreviation / cross-reference / cite-verify issues inline before the artifact lands at commit-time.
+
+(b) **Stale-document layered defense (apply the same pattern).** Apply the lettering-defense analytical pattern to the stale-document problem class: which domains currently catch staleness (DR Dim 2 implicit-knowledge audit covers prerequisite-drift but isn't a strict stale-detector; TW Dim 12 doesn't cover staleness)? What's the catch timing? Where is the timing gap? What mechanical hook closes the gap? PR #52's Round 1 surfaced 6+ domains converging on README/CHANGELOG/PROCESS/manual-tests/layer-3.md/FINDINGS-INDEX/install-verification staleness — same recurrence pattern; same "domain catches at Round 2 too late" timing gap. The fix candidate is a staleness-hook (e.g., flag a markdown file that references a commit/PR/Layer that has moved-on without the file being touched) layered with a domain-prompt amendment (a "stale-document audit" dim added to DR + TW). 
+
+Both meta-investigations queue for the post-PR-#52-merge suite-hardening PR per operator's deferred-suite-hardening framing.
+
+**Classification:** Partially-resolved — immediate mechanical fix lands in PR #52; future-revisit-scope captured for the post-merge cycle.
+
+---
+
+### Summary
+
+Three suite-side meta-findings surfaced during PR #52 Layer 3 IAR cycle, all about **when** the methodology catches a defect rather than **whether** it catches it:
+
+- **Finding 1 (Deferred)** — Phase 4 routing bypass via Layer-gate-criteria omission. Fix: add Phase 4 as explicit gate criterion + closing-field requirement in primer 3 + suite-development.md + project template. Post-PR-#52-merge cycle.
+- **Finding 2 (Deferred)** — Phase frequency guidance gap (whitepaper silent + primers scattered). Fix: consolidated PHASE-FREQUENCY.md + per-primer Frequency lines + upstream coordination ask. Post-PR-#52-merge cycle.
+- **Finding 3 (Partially-resolved)** — Letter-label 4th-recurrence; TW Dim 12 + DR Dim 2 + AIE Dim 7 catch timing fires at Round 2 — too late for post-Round-1-created artifacts. Partial fix lands in PR #52: pre-commit hook `check-no-letter-clusters.py` (commit-time mechanical enforcement) + primer 4 § Routing output rule (methodology-authoring-time reinforcement) + memory update. Future-revisit scope queued for post-merge cycle: (a) evaluate co-authoring impact for shape+content enforcement domains (TW/DR/AIE/Doc Reviewer co-authoring artifacts in real-time vs reviewing them post-hoc at Round 2); (b) apply the same layered-defense pattern to the stale-document recurrence pattern (PR #52 Round 1 surfaced 6+ domain convergence on Layer-3-docs-staleness — same timing-gap shape; staleness-hook + DR/TW domain-prompt dim amendment candidate).
+
+**Coordination:** Findings 1 + 2 route forward to the post-PR-#52-merge suite-hardening PR (primer/template/standard edits; PHASE-FREQUENCY.md authoring; upstream coordination ask). Finding 3 in-cycle partial-resolution coordinates with the PR #52 Phase 1a+1b commit batch (hook lands alongside the spec amendments) + the post-merge cycle's co-authoring + stale-document layered-defense investigations.
 
 ---
 

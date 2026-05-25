@@ -18,9 +18,12 @@
 #![deny(unsafe_code)]
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 
-use bookmark_cli::{display_safe, AttachTagError, BookmarkStore};
+use bookmark_cli::{
+    display_safe, AttachTagError, BookmarkStore, ImportError, MAX_STDIN_BYTES_DEFAULT,
+};
 use clap::error::ErrorKind;
 use clap::{ArgAction, Parser, Subcommand};
+use std::io::Read;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -36,17 +39,22 @@ use std::process::ExitCode;
                   DESIGN.md for full behavioral contract.\n\
                   \n\
                   Examples:\n  \
-                    bm add https://example.com           # capture a URL with current UTC timestamp\n  \
-                    bm list                                # print bookmarks, newest-first\n  \
-                    bm tag https://example.com rust        # attach a label to all matching bookmarks\n  \
-                    bm list --tag rust                     # filter list by tag\n  \
-                    bm list --tag rust --tag go            # OR-semantics across repeated --tag\n  \
-                    bm --help                              # show this help text\n  \
-                    bm --version                           # show version\n\
+                    bm add https://example.com               # capture a URL with current UTC timestamp\n  \
+                    bm list                                    # print bookmarks, newest-first\n  \
+                    bm tag https://example.com rust            # attach a label to all matching bookmarks\n  \
+                    bm list --tag rust                         # filter list by tag\n  \
+                    bm list --tag rust --tag go                # OR-semantics across repeated --tag\n  \
+                    bm export                                  # emit bookmarks as JSON to stdout\n  \
+                    bm export --tag rust                       # emit OR-filtered subset\n  \
+                    bm import < backup.json                    # import bookmarks from stdin\n  \
+                    bm export | bm import                      # canonical round-trip (backup; cross-machine sync)\n  \
+                    bm --help                                  # show this help text\n  \
+                    bm --version                               # show version\n\
                   \n\
                   Exit codes:\n  \
-                    0   success (including empty `bm list`)\n  \
-                    1   user error (empty URL, empty tag label, or unknown URL on `bm tag`)\n  \
+                    0   success (including empty `bm list` / `bm import` of zero records)\n  \
+                    1   user error (empty URL, empty tag label, unknown URL on `bm tag`, invalid stdin\n      \
+                        on `bm import`, --max-stdin-bytes 0 or stdin > cap, imported tags with control chars)\n  \
                     2   storage error (file unreadable, corrupt JSON, write failure)\n  \
                     64  CLI usage error (unknown subcommand, unknown flag)"
 )]
@@ -106,7 +114,7 @@ enum Cmd {
     /// attached to a matching bookmark is not duplicated.
     ///
     /// On success, exits 0 with stdout silent and stderr
-    /// `Tagged N bookmark(s).` (where N is the count of matching
+    /// `Tagged N bookmark or bookmarks (singular for N=1, plural otherwise per Layer 2 R2 UX F4).` (where N is the count of matching
     /// bookmarks; N >= 1 because zero matches is the error path).
     /// If no bookmark has the URL: exit 1 with stderr `Error: no
     /// bookmark found with URL <url>.` (typos surface as user-errors;
@@ -118,6 +126,56 @@ enum Cmd {
         url: String,
         /// The label to attach. Must be non-empty.
         label: String,
+    },
+    /// Emit bookmarks as storage-format JSON to stdout. Optionally filter by tag(s).
+    ///
+    /// Emits the storage-format object-wrapped shape
+    /// (`{"bookmarks":[...]}`) to stdout with newest-first ordering
+    /// preserved. With one or more `--tag <label>` flags, only bookmarks
+    /// matching at least one supplied label are emitted (OR-semantics
+    /// parallel to `bm list --tag`). Empty / absent store: emits
+    /// `{"bookmarks":[]}` + exit 0 (stderr silent — pipeline-rendering
+    /// audience, not human-rendering). Filter no-match: same empty-array
+    /// shape + exit 0. Empty label (`bm export --tag ""`): exit 1 with
+    /// `Error: tag label cannot be empty.`
+    ///
+    /// Cc-range control characters in URL + tag-label strings are escaped
+    /// by `serde_json`'s native JSON-string encoding to `\uHHHH` per RFC 8259
+    /// § 7 (architectural correction at Phase 2b: `display_safe` is NOT
+    /// applied at the serialization boundary because pre-escaping would
+    /// double-escape through `serde_json`). Curated format chars (bidi
+    /// controls, ZWJ) survive as raw UTF-8 in JSON output; downstream
+    /// consumers that render the parsed JSON should apply `display_safe`
+    /// at their rendering boundary just as `bm list` does.
+    Export {
+        /// Filter exported bookmarks to those tagged with this label.
+        /// Repeatable; repeated `--tag` composes with OR-semantics.
+        #[arg(long = "tag", action = ArgAction::Append)]
+        tags: Vec<String>,
+    },
+    /// Read bookmarks from stdin (storage-format JSON) and append to the store.
+    ///
+    /// Reads a payload matching the storage-format object-wrapped shape
+    /// (`{"bookmarks":[...]}`) from stdin and appends new records to the
+    /// existing store. Dedup-on-exact-tuple-match (`url`+`timestamp`+`tags`)
+    /// runs both against existing destination state AND within the
+    /// imported payload — byte-equal records collapse to one appended
+    /// record. Emits `Imported N bookmark or bookmarks (singular for N=1, plural otherwise per Layer 2 R2 UX F4).` to stderr (singular for
+    /// N=1, plural otherwise). All imported bookmarks land in one atomic
+    /// save; partial imports are forbidden (any validation failure
+    /// rejects the entire payload).
+    ///
+    /// Empty stdin: exit 1 with `Error: stdin is empty; nothing to import.`
+    /// Invalid JSON: exit 1 with `Error: stdin is not valid JSON.` + parse
+    /// detail. Schema mismatch (including bare-array stdin): exit 1 with
+    /// `Error: stdin JSON does not match storage-format schema; ...`
+    /// Stdin exceeds `--max-stdin-bytes` (default 10 MB): exit 1.
+    Import {
+        /// Maximum stdin byte count accepted. Defaults to 10 MB matching
+        /// the project's existing scale ceiling. Operator override for
+        /// legitimately-larger imports.
+        #[arg(long = "max-stdin-bytes", default_value_t = MAX_STDIN_BYTES_DEFAULT)]
+        max_stdin_bytes: usize,
     },
 }
 
@@ -342,6 +400,160 @@ fn run_tag(path: &std::path::Path, url: &str, label: &str) -> ExitCode {
     }
 }
 
+fn run_export(path: &std::path::Path, tags: &[String]) -> ExitCode {
+    if tags.iter().any(String::is_empty) {
+        eprintln!("Error: tag label cannot be empty.");
+        return ExitCode::from(1);
+    }
+    let store = match BookmarkStore::load(path) {
+        Ok(s) => s,
+        Err(e) => {
+            emit_storage_error(&e, "load");
+            return ExitCode::from(2);
+        }
+    };
+    let filter: Option<Vec<&str>> = if tags.is_empty() {
+        None
+    } else {
+        Some(tags.iter().map(String::as_str).collect())
+    };
+    let json = store.export_json(filter.as_deref());
+    // `print!` (not `println!`) — `export_json` already supplies the
+    // trailing newline per the spec contract; double-newline would
+    // surprise pipeline consumers.
+    print!("{json}");
+    ExitCode::SUCCESS
+}
+
+fn run_import(path: &std::path::Path, max_stdin_bytes: usize) -> ExitCode {
+    // Lower-bound validation on `--max-stdin-bytes` per Round 1 Phase 4
+    // routing (SE F4): a cap of 0 makes empty-stdin fail with the
+    // size-cap error rather than the empty-stdin error, mis-attributing
+    // the cause. Reject the configuration before reading.
+    if max_stdin_bytes == 0 {
+        eprintln!("Error: --max-stdin-bytes must be at least 1.");
+        return ExitCode::from(1);
+    }
+
+    // Read stdin with a hard byte cap. `take(cap + 1)` lets us
+    // distinguish "exactly at the cap" from "exceeded" without buffering
+    // the entire stream into memory uncapped — single-shot read up to
+    // cap+1 bytes; if length > cap, reject. Per `DESIGN.md` § Threat
+    // model addition for stdin-fed attacker input.
+    let mut bytes = Vec::new();
+    let cap_plus_one = u64::try_from(max_stdin_bytes)
+        .unwrap_or(u64::MAX)
+        .saturating_add(1);
+    if let Err(e) = std::io::stdin().take(cap_plus_one).read_to_end(&mut bytes) {
+        eprintln!(
+            "Error: failed to read stdin: {}",
+            display_safe(&format!("{e:#}"))
+        );
+        return ExitCode::from(2);
+    }
+    // Validation order per Round 1 Phase 4 routing (SE F4): empty-stdin
+    // check fires BEFORE size-cap check so empty-stdin always attributes
+    // to the empty-stdin error message, never to size-cap.
+    if bytes.is_empty() {
+        eprintln!("Error: stdin is empty; nothing to import.");
+        return ExitCode::from(1);
+    }
+    if bytes.len() > max_stdin_bytes {
+        // Human-readable unit suffix + remediation hint per Round 1
+        // Phase 4 routing UX-help-and-error-remediation (UX F2).
+        // Parallel to the R1 F5 storage-error-hint pattern.
+        #[allow(
+            clippy::cast_precision_loss,
+            reason = "MiB display is approximate-by-design; usize→f64 precision loss is acceptable for human-readable cap sizes (operator sees ~one-decimal-place MiB, exact byte count is the primary signal)"
+        )]
+        let mib = max_stdin_bytes as f64 / (1024.0 * 1024.0);
+        eprintln!(
+            "Error: stdin exceeded maximum byte limit of {max_stdin_bytes} bytes ({mib:.1} MiB)."
+        );
+        eprintln!("Hint: use --max-stdin-bytes <N> to override the default; pass a byte count larger than the input payload.");
+        return ExitCode::from(1);
+    }
+    let Ok(payload) = String::from_utf8(bytes) else {
+        // JSON is by spec UTF-8 — a non-UTF-8 stream is by definition
+        // invalid JSON. Route through the invalid-JSON error path.
+        eprintln!("Error: stdin is not valid JSON.");
+        eprintln!("(stdin is not valid UTF-8)");
+        return ExitCode::from(1);
+    };
+
+    let mut store = match BookmarkStore::load(path) {
+        Ok(s) => s,
+        Err(e) => {
+            emit_storage_error(&e, "load");
+            return ExitCode::from(2);
+        }
+    };
+
+    match store.import_json(&payload) {
+        Ok(n) => {
+            // Save only when there are records to persist. Skipping the
+            // save on the zero-appended path (empty payload or
+            // all-records-dedup'd) keeps the on-disk byte state
+            // unchanged, satisfying the empty-payload no-op test.
+            if n > 0 {
+                if let Err(e) = store.save(path) {
+                    emit_storage_error(&e, "save");
+                    return ExitCode::from(2);
+                }
+            }
+            let noun = if n == 1 { "bookmark" } else { "bookmarks" };
+            eprintln!("Imported {n} {noun}.");
+            ExitCode::SUCCESS
+        }
+        Err(ImportError::InvalidJson(detail)) => {
+            eprintln!("Error: stdin is not valid JSON.");
+            eprintln!("{}", display_safe(&detail));
+            ExitCode::from(1)
+        }
+        Err(ImportError::SchemaMismatch(detail)) => {
+            eprintln!(
+                "Error: stdin JSON does not match storage-format schema; expected {{\"bookmarks\": [...]}}."
+            );
+            eprintln!("{}", display_safe(&detail));
+            ExitCode::from(1)
+        }
+        Err(ImportError::TagContainsControlChars(idx, tag)) => {
+            // Active control-char tag rejection per Round 1 Phase 4
+            // routing imported-tag-control-char-rejection (Security F2
+            // active-mitigation). `display_safe` wraps the offending
+            // tag so attacker-controlled bytes don't reach the
+            // operator's terminal raw.
+            eprintln!("Error: imported bookmark tags contain disallowed control characters.");
+            eprintln!("Offending record index: {idx}");
+            eprintln!("Offending tag: {}", display_safe(&tag));
+            ExitCode::from(1)
+        }
+        Err(ImportError::EmptyTag(idx)) => {
+            // Round 2 RT F2 closure: cross-surface consistency with
+            // `bm tag ""` CLI rejection. The Layer 2 spec rule "tag
+            // label cannot be empty" applies at the import boundary
+            // too — an attacker cannot inject empty-string tags via
+            // stdin to bypass the CLI-surface check.
+            eprintln!("Error: imported bookmark tag label cannot be empty.");
+            eprintln!("Offending record index: {idx}");
+            ExitCode::from(1)
+        }
+        Err(ImportError::UrlContainsFormatChars(idx, url)) => {
+            // Round 2 Security F3 SO-decision: extend active mitigation
+            // from tags-only to URLs for symmetric trust-boundary
+            // enforcement. The offending URL is wrapped via display_safe
+            // so attacker-controlled bytes don't reach the operator's
+            // terminal raw.
+            eprintln!(
+                "Error: imported bookmark URL contains disallowed control or format characters."
+            );
+            eprintln!("Offending record index: {idx}");
+            eprintln!("Offending URL: {}", display_safe(&url));
+            ExitCode::from(1)
+        }
+    }
+}
+
 fn main() -> ExitCode {
     let cli = match Cli::try_parse() {
         Ok(cli) => cli,
@@ -353,5 +565,7 @@ fn main() -> ExitCode {
         Cmd::Add { url } => run_add(&path, url),
         Cmd::List { tags } => run_list(&path, &tags),
         Cmd::Tag { url, label } => run_tag(&path, &url, &label),
+        Cmd::Export { tags } => run_export(&path, &tags),
+        Cmd::Import { max_stdin_bytes } => run_import(&path, max_stdin_bytes),
     }
 }
