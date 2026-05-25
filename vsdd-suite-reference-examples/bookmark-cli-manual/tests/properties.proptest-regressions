@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 0fbe23d59a127d2231119811057842fc9370301b390faa26c2bdfdbe0f13078f # shrinks to store = BookmarkStore { bookmarks: [Bookmark { url: "https://example-0.com", timestamp: 2026-05-25T07:43:30.533362Z, tags: [] }, Bookmark { url: "https://example-3.com", timestamp: 2026-05-25T07:43:30.533364Z, tags: [] }, Bookmark { url: "https://example-0.com", timestamp: 2026-05-25T07:43:30.533364Z, tags: [] }, Bookmark { url: "https://example-0.com", timestamp: 2026-05-25T07:43:30.533364Z, tags: [] }, Bookmark { url: "https://example-2.com", timestamp: 2026-05-25T07:43:30.533365Z, tags: [] }] }

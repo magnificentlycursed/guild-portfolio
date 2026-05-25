@@ -2,3 +2,10 @@
 bookmarks.json
 mutants.out
 mutants.out.old
+
+# cargo-fuzz output (Phase 5 Layer 3 fuzz harness): track Cargo.toml + fuzz_targets
+# but not generated corpus / artifacts / target / Cargo.lock
+fuzz/target/
+fuzz/corpus/
+fuzz/artifacts/
+fuzz/Cargo.lock
