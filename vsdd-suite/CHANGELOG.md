@@ -1,6 +1,21 @@
+<!-- hook-bypass: this CHANGELOG preserves historical references to retired letter labels per G-89 forward-only narrative-preservation. New entries SHOULD use descriptive identifiers; legacy entries are preserved as-authored. The bypass-mechanism is itself a finding for the next registry-walk review per check-no-letter-clusters.py's own rationale. -->
 # Changelog
 
 All notable changes to the suite are recorded here. Entries are in reverse chronological order. Timestamps are UTC (Zulu).
+
+---
+
+## [Unreleased] Review 94 — Meta-discoverability + meta-enforcement-timing analysis; new check-no-letter-clusters.py hook landed (2026-05-25)
+
+**Source:** [Review 94](suite-development/review-log/2026-05-24-suite-review.md#review-94--2026-05-25-0300z) — surfaced during PR #52 Layer 3 IAR cycle when operator flagged the Phase 4 bypass + phase-frequency gap + letter-label 4th-recurrence + the meta-enforcement-question.
+
+**Added:** [`vsdd-suite/hooks/check-no-letter-clusters.py`](hooks/check-no-letter-clusters.py) — pre-commit hook scanning markdown for letter-only labels (`Cluster [A-Z]`, `Surface [A-Z](?:\.\d)?`, `Path [A-Z]`, `Option [A-Z]`). Per-file `<!-- hook-bypass: <rationale> -->` first-5-lines escape valve for G-89 forward-only narrative-preservation. Wired in [`.pre-commit-config.yaml`](../.pre-commit-config.yaml). Closes [Review 94 Finding 3](suite-development/review-log/2026-05-24-suite-review.md#r94-f3) partial fix.
+
+**Changed:** [`primers/4-feedback-integration.md`](primers/4-feedback-integration.md) § Routing output — new Cluster identifier discipline paragraph; cross-reference to TW Dim 12 + AIE Dim 7 + the new hook.
+
+**Deferred (post-PR-#52-merge suite-hardening PR):** [F1 Phase 4 routing bypass](suite-development/review-log/2026-05-24-suite-review.md#r94-f1) (add Phase 4 as Layer-gate criterion + closing-field requirement); [F2 phase-frequency gap](suite-development/review-log/2026-05-24-suite-review.md#r94-f2) (add `PHASE-FREQUENCY.md` matrix + per-primer Frequency line + upstream coordination ask); F3 future-revisit scope (co-authoring evaluation + stale-document layered defense).
+
+---
 
 ---
 
