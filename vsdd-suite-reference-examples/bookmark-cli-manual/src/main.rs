@@ -18,9 +18,12 @@
 #![deny(unsafe_code)]
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 
-use bookmark_cli::{display_safe, AttachTagError, BookmarkStore};
+use bookmark_cli::{
+    display_safe, AttachTagError, BookmarkStore, ImportError, MAX_STDIN_BYTES_DEFAULT,
+};
 use clap::error::ErrorKind;
 use clap::{ArgAction, Parser, Subcommand};
+use std::io::Read;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -118,6 +121,51 @@ enum Cmd {
         url: String,
         /// The label to attach. Must be non-empty.
         label: String,
+    },
+    /// Emit bookmarks as storage-format JSON to stdout. Optionally filter by tag(s).
+    ///
+    /// Emits the storage-format object-wrapped shape
+    /// (`{"bookmarks":[...]}`) to stdout with newest-first ordering
+    /// preserved. With one or more `--tag <label>` flags, only bookmarks
+    /// matching at least one supplied label are emitted (OR-semantics
+    /// parallel to `bm list --tag`). Empty / absent store: emits
+    /// `{"bookmarks":[]}` + exit 0 (stderr silent — pipeline-rendering
+    /// audience, not human-rendering). Filter no-match: same empty-array
+    /// shape + exit 0. Empty label (`bm export --tag ""`): exit 1 with
+    /// `Error: tag label cannot be empty.`
+    ///
+    /// `display_safe` wraps URL + tag-label strings at the serialization
+    /// boundary so the emitted JSON is escape-clean for downstream
+    /// pipeline-renderable surfaces (terminals, log aggregators).
+    Export {
+        /// Filter exported bookmarks to those tagged with this label.
+        /// Repeatable; repeated `--tag` composes with OR-semantics.
+        #[arg(long = "tag", action = ArgAction::Append)]
+        tags: Vec<String>,
+    },
+    /// Read bookmarks from stdin (storage-format JSON) and append to the store.
+    ///
+    /// Reads a payload matching the storage-format object-wrapped shape
+    /// (`{"bookmarks":[...]}`) from stdin and appends new records to the
+    /// existing store. Dedup-on-exact-tuple-match (`url`+`timestamp`+`tags`)
+    /// runs both against existing destination state AND within the
+    /// imported payload — byte-equal records collapse to one appended
+    /// record. Emits `Imported N bookmark(s).` to stderr (singular for
+    /// N=1, plural otherwise). All imported bookmarks land in one atomic
+    /// save; partial imports are forbidden (any validation failure
+    /// rejects the entire payload).
+    ///
+    /// Empty stdin: exit 1 with `Error: stdin is empty; nothing to import.`
+    /// Invalid JSON: exit 1 with `Error: stdin is not valid JSON.` + parse
+    /// detail. Schema mismatch (including bare-array stdin): exit 1 with
+    /// `Error: stdin JSON does not match storage-format schema; ...`
+    /// Stdin exceeds `--max-stdin-bytes` (default 10 MB): exit 1.
+    Import {
+        /// Maximum stdin byte count accepted. Defaults to 10 MB matching
+        /// the project's existing scale ceiling. Operator override for
+        /// legitimately-larger imports.
+        #[arg(long = "max-stdin-bytes", default_value_t = MAX_STDIN_BYTES_DEFAULT)]
+        max_stdin_bytes: usize,
     },
 }
 
@@ -342,6 +390,103 @@ fn run_tag(path: &std::path::Path, url: &str, label: &str) -> ExitCode {
     }
 }
 
+fn run_export(path: &std::path::Path, tags: &[String]) -> ExitCode {
+    if tags.iter().any(String::is_empty) {
+        eprintln!("Error: tag label cannot be empty.");
+        return ExitCode::from(1);
+    }
+    let store = match BookmarkStore::load(path) {
+        Ok(s) => s,
+        Err(e) => {
+            emit_storage_error(&e, "load");
+            return ExitCode::from(2);
+        }
+    };
+    let filter: Option<Vec<&str>> = if tags.is_empty() {
+        None
+    } else {
+        Some(tags.iter().map(String::as_str).collect())
+    };
+    let json = store.export_json(filter.as_deref());
+    // `print!` (not `println!`) — `export_json` already supplies the
+    // trailing newline per the spec contract; double-newline would
+    // surprise pipeline consumers.
+    print!("{json}");
+    ExitCode::SUCCESS
+}
+
+fn run_import(path: &std::path::Path, max_stdin_bytes: usize) -> ExitCode {
+    // Read stdin with a hard byte cap. `take(cap + 1)` lets us
+    // distinguish "exactly at the cap" from "exceeded" without buffering
+    // the entire stream into memory uncapped — single-shot read up to
+    // cap+1 bytes; if length > cap, reject. Per `DESIGN.md` § Threat
+    // model addition for stdin-fed attacker input.
+    let mut bytes = Vec::new();
+    let cap_plus_one = u64::try_from(max_stdin_bytes)
+        .unwrap_or(u64::MAX)
+        .saturating_add(1);
+    if let Err(e) = std::io::stdin().take(cap_plus_one).read_to_end(&mut bytes) {
+        eprintln!(
+            "Error: failed to read stdin: {}",
+            display_safe(&format!("{e:#}"))
+        );
+        return ExitCode::from(2);
+    }
+    if bytes.len() > max_stdin_bytes {
+        eprintln!("Error: stdin exceeded maximum byte limit of {max_stdin_bytes}.");
+        return ExitCode::from(1);
+    }
+    if bytes.is_empty() {
+        eprintln!("Error: stdin is empty; nothing to import.");
+        return ExitCode::from(1);
+    }
+    let Ok(payload) = String::from_utf8(bytes) else {
+        // JSON is by spec UTF-8 — a non-UTF-8 stream is by definition
+        // invalid JSON. Route through the invalid-JSON error path.
+        eprintln!("Error: stdin is not valid JSON.");
+        eprintln!("(stdin is not valid UTF-8)");
+        return ExitCode::from(1);
+    };
+
+    let mut store = match BookmarkStore::load(path) {
+        Ok(s) => s,
+        Err(e) => {
+            emit_storage_error(&e, "load");
+            return ExitCode::from(2);
+        }
+    };
+
+    match store.import_json(&payload) {
+        Ok(n) => {
+            // Save only when there are records to persist. Skipping the
+            // save on the zero-appended path (empty payload or
+            // all-records-dedup'd) keeps the on-disk byte state
+            // unchanged, satisfying the empty-payload no-op test.
+            if n > 0 {
+                if let Err(e) = store.save(path) {
+                    emit_storage_error(&e, "save");
+                    return ExitCode::from(2);
+                }
+            }
+            let noun = if n == 1 { "bookmark" } else { "bookmarks" };
+            eprintln!("Imported {n} {noun}.");
+            ExitCode::SUCCESS
+        }
+        Err(ImportError::InvalidJson(detail)) => {
+            eprintln!("Error: stdin is not valid JSON.");
+            eprintln!("{}", display_safe(&detail));
+            ExitCode::from(1)
+        }
+        Err(ImportError::SchemaMismatch(detail)) => {
+            eprintln!(
+                "Error: stdin JSON does not match storage-format schema; expected {{\"bookmarks\": [...]}}."
+            );
+            eprintln!("{}", display_safe(&detail));
+            ExitCode::from(1)
+        }
+    }
+}
+
 fn main() -> ExitCode {
     let cli = match Cli::try_parse() {
         Ok(cli) => cli,
@@ -353,5 +498,7 @@ fn main() -> ExitCode {
         Cmd::Add { url } => run_add(&path, url),
         Cmd::List { tags } => run_list(&path, &tags),
         Cmd::Tag { url, label } => run_tag(&path, &url, &label),
+        Cmd::Export { tags } => run_export(&path, &tags),
+        Cmd::Import { max_stdin_bytes } => run_import(&path, max_stdin_bytes),
     }
 }

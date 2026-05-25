@@ -420,7 +420,194 @@ impl BookmarkStore {
             .filter(|b| b.tags.iter().any(|t| labels.iter().any(|l| t == *l)))
             .collect()
     }
+
+    /// Serializes the store as compact JSON in the storage-format
+    /// object-wrapped shape (`{"bookmarks":[...]}`) suitable for piping
+    /// to stdout per `DESIGN.md` § `bm export` (Layer 3).
+    ///
+    /// - **Ordering:** newest-first per the `bm list` invariant.
+    /// - **Filter:** when `filter_labels` is `Some`, only bookmarks whose
+    ///   `tags` field contains at least one of the supplied labels are
+    ///   emitted (OR-semantics parallel to `bm list --tag`).
+    /// - **`display_safe` at the serialization boundary:** URL strings +
+    ///   tag-label strings route through `display_safe` BEFORE serialization
+    ///   so control characters / terminal-escape sequences do not reach
+    ///   downstream pipeline-renderable surfaces (terminals, log
+    ///   aggregators, web renders). The JSON structural delimiters are
+    ///   unaffected. The wrapping happens at the per-field level; the
+    ///   resulting JSON remains valid AND parseable by `import_json`.
+    /// - **Trailing newline:** the returned string ends with `\n` so a
+    ///   shell pipe sees the canonical line-terminated stream shape.
+    ///
+    /// Pure transformation against the store — no I/O, no clock, no
+    /// mutation. Per `DESIGN.md` § Verification architecture, `export_json`
+    /// lives on the pure side of the purity boundary.
+    ///
+    /// # Panics
+    ///
+    /// Panics on memory-allocation failure during JSON serialization of
+    /// the in-memory `serde_json::Value` — `serde_json::to_string` for an
+    /// in-memory `Value` has no Serialize-side error path; the only failure
+    /// mode is OOM during string allocation, which is acceptable for a
+    /// single-shot CLI binary per the supplement's panic policy.
+    #[must_use]
+    pub fn export_json(&self, filter_labels: Option<&[&str]>) -> String {
+        let source: Vec<&Bookmark> =
+            filter_labels.map_or_else(|| self.newest_first(), |labels| self.filter_by_tags(labels));
+
+        let bookmarks_array: Vec<serde_json::Value> = source
+            .iter()
+            .map(|bm| {
+                let tags_array: Vec<serde_json::Value> = bm
+                    .tags
+                    .iter()
+                    .map(|t| serde_json::Value::String(display_safe(t)))
+                    .collect();
+                serde_json::json!({
+                    "url": display_safe(bm.url()),
+                    "timestamp": bm.timestamp(),
+                    "tags": tags_array,
+                })
+            })
+            .collect();
+
+        let store_value = serde_json::json!({ "bookmarks": bookmarks_array });
+        // serde_json::Value serialization never fails (no Serialize-side
+        // error path for in-memory Value); the unwrap is on a pure
+        // memory-allocation path that panics only on OOM.
+        #[allow(
+            clippy::unwrap_used,
+            reason = "Value::to_string never fails for in-memory Value; only OOM panics here, which is acceptable for a single-shot CLI binary"
+        )]
+        let mut s = serde_json::to_string(&store_value).unwrap();
+        s.push('\n');
+        s
+    }
+
+    /// Parses `payload` as a storage-format JSON object, validates the
+    /// schema, and appends the imported bookmarks to the store with
+    /// dedup-on-exact-tuple-match semantics per `DESIGN.md` § `bm import`
+    /// (Layer 3).
+    ///
+    /// **Dedup scope.** Dedup runs BOTH against existing destination
+    /// state AND within the imported payload itself — a record is
+    /// appended only if no record with the same `url`+`timestamp`+`tags`
+    /// tuple already exists in `self.bookmarks` (which includes records
+    /// appended earlier in this same call). This implements the
+    /// `import(import(X)) == import(X)` idempotence property in `tests/properties.rs`.
+    ///
+    /// **Atomicity.** All validation happens before any mutation to
+    /// `self.bookmarks`. If any record fails the schema or the
+    /// non-empty-URL invariant, the entire import fails + the store is
+    /// preserved unmodified. Per `DESIGN.md` § `bm import` (Layer 3)
+    /// "All imported bookmarks land in one atomic save — partial imports
+    /// MUST NOT occur".
+    ///
+    /// Returns the count of records actually appended (zero counts dedup'd
+    /// records). Used by the CLI shell to render the
+    /// `Imported N bookmark(s).` count to stderr.
+    ///
+    /// # Errors
+    ///
+    /// - `ImportError::InvalidJson` if `payload` is not valid JSON.
+    /// - `ImportError::SchemaMismatch` if the JSON parses but does not
+    ///   match the storage-format object-wrapped shape, OR if any
+    ///   per-bookmark record fails schema validation (missing required
+    ///   `url`/`timestamp` field, wrong field type, empty `url`).
+    pub fn import_json(&mut self, payload: &str) -> Result<usize, ImportError> {
+        let value: serde_json::Value =
+            serde_json::from_str(payload).map_err(|e| ImportError::InvalidJson(e.to_string()))?;
+
+        // Top-level schema validation — must be an object with a
+        // `bookmarks` field that is an array. Strict-only on the
+        // object-wrapped shape (bare-array stdin rejected here) per
+        // `DESIGN.md` § `bm import` (Layer 3) input-shape contract.
+        let bookmarks_value = value.get("bookmarks").ok_or_else(|| {
+            ImportError::SchemaMismatch("missing required field `bookmarks`".to_owned())
+        })?;
+        if !bookmarks_value.is_array() {
+            return Err(ImportError::SchemaMismatch(
+                "field `bookmarks` must be an array".to_owned(),
+            ));
+        }
+
+        // Per-record schema validation via serde_json::from_value. Any
+        // record missing `url`/`timestamp` or with a wrong field type
+        // surfaces here as a parse error. Errors here are pre-mutation
+        // — `self.bookmarks` is untouched until validation completes.
+        let imported: Vec<Bookmark> =
+            serde_json::from_value(bookmarks_value.clone()).map_err(|e| {
+                ImportError::SchemaMismatch(format!("bookmark record validation failed: {e}"))
+            })?;
+
+        // Library-level non-empty-URL invariant (mirrors `add`'s check).
+        for bm in &imported {
+            if bm.url.is_empty() {
+                return Err(ImportError::SchemaMismatch(
+                    "bookmark `url` field cannot be empty".to_owned(),
+                ));
+            }
+        }
+
+        // Dedup-on-exact-tuple-match — `Bookmark`'s derived `PartialEq`
+        // compares all fields (url + timestamp + tags); appending only
+        // when `self.bookmarks` does not already contain the record
+        // automatically dedups against BOTH existing destination state
+        // AND within the imported payload (each push immediately joins
+        // the destination state for subsequent contains checks).
+        let mut appended = 0_usize;
+        for new_bm in imported {
+            if !self.bookmarks.contains(&new_bm) {
+                self.bookmarks.push(new_bm);
+                appended += 1;
+            }
+        }
+        Ok(appended)
+    }
 }
+
+/// Default cap on the `bm import` stdin byte count.
+///
+/// Matches the project's existing scale ceiling of 10,000 bookmarks at
+/// ~1 KB each per `DESIGN.md` § Performance budget. The CLI shell uses
+/// this as the default for the `--max-stdin-bytes` flag; operators with
+/// legitimately-larger imports override at invocation time. Per
+/// `DESIGN.md` § Threat model addition for stdin-fed attacker input.
+pub const MAX_STDIN_BYTES_DEFAULT: usize = 10 * 1024 * 1024;
+
+/// Error variants surfaced by `BookmarkStore::import_json`.
+///
+/// Mirrors the `DESIGN.md` § `bm import` (Layer 3) failure contract — the
+/// CLI shell maps each variant to the spec-contracted stderr message + exit
+/// code. The detail strings carry the underlying parse/validation diagnostic
+/// for operator visibility.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ImportError {
+    /// The supplied payload is not valid JSON. The carried string is the
+    /// underlying `serde_json` parse-error message. Per `DESIGN.md`
+    /// § `bm import` (Layer 3) failure contract, the CLI shell renders
+    /// this as `Error: stdin is not valid JSON.` + the detail on the
+    /// next line + exits 1.
+    InvalidJson(String),
+    /// The payload is valid JSON but does not match the storage-format
+    /// object-wrapped schema, OR a per-bookmark record failed validation.
+    /// The carried string is the offending-field detail. Per `DESIGN.md`
+    /// § `bm import` (Layer 3) failure contract, the CLI shell renders
+    /// this as `Error: stdin JSON does not match storage-format schema;
+    /// expected {"bookmarks": [...]}.` + the detail on the next line + exits 1.
+    SchemaMismatch(String),
+}
+
+impl fmt::Display for ImportError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidJson(msg) => write!(f, "stdin is not valid JSON: {msg}"),
+            Self::SchemaMismatch(msg) => write!(f, "schema mismatch: {msg}"),
+        }
+    }
+}
+
+impl std::error::Error for ImportError {}
 
 /// Produces a sibling temp path next to `path`. Uniqueness is sufficient
 /// for the single-user, single-process scope declared in `DESIGN.md`

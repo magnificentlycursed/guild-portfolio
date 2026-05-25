@@ -1,5 +1,46 @@
 # Changelog
 
+## [Unreleased] Layer 3 Phase 2b — `bm export` + `bm import` implementation (GREEN: all 15 Phase 2a tests pass; 45/45 integration + 3/3 properties; 0 clippy warnings) — 2026-05-24
+
+**Scope:** Implementation lifecycle for Layer 3 per the operator-confirmed spec from PR #52 prior commits. Two-commit canonical shape (Phase 2a Red Gate + Phase 2b implementation) applied per the Layer 2 evidence-preservation annotation in [TODO.md § Layer 2](TODO.md#layer-2--tag-and-filter) — Phase 2a `878d3b6` (15 failing tests; CI-RED), Phase 2b in this commit (same tests pass; CI-GREEN).
+
+### Added (src/lib.rs)
+
+- **`BookmarkStore::export_json(&self, filter_labels: Option<&[&str]>) -> String`** — pure transformation against the store; emits storage-format object-wrapped JSON in newest-first order. `display_safe` wraps URL + tag-label strings at the per-field serialization step so emitted JSON is escape-clean for downstream pipeline-renderable surfaces. Returns trailing-newline-terminated string. Filter via `Option<&[&str]>` parallel to `filter_by_tags`; `None` exports all bookmarks.
+- **`BookmarkStore::import_json(&mut self, payload: &str) -> Result<usize, ImportError>`** — two-phase validation (top-level schema `{"bookmarks": [...]}` check + per-record serde validation + non-empty-URL invariant), all pre-mutation. Dedup-on-`url`+`timestamp`+`tags` exact-tuple-match via derived `Bookmark::PartialEq`; the `contains` check against `self.bookmarks` automatically dedups BOTH against existing destination state AND within the imported payload (each successful push joins the destination state for subsequent records' contains-checks). Returns count of records actually appended (zero counts dedup'd records). Per `DESIGN.md` § `bm import` (Layer 3) atomicity contract: all validation completes before any mutation, so partial imports are structurally impossible.
+- **`pub const MAX_STDIN_BYTES_DEFAULT: usize = 10 * 1024 * 1024`** — single source of truth for the 10 MB cap; CLI shell uses it as the `--max-stdin-bytes` clap default.
+- **`pub enum ImportError`** with `InvalidJson(String)` + `SchemaMismatch(String)` variants + `Display` + `Error` impls; mirrors the `DESIGN.md` § `bm import` (Layer 3) failure contract for the CLI shell to map to spec-contracted stderr messages.
+
+### Added (src/main.rs)
+
+- **`Cmd::Export { tags: Vec<String> }`** + **`Cmd::Import { max_stdin_bytes: usize }`** clap variants with full long-help text describing the per-subcommand contract.
+- **`run_export(path, tags)`** + **`run_import(path, max_stdin_bytes)`** per-subcommand helpers parallel to the Layer 2 R2 extract-and-name pattern.
+- **Stdin reading discipline in `run_import`:** `take(cap + 1)` lets us distinguish "exactly at cap" from "exceeded" without uncapped in-memory buffering. UTF-8 validation failures route through the invalid-JSON error path (JSON is UTF-8 by spec). Order: read stdin → check size cap → check empty → UTF-8 decode → load store → import_json → save (skipped when `n == 0` so empty-payload imports preserve on-disk byte state).
+
+### Test verification
+
+  $ cargo test --test bookmarks tests_export --no-fail-fast
+  test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 39 filtered out
+
+  $ cargo test --test bookmarks tests_import --no-fail-fast
+  test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out
+
+  $ cargo test --test bookmarks
+  test result: ok. 45 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+
+  $ cargo test --test properties
+  test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+
+  $ cargo clippy --all-targets --all-features
+  Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.21s
+  (zero warnings)
+
+### Forward implications
+
+Phase 2c refactor evaluated: not required at this commit. `run_export` + `run_import` are extracted per the Layer 2 R2 precedent at landing time (the helpers are pre-planned in TODO.md § Layer 3 Phase 2c declaration); the main dispatcher remains a 5-arm match. Per `vsdd-suite/primers/2c-refactor.md` § Completion criteria #5: explicit-skip annotation follows in TODO.md § Layer 3 Phase 2c. The Layer 3 cycle now advances to Phase 3 IAR for the 13-domain capstone-active set.
+
+---
+
 ## [Unreleased] Layer 3 spec — operator-confirmation pass on AI-co-authored first-draft (2026-05-24)
 
 **Scope:** Operator-confirmation pass on the AI-co-authored Layer 3 first-draft from the prior entry below. 6 of 8 AI-author-flagged decisions confirmed at AI-author-default; 2 operator-revised; all AI-author flag prose removed from DESIGN.md + TODO.md. **No code changes** — spec refinement only on the same `bookmark-cli-manual-layer-3-spec-activation` branch ahead of PR #52 merge.
