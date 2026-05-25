@@ -1687,3 +1687,257 @@ fn tests_export_import_round_trip() {
         "round-trip must reproduce source bookmarks exactly"
     );
 }
+
+// =============================================================================
+// Layer 3 Round 1 Phase 4 routing — Phase 2a regression tests.
+//
+// Per the routing record at vsdd-suite/review-log/2026-05-24-phase-4-routing.md,
+// the following tests close the substantive defects surfaced at Round 1 + the
+// 3 QE test-coverage gaps. Each must fail against the current impl (Phase 2a
+// RED) and pass after the Phase 2b impl fixes land (GREEN).
+// =============================================================================
+
+/// JSON-native escape design (4-domain convergence; SA F3 + SE F1 + RT F3 +
+/// Sec F1). DESIGN.md L106 contracts on byte-preservation through the
+/// `bm export | bm import` round-trip. Current impl emits `\u{HHHH}` Rust-syntax
+/// (8-byte literal); JSON parser recovers the literal text, not the original
+/// bytes. After the Phase 2b fix, `display_safe` emits `\uHHHH` JSON-native
+/// 6-char escape; JSON parser recovers the original byte.
+#[test]
+fn tests_export_import_round_trip_preserves_pathological_bytes() {
+    let src_dir = tempdir().unwrap();
+    let src_db = src_dir.path().join("bookmarks.json");
+    let dst_dir = tempdir().unwrap();
+    let dst_db = dst_dir.path().join("bookmarks.json");
+
+    // Write a source store containing a URL with raw control bytes that exercise
+    // display_safe's escape path. Hand-write the JSON to bypass the bm-add path
+    // (clap would reject control bytes in argv on some shells; this is the
+    // direct-write equivalent of "pathological data already in the store").
+    let pathological_url = "https://evil.example/\u{001b}[31mfrobnicate\u{200e}";
+    let store_json = serde_json::json!({
+        "bookmarks": [
+            {"url": pathological_url, "timestamp": "2026-05-25T03:00:00Z", "tags": []}
+        ]
+    });
+    fs::write(&src_db, serde_json::to_string_pretty(&store_json).unwrap()).unwrap();
+
+    // Export from src; pipe to import on dst.
+    let exported = Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &src_db)
+        .args(["export"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let exported_str = String::from_utf8(exported).unwrap();
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &dst_db)
+        .args(["import"])
+        .write_stdin(exported_str)
+        .assert()
+        .success()
+        .stderr("Imported 1 bookmark.\n");
+
+    // The destination store must contain the SAME bytes as the source —
+    // pathological_url with the raw ESC byte + bidi format char intact.
+    let dst_contents: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&dst_db).unwrap()).unwrap();
+    let dst_url = dst_contents["bookmarks"][0]["url"].as_str().unwrap();
+    assert_eq!(
+        dst_url, pathological_url,
+        "round-trip must preserve original bytes; got {dst_url:?} vs source {pathological_url:?}. Current impl emits \\u{{HHHH}} Rust-syntax which is NOT recovered as the original byte by a JSON parser; Phase 2b fix switches to JSON-native \\uHHHH 6-char escape."
+    );
+}
+
+/// Sorted-tag-comparison dedup (2-domain convergence; SE F2 + RT F1).
+/// DESIGN.md L223 says "tags is treated as a set"; current impl uses Vec
+/// equality so reordered tags create duplicate-row. After Phase 2b fix,
+/// `import_json` dedup compares on (url, timestamp, sorted(tags)).
+#[test]
+fn tests_import_dedup_treats_tags_as_set_under_reorder() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    // First import: tags in [rust, go] order.
+    let payload_v1 = r#"{"bookmarks":[{"url":"https://example.com","timestamp":"2026-05-25T03:00:00Z","tags":["rust","go"]}]}"#;
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import"])
+        .write_stdin(payload_v1)
+        .assert()
+        .success()
+        .stderr("Imported 1 bookmark.\n");
+
+    // Second import: same record but tags reordered [go, rust].
+    // Per DESIGN.md L223 (tags as set) + the sorted-tag-comparison dedup
+    // routing, this must be dedup'd to zero appended.
+    let payload_v2 = r#"{"bookmarks":[{"url":"https://example.com","timestamp":"2026-05-25T03:00:00Z","tags":["go","rust"]}]}"#;
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import"])
+        .write_stdin(payload_v2)
+        .assert()
+        .success()
+        .code(0)
+        .stderr("Imported 0 bookmarks.\n");
+
+    let contents = fs::read_to_string(&db).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&contents).unwrap();
+    assert_eq!(
+        parsed["bookmarks"].as_array().unwrap().len(),
+        1,
+        "tag-reorder must NOT create a duplicate row per sorted-tag-comparison dedup"
+    );
+}
+
+/// Active control-char rejection on imported tags (Sec F2 Round 1 routing).
+/// bm import rejects any record whose tags contain control / format characters
+/// at import time per the new spec failure bullet. New `ImportError` variant
+/// surfaces as a specific stderr message + exit 1 + no file write.
+#[test]
+fn tests_import_rejects_control_char_in_tags() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    let payload = "{\"bookmarks\":[{\"url\":\"https://example.com\",\"timestamp\":\"2026-05-25T03:00:00Z\",\"tags\":[\"rust\\u001binjection\"]}]}";
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import"])
+        .write_stdin(payload)
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::starts_with(
+            "Error: imported bookmark tags contain disallowed control characters.",
+        ))
+        .stdout(predicate::str::is_empty());
+
+    assert!(
+        !db.exists(),
+        "store must not be created on control-char-in-tags rejection"
+    );
+}
+
+/// QE R8 F1 — within-payload byte-equal dedup edge case. DESIGN.md edge case
+/// catalog explicitly names: "bm import consuming a JSON file with bookmarks
+/// that are byte-equal within the imported payload itself: only one record is
+/// appended; the duplicates are dropped at import time." Currently impl is
+/// correct but no test exercises this case; a mutation that strips
+/// within-payload-state check from the dedup logic would survive.
+#[test]
+fn tests_import_dedup_collapses_within_payload_byte_equal_records() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    // Payload with two byte-equal records (same url, timestamp, tags).
+    let payload = r#"{"bookmarks":[
+        {"url":"https://example.com","timestamp":"2026-05-25T03:00:00Z","tags":["rust"]},
+        {"url":"https://example.com","timestamp":"2026-05-25T03:00:00Z","tags":["rust"]}
+    ]}"#;
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import"])
+        .write_stdin(payload)
+        .assert()
+        .success()
+        .code(0)
+        .stderr("Imported 1 bookmark.\n");
+
+    let contents = fs::read_to_string(&db).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&contents).unwrap();
+    assert_eq!(
+        parsed["bookmarks"].as_array().unwrap().len(),
+        1,
+        "within-payload byte-equal records must collapse to one appended"
+    );
+}
+
+/// QE R8 F2 — AC 18 tag-element `display_safe` path. Implementation applies
+/// `display_safe` to both URL and tag elements; only URL path has covering test.
+/// A mutation stripping `display_safe` from tag emission would survive.
+#[test]
+fn tests_export_applies_display_safe_to_pathological_tag() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    // Hand-write store with a tag containing a control byte.
+    let store_json = serde_json::json!({
+        "bookmarks": [
+            {"url": "https://example.com", "timestamp": "2026-05-25T03:00:00Z",
+             "tags": ["rust\u{001b}injection"]}
+        ]
+    });
+    fs::write(&db, serde_json::to_string_pretty(&store_json).unwrap()).unwrap();
+
+    let output = Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["export"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let rendered = String::from_utf8(output).unwrap();
+
+    // The emitted bytes must NOT contain the raw ESC byte in the tag.
+    assert!(
+        !rendered.contains('\u{001b}'),
+        "raw ESC byte must not appear in exported JSON tag element; display_safe must wrap tag fields"
+    );
+
+    // The emitted bytes must parse as valid JSON.
+    let parsed: serde_json::Value =
+        serde_json::from_str(&rendered).expect("export output must be valid JSON");
+    let tag = parsed["bookmarks"][0]["tags"][0].as_str().unwrap();
+    assert!(
+        !tag.contains('\u{001b}'),
+        "tag field must not carry raw ESC byte; got {tag:?}"
+    );
+}
+
+/// QE R8 F3 — AC 27 --max-stdin-bytes operator override unexercised. Default
+/// cap is tested; flag-overridden cap path has no covering test.
+#[test]
+fn tests_import_max_stdin_bytes_operator_override() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    // Payload fits within 200-byte override cap but exceeds 100-byte cap.
+    // Test 1: cap 100 — payload rejected.
+    let small_payload = r#"{"bookmarks":[{"url":"https://example.com","timestamp":"2026-05-25T03:00:00Z","tags":[]}]}"#;
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import", "--max-stdin-bytes", "50"])
+        .write_stdin(small_payload)
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::starts_with(
+            "Error: stdin exceeded maximum byte limit of 50.",
+        ));
+
+    // Test 2: cap 500 — same payload accepted. (Default of 10MB would also
+    // accept; the override flag's code path is exercised here.)
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import", "--max-stdin-bytes", "500"])
+        .write_stdin(small_payload)
+        .assert()
+        .success()
+        .stderr("Imported 1 bookmark.\n");
+}
