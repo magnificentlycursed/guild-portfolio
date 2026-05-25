@@ -1,6 +1,69 @@
 <!-- hook-bypass: this CHANGELOG preserves historical references to retired letter labels in entries dated 2026-05-19 through 2026-05-21 per G-89 forward-only narrative-preservation. New entries (2026-05-24+) use descriptive identifiers; the legacy entries are preserved as-authored. The bypass-mechanism is itself a finding for the next registry-walk review per check-no-letter-clusters.py's own rationale. -->
 # Changelog
 
+## [Unreleased] Layer 3 Phase 2b Round 1 — impl fixes for 4 routed substantive findings (display_safe architectural correction; sorted-tag-comparison dedup; control-char tag rejection; long_about + error remediation) — 2026-05-25
+
+**Scope:** Phase 2b commit in the Round 1 fix sequence. Turns the 3 RED Phase 2a regression tests (`878d3b6` precursor + `ba6a4a9` Phase 2a tests) GREEN by landing the impl fixes per the routing record at [`vsdd-suite/review-log/2026-05-24-phase-4-routing.md`](vsdd-suite/review-log/2026-05-24-phase-4-routing.md). Includes a Phase-2b-surfaced architectural correction sub-decision for the JSON-native escape design.
+
+### Changed (src/lib.rs)
+
+- **`display_safe`** emits JSON-native `\uHHHH` 6-character escape (4 hex digits for BMP; UTF-16 surrogate-pair encoding for codepoints above U+FFFF per RFC 8259 § 7) rather than the pre-Round-1 Rust-syntax `\u{HHHH}` curly-brace form. The render-boundary use (`bm list` eprintln/println) emits this format directly.
+- **`BookmarkStore::export_json`** architectural correction: serializes `Bookmark` records via serde's native encoder; `display_safe` is NOT applied at the per-field serialization step. serde_json's native string encoder handles Cc-range control chars (emits `\uHHHH` in JSON output per RFC 8259); byte-preservation round-trip via `bm export | bm import` holds structurally. Trade-off: curated format chars (bidi controls, ZWJ) survive as raw bytes in JSON; pipeline consumers apply `display_safe` at their rendering boundary.
+- **`BookmarkStore::import_json`** sorted-tag-comparison dedup — comparison key is now (`url`, `timestamp`, `sorted(tags)`); reordered-tag duplicates collapse per the Layer 3 spec's set-frame for tags. Storage `Vec<String>` still preserves insertion order at the record level.
+- **`BookmarkStore::import_json`** active control-char rejection on imported tags — pre-mutation validation rejects any record whose tags contain control or curated format chars; new `ImportError::TagContainsControlChars(record_index, tag)` variant carries diagnostic context.
+- **`ImportError`** new `TagContainsControlChars(usize, String)` variant + `Display` impl extension.
+- **`bookmark_set_eq`** new private helper for the sorted-tag-comparison dedup logic.
+
+### Changed (src/main.rs)
+
+- **`Cli` `long_about`** — added `bm export` + `bm import` + the canonical `bm export | bm import` round-trip example; updated exit-codes summary to reflect Layer 3 paths (`bm import` exit-1 semantics; `--max-stdin-bytes 0` rejection; imported-tags-with-control-chars rejection).
+- **`run_import`** validation order — moved empty-stdin check BEFORE size-cap check so empty-stdin always attributes to the empty-stdin error message; added lower-bound validation rejecting `--max-stdin-bytes 0`.
+- **`run_import`** size-cap error message — added human-readable MiB suffix + `Hint: use --max-stdin-bytes <N>...` remediation hint per the R1 F5 storage-error-hint pattern.
+- **`run_import`** new `Err(ImportError::TagContainsControlChars(idx, tag))` arm — emits the spec-contracted error message + offending record index + `display_safe`-wrapped tag.
+
+### Changed (DESIGN.md)
+
+- **§ `bm export` (Layer 3) Success-output paragraph** rewritten to reflect the architectural correction: the export path leverages serde_json's native string encoder (not `display_safe` pre-wrapping) for Cc-range control chars; documents the trade-off for curated format chars.
+- **§ Edge case catalog `bm export` against pathological data** entry updated to align with the new architecture.
+
+### Test verification (post-Phase-2b)
+
+- `cargo test --test bookmarks` — **51 passed; 0 failed**.
+- `cargo test --test properties` — 3 passed; 0 failed.
+- `cargo clippy --all-targets --all-features` — 0 warnings.
+- 3 RED Phase 2a regression tests now GREEN (byte-preservation round-trip; sorted-tag-comparison dedup; control-char tag rejection).
+- 3 GREEN QE coverage tests stay GREEN with updated assertions reflecting the architectural correction (parsed-back JSON URL/tag fields contain the original ESC byte — byte-preservation round-trip; JSON output bytes do NOT contain raw ESC).
+- Layer 1 `bm_list_sanitizes_terminal_escape_in_url` updated assertion to expect the JSON-native `` 6-char form (was `\u{001b}` Rust-syntax).
+
+### Routing closures (Round 1 → Phase 2b)
+
+- JSON-native escape design (SA F3 + SE F1 + RT F3 + Sec F1; 4-domain) — Closed.
+- Sorted-tag-comparison dedup (SE F2 + RT F1; 2-domain) — Closed.
+- Active control-char rejection on imported tags (Sec F2) — Closed.
+- UX help-and-error-remediation (UX F1 + UX F2; clap long_about + size-cap remediation hint) — Closed.
+- Validation-order fix (SE F4) — Closed.
+- `import_json` doc-comment fix (SE F3) — Closed (doc-comment now accurate about Phase 5 proptest target framing).
+
+### Architectural correction sub-decision (Round 1 Phase 4 routing scope extension)
+
+Phase 2b implementation discovered that the Round 1 Path-C decision ("switch `display_safe` to JSON-native `\uHHHH` escape") had an incorrect technical premise: `display_safe` pre-escaping inside the JSON encoding path produces double-escapes that break the byte-preservation round-trip regardless of `display_safe`'s emit format. Operator authorized the architectural correction sub-decision (2026-05-25 main-session AskUserQuestion pass): remove `display_safe` from `export_json` entirely; leverage serde_json's native control-char escaping. Documented at the suite-side [Review 94](../../vsdd-suite/suite-development/review-log/2026-05-24-suite-review.md#review-94--2026-05-25-0300z) framing of "operator-decision intent preserved; implementation-revealed-architectural-correction sub-decisions are legitimate Phase 2b adjustments rather than re-decisions of the Round 1 routing".
+
+---
+
+## [Unreleased] Layer 3 Phase 2a Round 1 — 6 new regression + coverage tests (3 RED + 3 GREEN) (2026-05-25)
+
+**Scope:** Phase 2a commit in the Round 1 fix sequence per the routing record. Canonical two-commit shape: this commit lands the regression tests (3 RED + 3 GREEN); Phase 2b commit (above) turns the 3 RED tests GREEN.
+
+3 RED — substantive defects (display_safe round-trip; sorted-tag-comparison dedup; control-char tag rejection); 3 GREEN — QE coverage gaps (R8 F1 within-payload dedup; R8 F2 tag-element display_safe; R8 F3 --max-stdin-bytes operator override).
+
+---
+
+## [Unreleased] Layer 3 Phase 1a+1b Round 1 — spec amendments + narrative updates for 13 finding-cluster fixes (39 FINDINGS-INDEX rows backfilled) (2026-05-25)
+
+**Scope:** Phase 1a+1b commit in the Round 1 fix sequence. DESIGN.md spec amendments (8 sections); README/CHANGELOG/PROCESS/install-verification/FINDINGS-INDEX narrative updates per the Round 1 docs-staleness cluster routing. Closes 13 routed finding-clusters at the spec/narrative level; Phase 2a + Phase 2b commits follow for the impl-level closures.
+
+---
+
 ## [Unreleased] Layer 3 Phase 4 Round 1 routing — 13-domain Round 1 findings routed; fix-work-readiness signal (2026-05-25)
 
 **Scope:** Phase 4 feedback-integration routing pass for Phase 3 IAR Round 1's aggregate finding set (76 findings across 13 capstone-active domains; commit `2acc418`). Per [`vsdd-suite/primers/4-feedback-integration.md`](../../vsdd-suite/primers/4-feedback-integration.md) § [manual] First-class fallback path. 5 SO-decidable findings resolved via main-session AskUserQuestion pass before routing landed.

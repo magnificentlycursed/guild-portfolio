@@ -39,17 +39,22 @@ use std::process::ExitCode;
                   DESIGN.md for full behavioral contract.\n\
                   \n\
                   Examples:\n  \
-                    bm add https://example.com           # capture a URL with current UTC timestamp\n  \
-                    bm list                                # print bookmarks, newest-first\n  \
-                    bm tag https://example.com rust        # attach a label to all matching bookmarks\n  \
-                    bm list --tag rust                     # filter list by tag\n  \
-                    bm list --tag rust --tag go            # OR-semantics across repeated --tag\n  \
-                    bm --help                              # show this help text\n  \
-                    bm --version                           # show version\n\
+                    bm add https://example.com               # capture a URL with current UTC timestamp\n  \
+                    bm list                                    # print bookmarks, newest-first\n  \
+                    bm tag https://example.com rust            # attach a label to all matching bookmarks\n  \
+                    bm list --tag rust                         # filter list by tag\n  \
+                    bm list --tag rust --tag go                # OR-semantics across repeated --tag\n  \
+                    bm export                                  # emit bookmarks as JSON to stdout\n  \
+                    bm export --tag rust                       # emit OR-filtered subset\n  \
+                    bm import < backup.json                    # import bookmarks from stdin\n  \
+                    bm export | bm import                      # canonical round-trip (backup; cross-machine sync)\n  \
+                    bm --help                                  # show this help text\n  \
+                    bm --version                               # show version\n\
                   \n\
                   Exit codes:\n  \
-                    0   success (including empty `bm list`)\n  \
-                    1   user error (empty URL, empty tag label, or unknown URL on `bm tag`)\n  \
+                    0   success (including empty `bm list` / `bm import` of zero records)\n  \
+                    1   user error (empty URL, empty tag label, unknown URL on `bm tag`, invalid stdin\n      \
+                        on `bm import`, --max-stdin-bytes 0 or stdin > cap, imported tags with control chars)\n  \
                     2   storage error (file unreadable, corrupt JSON, write failure)\n  \
                     64  CLI usage error (unknown subcommand, unknown flag)"
 )]
@@ -416,6 +421,15 @@ fn run_export(path: &std::path::Path, tags: &[String]) -> ExitCode {
 }
 
 fn run_import(path: &std::path::Path, max_stdin_bytes: usize) -> ExitCode {
+    // Lower-bound validation on `--max-stdin-bytes` per Round 1 Phase 4
+    // routing (SE F4): a cap of 0 makes empty-stdin fail with the
+    // size-cap error rather than the empty-stdin error, mis-attributing
+    // the cause. Reject the configuration before reading.
+    if max_stdin_bytes == 0 {
+        eprintln!("Error: --max-stdin-bytes must be at least 1.");
+        return ExitCode::from(1);
+    }
+
     // Read stdin with a hard byte cap. `take(cap + 1)` lets us
     // distinguish "exactly at the cap" from "exceeded" without buffering
     // the entire stream into memory uncapped — single-shot read up to
@@ -432,12 +446,26 @@ fn run_import(path: &std::path::Path, max_stdin_bytes: usize) -> ExitCode {
         );
         return ExitCode::from(2);
     }
-    if bytes.len() > max_stdin_bytes {
-        eprintln!("Error: stdin exceeded maximum byte limit of {max_stdin_bytes}.");
-        return ExitCode::from(1);
-    }
+    // Validation order per Round 1 Phase 4 routing (SE F4): empty-stdin
+    // check fires BEFORE size-cap check so empty-stdin always attributes
+    // to the empty-stdin error message, never to size-cap.
     if bytes.is_empty() {
         eprintln!("Error: stdin is empty; nothing to import.");
+        return ExitCode::from(1);
+    }
+    if bytes.len() > max_stdin_bytes {
+        // Human-readable unit suffix + remediation hint per Round 1
+        // Phase 4 routing UX-help-and-error-remediation (UX F2).
+        // Parallel to the R1 F5 storage-error-hint pattern.
+        #[allow(
+            clippy::cast_precision_loss,
+            reason = "MiB display is approximate-by-design; usize→f64 precision loss is acceptable for human-readable cap sizes (operator sees ~one-decimal-place MiB, exact byte count is the primary signal)"
+        )]
+        let mib = max_stdin_bytes as f64 / (1024.0 * 1024.0);
+        eprintln!(
+            "Error: stdin exceeded maximum byte limit of {max_stdin_bytes} bytes ({mib:.1} MiB)."
+        );
+        eprintln!("Hint: use --max-stdin-bytes <N> to override the default; pass a byte count larger than the input payload.");
         return ExitCode::from(1);
     }
     let Ok(payload) = String::from_utf8(bytes) else {
@@ -482,6 +510,17 @@ fn run_import(path: &std::path::Path, max_stdin_bytes: usize) -> ExitCode {
                 "Error: stdin JSON does not match storage-format schema; expected {{\"bookmarks\": [...]}}."
             );
             eprintln!("{}", display_safe(&detail));
+            ExitCode::from(1)
+        }
+        Err(ImportError::TagContainsControlChars(idx, tag)) => {
+            // Active control-char tag rejection per Round 1 Phase 4
+            // routing imported-tag-control-char-rejection (Security F2
+            // active-mitigation). `display_safe` wraps the offending
+            // tag so attacker-controlled bytes don't reach the
+            // operator's terminal raw.
+            eprintln!("Error: imported bookmark tags contain disallowed control characters.");
+            eprintln!("Offending record index: {idx}");
+            eprintln!("Offending tag: {}", display_safe(&tag));
             ExitCode::from(1)
         }
     }

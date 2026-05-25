@@ -357,9 +357,13 @@ fn bm_list_sanitizes_terminal_escape_in_url() {
         .clone();
 
     let rendered = String::from_utf8(output).expect("stdout should be UTF-8");
+    // Post-Round-1 JSON-native escape format: `\uHHHH` (6 chars) rather
+    // than the pre-Round-1 Rust-syntax `\u{HHHH}` (8-byte literal). The
+    // bm list path emits through eprintln/println so display_safe's
+    // emit format reaches stdout directly (no JSON encoder downstream).
     assert!(
-        rendered.contains("\\u{001b}"),
-        "ESC should appear escaped as \\u{{001b}}; got {rendered:?}"
+        rendered.contains("\\u001b"),
+        "ESC should appear escaped as \\u001b (JSON-native 6-char form); got {rendered:?}"
     );
     assert!(
         !rendered.contains('\x1b'),
@@ -1260,8 +1264,13 @@ fn tests_export_applies_display_safe_to_pathological_url() {
 
     let rendered = String::from_utf8(output).unwrap();
 
-    // 1. The emitted bytes must NOT contain the raw ESC byte (would harm a
-    //    downstream terminal-rendering consumer).
+    // 1. The emitted JSON bytes must NOT contain the raw ESC byte —
+    //    serde_json's native string encoder escapes Cc-range control chars
+    //    to `\uHHHH` in the JSON output per RFC 8259 § 7. Architectural
+    //    correction sub-decision within the Round 1 Phase 4 routing
+    //    JSON-native escape design: export relies on serde_json's native
+    //    escape rather than display_safe pre-wrapping; display_safe stays
+    //    at the render boundary (bm list) only.
     assert!(
         !rendered.contains('\u{001b}'),
         "raw ESC byte must not be emitted to stdout; got bytes containing it"
@@ -1269,17 +1278,18 @@ fn tests_export_applies_display_safe_to_pathological_url() {
 
     // 2. The emitted bytes must parse as valid JSON.
     let parsed: serde_json::Value =
-        serde_json::from_str(&rendered).expect("post-display_safe output must be valid JSON");
+        serde_json::from_str(&rendered).expect("export output must be valid JSON");
 
-    // 3. The URL field contains the display_safe-escaped form (the raw ESC
-    //    has been replaced by a printable representation per the
-    //    display_safe contract). The exact escape representation is an
-    //    implementation choice — the contract is "no raw control chars" +
-    //    "JSON-parseable" + "round-trippable through bm import".
+    // 3. The URL field, when parsed back via the JSON parser, contains the
+    //    ORIGINAL ESC byte — the byte-preservation round-trip contract per
+    //    the Round 1 Phase 4 routing decision. JSON-native `` escape
+    //    in the JSON bytes is recovered to the raw ESC byte by the JSON
+    //    parser; the round-trip `bm export | bm import` reproduces the
+    //    source bytes exactly.
     let url = parsed["bookmarks"][0]["url"].as_str().unwrap();
     assert!(
-        !url.contains('\u{001b}'),
-        "url field must not carry the raw ESC byte; got {url:?}"
+        url.contains('\u{001b}'),
+        "url field after JSON parse must contain the original ESC byte (byte-preservation round-trip); got {url:?}"
     );
 }
 
@@ -1892,19 +1902,23 @@ fn tests_export_applies_display_safe_to_pathological_tag() {
 
     let rendered = String::from_utf8(output).unwrap();
 
-    // The emitted bytes must NOT contain the raw ESC byte in the tag.
+    // The emitted JSON bytes must NOT contain the raw ESC byte — serde_json's
+    // native encoder escapes the Cc-range char to `` per RFC 8259 § 7.
     assert!(
         !rendered.contains('\u{001b}'),
-        "raw ESC byte must not appear in exported JSON tag element; display_safe must wrap tag fields"
+        "raw ESC byte must not appear in exported JSON tag element; serde_json native encode handles it"
     );
 
-    // The emitted bytes must parse as valid JSON.
+    // The emitted bytes must parse as valid JSON; the parsed-back tag
+    // contains the ORIGINAL ESC byte per the byte-preservation round-trip
+    // contract (architectural correction sub-decision within Round 1
+    // Phase 4 routing JSON-native escape design).
     let parsed: serde_json::Value =
         serde_json::from_str(&rendered).expect("export output must be valid JSON");
     let tag = parsed["bookmarks"][0]["tags"][0].as_str().unwrap();
     assert!(
-        !tag.contains('\u{001b}'),
-        "tag field must not carry raw ESC byte; got {tag:?}"
+        tag.contains('\u{001b}'),
+        "tag field after JSON parse must contain the original ESC byte (byte-preservation round-trip); got {tag:?}"
     );
 }
 
@@ -1927,7 +1941,7 @@ fn tests_import_max_stdin_bytes_operator_override() {
         .failure()
         .code(1)
         .stderr(predicate::str::starts_with(
-            "Error: stdin exceeded maximum byte limit of 50.",
+            "Error: stdin exceeded maximum byte limit of 50 bytes",
         ));
 
     // Test 2: cap 500 — same payload accepted. (Default of 10MB would also
