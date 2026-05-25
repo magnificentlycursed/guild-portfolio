@@ -1060,3 +1060,630 @@ fn tests_list_rfc3339_scripted_check() {
         });
     }
 }
+
+// =============================================================================
+// Layer 3 Red Gate tests — `bm export` + `bm import` (AC 14..AC 28).
+// =============================================================================
+//
+// Per `vsdd-suite/primers/2a-red-gate.md`: each test below must fail against
+// the unmodified Layer 2 binary (which knows neither `export` nor `import`
+// as a subcommand) and must fail for the right reason — clap rejects the
+// unknown subcommand with exit 64. Once Phase 2b implementation lands, each
+// test asserts the spec contract per `DESIGN.md` § Behavioral contracts
+// § `bm export` (Layer 3) + § `bm import` (Layer 3).
+
+/// AC 14 — `bm export` against a populated store emits valid storage-format
+/// JSON containing all bookmarks in newest-first order; exit 0; stderr empty.
+#[test]
+fn tests_export_emits_all_bookmarks_as_storage_format_json() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    for i in 0..3 {
+        Command::cargo_bin("bm")
+            .unwrap()
+            .env("BOOKMARK_CLI_DB", &db)
+            .args(["add", &format!("https://item-{i}.example")])
+            .assert()
+            .success();
+        thread::sleep(Duration::from_millis(1100));
+    }
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["tag", "https://item-1.example", "rust"])
+        .assert()
+        .success();
+
+    let output = Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["export"])
+        .assert()
+        .success()
+        .stderr(predicate::str::is_empty())
+        .get_output()
+        .stdout
+        .clone();
+
+    let rendered = String::from_utf8(output).unwrap();
+    let parsed: serde_json::Value =
+        serde_json::from_str(&rendered).expect("stdout must parse as storage-format JSON");
+    let bookmarks = parsed["bookmarks"]
+        .as_array()
+        .expect("bookmarks must be an array");
+    assert_eq!(bookmarks.len(), 3, "all three bookmarks emitted");
+
+    // Newest-first invariant — item-2 added last, so it must appear first.
+    assert_eq!(bookmarks[0]["url"], "https://item-2.example");
+    assert_eq!(bookmarks[1]["url"], "https://item-1.example");
+    assert_eq!(bookmarks[2]["url"], "https://item-0.example");
+
+    // The tagged bookmark carries its tag through export.
+    let tags = bookmarks[1]["tags"].as_array().unwrap();
+    assert_eq!(tags.len(), 1);
+    assert_eq!(tags[0], "rust");
+}
+
+/// AC 15 — `bm export` against an absent store emits `{"bookmarks":[]}\n`
+/// to stdout; stderr silent; exit 0.
+#[test]
+fn tests_export_against_empty_store_emits_empty_bookmarks_array() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    let output = Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["export"])
+        .assert()
+        .success()
+        .stderr(predicate::str::is_empty())
+        .get_output()
+        .stdout
+        .clone();
+
+    let rendered = String::from_utf8(output).unwrap();
+    let parsed: serde_json::Value =
+        serde_json::from_str(&rendered).expect("stdout must parse as storage-format JSON");
+    assert_eq!(parsed["bookmarks"].as_array().unwrap().len(), 0);
+    assert!(rendered.ends_with('\n'), "trailing newline required");
+}
+
+/// AC 16 — `bm export --tag rust --tag go` returns OR-union of matching
+/// bookmarks; exit 0; stderr empty.
+#[test]
+fn tests_export_with_tag_filter_emits_or_union() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    for i in 0..3 {
+        Command::cargo_bin("bm")
+            .unwrap()
+            .env("BOOKMARK_CLI_DB", &db)
+            .args(["add", &format!("https://item-{i}.example")])
+            .assert()
+            .success();
+        thread::sleep(Duration::from_millis(1100));
+    }
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["tag", "https://item-0.example", "rust"])
+        .assert()
+        .success();
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["tag", "https://item-1.example", "go"])
+        .assert()
+        .success();
+
+    let output = Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["export", "--tag", "rust", "--tag", "go"])
+        .assert()
+        .success()
+        .stderr(predicate::str::is_empty())
+        .get_output()
+        .stdout
+        .clone();
+
+    let rendered = String::from_utf8(output).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&rendered).unwrap();
+    let bookmarks = parsed["bookmarks"].as_array().unwrap();
+    assert_eq!(bookmarks.len(), 2, "OR-union of rust + go is 2 of 3");
+    let urls: Vec<&str> = bookmarks
+        .iter()
+        .map(|b| b["url"].as_str().unwrap())
+        .collect();
+    assert!(urls.contains(&"https://item-0.example"));
+    assert!(urls.contains(&"https://item-1.example"));
+    assert!(!urls.contains(&"https://item-2.example"));
+}
+
+/// AC 17 — `bm export --tag ""` exits 1 with the spec-contracted empty-label
+/// error message; no stdout.
+#[test]
+fn tests_export_with_empty_tag_label_rejected() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://example.com"])
+        .assert()
+        .success();
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["export", "--tag", ""])
+        .assert()
+        .failure()
+        .code(1)
+        .stderr("Error: tag label cannot be empty.\n")
+        .stdout(predicate::str::is_empty());
+}
+
+/// AC 18 — `bm export` against a store with control characters / newlines
+/// in the URL applies `display_safe` at the serialization step; the emitted
+/// JSON remains valid JSON; the round-trip via `bm import` recovers the
+/// original record.
+#[test]
+fn tests_export_applies_display_safe_to_pathological_url() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    // Write a store with a pathological URL directly — the URL contains a
+    // bare ESC byte that, if emitted to a terminal unescaped, would trigger
+    // ANSI processing.
+    let pathological = "https://evil.example/\u{001b}[31mfrobnicate";
+    let store = serde_json::json!({
+        "bookmarks": [
+            {"url": pathological, "timestamp": "2026-05-24T01:00:00Z", "tags": []}
+        ]
+    });
+    fs::write(&db, serde_json::to_string_pretty(&store).unwrap()).unwrap();
+
+    let output = Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["export"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let rendered = String::from_utf8(output).unwrap();
+
+    // 1. The emitted bytes must NOT contain the raw ESC byte (would harm a
+    //    downstream terminal-rendering consumer).
+    assert!(
+        !rendered.contains('\u{001b}'),
+        "raw ESC byte must not be emitted to stdout; got bytes containing it"
+    );
+
+    // 2. The emitted bytes must parse as valid JSON.
+    let parsed: serde_json::Value =
+        serde_json::from_str(&rendered).expect("post-display_safe output must be valid JSON");
+
+    // 3. The URL field contains the display_safe-escaped form (the raw ESC
+    //    has been replaced by a printable representation per the
+    //    display_safe contract). The exact escape representation is an
+    //    implementation choice — the contract is "no raw control chars" +
+    //    "JSON-parseable" + "round-trippable through bm import".
+    let url = parsed["bookmarks"][0]["url"].as_str().unwrap();
+    assert!(
+        !url.contains('\u{001b}'),
+        "url field must not carry the raw ESC byte; got {url:?}"
+    );
+}
+
+/// AC 19 / AC 28 — `bm import` consumes a valid storage-format payload from
+/// stdin and appends the imported records to the existing store; stderr emits
+/// the singular `Imported 1 bookmark.` count; exit 0; stdout silent.
+#[test]
+fn tests_import_appends_valid_payload_to_existing_store() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://existing.example"])
+        .assert()
+        .success();
+
+    let payload = r#"{"bookmarks":[{"url":"https://imported.example","timestamp":"2026-05-24T02:00:00Z","tags":["rust"]}]}"#;
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import"])
+        .write_stdin(payload)
+        .assert()
+        .success()
+        .code(0)
+        .stdout(predicate::str::is_empty())
+        .stderr("Imported 1 bookmark.\n");
+
+    let contents = fs::read_to_string(&db).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&contents).unwrap();
+    let bookmarks = parsed["bookmarks"].as_array().unwrap();
+    assert_eq!(bookmarks.len(), 2, "existing + imported = 2");
+    let urls: Vec<&str> = bookmarks
+        .iter()
+        .map(|b| b["url"].as_str().unwrap())
+        .collect();
+    assert!(urls.contains(&"https://existing.example"));
+    assert!(urls.contains(&"https://imported.example"));
+}
+
+/// AC 20 — `bm import` consuming the same payload twice against the same
+/// destination state: second invocation is a no-op on exact-tuple-match;
+/// stderr emits `Imported 0 bookmarks.\n` on the second call. Dedup applies
+/// against existing destination state.
+#[test]
+fn tests_import_is_idempotent_on_exact_tuple_match() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    let payload = r#"{"bookmarks":[{"url":"https://example.com","timestamp":"2026-05-24T02:00:00Z","tags":["rust"]}]}"#;
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import"])
+        .write_stdin(payload)
+        .assert()
+        .success()
+        .stderr("Imported 1 bookmark.\n");
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import"])
+        .write_stdin(payload)
+        .assert()
+        .success()
+        .code(0)
+        .stderr("Imported 0 bookmarks.\n");
+
+    let contents = fs::read_to_string(&db).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&contents).unwrap();
+    assert_eq!(
+        parsed["bookmarks"].as_array().unwrap().len(),
+        1,
+        "store still contains exactly one copy"
+    );
+}
+
+/// AC 21 — `bm import` with payload `{"bookmarks":[]}` is a no-op success:
+/// stderr emits `Imported 0 bookmarks.\n`; exit 0; store byte-identical
+/// to its pre-invocation state.
+#[test]
+fn tests_import_empty_payload_is_no_op_success() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://existing.example"])
+        .assert()
+        .success();
+    let pre_state = fs::read(&db).unwrap();
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import"])
+        .write_stdin(r#"{"bookmarks":[]}"#)
+        .assert()
+        .success()
+        .code(0)
+        .stderr("Imported 0 bookmarks.\n")
+        .stdout(predicate::str::is_empty());
+
+    let post_state = fs::read(&db).unwrap();
+    assert_eq!(
+        pre_state, post_state,
+        "empty-payload import must not modify the store"
+    );
+}
+
+/// AC 22 — `bm import` with empty stdin exits 1 with the spec-contracted
+/// empty-stdin error message; no file write.
+#[test]
+fn tests_import_empty_stdin_rejected() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import"])
+        .write_stdin("")
+        .assert()
+        .failure()
+        .code(1)
+        .stderr("Error: stdin is empty; nothing to import.\n")
+        .stdout(predicate::str::is_empty());
+
+    assert!(!db.exists(), "store must not be created on empty-stdin");
+}
+
+/// AC 23 — `bm import` with invalid JSON in stdin exits 1; stderr starts
+/// with the spec-contracted invalid-JSON error message; no file write.
+#[test]
+fn tests_import_invalid_json_rejected() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import"])
+        .write_stdin("not json at all")
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::starts_with(
+            "Error: stdin is not valid JSON.",
+        ))
+        .stdout(predicate::str::is_empty());
+
+    assert!(!db.exists(), "store must not be created on invalid JSON");
+}
+
+/// AC 24 — `bm import` with JSON that parses but does not match the
+/// storage-format schema exits 1; stderr starts with the spec-contracted
+/// schema-mismatch error message; no file write. (Bare-array stdin also
+/// lands on this path per the spec's strict-object-wrapped-only rule.)
+#[test]
+fn tests_import_schema_mismatch_rejected() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import"])
+        .write_stdin(r#"{"wrong":"shape"}"#)
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::starts_with(
+            "Error: stdin JSON does not match storage-format schema",
+        ))
+        .stdout(predicate::str::is_empty());
+
+    assert!(!db.exists(), "store must not be created on schema mismatch");
+}
+
+/// AC 25 — `bm import` against a Layer-1-format destination store
+/// (bookmarks without `tags` field): the missing-`tags` forward-only
+/// migration semantic applies on the import write — the rewritten store
+/// carries explicit `tags: []` on every Layer-1-origin bookmark AND the
+/// imported records preserve their tags.
+#[test]
+fn tests_import_against_layer_1_format_destination_migrates_forward() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    // Layer-1-format destination (no `tags` field per bookmark).
+    let layer1 = serde_json::json!({
+        "bookmarks": [
+            {"url": "https://A.example", "timestamp": "2026-05-21T01:00:00Z"},
+            {"url": "https://B.example", "timestamp": "2026-05-21T02:00:00Z"},
+        ]
+    });
+    fs::write(&db, serde_json::to_string_pretty(&layer1).unwrap()).unwrap();
+
+    let payload = r#"{"bookmarks":[{"url":"https://C.example","timestamp":"2026-05-24T03:00:00Z","tags":["rust"]}]}"#;
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import"])
+        .write_stdin(payload)
+        .assert()
+        .success()
+        .stderr("Imported 1 bookmark.\n");
+
+    let contents = fs::read_to_string(&db).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&contents).unwrap();
+    let bookmarks = parsed["bookmarks"].as_array().unwrap();
+    assert_eq!(bookmarks.len(), 3);
+    for bm in bookmarks {
+        let url = bm["url"].as_str().unwrap();
+        let tags = bm["tags"].as_array().unwrap_or_else(|| {
+            panic!("post-import file must contain explicit tags field for {url}")
+        });
+        match url {
+            "https://C.example" => {
+                assert_eq!(tags.len(), 1);
+                assert_eq!(tags[0], "rust");
+            }
+            "https://A.example" | "https://B.example" => {
+                assert!(
+                    tags.is_empty(),
+                    "{url} should have empty tags; got {tags:?}"
+                );
+            }
+            other => panic!("unexpected URL {other}"),
+        }
+    }
+}
+
+/// AC 26 — `bm import` partial-failure atomicity: if any record in the
+/// imported payload fails validation, the entire import fails + the
+/// existing store is preserved (no partial-state writes).
+#[test]
+fn tests_import_partial_failure_preserves_existing_store() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["add", "https://existing.example"])
+        .assert()
+        .success();
+    let pre_state = fs::read(&db).unwrap();
+
+    // Payload: one valid record + one record missing the required `url`
+    // field. The whole payload must be rejected atomically.
+    let payload = r#"{"bookmarks":[
+        {"url":"https://valid.example","timestamp":"2026-05-24T02:00:00Z","tags":[]},
+        {"timestamp":"2026-05-24T03:00:00Z","tags":[]}
+    ]}"#;
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import"])
+        .write_stdin(payload)
+        .assert()
+        .failure()
+        .code(1)
+        .stdout(predicate::str::is_empty());
+
+    let post_state = fs::read(&db).unwrap();
+    assert_eq!(
+        pre_state, post_state,
+        "partial-failure import must preserve the existing store byte-for-byte"
+    );
+}
+
+/// AC 27 — `bm import` with stdin exceeding the default 10 MB cap exits 1
+/// with the spec-contracted size-cap error message; no file write.
+#[test]
+fn tests_import_stdin_size_cap_enforced() {
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bookmarks.json");
+
+    // Build a payload that exceeds 10 MB. The simplest shape is a JSON
+    // object with one giant string field; the validator stops reading at
+    // the cap before parse completes.
+    let mut payload = String::from(r#"{"bookmarks":[{"url":"https://huge.example/"#);
+    payload.push_str(&"x".repeat(11 * 1024 * 1024));
+    payload.push_str(r#"","timestamp":"2026-05-24T02:00:00Z","tags":[]}]}"#);
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &db)
+        .args(["import"])
+        .write_stdin(payload)
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::starts_with(
+            "Error: stdin exceeded maximum byte limit of",
+        ))
+        .stdout(predicate::str::is_empty());
+
+    assert!(
+        !db.exists(),
+        "store must not be created on size-cap rejection"
+    );
+}
+
+/// AC 28 — `bm export | bm import` round-trip: importing the export output
+/// into a fresh destination store reproduces the source store's bookmarks
+/// exactly (modulo storage ordering — newest-first is a render concern;
+/// storage ordering is append-time and the round-trip compares on the
+/// `url`+`timestamp`+`tags` tuples regardless of order).
+#[test]
+fn tests_export_import_round_trip() {
+    let src_dir = tempdir().unwrap();
+    let src_db = src_dir.path().join("bookmarks.json");
+    let dst_dir = tempdir().unwrap();
+    let dst_db = dst_dir.path().join("bookmarks.json");
+
+    // Populate source store with mixed tag profiles.
+    for i in 0..3 {
+        Command::cargo_bin("bm")
+            .unwrap()
+            .env("BOOKMARK_CLI_DB", &src_db)
+            .args(["add", &format!("https://item-{i}.example")])
+            .assert()
+            .success();
+        thread::sleep(Duration::from_millis(1100));
+    }
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &src_db)
+        .args(["tag", "https://item-0.example", "rust"])
+        .assert()
+        .success();
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &src_db)
+        .args(["tag", "https://item-1.example", "go"])
+        .assert()
+        .success();
+
+    // Capture export output.
+    let exported = Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &src_db)
+        .args(["export"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let exported_str = String::from_utf8(exported).unwrap();
+
+    // Pipe to import into the fresh destination store.
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &dst_db)
+        .args(["import"])
+        .write_stdin(exported_str)
+        .assert()
+        .success()
+        .stderr("Imported 3 bookmarks.\n");
+
+    // Compare source + destination storage state on the (url, timestamp,
+    // sorted-tags) tuples; ordering is not contracted at storage layer.
+    let src_contents: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&src_db).unwrap()).unwrap();
+    let dst_contents: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&dst_db).unwrap()).unwrap();
+
+    let extract = |v: &serde_json::Value| -> Vec<(String, String, Vec<String>)> {
+        let mut tuples: Vec<_> = v["bookmarks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|b| {
+                let mut tags: Vec<String> = b["tags"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|t| t.as_str().unwrap().to_owned())
+                    .collect();
+                tags.sort();
+                (
+                    b["url"].as_str().unwrap().to_owned(),
+                    b["timestamp"].as_str().unwrap().to_owned(),
+                    tags,
+                )
+            })
+            .collect();
+        tuples.sort();
+        tuples
+    };
+
+    assert_eq!(
+        extract(&src_contents),
+        extract(&dst_contents),
+        "round-trip must reproduce source bookmarks exactly"
+    );
+}
