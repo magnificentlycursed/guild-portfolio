@@ -1,6 +1,26 @@
 <!-- hook-bypass: this CHANGELOG preserves historical references to retired letter labels in entries dated 2026-05-19 through 2026-05-21 per G-89 forward-only narrative-preservation. New entries (2026-05-24+) use descriptive identifiers; the legacy entries are preserved as-authored. The bypass-mechanism is itself a finding for the next registry-walk review per check-no-letter-clusters.py's own rationale. -->
 # Changelog
 
+## [Unreleased] Layer 3 Phase 2a-equivalent + Phase 2c follow-up — `manual-tests/layer-3.md` authoring + Phase 2c no-additional-refactor annotation (2026-05-25)
+
+**Scope:** Final two artifacts for Layer 3 Round 1 closure: the `manual-tests/layer-3.md` authoring (closes Layer-gate criterion 3) + the Phase 2c follow-up annotation for the Round 1 fix-work commit `bfc0713` (no additional refactor required; additive changes preserved the established per-subcommand-helper structure).
+
+### Added
+
+- **[`manual-tests/layer-3.md`](manual-tests/layer-3.md)** — Layer 3 manual-test plan parallel to [`layer-1.md`](manual-tests/layer-1.md) + [`layer-2.md`](manual-tests/layer-2.md). 16 steps covering AC 14..AC 28 + the 3 Round 1 routed Phase 2b closures (sorted-tag-comparison dedup at Step 8; control-char tag rejection at Step 9; byte-preservation round-trip at Step 10) + size-cap with override at Step 12 + Layer-1-format destination migration at Step 13 + partial-failure atomicity at Step 14 + performance budget sanity-check at Step 15 (hyperfine; same pattern as layer-2.md Step 12). Closes [Solution Owner R1 F1](vsdd-suite/review-log/2026-05-24-solution-owner.md#r1-f1) + the 7-domain Layer-3-docs-staleness sub-cluster on manual-tests-absence.
+
+### Changed (TODO.md)
+
+- **§ Layer 3 `[Phase 2c]` declaration** gained a follow-up annotation paragraph for the Round 1 fix-work commit `bfc0713`. Documents the additive nature of the Round 1 Phase 2b changes (new `ImportError` variant + `bookmark_set_eq` helper + per-validation-step branches) and the architectural correction (`display_safe` removed from `export_json` is structural simplification, not a new refactor). No new helper-extraction opportunities surfaced.
+
+### Closure status post-this-commit
+
+Layer 3 Round 1 fully closed at the spec + test + impl + manual-test surfaces. Remaining for Layer 3 layer-gate close:
+- **Phase 3 IAR Round 2** — re-runs the 13-domain capstone-active set against the post-fix state to verify Round 1 fixes hold + surface residuals (next in the cycle).
+- **Phase 5 hardening** — Purity Boundary Audit re-run + Mutation Testing re-run + proptest round-trip + cargo-fuzz harness on `bm import` (project's first untrusted-input fuzz target). Queued after Round 2 reaches MVR.
+
+---
+
 ## [Unreleased] Layer 3 Phase 2b Round 1 — impl fixes for 4 routed substantive findings (display_safe architectural correction; sorted-tag-comparison dedup; control-char tag rejection; long_about + error remediation) — 2026-05-25
 
 **Scope:** Phase 2b commit in the Round 1 fix sequence. Turns the 3 RED Phase 2a regression tests (`878d3b6` precursor + `ba6a4a9` Phase 2a tests) GREEN by landing the impl fixes per the routing record at [`vsdd-suite/review-log/2026-05-24-phase-4-routing.md`](vsdd-suite/review-log/2026-05-24-phase-4-routing.md). Includes a Phase-2b-surfaced architectural correction sub-decision for the JSON-native escape design.
