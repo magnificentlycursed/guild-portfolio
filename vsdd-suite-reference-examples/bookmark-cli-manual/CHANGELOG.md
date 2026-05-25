@@ -1,3 +1,4 @@
+<!-- hook-bypass: this CHANGELOG preserves historical references to retired letter labels in entries dated 2026-05-19 through 2026-05-21 per G-89 forward-only narrative-preservation. New entries (2026-05-24+) use descriptive identifiers; the legacy entries are preserved as-authored. The bypass-mechanism is itself a finding for the next registry-walk review per check-no-letter-clusters.py's own rationale. -->
 # Changelog
 
 ## [Unreleased] Layer 3 Phase 4 Round 1 routing — 13-domain Round 1 findings routed; fix-work-readiness signal (2026-05-25)
@@ -10,25 +11,25 @@
 
 ### Operator decisions (5 substantive)
 
-1. **Cluster B `display_safe` round-trip** (4-domain convergence; highest severity) → **Path C**: switch `display_safe` from Rust-syntax `\u{HHHH}` (8-byte literal) to JSON-native `\uHHHH` (6-char escape). Multi-phase chain: Phase 2a regression test → Phase 2b impl fix → Phase 1a+1b spec amendment.
-2. **Cluster C tags dedup order-sensitivity** → **Path A**: dedup on sorted-tag-comparison. Multi-phase chain: Phase 2a regression test → Phase 2b impl fix. Storage `tags` Vec preserves insertion order (Layer 2 semantic intact); only dedup comparison is set-frame.
-3. **SO F1 `manual-tests/layer-3.md` absent** → **Author the file**. Phase 2a-equivalent artifact authoring; parallel to `manual-tests/layer-{1,2}.md` per Review 74 convention.
-4. **Cluster H tag-injection escalation at Layer 3** → **Path B**: active mitigation. `import_json` rejects records with control-char tags. Multi-phase chain: Phase 1a+1b spec amendment → Phase 2a regression test → Phase 2b impl fix with new `ImportError::TagContainsControlChars` variant.
-5. **Cluster I imported-tag confidential-data classification** → **Path A**: amend DESIGN.md § Storage data classification — imported tags inherit same classification as user-typed tags. Phase 1a+1b only.
+1. **JSON-native escape design** for `display_safe` round-trip (4-domain convergence; highest severity): switch `display_safe` from Rust-syntax `\u{HHHH}` (8-byte literal) to JSON-native `\uHHHH` (6-char escape). Multi-phase chain: Phase 2a regression test → Phase 2b impl fix → Phase 1a+1b spec amendment.
+2. **Sorted-tag-comparison dedup** resolves tags dedup order-sensitivity. Multi-phase chain: Phase 2a regression test → Phase 2b impl fix. Storage `tags` Vec preserves insertion order (Layer 2 semantic intact); only dedup comparison is set-frame.
+3. **Author `manual-tests/layer-3.md`** closes SO F1 absence finding. Phase 2a-equivalent artifact authoring; parallel to `manual-tests/layer-{1,2}.md` per Review 74 convention.
+4. **Active control-char rejection on imported tags** closes Layer-3-stdin-attacker tag-injection escalation. Multi-phase chain: Phase 1a+1b spec amendment → Phase 2a regression test → Phase 2b impl fix with new `ImportError::TagContainsControlChars` variant.
+5. **Imported-tag classification inheritance** — amend DESIGN.md § Storage data classification so imported tags inherit the same confidentiality + integrity classification as user-typed tags. Phase 1a+1b only.
 
 ### Routing summary by phase
 
-| Phase | Findings routed | Cluster|
+| Phase | Findings routed | Cluster theme |
 |---|---|---|
-| Phase 1a+1b (spec/narrative) | ~13 | A2/A3/A4/A5/A7 (docs); B/H/I (spec amendments); F (verification arch); J (perf budget accepted-limit) |
+| Phase 1a+1b (spec/narrative) | ~13 | Layer-3-docs-staleness (README/CHANGELOG/PROCESS/FINDINGS-INDEX/install-verification); JSON-native-escape spec + tag-injection-mitigation spec + imported-tag-classification spec amendments; verification-architecture refresh; performance-budget accepted-limit annotation |
 | Phase 1c | 0 | (no decomposition gaps surfaced) |
-| Phase 2a (new failing tests) | ~7 | B/C/H regression tests; D 3 QE coverage tests |
-| Phase 2b (implementation) | ~8 | B/C/H impl; A6 long_about; E error+clap+ordering; K ImportError variant (low priority); L doc-comment misclaim |
+| Phase 2a (new failing tests) | ~7 | JSON-native-escape regression test + sorted-tag-comparison regression test + tag-injection-rejection regression test; 3 QE coverage tests (within-payload dedup + tag-element display_safe + --max-stdin-bytes override) |
+| Phase 2b (implementation) | ~8 | JSON-native-escape impl + sorted-tag-comparison impl + control-char rejection impl with new `ImportError` variant; `bm --help` long_about extension; UX help-and-error-remediation; ImportError variant detail (deferred low-priority); import_json doc-comment fix |
 | Phase 2c | 0 | (TBD at Phase 2b landing) |
-| Phase 5 | 1 (tracking) | N cargo-fuzz harness (already scheduled per DESIGN.md Phase 5 strategy) |
-| Phase 4 itself | 2 (process) | M AIE pre-cycle declaration + per-commit cost-tally carry-forward |
-| Suite-development | 1 (deferred) | O numbering convention (folds into deferred suite-hardening discussion) |
-| Terminal-no-route | ~5 | RT F2 + Sec F4 + Sec F5 + PE F1 + SA F4 (accepted-risk + accepted-limitation) |
+| Phase 5 | 1 (tracking) | cargo-fuzz harness (already scheduled per DESIGN.md Phase 5 strategy Layer 3) |
+| Phase 4 itself | 2 (process) | AI Engineer pre-cycle methodology declaration + per-commit cost-tally carry-forward |
+| Suite-development | 1 (deferred) | per-domain numbering convention (folds into deferred suite-hardening discussion) |
+| Terminal-no-route | ~5 | RT F2 oracle-leak + Sec F4 depth-bomb + Sec F5 unbounded-stdin-override + PE F1 dedup-complexity + SA F4 partial (accepted-risk + accepted-limitation) |
 
 ### Forward implications
 
@@ -306,7 +307,7 @@ Per the operator's "Inline-fix mini-cycle + Phase 5" path-forward decision, 4 sm
 
 ### Phase 6 Layer 2 — NOT APPLICABLE
 
-Per [DESIGN.md § Project intent's Phase 6 strategy for Layer 2](DESIGN.md) (commit `002d747`) and [TODO.md § Layer 2 Layer-gate criterion #6](TODO.md), Layer 2's Phase 6 four-dimensional convergence record is marked **NOT APPLICABLE** under [G-150](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) (over-investment guard) + [G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) (reference-implementation-purpose-already-satisfied — bookmark-cli's reference-implementation purpose is "exercise all six VSDD phases end-to-end as a worked example", which Layer 1's project-terminal MVR + Phase 6 attestation already demonstrate). Layer 1's Phase 6 attestation at [VDD-IAR Alignment Review 3](vsdd-suite/review-log/2026-05-20-vdd-iar-alignment.md) stands as the project's terminal convergence record. Adopted from Cluster D's Solution-Owner Review 4 Finding 2 recommendation; verified by VDD-IAR Alignment Round 2 Review 5 Finding 5 closure.
+Per [DESIGN.md § Project intent's Phase 6 strategy for Layer 2](DESIGN.md) (commit `002d747`) and [TODO.md § Layer 2 Layer-gate criterion #6](TODO.md), Layer 2's Phase 6 four-dimensional convergence record is marked **NOT APPLICABLE** under [G-150](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) (over-investment guard) + [G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) (reference-implementation-purpose-already-satisfied — bookmark-cli's reference-implementation purpose is "exercise all six VSDD phases end-to-end as a worked example", which Layer 1's project-terminal MVR + Phase 6 attestation already demonstrate). Layer 1's Phase 6 attestation at [VDD-IAR Alignment Review 3](vsdd-suite/review-log/2026-05-20-vdd-iar-alignment.md) stands as the project's terminal convergence record. Adopted from QE test-coverage gaps's Solution-Owner Review 4 Finding 2 recommendation; verified by VDD-IAR Alignment Round 2 Review 5 Finding 5 closure.
 
 ### Carryforwards (none shipping-blocking; all documented per-finding)
 

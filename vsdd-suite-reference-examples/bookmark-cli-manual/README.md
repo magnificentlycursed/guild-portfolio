@@ -6,7 +6,7 @@ A single-user command-line tool for capturing URLs at the terminal and recalling
 
 `bookmark-cli` is the **reference implementation** for the [VSDD (Verified Spec-Driven Development) Suite](../../vsdd-suite/README.md)'s worked example — it exists to validate the suite's documented workflow end-to-end ([G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) in the suite's gap registry). It is small by design and intentionally limited in scope. A user who wants a real bookmark manager should use a browser or a dedicated tool; this is a portfolio demonstration artifact.
 
-Current state: **Layer 1 project-terminal at PR #42** (add + list) + **Layer 2 active in the post-PR-#43 cycle** (tag + filter). Layer 3 (export + import) is scoped in [`DESIGN.md`](DESIGN.md) but not built — the reference-implementation purpose is satisfied by Layer 1 reaching project-terminal end-to-end + Layer 2 extending the worked example through a second iteration of the full 6-phase cycle.
+Current state: **Layer 1 project-terminal at PR #42** (add + list) + **Layer 2 layer-terminal at PR #47** (tag + filter) + **Layer 3 active in PR #52** (export + import). Layer 3 is Phase-2-complete (Phase 2a Red Gate `878d3b6` + Phase 2b implementation `fd21900` + Phase 2c annotation `78bd3cf`); Phase 3 IAR Round 1 closed at commit `2acc418` with 76 findings across 13 capstone-active domains; Phase 4 routing pass landed at commit `e233ad8`; Round 1 fix work is in flight per the [`vsdd-suite/review-log/2026-05-24-phase-4-routing.md`](vsdd-suite/review-log/2026-05-24-phase-4-routing.md) routing record. Layer 3 cycle iterates Round 2 IAR after fix work lands.
 
 ## Prerequisites
 
@@ -49,7 +49,7 @@ bm list --tag rust --tag go
 ```sh
 cd PORTFOLIO/vsdd-suite-reference-examples/bookmark-cli-manual
 cargo test
-# expect: all tests pass — the default test suite (currently 12 unit + 29 integration + 2 proptest = 43 tests at Layer 2, post-Round-1 fix cycle) covers the behavioral contracts in DESIGN.md.
+# expect: all tests pass — the default test suite (currently 13 unit + 45 integration + 3 proptest = 61 tests at Layer 3 Phase 2b landing) covers the behavioral contracts in DESIGN.md. Layer 3 cycle's Phase 2a regression tests + Phase 2b impl fixes for the 4 substantive Round 1 findings (JSON-native escape design + sorted-tag-comparison dedup + control-char tag rejection + QE coverage gaps) extend the test count further at their respective commits.
 # Three additional #[ignore]-gated data-scaling sentinels at the
 # 100 / 1,000 / 10,000-bookmark cliffs live at `tests/scaling.rs`. Run them
 # explicitly via `cargo test --release -- --ignored` (the CI workflow does

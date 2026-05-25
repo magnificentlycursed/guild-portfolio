@@ -1,3 +1,4 @@
+<!-- hook-bypass: this PROCESS.md retrospective preserves historical narrative documenting prior letter-label slips (the recurring anti-pattern this PR's hook closes) per G-89 forward-only narrative-preservation. The historical quotations of `Cluster A/B/C/D` labels are load-bearing context for the retrospective discussion. New retrospective content uses descriptive identifiers; legacy historical narrative is preserved as-authored. The bypass-mechanism is itself a finding for the next registry-walk review per check-no-letter-clusters.py's own rationale. -->
 # PROCESS.md — bookmark-cli-manual
 
 Layer-by-layer first-person retrospective per the VSDD methodology's developer-voice discipline ([G-156](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-156): layer-gate close criterion 7 — PROCESS.md retrospective is a hard gate at capstone+ intent).
@@ -151,9 +152,24 @@ SA Phase 5 Purity Boundary Audit re-run: zero findings; all five Layer 2 pure-si
 
 ---
 
-## Layer 3 — Export and import (deferred)
+## Layer 3 — Export and import (active in PR #52; AI-co-authored; operator-owned)
 
-Layer 3 remains scoped only per TODO.md § Layer 3. The Layer 3 spec will land when the operator triggers the cycle; the Layer 2 carry-forward close at PR #46 codifies two Layer-3-readiness advisories in DESIGN.md (Red Team R1 F3 Layer 3 sanitize-at-export + the `AttachTagError::NoMatch(String)` library-level error-carrying shape for non-CLI callers).
+Layer 3 (`bm export` + `bm import`) was promoted from "scoped only" to active at PR #52 (2026-05-24) per the operator's "I author first-draft; you edit + own" directive. The cycle ran through all six VSDD phases in a single PR — a different shape from Layer 1's project-terminal multi-PR cadence (PRs #38-#43) and Layer 2's layer-terminal multi-PR cadence (PRs #43-#47):
+
+- **Spec activation:** AI-authored first-draft (`79a9a83`) + operator-confirmation pass (`654cbbf`) on 5 SO-decidable AI-author-flagged decisions (exact-tuple-match dedup; 10 MB stdin cap; exit-1 on empty-stdin; strict object-wrapped only; cargo-fuzz harness).
+- **Phase 2a Red Gate:** 15 failing tests (`878d3b6`) covering AC 14..AC 28 per TODO.md § Layer 3.
+- **Phase 2b implementation:** `BookmarkStore::export_json` + `import_json` + `ImportError` + `MAX_STDIN_BYTES_DEFAULT` in `src/lib.rs`; `Cmd::Export` + `Cmd::Import` + `run_export` + `run_import` in `src/main.rs`. All 45 tests + 3 proptests pass at `fd21900`.
+- **Phase 2c refactor:** extract-and-name annotation per the Layer 2 R2 precedent (`78bd3cf`).
+- **Phase 3 IAR Round 1:** 13 capstone-active domains ran cold-session adversarial reviews in parallel (`2acc418`) — 76 findings; 4-domain convergence on the highest-severity defect (`display_safe` Rust-syntax escape vs JSON-native escape breaks the byte-preservation round-trip claim); cross-domain coordination signals verified for the adversarial pairs (Security ↔ Red Team; TW ↔ Documentation Reviewer).
+- **Phase 4 Round 1 routing:** consolidated routing record at `vsdd-suite/review-log/2026-05-24-phase-4-routing.md` (`e233ad8`). 32 routable findings routed across 6 phases with multi-phase chains where warranted. 5 SO-decidable findings resolved via main-session AskUserQuestion pass before routing landed (JSON-native-escape design; sorted-tag-comparison dedup; author manual-tests/layer-3.md; active control-char rejection on imported tags; imported-tag classification inheritance).
+
+**Meta-finding surfaced during PR #52** + landed as Review 94 in `../../vsdd-suite/suite-development/review-log/2026-05-24-suite-review.md` + partial mechanical fix on PR #52: the letter-label anti-pattern recurred for the 4th time (this cycle generated cluster letters during Phase 4 routing that propagated into DESIGN.md spec amendments + the routing record); operator authorized in-cycle hook (`../../vsdd-suite/hooks/check-no-letter-clusters.py`) + primer 4 § Routing output rule amendment to close the gap at commit-time vs. the previous Round-2-IAR-catch timing. Future-revisit scope queued for post-merge: evaluate co-authoring impact for shape+content enforcement domains (TW/DR/AIE/Doc Reviewer) and apply the same layered-defense pattern to stale-document recurrence (PR #52 Round 1 surfaced 7-domain convergence on Layer-3-docs-staleness — same timing-gap shape).
+
+**Round 1 fix work** lands in subsequent commits on PR #52 per the cross-cluster sequencing matrix in the routing record: Phase 1a+1b spec amendments batch (this commit); Phase 2a regression tests; Phase 2b implementations; `manual-tests/layer-3.md` authoring; Phase 2c annotation. Round 2 Phase 3 IAR re-runs after fix work lands.
+
+**Phase 5 strategy for Layer 3** per DESIGN.md § Project intent: Purity Boundary Audit re-run + Mutation Testing re-run + proptest round-trip + proptest `import(import(X)) == import(X)` idempotence + cargo-fuzz on `bm import` (project's first untrusted-input fuzz target). Scheduled after Round 2 reaches MVR.
+
+**Phase 6 for Layer 3:** NOT APPLICABLE per the same [G-150](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-150) + [G-112](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-112) rationale as Layer 2 — capstone gates at project-terminal MVR per primer 6, not per-layer; Layer 1's Phase 6 attestation stands as the project's terminal four-dimensional convergence record.
 
 ---
 

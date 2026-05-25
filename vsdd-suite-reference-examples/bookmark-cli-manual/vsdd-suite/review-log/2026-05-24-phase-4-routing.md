@@ -11,11 +11,11 @@
 **Mode:** manual — per `vsdd-suite/primers/4-feedback-integration.md` § [manual] First-class fallback path. The per-finding routing decisions land in this consolidated document; each per-domain Phase 3 review log file gains a one-line cross-reference to its routing block here.
 
 **SO-decisions captured** via main-session AskUserQuestion pass on 2026-05-25 (5 substantive decisions):
-1. Cluster B `display_safe` round-trip → **Path C** (switch to JSON-native `\uHHHH` escape syntax)
-2. Cluster C tags dedup → **Path A** (sorted-tag-comparison)
+1. JSON-native escape design `display_safe` round-trip → **Path C** (switch to JSON-native `\uHHHH` escape syntax)
+2. sorted-tag-comparison dedup tags dedup → **Path A** (sorted-tag-comparison)
 3. SO F1 `manual-tests/layer-3.md` → **Author the file**
-4. Cluster H tag-injection L3 → **Path B** (active mitigation; reject control-char tags at import)
-5. Cluster I imported-tag class → **Path A** (same classification as user-typed tags)
+4. imported-tag control-char rejection tag-injection L3 → **Path B** (active mitigation; reject control-char tags at import)
+5. imported-tag classification extension imported-tag class → **Path A** (same classification as user-typed tags)
 
 Smaller items routed via conservative defaults (operator may flag any to revise).
 
@@ -23,7 +23,7 @@ Smaller items routed via conservative defaults (operator may flag any to revise)
 
 ## Routing summary by cluster
 
-### Cluster B — `display_safe` round-trip (highest severity; 4-domain convergence)
+### JSON-native escape design — `display_safe` round-trip (highest severity; 4-domain convergence)
 
 **Operator decision:** Path C — switch `display_safe` from Rust-syntax `\u{HHHH}` (8-byte literal) to JSON-native `\uHHHH` (6-char escape). Preserves both terminal-safety AND byte-round-trip.
 
@@ -46,7 +46,7 @@ Smaller items routed via conservative defaults (operator may flag any to revise)
 
 ---
 
-### Cluster C — Tags dedup order-sensitivity (2-domain convergence)
+### sorted-tag-comparison dedup — Tags dedup order-sensitivity (2-domain convergence)
 
 **Operator decision:** Path A — dedup on sorted-tag-comparison. Resolves spec internal tension toward L223 set-frame; storage `tags` Vec preserves insertion order (Layer 2 semantic intact); only the dedup comparison is set-frame.
 
@@ -67,7 +67,7 @@ Smaller items routed via conservative defaults (operator may flag any to revise)
 
 ---
 
-### Cluster H — Tag-injection escalation at Layer 3
+### imported-tag control-char rejection — Tag-injection escalation at Layer 3
 
 **Operator decision:** Path B — active mitigation. `import_json` rejects records whose `tags` contain control characters / format characters at import time. New `ImportError` variant + new Phase 2a regression test + DESIGN.md amendment.
 
@@ -89,9 +89,9 @@ Smaller items routed via conservative defaults (operator may flag any to revise)
 
 ---
 
-### Cluster I — Imported-tag confidential-data classification
+### imported-tag classification extension — Imported-tag confidential-data classification
 
-**Operator decision:** Path A — amend DESIGN.md § Storage data classification so imported-tag provenance inherits the same confidentiality + integrity classification as user-typed tags. Pairs with Cluster H mitigation — once control-char rejection lands, imported tags can be trusted at the same level as typed tags.
+**Operator decision:** Path A — amend DESIGN.md § Storage data classification so imported-tag provenance inherits the same confidentiality + integrity classification as user-typed tags. Pairs with imported-tag control-char rejection mitigation — once control-char rejection lands, imported tags can be trusted at the same level as typed tags.
 
 **Findings routed:** [Sec R1 F3](2026-05-24-security.md#r1-f3)
 
@@ -102,11 +102,11 @@ Smaller items routed via conservative defaults (operator may flag any to revise)
 
 **Gate:** Spec paragraph lands; Validator: Security.
 
-**Sequencing:** Coordinates with Cluster H landing; should land in the same commit batch.
+**Sequencing:** Coordinates with imported-tag control-char rejection landing; should land in the same commit batch.
 
 ---
 
-### Cluster A — Layer 3 docs staleness (7-domain confirmation; layer-gate-blocking)
+### Layer-3-docs-staleness cluster — Layer 3 docs staleness (7-domain confirmation; layer-gate-blocking)
 
 **Sub-cluster A1 — `manual-tests/layer-3.md` absent (operator decision: Author the file)**
 
@@ -204,13 +204,13 @@ Smaller items routed via conservative defaults (operator may flag any to revise)
 
 ---
 
-### Cluster D — Test coverage gaps (QE R8)
+### QE test-coverage gaps — Test coverage gaps (QE R8)
 
 **Findings routed:** [QE R8 F1](2026-05-24-quality-engineer.md#r8-f1) (within-payload byte-equal dedup unexercised), [QE R8 F2](2026-05-24-quality-engineer.md#r8-f2) (tag-element display_safe untested), [QE R8 F3](2026-05-24-quality-engineer.md#r8-f3) (`--max-stdin-bytes` override untested)
 
 **Route:** `Phase 2a` (new tests)
 - New test exercising within-payload byte-equal dedup (closes R8 F1).
-- New test exercising tag-element `display_safe` with pathological tag content (closes R8 F2); converges with Cluster B regression test (Phase 2a) since the new display_safe shape applies to tags.
+- New test exercising tag-element `display_safe` with pathological tag content (closes R8 F2); converges with JSON-native escape design regression test (Phase 2a) since the new display_safe shape applies to tags.
 - New test exercising `--max-stdin-bytes` operator override (closes R8 F3).
 
 **Owning artifact:** `tests/bookmarks.rs`.
@@ -221,7 +221,7 @@ Smaller items routed via conservative defaults (operator may flag any to revise)
 
 ---
 
-### Cluster E — UX/help/error remediation
+### UX help-and-error-remediation cluster — UX/help/error remediation
 
 **Findings routed:** [UX R1 F2](2026-05-24-ux.md#r1-f2) (size-cap remediation hint), [TW R1 F4](2026-05-24-technical-writer.md#r1-f4) (clap docs `bookmark(s)` notation), [SE R1 F4](2026-05-24-software-engineer.md#r1-f4) (size-cap check-before-empty-stdin ordering)
 
@@ -238,7 +238,7 @@ Smaller items routed via conservative defaults (operator may flag any to revise)
 
 ---
 
-### Cluster F — DESIGN.md § Verification architecture stale (SA F2)
+### DESIGN.md verification-architecture refresh — DESIGN.md § Verification architecture stale (SA F2)
 
 **Findings routed:** [SA R5 F2](2026-05-24-solution-architect.md)
 
@@ -253,7 +253,7 @@ Smaller items routed via conservative defaults (operator may flag any to revise)
 
 ---
 
-### Cluster J — SA F4 dedup O(N×M) complexity
+### dedup-complexity accepted-limit annotation — SA F4 dedup O(N×M) complexity
 
 **Findings routed:** [SA R5 F4](2026-05-24-solution-architect.md) — converges with [PE R7 F1](2026-05-24-performance-engineer.md) Accepted-limitation
 
@@ -268,7 +268,7 @@ Smaller items routed via conservative defaults (operator may flag any to revise)
 
 ---
 
-### Cluster K — SA F5 ImportError variant detail
+### ImportError variant detail (deferred) — SA F5 ImportError variant detail
 
 **Findings routed:** [SA R5 F5](2026-05-24-solution-architect.md)
 
@@ -283,7 +283,7 @@ Smaller items routed via conservative defaults (operator may flag any to revise)
 
 ---
 
-### Cluster L — SE F3 import_json doc-comment misclaim
+### import_json doc-comment fix — SE F3 import_json doc-comment misclaim
 
 **Findings routed:** [SE R1 F3](2026-05-24-software-engineer.md#r1-f3)
 
@@ -298,7 +298,7 @@ Smaller items routed via conservative defaults (operator may flag any to revise)
 
 ---
 
-### Cluster M — AIE F6/F7 process discipline
+### AI-Engineer process-discipline carry-forward — AIE F6/F7 process discipline
 
 **Findings routed:** [AIE R1 F6](2026-05-24-ai-engineer.md#r1-f6) (pre-cycle methodology declaration absent), [AIE R1 F7](2026-05-24-ai-engineer.md#r1-f7) (per-commit cost-tally gap carry-forward)
 
@@ -314,7 +314,7 @@ Smaller items routed via conservative defaults (operator may flag any to revise)
 
 ---
 
-### Cluster N — PFE F2 cargo-fuzz harness not yet authored
+### Phase-5 cargo-fuzz harness tracking — PFE F2 cargo-fuzz harness not yet authored
 
 **Findings routed:** [PFE R7 F2](2026-05-24-platform-engineer.md#r7-f2)
 
@@ -328,7 +328,7 @@ Smaller items routed via conservative defaults (operator may flag any to revise)
 
 ---
 
-### Cluster O — Numbering inconsistency (operator-flagged at collection commit)
+### per-domain numbering convention (deferred to suite) — Numbering inconsistency (operator-flagged at collection commit)
 
 **Source:** Round 1 collection commit `2acc418` flagged QE used Review 8 + PFE used Review 7 (continuing per-project per-domain sequence) while the other 11 agents used "Review 1" (per-dated-file fresh sequence).
 
@@ -343,12 +343,12 @@ Smaller items routed via conservative defaults (operator may flag any to revise)
 
 | Phase | Work to land before Round 2 |
 |---|---|
-| **Phase 1a+1b** (spec amendments) | Cluster B spec amendment; Cluster H spec amendment (Threat model + bm import failure); Cluster I storage data classification; Cluster A2 README; Cluster A3 CHANGELOG; Cluster A4 PROCESS.md retrospective; Cluster A5 FINDINGS-INDEX; Cluster A7 install-verification; Cluster F Verification architecture; Cluster J Performance budget accepted-limit; numbering convention deferred to suite |
-| **Phase 2a** (new failing tests; canonical two-commit pattern) | Cluster B regression test; Cluster C regression test; Cluster H regression test; Cluster D 3 new tests; manual-tests/layer-3.md authoring (artifact-equivalent) |
-| **Phase 2b** (implementations after Phase 2a tests RED) | Cluster B display_safe rewrite; Cluster C sorted-tag-comparison; Cluster H control-char rejection + new ImportError variant; Cluster A6 long_about; Cluster E error message + clap docs + validation order; Cluster L doc-comment fix |
+| **Phase 1a+1b** (spec amendments) | JSON-native escape design spec amendment; imported-tag control-char rejection spec amendment (Threat model + bm import failure); imported-tag classification extension storage data classification; README post-Layer-3 update README; CHANGELOG slim-form catch-up CHANGELOG; PROCESS.md Layer 3 retrospective PROCESS.md retrospective; FINDINGS-INDEX Layer-3 backfill FINDINGS-INDEX; install-verification.md Layer-3 inheritance note install-verification; DESIGN.md verification-architecture refresh Verification architecture; dedup-complexity accepted-limit annotation Performance budget accepted-limit; numbering convention deferred to suite |
+| **Phase 2a** (new failing tests; canonical two-commit pattern) | JSON-native escape design regression test; sorted-tag-comparison dedup regression test; imported-tag control-char rejection regression test; QE test-coverage gaps 3 new tests; manual-tests/layer-3.md authoring (artifact-equivalent) |
+| **Phase 2b** (implementations after Phase 2a tests RED) | JSON-native escape design display_safe rewrite; sorted-tag-comparison dedup sorted-tag-comparison; imported-tag control-char rejection control-char rejection + new ImportError variant; bm --help long_about extension long_about; UX help-and-error-remediation cluster error message + clap docs + validation order; import_json doc-comment fix doc-comment fix |
 | **Phase 2c** (refactor if needed) | TBD at Phase 2b landing; explicit-skip annotation otherwise |
-| **Phase 5** | Cluster N cargo-fuzz harness (already scheduled) |
-| **Deferred-to-follow-up-PR** | Cluster K ImportError variant detail |
+| **Phase 5** | Phase-5 cargo-fuzz harness tracking cargo-fuzz harness (already scheduled) |
+| **Deferred-to-follow-up-PR** | ImportError variant detail (deferred) ImportError variant detail |
 
 **Two-commit-canonical-pattern reminder** per Layer 2 Red Gate evidence-preservation annotation: Phase 2a (failing tests RED) lands as standalone commit; Phase 2b (implementation GREEN) lands as second commit; the canonical 3-commit shape (2a + 2b + 2c-annotation) per Round 1 SE F2's "tests fail for the right reason" discipline.
 
@@ -365,9 +365,9 @@ Per [`primers/3-review-session.md`](../../../vsdd-suite/primers/3-review-session
 
 | # | Criterion | Status post-Round 1 routing |
 |---|---|---|
-| 1 | All Red Gate tests pass | NOT MET — Cluster B + C + D + H regression tests pending |
-| 2 | `cargo build --release` clean | NOT MET — Cluster B + C + H impl changes pending |
-| 3 | `manual-tests/layer-3.md` runs clean | NOT MET — file absent; Cluster A1 authoring pending |
+| 1 | All Red Gate tests pass | NOT MET — JSON-native escape design + C + D + H regression tests pending |
+| 2 | `cargo build --release` clean | NOT MET — JSON-native escape design + C + H impl changes pending |
+| 3 | `manual-tests/layer-3.md` runs clean | NOT MET — file absent; manual-tests/layer-3.md authoring authoring pending |
 | 4 | Phase 3 IAR 13-domain MVR | NOT MET — Round 2 required (Round 1 has substantive routable findings) |
 | 5 | Phase 5 dispositions (proptest + cargo-fuzz + mutation + purity boundary) | NOT MET — Phase 5 cycle queued after Round 2 MVR |
 | 6 | Phase 6 NA | MET per DESIGN.md § Phase 6 strategy Layer 3 (capstone gates at project-terminal MVR per primer 6, not per-layer) |
@@ -382,16 +382,16 @@ The primer 4 primary failure mode is "Routing every finding to Phase 2b". Audit 
 
 | Phase | Finding count routed | Rationale |
 |---|---|---|
-| Phase 1a+1b (spec/narrative) | ~13 findings (most of Cluster A + B + F + H + I + J spec sides) | Substantive spec gaps (display_safe semantic; tag-injection threat model; verification arch; storage data classification; accepted-limit annotation) + Layer 3 narrative-staleness across README/CHANGELOG/PROCESS/FINDINGS-INDEX |
+| Phase 1a+1b (spec/narrative) | ~13 findings (most of Layer-3-docs-staleness cluster + B + F + H + I + J spec sides) | Substantive spec gaps (display_safe semantic; tag-injection threat model; verification arch; storage data classification; accepted-limit annotation) + Layer 3 narrative-staleness across README/CHANGELOG/PROCESS/FINDINGS-INDEX |
 | Phase 1c | 0 | No decomposition gaps surfaced; Layer 3 acceptance criteria covered the surface adequately |
-| Phase 2a (new tests) | ~7 findings (Cluster B + C + D + H regression tests + 3 QE coverage tests) | Test discipline gaps surfaced by QE + the Cluster B/C/H regression tests required for the impl changes |
-| Phase 2b (implementation) | ~8 findings (Cluster B + C + H impl + Cluster A6 + Cluster E + Cluster K + Cluster L) | True implementation defects (display_safe escape format; sorted-tag-dedup; control-char rejection; clap text; error remediation; ordering) |
+| Phase 2a (new tests) | ~7 findings (JSON-native escape design + C + D + H regression tests + 3 QE coverage tests) | Test discipline gaps surfaced by QE + the JSON-native escape design/C/H regression tests required for the impl changes |
+| Phase 2b (implementation) | ~8 findings (JSON-native escape design + C + H impl + bm --help long_about extension + UX help-and-error-remediation cluster + ImportError variant detail (deferred) + import_json doc-comment fix) | True implementation defects (display_safe escape format; sorted-tag-dedup; control-char rejection; clap text; error remediation; ordering) |
 | Phase 2c | 0 | No refactor regressions surfaced |
-| Phase 5 | 1 finding (Cluster N tracking-only) | Already scheduled per DESIGN.md Phase 5 strategy |
+| Phase 5 | 1 finding (Phase-5 cargo-fuzz harness tracking tracking-only) | Already scheduled per DESIGN.md Phase 5 strategy |
 | Phase 4 itself | 2 findings (AIE F6 + F7) | Process discipline carried forward to Round 2 launch |
-| Suite-development | 1 finding (Cluster O numbering convention) | Suite-side discoverability gap; not a project phase |
+| Suite-development | 1 finding (per-domain numbering convention (deferred to suite) numbering convention) | Suite-side discoverability gap; not a project phase |
 | Terminal-no-route | ~5 findings (Accepted-risk + Accepted-limitation; RT F2 + Sec F4 + Sec F5 + PE F1 + SA F4 partial) | Already terminal; classification suffices |
 
-Phase 2b count is moderate, not dominant. Cluster A (docs staleness) routed primarily to Phase 1a+1b not Phase 2b — confirming the "what artifact would have prevented this" trace per primer 4 § Driving questions (the right artifact was the README/CHANGELOG/PROCESS narrative, not the implementation). Cluster B + C + H multi-phase chains correctly route across 1a+1b + 2a + 2b — recording the chain shape per primer 4 § Multi-phase findings is the correct discipline.
+Phase 2b count is moderate, not dominant. Layer-3-docs-staleness cluster (docs staleness) routed primarily to Phase 1a+1b not Phase 2b — confirming the "what artifact would have prevented this" trace per primer 4 § Driving questions (the right artifact was the README/CHANGELOG/PROCESS narrative, not the implementation). JSON-native escape design + C + H multi-phase chains correctly route across 1a+1b + 2a + 2b — recording the chain shape per primer 4 § Multi-phase findings is the correct discipline.
 
 **Routing pass complete.** Fix work begins.
