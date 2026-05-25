@@ -1,6 +1,47 @@
 <!-- hook-bypass: this CHANGELOG preserves historical references to retired letter labels in entries dated 2026-05-19 through 2026-05-21 per G-89 forward-only narrative-preservation. New entries (2026-05-24+) use descriptive identifiers; the legacy entries are preserved as-authored. The bypass-mechanism is itself a finding for the next registry-walk review per check-no-letter-clusters.py's own rationale. -->
 # Changelog
 
+## [Unreleased] Layer 3 Phase 5 hardening — Purity Boundary Audit + proptest properties + scaling sentinels (2026-05-25)
+
+**Scope:** Phase 5 hardening pass for Layer 3. Closes the Purity Boundary Audit (cross-source consistency check between module-doc summary, DESIGN.md verification architecture, and implementation post-Round-2-fix state). Adds 2 new proptest properties (sanitization-preservation round-trip + import idempotence). Adds 3 new scaling sentinels at 100/1K/10K cliffs for `bm export` + `bm import` round-trip per PE R8 F3 SO-decision. Mutation Testing (cargo-mutants) + cargo-fuzz harness on `bm import` remain to be run.
+
+### Changed (DESIGN.md — Purity Boundary Audit closures)
+
+- **§ Verification architecture Layer 3 `export_json` entry** rewritten to reflect Round 2 Security F1 SO-decision reversal: `display_safe` IS applied at the per-field serialization step; the round-trip is sanitization-preserving.
+- **§ Verification architecture Layer 3 `display_safe` entry** rewritten: applied at TWO boundaries (render + export serialization); the sanitization-preservation round-trip is a joint responsibility of `display_safe` + `export_json` + serde_json + `import_json`'s active rejection.
+- **§ Project intent Phase 5 strategy Layer 3 proptest commitment** updated: round-trip property is conditioned on sanitization-cleanness (storage-states with raw Cc / curated Cf bytes are NOT round-trippable); also commits to URL-rejection + tag-rejection properties per Round 2 Security F3 + RT F2.
+
+### Changed (src/lib.rs — module-doc Purity Boundary Audit closure)
+
+- **Module-doc Pure-functions enumeration** extended to name Layer 2 (`filter_by_tags`, `attach_tag`) + Layer 3 (`export_json`, `import_json`, `display_safe`, `is_format_char`) entries; closes the Round 2 SA F2 enumeration gap with explicit Round-2 SO-decision context.
+
+### Added (tests/properties.rs — Phase 5 Layer 3 proptest properties)
+
+- **`export_import_round_trip_sanitization_preserving`** — for any sanitization-clean store, `parse(serialize(X)) == X` modulo dedup. Uses (url, timestamp, sorted-tags) tuple-set equality comparison (insertion order at storage layer not contracted).
+- **`import_idempotence_under_repeat_invocation`** — DESIGN.md `import(import(X)) == import(X)` dedup rule: re-importing the same payload yields zero new appends per the exact-tuple-match dedup.
+
+### Added (tests/scaling.rs — Phase 5 Layer 3 export/import scaling sentinels per PE R8 F3 SO-decision)
+
+- **`scaling_100_bookmarks_export_import_round_trips_correctly`** — 100-bookmark round-trip sentinel; runs in ~1 sec.
+- **`scaling_1000_bookmarks_export_import_round_trips_correctly`** — 1,000-bookmark round-trip sentinel; matches DESIGN.md § Performance budget Layer 3 cliff.
+- **`scaling_10_000_bookmarks_export_import_round_trips_correctly`** — 10K-bookmark round-trip sentinel at the scale ceiling; exercises the O(M × N × t log t) dedup worst case for correctness.
+
+All sentinels gated `#[ignore]` per the existing pattern; run via `cargo test -- --ignored`.
+
+### Test verification
+
+`cargo test`: 14 lib + 53 integration + **5 properties** (+2 new) + 6 scaling ignored (+3 new) all pass. `scaling_100_bookmarks_export_import_round_trips_correctly` verified passing under `--ignored`.
+
+### Closure status post-this-commit
+
+Layer 3 Phase 5 Purity Boundary Audit + proptest properties + scaling sentinels: closed. Layer-gate criterion 5 partially advanced (proptest round-trip property now active).
+
+Remaining for Layer 3 layer-gate close:
+- **Mutation Testing re-run** — cargo-mutants against Layer 3 surface; budget per DESIGN.md = 100% kill rate maintained or any drop has a named rationale
+- **cargo-fuzz harness** — `fuzz/fuzz_targets/import_stdin.rs` for `bm import` stdin attack surface; ≥ 1 CPU-hour fuzzing per `TODO.md` Layer-gate criterion 5
+
+---
+
 ## [Unreleased] Layer 3 Round 2 Security SO-decisions — reverse architectural correction + extend active mitigation to URLs (2026-05-25)
 
 **Scope:** Round 2 Security findings Raised-to-SO decisions landed. Reverses the bfc0713 architectural correction (display_safe restored at export serialization boundary) AND extends active import-time mitigation from tags-only to URLs. The byte-preservation round-trip contract from Round 1 is replaced with sanitization-preservation; the Layer 3 trust-boundary structure is now symmetric (export sanitizes; import actively rejects pathological URL + tag content).

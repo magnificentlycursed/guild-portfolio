@@ -3,7 +3,11 @@
 //! See `DESIGN.md` § Verification architecture for the authoritative
 //! purity boundary. In summary (per the Review 67 / B2 reconciliation):
 //!
-//! - **Pure:** `Bookmark` + `BookmarkStore` data types; `BookmarkStore::newest_first`.
+//! - **Pure:** `Bookmark` + `BookmarkStore` data types; `BookmarkStore::newest_first`;
+//!   Layer 2: `BookmarkStore::filter_by_tags`, `BookmarkStore::attach_tag`;
+//!   Layer 3: `BookmarkStore::export_json`, `BookmarkStore::import_json`,
+//!   `display_safe` (Round 2 SO-decision: applied at both render boundary AND
+//!   export serialization boundary), `is_format_char`.
 //! - **Effectful (deliberate I/O wrappers):** `BookmarkStore::load`
 //!   (filesystem read + parse), `BookmarkStore::save` (filesystem write +
 //!   serialize). These wrap pure JSON ser/de with file I/O — the wrapping

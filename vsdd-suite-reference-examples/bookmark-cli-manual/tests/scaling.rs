@@ -233,3 +233,137 @@ fn scaling_10_000_bookmarks_round_trips_and_filters_correctly() {
         "BookmarkStore::load should recover exactly {n} bookmarks"
     );
 }
+
+/// Phase 5 Layer 3 — `bm export` + `bm import` round-trip sentinel at the
+/// 100-bookmark cliff. Per PE R8 F3 SO-decision: add export/import scaling
+/// sentinels at 100/1K/10K cliffs matching the existing add/list/tag/filter
+/// pattern. This sentinel exercises the canonical `bm export | bm import`
+/// round-trip against a 100-bookmark source store and asserts the destination
+/// store contains the same bookmark count.
+#[test]
+#[ignore = "scaling sentinel; run via `cargo test -- --ignored`"]
+fn scaling_100_bookmarks_export_import_round_trips_correctly() {
+    let src_dir = tempdir().unwrap();
+    let src_db = src_dir.path().join("bookmarks.json");
+    let dst_dir = tempdir().unwrap();
+    let dst_db = dst_dir.path().join("bookmarks.json");
+    let n = 100_usize;
+
+    populate(&src_db, n);
+
+    // Export from source.
+    let exported = Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &src_db)
+        .args(["export"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    // Import into destination.
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &dst_db)
+        .args(["import"])
+        .write_stdin(String::from_utf8(exported).unwrap())
+        .assert()
+        .success()
+        .code(0);
+
+    let dst_loaded = BookmarkStore::load(&dst_db).expect("dst should round-trip through load");
+    assert_eq!(
+        dst_loaded.bookmarks().len(),
+        n,
+        "destination should have exactly {n} bookmarks after import"
+    );
+}
+
+/// Phase 5 Layer 3 — `bm export` + `bm import` round-trip sentinel at the
+/// 1,000-bookmark cliff. Per the DESIGN.md § Performance budget Layer 3
+/// extension: `bm export` < 100 ms; `bm import` < 200 ms (relaxed per
+/// dedup-complexity accepted limitation). The wall-clock assertion is the
+/// `manual-tests/layer-3.md` Step 15 hyperfine sanity-check's responsibility;
+/// this test asserts correctness at scale.
+#[test]
+#[ignore = "scaling sentinel; run via `cargo test -- --ignored`"]
+fn scaling_1000_bookmarks_export_import_round_trips_correctly() {
+    let src_dir = tempdir().unwrap();
+    let src_db = src_dir.path().join("bookmarks.json");
+    let dst_dir = tempdir().unwrap();
+    let dst_db = dst_dir.path().join("bookmarks.json");
+    let n = 1_000_usize;
+
+    populate(&src_db, n);
+
+    let exported = Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &src_db)
+        .args(["export"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &dst_db)
+        .args(["import"])
+        .write_stdin(String::from_utf8(exported).unwrap())
+        .assert()
+        .success()
+        .code(0);
+
+    let dst_loaded = BookmarkStore::load(&dst_db).expect("dst should round-trip through load");
+    assert_eq!(
+        dst_loaded.bookmarks().len(),
+        n,
+        "destination should have exactly {n} bookmarks after import"
+    );
+}
+
+/// Phase 5 Layer 3 — `bm export` + `bm import` round-trip sentinel at the
+/// 10K-bookmark ceiling. Per DESIGN.md § Performance budget § Layer 3 dedup-
+/// complexity accepted limitation: the dedup loop is O(M × N × t log t) at
+/// the 10K × 10K worst case (~400-500M basic operations). This sentinel
+/// exercises that worst case for correctness; wall-clock is the
+/// accepted-limitation responsibility, not the sentinel's.
+#[test]
+#[ignore = "scaling sentinel (~5-30 sec wall-clock at 10K × 10K dedup); run via `cargo test -- --ignored`"]
+fn scaling_10_000_bookmarks_export_import_round_trips_correctly() {
+    let src_dir = tempdir().unwrap();
+    let src_db = src_dir.path().join("bookmarks.json");
+    let dst_dir = tempdir().unwrap();
+    let dst_db = dst_dir.path().join("bookmarks.json");
+    let n = 10_000_usize;
+
+    populate(&src_db, n);
+
+    let exported = Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &src_db)
+        .args(["export"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    Command::cargo_bin("bm")
+        .unwrap()
+        .env("BOOKMARK_CLI_DB", &dst_db)
+        .args(["import"])
+        .write_stdin(String::from_utf8(exported).unwrap())
+        .assert()
+        .success()
+        .code(0);
+
+    let dst_loaded = BookmarkStore::load(&dst_db).expect("dst should round-trip through load");
+    assert_eq!(
+        dst_loaded.bookmarks().len(),
+        n,
+        "destination should have exactly {n} bookmarks after import at 10K cliff"
+    );
+}
