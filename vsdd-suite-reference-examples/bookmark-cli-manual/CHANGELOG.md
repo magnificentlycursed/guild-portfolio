@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased] Layer 3 Phase 2c — refactor extract-and-name annotation (no code changes) — 2026-05-24
+
+**Scope:** Phase 2c refactor annotation per `vsdd-suite/primers/2c-refactor.md` § Completion criteria #5 — the extract-and-name refactor that landed at Phase 2b commit `fd21900` is documented in [TODO.md § Layer 3 Phase 2c](TODO.md#layer-3--export-and-import-ai-co-authored-operator-owned) as the alternative to a silent-skip finding under [G-161](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-161) discipline.
+
+### Changed (TODO.md)
+
+- **§ Layer 3 `**[Phase 2c]...**` declaration** replaced "TBD at Phase 2b landing time" with the post-Phase-2b extract-and-name annotation. Documents the `run_export` + `run_import` per-subcommand helper extraction (parallel to Layer 2 R2 `run_add` / `run_list` / `run_tag` from `326e25d`) + the no-further-refactor rationale + the [G-161](../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-161) dim 12 satisfaction.
+
+No code changes — this is the audit-trail closure for Phase 2c per the suite's primer-2c silent-skip-is-a-finding discipline.
+
+---
+
 ## [Unreleased] Layer 3 Phase 2b — `bm export` + `bm import` implementation (GREEN: all 15 Phase 2a tests pass; 45/45 integration + 3/3 properties; 0 clippy warnings) — 2026-05-24
 
 **Scope:** Implementation lifecycle for Layer 3 per the operator-confirmed spec from PR #52 prior commits. Two-commit canonical shape (Phase 2a Red Gate + Phase 2b implementation) applied per the Layer 2 evidence-preservation annotation in [TODO.md § Layer 2](TODO.md#layer-2--tag-and-filter) — Phase 2a `878d3b6` (15 failing tests; CI-RED), Phase 2b in this commit (same tests pass; CI-GREEN).
