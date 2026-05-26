@@ -1,3 +1,4 @@
+<!-- hook-bypass[check-no-letter-clusters]: Reviews 65-68 (2026-05-20) historically use the retired `Surface A/B/C` Phase 5 verification labels per the pre-Review-78 naming convention. Per G-89 forward-only narrative-preservation the historical labels stay as authored; new Phase 5 prose uses descriptive identifiers (Purity Boundary Audit, Mutation Testing, Fuzz Testing, Proof Execution) per the Review 78 rename. The bypass-mechanism is itself a finding for the next registry-walk review. -->
 # Suite Review — 2026-05-19 (part 2 of 2)
 
 This file holds Reviews 65–68 (the v0.7.1 → v0.7.4 work cycle: cold-context primer validation + Phase 5 primer refinements from bookmark-cli execution + discipline corrections + cold-subagent drift audit). Reviews 61–64 live in [2026-05-19-suite-review-part1.md](2026-05-19-suite-review-part1.md). The split conforms to the filename convention at [`../suite-development.md`](../suite-development.md) § Filename convention — files exceeding the 80 KB / 15-review threshold are split into `-partN.md` suffixed parts (Review 69 amendment).
@@ -6,7 +7,7 @@ This file holds Reviews 65–68 (the v0.7.1 → v0.7.4 work cycle: cold-context 
 
 ## Review 65 — 2026-05-20 01:30Z
 
-<!-- hook-bypass: chat-shorthand F-prefix finding headers committed pre-Review-67 discipline correction; preserved per G-89 forward-only narrative-preservation policy. See § Errata at the end of this entry for the F-prefix → Finding-N cross-reference map. Discipline correction in Review 67 Findings 1+2 prevents recurrence. -->
+<!-- hook-bypass[check-suite-review-preamble]: chat-shorthand F-prefix finding headers committed pre-Review-67 discipline correction; preserved per G-89 forward-only narrative-preservation policy. See § Errata at the end of this entry for the F-prefix → Finding-N cross-reference map. Discipline correction in Review 67 Findings 1+2 prevents recurrence. -->
 
 **Scope:** Cold-context adversarial review of the two Review 64 primers (`primers/5-formal-hardening.md` and `primers/6-convergence.md`) via a subagent spawned in isolation from this session's authorial context. The subagent loaded the two new primers + `primers/3-review-session.md` (posture) + `suite-development/suite-development.md` (governing standard for primers) + role prompts for Quality Engineer (Phase 5 lens) + Solution Architect (Phase 6 lens). The subagent surfaced 12 findings (F1–F12), all classified Deferred by the subagent (because a reviewer does not edit; it surfaces). The director (this session) addressed 9 of 12 in-session and registered the remaining 3 as Deferred gaps with G-130 discipline.
 
@@ -149,7 +150,7 @@ Deferred findings (already have G-IDs; F-prefix maps to G-ID):
 
 ## Review 66 — 2026-05-20 02:30Z
 
-<!-- hook-bypass: chat-shorthand R-prefix finding headers committed pre-Review-67 discipline correction; G-173–G-176 G-IDs also over-promoted to Resolved-in-session findings per Review 67 Finding 1. Both drifts preserved per G-89 forward-only narrative-preservation policy. See § Errata at the end of this entry for the R-prefix cross-reference map. Discipline correction in Review 67 Findings 1+2 prevents recurrence. -->
+<!-- hook-bypass[check-suite-review-preamble]: chat-shorthand R-prefix finding headers committed pre-Review-67 discipline correction; G-173–G-176 G-IDs also over-promoted to Resolved-in-session findings per Review 67 Finding 1. Both drifts preserved per G-89 forward-only narrative-preservation policy. See § Errata at the end of this entry for the R-prefix cross-reference map. Discipline correction in Review 67 Findings 1+2 prevents recurrence. -->
 
 **Scope:** Refinements to `primers/5-formal-hardening.md` surfaced by running Phase 5 against `bookmark-cli` in a sandbox (the option-3 validation exercise that closed the Review 64 work cycle). Real Phase 5 execution surfaced 4 primer-refinement candidates (R1–R4) plus 2 bookmark-cli-side findings (B1, B2). This review addresses R1–R4; B1+B2 remain unaddressed pending operator authorization (bookmark-cli is the reference impl per G-117/G-122).
 

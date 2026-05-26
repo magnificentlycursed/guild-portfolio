@@ -1,4 +1,6 @@
-# Session Primer: Adversarial Refinement (VSDD Phase 3)
+# Session Primer: Adversarial Refinement (VSDD (Verified Spec-Driven Development) Phase 3)
+
+**Frequency:** Per layer × N rounds until MVR per § Round triggers (G-131 continue / G-151 stop).
 
 **Whitepaper alignment ([Review 79](../suite-development/review-log/2026-05-20-suite-review.md#review-79--2026-05-20-1730z) Finding 1):** the [VSDD whitepaper](https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00) names this phase **"Adversarial Refinement (The VDD Roast)"** — the suite-internal abbreviation "IAR" (Iterative Adversarial Refinement) preserves "Refinement"; the primer's H1 was previously titled "Adversarial Review" which lost the "Refinement" semantics. This primer aligns to the whitepaper's canonical name. "Review session" remains accurate as descriptive prose for an individual round; "Adversarial Refinement" is the canonical name for the phase.
 
@@ -212,6 +214,40 @@ Before ending the session, classify every finding. Valid classifications vary by
 - **Demonstrated / Partial / Absent** — Portfolio Assessment only (replaces resolved/dismissed for assessment findings)
 
 A session that ends with unclassified findings has not completed the review. Log round number (`QE Review 1`, `Security Review 2`) and the finding progression — moving from real findings to hallucinated findings is evidence the process worked.
+
+## Round opening — Phase 2c → 3 transition attestation (R95 F3 hook 3 closure)
+
+Every Phase 3 review entry's preamble must include a `**Tested against:** <commit-hash> | Phase 2c skip per <annotation>` field per the [R95 F3 Design A](../suite-development/review-log/2026-05-24-suite-review.md#r95-f3) per-transition provability matrix. The field cites the antecedent state of the 2c → 3 transition — the specific Phase 2c commit hash the review's premise rests on. A downstream consumer can `git checkout <cited-hash> && <test-runner>` to verify the review's premise independently.
+
+Valid values:
+
+- **Commit hash reference** — 7-40 hex characters citing the Phase 2c commit (or the Phase 2b commit for projects that explicit-skip Phase 2c per [G-96](../suite-development/FINDINGS-INDEX.md#g-96)). Example: `**Tested against:** Layer 3 Phase 2c commit 78bd3cf`.
+- **`Phase 2c skip per <annotation>` phrase** — for projects whose layer explicit-skips Phase 2c per [G-96](../suite-development/FINDINGS-INDEX.md#g-96)'s "no refactor required" annotation. Example: `**Tested against:** Phase 2c skip per TODO.md § Layer N two-commit shape annotation`.
+
+The field is enforced by [`../hooks/check-suite-review-preamble.py`](../hooks/check-suite-review-preamble.py) Check 7 for project-level review entries dated 2026-05-26 or later. Forward-only threshold lets in-flight cycles complete without retroactive amendment.
+
+## Round opening — Round N → N+1 trigger attestation (R95 F3 hook 4 closure)
+
+Every Phase 3 Round N entry (where N ≥ 2 — Round 1 is the opening round with no prior round to close) must include a `**Round close trigger:** G-131 | G-151` field per the [R95 F3 Design A](../suite-development/review-log/2026-05-24-suite-review.md#r95-f3) per-transition provability matrix. The field attests why the prior round closed + Round N+1 opened per § Round triggers above:
+
+- **G-131 (continue trigger)** — the prior round produced new real findings; per § Round triggers § Continue trigger, Round N+1 is mandatory.
+- **G-151 (stop trigger)** — the prior round produced only Hallucinated findings; per § Round triggers § Stop trigger, Round N+1 should NOT run by default. Running anyway requires explicit director justification (specific new evidence or new attack surface; cold-batch infrastructure being available is NOT justification).
+
+The trigger attestation makes the Round N → N+1 transition decision auditable post-hoc. A downstream consumer reading the review log can verify the trigger decision was applied correctly without trusting the developer's narrative — the cited trigger + the prior round's finding-classification mix are jointly reproducible.
+
+The field is enforced by [`../hooks/check-suite-review-preamble.py`](../hooks/check-suite-review-preamble.py) Check 8 for project-level Phase 3 Round N ≥ 2 entries dated 2026-05-26 or later. Forward-only threshold lets in-flight cycles complete without retroactive amendment.
+
+## Round closing — Phase 4 routing closing field (R94 F1 closure)
+
+Every Phase 3 round entry's closing block must include a `**Phase 4 routing:** <reference>` field naming where this round's routable findings were routed per [`4-feedback-integration.md`](4-feedback-integration.md). Per [`../suite-development/suite-development.md` § Layer-gate close criteria](../suite-development/suite-development.md#layer-gate-close-criteria-processmd-retrospective-discipline) criterion 8: routing is per-round (every round gets its own routing record), not per-layer; a layer that closes IAR at Round N must have N routing records.
+
+Valid values:
+
+- **Reference to the per-domain Phase 4 routing appendix** in this entry's file — the canonical primer-4-shape post-bookmark-cli-manual-PR-#52: each per-domain review log carries `## Phase 4 routing — Round N` appendices for that domain's routable findings. Example: `**Phase 4 routing:** see § Phase 4 routing — Round 1 below`.
+- **`*(no routable findings)*`** placeholder — for rounds that produced only Hallucinated findings (or only Resolved-in-session findings with no out-of-domain routing required). The placeholder structurally records that routing was considered, not skipped.
+- **Cross-reference to a consolidated routing record** — only for legacy entries authored before the per-domain-appendix shape became canonical (2026-05-25). New entries use the per-domain appendix shape.
+
+The `**Phase 4 routing:**` field is enforced by [`../hooks/check-suite-review-preamble.py`](../hooks/check-suite-review-preamble.py) for entries dated 2026-05-26 or later. The forward-only threshold lets the bookmark-cli-manual PR #52 cycle's Round 1/2/3 entries (already-merged historical records) stand without retroactive amendment.
 
 ## Source attribution (G-133 / Review 68 Finding 11)
 

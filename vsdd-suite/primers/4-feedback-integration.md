@@ -1,8 +1,10 @@
 # Session Primer: Feedback Integration Loop (VSDD Phase 4)
 
+**Frequency:** **Per Phase 3 round** — every IAR (Iterative Adversarial Refinement) round produces a routing record per round, not per layer (the canonical primer-4-shape post-bookmark-cli-manual-PR-#52 is per-domain `## Phase 4 routing — Round N` appendices in each per-domain review log entry; enforced via [`suite-development.md` § Layer-gate close criteria](../suite-development/suite-development.md#layer-gate-close-criteria-processmd-retrospective-discipline) criterion 8).
+
 **Whitepaper alignment ([Review 79](../suite-development/review-log/2026-05-20-suite-review.md#review-79--2026-05-20-1730z) Finding 1):** the [VSDD whitepaper](https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00) names this phase **"Feedback Integration Loop"** — the "Loop" qualifier is load-bearing; Phase 4 is the routing-back-to-earlier-phases activity that closes the IAR refinement loop. The primer was previously titled "Feedback Integration" (missing "Loop"); this primer aligns to the whitepaper's canonical name.
 
-Use this prompt after a Phase 3 IAR round has produced a classified finding set and before the next implementation pass begins. The output of this session is a routed finding set — each real finding is assigned to the earliest VSDD phase that can correctly fix it, with the corresponding work scheduled there. Phase 4 closes the loop back to Phases 1a / 1b / 1c / 2a / 2b / 2c / 5; the loop repeats until MVR.
+Use this prompt after a Phase 3 IAR round has produced a classified finding set and before the next implementation pass begins. The output of this session is a routed finding set — each real finding is assigned to the earliest VSDD phase that can correctly fix it, with the corresponding work scheduled there. Phase 4 closes the loop back to Phases 1a / 1b / 1c / 2a / 2b / 2c / 5; the loop repeats until MVR (maximum viable refinement).
 
 Do not start feedback integration with unclassified findings. A finding that has not been classified Resolved / Dismissed / Hallucinated / Accepted (etc.) does not have a routing decision yet — re-run the relevant Phase 3 domain to classify before routing.
 

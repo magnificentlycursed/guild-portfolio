@@ -1,10 +1,12 @@
 # Session Primer: Minimal Implementation (VSDD Phase 2b)
 
+**Frequency:** Per layer.
+
 **Whitepaper alignment ([Review 79](../suite-development/review-log/2026-05-20-suite-review.md#review-79--2026-05-20-1730z) Finding 1):** the [VSDD whitepaper](https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00) names this step **"Minimal Implementation"** — the "Minimal" qualifier is load-bearing; Phase 2b's posture is "write only enough code to pass the failing tests; no scope creep beyond the Red Gate's surface." The suite's primer was previously titled just "Implementation"; this primer aligns to the whitepaper's canonical name.
 
 Use this prompt at the start of a Phase 2b session — after `2a-red-gate.md` has been run, every layer test fails for the right reason, and the Red Gate state is committed. The output of this session is a passing test suite and a minimal working implementation that satisfies the layer's acceptance criteria — nothing beyond what the failing tests demand.
 
-Do not start implementation without a committed Red Gate. An implementation session that begins before the Red Gate commit cannot be distinguished from test-after work by VDD-IAR Alignment dim 4.
+Do not start implementation without a committed Red Gate. An implementation session that begins before the Red Gate commit cannot be distinguished from test-after work by VDD-IAR (Iterative Adversarial Refinement) Alignment dim 4.
 
 ---
 
@@ -31,7 +33,7 @@ Once the Red Gate is set, every new test is confirmed failing, and the Red Gate 
 1. Implement to make failing tests pass — no more, no less.
 2. Do not add tests during implementation. If you discover a missing test, note it; add it in a separate commit after the current feature is working, so the Red Gate record is clean. A retroactive test cannot satisfy the Red Gate (the implementation exists before the test fails), so log it as a **Red Gate deviation** in the commit message and review log: "retroactive Red Gate: [behavior name] — discovered during Phase 2b, test added post-implementation, confirmed passes against current implementation." This is a known limitation, not a workaround. Do not silently add retroactive tests without the label.
 
-   The label extends to **post-MVR retroactive Red Gate** when Phase 5 (Formal Hardening) surfaces a missing test against already-shipped implementation-MVR code: use the same label but with a Phase 5 source qualifier — "retroactive Red Gate (Phase 5 source): [behavior name] — Surface [A|B|C|D] surfaced the gap; test added post-MVR; confirmed passes against current implementation." Distinguish from the Phase 2b-discovery case via the `(Phase 5 source)` qualifier; the discipline is the same (the test cannot retroactively satisfy the Phase 2a Red Gate), the visibility is greater (post-MVR discovery is a stronger audit signal than during-Phase-2b discovery).
+   The label extends to **post-MVR (maximum viable refinement) retroactive Red Gate** when Phase 5 (Formal Hardening) surfaces a missing test against already-shipped implementation-MVR code: use the same label but with a Phase 5 source qualifier — "retroactive Red Gate (Phase 5 source): [behavior name] — Surface [A|B|C|D] surfaced the gap; test added post-MVR; confirmed passes against current implementation." Distinguish from the Phase 2b-discovery case via the `(Phase 5 source)` qualifier; the discipline is the same (the test cannot retroactively satisfy the Phase 2a Red Gate), the visibility is greater (post-MVR discovery is a stronger audit signal than during-Phase-2b discovery).
 3. Do not implement features not covered by a failing test. If a feature seems obviously needed but has no test, that is a spec gap — surface it rather than silently implementing it.
 4. After each feature is complete, run the full test suite. No previously-passing test may begin failing. A regression requires a fix before moving to the next feature.
 

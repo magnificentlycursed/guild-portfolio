@@ -1,4 +1,4 @@
-<!-- hook-bypass: Review 2 Finding 6 historically-cites the residual `Path A/B/C` letter labels in the Phase 4 routing record as the substantive defect-class being flagged; the citation is the audit-trail evidence the finding requires (parallel to Review 94's own hook-bypass for the suite-side discussion that necessarily quotes the offending labels). Per the check-no-letter-clusters.py hook header comment: bypasses are themselves findings for the next registry-walk review; Review 2 Finding 6 IS the registry-walk-equivalent surfacing the hook-bypass-vs-new-hook-interaction Dim 11 + Dim 12 concern explicitly, so the bypass + finding are coupled. -->
+<!-- hook-bypass[check-no-letter-clusters]: Review 2 Finding 6 historically-cites the residual `Path A/B/C` letter labels in the Phase 4 routing record as the substantive defect-class being flagged; the citation is the audit-trail evidence the finding requires (parallel to Review 94's own hook-bypass for the suite-side discussion that necessarily quotes the offending labels). Per the check-no-letter-clusters.py hook header comment: bypasses are themselves findings for the next registry-walk review; Review 2 Finding 6 IS the registry-walk-equivalent surfacing the hook-bypass-vs-new-hook-interaction Dim 11 + Dim 12 concern explicitly, so the bypass + finding are coupled. -->
 
 # AI Engineer Review — bookmark-cli-manual
 
@@ -298,7 +298,7 @@ This is the [R1 F6](2026-05-21-ai-engineer.md#r1-f6) precedent applied to the La
 
 ## Review 2 — 2026-05-25 04:30Z
 
-<!-- hook-bypass: this Round 2 entry uses **Bold-paragraph emphasis** as inline subsection emphasis within Round-1-cycle mining + operator-action-queue blocks. These bold lines are paragraph-level emphasis, not Finding headers; actual Round 2 Findings in this entry use the canonical `**Finding N — Title**` form. The check-suite-review-preamble hook's `**X — Y**` regex matches both; the bypass-mechanism is itself a finding for the next registry-walk review. -->
+<!-- hook-bypass[check-suite-review-preamble]: this Round 2 entry uses **Bold-paragraph emphasis** as inline subsection emphasis within Round-1-cycle mining + operator-action-queue blocks. These bold lines are paragraph-level emphasis, not Finding headers; actual Round 2 Findings in this entry use the canonical `**Finding N — Title**` form. The check-suite-review-preamble hook's `**X — Y**` regex matches both; the bypass-mechanism is itself a finding for the next registry-walk review. -->
 
 **Round:** Layer 3 Phase 3 IAR Round 2.
 **Session-start (Bash `date -u`):** 2026-05-25T03:06Z

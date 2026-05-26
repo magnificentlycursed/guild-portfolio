@@ -110,6 +110,47 @@ SUITE_INTERNAL_PATTERNS = [
 ]
 
 
+# Abbreviation-first-use-expansion patterns (R95 F1 Design B; F1 expansion per
+# operator-directive 2026-05-25 — extend existing-hook with TW Dim 12 lookup-cost
+# discipline check). Each abbreviation has one or more canonical expansions
+# (case-insensitive); the discipline: any file containing the abbreviation
+# must also contain the expansion somewhere (file-wide check, not per-occurrence).
+#
+# Mechanically detects bare-abbreviation-without-expansion (the cheapest TW Dim 12
+# slip class): a user encountering `IAR` or `MVR` in user-facing artifact prose
+# with no expansion has to look it up. The hook closes the gap at commit time.
+#
+# Scope: only fires when both (a) the file is in IN_SCOPE_PATTERNS (user-facing
+# project artifacts + suite-wide user-facing surfaces per F1 expansion), AND
+# (b) the abbreviation is used as a bare term (word-boundary match).
+ABBREVIATION_EXPANSIONS: list[tuple[re.Pattern[str], tuple[re.Pattern[str], ...], str]] = [
+    (
+        re.compile(r"\bIAR\b"),
+        (re.compile(r"\bIterative Adversarial Refinement\b", re.IGNORECASE),),
+        "IAR: user-facing artifact uses bare `IAR` abbreviation without expansion. "
+        "Add `Iterative Adversarial Refinement (IAR)` on first mention so a reader "
+        "encountering the abbreviation can resolve it without leaving the file.",
+    ),
+    (
+        re.compile(r"\bVSDD\b"),
+        (re.compile(r"\bVerified Spec-Driven Development\b", re.IGNORECASE),),
+        "VSDD: user-facing artifact uses bare `VSDD` abbreviation without expansion. "
+        "Add `Verified Spec-Driven Development (VSDD)` on first mention so a reader "
+        "encountering the abbreviation can resolve it without leaving the file.",
+    ),
+    (
+        re.compile(r"\bMVR\b"),
+        (
+            re.compile(r"\bmaximum viable refinement\b", re.IGNORECASE),
+            re.compile(r"\bMVR\s*\(maximum viable refinement\)", re.IGNORECASE),
+        ),
+        "MVR: user-facing artifact uses bare `MVR` abbreviation without expansion. "
+        "Add `maximum viable refinement (MVR)` on first mention so a reader "
+        "encountering the abbreviation can resolve it without leaving the file.",
+    ),
+]
+
+
 # Path filters. The hook only fires on files matching IN_SCOPE; OUT_OF_SCOPE wins
 # when both match (subpath of OUT_OF_SCOPE inside IN_SCOPE → skip).
 IN_SCOPE_PATTERNS = [
@@ -128,9 +169,27 @@ OUT_OF_SCOPE_PATTERNS = [
     re.compile(r".*/COMPATIBILITY\.md$"),  # audit-trail
 ]
 
+# Separate scope for the R95 F1 abbreviation-first-use-expansion check
+# (operator-directive 2026-05-25: F1 expansion is suite-wide for the
+# abbreviation discipline specifically; existing patterns stay project-only
+# because they're about suite-internal terminology containment, which is
+# fundamentally about user-facing project surfaces).
+ABBREVIATION_IN_SCOPE_PATTERNS = IN_SCOPE_PATTERNS + [
+    re.compile(r"^vsdd-suite/README\.md$"),
+    re.compile(r"^vsdd-suite/primers/[^/]+\.md$"),
+]
+ABBREVIATION_OUT_OF_SCOPE_PATTERNS = [
+    re.compile(r"^vsdd-suite/(?!README\.md|primers/)"),  # suite-internal authoring
+    re.compile(r".*/vsdd-suite/"),  # any project's vsdd-suite/ folder
+    re.compile(r".*/PROCESS\.md$"),
+    re.compile(r".*/CHANGELOG\.md$"),
+    re.compile(r".*/COMPATIBILITY\.md$"),
+]
+
 
 def is_in_scope(path: str) -> bool:
-    """Check if path is in the scope this hook enforces."""
+    """Check if path is in scope for the existing SUITE_INTERNAL_PATTERNS
+    (suite-internal-terminology containment in user-facing project artifacts)."""
     # Out-of-scope wins when both match.
     for p in OUT_OF_SCOPE_PATTERNS:
         if p.search(path):
@@ -141,14 +200,38 @@ def is_in_scope(path: str) -> bool:
     return False
 
 
-# Bypass marker: `<!-- hook-bypass: <rationale> -->` in the first 5 lines.
-BYPASS_RE = re.compile(r"<!--\s*hook-bypass:\s*.*?-->", re.IGNORECASE)
+def is_in_abbreviation_scope(path: str) -> bool:
+    """Check if path is in scope for the R95 F1 abbreviation-first-use-expansion
+    check (suite-wide per operator-directive 2026-05-25: project user-facing +
+    suite README + primers)."""
+    for p in ABBREVIATION_OUT_OF_SCOPE_PATTERNS:
+        if p.search(path):
+            return False
+    for p in ABBREVIATION_IN_SCOPE_PATTERNS:
+        if p.search(path):
+            return True
+    return False
+
+
+# Bypass marker (scoped form is canonical per AIE R2 F6 SO-decision):
+#   `<!-- hook-bypass[hook-id1,hook-id2]: <rationale> -->` in the first 5 lines of the file.
+# Each hook only bypasses if its own pre-commit id is in the scope list. The legacy
+# unscoped form is REJECTED by the separate check-no-legacy-bypass-markers hook.
+HOOK_ID = "check-suite-internal-terminology"
+SCOPED_BYPASS_RE = re.compile(
+    r"<!--\s*hook-bypass\[([^\]]+)\]:\s*.+?-->",
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 def has_bypass(content: str) -> bool:
-    """Check if the file has a hook-bypass marker in the first 5 lines."""
+    """Return True if a scoped hook-bypass marker naming this hook's id is in the first 5 lines."""
     head = "\n".join(content.splitlines()[:5])
-    return bool(BYPASS_RE.search(head))
+    for match in SCOPED_BYPASS_RE.finditer(head):
+        scoped_hooks = [h.strip() for h in match.group(1).split(",")]
+        if HOOK_ID in scoped_hooks:
+            return True
+    return False
 
 
 def strip_verbatim_blocks(content: str) -> str:
@@ -193,14 +276,44 @@ def check_file(path: Path) -> List[str]:
     scannable = strip_verbatim_blocks(content)
     lines = scannable.split("\n")
 
-    for line_idx, line in enumerate(lines, start=1):
-        for pattern, rationale in SUITE_INTERNAL_PATTERNS:
-            for m in pattern.finditer(line):
-                violations.append(
-                    f"{path}:{line_idx}: suite-internal terminology `{m.group(0)}` "
-                    f"in user-facing project artifact. {rationale}"
-                )
-                break  # one violation per line per pattern; don't double-report
+    # Existing SUITE_INTERNAL_PATTERNS run only on the original (project-only)
+    # scope; abbreviation expansion has its own broader scope below.
+    if is_in_scope(str(path)):
+        for line_idx, line in enumerate(lines, start=1):
+            for pattern, rationale in SUITE_INTERNAL_PATTERNS:
+                for m in pattern.finditer(line):
+                    violations.append(
+                        f"{path}:{line_idx}: suite-internal terminology `{m.group(0)}` "
+                        f"in user-facing project artifact. {rationale}"
+                    )
+                    break  # one violation per line per pattern; don't double-report
+
+    # R95 F1 Design B abbreviation-first-use-expansion check. File-wide:
+    # for each abbreviation used in the file, require that one of its
+    # canonical expansions also appears in the file. Reported at the line
+    # of the first occurrence of the abbreviation. One violation per
+    # abbreviation per file (not per-occurrence; the discipline is "spell
+    # it out at least once per file"). Suite-wide scope per F1 directive.
+    if not is_in_abbreviation_scope(str(path)):
+        return violations
+    for abbr_pattern, expansion_patterns, rationale in ABBREVIATION_EXPANSIONS:
+        first_match: tuple[int, str] | None = None
+        for line_idx, line in enumerate(lines, start=1):
+            m = abbr_pattern.search(line)
+            if m:
+                first_match = (line_idx, m.group(0))
+                break
+        if first_match is None:
+            continue  # abbreviation not used in this file
+        # Abbreviation used — check the WHOLE file (scannable, not just
+        # the lines) for any expansion match.
+        has_expansion = any(p.search(scannable) for p in expansion_patterns)
+        if not has_expansion:
+            line_idx, matched = first_match
+            violations.append(
+                f"{path}:{line_idx}: bare abbreviation `{matched}` without "
+                f"first-use expansion. {rationale}"
+            )
 
     return violations
 
@@ -212,7 +325,10 @@ def main(argv: List[str]) -> int:
 
     all_violations: List[str] = []
     for f in files:
-        if not is_in_scope(f):
+        # Per-discipline scope check now happens inside check_file (the
+        # existing patterns + the R95 F1 abbreviation patterns have
+        # different scopes). Skip a file only if NEITHER discipline applies.
+        if not is_in_scope(f) and not is_in_abbreviation_scope(f):
             continue
         path = Path(f)
         if not path.exists():

@@ -1,7 +1,265 @@
-<!-- hook-bypass: this CHANGELOG preserves historical references to retired letter labels per G-89 forward-only narrative-preservation. New entries SHOULD use descriptive identifiers; legacy entries are preserved as-authored. The bypass-mechanism is itself a finding for the next registry-walk review per check-no-letter-clusters.py's own rationale. -->
+<!-- hook-bypass[check-no-letter-clusters,check-document-staleness]: this CHANGELOG preserves historical references to retired letter labels per G-89 forward-only narrative-preservation + legitimately describes the suite's staleness-pattern set (the patterns themselves are documented + cross-referenced here, which the staleness hook's pattern-detection would flag as in-flight phrasing). New entries SHOULD use descriptive identifiers; legacy entries are preserved as-authored. The bypass-mechanism is itself a finding for the next registry-walk review per the respective hooks' own rationale. -->
 # Changelog
 
 All notable changes to the suite are recorded here. Entries are in reverse chronological order. Timestamps are UTC (Zulu).
+
+---
+
+## [Unreleased] R95 F1 Design B — abbreviation-first-use-expansion check + 9 primers auto-fixed for IAR/VSDD/MVR expansions (2026-05-25)
+
+**Scope:** R95 F1 Design B (existing-hook expansion) per operator-direction "hook-enforced" + "suite-wide scope per operator-directive". Extends `check-suite-internal-terminology.py` with the abbreviation-first-use-expansion check covering IAR / VSDD / MVR.
+
+### Changed (vsdd-suite/hooks/check-suite-internal-terminology.py)
+
+- New `ABBREVIATION_EXPANSIONS` pattern set with 3 abbreviations: IAR → `Iterative Adversarial Refinement`; VSDD → `Verified Spec-Driven Development`; MVR → `maximum viable refinement`.
+- Split-scope design (avoids over-application of existing suite-internal-terminology patterns to suite primers/README): `IN_SCOPE_PATTERNS` unchanged (project-only); `ABBREVIATION_IN_SCOPE_PATTERNS` adds suite README + primers per F1 suite-wide directive. `is_in_abbreviation_scope()` is the dedicated scope check.
+- File-wide check semantic: any file using the abbreviation must contain the expansion SOMEWHERE in the file (not per-occurrence). Reported at the line of the first occurrence.
+
+### Changed (vsdd-suite/primers/*.md — 9 primers auto-fixed)
+
+- Each primer's first occurrence of IAR / VSDD / MVR now expanded inline as `IAR (Iterative Adversarial Refinement)` etc. Some placements are awkward (e.g., parenthetical-within-parenthetical in primer 3's H1) but the discipline is met; future authoring can polish.
+
+### Added (forward-only bypass markers on 9 project user-facing files)
+
+- bookmark-manager/TODO.md; issue-tracker-cli/{DESIGN.md, README.md, TODO.md}; bookmark-cli-manual/DESIGN.md + manual-tests/{install-verification, layer-1, layer-2, layer-3}.md — scoped-bypass markers for pre-existing bare-abbreviation use preserved per the forward-only carve-out. Project user-facing files in pre-merge state are out-of-scope for this suite-hardening PR; future per-project amendments can address the abbreviations.
+
+### Closure status post-this-commit
+
+**Suite-hardening PR scope complete.** All 7 planned hooks landed: AIE R2 F6 (per-hook bypass; b97b6f1) + R94 F1 (Phase 4 routing gate; 593ed5f) + R95 F3 hooks 1-5 (phase-transition matrix; 9a68bd2/2a0113c/51b8226/94a7eb0/e85d1c7) + R95 F2 (staleness; f16b2ff) + R95 F1 (abbreviation expansion; this commit). PR ready for merge prep.
+
+---
+
+## [Unreleased] Review 96 — adversarial canvas of PR #52 methodology drifts for suite-hardening candidates (analytical only) (2026-05-25)
+
+**Scope:** Director-raised adversarial canvas of bookmark-cli-manual PR #52 for methodology drifts / process defects / suite-hardening candidates NOT yet captured in Reviews 94 + 95. Analytical write-up only — no implementation per operator-direction "Write it up as a review".
+
+### Added (vsdd-suite/suite-development/review-log/2026-05-24-suite-review.md Review 96)
+
+- **Finding 1 (Deferred)** — Round 3 verification mini-cycle codification in primer 3 + AIE Dim 7
+- **Finding 2 (Deferred)** — Cost-tally + Pre-cycle methodology declaration hook validations (Check 9 + 10 extensions on check-suite-review-preamble.py)
+- **Finding 3 (Deferred)** — Architectural correction sub-decision discipline (Round 1 → Round 2 reversal pattern; mid-Phase-2b contract changes need SO ratification + per-domain consultation BEFORE landing)
+- **Finding 4 (Deferred)** — Round 2+ disposition shapes documentation (Raised-to-SO + Hallucinated-triggers-verification-mini-cycle as new dispositions)
+- **Finding 5 (Deferred)** — In-cycle suite-hardening pattern codification ("when is in-cycle vs deferred-to-suite-PR appropriate")
+- **Finding 6 (Deferred)** — Operator-decision queue convention (`OPERATOR-DECISION-QUEUE.md` artifact)
+- **Finding 7 (Dismissed)** — 4 lower-leverage candidates consolidated with rationale: AI-co-authored disclosure hook (G-156 already a hard gate); PR-template body automation (one-off, not recurrence); FINDINGS-INDEX scaffolding (mechanical-only, not load-bearing); R95 F1 co-authoring overlap with R96 F1 (the Round 3 mini-cycle subsumes the concrete value)
+
+### Closure status post-this-commit
+
+**9 operator-decision asks pending** across R94 + R95 + R96 (R95 F1+F2+F3 candidate-design picks; R96 F1-F6 individual codification scope picks). The post-PR-#52 suite-hardening backlog has zero substantive items pending hook implementation (R95 F1 Design B existing-hook expansion is the last in-flight hook in this PR).
+
+---
+
+## [Unreleased] R95 F2 — check-document-staleness.py (suite-wide staleness hook per operator-directive 2026-05-25) (2026-05-25)
+
+**Scope:** R95 F2 Design A hook-enforced staleness detection with suite-wide scope per operator-directive 2026-05-25 ("stale documentation hooks should also apply to the upstream suite").
+
+### Added (vsdd-suite/hooks/check-document-staleness.py)
+
+- Conservative-scope (first-30-lines per file) pattern-based detection of staleness signals: in-flight phrases (`in flight`, `in progress`, `to be authored`, `scoped but not built`, `pending implementation`, `deferred — scoped only`); round-N-in-progress (`Round N in progress`); layer-N-pending; phase-pending.
+- Verbatim-block stripping (fenced code + blockquotes) avoids flagging literal command transcripts + historical citations.
+- Three-audience design: STALENESS_PATTERNS dataclass (name + regex + rationale triple); failure messages cite the pattern's rationale + corrective action + scoped-bypass relief valve; structured `path:line: <message>` for AI agents.
+- Wired in `.pre-commit-config.yaml` with `^(.*\.md)$` scope (suite-wide per operator-directive; not project-only).
+
+### Added (forward-only bypass markers on pre-existing G-89-historical files)
+
+- 7 files received scoped-bypass markers for pre-existing in-flight phrasing preserved per G-89: bookmark-manager/DECISIONS.md; issue-tracker-cli/DESIGN.md + iterative-adversarial-refinement/SOLUTION-OWNER-REVIEW.md + README.md; bookmark-cli-manual/vsdd-suite/review-log/2026-05-24-documentation-reviewer.md; vsdd-suite/suite-development/review-log/2026-05-05-suite-review.md; vsdd-suite/templates/PROJECT-README-template.md.
+
+### Closure status post-this-commit
+
+R95 F2 (Design A) landed suite-wide. F1 expansion (existing-hook expansion for shape+content patterns; suite-wide per operator-directive) is the last remaining hook in the suite-hardening backlog.
+
+---
+
+## [Unreleased] R95 F3 hook 5 — check-phase-5-routing-precedence.py (4 → 5 transition; 5 of 5) (2026-05-25)
+
+**Scope:** Final phase-transition hook per R95 F3 Design A matrix. The 4 → 5 transition enforces that every Round N has a Phase 4 routing record per layer BEFORE Phase 5 surface entries land.
+
+### Added (vsdd-suite/hooks/check-phase-5-routing-precedence.py)
+
+- Validates: when a project review-log file contains a `**Phase 5 surface:**` preamble tag, the project's review-log directory must contain `**Phase 4 routing:**` references (Round N closing fields or per-domain appendix references). Conservative implementation counts references across all sibling review-log files.
+- Scope: project-level review-log entries (`<project>/vsdd-suite/review-log/`).
+- Scoped-bypass support on the Phase 5 entry's file.
+- Three-audience design: PHASE_5_TAG_RE + PHASE_4_ROUTING_FIELD_RE constants; failure messages name Phase 5 entry + missing references; structured `path:line: <message>` for agents.
+
+### Closure status post-this-commit
+
+**R95 F3 5 of 5 phase-transition hooks LANDED.** Hook implementations complete for the per-transition matrix. F2 (suite-wide staleness hook per operator-directive 2026-05-25) + F1 (existing-hook expansion suite-wide per operator-directive 2026-05-25) remain.
+
+---
+
+## [Unreleased] R95 F3 hook 4 — check-suite-review-preamble.py Check 8 (Round N → N+1 trigger attestation) (2026-05-25)
+
+**Scope:** Fourth of 5 phase-transition hooks per R95 F3 Design A matrix. Extends `check-suite-review-preamble.py` with Check 8 — validates `**Round close trigger:** G-131 | G-151` field on project-level Phase 3 Round N ≥ 2 entries.
+
+### Changed (vsdd-suite/hooks/check-suite-review-preamble.py)
+
+- New `ROUND_TRIGGER_THRESHOLD = "2026-05-26"` constant + `VALID_ROUND_TRIGGER_VALUES` enumeration.
+- New Check 8: validates `**Round close trigger:**` field presence on Round N ≥ 2 entries. Round-N detection heuristic: review number > 1 AND entry preamble contains `Round [2-9]` or `Round [10-99]` reference.
+- Forward-only: pre-2026-05-26 entries grandfathered.
+
+### Added (vsdd-suite/primers/3-review-session.md § Round opening — Round N → N+1 trigger attestation)
+
+- Documents the required `**Round close trigger:**` field + valid values (G-131 continue / G-151 stop) + the audit semantic (downstream consumer can verify trigger decision against prior round's finding-classification mix).
+
+### Closure status post-this-commit
+
+R95 F3 hooks 1+2+3+4 of 5 landed. Hook 5 (routing-complete-precedence) + F2 (suite-wide staleness) + F1 (existing-hook expansion suite-wide) remain.
+
+---
+
+## [Unreleased] R95 F3 hook 3 — check-suite-review-preamble.py Check 7 (2c → 3 transition attestation) (2026-05-25)
+
+**Scope:** Third of 5 phase-transition hooks per R95 F3 Design A matrix. Extends `check-suite-review-preamble.py` with Check 7 — validates `**Tested against:**` preamble field on project-level Phase 3 review entries.
+
+### Changed (vsdd-suite/hooks/check-suite-review-preamble.py)
+
+- New `PHASE_2C_TO_3_THRESHOLD = "2026-05-26"` constant + `COMMIT_HASH_RE` regex.
+- New Check 7: validates `**Tested against:**` preamble field presence + value (must contain commit-hash reference OR `Phase 2c skip per <annotation>` phrase). Scoped to project-level entries (suite-review entries exempt).
+- Forward-only: existing entries dated < 2026-05-26 grandfathered.
+
+### Added (vsdd-suite/primers/3-review-session.md § Round opening)
+
+- New section "Round opening — Phase 2c → 3 transition attestation (R95 F3 hook 3 closure)" documenting the required `**Tested against:**` field + accepted values + the Check 7 enforcement.
+
+### Closure status post-this-commit
+
+R95 F3 hooks 1+2+3 of 5 landed. Hooks 4-5 (round trigger, routing-complete-precedence) + F2 (suite-wide staleness) + F1 (existing-hook expansion suite-wide) remain.
+
+---
+
+## [Unreleased] R95 F3 hook 2 — check-red-gate-plan-precedence.py (1c → 2a transition hook) (2026-05-25)
+
+**Scope:** Second of 5 phase-transition hooks per R95 F3 Design A matrix. Validates the 1c → 2a transition: TODO.md Red Gate test plan must be documented BEFORE Phase 2a test files commit.
+
+### Added (vsdd-suite/hooks/check-red-gate-plan-precedence.py)
+
+- Validates: when a test-shaped file (matching `tests/*.rs`, `tests/test_*.py`, `*_test.{py,ts,js,tsx,jsx}`, `*.test.{ts,js,tsx,jsx}`, or `__tests__/*`) is staged, walks up to find the project's TODO.md + requires it to contain `**Red Gate test plan**` marker.
+- "No TODO.md found in any ancestor" path: hook passes (suite-internal test dirs out of scope by this same logic).
+- Scoped-bypass on test file OR on TODO.md: both satisfy the bypass.
+- Three-audience design: TEST_PATH_PATTERNS + RED_GATE_MARKER_RE for suite-developer extensibility; failure messages name TODO.md location + primer 2a + relief valve for users; structured `path:line: <message>` for agents.
+- Wired in `.pre-commit-config.yaml` with scope `^(.*tests/.*\.(rs|py|ts|js|tsx|jsx)|.*_test\.(py|ts|js|tsx|jsx)|.*\.test\.(ts|js|tsx|jsx))$`.
+
+### Closure status post-this-commit
+
+R95 F3 hooks 1 + 2 of 5 landed. Hooks 3-5 (review-entry attestation, round trigger, routing-complete-precedence) + F2 (suite-wide staleness) + F1 (existing-hook expansion suite-wide) remain.
+
+---
+
+## [Unreleased] R95 F3 hook 1 — check-spec-frozen.py (1a+1b → 1c transition hook) (2026-05-25)
+
+**Scope:** First of 5 phase-transition hooks per the R95 F3 Design A matrix. Validates DESIGN.md spec-frozen attestation at the 1a+1b → 1c transition.
+
+### Added (vsdd-suite/hooks/check-spec-frozen.py)
+
+- Validates per-project `DESIGN.md` files: all 8 required section concepts present (synonym map covers project-specific section names: `Overview` ≈ `Project intent` ≈ `What this project does` ≈ `Purpose`; `Features` ≈ `Behavioral contracts`; `Data Model` ≈ `Storage format` ≈ `Storage data classification`; `Interface` ≈ `Interface definitions` ≈ `Command surface`; `Constraints` ≈ `Performance budget`; `Edge Cases` ≈ `Edge case catalog`; `Testing Methodology` ≈ `Verification architecture`; `Out of Scope` ≈ `Scope and non-goals` ≈ `Non-goals`) + no `**TBD**` markers.
+- Continuous-discipline semantics: hook validates ANY staged DESIGN.md. Scoped bypass `<!-- hook-bypass[check-spec-frozen]: <rationale> -->` is the relief valve for in-flight authoring; bypass-removal commit IS the spec-frozen attestation.
+- Three-audience design applied: failure messages name missing section concepts + alias list + corrective action; structured `path:line: <message>` output for AI-agent consumption; extensibility via REQUIRED_SECTIONS dict for suite developers.
+- Wired in `.pre-commit-config.yaml` with scope `^.*DESIGN\.md$`.
+
+### Added (forward-only bypass markers on pre-existing DESIGN.md files)
+
+- `bookmark-manager/DESIGN.md` + `bookmark-manager/iterative-adversarial-refinement/guild-review/DESIGN.md` — scoped-bypass markers added per forward-only convention. Pre-existing project DESIGN.md files are not retroactively required to refactor; the hook applies to new authoring post-2026-05-26.
+
+### Closure status post-this-commit
+
+R95 F3 hook 1 of 5 landed. Hooks 2-5 (red-gate-plan-precedence, review-entry attestation, round trigger, routing-complete-precedence) + F2 (staleness, suite-wide per operator-directive 2026-05-25) + F1 (existing-hook expansion, suite-wide per operator-directive 2026-05-25) remain.
+
+---
+
+## [Unreleased] R95 F3 Design A — phase transition provability § + matrix in suite-development.md (operator-directed hook-enforced) (2026-05-25)
+
+**Scope:** Operator picked Design A (hook-enforced) for R95 F3 + directed three-audience-model application. This commit lands the foundation: § Phase transition provability section in `suite-development.md` codifying the per-transition matrix + three-audience lens for downstream hook implementations.
+
+### Added (vsdd-suite/suite-development/suite-development.md § Phase transition provability)
+
+- Canonical exemplar (2a→2b) decomposed into 4 properties: verifiable antecedent state; verifiable successor state; transition IS the delta; reproducible without operator-trust.
+- Three-audience lens for phase-transition design — suite developers (extensibility + hook template); suite users (failure-message + bypass discipline); AI agents (machine-parseable transition-evidence artifacts).
+- Per-transition provability matrix (9 rows): 3 currently provable (2a→2b commit-pair; 2b→2c G-96 discipline; 3→4 R94 F1 routing record); 5 hook-enforced planned (1a+1b→1c; 1c→2a; 2c→3; 3-round-N→N+1; 4→5); 1 provable-via-discipline (5→6 project-terminal). Each row names antecedent state + successor state + planned hook.
+- Implementation sequencing notes — each new hook ships with discipline rationale, failure message, scoped-bypass support, pre-commit wiring, primer amendment if attestation field needed; forward-only threshold lets in-flight cycles complete.
+- Accepted limitations — 2a→2b stays advisory (audit cost is low; CI matrix is over-engineering); 5→6 stays project-terminal-only per G-150; hook brittleness risk acknowledged + scoped-bypass is the relief valve.
+
+### Closure status post-this-commit
+
+R95 F3 foundation amendment landed. 5 new hooks remain to implement per the matrix (1 per subsequent commit on this branch): `check-spec-frozen.py`, `check-red-gate-plan-precedence.py`, `check-suite-review-preamble.py` Check 7 + 8 extensions, `check-phase-5-routing-precedence.py`. R95 F1 (Design B existing-hook expansion) + R95 F2 (Design A `check-document-staleness.py`) also remain.
+
+---
+
+## [Unreleased] Review 95 Finding 3 — phase transition provability audit (adversarial review of R94 F2 codification) (2026-05-25)
+
+**Scope:** Director-raised adversarial-review finding surfaced during R94 F2 closure pass: operator flagged that R94 F2's matrix codified de-facto frequency patterns without examining whether phase **transitions** are provable / human-auditable. The 2a→2b commit-pair was named as the canonical-provable-transition shape; the question generalized.
+
+### Added (vsdd-suite/suite-development/review-log/2026-05-24-suite-review.md Review 95 Finding 3)
+
+- **Per-transition provability map** — 9 phase boundaries audited. 3 PROVABLE (2a→2b commit-pair; 2b→2c G-96; 3→4 R94 F1 routing record); 1 partially-provable (1c→2a Red Gate test plan ordering); 5 NOT PROVABLE or partially (1a+1b→1c spec-frozen; 2c→3 review entry attestation; 3-round-N→N+1 trigger attestation; 4→5 hardening entry attestation; 5→6 project-terminal-only).
+- **3 candidate designs**: (A) per-transition commit-shape conventions modeled on 2a→2b's verifiable-state-pair shape; (B) `**Phase transition evidence:**` advisory closing-field block at every layer-gate close (SO-log); (C) `**Phase boundary:**` preamble field in every review log entry.
+- **Recommendation**: Design A + B composite. A scoped initially to 3 transitions with clearest verifiable-state-pair shape (1a+1b→1c spec-frozen hook; 1c→2a test-plan-precedence hook; 4→5 routing-complete-precedence hook). B applied at every layer-gate close immediately. C deferred (forward-only convention for next reference-example).
+
+### Closure status post-this-commit
+
+R94 backlog empty; post-PR-#52 suite-hardening backlog at zero substantive items pending **3 operator-decision asks** (R95 F1 + F2 + F3 candidate design picks). R95 F3 includes **partially-implementable amendments** scoped for this PR pending operator concurrence: (i) § Phase transition provability section in suite-development.md; (ii) advisory `**Phase transition evidence:**` recommendation in § Layer-gate close criteria.
+
+---
+
+## [Unreleased] R94 F3 future-revisit closed analytically — Review 95 co-authoring + stale-document layered defense investigations (2026-05-25)
+
+**Scope:** Closes Review 94 Finding 3 future-revisit per the analytical-write-up-as-Review-N pattern. Two findings each surface a 3-candidate-design analysis + operator-decision asks + recommendation-with-named-tradeoff. Implementation deferred pending operator-decision pass; the post-PR-#52 suite-hardening backlog drops to zero substantive items.
+
+### Added (vsdd-suite/suite-development/review-log/2026-05-24-suite-review.md Review 95)
+
+- **Finding 1 (Deferred)** — Co-authoring evaluation for shape+content enforcement domains (TW Dim 12 + DR Dim 2/6 + AIE Dim 7/8). 3 candidate designs: (A) mid-authoring shape-co-author sub-agent; (B) existing-hook expansion; (C) domain-prompt amendment with co-authoring exception section. Recommendation: A + C composite scoped to per-domain review-log entries above 200 lines + new primer/standard amendments above 100 lines.
+- **Finding 2 (Deferred)** — Stale-document layered defense: catch-timing analysis + candidate mechanical hook + domain-prompt amendment. 3 candidate designs: (A) mechanical `check-document-staleness.py` hook; (B) new "staleness" Dim added to DR + TW domain prompts; (C) PR-template merge-gating staleness checklist item. Recommendation: A + B composite with A scoped conservatively.
+
+### Closure status post-this-commit
+
+**Post-PR-#52 suite-hardening backlog is empty** of substantive items (AIE R2 F6 closed at `b97b6f1`; R94 F1 closed at `593ed5f`; R94 F2 closed at `035af4f`; R94 F3 closed analytically here). Two operator-decision asks remain (R95 F1 + F2 candidate design picks); each unblocks a subsequent suite PR.
+
+---
+
+## [Unreleased] R94 F2 closure — phase frequency guidance consolidated matrix + per-primer Frequency one-liners (2026-05-25)
+
+**Scope:** Closes Review 94 Finding 2 (VSDD phase frequency guidance gap). Per operator-directive 2026-05-25: NO standalone PHASE-FREQUENCY.md file (the standalone-coordination-file pattern is an anti-pattern that orphans + stales). Consolidated matrix lives in `vsdd-suite/README.md` § Phase frequency (immediately after the existing § VSDD pipeline context table); per-primer `**Frequency:**` one-liners in each of 9 primers' preambles mirror the matrix row so a single-primer reader doesn't need to assemble frequency from cross-primer prose.
+
+### Added (vsdd-suite/README.md § Phase frequency)
+
+- Consolidated matrix: 9 rows (one per phase) × 3 columns (Phase / Frequency / Authoritative citation). Names the de-facto suite-side convention for each phase: Phase 1a+1b + 1c are "once per project + Phase-4-routed re-runs"; Phase 2a/2b/2c are "per layer"; Phase 3 is "per layer × N rounds until MVR"; Phase 4 is **"per Phase 3 round"** (cross-references suite-development.md criterion 8); Phase 5 is "per layer with per-surface conditionals"; Phase 6 is "once per project at project-terminal close (+ once per re-open)".
+- Notes paragraph naming the upstream whitepaper gap (whitepaper is silent on phase frequency; the suite's matrix is a contribution candidate back to the whitepaper per `claude-code-contract.md` Shape 3 upstream-coordination convention).
+
+### Added (per-primer `**Frequency:**` one-liners in 9 primers)
+
+- `1ab-spec-crystallization.md`, `1c-decomposition.md`, `2a-red-gate.md`, `2b-implementation.md`, `2c-refactor.md`, `3-review-session.md`, `4-feedback-integration.md`, `5-formal-hardening.md`, `6-convergence.md` — each gains a `**Frequency:** <text>` line immediately after the H1 title. Text mirrors the matrix row in README's § Phase frequency.
+
+### Closure status post-this-commit
+
+R94 F2 closed. R94 F3 future-revisit (co-authoring + stale-document layered defense investigations) is the last remaining item from the post-PR-#52 suite-hardening backlog.
+
+---
+
+## [Unreleased] AIE R2 F6 + R94 F1 closures — per-hook bypass mechanism + Phase 4 routing gate criterion (2026-05-25)
+
+**Scope:** Two suite-hardening closures from the post-bookmark-cli-manual-PR-#52 backlog (suite-hardening PR follow-up).
+
+### Added (AIE R2 F6 closure)
+
+- **`vsdd-suite/hooks/check-no-legacy-bypass-markers.py`** — new pre-commit hook (5th in the discipline-mechanization series). Rejects the legacy unscoped `<!-- hook-bypass: <rationale> -->` marker form per AIE R2 F6 SO-decision (bookmark-cli-manual PR #52 Round 2 carry-forward): the unscoped form is hook-agnostic and silently bypasses every hook that parses bypass markers. The scoped form `<!-- hook-bypass[hook-id1,hook-id2]: <rationale> -->` names the hooks explicitly so bypass scope matches bypass intent. Wired in `.pre-commit-config.yaml`.
+
+### Changed (AIE R2 F6 closure)
+
+- **4 bypass-parsing hooks** (`check-no-letter-clusters.py`, `check-suite-internal-terminology.py`, `check-suite-review-preamble.py`, `check-project-review-discipline.py`) — updated to parse the scoped marker form. Each hook only bypasses when its own pre-commit id appears in the scope list (`HOOK_ID` constant + `SCOPED_BYPASS_RE` regex + has_bypass / inline scope-match logic).
+- **18 live legacy bypass markers swept** to scoped form across the repository (9 file-level all scoped to `[check-no-letter-clusters]`; 9 entry-level all scoped to `[check-suite-review-preamble]`).
+
+### Added (R94 F1 closure — Phase 4 routing as Layer-gate criterion)
+
+- **`suite-development.md` § Layer-gate close criteria** — new criterion 8: "Every Phase 3 round has a Phase 4 routing record." Routing is per-round, not per-layer; canonical shape is per-domain `## Phase 4 routing — Round N` appendices in each per-domain review-log entry (standalone consolidated routing files declared anti-pattern at bookmark-cli-manual PR #52 operator-directive 2026-05-25). Hook-enforced via `**Phase 4 routing:**` closing field validation. Closes [Review 94 Finding 1](suite-development/review-log/2026-05-24-suite-review.md#r94-f1).
+- **`primers/3-review-session.md` § Round closing — Phase 4 routing closing field** — new mandatory `**Phase 4 routing:** <reference | *(no routable findings)*>` closing field on every Phase 3 round entry; canonical values + forward-only threshold documented.
+- **`hooks/check-suite-review-preamble.py` Check 6** — validates the new closing field. Forward-only `PHASE_4_ROUTING_THRESHOLD = "2026-05-26"` lets the bookmark-cli-manual PR #52 cycle entries (2026-05-24 + 2026-05-25) stand without retroactive amendment.
+
+### Changed (R94 F1 closure)
+
+- **`domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md` dim 7 (IAR iteration and feedback routing)** — feedback routing fidelity paragraph extended with the new "Phase 4 routing record existence" requirement: a Phase 3 round whose routable findings have no recorded routing decision (no per-domain appendix; no closing-field reference) is a discipline gap regardless of whether the underlying findings happened to be informally fixed.
+
+### Closure status post-this-commit
+
+AIE R2 F6 + R94 F1 closed. R94 F2 (phase frequency guidance — consolidated matrix without standalone file) + R94 F3 future-revisit (co-authoring + stale-document layered defense investigations) remain to land in subsequent commits on this PR.
 
 ---
 

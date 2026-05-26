@@ -1,3 +1,4 @@
+<!-- hook-bypass[check-suite-internal-terminology]: pre-existing bare abbreviation use (IAR/VSDD/MVR) preserved per the forward-only narrative-preservation policy. These files predate the R95 F1 abbreviation-first-use-expansion check; flagging would require retroactive prose rewriting that crosses the forward-only carve-out. Future authoring SHOULD spell out abbreviations on first mention; the bypass-mechanism is itself a finding for the next registry-walk review. -->
 # Manual Testing — Install Verification
 
 Third-party install verification record per [G-155](../../../vsdd-suite/suite-development/FINDINGS-INDEX.md#g-155) [Platform Engineer](../../../vsdd-suite/domains/role/PLATFORM-ENGINEER-REVIEW.md) Dim 38 (Fresh-system install verification, capstone / production intent only).

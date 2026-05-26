@@ -116,6 +116,16 @@ RAISED_TO_SO = "Raised to SO"
 # Review-entry boundary heading.
 REVIEW_HEADING = re.compile(r"^## Review (\d+) — (\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}Z)\s*$")
 
+# Bypass marker (scoped form per AIE R2 F6 SO-decision):
+#   `<!-- hook-bypass[hook-id1,hook-id2]: <rationale> -->` in the first 5 lines
+#   of an entry. Each hook only bypasses if its own pre-commit id is in the
+#   scope list. Legacy unscoped form is REJECTED by check-no-legacy-bypass-markers.
+HOOK_ID = "check-project-review-discipline"
+SCOPED_BYPASS_RE = re.compile(
+    r"<!--\s*hook-bypass\[([^\]]+)\]:\s*.+?-->",
+    re.IGNORECASE | re.DOTALL,
+)
+
 # Classification heading (level-3) regex.
 CLASSIFICATION_HEADING = re.compile(r"^### (.+?)\s*$")
 
@@ -246,10 +256,13 @@ def check_entry(
 
     entry_lines = lines[header_idx:end_idx]
 
-    # Hook-bypass shortcut.
+    # Hook-bypass shortcut: scoped form is canonical per AIE R2 F6 SO-decision.
+    # Legacy unscoped form is REJECTED by check-no-legacy-bypass-markers.
     first5 = "\n".join(entry_lines[:5])
-    if "<!-- hook-bypass:" in first5:
-        return failures
+    for bypass_match in SCOPED_BYPASS_RE.finditer(first5):
+        scoped_hooks = [h.strip() for h in bypass_match.group(1).split(",")]
+        if HOOK_ID in scoped_hooks:
+            return failures
 
     entry_text = "\n".join(entry_lines)
 

@@ -254,7 +254,7 @@ The adversarial hypothesis: [`src/lib.rs:538-540`](../../src/lib.rs) performs `s
 ## Review 8 — 2026-05-25 04:30Z
 
 **Round:** Layer 3 Phase 3 IAR Round 2.
-<!-- hook-bypass: this Round 2 re-verification entry uses **Bold-paragraph emphasis** as inline subsection emphasis within the `### Resolved (Round 1 re-verification)` and `#### Critical re-verification verdicts` sections (fold-up of which Round 1 carry-forwards closed + what targeted re-verification checks ran). These bold lines are paragraph-level emphasis, not Finding headers; actual Round 2 Findings in this entry use the canonical `**Finding N — Title**` form. The check-suite-review-preamble hook's `**X — Y**` regex matches both; the bypass-mechanism is itself a finding for the next registry-walk review. -->
+<!-- hook-bypass[check-suite-review-preamble]: this Round 2 re-verification entry uses **Bold-paragraph emphasis** as inline subsection emphasis within the `### Resolved (Round 1 re-verification)` and `#### Critical re-verification verdicts` sections (fold-up of which Round 1 carry-forwards closed + what targeted re-verification checks ran). These bold lines are paragraph-level emphasis, not Finding headers; actual Round 2 Findings in this entry use the canonical `**Finding N — Title**` form. The check-suite-review-preamble hook's `**X — Y**` regex matches both; the bypass-mechanism is itself a finding for the next registry-walk review. -->
 
 **Scope:** Round 2 — verify Round 1 fixes hold + surface new perf-related residuals. Round 1 fix-work commits `fdfa989` → `ba6a4a9` → `bfc0713` → `795bc25`. Round 2 scope-reducer: capstone-intent adversarial re-review per AI Engineer Dim 8.
 

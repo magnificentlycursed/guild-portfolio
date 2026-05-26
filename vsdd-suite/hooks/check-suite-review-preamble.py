@@ -129,8 +129,46 @@ FINDING_HEADER_CANDIDATE = re.compile(r"^\*\*\S.+ — .+\*\*\s*$")
 # Review-entry boundary heading.
 REVIEW_HEADING = re.compile(r"^## Review (\d+) — (\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}Z)\s*$")
 
+# Bypass marker (scoped form is canonical per AIE R2 F6 SO-decision):
+#   `<!-- hook-bypass[hook-id1,hook-id2]: <rationale> -->` in the first 5 lines
+#   of an entry. Each hook only bypasses if its own pre-commit id is in the
+#   scope list. Legacy unscoped form is REJECTED by check-no-legacy-bypass-markers.
+HOOK_ID = "check-suite-review-preamble"
+SCOPED_BYPASS_RE = re.compile(
+    r"<!--\s*hook-bypass\[([^\]]+)\]:\s*.+?-->",
+    re.IGNORECASE | re.DOTALL,
+)
+
 # Forward-only date threshold — entries dated on or after this are enforced.
 ENFORCEMENT_THRESHOLD = "2026-05-20"
+
+# Forward-only threshold for Check 6: Phase 4 routing closing field (R94 F1
+# closure). Project-level Phase 3 round entries dated 2026-05-26 or later
+# require a `**Phase 4 routing:**` closing field per primer 3 § Round closing.
+# The threshold lets the bookmark-cli-manual PR #52 cycle entries (2026-05-24
+# and 2026-05-25) stand without retroactive amendment.
+PHASE_4_ROUTING_THRESHOLD = "2026-05-26"
+
+# Forward-only threshold for Check 7: 2c → 3 transition attestation (R95 F3
+# hook 3). Project-level Phase 3 review entries dated 2026-05-26 or later
+# require a `**Tested against:**` preamble field citing the Phase 2c commit
+# hash (or "Phase 2c skip per <annotation reference>" for explicit-skip cases).
+# Same threshold as Check 6.
+PHASE_2C_TO_3_THRESHOLD = "2026-05-26"
+
+# Forward-only threshold for Check 8: Round N → N+1 trigger attestation
+# (R95 F3 hook 4). Project-level Phase 3 Round N entries (where N ≥ 2)
+# dated 2026-05-26 or later require a `**Round close trigger:**` field
+# attesting why the prior round closed + Round N+1 opened (G-131 continue
+# trigger or G-151 stop trigger per primer 3 § Round triggers).
+ROUND_TRIGGER_THRESHOLD = "2026-05-26"
+
+# Commit hash shape regex (Git SHA-1 prefix; 7-40 hex chars).
+COMMIT_HASH_RE = re.compile(r"\b[0-9a-f]{7,40}\b")
+
+# Round close trigger value enumeration. The G-131 / G-151 references name
+# the suite's continue / stop triggers per primer 3 § Round triggers.
+VALID_ROUND_TRIGGER_VALUES = ("G-131", "G-151")
 
 
 def is_suite_review(path: Path) -> bool:
@@ -176,12 +214,16 @@ def check_entry(
     entry_lines = lines[header_idx:end_idx]
     entry_text = "\n".join(entry_lines)
 
-    # Hook-bypass shortcut: an entry with the bypass marker in its first 5
-    # lines is skipped (the bypass itself is flagged as a finding by the
-    # next registry-walk review).
+    # Hook-bypass shortcut: an entry with the scoped bypass marker naming this
+    # hook's id in its first 5 lines is skipped (the bypass itself is flagged as
+    # a finding by the next registry-walk review). Scoped form is canonical per
+    # AIE R2 F6 SO-decision; legacy unscoped form is REJECTED by the separate
+    # check-no-legacy-bypass-markers hook.
     first5 = "\n".join(entry_lines[:5])
-    if "<!-- hook-bypass:" in first5:
-        return failures
+    for bypass_match in SCOPED_BYPASS_RE.finditer(first5):
+        scoped_hooks = [h.strip() for h in bypass_match.group(1).split(",")]
+        if HOOK_ID in scoped_hooks:
+            return failures
 
     # Check 1: required preamble fields.
     required = REQUIRED_PREAMBLE_SUITE if is_suite else REQUIRED_PREAMBLE_ALL
@@ -284,6 +326,111 @@ def check_entry(
     # covered by the governing-standard prose in suite-development.md
     # § Suite review entry format. The hook intentionally does not enforce
     # one form over the other.
+
+    # Check 6: Phase 4 routing closing field (R94 F1 closure; bookmark-cli-
+    # manual PR #52 carry-forward). Every project-level Phase 3 round entry
+    # dated 2026-05-26 or later must include a `**Phase 4 routing:**` closing
+    # field per primer 3 § Round closing. The field's value points to the
+    # per-domain `## Phase 4 routing — Round N` appendix (canonical shape)
+    # OR uses `*(no routable findings)*` placeholder for rounds that
+    # produced only Hallucinated / Resolved-in-session findings.
+    #
+    # Forward-only threshold (2026-05-26) lets the bookmark-cli-manual PR #52
+    # cycle entries (already-merged historical records dated 2026-05-24/-25)
+    # stand without retroactive amendment. Suite-review entries are exempt
+    # (this hook validates project-level review-log entries via this check).
+    if not is_suite and review_date >= PHASE_4_ROUTING_THRESHOLD:
+        entry_text = "\n".join(entry_lines)
+        if "**Phase 4 routing:**" not in entry_text:
+            failures.append(
+                f"{path}:{header_idx + 1}: Review {review_n} missing required "
+                f"`**Phase 4 routing:** <reference | *(no routable findings)*>` "
+                f"closing field per primer 3 § Round closing (R94 F1 closure). "
+                f"Phase 4 routing is per-round, not per-layer; every Phase 3 "
+                f"round entry records its routing decision."
+            )
+
+    # Check 7: 2c → 3 transition attestation (R95 F3 hook 3). Every project-
+    # level Phase 3 review entry dated 2026-05-26 or later must include a
+    # `**Tested against:**` preamble field citing the Phase 2c commit hash
+    # (or "Phase 2c skip per <annotation>" for explicit-skip cases). The
+    # field makes the antecedent state of the 2c → 3 transition reproducible
+    # — a downstream consumer can `git checkout <cited-hash> && <test-runner>`
+    # to verify the review's premise.
+    #
+    # Forward-only threshold (2026-05-26) lets in-flight cycles complete
+    # without retroactive amendment. Suite-review entries are exempt.
+    if not is_suite and review_date >= PHASE_2C_TO_3_THRESHOLD:
+        preamble_window = "\n".join(entry_lines[:80])
+        if "**Tested against:**" not in preamble_window:
+            failures.append(
+                f"{path}:{header_idx + 1}: Review {review_n} missing required "
+                f"`**Tested against:** <commit-hash> | Phase 2c skip per "
+                f"<annotation>` preamble field per primer 3 § Round opening "
+                f"(R95 F3 hook 3; 2c → 3 transition attestation). The field "
+                f"makes the antecedent state of the 2c → 3 transition "
+                f"reproducible."
+            )
+        else:
+            # Field present — verify the value contains either a commit hash
+            # OR the explicit-skip phrase.
+            tested_against_lines = [
+                line for line in entry_lines[:80]
+                if line.startswith("**Tested against:**")
+                or line.startswith("- **Tested against:**")
+            ]
+            has_valid_value = False
+            for line in tested_against_lines:
+                if COMMIT_HASH_RE.search(line) or "Phase 2c skip" in line:
+                    has_valid_value = True
+                    break
+            if not has_valid_value and tested_against_lines:
+                failures.append(
+                    f"{path}:{header_idx + 1}: Review {review_n} "
+                    f"`**Tested against:**` field present but missing a "
+                    f"commit-hash reference (7-40 hex chars) OR explicit "
+                    f"`Phase 2c skip per <annotation>` phrase. The 2c → 3 "
+                    f"transition antecedent state must be reproducibly cited."
+                )
+
+    # Check 8: Round N → N+1 trigger attestation (R95 F3 hook 4). Every
+    # project-level Phase 3 Round N entry (where N ≥ 2 — Round 1 is the
+    # opening round with no prior round to close) dated 2026-05-26 or later
+    # must include a `**Round close trigger:** G-131 | G-151` field attesting
+    # why the prior round closed + Round N+1 opened per primer 3 § Round
+    # triggers. G-131 is the continue trigger (new real findings → Round
+    # N+1); G-151 is the stop trigger (only Hallucinated → IAR closes).
+    # The trigger attestation makes the round-N → N+1 transition decision
+    # auditable post-hoc.
+    #
+    # Forward-only threshold (2026-05-26) lets in-flight cycles complete.
+    # Suite-review entries exempt. Round-N detection: the trigger field is
+    # required only when this entry's review number > 1 OR (for projects
+    # using "Review N — <round-label>" file shapes) the entry's title /
+    # preamble contains "Round 2" / "Round 3" / etc.
+    if not is_suite and review_date >= ROUND_TRIGGER_THRESHOLD:
+        entry_text = "\n".join(entry_lines)
+        # Detect: is this a Round N ≥ 2 entry? Two signals:
+        # (a) the review number > 1 (heuristic: most project review logs
+        #     use Review 1 = Round 1 for a given layer; Review N>1 with
+        #     "Round 2"/"Round 3" in title or preamble);
+        # (b) the entry's title or preamble contains "Round 2"/"Round 3"
+        #     etc. explicit.
+        is_round_n_geq_2 = False
+        if int(review_n) > 1:
+            # Look for explicit round attestation in preamble.
+            preamble_window = "\n".join(entry_lines[:80])
+            if re.search(r"Round\s+([2-9]|\d{2,})", preamble_window):
+                is_round_n_geq_2 = True
+        if is_round_n_geq_2 and "**Round close trigger:**" not in entry_text:
+            failures.append(
+                f"{path}:{header_idx + 1}: Review {review_n} appears to be "
+                f"Round N ≥ 2 but missing required `**Round close trigger:** "
+                f"G-131 | G-151` field per primer 3 § Round triggers (R95 F3 "
+                f"hook 4; Round N → N+1 transition attestation). G-131 = "
+                f"continue trigger (new real findings); G-151 = stop trigger "
+                f"(only Hallucinated; IAR closes)."
+            )
 
     return failures
 
