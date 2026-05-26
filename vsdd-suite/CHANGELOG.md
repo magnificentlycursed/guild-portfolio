@@ -5,6 +5,35 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## [Unreleased] AIE R2 F6 + R94 F1 closures — per-hook bypass mechanism + Phase 4 routing gate criterion (2026-05-25)
+
+**Scope:** Two suite-hardening closures from the post-bookmark-cli-manual-PR-#52 backlog (suite-hardening PR follow-up).
+
+### Added (AIE R2 F6 closure)
+
+- **`vsdd-suite/hooks/check-no-legacy-bypass-markers.py`** — new pre-commit hook (5th in the discipline-mechanization series). Rejects the legacy unscoped `<!-- hook-bypass: <rationale> -->` marker form per AIE R2 F6 SO-decision (bookmark-cli-manual PR #52 Round 2 carry-forward): the unscoped form is hook-agnostic and silently bypasses every hook that parses bypass markers. The scoped form `<!-- hook-bypass[hook-id1,hook-id2]: <rationale> -->` names the hooks explicitly so bypass scope matches bypass intent. Wired in `.pre-commit-config.yaml`.
+
+### Changed (AIE R2 F6 closure)
+
+- **4 bypass-parsing hooks** (`check-no-letter-clusters.py`, `check-suite-internal-terminology.py`, `check-suite-review-preamble.py`, `check-project-review-discipline.py`) — updated to parse the scoped marker form. Each hook only bypasses when its own pre-commit id appears in the scope list (`HOOK_ID` constant + `SCOPED_BYPASS_RE` regex + has_bypass / inline scope-match logic).
+- **18 live legacy bypass markers swept** to scoped form across the repository (9 file-level all scoped to `[check-no-letter-clusters]`; 9 entry-level all scoped to `[check-suite-review-preamble]`).
+
+### Added (R94 F1 closure — Phase 4 routing as Layer-gate criterion)
+
+- **`suite-development.md` § Layer-gate close criteria** — new criterion 8: "Every Phase 3 round has a Phase 4 routing record." Routing is per-round, not per-layer; canonical shape is per-domain `## Phase 4 routing — Round N` appendices in each per-domain review-log entry (standalone consolidated routing files declared anti-pattern at bookmark-cli-manual PR #52 operator-directive 2026-05-25). Hook-enforced via `**Phase 4 routing:**` closing field validation. Closes [Review 94 Finding 1](suite-development/review-log/2026-05-24-suite-review.md#r94-f1).
+- **`primers/3-review-session.md` § Round closing — Phase 4 routing closing field** — new mandatory `**Phase 4 routing:** <reference | *(no routable findings)*>` closing field on every Phase 3 round entry; canonical values + forward-only threshold documented.
+- **`hooks/check-suite-review-preamble.py` Check 6** — validates the new closing field. Forward-only `PHASE_4_ROUTING_THRESHOLD = "2026-05-26"` lets the bookmark-cli-manual PR #52 cycle entries (2026-05-24 + 2026-05-25) stand without retroactive amendment.
+
+### Changed (R94 F1 closure)
+
+- **`domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md` dim 7 (IAR iteration and feedback routing)** — feedback routing fidelity paragraph extended with the new "Phase 4 routing record existence" requirement: a Phase 3 round whose routable findings have no recorded routing decision (no per-domain appendix; no closing-field reference) is a discipline gap regardless of whether the underlying findings happened to be informally fixed.
+
+### Closure status post-this-commit
+
+AIE R2 F6 + R94 F1 closed. R94 F2 (phase frequency guidance — consolidated matrix without standalone file) + R94 F3 future-revisit (co-authoring + stale-document layered defense investigations) remain to land in subsequent commits on this PR.
+
+---
+
 ## [Unreleased] Review 94 — Meta-discoverability + meta-enforcement-timing analysis; new check-no-letter-clusters.py hook landed (2026-05-25)
 
 **Source:** [Review 94](suite-development/review-log/2026-05-24-suite-review.md#review-94--2026-05-25-0300z) — surfaced during PR #52 Layer 3 IAR cycle when operator flagged the Phase 4 bypass + phase-frequency gap + letter-label 4th-recurrence + the meta-enforcement-question.

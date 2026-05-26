@@ -142,6 +142,13 @@ SCOPED_BYPASS_RE = re.compile(
 # Forward-only date threshold — entries dated on or after this are enforced.
 ENFORCEMENT_THRESHOLD = "2026-05-20"
 
+# Forward-only threshold for Check 6: Phase 4 routing closing field (R94 F1
+# closure). Project-level Phase 3 round entries dated 2026-05-26 or later
+# require a `**Phase 4 routing:**` closing field per primer 3 § Round closing.
+# The threshold lets the bookmark-cli-manual PR #52 cycle entries (2026-05-24
+# and 2026-05-25) stand without retroactive amendment.
+PHASE_4_ROUTING_THRESHOLD = "2026-05-26"
+
 
 def is_suite_review(path: Path) -> bool:
     """Suite-review-log paths follow `.../suite-development/review-log/...`."""
@@ -298,6 +305,29 @@ def check_entry(
     # covered by the governing-standard prose in suite-development.md
     # § Suite review entry format. The hook intentionally does not enforce
     # one form over the other.
+
+    # Check 6: Phase 4 routing closing field (R94 F1 closure; bookmark-cli-
+    # manual PR #52 carry-forward). Every project-level Phase 3 round entry
+    # dated 2026-05-26 or later must include a `**Phase 4 routing:**` closing
+    # field per primer 3 § Round closing. The field's value points to the
+    # per-domain `## Phase 4 routing — Round N` appendix (canonical shape)
+    # OR uses `*(no routable findings)*` placeholder for rounds that
+    # produced only Hallucinated / Resolved-in-session findings.
+    #
+    # Forward-only threshold (2026-05-26) lets the bookmark-cli-manual PR #52
+    # cycle entries (already-merged historical records dated 2026-05-24/-25)
+    # stand without retroactive amendment. Suite-review entries are exempt
+    # (this hook validates project-level review-log entries via this check).
+    if not is_suite and review_date >= PHASE_4_ROUTING_THRESHOLD:
+        entry_text = "\n".join(entry_lines)
+        if "**Phase 4 routing:**" not in entry_text:
+            failures.append(
+                f"{path}:{header_idx + 1}: Review {review_n} missing required "
+                f"`**Phase 4 routing:** <reference | *(no routable findings)*>` "
+                f"closing field per primer 3 § Round closing (R94 F1 closure). "
+                f"Phase 4 routing is per-round, not per-layer; every Phase 3 "
+                f"round entry records its routing decision."
+            )
 
     return failures
 

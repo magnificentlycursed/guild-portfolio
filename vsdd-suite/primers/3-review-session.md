@@ -213,6 +213,18 @@ Before ending the session, classify every finding. Valid classifications vary by
 
 A session that ends with unclassified findings has not completed the review. Log round number (`QE Review 1`, `Security Review 2`) and the finding progression — moving from real findings to hallucinated findings is evidence the process worked.
 
+## Round closing — Phase 4 routing closing field (R94 F1 closure)
+
+Every Phase 3 round entry's closing block must include a `**Phase 4 routing:** <reference>` field naming where this round's routable findings were routed per [`4-feedback-integration.md`](4-feedback-integration.md). Per [`../suite-development/suite-development.md` § Layer-gate close criteria](../suite-development/suite-development.md#layer-gate-close-criteria-processmd-retrospective-discipline) criterion 8: routing is per-round (every round gets its own routing record), not per-layer; a layer that closes IAR at Round N must have N routing records.
+
+Valid values:
+
+- **Reference to the per-domain Phase 4 routing appendix** in this entry's file — the canonical primer-4-shape post-bookmark-cli-manual-PR-#52: each per-domain review log carries `## Phase 4 routing — Round N` appendices for that domain's routable findings. Example: `**Phase 4 routing:** see § Phase 4 routing — Round 1 below`.
+- **`*(no routable findings)*`** placeholder — for rounds that produced only Hallucinated findings (or only Resolved-in-session findings with no out-of-domain routing required). The placeholder structurally records that routing was considered, not skipped.
+- **Cross-reference to a consolidated routing record** — only for legacy entries authored before the per-domain-appendix shape became canonical (2026-05-25). New entries use the per-domain appendix shape.
+
+The `**Phase 4 routing:**` field is enforced by [`../hooks/check-suite-review-preamble.py`](../hooks/check-suite-review-preamble.py) for entries dated 2026-05-26 or later. The forward-only threshold lets the bookmark-cli-manual PR #52 cycle's Round 1/2/3 entries (already-merged historical records) stand without retroactive amendment.
+
 ## Source attribution (G-133 / Review 68 Finding 11)
 
 Every per-review entry's preamble must include a `**Source:**` line declaring how this round's findings were elicited. Per `suite-development/suite-development.md` § Per-review entry preamble, the valid values are: `domain-raised` (the cold adversary applying the domain's dimensions found the finding — the default for this primer's normal use), `director-raised` (the operator's manual testing / post-MVR exploration / non-domain-prompt-driven adversarial pass found the finding), `regression-replay` (a prior layer's adversarial reproducer re-run against the current binary), `external-feedback` (an upstream stakeholder / project consumer / methodology author surfaced the finding through prose feedback), or `mixed` (the round's findings span more than one source — name the sub-disposition explicitly).
