@@ -33,7 +33,7 @@ You are helping write Red Gate tests for a software layer under the Verified Spe
 1. For each acceptance criterion in the layer plan, write the corresponding test.
 2. Run the test suite. Every new test must fail. A new test that passes against a stub or empty function body was not written first — revise it.
 3. Confirm the failure reason is what you expect: the test fails because the feature does not exist, not because of a setup error.
-4. **Commit the Red Gate state before Phase 2b begins.** A Red Gate that exists only in the working tree is not verifiable from the project history. The commit is the boundary between Phase 2a and Phase 2b — every file change after it is implementation. If implementation begins before this commit, the commit history cannot distinguish test-first from test-after, and VDD-IAR Alignment dim 4 cannot be verified.
+4. **Commit the Red Gate state before Phase 2b begins.** A Red Gate that exists only in the working tree is not verifiable from the project history. The commit is the boundary between Phase 2a and Phase 2b — every file change after it is implementation. If implementation begins before this commit, the commit history cannot distinguish test-first from test-after, and VDD-IAR (Iterative Adversarial Refinement) Alignment dim 4 cannot be verified.
 
 **Driving questions for test writing:**
 

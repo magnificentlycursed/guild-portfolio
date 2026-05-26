@@ -1,4 +1,4 @@
-# Session Primer: Adversarial Refinement (VSDD Phase 3)
+# Session Primer: Adversarial Refinement (VSDD (Verified Spec-Driven Development) Phase 3)
 
 **Frequency:** Per layer × N rounds until MVR per § Round triggers (G-131 continue / G-151 stop).
 

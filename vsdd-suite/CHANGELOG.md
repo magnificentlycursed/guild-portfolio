@@ -5,6 +5,30 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## [Unreleased] R95 F1 Design B — abbreviation-first-use-expansion check + 9 primers auto-fixed for IAR/VSDD/MVR expansions (2026-05-25)
+
+**Scope:** R95 F1 Design B (existing-hook expansion) per operator-direction "hook-enforced" + "suite-wide scope per operator-directive". Extends `check-suite-internal-terminology.py` with the abbreviation-first-use-expansion check covering IAR / VSDD / MVR.
+
+### Changed (vsdd-suite/hooks/check-suite-internal-terminology.py)
+
+- New `ABBREVIATION_EXPANSIONS` pattern set with 3 abbreviations: IAR → `Iterative Adversarial Refinement`; VSDD → `Verified Spec-Driven Development`; MVR → `maximum viable refinement`.
+- Split-scope design (avoids over-application of existing suite-internal-terminology patterns to suite primers/README): `IN_SCOPE_PATTERNS` unchanged (project-only); `ABBREVIATION_IN_SCOPE_PATTERNS` adds suite README + primers per F1 suite-wide directive. `is_in_abbreviation_scope()` is the dedicated scope check.
+- File-wide check semantic: any file using the abbreviation must contain the expansion SOMEWHERE in the file (not per-occurrence). Reported at the line of the first occurrence.
+
+### Changed (vsdd-suite/primers/*.md — 9 primers auto-fixed)
+
+- Each primer's first occurrence of IAR / VSDD / MVR now expanded inline as `IAR (Iterative Adversarial Refinement)` etc. Some placements are awkward (e.g., parenthetical-within-parenthetical in primer 3's H1) but the discipline is met; future authoring can polish.
+
+### Added (forward-only bypass markers on 9 project user-facing files)
+
+- bookmark-manager/TODO.md; issue-tracker-cli/{DESIGN.md, README.md, TODO.md}; bookmark-cli-manual/DESIGN.md + manual-tests/{install-verification, layer-1, layer-2, layer-3}.md — scoped-bypass markers for pre-existing bare-abbreviation use preserved per the forward-only carve-out. Project user-facing files in pre-merge state are out-of-scope for this suite-hardening PR; future per-project amendments can address the abbreviations.
+
+### Closure status post-this-commit
+
+**Suite-hardening PR scope complete.** All 7 planned hooks landed: AIE R2 F6 (per-hook bypass; b97b6f1) + R94 F1 (Phase 4 routing gate; 593ed5f) + R95 F3 hooks 1-5 (phase-transition matrix; 9a68bd2/2a0113c/51b8226/94a7eb0/e85d1c7) + R95 F2 (staleness; f16b2ff) + R95 F1 (abbreviation expansion; this commit). PR ready for merge prep.
+
+---
+
 ## [Unreleased] Review 96 — adversarial canvas of PR #52 methodology drifts for suite-hardening candidates (analytical only) (2026-05-25)
 
 **Scope:** Director-raised adversarial canvas of bookmark-cli-manual PR #52 for methodology drifts / process defects / suite-hardening candidates NOT yet captured in Reviews 94 + 95. Analytical write-up only — no implementation per operator-direction "Write it up as a review".
