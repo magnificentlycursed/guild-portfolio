@@ -766,12 +766,88 @@ Add to the `.github/PULL_REQUEST_TEMPLATE.md` § Completion checklist (merge-gat
 
 ---
 
+<a id="r95-f3"></a>
+**Finding 3 — Phase transition provability audit: 3 of 9 transitions are provable; the other 6 are implicit conventions without human-auditable evidence (Dim 11 audit-trail machine-readability + meta-discipline)**
+
+**Owner:** suite-developer
+**Status:** raised
+**Blocked by:** *(operator-decision on the candidate design — see Open questions below; partially-implementable amendments named where decision space is narrow)*
+
+**Director-raised** during the R94 F2 closure pass: operator flagged that R94 F2's matrix codified de-facto frequency patterns without examining whether the **transitions between phases** are provable / human-auditable. The 2a→2b commit-pair was named as the canonical-provable-transition shape (Phase 2a Red Gate commit demonstrates failing tests; Phase 2b commit demonstrates passing tests; `git log` IS the transition evidence) + the question generalized to "which other phase transitions have this property, and where is it absent?"
+
+**Adversarial reframing.** The R94 F2 matrix asked WHEN each phase fires (frequency); this finding asks **HOW we audit that each phase fired correctly** (provability). The two questions are orthogonal — a phase can fire on schedule (frequency correct) without producing audit-able evidence that it fired (provability absent). Operator-visible cost: a human reviewing a project's history cannot independently verify the methodology was followed; the project's claims about "Phase X complete" rely on the developer's assertion rather than reproducible evidence.
+
+**Per-transition provability map (after adversarial audit of the 9 phase boundaries):**
+
+| Transition | Currently provable? | Evidence (or what's missing) | Audit method |
+|---|---|---|---|
+| **2a → 2b** | ✅ PROVABLE | Phase 2a commit's test suite FAILS at that commit; Phase 2b commit's test suite PASSES at that commit. The commit pair IS the transition evidence. | `git checkout <2a-commit> && <test-runner>` → failures; `git checkout <2b-commit> && <test-runner>` → green |
+| **2b → 2c** | ✅ PROVABLE | G-96 discipline: Phase 2c is either a refactor commit (no new control-flow paths vs 2b) OR an explicit-skip annotation in TODO.md ("no refactor required"). VDD-IAR Alignment dim 12 evaluates this. | `git diff <2b-commit>..<2c-commit>` for new if/match arms / error returns; if found, look for retroactive-Red-Gate test or back-out commit |
+| **3 → 4** | ✅ PROVABLE (post-R94 F1) | Per-round Phase 4 routing record: per-domain `## Phase 4 routing — Round N` appendix + `**Phase 4 routing:**` closing field per primer 3 § Round closing. Hook-enforced via check-suite-review-preamble Check 6 (forward-only 2026-05-26+). | grep for `## Phase 4 routing — Round N` in per-domain review logs + the closing field in the round entry |
+| 1a+1b → 1c | ❌ NOT PROVABLE | No spec-frozen attestation. Spec activation commit may ALREADY contain TODO.md decomposition; no enforced ordering. A reader cannot tell "spec was complete before decomposition started" from `git log`. | Currently: read DESIGN.md narrative + trust developer's assertion |
+| 1c → 2a | ⚠️ PARTIALLY PROVABLE | Layer's TODO.md Red Gate test plan exists (visible in commit history), but no enforced "test plan committed BEFORE 2a tests" ordering. A developer can backfill the test plan in the 2a commit itself. | grep TODO.md history for Red Gate plan additions; compare timestamps to 2a tests commit |
+| 2c → 3 | ❌ NOT PROVABLE | No Phase 3 "round opened" marker. First per-domain review log entry implicitly signals entry into Phase 3 but doesn't attest the 2c commit it's reviewing against. | Currently: review entry's "Tested against:" preamble field names the commit; not enforced |
+| 3 round N → round N+1 | ⚠️ PARTIALLY PROVABLE | Per-round review entries exist + finding progression visible. G-131 continue trigger + G-151 stop trigger are documented but the round-N-close decision (which trigger fired?) isn't always explicit in the entry. | grep for round-N+1 entry existence + the post-Round-N MVR determination prose |
+| 4 → 5 | ❌ NOT PROVABLE | No Phase 5 "entry attestation" per layer. Phase 5 surface activations appear in per-domain review logs but the "Phase 5 hardening started after Phase 4 routing complete" boundary isn't marked. | Currently: read review log chronology + trust developer's assertion |
+| 5 → 6 | ✅ PROVABLE (project-terminal only) | Phase 6 four-dimensional convergence attestation in VDD-IAR-Alignment review with per-dimension citations. Phase 6 is project-terminal not per-layer (G-150). | grep for "Phase 6 four-dimensional convergence" attestation entry; verify per-dim citations resolve |
+
+**Three provable transitions; one partially-provable; five non-provable or partially-provable.** The 2a→2b shape (the user's named exemplar) succeeds because the commit pair carries verifiable behavioral state on both sides. Other transitions fail because they lack the verifiable-state-pair shape — they're commit-boundaries without a behavioral-pre-and-post signal.
+
+**The 2a→2b model decomposed:**
+
+1. **Antecedent commit's verifiable state:** test suite fails (objective; reproducible by anyone with `git checkout` + test runner)
+2. **Successor commit's verifiable state:** test suite passes (same objectivity)
+3. **Transition is the delta:** going from failing-to-passing IS Phase 2b's substantive work; the commit pair captures it completely
+4. **Audit cost:** ~minutes (run tests at two checkouts)
+5. **No operator-trust required:** the evidence is reproducible against the same artifacts a downstream consumer / reviewer can clone
+
+**Three candidate designs for closing the 6 non-provable transitions (operator picks; designs compose):**
+
+**Candidate Design A: Per-transition commit-shape conventions (modeled on 2a→2b).**
+
+For each non-provable transition, define what the antecedent commit's verifiable state + successor commit's verifiable state ARE, and what tooling produces the evidence. Examples:
+
+- **1a+1b → 1c**: Antecedent = DESIGN.md complete (every section present per primer 1ab template; no `**TBD**` markers in spec sections). Successor = TODO.md decomposition present. **Verifiable via** a `check-spec-frozen.py` hook scanning DESIGN.md for completeness against the primer's section list + TBD-marker absence. Commits cannot interleave: decomposition commit's parent must have spec-frozen attestation.
+- **1c → 2a**: Antecedent = Layer's TODO.md Red Gate test plan section populated. Successor = first 2a Red Gate test commit. **Verifiable via** a hook checking that the Red Gate test plan commit (in TODO.md) is the ancestor of the first test-adding commit per layer.
+- **2c → 3**: Antecedent = Phase 2c commit OR annotation. Successor = first per-domain Phase 3 review entry citing the 2c commit. **Verifiable via** the review entry's `**Tested against:**` preamble field naming the Phase 2c commit hash (enforced by check-suite-review-preamble extending Check 1).
+- **3 round N → N+1**: Antecedent = round-N close entry with explicit G-131 / G-151 trigger attestation. Successor = round-N+1 open entry citing the trigger decision. **Verifiable via** a new `**Round close trigger:** <G-131 | G-151>` field per primer 3 § Round closing.
+- **4 → 5**: Antecedent = all Phase 4 round routings complete (every Round N has a routing record per R94 F1 closure). Successor = first Phase 5 review entry per layer with `**Phase 5 surface:**` preamble tag. **Verifiable via** a hook checking that no Phase 5 entries exist before all Round N Phase 4 routings are present.
+
+**Operator-time cost:** Per-transition design effort (hours per transition × 5-6 transitions); ongoing zero (mechanical hooks). **Catch-time benefit:** shifts audit cost from "trust developer's assertion + read narrative" to "verify mechanical hook output + read commit pair". **Implementation:** ~5-6 hook amendments + ~5-6 primer amendments + 1 suite-development.md § Phase transition provability section.
+
+**Candidate Design B: Closing-field provability attestation on every layer-gate close (lighter weight; relies on developer-attestation rather than mechanical verification).**
+
+Add to the existing Layer-gate close criteria 8 from R94 F1: at layer-gate close, the SO review log records a `**Phase transition evidence:**` block listing each phase's start + end commit hashes + the verifiable-state predicate at each (e.g., "Phase 2a→2b: 878d3b6 (15 tests failing) → fd21900 (15 tests passing); reproducible via `git checkout <hash> && cargo test`"). The block makes the audit-trail of phase transitions explicit + human-auditable. **Operator-time cost:** ~5-10 min per layer-gate close (mechanical fact-gathering, low cognitive load). **Catch-time benefit:** human-auditable evidence in one place per layer; no mechanical hooks required. **Limitation:** relies on developer-fills-truthfully rather than mechanical verification.
+
+**Candidate Design C: New `**Phase boundary:**` preamble field in every review log entry.**
+
+Every per-domain review log entry's preamble names the phase it's in (e.g., `**Phase boundary:** entering Phase 3 Round 1 against Phase 2c commit 78bd3cf`). The field makes the entry's phase-context explicit + traceable. **Operator-time cost:** minimal (one extra preamble line per entry). **Catch-time benefit:** human-auditable per-entry phase-context. **Limitation:** doesn't enforce transition correctness; only makes the claimed phase visible.
+
+**Open questions for operator decision:**
+
+1. **Pick a candidate design (or composite).** Design A is the maximum-mechanization choice + closes the audit gap completely; Design B is the minimum-mechanization choice + provides human-auditable evidence at layer-gate close; Design C is orthogonal + provides per-entry traceability. **Recommended composite:** A + B + C, with A scoped initially to the 3 transitions where the verifiable-state-pair shape is clearest (1a+1b→1c, 1c→2a, 4→5), B applied at every layer-gate close immediately, C deferred until the next reference-example cycle (avoid retrospectively imposing on existing entries; the forward-only convention applies).
+2. **Decide enforcement vs advisory.** Hook-enforced (Design A's mechanical verification) blocks commits that violate the transition; advisory-attestation (Design B's SO-log block) records evidence without blocking. The 2a→2b commit-pair convention is currently advisory (no hook blocks a commit that violates the Red Gate); the user's framing ("provable phase transition as we have between 2a and 2b") suggests advisory IS the canonical shape — the verifiability is what matters, not the enforcement. **Recommended:** advisory at first; promote to enforcement only after a recurrence demonstrates the advisory shape doesn't suffice.
+3. **Decide scope of the 2a→2b verification.** Currently 2a→2b is provable IN PRINCIPLE but no hook actually runs the test suite at both commits to verify. Per the operator's framing ("provable" not "verified"), the principle is sufficient + the audit cost is acceptable. But a future hook could automate the verification (a CI job that runs at PR-author-attestation time). **Recommended:** keep as advisory in-principle for now; revisit if a 2a→2b discipline recurrence happens.
+
+**Recommendation (with named tradeoff):** Design A + B composite. Design A's mechanical hooks close the 3 transitions where the verifiable-state-pair shape is clearest (1a+1b→1c spec-frozen; 1c→2a test-plan-precedes-tests; 4→5 routing-complete-precedes-hardening). Design B's per-layer-gate-close evidence block applies immediately + is low-cost. Design C deferred (capture in this finding as a future-revisit so the next reference example can adopt it cleanly without retrospective amendments). Defer Design A's mechanical hooks for the OTHER non-provable transitions (2c→3 and 3-round-N→N+1) until Design B reveals which transitions are most-prone-to-slip in practice.
+
+**Partially-implementable scope this PR (low-decision-space items can land now):**
+
+- **Add § Phase transition provability section to suite-development.md** — codifies the per-transition map above as the canonical reference; provides the analytical foundation regardless of which candidate design lands.
+- **Add `**Phase transition evidence:**` recommendation to suite-development.md § Layer-gate close criteria** (Design B partial-implementation; advisory at first).
+
+These two amendments are landable now without operator-decision-blocking. Implementation in subsequent commit(s) on this PR if operator concurs.
+
+**Classification:** Deferred — full implementation (Design A mechanical hooks + new primer amendments) blocked on operator-decision pick. Partially-implementable amendments (suite-development.md § Phase transition provability + § Layer-gate close criteria advisory addition) can land this PR per operator concurrence.
+
+---
+
 ### Summary
 
-R94 F3 future-revisit closed analytically. Two findings (co-authoring evaluation; stale-document layered defense) each surface a 3-candidate-design analysis + operator-decision asks + recommendation-with-named-tradeoff. Implementation deferred pending operator-decision pass — both findings have concrete candidate designs ready to implement once operator picks.
+R94 F3 future-revisit closed analytically + R95 F3 director-raised adversarial-review finding surfaced. Three findings total: (a) co-authoring evaluation for shape+content enforcement domains; (b) stale-document layered defense; (c) phase transition provability audit. Each surfaces a 3-candidate-design analysis + operator-decision asks + recommendation-with-named-tradeoff. F3 carries partially-implementable amendments scoped for this PR pending operator concurrence.
 
-The R94 backlog is now empty (R94 F1 closed at `593ed5f`; R94 F2 closed at `035af4f`; R94 F3 closed analytically here). The post-PR-#52 suite-hardening backlog is at zero substantive items pending operator decisions on R95 F1 + F2.
+The R94 backlog is now empty (R94 F1 closed at `593ed5f`; R94 F2 closed at `035af4f`; R94 F3 closed analytically here). The post-PR-#52 suite-hardening backlog is at zero substantive items pending operator decisions on R95 F1 + F2 + F3.
 
-**Coordination:** routes forward to (a) operator-decision on R95 F1 candidate design pick (co-authoring); (b) operator-decision on R95 F2 candidate design pick (stale-document defense); (c) subsequent suite PR(s) implementing the picked designs.
+**Coordination:** routes forward to (a) operator-decision on R95 F1 candidate design pick (co-authoring); (b) operator-decision on R95 F2 candidate design pick (stale-document defense); (c) operator-decision on R95 F3 candidate design pick (phase transition provability) + operator-concurrence on the F3 partially-implementable amendments scoped for this PR; (d) subsequent suite PR(s) implementing the picked designs.
 
-**Phase 4 routing:** *(no routable findings — both findings are operator-decision-blocked; routing waits on the decision pass.)*
+**Phase 4 routing:** *(no routable findings — all three findings are operator-decision-blocked; routing waits on the decision pass. The F3 partially-implementable amendments are direct suite-development.md edits scoped to this PR, not Phase-4-routable in the IAR-cycle sense.)*

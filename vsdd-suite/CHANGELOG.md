@@ -5,6 +5,22 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## [Unreleased] Review 95 Finding 3 — phase transition provability audit (adversarial review of R94 F2 codification) (2026-05-25)
+
+**Scope:** Director-raised adversarial-review finding surfaced during R94 F2 closure pass: operator flagged that R94 F2's matrix codified de-facto frequency patterns without examining whether phase **transitions** are provable / human-auditable. The 2a→2b commit-pair was named as the canonical-provable-transition shape; the question generalized.
+
+### Added (vsdd-suite/suite-development/review-log/2026-05-24-suite-review.md Review 95 Finding 3)
+
+- **Per-transition provability map** — 9 phase boundaries audited. 3 PROVABLE (2a→2b commit-pair; 2b→2c G-96; 3→4 R94 F1 routing record); 1 partially-provable (1c→2a Red Gate test plan ordering); 5 NOT PROVABLE or partially (1a+1b→1c spec-frozen; 2c→3 review entry attestation; 3-round-N→N+1 trigger attestation; 4→5 hardening entry attestation; 5→6 project-terminal-only).
+- **3 candidate designs**: (A) per-transition commit-shape conventions modeled on 2a→2b's verifiable-state-pair shape; (B) `**Phase transition evidence:**` advisory closing-field block at every layer-gate close (SO-log); (C) `**Phase boundary:**` preamble field in every review log entry.
+- **Recommendation**: Design A + B composite. A scoped initially to 3 transitions with clearest verifiable-state-pair shape (1a+1b→1c spec-frozen hook; 1c→2a test-plan-precedence hook; 4→5 routing-complete-precedence hook). B applied at every layer-gate close immediately. C deferred (forward-only convention for next reference-example).
+
+### Closure status post-this-commit
+
+R94 backlog empty; post-PR-#52 suite-hardening backlog at zero substantive items pending **3 operator-decision asks** (R95 F1 + F2 + F3 candidate design picks). R95 F3 includes **partially-implementable amendments** scoped for this PR pending operator concurrence: (i) § Phase transition provability section in suite-development.md; (ii) advisory `**Phase transition evidence:**` recommendation in § Layer-gate close criteria.
+
+---
+
 ## [Unreleased] R94 F3 future-revisit closed analytically — Review 95 co-authoring + stale-document layered defense investigations (2026-05-25)
 
 **Scope:** Closes Review 94 Finding 3 future-revisit per the analytical-write-up-as-Review-N pattern. Two findings each surface a 3-candidate-design analysis + operator-decision asks + recommendation-with-named-tradeoff. Implementation deferred pending operator-decision pass; the post-PR-#52 suite-hardening backlog drops to zero substantive items.
