@@ -5,6 +5,21 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## [Unreleased] R94 F3 future-revisit closed analytically — Review 95 co-authoring + stale-document layered defense investigations (2026-05-25)
+
+**Scope:** Closes Review 94 Finding 3 future-revisit per the analytical-write-up-as-Review-N pattern. Two findings each surface a 3-candidate-design analysis + operator-decision asks + recommendation-with-named-tradeoff. Implementation deferred pending operator-decision pass; the post-PR-#52 suite-hardening backlog drops to zero substantive items.
+
+### Added (vsdd-suite/suite-development/review-log/2026-05-24-suite-review.md Review 95)
+
+- **Finding 1 (Deferred)** — Co-authoring evaluation for shape+content enforcement domains (TW Dim 12 + DR Dim 2/6 + AIE Dim 7/8). 3 candidate designs: (A) mid-authoring shape-co-author sub-agent; (B) existing-hook expansion; (C) domain-prompt amendment with co-authoring exception section. Recommendation: A + C composite scoped to per-domain review-log entries above 200 lines + new primer/standard amendments above 100 lines.
+- **Finding 2 (Deferred)** — Stale-document layered defense: catch-timing analysis + candidate mechanical hook + domain-prompt amendment. 3 candidate designs: (A) mechanical `check-document-staleness.py` hook; (B) new "staleness" Dim added to DR + TW domain prompts; (C) PR-template merge-gating staleness checklist item. Recommendation: A + B composite with A scoped conservatively.
+
+### Closure status post-this-commit
+
+**Post-PR-#52 suite-hardening backlog is empty** of substantive items (AIE R2 F6 closed at `b97b6f1`; R94 F1 closed at `593ed5f`; R94 F2 closed at `035af4f`; R94 F3 closed analytically here). Two operator-decision asks remain (R95 F1 + F2 candidate design picks); each unblocks a subsequent suite PR.
+
+---
+
 ## [Unreleased] R94 F2 closure — phase frequency guidance consolidated matrix + per-primer Frequency one-liners (2026-05-25)
 
 **Scope:** Closes Review 94 Finding 2 (VSDD phase frequency guidance gap). Per operator-directive 2026-05-25: NO standalone PHASE-FREQUENCY.md file (the standalone-coordination-file pattern is an anti-pattern that orphans + stales). Consolidated matrix lives in `vsdd-suite/README.md` § Phase frequency (immediately after the existing § VSDD pipeline context table); per-primer `**Frequency:**` one-liners in each of 9 primers' preambles mirror the matrix row so a single-primer reader doesn't need to assemble frequency from cross-primer prose.

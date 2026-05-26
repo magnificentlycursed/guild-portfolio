@@ -650,3 +650,128 @@ Methodology-hardening cycle closing 6 slop-fix items surfaced during the cumulat
 **Substantive slop-fixes from the cumulative R91 12-category list are now ALL addressed or preserved per G-89.** The methodology-hardening backlog from the audit-trail-structure work is empty going into Layer 3.
 
 **Coordination:** routes forward to (a) operator-action: merge PR #51 (which bundles this Review 93 + Review 92 codifications + PR-template paradox fix); (b) Layer 3 spec activation in bookmark-cli-manual (the only remaining Layer-3-readiness item per the checklist); (c) future suite-development cycles: the CHANGELOG slim-form + Resolved-continued + em-dash + Source-mixed + anchor-ID + paradox-free disciplines apply forward — pre-2026-05-24 instances preserved per G-89.
+
+
+---
+
+## Review 95 — 2026-05-25 14:00Z
+
+**Scope:** R94 F3 future-revisit per the post-bookmark-cli-manual-PR-#52 suite-hardening backlog. Two analytical investigations the [Review 94 F3](#r94-f3) "future-revisit" framing surfaced + operator-deferred until after PR #52 merge: (a) co-authoring evaluation for shape+content enforcement domains; (b) stale-document layered defense (apply the lettering-defense analytical pattern to the staleness problem class). Output is candidate-design proposals with operator-decision asks where the design space has substantive options; implementation deferred to subsequent suite PR(s) per the analytical-write-up-as-Review-N pattern.
+
+**Lens:** Suite-development (Solution Owner / Suite Developer / VDD-IAR-Alignment composite lens). Methodology-of-methodology surface: both investigations ask "is the suite's catch-timing model calibrated correctly for this defect class, and what mechanical / process amendments would tighten it without disproportionate operator-time cost?"
+
+**Session note:** Authoring-session continuation of the AIE R2 F6 + R94 F1 + R94 F2 closures landed in commits `b97b6f1` + `593ed5f` + `035af4f`. This entry is the last R94 deferred item from the post-PR-#52 backlog. Sycophancy-compensation: each candidate design names its operator-time cost AND its catch-time benefit; the analysis does NOT recommend the maximum-mechanization design by default — operator-time is a real cost and the recommendation surfaces the tradeoff explicitly rather than defaulting to "more enforcement is better."
+
+**Source:** director-raised (R94 F3 was raised by operator at PR #52 cycle; this Review fulfills the "future-revisit" framing with concrete analysis).
+
+**Cost-tally:**
+- **AI tool:** [claude-code CLI](https://claude.com/claude-code)
+- **Plan tier:** Claude Max (operator's personal plan)
+- **Execution method:** main-session synthesis (no sub-agent spawn)
+- **Model:** claude-opus-4-7
+- **Findings:** 2 Deferred (both with concrete candidate-design + operator-decision asks)
+
+---
+
+### Deferred
+
+<a id="r95-f1"></a>
+**Finding 1 — Co-authoring evaluation for shape+content enforcement domains: candidate designs + operator-decision asks (Dim 12 catch-timing analysis)**
+
+**Owner:** suite-developer
+**Status:** raised
+**Blocked by:** *(operator-decision on the candidate design — see Open questions below)*
+
+**Director-raised** at [Review 94 F3 future-revisit](#r94-f3) ("Co-authoring evaluation for shape+content enforcement domains. TW [lookup-cost discipline], DR [implicit-knowledge audit], AIE [cluster-discipline], Documentation Reviewer [cold-reader-discovery], and other domains with shape+content roles currently REVIEW artifacts post-hoc. Evaluate the impact of having them CO-AUTHOR reviews + documentation in real-time, rather than only reviewing them at Round 2.").
+
+**Analytical framing.** The PR #52 hallucination-cluster discovery (Round 3 mini-cycle verified 7 of 8 suspected-regression findings as actual Hallucinations — Round 2 agents cited code text not present in the post-fix state) surfaced a methodology pattern: cold-session agents can produce false-positives by reasoning from stale reads. The verification-anchored prompt closure (Round 3 forced `cargo test` invocation + actual runtime output capture before any "stale code" claim) closes the immediate gap. But the broader question persists: which shape+content disciplines are best served by post-hoc review vs by co-authoring intervention?
+
+**The defect class.** Shape+content enforcement domains catch their defects at Round 2 IAR review (minutes-to-days after the post-Round-1 artifact lands). For the lettering-recurrence pattern (R94 F3 partial-resolution), this catch-timing was too late for the operator-visible cost — the PR #52 hook closed the gap at commit-time (seconds). The co-authoring question generalizes this: for which other shape+content disciplines is the catch-timing gap (post-Round-1 artifact → Round 2 catch) too late for operator-visible cost, and where would co-authoring tighten the catch-timing?
+
+**Domain coverage map (the domains the operator named):**
+
+| Domain | Current catch shape | Catch timing | Co-authoring high-leverage? |
+|---|---|---|---|
+| Technical Writer (TW) — Dim 12 (lookup-cost, naming discipline) | Post-hoc review of audit-trail prose | Round 2 IAR | Yes — letter-label slips, abbreviation-without-expansion, jargon-without-cross-reference all surface during authoring; a mid-authoring shape-check would catch them before commit |
+| Documentation Reviewer (DR) — Dim 2 (implicit-knowledge audit, cold-reader-discovery) | Post-hoc cold-reader pass | Round 2 IAR | Partially — implicit-knowledge gaps require fresh-context simulation; co-authoring may not be cold-enough to catch them (the co-author shares the warm context that produces the implicit-knowledge gap) |
+| AI Engineer (AIE) — Dim 7 (cluster-batching discipline + Dim 8 scope-reducer) | Post-hoc cluster-artifact audit | Round 2 IAR | Yes — cluster-discipline slips (cluster-letter file naming, hook-bypass scope, scope-reducer omission) are commit-time-detectable; mid-authoring sub-agent could flag |
+| Documentation Reviewer — Dim 6 (cross-reference completeness) | Post-hoc cross-reference audit | Round 2 IAR | Yes — broken / stale / asymmetric cross-references surface during authoring; mid-authoring link-validator + cross-reference-completeness checker could fire at commit time |
+
+**Three candidate designs (operator picks; designs are not mutually exclusive):**
+
+**Candidate Design A: Mid-authoring shape-co-author sub-agent.**
+A sub-agent spawned mid-authoring on any artifact above N lines (suggested N=100) that runs TW Dim 12 + AIE Dim 7 + DR Dim 6 shape-checks against the in-flight artifact + flags slips inline before the artifact lands at commit. Operator-time cost: small per-artifact (sub-agent runs in ~30 sec); ~zero operator-time-overhead because the slip-flag triggers main-session edit decisions, not operator decisions. Catch-time benefit: shifts catch from Round 2 IAR (minutes-to-days) to mid-authoring (seconds-to-minutes; ~1000× tightening). Implementation: new `vsdd-suite/templates/shape-co-author-dispatch.sh` (parallels `cold-session-dispatch.sh`) + a new `co-author/` sub-agent role-prompt template scoped to "review the artifact-in-flight; flag shape+naming+cross-reference slips; do NOT raise substantive content findings — those are post-hoc IAR scope".
+
+**Candidate Design B: Existing-hook expansion (no new agent infrastructure).**
+Extend existing pre-commit hooks (`check-no-letter-clusters`, `check-suite-internal-terminology`, `check-suite-review-preamble`, `check-project-review-discipline`) with additional detector patterns for the slips currently caught at Round 2 IAR by TW Dim 12 / AIE Dim 7 / DR Dim 6. Operator-time cost: zero (mechanical at commit time). Catch-time benefit: same as PR #52's `check-no-letter-clusters` — commit-time enforcement. Limitation: hooks can only catch what's mechanically pattern-detectable; semantic gaps (implicit knowledge; cross-reference content accuracy) escape this approach. Implementation: identify the high-leverage patterns from each domain's dim prose + add to existing hooks.
+
+**Candidate Design C: Domain-prompt amendment for shape+content domains.**
+Amend TW + AIE + DR domain prompts with an explicit "co-authoring exception" section: when invoked mid-authoring (rather than post-hoc cold-session adversarial), the domain reviewer's role shifts from "find what's wrong with the committed artifact" to "flag shape+naming+cross-reference slips in the in-flight artifact before commit". Operator-time cost: minimal (domain prompts grow by a paragraph each). Catch-time benefit: enables Design A's sub-agent role without inventing new infrastructure. Implementation: 3 domain-prompt edits.
+
+**Open questions for operator decision:**
+
+1. **Pick a candidate design (or composite).** Design A + C compose well (A is the mechanism, C is the prompt-scope amendment that makes A possible). Design B is a parallel low-cost track that closes the mechanically-detectable subset without invoking sub-agents.
+2. **Define the artifact-class scope for Design A.** Which artifact classes trigger the mid-authoring sub-agent? Candidate: (i) per-domain review-log entries above 200 lines; (ii) new primer/standard amendments above 100 lines; (iii) PROCESS.md retrospective sections at layer-gate close; (iv) explicit operator-trigger only (low-cost; loses the catch-time benefit).
+3. **Decide co-authoring vs review-only framing.** Co-authoring implies the sub-agent's output edits the artifact directly (or proposes edits the main-session applies). Review-only implies the sub-agent emits findings + main-session decides. Co-authoring is faster (no main-session round-trip) but loses the operator-decision surface for substantive choices.
+
+**Recommendation (with named tradeoff):** Design A + C composite, scoped initially to artifact-class (i) and (ii) above. Defer artifact-class (iii) until Phase 5+ for the next reference example (the PROCESS.md retrospective is intentionally operator-authored at capstone+ — co-authoring there crosses into the operator-voice surface that G-156 protects). Defer Design B until Design A + C's catch-rate is measured against the next reference-example cycle (avoid premature hook-pattern proliferation).
+
+**Classification:** Deferred — implementation blocked on operator-decision on the candidate design pick + scope. The analytical surfacing is the deliverable here; implementation lands in a subsequent suite PR after operator picks.
+
+---
+
+<a id="r95-f2"></a>
+**Finding 2 — Stale-document layered defense: catch-timing analysis + candidate mechanical hook + domain-prompt amendment (Dim 12 + Dim 2 timing-gap pattern)**
+
+**Owner:** suite-developer
+**Status:** raised
+**Blocked by:** *(operator-decision on the candidate design — see Open questions below)*
+
+**Director-raised** at [Review 94 F3 future-revisit](#r94-f3) ("Stale-document layered defense. Apply the lettering-defense analytical pattern to the stale-document problem class: which domains currently catch staleness... what's the catch timing... what mechanical hook closes the gap.").
+
+**Analytical framing.** The PR #52 Round 1 surfaced 6+ domains converging on README/CHANGELOG/PROCESS/manual-tests/layer-3.md/FINDINGS-INDEX/install-verification staleness — a 7-domain cross-convergence pattern that's the same recurrence-shape as the letter-label problem. The pattern: post-Round-1 artifact-state drifts from pre-Round-1 artifact-state (impl + spec evolve); forward-facing docs lag behind; Round 2 IAR catches the drift (minutes-to-days later); operator-visible cost is the lag-window between drift-introduction and drift-catch.
+
+**Domain coverage map (the domains the operator named as candidate-catchers):**
+
+| Domain | Current catch shape | Catch timing | Effectiveness on staleness specifically |
+|---|---|---|---|
+| Documentation Reviewer (DR) — Dim 2 (implicit-knowledge audit) | Cold-reader pass on prerequisite-drift | Round 2 IAR | Partial — covers prerequisite-drift (text references X that no longer exists); doesn't cover content-drift (text claims X is true when X has changed) |
+| Documentation Reviewer (DR) — Dim 6 (cross-reference completeness) | Cross-reference audit (broken / stale / asymmetric) | Round 2 IAR | Partial — catches broken cross-refs (404s) but not content-drift cross-refs (links to a section that still exists but whose content has changed) |
+| Technical Writer (TW) — Dim 2 (documentation accuracy) | Post-hoc "does the doc accurately describe what's built?" | Round 2 IAR | Strong on content-drift; weak on systematic detection (TW catches what TW notices; no mechanical signal of where to look) |
+| Technical Writer (TW) — Dim 12 (lookup-cost discipline) | Post-hoc shape audit | Round 2 IAR | Weak on staleness specifically; covers naming + lookup not freshness |
+| AI Engineer (AIE) — Dim 11 (audit-trail machine-readability) | Post-hoc audit-trail structure audit | Round 2 IAR | Doesn't cover staleness; covers structure + machine-parseability |
+
+**Timing gap.** The earliest catch the methodology offers for post-Round-1 content-drift is Round 2 — same pattern as the lettering-recurrence. Operator-visible cost: lag-window between impl-change-landing and doc-refresh-landing. For PR #52 Round 1 the lag-window was the full Phase 3 IAR cycle (hours-to-days). The fix candidate (per Review 94 F3's framing): a mechanical hook that flags stale-document signals at commit time + a domain-prompt amendment that explicitly names staleness as a Dim with its own detection convention.
+
+**Three candidate designs (operator picks; designs are not mutually exclusive):**
+
+**Candidate Design A: Mechanical staleness hook.**
+A pre-commit hook (`check-document-staleness.py`) that flags a markdown file as POTENTIALLY-STALE when: (i) the file references a commit / PR / Layer / Round / version that has moved-on (the file says "Round 1 in flight" but the most recent Round entry in `vsdd-suite/review-log/` is Round 3); (ii) the file's "Current state" / "Status" line references an outdated state per Layer-gate close criterion attestations; (iii) the file's last-modified-commit is older than N commits relative to source files in the same project subtree. Each detector is configurable + can be bypassed via the scoped `<!-- hook-bypass[check-document-staleness] -->` marker. Operator-time cost: per-commit overhead (~1-2 sec); zero operator-decision overhead (mechanical flag → main-session refresh decision). Catch-time benefit: shifts catch from Round 2 IAR (minutes-to-days) to commit-time (seconds). Limitation: the hook catches mechanical signals (references / mtimes / version-strings); semantic content-drift (text claims X has property P when X's property P has changed) escapes the hook + still needs Round 2 IAR catch.
+
+**Candidate Design B: New "staleness" Dim added to DR + TW domain prompts.**
+Add Dim 15 (DR) + Dim 13 (TW) — "Staleness audit": for every forward-facing artifact under review, explicitly check (i) the "Current state" / "Status" line is consistent with the project's actual current state; (ii) per-feature version / count / phase-progression references are accurate; (iii) commit / PR / Layer / Round / version references resolve to current state. The dim's catch is at Round 2 IAR (same timing as existing dims) but the dim makes the staleness-check explicit + structural rather than relying on TW Dim 2's general "documentation accuracy" framing. Operator-time cost: domain-prompt edits + per-Round-2-pass time (proportional to number of artifacts × time-per-staleness-check). Catch-time benefit: zero shift (still Round 2); benefit is detection-completeness (structural enumeration replaces ad-hoc noticing). Implementation: 2 domain-prompt edits.
+
+**Candidate Design C: PR-template merge-gating staleness checklist item.**
+Add to the `.github/PULL_REQUEST_TEMPLATE.md` § Completion checklist (merge-gating) § Audit-trail discipline a new line: "README current-state line + test count + PROCESS.md retrospective + all `Current state` / `Status` references reviewed for staleness against the PR's landed state". This forces the PR author to do the staleness check at merge time + provides a checkbox the merge gate validates. Operator-time cost: per-PR review pass (proportional to PR size). Catch-time benefit: catches at PR-author-review time (pre-merge; minutes); doesn't require Round 2 IAR catch. Limitation: relies on PR-author discipline; no mechanical verification.
+
+**Open questions for operator decision:**
+
+1. **Pick a candidate design (or composite).** Design A + C compose well (A is mechanical commit-time enforcement; C is human-review-time enforcement for what mechanical can't catch). Design B is parallel + low-cost; could land independently.
+2. **Define Design A's detection patterns scope.** Conservative scope (only flag obvious staleness markers like "in flight" / "active" / "pending" against post-merge state) vs aggressive scope (also flag count-mismatches / mtime-skew). Conservative scope: high precision, low recall. Aggressive scope: lower precision, higher recall; more false positives means more bypass markers.
+3. **Decide PR-template scope for Design C.** Just the README current-state line (narrowest) vs a comprehensive enumerated list of "verify-current" artifacts (widest). The PR #52 cycle's actual staleness list spanned 7 artifacts — that's the upper-bound scope to consider.
+
+**Recommendation (with named tradeoff):** Design A + B composite, with Design A scoped conservatively (high-precision detectors that don't require frequent bypass). Design B's domain-prompt amendments are zero-mechanical-overhead + give Round 2 IAR a structural framing the current ad-hoc TW Dim 2 framing lacks. Defer Design C until Design A + B's catch-rate is measured against the next reference-example cycle (avoid premature PR-template proliferation; the PR template is already long).
+
+**Classification:** Deferred — implementation blocked on operator-decision on the candidate design pick + scope. The analytical surfacing is the deliverable here; implementation lands in a subsequent suite PR after operator picks.
+
+---
+
+### Summary
+
+R94 F3 future-revisit closed analytically. Two findings (co-authoring evaluation; stale-document layered defense) each surface a 3-candidate-design analysis + operator-decision asks + recommendation-with-named-tradeoff. Implementation deferred pending operator-decision pass — both findings have concrete candidate designs ready to implement once operator picks.
+
+The R94 backlog is now empty (R94 F1 closed at `593ed5f`; R94 F2 closed at `035af4f`; R94 F3 closed analytically here). The post-PR-#52 suite-hardening backlog is at zero substantive items pending operator decisions on R95 F1 + F2.
+
+**Coordination:** routes forward to (a) operator-decision on R95 F1 candidate design pick (co-authoring); (b) operator-decision on R95 F2 candidate design pick (stale-document defense); (c) subsequent suite PR(s) implementing the picked designs.
+
+**Phase 4 routing:** *(no routable findings — both findings are operator-decision-blocked; routing waits on the decision pass.)*
