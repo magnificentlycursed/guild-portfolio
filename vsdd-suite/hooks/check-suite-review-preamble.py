@@ -156,8 +156,19 @@ PHASE_4_ROUTING_THRESHOLD = "2026-05-26"
 # Same threshold as Check 6.
 PHASE_2C_TO_3_THRESHOLD = "2026-05-26"
 
+# Forward-only threshold for Check 8: Round N → N+1 trigger attestation
+# (R95 F3 hook 4). Project-level Phase 3 Round N entries (where N ≥ 2)
+# dated 2026-05-26 or later require a `**Round close trigger:**` field
+# attesting why the prior round closed + Round N+1 opened (G-131 continue
+# trigger or G-151 stop trigger per primer 3 § Round triggers).
+ROUND_TRIGGER_THRESHOLD = "2026-05-26"
+
 # Commit hash shape regex (Git SHA-1 prefix; 7-40 hex chars).
 COMMIT_HASH_RE = re.compile(r"\b[0-9a-f]{7,40}\b")
+
+# Round close trigger value enumeration. The G-131 / G-151 references name
+# the suite's continue / stop triggers per primer 3 § Round triggers.
+VALID_ROUND_TRIGGER_VALUES = ("G-131", "G-151")
 
 
 def is_suite_review(path: Path) -> bool:
@@ -381,6 +392,45 @@ def check_entry(
                     f"`Phase 2c skip per <annotation>` phrase. The 2c → 3 "
                     f"transition antecedent state must be reproducibly cited."
                 )
+
+    # Check 8: Round N → N+1 trigger attestation (R95 F3 hook 4). Every
+    # project-level Phase 3 Round N entry (where N ≥ 2 — Round 1 is the
+    # opening round with no prior round to close) dated 2026-05-26 or later
+    # must include a `**Round close trigger:** G-131 | G-151` field attesting
+    # why the prior round closed + Round N+1 opened per primer 3 § Round
+    # triggers. G-131 is the continue trigger (new real findings → Round
+    # N+1); G-151 is the stop trigger (only Hallucinated → IAR closes).
+    # The trigger attestation makes the round-N → N+1 transition decision
+    # auditable post-hoc.
+    #
+    # Forward-only threshold (2026-05-26) lets in-flight cycles complete.
+    # Suite-review entries exempt. Round-N detection: the trigger field is
+    # required only when this entry's review number > 1 OR (for projects
+    # using "Review N — <round-label>" file shapes) the entry's title /
+    # preamble contains "Round 2" / "Round 3" / etc.
+    if not is_suite and review_date >= ROUND_TRIGGER_THRESHOLD:
+        entry_text = "\n".join(entry_lines)
+        # Detect: is this a Round N ≥ 2 entry? Two signals:
+        # (a) the review number > 1 (heuristic: most project review logs
+        #     use Review 1 = Round 1 for a given layer; Review N>1 with
+        #     "Round 2"/"Round 3" in title or preamble);
+        # (b) the entry's title or preamble contains "Round 2"/"Round 3"
+        #     etc. explicit.
+        is_round_n_geq_2 = False
+        if int(review_n) > 1:
+            # Look for explicit round attestation in preamble.
+            preamble_window = "\n".join(entry_lines[:80])
+            if re.search(r"Round\s+([2-9]|\d{2,})", preamble_window):
+                is_round_n_geq_2 = True
+        if is_round_n_geq_2 and "**Round close trigger:**" not in entry_text:
+            failures.append(
+                f"{path}:{header_idx + 1}: Review {review_n} appears to be "
+                f"Round N ≥ 2 but missing required `**Round close trigger:** "
+                f"G-131 | G-151` field per primer 3 § Round triggers (R95 F3 "
+                f"hook 4; Round N → N+1 transition attestation). G-131 = "
+                f"continue trigger (new real findings); G-151 = stop trigger "
+                f"(only Hallucinated; IAR closes)."
+            )
 
     return failures
 

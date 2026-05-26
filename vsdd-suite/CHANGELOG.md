@@ -5,6 +5,26 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## [Unreleased] R95 F3 hook 4 — check-suite-review-preamble.py Check 8 (Round N → N+1 trigger attestation) (2026-05-25)
+
+**Scope:** Fourth of 5 phase-transition hooks per R95 F3 Design A matrix. Extends `check-suite-review-preamble.py` with Check 8 — validates `**Round close trigger:** G-131 | G-151` field on project-level Phase 3 Round N ≥ 2 entries.
+
+### Changed (vsdd-suite/hooks/check-suite-review-preamble.py)
+
+- New `ROUND_TRIGGER_THRESHOLD = "2026-05-26"` constant + `VALID_ROUND_TRIGGER_VALUES` enumeration.
+- New Check 8: validates `**Round close trigger:**` field presence on Round N ≥ 2 entries. Round-N detection heuristic: review number > 1 AND entry preamble contains `Round [2-9]` or `Round [10-99]` reference.
+- Forward-only: pre-2026-05-26 entries grandfathered.
+
+### Added (vsdd-suite/primers/3-review-session.md § Round opening — Round N → N+1 trigger attestation)
+
+- Documents the required `**Round close trigger:**` field + valid values (G-131 continue / G-151 stop) + the audit semantic (downstream consumer can verify trigger decision against prior round's finding-classification mix).
+
+### Closure status post-this-commit
+
+R95 F3 hooks 1+2+3+4 of 5 landed. Hook 5 (routing-complete-precedence) + F2 (suite-wide staleness) + F1 (existing-hook expansion suite-wide) remain.
+
+---
+
 ## [Unreleased] R95 F3 hook 3 — check-suite-review-preamble.py Check 7 (2c → 3 transition attestation) (2026-05-25)
 
 **Scope:** Third of 5 phase-transition hooks per R95 F3 Design A matrix. Extends `check-suite-review-preamble.py` with Check 7 — validates `**Tested against:**` preamble field on project-level Phase 3 review entries.

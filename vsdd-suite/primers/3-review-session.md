@@ -226,6 +226,17 @@ Valid values:
 
 The field is enforced by [`../hooks/check-suite-review-preamble.py`](../hooks/check-suite-review-preamble.py) Check 7 for project-level review entries dated 2026-05-26 or later. Forward-only threshold lets in-flight cycles complete without retroactive amendment.
 
+## Round opening — Round N → N+1 trigger attestation (R95 F3 hook 4 closure)
+
+Every Phase 3 Round N entry (where N ≥ 2 — Round 1 is the opening round with no prior round to close) must include a `**Round close trigger:** G-131 | G-151` field per the [R95 F3 Design A](../suite-development/review-log/2026-05-24-suite-review.md#r95-f3) per-transition provability matrix. The field attests why the prior round closed + Round N+1 opened per § Round triggers above:
+
+- **G-131 (continue trigger)** — the prior round produced new real findings; per § Round triggers § Continue trigger, Round N+1 is mandatory.
+- **G-151 (stop trigger)** — the prior round produced only Hallucinated findings; per § Round triggers § Stop trigger, Round N+1 should NOT run by default. Running anyway requires explicit director justification (specific new evidence or new attack surface; cold-batch infrastructure being available is NOT justification).
+
+The trigger attestation makes the Round N → N+1 transition decision auditable post-hoc. A downstream consumer reading the review log can verify the trigger decision was applied correctly without trusting the developer's narrative — the cited trigger + the prior round's finding-classification mix are jointly reproducible.
+
+The field is enforced by [`../hooks/check-suite-review-preamble.py`](../hooks/check-suite-review-preamble.py) Check 8 for project-level Phase 3 Round N ≥ 2 entries dated 2026-05-26 or later. Forward-only threshold lets in-flight cycles complete without retroactive amendment.
+
 ## Round closing — Phase 4 routing closing field (R94 F1 closure)
 
 Every Phase 3 round entry's closing block must include a `**Phase 4 routing:** <reference>` field naming where this round's routable findings were routed per [`4-feedback-integration.md`](4-feedback-integration.md). Per [`../suite-development/suite-development.md` § Layer-gate close criteria](../suite-development/suite-development.md#layer-gate-close-criteria-processmd-retrospective-discipline) criterion 8: routing is per-round (every round gets its own routing record), not per-layer; a layer that closes IAR at Round N must have N routing records.
