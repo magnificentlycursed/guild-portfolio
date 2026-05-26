@@ -1,5 +1,7 @@
 # Session Primer: Spec Crystallization (VSDD Phase 1a+1b)
 
+**Frequency:** Once per project + re-runs when Phase 4 routes findings back to Phase 1a+1b (the routed-finding's surface scope, not a full re-do).
+
 Use this prompt at the start of a new project before writing any code. Paste it into a fresh AI session, then fill in the project description section. The output of this session is a `DESIGN.md` that will pass [VDD-IAR Alignment](../domains/meta/VDD-IAR-ALIGNMENT-REVIEW.md) dim 1 scrutiny.
 
 This is not a review prompt. It is a construction prompt — it drives the creation of a complete specification. The adversarial pressure is applied *during* spec writing, not after.

@@ -184,6 +184,31 @@ VSDD defines six phases. IAR owns Phase 3. Understanding the full pipeline matte
 
 Session primers prime the session before writing or reviewing begins; they are not review prompts. The full primer table appears under [Session primers](#session-primers).
 
+### Phase frequency (closes R94 F2)
+
+The whitepaper is prescriptive about WHAT each phase does but silent on HOW OFTEN each phase repeats. The suite's de-facto frequency conventions exist in scattered per-primer prose; this consolidated matrix is the single source of truth (closes [Review 94 Finding 2](suite-development/review-log/2026-05-24-suite-review.md#r94-f2) per the post-bookmark-cli-manual-PR-#52 suite-hardening backlog).
+
+| Phase | Frequency | Authoritative citation |
+|---|---|---|
+| 1a+1b Spec Crystallization | Once per project + re-runs when Phase 4 routes findings back to Phase 1a+1b | [`primers/4-feedback-integration.md`](primers/4-feedback-integration.md) § Routing table (the `phase-1a+1b` destination row) |
+| 1c Decomposition | Once per project + re-runs when Phase 4 routes findings back to Phase 1c | [`primers/4-feedback-integration.md`](primers/4-feedback-integration.md) § Routing table (the `phase-1c` destination row) |
+| 2a Red Gate | Per layer | [`primers/1c-decomposition.md`](primers/1c-decomposition.md) (Red Gate plan is layer-scoped per the layer-spec discipline) |
+| 2b Implementation | Per layer | [`primers/2b-implementation.md`](primers/2b-implementation.md) preamble |
+| 2c Refactor | Per layer (with explicit-skip annotation when no refactor needed) | [`primers/2c-refactor.md`](primers/2c-refactor.md) § Completion criteria |
+| 3 Adversarial Refinement (IAR) | Per layer × N rounds until MVR | [`primers/3-review-session.md`](primers/3-review-session.md) § Round triggers (G-131 continue / G-151 stop) |
+| 4 Feedback Integration Loop | **Per Phase 3 round** (every IAR round produces a routing record per round, not per layer; see [suite-development.md § Layer-gate close criteria](suite-development/suite-development.md#layer-gate-close-criteria-processmd-retrospective-discipline) criterion 8) | [`primers/4-feedback-integration.md`](primers/4-feedback-integration.md) preamble + [`primers/3-review-session.md`](primers/3-review-session.md) § Round closing |
+| 5 Formal Hardening | Per layer (with per-surface conditionals — strategy named at DESIGN.md § Project intent per [G-162](suite-development/FINDINGS-INDEX.md#g-162)) | [`primers/5-formal-hardening.md`](primers/5-formal-hardening.md) preamble |
+| 6 Convergence | Once per project at project-terminal close (+ once per re-open if the project re-opens after terminal-close) | [`primers/6-convergence.md`](primers/6-convergence.md) preamble |
+
+**Notes on the matrix:**
+
+- **Phase 4 routing is per-round, not per-layer.** A layer that closes IAR at Round N must have N routing records. This is enforced at layer-gate close per [`suite-development.md` § Layer-gate close criteria](suite-development/suite-development.md#layer-gate-close-criteria-processmd-retrospective-discipline) criterion 8 + the [`check-suite-review-preamble.py`](hooks/check-suite-review-preamble.py) Check 6 closing-field validation.
+- **Phase 1a+1b + 1c re-runs are driven by Phase 4 routing destinations.** When a Phase 3 finding routes back to spec/decomposition, the relevant phase re-runs scoped to the routed finding's surface, not as a full re-do.
+- **Phase 5 + Phase 6 are intent-gated.** Learning-exercise and portfolio intents may skip; capstone + production intents require either execution or an explicit `not applicable — <rationale>` declaration per [G-162](suite-development/FINDINGS-INDEX.md#g-162).
+- **Upstream whitepaper gap (forward-only deviation).** Per [`COMPATIBILITY.md`](COMPATIBILITY.md) § Forward-only deviations: the upstream VSDD whitepaper does not name phase frequency; the suite's matrix here is a contribution candidate back to the whitepaper (per [`claude-code-contract.md`](claude-code-contract.md) Shape 3 upstream-coordination convention).
+
+Each primer's preamble carries a `**Frequency:**` one-liner mirroring the matrix row above so a reader landing in a single primer doesn't have to assemble the frequency from cross-primer prose.
+
 ### Per-layer flow (within a project)
 
 The pipeline table above is project-scoped. Within a single layer, the flow is a loop governed by the trigger discipline (`primers/3-review-session.md` § Round triggers). The diagram below makes that loop explicit so a reader does not have to reconstruct it from the primer set ([G-136](suite-development/FINDINGS-INDEX.md#g-136) closure).

@@ -5,6 +5,25 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## [Unreleased] R94 F2 closure — phase frequency guidance consolidated matrix + per-primer Frequency one-liners (2026-05-25)
+
+**Scope:** Closes Review 94 Finding 2 (VSDD phase frequency guidance gap). Per operator-directive 2026-05-25: NO standalone PHASE-FREQUENCY.md file (the standalone-coordination-file pattern is an anti-pattern that orphans + stales). Consolidated matrix lives in `vsdd-suite/README.md` § Phase frequency (immediately after the existing § VSDD pipeline context table); per-primer `**Frequency:**` one-liners in each of 9 primers' preambles mirror the matrix row so a single-primer reader doesn't need to assemble frequency from cross-primer prose.
+
+### Added (vsdd-suite/README.md § Phase frequency)
+
+- Consolidated matrix: 9 rows (one per phase) × 3 columns (Phase / Frequency / Authoritative citation). Names the de-facto suite-side convention for each phase: Phase 1a+1b + 1c are "once per project + Phase-4-routed re-runs"; Phase 2a/2b/2c are "per layer"; Phase 3 is "per layer × N rounds until MVR"; Phase 4 is **"per Phase 3 round"** (cross-references suite-development.md criterion 8); Phase 5 is "per layer with per-surface conditionals"; Phase 6 is "once per project at project-terminal close (+ once per re-open)".
+- Notes paragraph naming the upstream whitepaper gap (whitepaper is silent on phase frequency; the suite's matrix is a contribution candidate back to the whitepaper per `claude-code-contract.md` Shape 3 upstream-coordination convention).
+
+### Added (per-primer `**Frequency:**` one-liners in 9 primers)
+
+- `1ab-spec-crystallization.md`, `1c-decomposition.md`, `2a-red-gate.md`, `2b-implementation.md`, `2c-refactor.md`, `3-review-session.md`, `4-feedback-integration.md`, `5-formal-hardening.md`, `6-convergence.md` — each gains a `**Frequency:** <text>` line immediately after the H1 title. Text mirrors the matrix row in README's § Phase frequency.
+
+### Closure status post-this-commit
+
+R94 F2 closed. R94 F3 future-revisit (co-authoring + stale-document layered defense investigations) is the last remaining item from the post-PR-#52 suite-hardening backlog.
+
+---
+
 ## [Unreleased] AIE R2 F6 + R94 F1 closures — per-hook bypass mechanism + Phase 4 routing gate criterion (2026-05-25)
 
 **Scope:** Two suite-hardening closures from the post-bookmark-cli-manual-PR-#52 backlog (suite-hardening PR follow-up).

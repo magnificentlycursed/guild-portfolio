@@ -1,5 +1,7 @@
 # Session Primer: Refactor (VSDD Phase 2c)
 
+**Frequency:** Per layer (with explicit-skip annotation when no refactor needed per [G-96](../suite-development/FINDINGS-INDEX.md#g-96)).
+
 Use this prompt after [Phase 2b](2b-implementation.md) has produced a green test suite for the current layer and the implementation commit is on disk. The output of this session is a refactored implementation that holds the same green test suite, committed as a distinct [Phase 2c](2c-refactor.md) commit before the layer enters [Phase 3](3-review-session.md) (IAR).
 
 Phase 2c is the third step of the test-driven loop named in the [VSDD whitepaper](https://gist.github.com/dollspace-gay/d8d3bc3ecf4188df049d7a4726bb2a00): red → green → refactor. The suite previously folded refactor pressure into Phase 3 review feedback (and continues to — IAR findings against the implementation drive refactor work via [Phase 4](4-feedback-integration.md) routing). This primer covers the *intra-Phase-2* refactor step that the whitepaper specifies as part of the TDD loop itself, before any cold-context adversarial review.

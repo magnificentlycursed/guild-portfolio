@@ -1,5 +1,7 @@
 # Session Primer: Project Decomposition (VSDD Phase 1c)
 
+**Frequency:** Once per project + re-runs when Phase 4 routes findings back to Phase 1c.
+
 Use this prompt after `DESIGN.md` is complete and has passed adversarial pressure. The output of this session is a `TODO.md` with a layered development plan and (for Phase 2+ projects) a [crosslink](https://github.com/forecast-bio/crosslink) issue hierarchy. This is the plan the Red Gate (Phase 2) will execute against.
 
 Do not start decomposition until the spec is complete. Decomposing an incomplete spec produces a plan that will require structural revision mid-build.
