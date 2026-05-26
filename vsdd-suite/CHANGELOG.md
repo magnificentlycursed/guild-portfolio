@@ -1,7 +1,28 @@
-<!-- hook-bypass[check-no-letter-clusters]: this CHANGELOG preserves historical references to retired letter labels per G-89 forward-only narrative-preservation. New entries SHOULD use descriptive identifiers; legacy entries are preserved as-authored. The bypass-mechanism is itself a finding for the next registry-walk review per check-no-letter-clusters.py's own rationale. -->
+<!-- hook-bypass[check-no-letter-clusters,check-document-staleness]: this CHANGELOG preserves historical references to retired letter labels per G-89 forward-only narrative-preservation + legitimately describes the suite's staleness-pattern set (the patterns themselves are documented + cross-referenced here, which the staleness hook's pattern-detection would flag as in-flight phrasing). New entries SHOULD use descriptive identifiers; legacy entries are preserved as-authored. The bypass-mechanism is itself a finding for the next registry-walk review per the respective hooks' own rationale. -->
 # Changelog
 
 All notable changes to the suite are recorded here. Entries are in reverse chronological order. Timestamps are UTC (Zulu).
+
+---
+
+## [Unreleased] R95 F2 — check-document-staleness.py (suite-wide staleness hook per operator-directive 2026-05-25) (2026-05-25)
+
+**Scope:** R95 F2 Design A hook-enforced staleness detection with suite-wide scope per operator-directive 2026-05-25 ("stale documentation hooks should also apply to the upstream suite").
+
+### Added (vsdd-suite/hooks/check-document-staleness.py)
+
+- Conservative-scope (first-30-lines per file) pattern-based detection of staleness signals: in-flight phrases (`in flight`, `in progress`, `to be authored`, `scoped but not built`, `pending implementation`, `deferred — scoped only`); round-N-in-progress (`Round N in progress`); layer-N-pending; phase-pending.
+- Verbatim-block stripping (fenced code + blockquotes) avoids flagging literal command transcripts + historical citations.
+- Three-audience design: STALENESS_PATTERNS dataclass (name + regex + rationale triple); failure messages cite the pattern's rationale + corrective action + scoped-bypass relief valve; structured `path:line: <message>` for AI agents.
+- Wired in `.pre-commit-config.yaml` with `^(.*\.md)$` scope (suite-wide per operator-directive; not project-only).
+
+### Added (forward-only bypass markers on pre-existing G-89-historical files)
+
+- 7 files received scoped-bypass markers for pre-existing in-flight phrasing preserved per G-89: bookmark-manager/DECISIONS.md; issue-tracker-cli/DESIGN.md + iterative-adversarial-refinement/SOLUTION-OWNER-REVIEW.md + README.md; bookmark-cli-manual/vsdd-suite/review-log/2026-05-24-documentation-reviewer.md; vsdd-suite/suite-development/review-log/2026-05-05-suite-review.md; vsdd-suite/templates/PROJECT-README-template.md.
+
+### Closure status post-this-commit
+
+R95 F2 (Design A) landed suite-wide. F1 expansion (existing-hook expansion for shape+content patterns; suite-wide per operator-directive) is the last remaining hook in the suite-hardening backlog.
 
 ---
 

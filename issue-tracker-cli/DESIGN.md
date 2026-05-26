@@ -1,3 +1,4 @@
+<!-- hook-bypass[check-document-staleness,check-no-letter-clusters]: pre-existing in-flight phrasing + letter labels preserved per the forward-only narrative-preservation policy. This file's status claims + letter labels predate the R95 F2 staleness hook + the Review 94 letter-cluster hook; flagging would require retroactive rewriting that crosses the forward-only carve-out. Future edits SHOULD use current-state phrasing + descriptive identifiers; the bypass-mechanism is itself a finding for the next registry-walk review. -->
 # Issue Tracker CLI
 
 ## Overview

@@ -1,3 +1,4 @@
+<!-- hook-bypass[check-document-staleness]: pre-existing in-flight phrasing preserved per the forward-only narrative-preservation policy. This file's status claims predate the R95 F2 check-document-staleness hook; flagging would require retroactive rewriting that crosses the forward-only carve-out. Future status-claim edits SHOULD use current-state phrasing; the bypass-mechanism is itself a finding for the next registry-walk review. -->
 # 2026-05-05 Suite Reviews
 
 ## Review 35 — 2026-05-05 20:30Z

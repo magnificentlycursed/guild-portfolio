@@ -130,6 +130,19 @@ repos:
         files: ^.+/vsdd-suite/review-log/\d{4}-\d{2}-\d{2}-[a-z-]+\.md$
         exclude: ^(node_modules/|target/|\.git/)
 
+      - id: check-document-staleness
+        name: "flag mechanical staleness signals in markdown headers (R95 F2 Design A hook — suite-wide scope per operator-directive 2026-05-25)"
+        language: python
+        # Per `vsdd-suite/hooks/check-document-staleness.py` docstring + R95 F2
+        # Design A SO-decision (hook-enforced) + operator-directive 2026-05-25
+        # (suite-wide scope; not project-only). Conservative-scope: only
+        # first-30-lines of each file scanned (status-claim staleness lives
+        # at file head; audit-trail prose deeper in files is G-89-preserved).
+        entry: vsdd-suite/hooks/check-document-staleness.py
+        pass_filenames: true
+        files: ^(.*\.md)$
+        exclude: ^(node_modules/|target/|\.git/)
+
       - id: check-no-legacy-bypass-markers
         name: "reject legacy unscoped hook-bypass markers (AIE R2 F6 hook — scoped form is canonical)"
         language: python
