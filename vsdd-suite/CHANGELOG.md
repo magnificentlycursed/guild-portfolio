@@ -5,6 +5,24 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## [Unreleased] R95 F3 Design A — phase transition provability § + matrix in suite-development.md (operator-directed hook-enforced) (2026-05-25)
+
+**Scope:** Operator picked Design A (hook-enforced) for R95 F3 + directed three-audience-model application. This commit lands the foundation: § Phase transition provability section in `suite-development.md` codifying the per-transition matrix + three-audience lens for downstream hook implementations.
+
+### Added (vsdd-suite/suite-development/suite-development.md § Phase transition provability)
+
+- Canonical exemplar (2a→2b) decomposed into 4 properties: verifiable antecedent state; verifiable successor state; transition IS the delta; reproducible without operator-trust.
+- Three-audience lens for phase-transition design — suite developers (extensibility + hook template); suite users (failure-message + bypass discipline); AI agents (machine-parseable transition-evidence artifacts).
+- Per-transition provability matrix (9 rows): 3 currently provable (2a→2b commit-pair; 2b→2c G-96 discipline; 3→4 R94 F1 routing record); 5 hook-enforced planned (1a+1b→1c; 1c→2a; 2c→3; 3-round-N→N+1; 4→5); 1 provable-via-discipline (5→6 project-terminal). Each row names antecedent state + successor state + planned hook.
+- Implementation sequencing notes — each new hook ships with discipline rationale, failure message, scoped-bypass support, pre-commit wiring, primer amendment if attestation field needed; forward-only threshold lets in-flight cycles complete.
+- Accepted limitations — 2a→2b stays advisory (audit cost is low; CI matrix is over-engineering); 5→6 stays project-terminal-only per G-150; hook brittleness risk acknowledged + scoped-bypass is the relief valve.
+
+### Closure status post-this-commit
+
+R95 F3 foundation amendment landed. 5 new hooks remain to implement per the matrix (1 per subsequent commit on this branch): `check-spec-frozen.py`, `check-red-gate-plan-precedence.py`, `check-suite-review-preamble.py` Check 7 + 8 extensions, `check-phase-5-routing-precedence.py`. R95 F1 (Design B existing-hook expansion) + R95 F2 (Design A `check-document-staleness.py`) also remain.
+
+---
+
 ## [Unreleased] Review 95 Finding 3 — phase transition provability audit (adversarial review of R94 F2 codification) (2026-05-25)
 
 **Scope:** Director-raised adversarial-review finding surfaced during R94 F2 closure pass: operator flagged that R94 F2's matrix codified de-facto frequency patterns without examining whether phase **transitions** are provable / human-auditable. The 2a→2b commit-pair was named as the canonical-provable-transition shape; the question generalized.

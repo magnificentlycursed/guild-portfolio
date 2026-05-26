@@ -512,6 +512,45 @@ The manual mode matches the crosslink mode's information shape exactly so a proj
 
 **Either mode, both are forward-only:** A project chooses one mode at start. Switching modes mid-project (manual → crosslink) requires migrating existing rows; switching the other way (crosslink → manual) requires exporting via `crosslink export`. Switching is supported but not free; choose deliberately at scaffold time.
 
+### Phase transition provability (R95 F3 closure)
+
+Phase transitions in VSDD are commit-boundaries with a behavioral pre-and-post signal. The canonical exemplar is **Phase 2a → 2b**: the antecedent commit's test suite FAILS at that commit; the successor commit's test suite PASSES. The commit pair IS the transition evidence; anyone with `git checkout` + the project's test runner can reproduce the verification independently. The 2a→2b model has four properties the suite holds up as the canonical provable-transition shape:
+
+1. **Verifiable antecedent state** — an objective predicate at the antecedent commit (tests fail; spec section X exists; test plan committed).
+2. **Verifiable successor state** — an objective predicate at the successor commit (tests pass; decomposition commit lands; first review entry exists).
+3. **Transition IS the delta** — the substantive work of the phase produces the state change captured by the commit pair.
+4. **Reproducible without operator-trust** — a downstream consumer / cold reviewer / AI agent can independently verify the transition fired correctly without trusting the developer's narrative.
+
+Per the [R95 F3 audit](review-log/2026-05-24-suite-review.md#r95-f3), 3 of 9 VSDD phase transitions are provable in this sense today (2a→2b commit-pair; 2b→2c [G-96](FINDINGS-INDEX.md#g-96) refactor-or-annotation; 3→4 [R94 F1](review-log/2026-05-24-suite-review.md#r94-f1) per-round routing record). The other 6 are implicit conventions readable from context but not verifiable without operator-trust. The suite codifies the per-transition provability target below + ships commit-time hooks enforcing them per the SO-decision 2026-05-25 (the hook-enforced Design A pick over the advisory-attestation alternative).
+
+**Three-audience lens for phase-transition design (per [§ Three-audience design principle](#three-audience-design-principle-review-80-finding-3); applies to every per-transition hook + every primer amendment landing under this discipline):**
+
+- **Suite developers** (contributors extending VSDD with new phases / amending existing transitions) — the per-transition provability model is extensible; new phase transitions added to the suite must update the matrix below in lockstep with the new hook + primer amendment. Each hook follows the established template at [`hooks/check-no-legacy-bypass-markers.py`](../hooks/check-no-legacy-bypass-markers.py) (scoped-bypass parsing; self-bypass support; structured violation output).
+- **Suite users** (project teams applying VSDD) — every hook's failure message names the transition + the verification predicate + the corrective action. Users encountering a violation know what to do without reading the hook source. The scoped-bypass marker `<!-- hook-bypass[hook-id]: <rationale> -->` is documented for legitimate out-of-pattern exceptions (per [AIE R2 F6 closure](review-log/2026-05-24-suite-review.md#r94-f3)).
+- **AI agents** (cold-session reviewers + main-session orchestrators) — every transition-evidence artifact (commit-attestation field; closing-field reference; preamble citation) is machine-parseable per [§ Agent-API surface](#agent-api-surface-review-80-finding-3). Per-transition evidence fields use the canonical regex shapes the agent API commits to. Adding a new transition extends the API surface; renames or removals are forbidden under [G-89](FINDINGS-INDEX.md#g-89) except as a documented methodology shift.
+
+**Per-transition provability matrix (canonical reference):**
+
+| Transition | Provability status | Antecedent state | Successor state | Hook |
+|---|---|---|---|---|
+| **1a+1b → 1c** | Hook-enforced (R95 F3 Design A; future PR) | DESIGN.md complete per primer 1ab template; no `**TBD**` markers in spec sections | TODO.md decomposition committed; layer plans present | `check-spec-frozen.py` (planned) |
+| **1c → 2a** | Hook-enforced (R95 F3 Design A; future PR) | Layer's TODO.md Red Gate test plan section populated | First Phase 2a Red Gate test commit per layer | `check-red-gate-plan-precedence.py` (planned) |
+| **2a → 2b** | Provable in principle (canonical exemplar) | Test suite FAILS at antecedent commit | Test suite PASSES at successor commit | Advisory; the principle suffices |
+| **2b → 2c** | Provable via discipline ([G-96](FINDINGS-INDEX.md#g-96)) | Phase 2b commit | Phase 2c commit (refactor OR explicit-skip annotation) | VDD-IAR Alignment Dim 12 review; planned `check-phase-2c-discipline.py` |
+| **2c → 3** | Hook-enforced (R95 F3 Design A; future PR) | Phase 2c commit OR annotation | First per-domain Phase 3 review entry citing the 2c commit via `**Tested against:**` preamble field | `check-suite-review-preamble.py` Check 7 (extension; planned) |
+| **3 Round N → N+1** | Hook-enforced (R95 F3 Design A; future PR) | Round-N close entry with `**Round close trigger:** <G-131 \| G-151>` field | Round-N+1 open entry citing trigger decision | `check-suite-review-preamble.py` Check 8 (extension; planned) |
+| **3 → 4** | Hook-enforced ([R94 F1](review-log/2026-05-24-suite-review.md#r94-f1)) | Phase 3 round entry's classified findings | Per-domain `## Phase 4 routing — Round N` appendix + `**Phase 4 routing:**` closing field | `check-suite-review-preamble.py` Check 6 (landed) |
+| **4 → 5** | Hook-enforced (R95 F3 Design A; future PR) | Every Round N has a Phase 4 routing record | First Phase 5 review entry per layer with `**Phase 5 surface:**` preamble tag | `check-phase-5-routing-precedence.py` (planned) |
+| **5 → 6** | Provable via discipline ([G-150](FINDINGS-INDEX.md#g-150); project-terminal only) | Layer-terminal Phase 5 hardening complete | Project-terminal Phase 6 four-dimensional convergence attestation with per-dimension citations | VDD-IAR Alignment Dim 14 review |
+
+**Implementation sequencing.** The hooks land in subsequent commits on this PR per operator-direction 2026-05-25. Each new hook ships with: (a) the discipline rationale + verification predicate in the hook's docstring; (b) the failure message naming the transition + corrective action; (c) the scoped-bypass marker support per AIE R2 F6 closure; (d) a `.pre-commit-config.yaml` wiring; (e) a primer amendment if the transition requires a new attestation field. The forward-only threshold convention applies: new hooks enforce against artifacts dated 2026-05-26 or later (lets in-flight cycles complete without retroactive amendment).
+
+**Limitations + accepted scope.**
+
+- **2a → 2b stays advisory.** The principle (run tests at both commits to verify) is sufficient + the audit cost is low; a CI matrix that runs tests at both commits is over-engineering relative to the named canonical exemplar.
+- **5 → 6 stays project-terminal-only.** Per [G-150](FINDINGS-INDEX.md#g-150)'s capstone gating, Phase 6 is project-terminal-not-per-layer; per-layer Phase 6 isn't part of the suite's intent.
+- **Hook brittleness risk.** Mechanical commit-time hooks are stricter than the 2a→2b exemplar's advisory shape. Recurrence of false-positive-blocked-commits is itself a methodology finding for the next registry-walk review; the scoped-bypass mechanism is the relief valve.
+
 ### Layer-gate close criteria (PROCESS.md retrospective discipline)
 
 Layer-gate close criteria govern when a layer's IAR round may close and the layer may merge to the project's main branch. The full criteria set is project-scoped — a project may codify additional criteria in its own `iterative-adversarial-refinement/CLOSURE-PROTOCOL.md` (per ITC's precedent) — but the suite-level baseline below applies to every project regardless of whether it codifies a CLOSURE-PROTOCOL of its own.
