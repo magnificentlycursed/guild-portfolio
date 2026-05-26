@@ -5,6 +5,26 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## [Unreleased] Review 96 — adversarial canvas of PR #52 methodology drifts for suite-hardening candidates (analytical only) (2026-05-25)
+
+**Scope:** Director-raised adversarial canvas of bookmark-cli-manual PR #52 for methodology drifts / process defects / suite-hardening candidates NOT yet captured in Reviews 94 + 95. Analytical write-up only — no implementation per operator-direction "Write it up as a review".
+
+### Added (vsdd-suite/suite-development/review-log/2026-05-24-suite-review.md Review 96)
+
+- **Finding 1 (Deferred)** — Round 3 verification mini-cycle codification in primer 3 + AIE Dim 7
+- **Finding 2 (Deferred)** — Cost-tally + Pre-cycle methodology declaration hook validations (Check 9 + 10 extensions on check-suite-review-preamble.py)
+- **Finding 3 (Deferred)** — Architectural correction sub-decision discipline (Round 1 → Round 2 reversal pattern; mid-Phase-2b contract changes need SO ratification + per-domain consultation BEFORE landing)
+- **Finding 4 (Deferred)** — Round 2+ disposition shapes documentation (Raised-to-SO + Hallucinated-triggers-verification-mini-cycle as new dispositions)
+- **Finding 5 (Deferred)** — In-cycle suite-hardening pattern codification ("when is in-cycle vs deferred-to-suite-PR appropriate")
+- **Finding 6 (Deferred)** — Operator-decision queue convention (`OPERATOR-DECISION-QUEUE.md` artifact)
+- **Finding 7 (Dismissed)** — 4 lower-leverage candidates consolidated with rationale: AI-co-authored disclosure hook (G-156 already a hard gate); PR-template body automation (one-off, not recurrence); FINDINGS-INDEX scaffolding (mechanical-only, not load-bearing); R95 F1 co-authoring overlap with R96 F1 (the Round 3 mini-cycle subsumes the concrete value)
+
+### Closure status post-this-commit
+
+**9 operator-decision asks pending** across R94 + R95 + R96 (R95 F1+F2+F3 candidate-design picks; R96 F1-F6 individual codification scope picks). The post-PR-#52 suite-hardening backlog has zero substantive items pending hook implementation (R95 F1 Design B existing-hook expansion is the last in-flight hook in this PR).
+
+---
+
 ## [Unreleased] R95 F2 — check-document-staleness.py (suite-wide staleness hook per operator-directive 2026-05-25) (2026-05-25)
 
 **Scope:** R95 F2 Design A hook-enforced staleness detection with suite-wide scope per operator-directive 2026-05-25 ("stale documentation hooks should also apply to the upstream suite").

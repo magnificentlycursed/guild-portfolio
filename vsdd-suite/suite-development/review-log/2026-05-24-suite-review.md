@@ -851,3 +851,239 @@ The R94 backlog is now empty (R94 F1 closed at `593ed5f`; R94 F2 closed at `035a
 **Coordination:** routes forward to (a) operator-decision on R95 F1 candidate design pick (co-authoring); (b) operator-decision on R95 F2 candidate design pick (stale-document defense); (c) operator-decision on R95 F3 candidate design pick (phase transition provability) + operator-concurrence on the F3 partially-implementable amendments scoped for this PR; (d) subsequent suite PR(s) implementing the picked designs.
 
 **Phase 4 routing:** *(no routable findings — all three findings are operator-decision-blocked; routing waits on the decision pass. The F3 partially-implementable amendments are direct suite-development.md edits scoped to this PR, not Phase-4-routable in the IAR-cycle sense.)*
+
+
+---
+
+## Review 96 — 2026-05-25 18:00Z
+
+**Scope:** Director-raised adversarial canvas of the bookmark-cli-manual PR #52 Layer 3 cycle for methodology drifts / process defects / suite-hardening candidates NOT yet captured in Reviews 94 + 95. Operator-prompt: "What other process problems, drifts, defects etc happened in layer 3 of bookmark-cli-manual should I consider for suite hardening?" + operator-direction "Write it up as a review" (no implementation; analytical write-up only).
+
+**Lens:** Suite-development meta-review. Solution Owner + Suite Developer + VDD-IAR-Alignment composite lens applied against the PR #52 cycle's full audit trail (16 commits on `bookmark-cli-manual-layer-3-spec-activation` + the suite-hardening PR's 12+ commits to date). The audit asks "what recurrence-patterns / methodology gaps / process defects surfaced during PR #52 that R94 + R95 did not enumerate, and which warrant codification at the suite level?"
+
+**Session note:** Authoring-session continuation of the suite-hardening PR (commits `b97b6f1` AIE R2 F6 closure through `f16b2ff` R95 F2 closure; ~12 commits to date). Sycophancy-compensation: each candidate names operator-time cost AND catch-time benefit; the analysis does NOT recommend the maximum-mechanization design by default — items 8-11 are explicitly Dismissed with rationale to prevent the "every methodology gap deserves a hook" bias.
+
+**Source:** director-raised (operator surfaced the question; this review fulfills the "write it up as a review" directive).
+
+**Cost-tally:**
+- **AI tool:** [claude-code CLI](https://claude.com/claude-code)
+- **Plan tier:** Claude Max (operator's personal plan)
+- **Execution method:** main-session synthesis (no sub-agent spawn)
+- **Model:** claude-opus-4-7
+- **Findings:** 7 candidates — 6 Deferred (operator-decision pending) + 1 Dismissed group (4 lower-leverage items consolidated with rationale)
+
+---
+
+### Deferred
+
+<a id="r96-f1"></a>
+**Finding 1 — Round 3 verification mini-cycle is a new round-type primer 3 does not document; codify the verification-anchored prompt as the canonical mid-cycle hallucination-defense mechanism (Dim 7 + meta-methodology)**
+
+**Owner:** suite-developer
+**Status:** raised
+**Blocked by:** *(operator-decision on the codification scope — see Open questions below)*
+
+**Director-raised** during PR #52 Round 2 hallucination-cluster discovery. The 4-domain (PFE + QE + SE + UX) cold re-spawn at commit [`27f75a0`](https://github.com/magnificentlycursed/guild-portfolio/commit/27f75a0) with verification-anchored prompts (forced `cargo test --lib` invocation + actual runtime output capture + source `file:line` verification BEFORE any "stale code" claim) closed 7 of 8 suspected hallucinations. This is a new round-type primer 3 does not document.
+
+**Pattern decomposition:**
+- **Trigger:** Round N produces ≥1 suspected-hallucination finding (a finding citing code text the verifier suspects isn't present in current state).
+- **Scope-reducer:** Round N+1 verification mini-cycle limited to the suspected hallucinations + their domains (NOT the full domain set; NOT all of Round N's findings).
+- **Verification-anchored prompt** (NEW per PR #52): the cold-session sub-agent's prompt forces specific verification steps (cargo test invocation; runtime output capture; source file:line verification) BEFORE the agent can raise / confirm / refute a finding.
+- **Round-count semantic:** verification mini-cycles DON'T extend the round count (they're sub-rounds within Round N+1, not separate Round N+2/N+3); they consume the cold-session-spawn budget for the named domains only.
+
+**Why this matters.** The hallucination-cluster recurrence pattern (7 of 8 in PR #52 Round 2) is itself a methodology gap — cold-session agents can produce false-positives from stale reads. The verification-anchored prompt empirically closed the gap. Without codification, the next reference-example cycle re-discovers the pattern from scratch + the catch-timing reverts to "operator notices the hallucinations after they've been authored as findings".
+
+**Candidate codification scope:**
+- Primer 3 § Round triggers gains a new sub-section "Round 3+ verification mini-cycle (G-NNN)" documenting the trigger + scope-reducer + verification-anchored-prompt template + round-count semantic.
+- AI Engineer Dim 7 gains a "verification mini-cycle spawn pattern" sub-dimension.
+- Templates: a `templates/round-3-verification-mini-cycle-dispatch.sh` mirroring `cold-session-dispatch.sh`.
+
+**Open questions for operator decision:**
+
+1. **Codification scope.** Primer 3 sub-section only (lightest); primer 3 + AIE Dim 7 amendment (medium); primer 3 + AIE Dim 7 + new dispatch template (full).
+2. **Round-count terminology.** Is the verification pass "Round 3 mini-cycle" (PR #52's framing) or "Round N+1 verification sub-round" (more general)? Affects how the round number gets cited in the next cycle's review-log filenames.
+
+**Recommendation:** medium scope (primer 3 + AIE Dim 7); defer template authoring until a second reference-example cycle demonstrates the dispatch shape is stable across projects (avoid premature template ossification).
+
+**Classification:** Deferred — implementation blocked on operator-decision pick. Analytical surfacing is the deliverable.
+
+---
+
+<a id="r96-f2"></a>
+**Finding 2 — Cost-tally + Pre-cycle methodology declaration are advisory-only at capstone+ intent; hook-validate both per-domain review entry preamble fields (Dim 11 audit-trail machine-readability)**
+
+**Owner:** suite-developer
+**Status:** raised
+**Blocked by:** *(operator-decision on hook-vs-advisory + forward-only threshold — see Open questions below)*
+
+**Director-raised** by AI Engineer R1 F6 (pre-cycle methodology declaration absent at Round 1 launch; surfaced + carried-forward to Round 2 launch) + R1 F7 (per-commit cost-tally gap; carry-forward across PRs). Both fields are codified in suite-development.md (G-133) as expected at capstone+ intent but neither is hook-validated. The PR #52 cycle saw inconsistent application: Round 1 cycle missing both at launch; Round 2 included pre-cycle declaration but cost-tally varied across per-domain entries.
+
+**The hook design candidates compose naturally:**
+
+- **Pre-cycle methodology check** field at Round 1 entries (per AIE R1 F8) → Check 9 extension on `check-suite-review-preamble.py`. Forward-only threshold; suite-review entries exempt.
+- **Cost-tally** field at every capstone+ intent per-domain review entry → Check 10 extension. Forward-only threshold; suite-review entries also enforced (suite reviews are themselves multi-agent at capstone-of-the-suite intent per recursive application).
+
+**Open questions for operator decision:**
+
+1. **Cost-tally scope.** All capstone+ intent per-domain entries (broad); or only multi-agent IAR cycle entries (narrow — excludes single-agent Round-N+ entries). Broad is more rigorous + closes AIE R1 F7 carry-forward fully; narrow respects the practical reality that single-agent entries' cost-tallies are small + low-signal.
+2. **Pre-cycle methodology check scope.** Only Round 1 entries (the spawning round); or all Round N entries (every round attestation). Round-1-only is narrower + matches the AIE R1 F6 origin; per-round is more defensive against forgetting at later rounds.
+3. **Forward-only threshold.** Same as Check 6-8 (2026-05-26) or later (let in-flight cycles complete fully)?
+
+**Recommendation:** broad cost-tally + Round-1-only pre-cycle declaration + same threshold as Check 6-8 (2026-05-26). The broad cost-tally rigor matches the operator's existing AIE R1 F7 framing; Round-1-only pre-cycle declaration respects the origin scope.
+
+**Classification:** Deferred — implementation blocked on operator-decision pick.
+
+---
+
+<a id="r96-f3"></a>
+**Finding 3 — Architectural correction sub-decision discipline: mid-Phase-2b contract changes need SO ratification + per-domain consultation BEFORE landing (Dim 1 + Dim 8 + methodology gap)**
+
+**Owner:** suite-developer
+**Status:** raised
+**Blocked by:** *(operator-decision on enforcement vs advisory — see Open questions below)*
+
+**Director-raised** by the PR #52 Round 1 → Round 2 reversal pattern. During Round 1 fix-work, an "architectural correction sub-decision" landed at commit [`bfc0713`](https://github.com/magnificentlycursed/guild-portfolio/commit/bfc0713) (display_safe removed from export_json). The sub-decision rationale was internally coherent (avoid double-escape through serde_json) but bypassed the IAR cycle's review entirely — it appeared in the Phase 2b commit body, not in a review-log entry. Round 2 Security F1 surfaced + SO authorized full reversal at [`8de7827`](https://github.com/magnificentlycursed/guild-portfolio/commit/8de7827).
+
+**Methodology gap.** "Architectural correction sub-decisions" that change the committed-spec contract mid-cycle currently have NO checkpoint between the developer's commit-author decision + the post-hoc Round 2 catch. The Round 2 catch is too late — the substantive work to reverse it (Phase 2b rework + 3 byte-preservation tests rewritten + DESIGN.md amendments) is operator-time expensive. The gap suggests a pre-commit attestation discipline.
+
+**Candidate codification:**
+
+- **Spec amendment:** suite-development.md § Architectural correction sub-decision discipline (new section) requires that any commit changing the committed-spec contract MID-CYCLE include either (a) a `**Architectural correction sub-decision:**` attestation block in the commit body citing SO ratification + the affected per-domain reviewers consulted; OR (b) deferral to a separate spec-amendment commit BEFORE the impl change.
+- **Hook:** `check-architectural-correction.py` detects commits that modify both DESIGN.md AND src/ files in the same commit (heuristic for "spec change + impl change interleaved") + requires the attestation block. Forward-only threshold.
+- **Primer 2b amendment:** documents the sub-decision discipline + the canonical attestation shape.
+
+**Open questions for operator decision:**
+
+1. **Enforcement vs advisory.** Hook-enforced (blocks the commit; requires pre-commit attestation) vs advisory (commit lands; VDD-IAR Alignment Dim 12 evaluates at Round 2). Hook-enforced closes the gap completely; advisory reuses existing Dim 12 surface.
+2. **Detection heuristic precision.** "DESIGN.md + src/ changed in same commit" is a rough heuristic — false-positive on intentional spec-amendment-and-test commits. Refine to "DESIGN.md substantive section changed (not just a typo fix) + src/ behavior-changing"? Where's the false-positive ceiling?
+3. **Per-domain consultation requirement.** Hard requirement (named in attestation) vs soft recommendation (cite as appropriate)? Hard is more rigorous; soft respects that some sub-decisions affect a narrow surface.
+
+**Recommendation:** advisory at first (Dim 12 + spec amendment + primer 2b documentation); promote to hook-enforced only after a second recurrence. The PR #52 recurrence was one-off; codifying the discipline + watching for repeat lets the recurrence-trigger doctrine apply.
+
+**Classification:** Deferred — implementation blocked on operator-decision pick.
+
+---
+
+<a id="r96-f4"></a>
+**Finding 4 — Round 2+ disposition shapes are undocumented; codify inline-closed / Raised-to-SO / deferred-to-Phase-5 / hallucinated-verification-required as a primer 3 enumeration (Dim 2)**
+
+**Owner:** suite-developer
+**Status:** raised
+**Blocked by:** *(operator-decision on the disposition enumeration scope)*
+
+**Director-raised** by the asymmetry observed in PR #52 between Round 1 and Round 2 dispositions. Round 1 used per-domain Phase 4 routing appendices (canonical post-R94 F1). Round 2 used a mix: some findings inline-closed at subsequent commits; some Raised-to-SO for spec-level decisions; some deferred to Phase 5 hardening; some Hallucinated (which became Round 3 verification mini-cycle). Primer 3 documents Round 1 disposition shapes well but Round 2+ is implicit.
+
+**Candidate codification:** primer 3 § Round 2+ disposition shapes (new subsection) enumerates the four Round 2+ dispositions + their canonical artifact shapes:
+
+1. **Inline-closed at fix-work commit** — the routing appendix's reference is the fix-work commit hash + the resolution-prose in the routing line.
+2. **Raised-to-SO** — surfaces a spec-level decision requiring operator pick; the routing record names the pending decision + recommends; SO-decision lands in a subsequent commit with explicit operator-attestation.
+3. **Deferred-to-Phase-5** — the finding's substantive work is Phase 5 hardening scope (mutation testing surface gaps; proptest property additions); routing record cites the Phase 5 strategy declaration.
+4. **Hallucinated → verification mini-cycle** — the suspicion-of-hallucination triggers Round 3 verification mini-cycle per [R96 F1](#r96-f1); routing record cites the planned verification.
+
+**Open questions for operator decision:**
+
+1. **Enumeration scope.** All four dispositions (full enumeration) or just the two NEW ones (Raised-to-SO + Hallucinated-verification — the others are implicit from existing classification universe)?
+2. **Cross-reference to classification universe.** Should the enumeration align with the existing per-domain classification universes (e.g., Raised-to-SO is already a cross-cutting classification; doesn't need re-documentation) or live separately?
+
+**Recommendation:** Document the two NEW dispositions explicitly (Raised-to-SO routing-record shape + Hallucinated-triggers-verification-mini-cycle); cross-reference the existing classification universe for the other two. Avoids re-documenting what's already canonical.
+
+**Classification:** Deferred — implementation blocked on operator-decision pick.
+
+---
+
+<a id="r96-f5"></a>
+**Finding 5 — In-cycle suite-hardening pattern was effective at PR #52; codify "when in-cycle suite hardening is appropriate" criteria (Dim 8 methodology fit)**
+
+**Owner:** suite-developer
+**Status:** raised
+**Blocked by:** *(operator-decision on the criteria scope)*
+
+**Director-raised** by the PR #52 `e4b6701` in-cycle suite-hardening landing (`check-no-letter-clusters.py` + primer 4 amendment, both landed DURING Layer 3 cycle, not deferred to a suite-PR). The pattern was effective: caught the lettering recurrence at commit-time within the same cycle that surfaced it; avoided the "deferred suite-PR backlog accretion" failure mode.
+
+**Methodology gap.** The pattern was operator-authorized ad-hoc; no codified criteria say WHEN in-cycle suite-hardening is appropriate vs WHEN to defer to a suite-PR. Without criteria, the next cycle may either over-apply (every methodology gap gets in-cycle hardening; cycle scope creeps) or under-apply (every methodology gap gets deferred; backlog ages).
+
+**Candidate codification:** suite-development.md § In-cycle suite-hardening criteria (new section) names the conditions where in-cycle hardening is appropriate:
+
+- **Recurrence trigger met** (per the "earned by recurrence" doctrine) — the same methodology gap has fired ≥3 times across cycles.
+- **Mechanical close exists** — a small (≤200 lines) hook or primer amendment closes the gap completely; no operator-decision is blocking.
+- **The next cycle's cost** of NOT closing it now exceeds the small-amount of scope-creep cost of closing it in-cycle.
+
+If all three conditions hold, the suite-hardening lands in-cycle; otherwise it's deferred to a suite-PR.
+
+**Open questions for operator decision:**
+
+1. **Criteria threshold.** Conservative (all 3 conditions required) or liberal (any 2 of 3)?
+2. **Authority.** Operator-authorized only (current shape) or AI-self-authorized when criteria met (faster but riskier)?
+
+**Recommendation:** conservative criteria + operator-authorized only. The PR #52 pattern was operator-authorized; preserving that authority point matches the "operator owns scope" framing.
+
+**Classification:** Deferred — implementation blocked on operator-decision pick.
+
+---
+
+<a id="r96-f6"></a>
+**Finding 6 — Operator-decision queue convention: PR #52 accumulated 5+ SO-decidable asks without a formal queue; codify the queue artifact (Dim 11 audit-trail machine-readability)**
+
+**Owner:** suite-developer
+**Status:** raised
+**Blocked by:** *(operator-decision on the artifact shape)*
+
+**Director-raised** by PR #52's pattern of accumulating SO-decidable asks across the cycle: spec activation (5 asks); Round 2 Security F1 + F3 (2 asks); Round 2 hallucination cluster trigger (1 ask); F1 + F2 + F3 candidate-design picks (3 asks); etc. No formal queue tracked them; reliance on `AskUserQuestion` + main-session memory + per-cycle review-log entries. Operator-visible cost: the pending-decision surface is not introspectable across cycles — a cold reader landing on the project mid-cycle can't enumerate "what does the operator still need to decide?".
+
+**Candidate codification:** `<project>/OPERATOR-DECISION-QUEUE.md` (new artifact convention) per project, with a slim-form table:
+
+| Asked | Decision needed | Recommendation | Status | Decided-at-commit |
+|---|---|---|---|---|
+
+- Each row: the date the ask was raised + the substantive decision + the AI's recommendation + status (pending / decided / dismissed) + the commit hash where the decision landed (for closed rows).
+- Walkable via `grep` for `pending` to enumerate open asks.
+
+**Open questions for operator decision:**
+
+1. **Per-project vs per-PR vs per-cycle scope.** Per-project (one queue per project; long-lived) or per-PR (queue scoped to a PR; archived at merge)?
+2. **Artifact placement.** Top-level (`<project>/OPERATOR-DECISION-QUEUE.md`) or under audit-trail (`<project>/vsdd-suite/OPERATOR-DECISION-QUEUE.md`)?
+
+**Recommendation:** per-project + audit-trail placement (`<project>/vsdd-suite/OPERATOR-DECISION-QUEUE.md`). Per-project preserves long-lived decision history; audit-trail placement keeps it adjacent to the per-domain review logs that surface the asks.
+
+**Classification:** Deferred — implementation blocked on operator-decision pick.
+
+---
+
+### Dismissed
+
+<a id="r96-f7"></a>
+**Finding 7 — Lower-leverage suite-hardening candidates: 4 items consolidated with dismissal rationale (Dim 8 + cost-justification)**
+
+**Owner:** suite-developer
+**Status:** validated (analytical dismissal)
+**Blocked by:** *(none)*
+
+**Director-raised** during the same canvas pass. Four candidates surfaced but warrant Dismissal — either work-already-flagged, partial-coverage exists, or the cost-justification doesn't hold. Documenting them here so the next canvas pass doesn't re-discover + the dismissal-rationale stays visible.
+
+**Dismissed candidates:**
+
+1. **AI-co-authored disclosure hook (G-156 mechanization).** G-156 is already a baseline-hard-gate at layer-gate close per [`suite-development.md` § Layer-gate close criteria](../../suite-development.md#layer-gate-close-criteria-processmd-retrospective-discipline) criterion 7. A hook validating the disclosure paragraph's presence would mechanize what's already enforced at the human-gate level. Dismissal rationale: the human gate is the load-bearing enforcement; the mechanical hook would add audit overhead without closing a new gap.
+
+2. **PR-template body automation (auto-update PR body from template on body-doesn't-have-checklist failure).** PR #52's PR-completion-checklist absence at merge time was a one-off — the PR opened before the cycle expanded; the manual `gh pr edit --body-file` flow closed the gap in <5 minutes. Dismissal rationale: one-time incident; automation cost > recurrence cost; manual flow is reproducible. Promote if a second incidence happens.
+
+3. **FINDINGS-INDEX backfill scaffolding (scaffold script that auto-generates rows from per-domain review log anchor IDs).** Mechanical work; convenient if implemented but not load-bearing for any layer-gate criterion. Dismissal rationale: per SO Review 3 declaration, FINDINGS-INDEX backfill is non-blocking + queued for grooming PRs. Building scaffolding tooling for a non-blocking task is over-investment.
+
+4. **R94 F3 co-authoring evaluation (R95 F1) overlap with R96 F1.** The Round 3 verification mini-cycle pattern (R96 F1) IS effectively the operator's earlier "co-authoring" question answered concretely. Implementing R95 F1's mid-authoring sub-agent (Design A) on top of R96 F1's verification mini-cycle would duplicate the mechanism + the resulting two-shape framing would confuse future authors. Dismissal rationale: R96 F1 subsumes R95 F1's concrete value; R95 F1 may be closed via cross-reference to R96 F1's codification when that lands.
+
+**Classification:** Dismissed (analytical dismissal — these are not deferred; they are explicitly not-recommended for implementation per the named rationale).
+
+---
+
+### Summary
+
+R96 surfaces 6 Deferred candidates + 1 consolidated Dismissed group from the PR #52 cycle's methodology-gap canvas. The 6 Deferred items each name a candidate codification + open questions + a recommendation. Implementation blocked on operator-decision pass per the same analytical-write-up-as-Review-N pattern as Reviews 94 + 95.
+
+**Backlog status post-this-review:**
+
+- Operator-decision asks pending across R94 + R95 + R96: **9 total** (R95 F1 + F2 + F3 candidate-design picks; R96 F1 codification scope; R96 F2 cost-tally scope + pre-cycle scope + threshold; R96 F3 enforcement-vs-advisory; R96 F4 enumeration scope; R96 F5 criteria threshold; R96 F6 artifact placement).
+- Implementation-ready (operator-decision met or in-flight): R94 F1 + F2 + F3 closures (DONE: 593ed5f + 035af4f + 0278b2e + ace0261); R95 F2 + F3 implementation hooks (DONE in this PR: 9a68bd2 + 2a0113c + 51b8226 + 94a7eb0 + e85d1c7 + f16b2ff); R95 F1 Design B existing-hook expansion (PENDING in this PR per operator-direction "keep going").
+- This Review documents the post-PR-#52 adversarial methodology-gap canvas + the 6 Deferred candidates + the 4 Dismissed candidates. Future suite cycles can address the Deferred items as operator-decisions land.
+
+**Coordination:** routes forward to (a) operator-decision pass on R96 F1-F6 candidate-design picks; (b) subsequent suite PR(s) implementing the picked designs; (c) the in-flight suite-hardening PR's last remaining hook (R95 F1 Design B existing-hook expansion; task #60).
+
+**Phase 4 routing:** *(no routable findings — all Deferred findings are operator-decision-blocked; routing waits on the decision pass. Dismissed group is analytical closure, not Phase-4-routable.)*
