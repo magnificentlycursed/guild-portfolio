@@ -149,6 +149,16 @@ ENFORCEMENT_THRESHOLD = "2026-05-20"
 # and 2026-05-25) stand without retroactive amendment.
 PHASE_4_ROUTING_THRESHOLD = "2026-05-26"
 
+# Forward-only threshold for Check 7: 2c → 3 transition attestation (R95 F3
+# hook 3). Project-level Phase 3 review entries dated 2026-05-26 or later
+# require a `**Tested against:**` preamble field citing the Phase 2c commit
+# hash (or "Phase 2c skip per <annotation reference>" for explicit-skip cases).
+# Same threshold as Check 6.
+PHASE_2C_TO_3_THRESHOLD = "2026-05-26"
+
+# Commit hash shape regex (Git SHA-1 prefix; 7-40 hex chars).
+COMMIT_HASH_RE = re.compile(r"\b[0-9a-f]{7,40}\b")
+
 
 def is_suite_review(path: Path) -> bool:
     """Suite-review-log paths follow `.../suite-development/review-log/...`."""
@@ -328,6 +338,49 @@ def check_entry(
                 f"Phase 4 routing is per-round, not per-layer; every Phase 3 "
                 f"round entry records its routing decision."
             )
+
+    # Check 7: 2c → 3 transition attestation (R95 F3 hook 3). Every project-
+    # level Phase 3 review entry dated 2026-05-26 or later must include a
+    # `**Tested against:**` preamble field citing the Phase 2c commit hash
+    # (or "Phase 2c skip per <annotation>" for explicit-skip cases). The
+    # field makes the antecedent state of the 2c → 3 transition reproducible
+    # — a downstream consumer can `git checkout <cited-hash> && <test-runner>`
+    # to verify the review's premise.
+    #
+    # Forward-only threshold (2026-05-26) lets in-flight cycles complete
+    # without retroactive amendment. Suite-review entries are exempt.
+    if not is_suite and review_date >= PHASE_2C_TO_3_THRESHOLD:
+        preamble_window = "\n".join(entry_lines[:80])
+        if "**Tested against:**" not in preamble_window:
+            failures.append(
+                f"{path}:{header_idx + 1}: Review {review_n} missing required "
+                f"`**Tested against:** <commit-hash> | Phase 2c skip per "
+                f"<annotation>` preamble field per primer 3 § Round opening "
+                f"(R95 F3 hook 3; 2c → 3 transition attestation). The field "
+                f"makes the antecedent state of the 2c → 3 transition "
+                f"reproducible."
+            )
+        else:
+            # Field present — verify the value contains either a commit hash
+            # OR the explicit-skip phrase.
+            tested_against_lines = [
+                line for line in entry_lines[:80]
+                if line.startswith("**Tested against:**")
+                or line.startswith("- **Tested against:**")
+            ]
+            has_valid_value = False
+            for line in tested_against_lines:
+                if COMMIT_HASH_RE.search(line) or "Phase 2c skip" in line:
+                    has_valid_value = True
+                    break
+            if not has_valid_value and tested_against_lines:
+                failures.append(
+                    f"{path}:{header_idx + 1}: Review {review_n} "
+                    f"`**Tested against:**` field present but missing a "
+                    f"commit-hash reference (7-40 hex chars) OR explicit "
+                    f"`Phase 2c skip per <annotation>` phrase. The 2c → 3 "
+                    f"transition antecedent state must be reproducibly cited."
+                )
 
     return failures
 

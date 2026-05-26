@@ -5,6 +5,26 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## [Unreleased] R95 F3 hook 3 — check-suite-review-preamble.py Check 7 (2c → 3 transition attestation) (2026-05-25)
+
+**Scope:** Third of 5 phase-transition hooks per R95 F3 Design A matrix. Extends `check-suite-review-preamble.py` with Check 7 — validates `**Tested against:**` preamble field on project-level Phase 3 review entries.
+
+### Changed (vsdd-suite/hooks/check-suite-review-preamble.py)
+
+- New `PHASE_2C_TO_3_THRESHOLD = "2026-05-26"` constant + `COMMIT_HASH_RE` regex.
+- New Check 7: validates `**Tested against:**` preamble field presence + value (must contain commit-hash reference OR `Phase 2c skip per <annotation>` phrase). Scoped to project-level entries (suite-review entries exempt).
+- Forward-only: existing entries dated < 2026-05-26 grandfathered.
+
+### Added (vsdd-suite/primers/3-review-session.md § Round opening)
+
+- New section "Round opening — Phase 2c → 3 transition attestation (R95 F3 hook 3 closure)" documenting the required `**Tested against:**` field + accepted values + the Check 7 enforcement.
+
+### Closure status post-this-commit
+
+R95 F3 hooks 1+2+3 of 5 landed. Hooks 4-5 (round trigger, routing-complete-precedence) + F2 (suite-wide staleness) + F1 (existing-hook expansion suite-wide) remain.
+
+---
+
 ## [Unreleased] R95 F3 hook 2 — check-red-gate-plan-precedence.py (1c → 2a transition hook) (2026-05-25)
 
 **Scope:** Second of 5 phase-transition hooks per R95 F3 Design A matrix. Validates the 1c → 2a transition: TODO.md Red Gate test plan must be documented BEFORE Phase 2a test files commit.

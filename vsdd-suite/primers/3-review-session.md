@@ -215,6 +215,17 @@ Before ending the session, classify every finding. Valid classifications vary by
 
 A session that ends with unclassified findings has not completed the review. Log round number (`QE Review 1`, `Security Review 2`) and the finding progression — moving from real findings to hallucinated findings is evidence the process worked.
 
+## Round opening — Phase 2c → 3 transition attestation (R95 F3 hook 3 closure)
+
+Every Phase 3 review entry's preamble must include a `**Tested against:** <commit-hash> | Phase 2c skip per <annotation>` field per the [R95 F3 Design A](../suite-development/review-log/2026-05-24-suite-review.md#r95-f3) per-transition provability matrix. The field cites the antecedent state of the 2c → 3 transition — the specific Phase 2c commit hash the review's premise rests on. A downstream consumer can `git checkout <cited-hash> && <test-runner>` to verify the review's premise independently.
+
+Valid values:
+
+- **Commit hash reference** — 7-40 hex characters citing the Phase 2c commit (or the Phase 2b commit for projects that explicit-skip Phase 2c per [G-96](../suite-development/FINDINGS-INDEX.md#g-96)). Example: `**Tested against:** Layer 3 Phase 2c commit 78bd3cf`.
+- **`Phase 2c skip per <annotation>` phrase** — for projects whose layer explicit-skips Phase 2c per [G-96](../suite-development/FINDINGS-INDEX.md#g-96)'s "no refactor required" annotation. Example: `**Tested against:** Phase 2c skip per TODO.md § Layer N two-commit shape annotation`.
+
+The field is enforced by [`../hooks/check-suite-review-preamble.py`](../hooks/check-suite-review-preamble.py) Check 7 for project-level review entries dated 2026-05-26 or later. Forward-only threshold lets in-flight cycles complete without retroactive amendment.
+
 ## Round closing — Phase 4 routing closing field (R94 F1 closure)
 
 Every Phase 3 round entry's closing block must include a `**Phase 4 routing:** <reference>` field naming where this round's routable findings were routed per [`4-feedback-integration.md`](4-feedback-integration.md). Per [`../suite-development/suite-development.md` § Layer-gate close criteria](../suite-development/suite-development.md#layer-gate-close-criteria-processmd-retrospective-discipline) criterion 8: routing is per-round (every round gets its own routing record), not per-layer; a layer that closes IAR at Round N must have N routing records.
