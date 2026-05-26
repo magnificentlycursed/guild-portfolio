@@ -81,6 +81,22 @@ repos:
         # suite-review-preamble pattern.
         exclude: ^vsdd-suite/suite-development/review-log/external-review-log/
 
+      - id: check-spec-frozen
+        name: "verify DESIGN.md is spec-frozen before Phase 1c decomposition (R95 F3 1a+1b → 1c transition hook)"
+        language: python
+        # Per `vsdd-suite/hooks/check-spec-frozen.py` docstring + R95 F3 Design A
+        # SO-decision (2026-05-25; suite-hardening PR; bookmark-cli-manual PR #52
+        # follow-up): the 1a+1b → 1c transition is the first hook-enforced phase
+        # boundary. Antecedent state (DESIGN.md complete per primer 1ab template
+        # + no TBD markers) verified at commit time; scoped-bypass relief valve
+        # for in-flight authoring (bypass-removal commit IS the spec-frozen
+        # attestation).
+        entry: vsdd-suite/hooks/check-spec-frozen.py
+        pass_filenames: true
+        # Scope: per-project DESIGN.md files (suite root has no DESIGN.md).
+        files: ^.*DESIGN\.md$
+        exclude: ^(node_modules/|target/|\.git/)
+
       - id: check-no-legacy-bypass-markers
         name: "reject legacy unscoped hook-bypass markers (AIE R2 F6 hook — scoped form is canonical)"
         language: python

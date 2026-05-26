@@ -5,6 +5,27 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## [Unreleased] R95 F3 hook 1 — check-spec-frozen.py (1a+1b → 1c transition hook) (2026-05-25)
+
+**Scope:** First of 5 phase-transition hooks per the R95 F3 Design A matrix. Validates DESIGN.md spec-frozen attestation at the 1a+1b → 1c transition.
+
+### Added (vsdd-suite/hooks/check-spec-frozen.py)
+
+- Validates per-project `DESIGN.md` files: all 8 required section concepts present (synonym map covers project-specific section names: `Overview` ≈ `Project intent` ≈ `What this project does` ≈ `Purpose`; `Features` ≈ `Behavioral contracts`; `Data Model` ≈ `Storage format` ≈ `Storage data classification`; `Interface` ≈ `Interface definitions` ≈ `Command surface`; `Constraints` ≈ `Performance budget`; `Edge Cases` ≈ `Edge case catalog`; `Testing Methodology` ≈ `Verification architecture`; `Out of Scope` ≈ `Scope and non-goals` ≈ `Non-goals`) + no `**TBD**` markers.
+- Continuous-discipline semantics: hook validates ANY staged DESIGN.md. Scoped bypass `<!-- hook-bypass[check-spec-frozen]: <rationale> -->` is the relief valve for in-flight authoring; bypass-removal commit IS the spec-frozen attestation.
+- Three-audience design applied: failure messages name missing section concepts + alias list + corrective action; structured `path:line: <message>` output for AI-agent consumption; extensibility via REQUIRED_SECTIONS dict for suite developers.
+- Wired in `.pre-commit-config.yaml` with scope `^.*DESIGN\.md$`.
+
+### Added (forward-only bypass markers on pre-existing DESIGN.md files)
+
+- `bookmark-manager/DESIGN.md` + `bookmark-manager/iterative-adversarial-refinement/guild-review/DESIGN.md` — scoped-bypass markers added per forward-only convention. Pre-existing project DESIGN.md files are not retroactively required to refactor; the hook applies to new authoring post-2026-05-26.
+
+### Closure status post-this-commit
+
+R95 F3 hook 1 of 5 landed. Hooks 2-5 (red-gate-plan-precedence, review-entry attestation, round trigger, routing-complete-precedence) + F2 (staleness, suite-wide per operator-directive 2026-05-25) + F1 (existing-hook expansion, suite-wide per operator-directive 2026-05-25) remain.
+
+---
+
 ## [Unreleased] R95 F3 Design A — phase transition provability § + matrix in suite-development.md (operator-directed hook-enforced) (2026-05-25)
 
 **Scope:** Operator picked Design A (hook-enforced) for R95 F3 + directed three-audience-model application. This commit lands the foundation: § Phase transition provability section in `suite-development.md` codifying the per-transition matrix + three-audience lens for downstream hook implementations.
