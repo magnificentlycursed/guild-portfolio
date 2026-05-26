@@ -5,6 +5,24 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## [Unreleased] R95 F3 hook 2 — check-red-gate-plan-precedence.py (1c → 2a transition hook) (2026-05-25)
+
+**Scope:** Second of 5 phase-transition hooks per R95 F3 Design A matrix. Validates the 1c → 2a transition: TODO.md Red Gate test plan must be documented BEFORE Phase 2a test files commit.
+
+### Added (vsdd-suite/hooks/check-red-gate-plan-precedence.py)
+
+- Validates: when a test-shaped file (matching `tests/*.rs`, `tests/test_*.py`, `*_test.{py,ts,js,tsx,jsx}`, `*.test.{ts,js,tsx,jsx}`, or `__tests__/*`) is staged, walks up to find the project's TODO.md + requires it to contain `**Red Gate test plan**` marker.
+- "No TODO.md found in any ancestor" path: hook passes (suite-internal test dirs out of scope by this same logic).
+- Scoped-bypass on test file OR on TODO.md: both satisfy the bypass.
+- Three-audience design: TEST_PATH_PATTERNS + RED_GATE_MARKER_RE for suite-developer extensibility; failure messages name TODO.md location + primer 2a + relief valve for users; structured `path:line: <message>` for agents.
+- Wired in `.pre-commit-config.yaml` with scope `^(.*tests/.*\.(rs|py|ts|js|tsx|jsx)|.*_test\.(py|ts|js|tsx|jsx)|.*\.test\.(ts|js|tsx|jsx))$`.
+
+### Closure status post-this-commit
+
+R95 F3 hooks 1 + 2 of 5 landed. Hooks 3-5 (review-entry attestation, round trigger, routing-complete-precedence) + F2 (suite-wide staleness) + F1 (existing-hook expansion suite-wide) remain.
+
+---
+
 ## [Unreleased] R95 F3 hook 1 — check-spec-frozen.py (1a+1b → 1c transition hook) (2026-05-25)
 
 **Scope:** First of 5 phase-transition hooks per the R95 F3 Design A matrix. Validates DESIGN.md spec-frozen attestation at the 1a+1b → 1c transition.

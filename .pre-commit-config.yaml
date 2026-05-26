@@ -97,6 +97,24 @@ repos:
         files: ^.*DESIGN\.md$
         exclude: ^(node_modules/|target/|\.git/)
 
+      - id: check-red-gate-plan-precedence
+        name: "verify Phase 2a Red Gate test plan exists in TODO.md before test files commit (R95 F3 1c → 2a transition hook)"
+        language: python
+        # Per `vsdd-suite/hooks/check-red-gate-plan-precedence.py` docstring +
+        # R95 F3 Design A SO-decision (2026-05-25): second phase-transition
+        # hook in the matrix. The 1c → 2a transition enforces that the Red
+        # Gate test plan is documented in TODO.md BEFORE test files commit
+        # (prevents test-plan-backfilling-in-the-2a-commit). Scoped-bypass
+        # relief valve for legitimately-out-of-pattern test additions.
+        entry: vsdd-suite/hooks/check-red-gate-plan-precedence.py
+        pass_filenames: true
+        # Scope: any path matching the test-shape patterns (Rust tests/*.rs,
+        # Python tests/test_*.py + *_test.py, JS/TS *.test.*, __tests__/*).
+        # Suite-internal test directories (if any) pass via the "no ancestor
+        # TODO.md" path.
+        files: ^(.*tests/.*\.(rs|py|ts|js|tsx|jsx)|.*_test\.(py|ts|js|tsx|jsx)|.*\.test\.(ts|js|tsx|jsx))$
+        exclude: ^(node_modules/|target/|\.git/)
+
       - id: check-no-legacy-bypass-markers
         name: "reject legacy unscoped hook-bypass markers (AIE R2 F6 hook — scoped form is canonical)"
         language: python
