@@ -129,6 +129,16 @@ FINDING_HEADER_CANDIDATE = re.compile(r"^\*\*\S.+ — .+\*\*\s*$")
 # Review-entry boundary heading.
 REVIEW_HEADING = re.compile(r"^## Review (\d+) — (\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}Z)\s*$")
 
+# Bypass marker (scoped form is canonical per AIE R2 F6 SO-decision):
+#   `<!-- hook-bypass[hook-id1,hook-id2]: <rationale> -->` in the first 5 lines
+#   of an entry. Each hook only bypasses if its own pre-commit id is in the
+#   scope list. Legacy unscoped form is REJECTED by check-no-legacy-bypass-markers.
+HOOK_ID = "check-suite-review-preamble"
+SCOPED_BYPASS_RE = re.compile(
+    r"<!--\s*hook-bypass\[([^\]]+)\]:\s*.+?-->",
+    re.IGNORECASE | re.DOTALL,
+)
+
 # Forward-only date threshold — entries dated on or after this are enforced.
 ENFORCEMENT_THRESHOLD = "2026-05-20"
 
@@ -176,12 +186,16 @@ def check_entry(
     entry_lines = lines[header_idx:end_idx]
     entry_text = "\n".join(entry_lines)
 
-    # Hook-bypass shortcut: an entry with the bypass marker in its first 5
-    # lines is skipped (the bypass itself is flagged as a finding by the
-    # next registry-walk review).
+    # Hook-bypass shortcut: an entry with the scoped bypass marker naming this
+    # hook's id in its first 5 lines is skipped (the bypass itself is flagged as
+    # a finding by the next registry-walk review). Scoped form is canonical per
+    # AIE R2 F6 SO-decision; legacy unscoped form is REJECTED by the separate
+    # check-no-legacy-bypass-markers hook.
     first5 = "\n".join(entry_lines[:5])
-    if "<!-- hook-bypass:" in first5:
-        return failures
+    for bypass_match in SCOPED_BYPASS_RE.finditer(first5):
+        scoped_hooks = [h.strip() for h in bypass_match.group(1).split(",")]
+        if HOOK_ID in scoped_hooks:
+            return failures
 
     # Check 1: required preamble fields.
     required = REQUIRED_PREAMBLE_SUITE if is_suite else REQUIRED_PREAMBLE_ALL

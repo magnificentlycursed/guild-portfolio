@@ -1,4 +1,4 @@
-<!-- hook-bypass: this CHANGELOG preserves historical references to retired letter labels per G-89 forward-only narrative-preservation. New entries SHOULD use descriptive identifiers; legacy entries are preserved as-authored. The bypass-mechanism is itself a finding for the next registry-walk review per check-no-letter-clusters.py's own rationale. -->
+<!-- hook-bypass[check-no-letter-clusters]: this CHANGELOG preserves historical references to retired letter labels per G-89 forward-only narrative-preservation. New entries SHOULD use descriptive identifiers; legacy entries are preserved as-authored. The bypass-mechanism is itself a finding for the next registry-walk review per check-no-letter-clusters.py's own rationale. -->
 # Changelog
 
 All notable changes to the suite are recorded here. Entries are in reverse chronological order. Timestamps are UTC (Zulu).

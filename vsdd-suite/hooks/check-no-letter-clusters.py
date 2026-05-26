@@ -139,14 +139,27 @@ def is_in_scope(path: str) -> bool:
     return False
 
 
-# Bypass marker: `<!-- hook-bypass: <rationale> -->` in the first 5 lines of the file.
-BYPASS_RE = re.compile(r"<!--\s*hook-bypass:\s*.*?-->", re.IGNORECASE)
+# Bypass marker (scoped form is canonical per AIE R2 F6 SO-decision):
+#   `<!-- hook-bypass[hook-id1,hook-id2]: <rationale> -->` in the first 5 lines of the file.
+# Each hook only bypasses if its own pre-commit id is in the scope list. The legacy
+# unscoped form `<!-- hook-bypass: <rationale> -->` is REJECTED by the separate
+# check-no-legacy-bypass-markers hook (the AIE R2 F6 closure: hook-agnostic bypasses
+# silently disabling other discipline is the failure mode this closes).
+HOOK_ID = "check-no-letter-clusters"
+SCOPED_BYPASS_RE = re.compile(
+    r"<!--\s*hook-bypass\[([^\]]+)\]:\s*.+?-->",
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 def has_bypass(content: str) -> bool:
-    """Check if the file has a hook-bypass marker in the first 5 lines."""
+    """Return True if a scoped hook-bypass marker naming this hook's id is in the first 5 lines."""
     head = "\n".join(content.splitlines()[:5])
-    return bool(BYPASS_RE.search(head))
+    for match in SCOPED_BYPASS_RE.finditer(head):
+        scoped_hooks = [h.strip() for h in match.group(1).split(",")]
+        if HOOK_ID in scoped_hooks:
+            return True
+    return False
 
 
 def strip_verbatim_blocks(content: str) -> str:

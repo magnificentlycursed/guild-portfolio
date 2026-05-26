@@ -522,7 +522,7 @@ Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/prim
 
 ## Review 3 — 2026-05-25 06:59Z
 
-<!-- hook-bypass: this Round 3 verification entry uses **Bold-paragraph emphasis** as inline subsection emphasis for evidence-citation blocks (cargo test output, source file:line excerpts, runtime output captures). These bold lines are paragraph-level emphasis, not Finding headers. Findings missing the canonical Resolution/Classification closer are Hallucinated-verdict entries that close inline via the verification evidence; the bypass-mechanism is itself a finding for the next registry-walk review. -->
+<!-- hook-bypass[check-suite-review-preamble]: this Round 3 verification entry uses **Bold-paragraph emphasis** as inline subsection emphasis for evidence-citation blocks (cargo test output, source file:line excerpts, runtime output captures). These bold lines are paragraph-level emphasis, not Finding headers. Findings missing the canonical Resolution/Classification closer are Hallucinated-verdict entries that close inline via the verification evidence; the bypass-mechanism is itself a finding for the next registry-walk review. -->
 
 
 **Round:** Layer 3 Phase 3 IAR Round 3 — director-mandated verification mini-cycle. Sole scope: verify-or-refute Review 2 Finding 1 (`display_safe` 2 unit tests asserting old Rust-syntax `\u{HHHH}` shape against post-Round-1 JSON-native `\uHHHH` implementation). NO new adversarial findings raised; this is a single-finding hallucination-check spawn, not a full SE pass.

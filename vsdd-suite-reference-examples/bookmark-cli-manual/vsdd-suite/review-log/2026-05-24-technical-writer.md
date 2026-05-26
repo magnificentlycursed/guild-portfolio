@@ -172,7 +172,7 @@ The DESIGN.md Layer 3 sections are internally consistent and accurately describe
 ## Review 2 — 2026-05-25 04:30Z
 
 **Round:** Layer 3 Phase 3 IAR Round 2.
-<!-- hook-bypass: this Round 2 re-verification entry uses **Bold-paragraph emphasis** as inline subsection emphasis within Cost-tally fold-up + section preambles. These bold lines are paragraph-level emphasis, not Finding headers; actual Round 2 Findings in this entry use the canonical `**Finding N — Title**` form. The check-suite-review-preamble hook's `**X — Y**` regex matches both; the bypass-mechanism is itself a finding for the next registry-walk review. -->
+<!-- hook-bypass[check-suite-review-preamble]: this Round 2 re-verification entry uses **Bold-paragraph emphasis** as inline subsection emphasis within Cost-tally fold-up + section preambles. These bold lines are paragraph-level emphasis, not Finding headers; actual Round 2 Findings in this entry use the canonical `**Finding N — Title**` form. The check-suite-review-preamble hook's `**X — Y**` regex matches both; the bypass-mechanism is itself a finding for the next registry-walk review. -->
 
 **Phase:** 3 (IAR Round 2; Layer 3 — post-fix verification pass after Round 1 fix-work commits `fdfa989` → `ba6a4a9` → `bfc0713` → `795bc25`).
 **Layer:** Layer 3 — Export and import.

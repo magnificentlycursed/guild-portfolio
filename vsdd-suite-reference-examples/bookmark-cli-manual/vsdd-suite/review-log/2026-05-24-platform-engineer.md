@@ -642,7 +642,7 @@ Per [`vsdd-suite/primers/4-feedback-integration.md`](../../../../vsdd-suite/prim
 
 ## Review 9 — 2026-05-25 06:59Z
 
-<!-- hook-bypass: this Round 3 verification entry uses **Bold-paragraph emphasis** as inline subsection emphasis for evidence-citation blocks (cargo test output, source file:line excerpts, runtime output captures). These bold lines are paragraph-level emphasis, not Finding headers. Findings missing the canonical Resolution/Classification closer are Hallucinated-verdict entries that close inline via the verification evidence; the bypass-mechanism is itself a finding for the next registry-walk review. -->
+<!-- hook-bypass[check-suite-review-preamble]: this Round 3 verification entry uses **Bold-paragraph emphasis** as inline subsection emphasis for evidence-citation blocks (cargo test output, source file:line excerpts, runtime output captures). These bold lines are paragraph-level emphasis, not Finding headers. Findings missing the canonical Resolution/Classification closer are Hallucinated-verdict entries that close inline via the verification evidence; the bypass-mechanism is itself a finding for the next registry-walk review. -->
 
 
 **Round:** Layer 3 Phase 3 IAR Round 3 verification mini-cycle.
