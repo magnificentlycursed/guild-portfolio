@@ -115,6 +115,21 @@ repos:
         files: ^(.*tests/.*\.(rs|py|ts|js|tsx|jsx)|.*_test\.(py|ts|js|tsx|jsx)|.*\.test\.(ts|js|tsx|jsx))$
         exclude: ^(node_modules/|target/|\.git/)
 
+      - id: check-phase-5-routing-precedence
+        name: "verify Phase 4 routing records exist before Phase 5 surface entries land (R95 F3 4 → 5 transition hook)"
+        language: python
+        # Per `vsdd-suite/hooks/check-phase-5-routing-precedence.py` docstring +
+        # R95 F3 Design A SO-decision (2026-05-25): fifth + final phase-
+        # transition hook in the matrix. The 4 → 5 transition enforces that
+        # every Round N has a Phase 4 routing record per layer BEFORE Phase 5
+        # surface entries land. Conservative implementation: counts Phase 4
+        # routing references in the project's review-log directory.
+        entry: vsdd-suite/hooks/check-phase-5-routing-precedence.py
+        pass_filenames: true
+        # Scope: project-level review-log entries (`<project>/vsdd-suite/review-log/`).
+        files: ^.+/vsdd-suite/review-log/\d{4}-\d{2}-\d{2}-[a-z-]+\.md$
+        exclude: ^(node_modules/|target/|\.git/)
+
       - id: check-no-legacy-bypass-markers
         name: "reject legacy unscoped hook-bypass markers (AIE R2 F6 hook — scoped form is canonical)"
         language: python

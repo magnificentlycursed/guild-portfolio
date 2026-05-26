@@ -5,6 +5,23 @@ All notable changes to the suite are recorded here. Entries are in reverse chron
 
 ---
 
+## [Unreleased] R95 F3 hook 5 — check-phase-5-routing-precedence.py (4 → 5 transition; 5 of 5) (2026-05-25)
+
+**Scope:** Final phase-transition hook per R95 F3 Design A matrix. The 4 → 5 transition enforces that every Round N has a Phase 4 routing record per layer BEFORE Phase 5 surface entries land.
+
+### Added (vsdd-suite/hooks/check-phase-5-routing-precedence.py)
+
+- Validates: when a project review-log file contains a `**Phase 5 surface:**` preamble tag, the project's review-log directory must contain `**Phase 4 routing:**` references (Round N closing fields or per-domain appendix references). Conservative implementation counts references across all sibling review-log files.
+- Scope: project-level review-log entries (`<project>/vsdd-suite/review-log/`).
+- Scoped-bypass support on the Phase 5 entry's file.
+- Three-audience design: PHASE_5_TAG_RE + PHASE_4_ROUTING_FIELD_RE constants; failure messages name Phase 5 entry + missing references; structured `path:line: <message>` for agents.
+
+### Closure status post-this-commit
+
+**R95 F3 5 of 5 phase-transition hooks LANDED.** Hook implementations complete for the per-transition matrix. F2 (suite-wide staleness hook per operator-directive 2026-05-25) + F1 (existing-hook expansion suite-wide per operator-directive 2026-05-25) remain.
+
+---
+
 ## [Unreleased] R95 F3 hook 4 — check-suite-review-preamble.py Check 8 (Round N → N+1 trigger attestation) (2026-05-25)
 
 **Scope:** Fourth of 5 phase-transition hooks per R95 F3 Design A matrix. Extends `check-suite-review-preamble.py` with Check 8 — validates `**Round close trigger:** G-131 | G-151` field on project-level Phase 3 Round N ≥ 2 entries.
